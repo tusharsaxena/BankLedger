@@ -73,21 +73,41 @@ local function buildHeader(panel, title, opts)
   divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_HEIGHT)
   divider:SetVertexColor(titleFS:GetTextColor())   -- track the title's gold
 
-  if opts.defaultsButton and AceGUI then
-    -- MUST be an AceGUI Button, not a raw UIPanelButtonTemplate parented onto the canvas: a
-    -- template button created as a DIRECT child of the Settings canvas inherits the canvas's red
-    -- button skin. AceGUI creates under UIParent and reparents, keeping the dark/gold look
-    -- (options-ui-§5).
-    local btn = AceGUI:Create("Button")
-    btn:SetText("Defaults")
-    btn:SetWidth(DEFAULTS_W)
-    btn.frame:SetParent(panel)
-    btn.frame:ClearAllPoints()
-    btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
-    btn.frame:Show()
-    panel.defaultsBtn = btn
-  end
+  -- The button itself is built LAZILY (ensureDefaultsButton, below) — not here. buildHeader runs
+  -- during OnInitialize, which is too early: see the note on that function.
+  panel.wantsDefaultsButton = opts.defaultsButton and true or false
   return titleFS, divider
+end
+
+-- Build the header's Defaults button, once, on the panel's FIRST OnShow.
+--
+-- It MUST be an AceGUI Button, not a raw UIPanelButtonTemplate parented onto the canvas
+-- (options-ui-§5) — but *when* it is created matters just as much as *what* creates it. AceGUI is a
+-- shared library: UI-skinning addons restyle its widgets by hooking `RegisterAsWidget`, so a widget
+-- created before that hook is installed keeps Blizzard's stock `UI-Panel-Button-Up` art (the red
+-- stone button) forever, while every widget created afterwards comes out in the skin.
+--
+-- `P:Register()` runs in OnInitialize (ADDON_LOADED), so building the button there is a race
+-- against the load order of every other addon — one this addon loses whenever it loads before the
+-- skinner, and wins whenever it doesn't. That is exactly why the panel body's buttons (built lazily
+-- on first OnShow) looked right while this one didn't, with identical code in both places.
+--
+-- Deferring to first OnShow removes the race: by then every addon has loaded. It is also the same
+-- rule options-ui-§1 already applies to the panel BODY, for a related reason.
+local function ensureDefaultsButton(panel)
+  if panel.defaultsBtn or not panel.wantsDefaultsButton or not AceGUI then return end
+  local btn = AceGUI:Create("Button")
+  if not (btn and btn.frame) then return end
+  btn:SetText("Defaults")
+  btn:SetWidth(DEFAULTS_W)
+  btn.frame:SetParent(panel)
+  btn.frame:ClearAllPoints()
+  btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
+  btn.frame:Show()
+  panel.defaultsBtn = btn
+  -- The click handler is registered before the button exists (P:Register), so it is parked on the
+  -- panel and wired here.
+  if panel.defaultsOnClick then btn:SetCallback("OnClick", panel.defaultsOnClick) end
 end
 
 -- ── createPanel — a Frame for RegisterCanvasLayout(Sub)category, plus its render context ──
@@ -584,6 +604,91 @@ local function buildMainContent(ctx)
   end
 end
 
+-- ── Diagnostics ────────────────────────────────────────────────────────────────
+-- `/bl debug panel` — a structured dump of what the header's Defaults button ACTUALLY is at
+-- runtime (debug-logging-§4, the same shape as Ledger:Diagnose). Kept because it is the tool that
+-- found the load-order skinning race (see ensureDefaultsButton): a widget's region list is what
+-- distinguishes "stock Blizzard art" from "restyled by a UI skin", and that is invisible in code.
+-- A skinned button carries extra BORDER/BACKGROUND regions; an unskinned one is the bare 5-region
+-- UI-Panel-Button-Up (fileID 130828 — the red stone button).
+function P:Diagnose()
+  local out = {}
+  local function add(fmt, ...)
+    out[#out + 1] = select("#", ...) > 0 and fmt:format(...) or fmt
+  end
+
+  -- Which AceGUI actually served the widget: with several addons loaded, the FIRST copy to load
+  -- wins for all of them, so this may not be the copy this addon vendors.
+  local minor = LibStub and LibStub.minors and LibStub.minors["AceGUI-3.0"]
+  add("AceGUI=%s minor=%s", AceGUI and "yes" or "NO", tostring(minor))
+  if AceGUI then
+    local wv = AceGUI.WidgetVersions and AceGUI.WidgetVersions["Button"]
+    add("Button widget registered=%s version=%s",
+      (AceGUI.WidgetRegistry and AceGUI.WidgetRegistry["Button"]) and "yes" or "NO", tostring(wv))
+  end
+
+  local btn = P.general and P.general.panel and P.general.panel.defaultsBtn
+  if not btn then
+    add("defaultsBtn=NIL \226\128\148 no button was built; anything on screen is not ours")
+    return out
+  end
+  add("defaultsBtn type=%s aceType=%s", type(btn), tostring(btn.type))
+
+  local f = btn.frame
+  if not f then add("defaultsBtn.frame=NIL"); return out end
+  add("frame objectType=%s shown=%s size=%.0fx%.0f",
+    f.GetObjectType and f:GetObjectType() or "?", tostring(f:IsShown()),
+    f:GetWidth() or 0, f:GetHeight() or 0)
+
+  -- The parent chain: proves whether the frame really ended up on our canvas panel.
+  local chain, node, depth = {}, f:GetParent(), 0
+  while node and depth < 6 do
+    chain[#chain + 1] = (node.GetName and node:GetName()) or
+      ((node.GetObjectType and node:GetObjectType() or "?") .. "(anon)")
+    node = node.GetParent and node:GetParent()
+    depth = depth + 1
+  end
+  add("parent chain: %s", table.concat(chain, " < "))
+
+  -- The art itself — an atlas name or a texture path is the direct answer to "why is it red".
+  local function describe(tex, label)
+    if not tex then add("%s: none", label); return end
+    local atlas = tex.GetAtlas and tex:GetAtlas()
+    local path = tex.GetTexture and tex:GetTexture()
+    local r, g, b, a = 1, 1, 1, 1
+    if tex.GetVertexColor then r, g, b, a = tex:GetVertexColor() end
+    add("%s: atlas=%s texture=%s vertex=%.2f/%.2f/%.2f/%.2f",
+      label, tostring(atlas), tostring(path), r or 1, g or 1, b or 1, a or 1)
+  end
+  describe(f.GetNormalTexture and f:GetNormalTexture(), "normal")
+  describe(f.GetHighlightTexture and f:GetHighlightTexture(), "highlight")
+  describe(f.GetPushedTexture and f:GetPushedTexture(), "pushed")
+
+  -- A modern UIPanelButtonTemplate draws its face from CHILD REGIONS (a 3-slice or a NineSlice),
+  -- not from a NormalTexture — so "normal: none" means the colour is in one of these.
+  local function dumpRegions(frame, tag)
+    if not frame.GetRegions then return end
+    local n = select("#", frame:GetRegions())
+    add("%s: %d regions", tag, n)
+    for i = 1, n do
+      local reg = select(i, frame:GetRegions())
+      if reg and reg.GetObjectType and reg:GetObjectType() == "Texture" then
+        describe(reg, ("  %s[%d] %s"):format(tag, i, tostring(reg:GetDrawLayer())))
+      end
+    end
+    -- The NineSlice is a child FRAME, so it is not in GetRegions.
+    if frame.NineSlice then dumpRegions(frame.NineSlice, tag .. ".NineSlice") end
+  end
+  dumpRegions(f, "btn")
+
+  local fs = f.GetFontString and f:GetFontString()
+  if fs then
+    local r, g, b = fs:GetTextColor()
+    add("label=%q colour=%.2f/%.2f/%.2f", tostring(fs:GetText()), r or 0, g or 0, b or 0)
+  end
+  return out
+end
+
 -- ── Refresh / Defaults ─────────────────────────────────────────────────────────
 
 -- Scalar re-sync only: run each rendered widget's updater closure. Structural rebuilds are the
@@ -623,11 +728,10 @@ function P:Register()
   -- General subcategory = the actual settings.
   local ctx = createPanel("General", { defaultsButton = true })
   P.general = ctx
-  if ctx.panel.defaultsBtn then
-    ctx.panel.defaultsBtn:SetCallback("OnClick", function() P:RestoreDefaults() end)
-  end
+  ctx.panel.defaultsOnClick = function() P:RestoreDefaults() end
   local rendered = false
   ctx.panel:SetScript("OnShow", function()
+    ensureDefaultsButton(ctx.panel)
     if not rendered then
       rendered = true
       -- "Reset all" sits to the right of Window scale; it wipes the ledger AND the settings.
@@ -654,17 +758,16 @@ function P:Register()
   P.filters = fctx
   -- Defaults here = clear both id-lists (their stock state is empty), confirm-gated. The page holds
   -- no Schema rows, so this is the "restore defaults" for what it manages.
-  if fctx.panel.defaultsBtn then
-    fctx.panel.defaultsBtn:SetCallback("OnClick", function()
-      if type(StaticPopup_Show) == "function" then
-        StaticPopup_Show("KA0S_BANKLEDGER_CLEAR_FILTERS")
-      elseif NS.Filters then
-        NS.Filters:ClearAll()
-      end
-    end)
+  fctx.panel.defaultsOnClick = function()
+    if type(StaticPopup_Show) == "function" then
+      StaticPopup_Show("KA0S_BANKLEDGER_CLEAR_FILTERS")
+    elseif NS.Filters then
+      NS.Filters:ClearAll()
+    end
   end
   local fRendered = false
   fctx.panel:SetScript("OnShow", function()
+    ensureDefaultsButton(fctx.panel)
     if not fRendered then
       fRendered = true
       buildFilters(fctx)

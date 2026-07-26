@@ -62,6 +62,7 @@ _G.BL_TEST = {
 local SUITE_FILES = {
   "test_util.lua", "test_compat.lua", "test_constants.lua", "test_filters.lua",
   "test_ledger.lua", "test_database.lua", "test_stats.lua", "test_ledgertable.lua",
+  "test_browser.lua",
   "test_export.lua", "test_debuglog.lua", "test_schema.lua", "test_slash.lua",
 }
 for _, s in ipairs(SUITE_FILES) do

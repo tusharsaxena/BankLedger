@@ -6,7 +6,7 @@ The full inventory of every headless test case, grouped by suite. This file is t
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
 whenever the suite changes (see [testing.md](testing.md)).
 
-### test_util.lua (24)
+### test_util.lua (30)
 
 - Util.PlayerKey joins name and realm with spaces stripped
 - Util.SplitPath splits a dotted settings path
@@ -17,6 +17,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Util.PlainMoney renders zero rather than an empty string
 - Util.PlainMoney renders nil as empty
 - Util.FormatMoney is blank for nothing and compact for a real amount
+- Util.EntryType is the stored item type for an item movement
+- Util.EntryType is Gold for a gold movement, which stores no type
+- Util.EntryType is blank for an uncached item and for nothing at all
+- Util.ClassIconMarkup carries the class's slice of the icon sheet
+- Util.ClassIconMarkup honours a requested size
+- Util.ClassIconMarkup is empty for an unknown or missing class
 - Util.FormatBytes steps through B, kB and MB
 - Util.RangeFrom returns nil for the no-bound 'all' range
 - Util.RangeFrom windows are ordered today > 7d > 30d
@@ -52,7 +58,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Compat.GetPlayerMapID returns the current map id
 - Compat.GetAddOnMetadata degrades to nil when neither getter exists
 
-### test_constants.lua (17)
+### test_constants.lua (19)
 
 - Constants: every Store enum member appears in the display order
 - Constants: every Store enum member has a display label
@@ -71,6 +77,8 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Constants: the store mute options exclude BAGS
 - Constants: every quality option carries a numeric value and a label
 - Constants: the retention presets offer an 'Always' (0) option
+- Constants: every store has a display colour
+- Constants: every direction has a colour and a glyph
 
 ### test_filters.lua (15)
 
@@ -182,7 +190,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_database.lua (29)
+### test_database.lua (33)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -193,6 +201,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Database:QueryList filters on direction
 - Database:QueryList filters on kind
 - Database:QueryList filters on character
+- Database:QueryList filters on item sub-type
+- Database:QueryList filters on an item sub-type SET (multi-select)
+- Database:QueryList filters gold movements under the type 'Gold'
+- Database:QueryList mixes Gold with real item types in one set
 - Database:QueryList filters on an exact quality
 - Database:QueryList filters on a quality SET
 - Database:QueryList filters on a from/to timestamp window, inclusive
@@ -247,27 +259,34 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights.FormatNet colours a gain green and a loss red
 - Insights.FormatNet renders zero as a neutral dash
 
-### test_ledgertable.lua (27)
+### test_ledgertable.lua (34)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:CellText renders the store as a human label
 - LedgerTable:CellText falls back to 'Item <id>' for an uncached item
-- LedgerTable:CellText shows a dash instead of a quantity for a gold row
+- LedgerTable:CellText shows a gold row's amount as money in the Qty column
 - LedgerTable:CellText shows the stack size for an item row
 - LedgerTable:CellText renders the quality label, and blank when unknown
-- LedgerTable:CellText values an item row at vendor price times stack
+- LedgerTable:CellText shows a dash for a gold row's quality
+- LedgerTable:CellText renders the item type and sub-type, and blank when unknown
+- LedgerTable:CellText types a gold row as Gold on both type columns
 - LedgerTable:CellText returns empty for an unknown column key
 - LedgerTable:SortEntries orders by the active column
 - LedgerTable:SortEntries honours the ascending direction
 - LedgerTable:SortEntries is stable across equal keys
 - LedgerTable:SortEntries never mutates the array it is given
-- LedgerTable:SortEntries sorts gold rows by value alongside items
+- LedgerTable:SortEntries sorts the Qty column on what the cell shows
 - LedgerTable:GroupEntries with no grouping emits one row item each
 - LedgerTable:GroupEntries inserts a header per group, with a count
 - LedgerTable:GroupEntries labels a header with its column prefix and value
 - LedgerTable:GroupEntries emits only the header for a collapsed group
 - LedgerTable:GroupEntries namespaces group keys by mode, so they cannot collide
 - LedgerTable:GroupEntries groups gold and items apart under 'kind'
+- LedgerTable:GroupEntries groups by item type and sub-type
+- LedgerTable:GroupEntries gathers gold under Gold when grouping by type
+- LedgerTable:GroupEntries labels an untyped item group Unknown
+- LedgerTable:GroupEntries orders quality groups Poor to Legendary
+- LedgerTable:GroupEntries puts gold in its own quality group
 - LedgerTable:BuildPreviewData produces a non-trivial sample ledger
 - LedgerTable:BuildPreviewData is deterministic across runs
 - LedgerTable:BuildPreviewData covers every store
@@ -276,6 +295,21 @@ whenever the suite changes (see [testing.md](testing.md)).
 - LedgerTable:BuildPreviewData stamps the guild name only on guild-bank rows
 - LedgerTable.RenderSummary is one line carrying the render's shape
 - LedgerTable:MinFrameWidth is wide enough for every column
+
+### test_browser.lua (12)
+
+- Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
+- Browser.ResolveCharFilter passes ordinary character keys through
+- Browser.ResolveCharFilter mixes the sentinel with explicit names
+- Browser.ResolveCharFilter collapses the sentinel onto the same name once
+- Browser.ResolveCharFilter returns nil for an empty selection (no filter)
+- Browser.ResolveCharFilter falls back to the live player key
+- Browser.ResolveCharFilter copies the set rather than aliasing it
+- Browser:ClearFilters defaults the Character filter to the current character
+- Browser:ClearFilters leaves every other filter empty
+- Browser:ClearFilters does not scope preview data to the real player
+- Browser:MinWidth fits every table column and the whole toolbar
+- Browser:ExportWidth leaves the Export button a usable width
 
 ### test_export.lua (20)
 
@@ -381,16 +415,17 @@ whenever the suite changes (see [testing.md](testing.md)).
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 24 |
+| test_util.lua | 30 |
 | test_compat.lua | 16 |
-| test_constants.lua | 17 |
+| test_constants.lua | 19 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 89 |
-| test_database.lua | 29 |
+| test_database.lua | 33 |
 | test_stats.lua | 30 |
-| test_ledgertable.lua | 27 |
+| test_ledgertable.lua | 34 |
+| test_browser.lua | 12 |
 | test_export.lua | 20 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **335** |
+| **Total** | **366** |

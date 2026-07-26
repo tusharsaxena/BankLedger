@@ -12,11 +12,26 @@ local HEADER_H = 20
 local ITEM_MIN = 150   -- minimum width of the flex (Item) column
 local COL_GAP = 8      -- horizontal space between columns
 
--- Direction colours: a deposit is money/goods going IN (green), a withdrawal coming OUT (amber).
-local DIRECTION_RGB = {
-  DEPOSIT  = { 0.35, 0.80, 0.45 },
-  WITHDRAW = { 0.95, 0.70, 0.30 },
-}
+-- Direction and store colours + the ▲/▼ direction glyphs live in Constants (C.DirectionRGB,
+-- C.DirectionGlyph, C.StoreRGB): the filter dropdowns paint their options from the same tables, so
+-- a store or a direction can never read one colour in the table and another in the menu.
+--
+-- The glyph is drawn as a real text glyph rather than a texture, because a glyph sits on the
+-- label's own baseline — centred against the text by construction, where Blizzard's arrow textures
+-- carry uneven padding (the up arrow's art sits low in its canvas, the down arrow's high) and
+-- visibly misalign. It also takes the direction's colour from the same SetTextColor the label uses.
+-- It needs the VENDORED font: the default WoW font has no ▲/▼ and renders a box, while the shipped
+-- JetBrains Mono carries both. That is an accepted, documented deviation — the mono font is a
+-- sanctioned styling exception scoped to the debug console (debug-logging-§2) and this extends it
+-- to one glyph. See docs/ARCHITECTURE.md ▸ Documented deviations.
+local ARROW_SIZE, ARROW_GAP = 12, 2
+
+-- Gold movements name themselves "Gold" in the Item column. A quality colour would be a lie (gold
+-- has no quality), so they take a pale gold — deliberately LIGHTER than the 1/0.82/0 the column
+-- headers and window title use, so a gold row reads as data and never as a heading.
+local MONEY_RGB = { 1.00, 0.91, 0.55 }
+
+local EM_DASH = "\226\128\148"
 
 -- ── Column model ────────────────────────────────────────────────────────────────
 -- width 0 + flex = true means "absorb the remaining width" (the Item column). Character is
@@ -30,8 +45,9 @@ LT.COLUMNS = {
     desc = "Time of day the movement happened.",
     valueFn = function(e) return NS.Util.FormatClock(e.ts) end,
     sortFn = function(e) return e.ts or 0 end },
-  { key = "direction", label = "In/Out", width = 62, align = "LEFT",
-    desc = "Deposit means it left your bags for the store; withdraw means it came back out.",
+  { key = "direction", label = "In/Out", width = 74, align = "LEFT",
+    desc = "Deposit (\226\150\188) means it left your bags for the store; "
+      .. "withdraw (\226\150\178) means it came back out.",
     valueFn = function(e) return C.DirectionLabel[e.direction] or e.direction or "" end,
     sortFn = function(e) return e.direction or "" end },
   { key = "store", label = "Store", width = 112, align = "LEFT",
@@ -44,29 +60,33 @@ LT.COLUMNS = {
       return e.itemName or (e.itemID and ("Item " .. e.itemID)) or "?"
     end,
     sortFn = function(e) return (e.itemName or ""):lower() end },
-  { key = "qty", label = "Qty", width = 46, align = "RIGHT",
-    desc = "How many moved. Gold rows show a dash — their amount is in the Value column.",
+  { key = "qty", label = "Qty", width = 92, align = "RIGHT",
+    desc = "How many moved — the stack size for an item, the amount for a gold movement.",
     valueFn = function(e)
-      if e.kind == C.Kind.MONEY then return "\226\128\148" end   -- em-dash
+      if e.kind == C.Kind.MONEY then return NS.Util.FormatMoney(e.quantity) end
       return tostring(e.quantity or 1)
     end,
-    sortFn = function(e) return (e.kind == C.Kind.MONEY) and 0 or (e.quantity or 1) end },
+    -- Sorts on what the cell shows: a gold row by its copper amount, an item row by stack size.
+    sortFn = function(e) return e.quantity or 1 end },
   { key = "quality", label = "Quality", width = 64, align = "LEFT",
-    desc = "Item quality (Poor to Legendary).",
-    valueFn = function(e) return e.quality ~= nil and NS.Compat.QualityLabel(e.quality) or "" end,
+    desc = "Item quality (Poor to Legendary). Gold has none, and shows a dash.",
+    valueFn = function(e)
+      if e.kind == C.Kind.MONEY then return EM_DASH end
+      return e.quality ~= nil and NS.Compat.QualityLabel(e.quality) or ""
+    end,
     sortFn = function(e) return e.quality or -1 end },
   { key = "type", label = "Type", width = 86, align = "LEFT",
-    desc = "Item type (subtype is in the item tooltip).",
-    valueFn = function(e) return e.itemType or "" end,
-    sortFn = function(e) return (e.itemType or ""):lower() end },
-  { key = "value", label = "Value", width = 92, align = "RIGHT",
-    desc = "What the movement was worth: the gold amount, or vendor price times stack size.",
-    valueFn = function(e) return NS.Util.FormatMoney(NS.Util.EntryValue(e)) end,
-    sortFn = function(e) return NS.Util.EntryValue(e) end },
+    desc = "Item type. Gold movements are typed as Gold.",
+    valueFn = function(e) return NS.Util.EntryType(e) end,
+    sortFn = function(e) return NS.Util.EntryType(e):lower() end },
+  { key = "subtype", label = "Sub-type", width = 92, align = "LEFT",
+    desc = "Item sub-type (Cloth, Potion, Swords, …). Gold movements are sub-typed as Gold.",
+    valueFn = function(e) return NS.Util.EntrySubType(e) end,
+    sortFn = function(e) return NS.Util.EntrySubType(e):lower() end },
   -- Character is always the last column (see the order note above).
-  { key = "char", label = "Character", width = 132, align = "LEFT",
-    desc = "Who moved it — full Name-Realm, class-coloured.",
-    valueFn = function(e) return e.char or "" end,
+  { key = "char", label = "Character", width = 144, align = "LEFT",
+    desc = "Who moved it — full Name-Realm, class-coloured, behind its class icon.",
+    valueFn = function(e) return NS.Util.ClassIconMarkup(e.classFile) .. (e.char or "") end,
     sortFn = function(e) return (e.char or ""):lower() end },
 }
 
@@ -90,7 +110,7 @@ LT.sortAsc = false
 
 -- Columns whose sortFn yields a number: a new sort on these starts descending (largest/newest
 -- first); text columns start ascending (A→Z). Re-clicking the active column toggles.
-local NUMERIC_SORT = { date = true, time = true, qty = true, quality = true, value = true }
+local NUMERIC_SORT = { date = true, time = true, qty = true, quality = true }
 
 -- Grouping. "none" = flat; otherwise entries are partitioned under collapsible headers.
 LT.groupBy = "none"
@@ -113,6 +133,19 @@ local function groupOf(groupBy, e)
     label = C.DirectionLabel[e.direction] or e.direction or "?"; raw = e.direction or "?"
   elseif groupBy == "kind" then
     label = C.KindLabel[e.kind] or e.kind or "?"; raw = e.kind or "?"
+  elseif groupBy == "type" or groupBy == "subtype" then
+    -- The effective type, so gold movements gather under "Gold" exactly as the column shows them.
+    label = (groupBy == "type") and NS.Util.EntryType(e) or NS.Util.EntrySubType(e)
+    if label == "" then label = "Unknown" end
+    raw = label
+  elseif groupBy == "quality" then
+    -- Keyed on the quality id, so the group sorts Poor→Legendary rather than alphabetically. Gold
+    -- has no quality; it gathers under its own group instead of vanishing into "Poor".
+    if e.quality == nil then
+      label = "None"; raw = "none"
+    else
+      label = NS.Compat.QualityLabel(e.quality); raw = tostring(e.quality)
+    end
   elseif groupBy == "char" then
     raw = e.char or "Unknown"; label = raw
   elseif groupBy == "day" then
@@ -126,9 +159,12 @@ end
 
 -- groupBy mode → the table column it corresponds to (which drives the header arrow and the
 -- group-order toggle) and the human prefix each group header carries.
-local GROUP_COLUMN = { store = "store", direction = "direction", char = "char", day = "date" }
-local GROUP_PREFIX = { store = "Store", direction = "Direction", kind = "Type",
-                       char = "Character", day = "Day" }
+local GROUP_COLUMN = { store = "store", direction = "direction", char = "char", day = "date",
+                       type = "type", subtype = "subtype", quality = "quality" }
+-- "kind" is the Item/Gold split, NOT the Type column — its prefix says so, now that Type groups too.
+local GROUP_PREFIX = { store = "Store", direction = "Direction", kind = "Item/Gold",
+                       char = "Character", day = "Day", type = "Type", subtype = "Sub-type",
+                       quality = "Quality" }
 
 -- Stable sort by the active column into a NEW array (entries are never mutated). Lua 5.1's
 -- table.sort is not stable, so equal keys tiebreak on the original index to keep their prior order.
@@ -409,6 +445,15 @@ function LT:AcquireRow()
     row.cells[col.key] = fs
   end
 
+  -- The direction glyph, drawn to the left of the In/Out text and coloured with it.
+  local glyph = row:CreateFontString(nil, "OVERLAY")
+  glyph:SetFont(C.FONT_MONO, ARROW_SIZE, "")
+  glyph:SetJustifyH("CENTER")
+  glyph:SetWidth(ARROW_SIZE)
+  glyph:SetHeight(ROW_H)
+  glyph:Hide()
+  row.dirGlyph = glyph
+
   -- Group-header styling; hidden for data rows.
   local header = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   header:SetPoint("LEFT", 4, 0)
@@ -420,10 +465,19 @@ function LT:AcquireRow()
     local item = self2.item
     if not (item and item.kind == "row") then return end
     local e = item.entry
-    if e.itemLink and GameTooltip then
+    if not GameTooltip then return end
+    if e.itemLink then
       GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
       GameTooltip:SetHyperlink(e.itemLink)
       GameTooltip:AddLine("Shift-click to link \194\183 right-click for options", 0.5, 0.5, 0.5)
+      GameTooltip:Show()
+    elseif e.kind == C.Kind.MONEY then
+      -- A gold movement has no item to hover, so build the tooltip by hand rather than leave the
+      -- row silent: the amount is the one thing the Qty cell can truncate.
+      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(C.KindLabel.MONEY, MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
+      GameTooltip:AddDoubleLine("Amount", NS.Util.FormatMoney(e.quantity), 0.9, 0.9, 0.9, 1, 1, 1)
+      GameTooltip:AddLine("Right-click for options", 0.5, 0.5, 0.5)
       GameTooltip:Show()
     end
   end)
@@ -485,8 +539,16 @@ function LT:LayoutRowCells(row)
     local w = col.flex and flexW or col.width
     local fs = row.cells[col.key]
     fs:ClearAllPoints()
-    fs:SetPoint("LEFT", row, "LEFT", x, 0)
-    fs:SetWidth(w)
+    -- The In/Out cell gives its first ARROW_SIZE+ARROW_GAP pixels to the direction glyph.
+    if col.key == "direction" and row.dirGlyph then
+      row.dirGlyph:ClearAllPoints()
+      row.dirGlyph:SetPoint("LEFT", row, "LEFT", x, 0)
+      fs:SetPoint("LEFT", row, "LEFT", x + ARROW_SIZE + ARROW_GAP, 0)
+      fs:SetWidth(math.max(1, w - ARROW_SIZE - ARROW_GAP))
+    else
+      fs:SetPoint("LEFT", row, "LEFT", x, 0)
+      fs:SetWidth(w)
+    end
     x = x + w + COL_GAP
   end
 end
@@ -672,8 +734,10 @@ function LT:BindRow(row, item, absIndex)
 
   if item.kind == "header" then
     for _, col in ipairs(self.COLUMNS) do row.cells[col.key]:SetText("") end
+    row.dirGlyph:Hide()
     row.header:Show()
-    -- +/- box marks collapsed/expanded (the font has no triangle glyphs; texture markup always does).
+    -- +/- box marks collapsed/expanded. Texture markup, not a glyph: this is inline in the header's
+    -- own label, which uses the GAME font (no ▲/▼ there — only the vendored mono font has them).
     local arrow = item.collapsed and "|TInterface\\Buttons\\UI-PlusButton-Up:0|t"
       or "|TInterface\\Buttons\\UI-MinusButton-Up:0|t"
     row.header:SetText(arrow .. "  " .. (item.label or "")
@@ -687,9 +751,20 @@ function LT:BindRow(row, item, absIndex)
     local fs = row.cells[col.key]
     fs:SetText(col.valueFn(e))
     if col.key == "item" or col.key == "quality" then
-      fs:SetTextColor(qualityColor(e.quality))
+      if e.kind == C.Kind.MONEY then
+        fs:SetTextColor(MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
+      else
+        fs:SetTextColor(qualityColor(e.quality))
+      end
     elseif col.key == "direction" then
-      local rgb = DIRECTION_RGB[e.direction] or { 0.9, 0.9, 0.9 }
+      local rgb = C.DirectionRGB[e.direction] or C.NEUTRAL_RGB
+      fs:SetTextColor(rgb[1], rgb[2], rgb[3])
+      local glyph = C.DirectionGlyph[e.direction]
+      row.dirGlyph:SetText(glyph or "")
+      row.dirGlyph:SetTextColor(rgb[1], rgb[2], rgb[3])
+      row.dirGlyph:SetShown(glyph ~= nil)
+    elseif col.key == "store" then
+      local rgb = C.StoreRGB[e.store] or C.NEUTRAL_RGB
       fs:SetTextColor(rgb[1], rgb[2], rgb[3])
     elseif col.key == "char" then
       local cc = RAID_CLASS_COLORS and e.classFile and RAID_CLASS_COLORS[e.classFile]

@@ -11,19 +11,60 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- `group` names the panel section header, and row order within a group drives the two-column
 -- pairing. `wide` forces a full-width row; `soloRow` puts a row on its own line.
 S.Schema = {
-  -- ── Capture ──
+  -- ── Master Controls ──
+  -- The master switches and the window controls, ahead of what is actually captured: the same
+  -- shape the sibling Ka0s addons use, so General reads the same way across the suite.
   { path = "settings.enabled", default = true, type = "boolean", widget = "CheckBox",
-    group = "Capture", label = "Enable capture",
+    group = "Master Controls", label = "Enable capture",
     tooltip = "Master switch for recording bank movements.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
     end },
 
   { path = "minimap.hide", default = false, type = "boolean", widget = "CheckBox",
-    group = "Capture", label = "Hide minimap button",
+    group = "Master Controls", label = "Hide minimap button",
     tooltip = "Hide the Bank Ledger minimap button.",
     onChange = function(v)
       if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
+    end },
+
+  -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
+  -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
+  -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
+  { path = "state.debugConsole", sessionOnly = true, default = false, type = "boolean",
+    widget = "CheckBox", soloRow = true, group = "Master Controls", label = "Debug console",
+    tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
+    get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
+    set = function(v)
+      if not NS.DebugLog then return end
+      if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
+    end },
+
+  -- Paired with the "Reset all" button by the panel's `companions` map (settings/Panel.lua).
+  { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
+    widget = "Slider",
+    fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
+    group = "Master Controls", label = "Window scale",
+    tooltip = "Scale of the ledger window.",
+    onChange = function(v)
+      if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
+    end },
+
+  -- ── Capture ──
+  -- What gets recorded: the two scope dropdowns first, then the kind toggles, then the per-store
+  -- grid — narrowest-to-widest, as the sibling addons order their collection section.
+  { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
+    group = "Capture", label = "Minimum quality", options = C.QUALITY_OPTIONS,
+    tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
+    onChange = function()
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
+    end },
+
+  { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
+    group = "Capture", label = "Keep history for", options = C.RETENTION_OPTIONS,
+    tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
+    onChange = function()
+      if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end },
 
   { path = "settings.trackItems", default = true, type = "boolean", widget = "CheckBox",
@@ -41,20 +82,6 @@ S.Schema = {
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "trackMoney") end
     end },
 
-  { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Minimum quality", options = C.QUALITY_OPTIONS,
-    tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
-    onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
-    end },
-
-  { path = "settings.retentionDays", default = 90, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Keep history for", options = C.RETENTION_OPTIONS,
-    tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
-    onChange = function()
-      if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
-    end },
-
   -- Stored as the set of MUTED stores (excludedStores); the panel renders it inverted
   -- (invert = true) as "Record movements to and from", so a ticked box means "record this store".
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
@@ -62,28 +89,6 @@ S.Schema = {
     group = "Capture", label = "Record movements to and from", options = C.STORE_OPTIONS,
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "stores") end
-    end },
-
-  -- ── Window ──
-  { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
-    widget = "Slider",
-    fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
-    group = "Window", label = "Window scale",
-    tooltip = "Scale of the ledger window.",
-    onChange = function(v)
-      if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
-    end },
-
-  -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
-  -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
-  -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
-  { path = "state.debugConsole", sessionOnly = true, default = false, type = "boolean",
-    widget = "CheckBox", soloRow = true, group = "Window", label = "Debug console",
-    tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
-    get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
-    set = function(v)
-      if not NS.DebugLog then return end
-      if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
     end },
 }
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
@@ -214,6 +219,15 @@ NS.COMMANDS = {
       if not NS.DebugLog then return end
       if arg == "on" then NS.DebugLog:SetEnabled(true)
       elseif arg == "off" then NS.DebugLog:SetEnabled(false)
+      elseif arg == "panel" then
+        -- Structured dump of the settings header's Defaults button (debug-logging-§4). Same RAW
+        -- append as `scan`, so it works whether or not logging is enabled.
+        NS.DebugLog:Show()
+        if NS.Panel and NS.Panel.Diagnose then
+          for _, line in ipairs(NS.Panel:Diagnose()) do NS.DebugLog:Add("Panel", line) end
+        else
+          NS.DebugLog:Add("Panel", "settings panel not built yet \226\128\148 run /bl config first")
+        end
       elseif arg == "scan" then
         -- A structured dump verb (debug-logging-§4): writes the client's real container model into
         -- the console through the RAW append, so it works whether or not logging is enabled.

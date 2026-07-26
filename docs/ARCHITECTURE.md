@@ -87,17 +87,19 @@ enums freely, never rename a member.
 `settings/Schema.lua` is the single source: it drives the panel widgets, the slash `get`/`set`/
 `list`/`reset` dispatch, and the defaults reset. Every write goes through `NS.Schema:Set`.
 
+Rows render in schema order, so this table is also the panel's layout, top to bottom.
+
 | Path | Type | Default | Group |
 |---|---|---|---|
-| `settings.enabled` | boolean | `true` | Capture |
-| `minimap.hide` | boolean | `false` | Capture |
+| `settings.enabled` | boolean | `true` | Master Controls |
+| `minimap.hide` | boolean | `false` | Master Controls |
+| `state.debugConsole` | boolean (session-only) | `false` | Master Controls |
+| `settings.windowScale` | number | `1.0` | Master Controls |
+| `settings.qualityThreshold` | number | `0` | Capture |
+| `settings.retentionDays` | number | `30` | Capture |
 | `settings.trackItems` | boolean | `true` | Capture |
 | `settings.trackMoney` | boolean | `true` | Capture |
-| `settings.qualityThreshold` | number | `0` | Capture |
-| `settings.retentionDays` | number | `90` | Capture |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture |
-| `settings.windowScale` | number | `1.0` | Window |
-| `state.debugConsole` | boolean (session-only) | `false` | Window |
 
 **Storage carve-outs** — mutated by their owning module rather than through `Schema:Set`, because
 neither has a schema widget to drive: `settings.window` (geometry, `modules/Browser.lua`) and
@@ -135,6 +137,8 @@ settings landing page and the README all read from one place.
 | `/bl preview` | Toggle a sample ledger for previewing the window |
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
+| `/bl debug scan` | Dump the client's live container model into the console |
+| `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
 | `/bl help` | The help index |
 
 ## Event subscriptions
@@ -198,6 +202,22 @@ change.
   `table.concat` rather than `..` — the operator propagates secretness without raising, so a
   `..`-based probe would let a combat "secret" through to the real concat and crash.
 
+## Documented deviations
+
+Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
+
+- **The vendored mono font is used for the In/Out glyph**, not only for the debug console.
+  `media/fonts/JetBrainsMono-Regular.ttf` ships as a *sanctioned styling exception* whose stated
+  scope is the debug console and its copy boxes (debug-logging-§2). The History table's In/Out
+  column and the In/Out filter dropdown draw a ▲/▼ (U+25B2 / U+25BC) in that font, because WoW's
+  default font carries neither glyph and renders a box for both.
+  **Why the extension was accepted:** the alternative is a texture, and Blizzard's arrow art carries
+  uneven padding — the up arrow sits low in its canvas, the down arrow high — so a texture pair
+  visibly misaligns against the row text. A text glyph sits on the label's own baseline, so it is
+  centred by construction and takes the direction's colour from the same `SetTextColor` call as the
+  label. The font is already shipped, so this costs no new asset. Scope is two glyphs; no body text
+  anywhere uses the mono font outside the console.
+
 ## Known limitations
 
 - **Currency movements are not captured yet.** The `Kind.CURRENCY` enum member and the export
@@ -214,5 +234,5 @@ change.
   to be one of the two sides. It would need a second rule that pairs two stores against each other.
 - **A movement made while the addon is disabled is lost**, not backfilled — the baseline snapshot is
   only taken while capture is on.
-- **`media/logos/bankledger.logo.tga` is not shipped yet.** The settings landing page reserves its
-  300×300 slot and renders nothing until the art lands.
+- **The settings landing page renders no logo if the art is missing.** `C.LOGO_PATH` points at
+  `media/logos/bankledger.logo.tga`; a missing file simply draws nothing rather than erroring.

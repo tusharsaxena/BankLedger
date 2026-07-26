@@ -73,9 +73,10 @@ function Database:Add(entry)
 end
 
 -- Filter an arbitrary entry array by the filter spec. Every field is optional and AND-combined.
--- kind/direction/store/char/itemType each accept a scalar (equality) OR a set table (membership,
--- for the browser's multi-select filters); quality accepts a number (exact) or a set table.
---   kind · direction · store · char · itemType · quality · from/to (ts, inclusive) ·
+-- kind/direction/store/char/itemType/itemSubType each accept a scalar (equality) OR a set table
+-- (membership, for the browser's multi-select filters); quality accepts a number (exact) or a set.
+-- itemType/itemSubType match the entry's EFFECTIVE type — a gold movement's is "Gold".
+--   kind · direction · store · char · itemType · itemSubType · quality · from/to (ts, inclusive) ·
 --   text (case-insensitive substring on itemName)
 -- An empty/nil filter returns everything. Kept generic (not tied to the live ledger) so the browser
 -- can filter its preview dataset through exactly the same code.
@@ -99,7 +100,10 @@ function Database:QueryList(entries, filter)
       and matches(filter.direction, e.direction)
       and matches(filter.store, e.store)
       and matches(filter.char, e.char)
-      and matches(filter.itemType, e.itemType)
+      -- Matched on the EFFECTIVE type (NS.Util.EntryType), so "Gold" filters gold movements — the
+      -- same value the Type column shows for them. Item rows are unaffected.
+      and matches(filter.itemType, NS.Util.EntryType(e))
+      and matches(filter.itemSubType, NS.Util.EntrySubType(e))
     if ok and qIsSet then
       if not filter.quality[e.quality] then ok = false end
     elseif ok and qExact and (e.quality or 0) ~= qExact then

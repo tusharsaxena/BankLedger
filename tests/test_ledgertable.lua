@@ -35,9 +35,10 @@ test("LedgerTable:CellText falls back to 'Item <id>' for an uncached item", func
   assertEqual(LT:CellText("item", e({ itemName = NIL, itemID = 12345 })), "Item 12345")
 end)
 
-test("LedgerTable:CellText shows a dash instead of a quantity for a gold row", function()
-  -- A gold amount belongs in the Value column; a "50000" in Qty would read as 50,000 items.
-  assertEqual(LT:CellText("qty", e({ kind = "MONEY", quantity = 50000 })), "\226\128\148")
+test("LedgerTable:CellText shows a gold row's amount as money in the Qty column", function()
+  -- There is no Value column: a gold movement's amount IS its quantity, formatted as money so a
+  -- "50000" can never read as 50,000 items.
+  assertEqual(LT:CellText("qty", e({ kind = "MONEY", quantity = 50000 })), "5g")
 end)
 
 test("LedgerTable:CellText shows the stack size for an item row", function()
@@ -49,8 +50,19 @@ test("LedgerTable:CellText renders the quality label, and blank when unknown", f
   assertEqual(LT:CellText("quality", e({ quality = NIL })), "")
 end)
 
-test("LedgerTable:CellText values an item row at vendor price times stack", function()
-  assertEqual(LT:CellText("value", e({ vendorPrice = 20, quantity = 10 })), "2s")
+test("LedgerTable:CellText shows a dash for a gold row's quality", function()
+  assertEqual(LT:CellText("quality", e({ kind = "MONEY", quality = NIL })), "\226\128\148")
+end)
+
+test("LedgerTable:CellText renders the item type and sub-type, and blank when unknown", function()
+  assertEqual(LT:CellText("type", e()), "Tradegoods")
+  assertEqual(LT:CellText("subtype", e({ itemSubType = "Cloth" })), "Cloth")
+  assertEqual(LT:CellText("subtype", e({ itemSubType = NIL })), "")
+end)
+
+test("LedgerTable:CellText types a gold row as Gold on both type columns", function()
+  assertEqual(LT:CellText("type", e({ kind = "MONEY", itemType = NIL })), "Gold")
+  assertEqual(LT:CellText("subtype", e({ kind = "MONEY", itemSubType = NIL })), "Gold")
 end)
 
 test("LedgerTable:CellText returns empty for an unknown column key", function()
@@ -103,10 +115,10 @@ test("LedgerTable:SortEntries never mutates the array it is given", function()
   end)
 end)
 
-test("LedgerTable:SortEntries sorts gold rows by value alongside items", function()
-  local list = { e({ vendorPrice = 20, quantity = 1 }),
-                 e({ kind = "MONEY", quantity = 99999 }) }
-  withSort("value", false, function()
+test("LedgerTable:SortEntries sorts the Qty column on what the cell shows", function()
+  -- A gold row's quantity is its copper amount — the same number the Qty cell formats as money.
+  local list = { e({ quantity = 1 }), e({ kind = "MONEY", quantity = 99999 }) }
+  withSort("qty", false, function()
     assertEqual(LT:SortEntries(list)[1].kind, "MONEY")
   end)
 end)
@@ -172,6 +184,53 @@ test("LedgerTable:GroupEntries groups gold and items apart under 'kind'", functi
   withGroup("kind", function()
     local list = LT:GroupEntries({ e(), e({ kind = "MONEY" }) })
     assertEqual(#list, 4)   -- 2 headers + 2 rows
+    -- 'kind' is the Item/Gold split; the Type prefix belongs to the Type column's own grouping.
+    -- 'kind' maps to no table column, so its groups order by label: Gold before Item.
+    assertEqual(list[1].label, "Item/Gold: Gold")
+    assertEqual(list[3].label, "Item/Gold: Item")
+  end)
+end)
+
+test("LedgerTable:GroupEntries groups by item type and sub-type", function()
+  withGroup("type", function()
+    local list = LT:GroupEntries({ e(), e({ itemType = "Consumable" }) })
+    assertEqual(#list, 4)
+    assertEqual(list[1].label, "Type: Consumable", "groups sort by label ascending")
+  end)
+  withGroup("subtype", function()
+    local list = LT:GroupEntries({ e({ itemSubType = "Cloth" }), e({ itemSubType = "Herb" }) })
+    assertEqual(#list, 4)
+    assertEqual(list[1].label, "Sub-type: Cloth")
+  end)
+end)
+
+test("LedgerTable:GroupEntries gathers gold under Gold when grouping by type", function()
+  withGroup("type", function()
+    local list = LT:GroupEntries({ e({ kind = "MONEY" }), e({ kind = "MONEY" }) })
+    assertEqual(#list, 3)   -- one header + two rows
+    assertEqual(list[1].label, "Type: Gold")
+  end)
+end)
+
+test("LedgerTable:GroupEntries labels an untyped item group Unknown", function()
+  withGroup("type", function()
+    assertEqual(LT:GroupEntries({ e({ itemType = NIL }) })[1].label, "Type: Unknown")
+  end)
+end)
+
+test("LedgerTable:GroupEntries orders quality groups Poor to Legendary", function()
+  withGroup("quality", function()
+    local list = LT:GroupEntries({ e({ quality = 4 }), e({ quality = 1 }) })
+    assertEqual(list[1].label, "Quality: Common", "quality sorts by id, not alphabetically")
+    assertEqual(list[3].label, "Quality: Epic")
+  end)
+end)
+
+test("LedgerTable:GroupEntries puts gold in its own quality group", function()
+  -- Gold has no quality at all; folding it into Poor would misreport it.
+  withGroup("quality", function()
+    local list = LT:GroupEntries({ e({ kind = "MONEY", quality = NIL }), e({ quality = 0 }) })
+    assertEqual(list[1].label, "Quality: None")
   end)
 end)
 

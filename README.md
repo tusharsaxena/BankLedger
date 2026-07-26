@@ -62,10 +62,11 @@ addon prints to chat carries the cyan `[BL]` tag.
 | General | What gets recorded, how long it is kept, and the window's scale |
 | Filters | The item blacklist and whitelist |
 
-**General** has two sections. *Capture* is where you turn recording on or off, choose whether items
-and gold are tracked, set a minimum item quality, pick how long history is kept, and tick which
-banks you care about. *Window* holds the window scale and a switch for the debug console. Below
-them, *Storage* shows how much you have recorded and how big it is, with a button to wipe it.
+**General** has three sections. *Master Controls* is the top-level stuff: the switch that turns
+recording on or off, the minimap button, the debug console, and the window's scale. *Capture* is
+what actually gets recorded — a minimum item quality, how long history is kept (30 days by
+default), whether items and gold are tracked, and which banks you care about. *Storage* shows how
+much you have recorded and how big it is, with a button to wipe it.
 
 **Filters** manages two lists of items by id. Blacklisted items are never recorded; whitelisted
 items are always recorded, even below your minimum quality. Add an item by typing its id or by

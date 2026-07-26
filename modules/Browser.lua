@@ -40,8 +40,13 @@ B.SKIN = SKIN
 -- changes. The Export button fills the slack from the last dropdown to the window's right edge AT
 -- MIN WIDTH and is static — it does not grow when the window widens. EnsureFrame (the window floor)
 -- and BuildFilterBar (Export sizing) both read the helpers below, so the two can never drift.
---   Row-2 dropdowns: Date 110 · Direction 110 · Store 130 · Type 110 · Character 140
-local DROPDOWNS_W = 110 + 110 + 130 + 110 + 140 + 4 * 8
+--   Row-2 dropdowns: Date 110 · Direction 110 · Store 130 · Quality 100 · Type 110 ·
+--                    Sub-type 110 · Character 140
+local DD_W = { date = 110, direction = 110, store = 130, quality = 100, type = 110,
+               subtype = 110, char = 140 }
+local DD_GAP = 8
+local DROPDOWNS_W = DD_W.date + DD_W.direction + DD_W.store + DD_W.type + DD_W.subtype
+                  + DD_W.quality + DD_W.char + 6 * DD_GAP
 local EXPORT_MIN  = 110
 local TOOLBAR_MIN = DROPDOWNS_W + 8 + EXPORT_MIN + 12
 
@@ -56,7 +61,7 @@ end
 -- Static Export width: from the last dropdown's right edge (+8px gap) to the bar's right edge at
 -- min width, never narrower than EXPORT_MIN.
 function B:ExportWidth()
-  return math.max(EXPORT_MIN, (self:MinWidth() - 12) - (DROPDOWNS_W + 8))
+  return math.max(EXPORT_MIN, (self:MinWidth() - 12) - (DROPDOWNS_W + DD_GAP))
 end
 
 -- Apply the flat skin. Kept separate so a future settings panel can re-skin live.
@@ -236,17 +241,39 @@ local function EnsureMenu()
     local ROW_H = 16
     for _, b in ipairs(self.buttons) do b:Hide() end
     local opts = dd._options or {}
+    -- Never narrower than the button it drops from, but grown to the widest label it must show:
+    -- a class icon plus a Name-Realm outruns the 140px Character button. Measured with a spare
+    -- FontString in the row font (inline icon markup counts toward GetStringWidth), + the 8px
+    -- insets, the tick markup and a little slack; capped so one freak label can't fill the screen.
     local w = math.max(dd:GetWidth(), 90)
+    if not self.measure then
+      self.measure = self:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+      self.measure:Hide()
+    end
+    for _, opt in ipairs(opts) do
+      self.measure:SetText((dd.multi and CHECK_MARKUP or "") .. (opt.label or ""))
+      local pad = opt.glyph and 38 or 24   -- a glyphed row indents its text by a further 14px
+      w = math.max(w, math.min(320, (self.measure:GetStringWidth() or 0) + pad))
+    end
     for i, opt in ipairs(opts) do
       local b = self.buttons[i]
       if not b then
         b = CreateFrame("Button", nil, self)
         b:SetHeight(ROW_H)
         local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        fs:SetPoint("LEFT", 8, 0)
         fs:SetPoint("RIGHT", -8, 0)
         fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(false)   -- a long label truncates on its row; it never wraps into the next
         b.fs = fs
+        -- Optional leading glyph (the In/Out ▲/▼). A separate FontString in the vendored mono font,
+        -- because the row font has no such glyph — the same reason, and the same documented
+        -- deviation, as the In/Out column in the table.
+        local gl = b:CreateFontString(nil, "OVERLAY")
+        gl:SetFont(C.FONT_MONO, 11, "")
+        gl:SetPoint("LEFT", 8, 0)
+        gl:SetWidth(12)
+        gl:SetJustifyH("CENTER")
+        b.glyph = gl
         local hl = b:CreateTexture(nil, "HIGHLIGHT")
         hl:SetAllPoints()
         hl:SetColorTexture(1, 0.82, 0, 0.15)
@@ -265,6 +292,15 @@ local function EnsureMenu()
       end
       local check = (dd.multi and selected) and CHECK_MARKUP or ""
       b.fs:SetText(check .. opt.label)
+      -- A glyphed row indents its text to clear the glyph; every other row starts at the margin.
+      b.fs:ClearAllPoints()
+      b.fs:SetPoint("LEFT", opt.glyph and 22 or 8, 0)
+      b.fs:SetPoint("RIGHT", -8, 0)
+      b.glyph:SetText(opt.glyph or "")
+      b.glyph:SetShown(opt.glyph ~= nil)
+      -- The selected row goes gold to mark the selection; otherwise the value keeps its own colour
+      -- (store / direction / class), so the menu reads like the column it filters. The glyph always
+      -- keeps the direction's colour — it IS the value, not a selection state.
       if selected then
         b.fs:SetTextColor(1, 0.82, 0)
       elseif opt.color then
@@ -272,6 +308,7 @@ local function EnsureMenu()
       else
         b.fs:SetTextColor(0.9, 0.9, 0.9)
       end
+      if opt.color then b.glyph:SetTextColor(opt.color[1], opt.color[2], opt.color[3]) end
       b:SetScript("OnClick", function()
         if dd.multi then
           -- Toggle in place and keep the menu open, so several can be picked in one visit.
@@ -419,6 +456,9 @@ local GROUP_OPTIONS = {
   { value = "store",     label = "Group: Store" },
   { value = "direction", label = "Group: In/Out" },
   { value = "kind",      label = "Group: Item/Gold" },
+  { value = "type",      label = "Group: Type" },
+  { value = "subtype",   label = "Group: Sub-type" },
+  { value = "quality",   label = "Group: Quality" },
   { value = "char",      label = "Group: Character" },
 }
 local DATE_OPTIONS = {
@@ -427,6 +467,10 @@ local DATE_OPTIONS = {
   { value = "7d",    label = "Last 7 days" },
   { value = "30d",   label = "Last 30 days" },
 }
+
+-- The Character dropdown's "Current" sentinel. \001 is unprintable and illegal in a character name,
+-- so this value can never collide with a real Name-Realm key.
+local CURRENT_CHAR = "\001current"
 
 -- Sort distinct options by label and prefix the "All" sentinel (kept first regardless of sort).
 local function withAll(allLabel, items)
@@ -437,12 +481,18 @@ end
 
 -- Data-driven option lists: only the values the dataset actually contains are offered, so an empty
 -- ledger doesn't show five stores you've never used.
+-- In/Out and Store options carry the same colours (and, for a direction, the same ▲/▼ glyph) the
+-- table paints those values with, straight out of the shared palette in Constants — so the menu
+-- reads as the column it filters.
 local function directionOptions()
   local present = {}
   for _, e in ipairs(dataset()) do present[e.direction or "DEPOSIT"] = true end
   local items = { { value = "all", label = "In/Out: All" } }
   for _, k in ipairs(C.DirectionOrder) do
-    if present[k] then items[#items + 1] = { value = k, label = C.DirectionLabel[k] } end
+    if present[k] then
+      items[#items + 1] = { value = k, label = C.DirectionLabel[k],
+                            color = C.DirectionRGB[k], glyph = C.DirectionGlyph[k] }
+    end
   end
   return items
 end
@@ -451,20 +501,54 @@ local function storeOptions()
   for _, e in ipairs(dataset()) do if e.store then present[e.store] = true end end
   local items = { { value = "all", label = "Store: All" } }
   for _, k in ipairs(C.StoreOrder) do
-    if present[k] then items[#items + 1] = { value = k, label = C.StoreLabel[k] } end
+    if present[k] then
+      items[#items + 1] = { value = k, label = C.StoreLabel[k], color = C.StoreRGB[k] }
+    end
   end
   return items
 end
+-- Type and Sub-type both list EFFECTIVE types (NS.Util.EntryType), so "Gold" is offered whenever the
+-- data holds a gold movement — the dropdown can list everything the column can show.
 local function typeOptions()
   local seen, items = {}, {}
   for _, e in ipairs(dataset()) do
-    local ty = e.itemType
-    if ty and ty ~= "" and not seen[ty] then
+    local ty = NS.Util.EntryType(e)
+    if ty ~= "" and not seen[ty] then
       seen[ty] = true
       items[#items + 1] = { value = ty, label = ty }
     end
   end
   return withAll("Type: All", items)
+end
+local function subTypeOptions()
+  local seen, items = {}, {}
+  for _, e in ipairs(dataset()) do
+    local st = NS.Util.EntrySubType(e)
+    if st ~= "" and not seen[st] then
+      seen[st] = true
+      items[#items + 1] = { value = st, label = st }
+    end
+  end
+  return withAll("Sub-type: All", items)
+end
+-- Quality is the one data-driven list NOT sorted by label: Poor→Legendary is a meaningful order, so
+-- the options stay in ascending quality id and carry the quality colour. Gold rows have no quality
+-- and so contribute no option — filtering on quality is, by definition, an item question.
+local function qualityOptions()
+  local present = {}
+  for _, e in ipairs(dataset()) do
+    if type(e.quality) == "number" then present[e.quality] = true end
+  end
+  local ids = {}
+  for q in pairs(present) do ids[#ids + 1] = q end
+  table.sort(ids)
+  local items = { { value = "all", label = "Quality: All" } }
+  for _, q in ipairs(ids) do
+    local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
+    items[#items + 1] = { value = q, label = NS.Compat.QualityLabel(q),
+                          color = c and { c.r, c.g, c.b } or nil }
+  end
+  return items
 end
 local function charOptions()
   local seen, items = {}, {}
@@ -473,10 +557,21 @@ local function charOptions()
     if ch and not seen[ch] then
       seen[ch] = true
       local cc = e.classFile and RAID_CLASS_COLORS and RAID_CLASS_COLORS[e.classFile]
-      items[#items + 1] = { value = ch, label = ch, color = cc and { cc.r, cc.g, cc.b } or nil }
+      items[#items + 1] = { value = ch, label = NS.Util.ClassIconMarkup(e.classFile) .. ch,
+                            color = cc and { cc.r, cc.g, cc.b } or nil }
     end
   end
-  return withAll("Character: All", items)
+  -- Sorted on the label, which now begins with icon markup — identical for every row of one class,
+  -- so it would sort by class and then name. Sort on the bare name instead.
+  table.sort(items, function(a, b) return a.value < b.value end)
+  table.insert(items, 1, { value = "all", label = "Character: All" })
+  -- "Current" is a standing intent, not a name: it always means whoever is logged in right now, so
+  -- it survives an alt swap where a hard-coded Name-Realm would not. Slotted directly under the
+  -- "All" sentinel (Loot History puts it in the same place) and outside the alphabetical sort. It
+  -- carries NO class icon — the icons mark the real character rows, and one here would read as a
+  -- seventh character in the list rather than as the sentinel it is.
+  table.insert(items, 2, { value = CURRENT_CHAR, label = "Character: Current" })
+  return items
 end
 
 -- Copy a multi-select set into a plain filter value: a fresh set when non-empty, else nil (no
@@ -485,6 +580,23 @@ end
 local function setToFilter(set)
   local copy, n = {}, 0
   if type(set) == "table" then for k in pairs(set) do copy[k] = true; n = n + 1 end end
+  return n > 0 and copy or nil
+end
+
+-- Same, for the Character dropdown, resolving the CURRENT_CHAR sentinel to the logged-in character's
+-- key on the way out — the filter that reaches Database:QueryList only ever holds real Name-Realm
+-- keys, so nothing downstream has to know the sentinel exists. Resolved at apply time, not at build
+-- time, so it still means "me" after a /reload on another character. `playerKey` is injectable for
+-- the tests; production passes nothing and gets the live player.
+function B.ResolveCharFilter(set, playerKey)
+  local copy, n = {}, 0
+  if type(set) == "table" then
+    for k in pairs(set) do
+      if k == CURRENT_CHAR then k = playerKey or NS.Util.PlayerKey() end
+      if not copy[k] then n = n + 1 end
+      copy[k] = true
+    end
+  end
   return n > 0 and copy or nil
 end
 
@@ -530,20 +642,36 @@ function B:RefreshFilterOptions()
   dd.direction:SetOptions(directionOptions())
   dd.store:SetOptions(storeOptions())
   dd.type:SetOptions(typeOptions())
+  dd.subtype:SetOptions(subTypeOptions())
+  dd.quality:SetOptions(qualityOptions())
   dd.char:SetOptions(charOptions())
 end
 
--- Clear every filter and return the group/sort to stock.
+-- The Character filter's DEFAULT selection: the character you are on. Opening the ledger answers
+-- "what did I move?" far more often than "what did all eleven of my alts move?", so the window
+-- starts scoped to you and widens on demand — one step to "All", instead of everyone having to
+-- narrow it every session. Preview mode is the exception: its dataset is synthetic alts, so scoping
+-- it to the real player would open the window on an empty table.
+local function defaultCharSelection()
+  if NS.LedgerTable and NS.LedgerTable.previewMode then return {} end
+  return { [CURRENT_CHAR] = true }
+end
+
+-- Return every filter to its default, and the group/sort to stock. This is what the Clear button,
+-- a dataset swap and the first build all use, so "default" has exactly one definition.
 function B:ClearFilters()
-  self.activeFilter = {}
   local dd = self._dd
+  local chars = defaultCharSelection()
+  self.activeFilter = { char = B.ResolveCharFilter(chars) }
   if dd then
     dd.group:SelectValue("none")
     dd.date:SelectValue("all")
     dd.direction:SetSelected({})
     dd.store:SetSelected({})
     dd.type:SetSelected({})
-    dd.char:SetSelected({})
+    dd.subtype:SetSelected({})
+    dd.quality:SetSelected({})
+    dd.char:SetSelected(chars)
   end
   if self._search then self._search:SetText("") end
   if NS.LedgerTable then
@@ -593,7 +721,8 @@ function B:BuildFilterBar(bar)
     "Export the current tab — ledger rows (History) or the summary (Insights).")
 
   local clear = makeBarButton(bar, "Clear", exportW, function() B:ClearFilters() end,
-    "Clear every filter and return the grouping and sort to their defaults.")
+    "Return every filter, the grouping and the sort to their defaults "
+    .. "(Character goes back to Current, not All).")
   clear:SetPoint("TOPRIGHT", exportBtn, "TOPRIGHT", 0, ROW1 - ROW2)
 
   -- Item-name search. Its LEFT sits beside Group; its RIGHT is pinned to the row-2 Character
@@ -623,7 +752,7 @@ function B:BuildFilterBar(bar)
   self._search = search
 
   -- Row 2, left→right in the same order the columns appear in the table.
-  dd.date = MakeDropdown(bar, 110)
+  dd.date = MakeDropdown(bar, DD_W.date)
   dd.date:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, ROW2)
   dd.date:SetOptions(DATE_OPTIONS)
   dd.date:SetValue("all", "Date: All")
@@ -632,8 +761,8 @@ function B:BuildFilterBar(bar)
     ApplyFilter()
   end
 
-  dd.direction = MakeDropdown(bar, 110)
-  dd.direction:SetPoint("LEFT", dd.date, "RIGHT", 8, 0)
+  dd.direction = MakeDropdown(bar, DD_W.direction)
+  dd.direction:SetPoint("LEFT", dd.date, "RIGHT", DD_GAP, 0)
   dd.direction:SetMulti(true)
   dd.direction:SetOptions(directionOptions())
   dd.direction.onMultiSelect = function(set)
@@ -641,8 +770,8 @@ function B:BuildFilterBar(bar)
     ApplyFilter()
   end
 
-  dd.store = MakeDropdown(bar, 130)
-  dd.store:SetPoint("LEFT", dd.direction, "RIGHT", 8, 0)
+  dd.store = MakeDropdown(bar, DD_W.store)
+  dd.store:SetPoint("LEFT", dd.direction, "RIGHT", DD_GAP, 0)
   dd.store:SetMulti(true)
   dd.store:SetOptions(storeOptions())
   dd.store.onMultiSelect = function(set)
@@ -650,26 +779,42 @@ function B:BuildFilterBar(bar)
     ApplyFilter()
   end
 
-  dd.type = MakeDropdown(bar, 110)
-  dd.type:SetPoint("LEFT", dd.store, "RIGHT", 8, 0)
+  dd.quality = MakeDropdown(bar, DD_W.quality)
+  dd.quality:SetPoint("LEFT", dd.store, "RIGHT", DD_GAP, 0)
+  dd.quality:SetMulti(true)
+  dd.quality.onMultiSelect = function(set)
+    B.activeFilter.quality = setToFilter(set)
+    ApplyFilter()
+  end
+
+  dd.type = MakeDropdown(bar, DD_W.type)
+  dd.type:SetPoint("LEFT", dd.quality, "RIGHT", DD_GAP, 0)
   dd.type:SetMulti(true)
   dd.type.onMultiSelect = function(set)
     B.activeFilter.itemType = setToFilter(set)
     ApplyFilter()
   end
 
-  dd.char = MakeDropdown(bar, 140)
-  dd.char:SetPoint("LEFT", dd.type, "RIGHT", 8, 0)
+  dd.subtype = MakeDropdown(bar, DD_W.subtype)
+  dd.subtype:SetPoint("LEFT", dd.type, "RIGHT", DD_GAP, 0)
+  dd.subtype:SetMulti(true)
+  dd.subtype.onMultiSelect = function(set)
+    B.activeFilter.itemSubType = setToFilter(set)
+    ApplyFilter()
+  end
+
+  dd.char = MakeDropdown(bar, DD_W.char)
+  dd.char:SetPoint("LEFT", dd.subtype, "RIGHT", DD_GAP, 0)
   dd.char:SetMulti(true)
   dd.char.onMultiSelect = function(set)
-    B.activeFilter.char = setToFilter(set)
+    B.activeFilter.char = B.ResolveCharFilter(set)
     ApplyFilter()
   end
 
   -- Pin the row-1 search box's right edge to the Character dropdown's; -ROW2 lifts the top-right
   -- corner from row 2 back up into row 1.
   search:SetPoint("TOPRIGHT", dd.char, "TOPRIGHT", 0, -ROW2)
-  exportBtn:SetPoint("LEFT", dd.char, "RIGHT", 8, 0)
+  exportBtn:SetPoint("LEFT", dd.char, "RIGHT", DD_GAP, 0)
 end
 
 -- Route the Export button to the right dataset for the active tab. History exports the ledger rows;
@@ -793,6 +938,9 @@ local function EnsureFrame()
 
   B:BuildFilterBar(filterHost)
   B:RefreshFilterOptions()
+  -- Options first, THEN the defaults: SetSelected repaints the collapsed label off the option list,
+  -- so an empty list here would leave the Character button reading "All" while Current is applied.
+  B:ClearFilters()
   B:UpdateDbSize()
 
   local grip = CreateFrame("Button", nil, frame)

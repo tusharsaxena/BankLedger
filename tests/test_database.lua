@@ -73,7 +73,8 @@ local FIXTURE = {
     zone = "Testville", mapID = 2657 },
   entry({ char = "Alt-Realm", classFile = "ROGUE", store = "WARBAND_BANK",
           itemID = 171276, itemName = "Spectral Flask", quality = 3,
-          itemType = "Consumable", vendorPrice = 5000, quantity = 2, ts = NOW - 3 * 86400 }),
+          itemType = "Consumable", itemSubType = "Flask", vendorPrice = 5000,
+          quantity = 2, ts = NOW - 3 * 86400 }),
 }
 
 test("Database:QueryList with no filter returns everything", function()
@@ -100,6 +101,27 @@ end)
 
 test("Database:QueryList filters on character", function()
   assertEqual(#NS.Database:QueryList(FIXTURE, { char = "Alt-Realm" }), 1)
+end)
+
+test("Database:QueryList filters on item sub-type", function()
+  assertEqual(#NS.Database:QueryList(FIXTURE, { itemSubType = "Cloth" }), 2)
+end)
+
+test("Database:QueryList filters on an item sub-type SET (multi-select)", function()
+  -- The gold row has no sub-type at all, so a sub-type filter must exclude it rather than match it.
+  local got = NS.Database:QueryList(FIXTURE, { itemSubType = { Cloth = true, Flask = true } })
+  assertEqual(#got, 3)
+end)
+
+test("Database:QueryList filters gold movements under the type 'Gold'", function()
+  -- A gold row stores no itemType; it is filtered by the type the Type column shows for it.
+  assertEqual(#NS.Database:QueryList(FIXTURE, { itemType = "Gold" }), 1)
+  assertEqual(#NS.Database:QueryList(FIXTURE, { itemSubType = "Gold" }), 1)
+end)
+
+test("Database:QueryList mixes Gold with real item types in one set", function()
+  local got = NS.Database:QueryList(FIXTURE, { itemType = { Gold = true, Consumable = true } })
+  assertEqual(#got, 2)
 end)
 
 test("Database:QueryList filters on an exact quality", function()

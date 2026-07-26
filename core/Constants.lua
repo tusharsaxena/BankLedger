@@ -44,6 +44,38 @@ C.Kind = { ITEM = "ITEM", MONEY = "MONEY", CURRENCY = "CURRENCY" }
 C.KindOrder = { "ITEM", "MONEY" }
 C.KindLabel = { ITEM = "Item", MONEY = "Gold", CURRENCY = "Currency" }
 
+-- ── Display palette ─────────────────────────────────────────────────────────────
+-- Colours and glyphs shared by the History table and the filter dropdowns, so a store or a
+-- direction looks the same everywhere it appears. Cosmetic only — never stored, never exported.
+
+-- A deposit is money/goods going IN (green); a withdrawal comes OUT (red — the same ff5555 the
+-- destructive row-menu action uses, so "leaving" reads consistently addon-wide).
+C.DirectionRGB = {
+  DEPOSIT  = { 0.35, 0.80, 0.45 },
+  WITHDRAW = { 1.00, 0.33, 0.33 },
+}
+
+-- ▲ out of the store, ▼ into it. These are TEXT glyphs: WoW's default font has neither and renders
+-- a box, so anything drawing them must use the vendored mono font below (see FONT_MONO).
+C.DirectionGlyph = {
+  WITHDRAW = "\226\150\178",   -- ▲ U+25B2
+  DEPOSIT  = "\226\150\188",   -- ▼ U+25BC
+}
+
+-- The character bank keeps the addon's gold; the warband bank takes the heirloom cyan (it is
+-- account-wide, as heirlooms are); the guild bank a magenta. Bags and the reagent bank stay muted —
+-- they are the counterparty of a movement, not its subject.
+C.StoreRGB = {
+  BANK         = { 1.00, 0.82, 0.00 },
+  WARBAND_BANK = { 0.00, 0.80, 1.00 },
+  GUILD_BANK   = { 0.93, 0.45, 0.88 },
+  REAGENT_BANK = { 0.95, 0.65, 0.30 },
+  BAGS         = { 0.75, 0.75, 0.78 },
+}
+
+-- Fallback for any value the palettes above do not cover (a store from a newer build, say).
+C.NEUTRAL_RGB = { 0.90, 0.90, 0.90 }
+
 -- ── Container id groups ─────────────────────────────────────────────────────────
 -- Which numeric container ids belong to which store, derived **by member name** from
 -- Enum.BagIndex — never by hardcoded number.

@@ -25,7 +25,7 @@ NS.defaults.global = {
     trackMoney       = true,
     qualityThreshold = 0,      -- Poor and above: a bank ledger cares about junk too
     excludedStores   = {},     -- set of muted Store keys
-    retentionDays    = 90,     -- 0 == keep Always
+    retentionDays    = 30,     -- 0 == keep Always
     windowScale      = 1.0,
     window           = {},     -- persisted position/size (standalone-windows carve-out)
   },

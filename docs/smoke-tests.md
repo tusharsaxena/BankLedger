@@ -40,9 +40,12 @@ tolerance.
 ## S-5 · Gold
 
 1. Open the warband bank and deposit gold.
-2. A **Gold** row appears: quantity shows a dash, Value shows the amount, direction Deposit.
-3. Withdraw gold → a Withdraw row with the same shape.
-4. Open your **character** bank and sell something to a vendor with the bank open. **No** gold row
+2. A **Gold** row appears: Qty shows the amount as money, Type and Sub-type both read Gold,
+   Quality shows a dash, direction Deposit (green ▼). The item name is a pale gold.
+3. Hovering the row shows a **Gold** tooltip with the amount (a gold row has no item link, so the
+   tooltip is built by hand).
+4. Withdraw gold → a Withdraw row with the same shape.
+5. Open your **character** bank and sell something to a vendor with the bank open. **No** gold row
    appears — the character bank holds no gold, so its money changes are never attributed.
 
 ## S-6 · Guild bank
@@ -70,7 +73,20 @@ tolerance.
 2. Pick two stores in the Store dropdown — both are ticked and the button reads "Store: 2 selected".
 3. Click a column header to sort; click it again to reverse. Date starts newest-first.
 4. Group by Store — collapsible headers appear with per-group counts. Click one to collapse it.
-5. **Clear** returns every filter, the grouping and the sort to their defaults.
+5. The **Sub-type** and **Quality** dropdowns list only values your data contains; Quality is
+   ordered Poor→Legendary (not alphabetically) and each option carries its quality colour.
+6. **Type ▸ Gold** and **Sub-type ▸ Gold** appear once a gold movement is recorded, and filter to
+   gold rows. Both mix freely with real item types in one multi-select.
+7. The **In/Out** menu shows a red ▲ Withdraw and a green ▼ Deposit; the **Store** menu shows each
+   store in its column colour. Both match the table exactly.
+8. The window opens with **Character: Current** already applied — a fresh install, a `/reload` and
+   **Clear** all land there, not on "All". `/bl preview` is the exception: synthetic data opens
+   unscoped.
+9. Every character row and dropdown option shows its class icon and class colour; "Character:
+   Current" carries no icon.
+10. Group by **Type**, **Sub-type** and **Quality**. Quality groups run Poor→Legendary and gold sits
+    in its own "None" group.
+11. **Clear** returns every filter, the grouping and the sort to their defaults.
 
 ## S-9 · Insights
 
@@ -102,7 +118,13 @@ tolerance.
 
 1. `/bl config` opens the panel with the addon's entry already present in the list.
 2. The landing page shows the tagline and every slash command.
-3. General and Filters both render a breadcrumb header, a gold divider and a Defaults button.
+3. General and Filters both render a breadcrumb header, a gold divider and a Defaults button. The
+   Defaults button looks like every other button on the page — if it renders as Blizzard's red
+   stone button, it was built before a UI skin hooked AceGUI (`/bl debug panel` shows the region
+   list; the bare 5-region `130828` form is the unskinned one).
+   General's sections read **Master Controls** (enable, minimap, debug console, window scale +
+   Reset all), then **Capture** (quality, retention, item/gold toggles, per-store grid), then
+   **Storage**.
 4. Toggle a checkbox, then run `/bl list` — the value matches.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
 6. The scrollbar is visible on both pages and greyed out on the one that fits, so the body width

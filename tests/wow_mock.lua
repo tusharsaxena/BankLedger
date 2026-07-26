@@ -142,6 +142,12 @@ return function()
     __index = function() return { r = 1, g = 1, b = 1, hex = "ffffffff" } end,
   })
   M.strtrim = function(s) return (tostring(s):gsub("^%s*(.-)%s*$", "%1")) end
+  -- Class-icon sheet slices (left, right, top, bottom as fractions), for Util.ClassIconMarkup. Two
+  -- real classes are enough to prove the coordinate maths and the unknown-class fallback.
+  M.CLASS_ICON_TCOORDS = {
+    MAGE  = { 0.25, 0.49609375, 0.25, 0.5 },
+    ROGUE = { 0.49609375, 0.7421875, 0, 0.25 },
+  }
 
   -- UI
   M.UIParent = stubFrame()

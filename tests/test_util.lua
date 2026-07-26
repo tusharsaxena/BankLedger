@@ -48,6 +48,40 @@ test("Util.FormatMoney is blank for nothing and compact for a real amount", func
   assertEqual(NS.Util.FormatMoney(10203), "1g 2s 3c")
 end)
 
+test("Util.EntryType is the stored item type for an item movement", function()
+  assertEqual(NS.Util.EntryType({ kind = "ITEM", itemType = "Consumable" }), "Consumable")
+  assertEqual(NS.Util.EntrySubType({ kind = "ITEM", itemSubType = "Flask" }), "Flask")
+end)
+
+test("Util.EntryType is Gold for a gold movement, which stores no type", function()
+  -- This is what lets a "Gold" filter, group and column cell all mean the same thing.
+  assertEqual(NS.Util.EntryType({ kind = "MONEY" }), "Gold")
+  assertEqual(NS.Util.EntrySubType({ kind = "MONEY" }), "Gold")
+end)
+
+test("Util.EntryType is blank for an uncached item and for nothing at all", function()
+  assertEqual(NS.Util.EntryType({ kind = "ITEM" }), "")
+  assertEqual(NS.Util.EntrySubType({ kind = "ITEM" }), "")
+  assertEqual(NS.Util.EntryType(nil), "")
+  assertEqual(NS.Util.EntrySubType(nil), "")
+end)
+
+test("Util.ClassIconMarkup carries the class's slice of the icon sheet", function()
+  -- The tcoords are fractions of a 256×256 sheet; the markup wants them in pixels.
+  assertEqual(NS.Util.ClassIconMarkup("MAGE"),
+    "|TInterface\\TargetingFrame\\UI-Classes-Circles:12:12:0:0:256:256:64:127:64:128|t ")
+end)
+
+test("Util.ClassIconMarkup honours a requested size", function()
+  assertTrue(NS.Util.ClassIconMarkup("ROGUE", 16):find(":16:16:", 1, true) ~= nil)
+end)
+
+test("Util.ClassIconMarkup is empty for an unknown or missing class", function()
+  -- Callers concatenate the result unconditionally, so it must never be nil.
+  assertEqual(NS.Util.ClassIconMarkup(nil), "")
+  assertEqual(NS.Util.ClassIconMarkup("NOTACLASS"), "")
+end)
+
 test("Util.FormatBytes steps through B, kB and MB", function()
   assertEqual(NS.Util.FormatBytes(820), "820 B")
   assertEqual(NS.Util.FormatBytes(2048), "2.0 kB")

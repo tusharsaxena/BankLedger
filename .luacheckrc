@@ -19,7 +19,7 @@ read_globals = {
   "MAX_GUILDBANK_SLOTS_PER_TAB", "QueryGuildBankTab", "GetCurrentGuildBankTab", "GuildBankFrame",
   -- UI globals used by the window, console and panel
   "UIParent", "UISpecialFrames", "DEFAULT_CHAT_FRAME", "GameTooltip",
-  "ITEM_QUALITY_COLORS", "RAID_CLASS_COLORS", "STANDARD_TEXT_FONT",
+  "ITEM_QUALITY_COLORS", "RAID_CLASS_COLORS", "CLASS_ICON_TCOORDS", "STANDARD_TEXT_FONT",
   "FauxScrollFrame_Update", "FauxScrollFrame_GetOffset", "FauxScrollFrame_OnVerticalScroll",
   "ChatEdit_InsertLink", "IsShiftKeyDown", "BreakUpLargeNumbers",
   "StaticPopup_Show", "YES", "NO",
