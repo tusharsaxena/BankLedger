@@ -3,12 +3,12 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-277%2F277_passing-green)
+![Tests](https://img.shields.io/badge/Tests-315%2F315_passing-green)
 
 ![Logo](media/logos/bankledger.logo.jpg)
 
 Ka0s Bank Ledger is a passbook for your banks. Every time you put something in or take something
-out — your own bank, the reagent bank, the warband bank, the guild bank, void storage — it writes a
+out — your own bank, the warband bank, the guild bank — it writes a
 line: what moved, which way, how much, and when. Gold is tracked the same way at the two banks that
 hold gold.
 
@@ -24,7 +24,7 @@ or with `/bl config`.
 ## What's new in 0.1.0
 
 - First release: a full passbook of item and gold movements between your bags and your banks.
-- Covers the character bank, reagent bank, warband bank, guild bank and void storage.
+- Covers the character bank, the warband bank and the guild bank.
 - History tab with search, per-column filters, grouping and sorting over a fast pooled table.
 - Insights tab with deposit/withdrawal totals, gold in and out, and per-store and per-character
   breakdowns.
@@ -122,4 +122,4 @@ lives.
 
 | Version | Date | Highlights |
 | ------- | ---- | ---------- |
-| 0.1.0 | 2026-07-26 | First release. Item and gold movements across the character bank, reagent bank, warband bank, guild bank and void storage; History and Insights tabs; CSV export; item blacklist and whitelist. |
+| 0.1.0 | 2026-07-26 | First release. Item and gold movements across the character bank, the warband bank and the guild bank; History and Insights tabs; CSV export; item blacklist and whitelist. |

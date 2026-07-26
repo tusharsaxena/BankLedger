@@ -1,7 +1,8 @@
 local T = _G.BL_TEST
 local NS = T.NS
 local mocks = T.mocks
-local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
+local test, assertEqual, assertTrue, assertFalse =
+  T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
 -- The capture engine. Diff is the pure heart of the addon: two inventory snapshots in, ledger
 -- movements out. Everything below it (event wiring, item enrichment) is a thin shell around it.
@@ -170,14 +171,155 @@ test("Ledger:ScanStore returns an empty map for a store with no reachable contai
   assertEqual(next(counts), nil, "nothing to count")
 end)
 
-test("Ledger:Snapshot captures bags, the open store and the money balance together", function()
+test("Ledger:Snapshot captures bags, every reachable store and the money balance", function()
   mocks.__containers[0] = { slots = 1, [1] = { itemID = 2589, count = 7 } }
   mocks.__money = 4242
-  local s = NS.Ledger:Snapshot("BANK")
+  local s = NS.Ledger:Snapshot("BANK_FRAME")
   assertEqual(s.bags[2589], 7)
-  assertEqual(next(s.store), nil)
   assertEqual(s.money, 4242)
+  assertTrue(s.stores.BANK ~= nil, "the character bank was scanned")
+  assertTrue(s.stores.WARBAND_BANK ~= nil, "the warband tab was scanned in the same pass")
+  assertEqual(s.stores.REAGENT_BANK, nil, "a store this build does not have is not scanned")
   mocks.__containers[0] = nil
+end)
+
+-- ── Frame-to-store mapping ─────────────────────────────────────────────────────
+-- The retail bank frame hosts the character bank, the reagent tab and the warband tabs behind ONE
+-- BANKFRAME_OPENED, and switching between them fires no event whatsoever. These pin the model that
+-- replaced "one open store, chosen by which event fired" — which could never see a warband move.
+
+test("Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs", function()
+  local stores = {}
+  for _, s in ipairs(NS.Ledger:StoresFor("BANK_FRAME")) do stores[s] = true end
+  assertTrue(stores.BANK, "character bank")
+  assertTrue(stores.WARBAND_BANK, "warband tab \226\128\148 no event ever announces it")
+end)
+
+test("Ledger:StoresFor drops a store this build has no container for", function()
+  -- The reagent bank is gone on 12.0.7 (reagents live in the bank tabs). Scanning it every pass
+  -- would be a permanently empty store cluttering every debug line.
+  for _, s in ipairs(NS.Ledger:StoresFor("BANK_FRAME")) do
+    assertTrue(s ~= "REAGENT_BANK", "REAGENT_BANK has no containers and must be dropped")
+  end
+end)
+
+test("Ledger:StoresFor: the guild bank frame reaches only itself", function()
+  assertEqual(#NS.Ledger:StoresFor("GUILD_BANK"), 1)
+  assertEqual(NS.Ledger:StoresFor("GUILD_BANK")[1], "GUILD_BANK")
+end)
+
+test("Ledger: void storage is not a store at all (retired in 12.0.7)", function()
+  -- The client exposes neither its events nor a container, so the addon does not advertise it.
+  assertEqual(NS.Constants.Store.VOID_STORAGE, nil)
+  assertEqual(NS.Ledger.CONTEXT_STORES.VOID_STORAGE, nil)
+end)
+
+test("Ledger:StoresFor: an unknown context reaches nothing", function()
+  assertEqual(#NS.Ledger:StoresFor("NONESUCH"), 0)
+  assertEqual(#NS.Ledger:StoresFor(nil), 0)
+end)
+
+-- ── Reconcile over a whole frame ───────────────────────────────────────────────
+
+-- Drive a real capture: open the frame, move stock between two container ids, reconcile.
+local BAG_ID, BANK_ID, WARBAND_ID = 0, 6, 12   -- the real 12.0.7 ids the mock reproduces
+
+local function withContainers(setup, fn)
+  local saved = {}
+  for id in pairs(setup) do saved[id] = mocks.__containers[id] end
+  for id, contents in pairs(setup) do mocks.__containers[id] = contents end
+  local ok, err = pcall(fn)
+  for id in pairs(setup) do mocks.__containers[id] = saved[id] end
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+  if not ok then error(err, 0) end
+end
+
+test("Ledger:Reconcile records a bags-to-character-bank deposit", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 5 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 5 }
+    assertEqual(NS.Ledger:Reconcile(), 1)
+    local e = NS.Database:Ledger()[NS.Database:Count()]
+    assertEqual(e.store, "BANK")
+    assertEqual(e.direction, "DEPOSIT")
+    assertEqual(e.quantity, 5)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger:Reconcile records a warband move with no warband open event at all", function()
+  -- The regression this whole change exists for: the warband tab is reached through BANK_FRAME.
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]     = { slots = 1, [1] = { itemID = 171276, count = 3 } },
+    [WARBAND_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[WARBAND_ID][1] = { itemID = 171276, count = 3 }
+    assertEqual(NS.Ledger:Reconcile(), 1)
+    assertEqual(NS.Database:Ledger()[NS.Database:Count()].store, "WARBAND_BANK")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger:Reconcile writes ONE row, not one per store the frame reaches", function()
+  -- Three stores are diffed every pass; only the one whose side actually changed may produce a row.
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 2 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 2 }
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before + 1, "exactly one row")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+end)
+
+test("Ledger:Reconcile records a withdrawal back out of the bank", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1 },
+    [BANK_ID] = { slots = 1, [1] = { itemID = 171276, count = 4 } },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BANK_ID][1] = nil
+    mocks.__containers[BAG_ID][1] = { itemID = 171276, count = 4 }
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Ledger()[NS.Database:Count()].direction, "WITHDRAW")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger:Reconcile writes nothing when no frame is open", function()
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+  assertEqual(NS.Ledger:Reconcile(), 0)
+end)
+
+test("Ledger:CloseContext reconciles once more, then disarms", function()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 1 }
+    NS.Ledger:CloseContext()
+    assertEqual(NS.State.openContext, nil, "disarmed")
+    assertEqual(NS.State.lastSnapshot, nil, "baseline dropped")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
 end)
 
 -- ── Capture gate ───────────────────────────────────────────────────────────────
@@ -322,4 +464,359 @@ test("Ledger.MoveSummary renders one line per pass, not one per item (debug-logg
   assertTrue(line:find("BANK", 1, true) ~= nil, "names the store")
   assertTrue(line:find("3", 1, true) ~= nil, "carries the recorded count")
   assertTrue(line:find("1", 1, true) ~= nil, "carries the skipped count")
+end)
+
+-- ── Diagnostics ────────────────────────────────────────────────────────────────
+-- The instrumentation is itself covered: a diagnostic that errors in the field is worse than none.
+
+test("Ledger.DiffSummary reports both sides and the move count", function()
+  local line = NS.Ledger.DiffSummary("BANK", 12, 0, 0)
+  assertTrue(line:find("BANK", 1, true) ~= nil, "names the store")
+  assertTrue(line:find("bags 12 kinds", 1, true) ~= nil, "carries the bag side")
+  assertTrue(line:find("store 0 kinds", 1, true) ~= nil, "carries the store side")
+  assertTrue(line:find("0 moves", 1, true) ~= nil, "carries the move count")
+end)
+
+test("Ledger.CountKinds counts distinct ids, not stack sizes", function()
+  assertEqual(NS.Ledger.CountKinds({ [2589] = 40, [4306] = 5 }), 2)
+  assertEqual(NS.Ledger.CountKinds({}), 0)
+  assertEqual(NS.Ledger.CountKinds(nil), 0)
+end)
+
+test("Ledger:Diagnose reports the open store and the resolved id groups", function()
+  local lines = NS.Ledger:Diagnose()
+  local text = table.concat(lines, "\n")
+  assertTrue(text:find("openContext=", 1, true) ~= nil)
+  assertTrue(text:find("group BANK = [", 1, true) ~= nil, "shows what BANK resolved to")
+  assertTrue(text:find("group WARBAND_BANK = [", 1, true) ~= nil)
+end)
+
+test("Ledger:Diagnose lists the BagIndex members the client exposes", function()
+  local text = table.concat(NS.Ledger:Diagnose(), "\n")
+  assertTrue(text:find("Enum.BagIndex has", 1, true) ~= nil)
+  assertTrue(text:find("BagIndex.Backpack = 0", 1, true) ~= nil)
+end)
+
+test("Ledger:Diagnose probes containers and reports only the ones with slots", function()
+  mocks.__containers[0] = { slots = 2, [1] = { itemID = 2589, count = 20 } }
+  local text = table.concat(NS.Ledger:Diagnose(), "\n")
+  assertTrue(text:find("  0: 2 / 1 / 1", 1, true) ~= nil, "id 0 reported with its counts")
+  assertTrue(text:find("  7:", 1, true) == nil, "an id with no slots is not listed")
+  mocks.__containers[0] = nil
+end)
+
+test("Ledger:Diagnose never raises when no container is reachable", function()
+  local ok = pcall(function() return NS.Ledger:Diagnose() end)
+  assertTrue(ok)
+end)
+
+-- ── Event registration resilience ──────────────────────────────────────────────
+-- The second fault behind "nothing is tracked": on modern retail RegisterEvent RAISES on a retired
+-- event name, so a bare registration loop aborts and leaves every later event unbound. The addon
+-- then hears one event and goes deaf, with no error unless script errors are switched on.
+
+local function reEnable(badEvents)
+  mocks.__badEvents = badEvents or {}
+  NS.Ledger._enabled = nil
+  NS.Ledger:Enable()
+  mocks.__badEvents = {}
+end
+
+local function listHas(list, value)
+  for _, v in ipairs(list) do if v == value then return true end end
+  return false
+end
+
+test("Ledger:Enable registers every event on a build that has them all", function()
+  reEnable(nil)
+  assertEqual(#NS.Ledger.unavailableEvents, 0, "nothing rejected")
+  assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"))
+  assertTrue(listHas(NS.Ledger.registeredEvents, "BANKFRAME_OPENED"))
+end)
+
+test("Ledger:Enable survives a retired event and still binds the rest", function()
+  -- The regression: PLAYERREAGENTBANKSLOTS_CHANGED belongs to a reagent bank this build no longer
+  -- has. Before this fix, it aborted the loop and BAG_UPDATE_DELAYED never bound — so no bag change
+  -- ever reached Reconcile and not one movement was recorded.
+  reEnable({ PLAYERREAGENTBANKSLOTS_CHANGED = true })
+  assertTrue(listHas(NS.Ledger.unavailableEvents, "PLAYERREAGENTBANKSLOTS_CHANGED"),
+    "the retired event is recorded, not fatal")
+  assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"),
+    "the event capture actually depends on still bound")
+end)
+
+test("Ledger:Enable binds the capture events even when several are retired", function()
+  reEnable({
+    PLAYERREAGENTBANKSLOTS_CHANGED = true,
+    PLAYERBANKSLOTS_CHANGED = true,
+    GUILDBANKBAGSLOTS_CHANGED = true,
+  })
+  assertEqual(#NS.Ledger.unavailableEvents, 3)
+  assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"))
+  assertTrue(listHas(NS.Ledger.registeredEvents, "PLAYER_MONEY"))
+  assertTrue(listHas(NS.Ledger.registeredEvents, "BANKFRAME_OPENED"))
+end)
+
+test("Ledger:Enable never lets a rejected open event silence the others", function()
+  reEnable({ GUILDBANKFRAME_OPENED = true })
+  assertTrue(listHas(NS.Ledger.registeredEvents, "BANKFRAME_OPENED"))
+  assertTrue(listHas(NS.Ledger.unavailableEvents, "GUILDBANKFRAME_OPENED"))
+end)
+
+test("Ledger:RegisterEventSafely reports whether the binding took", function()
+  mocks.__badEvents = { NONESUCH_EVENT = true }
+  NS.Ledger.registeredEvents, NS.Ledger.unavailableEvents = {}, {}
+  assertTrue(NS.Ledger:RegisterEventSafely(NS.addon, "BAG_UPDATE_DELAYED", function() end))
+  assertFalse(NS.Ledger:RegisterEventSafely(NS.addon, "NONESUCH_EVENT", function() end))
+  mocks.__badEvents = {}
+  reEnable(nil)
+end)
+
+test("Ledger:Diagnose names the events this build rejected", function()
+  reEnable({ PLAYERREAGENTBANKSLOTS_CHANGED = true })
+  local text = table.concat(NS.Ledger:Diagnose(), "\n")
+  assertTrue(text:find("events UNAVAILABLE (1)", 1, true) ~= nil)
+  assertTrue(text:find("PLAYERREAGENTBANKSLOTS_CHANGED", 1, true) ~= nil)
+  reEnable(nil)
+end)
+
+-- ── Debounced reconcile ────────────────────────────────────────────────────────
+-- The third fault behind "warband movements are never recorded": one deposit reports itself through
+-- several events that do NOT arrive together. Reconciling per event split a single movement across
+-- two passes — the first saw bags -1 with the store unchanged, the second saw store +1 with the bags
+-- unchanged — and the "both sides must change" rule correctly rejected both halves.
+
+test("Ledger:ScheduleReconcile coalesces a burst of events into ONE pass", function()
+  withContainers({
+    [BAG_ID]     = { slots = 1, [1] = { itemID = 171276, count = 1 } },
+    [WARBAND_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    NS.Ledger:ScheduleReconcile()
+    NS.Ledger:ScheduleReconcile()
+    NS.Ledger:ScheduleReconcile()
+    assertEqual(mocks.__fireTimers(), 1, "three events, one reconcile pass")
+  end)
+end)
+
+test("Ledger: a movement whose halves arrive in separate events is still recorded", function()
+  -- The exact live repro: BAG_UPDATE_DELAYED lands with the bags already changed while the warband
+  -- tabs are still stale, and the warband update follows on its own beat. Both must land in one pass.
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]     = { slots = 1, [1] = { itemID = 171276, count = 6 } },
+    [WARBAND_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+
+    -- Event 1: the bags have dropped the stack; the warband tab has not caught up yet.
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:ScheduleReconcile()
+
+    -- Event 2, moments later: the warband tab now shows it.
+    mocks.__containers[WARBAND_ID][1] = { itemID = 171276, count = 6 }
+    NS.Ledger:ScheduleReconcile()
+
+    mocks.__fireTimers()
+    assertEqual(NS.Database:Count(), before + 1, "one warband row, not zero")
+    local e = NS.Database:Ledger()[NS.Database:Count()]
+    assertEqual(e.store, "WARBAND_BANK")
+    assertEqual(e.direction, "DEPOSIT")
+    assertEqual(e.quantity, 6)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger: a withdrawal whose halves arrive separately is also recorded", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]     = { slots = 1 },
+    [WARBAND_ID] = { slots = 1, [1] = { itemID = 171276, count = 2 } },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[WARBAND_ID][1] = nil
+    NS.Ledger:ScheduleReconcile()
+    mocks.__containers[BAG_ID][1] = { itemID = 171276, count = 2 }
+    NS.Ledger:ScheduleReconcile()
+    mocks.__fireTimers()
+    assertEqual(NS.Database:Ledger()[NS.Database:Count()].direction, "WITHDRAW")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger: two separate actions stay two separate rows", function()
+  -- Debouncing must group by user action, not merge everything: a second deposit after the first
+  -- pass has settled is its own movement.
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 2, [1] = { itemID = 171276, count = 1 },
+                             [2] = { itemID = 2589, count = 1 } },
+    [BANK_ID] = { slots = 2 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 1 }
+    NS.Ledger:ScheduleReconcile()
+    mocks.__fireTimers()
+
+    mocks.__containers[BAG_ID][2] = nil
+    mocks.__containers[BANK_ID][2] = { itemID = 2589, count = 1 }
+    NS.Ledger:ScheduleReconcile()
+    mocks.__fireTimers()
+    assertEqual(NS.Database:Count(), before + 2)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 or e.itemID == 2589 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger:ScheduleReconcile does nothing when no frame is open", function()
+  NS.Ledger:CancelPendingReconcile()
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+  mocks.__timers = {}
+  NS.Ledger:ScheduleReconcile()
+  assertEqual(#mocks.__timers, 0, "no timer armed outside a bank")
+end)
+
+test("Ledger:CloseContext runs the pending pass instead of waiting out the debounce", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 1 }
+    NS.Ledger:ScheduleReconcile()
+    NS.Ledger:CloseContext()   -- the frame closes before the timer would have fired
+    assertEqual(NS.Database:Count(), before + 1, "the in-flight movement was not lost")
+    assertEqual(mocks.__fireTimers(), 0, "and the pending timer was cancelled, not left to double-fire")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+end)
+
+-- ── Settling: halves that arrive SECONDS apart ─────────────────────────────────
+-- Debouncing groups events that arrive together. It cannot help when the two sides of one movement
+-- are a server round-trip apart — the live warband bank took over a second. So the baseline is held
+-- whenever a pass sees a one-sided change, instead of advancing past a transaction still in flight.
+
+test("Ledger.SnapshotsDiffer spots a change on any side", function()
+  local base = { bags = { [1] = 1 }, stores = { BANK = { [2] = 1 } }, money = 5 }
+  assertFalse(NS.Ledger.SnapshotsDiffer(base, base), "identical")
+  assertTrue(NS.Ledger.SnapshotsDiffer(base,
+    { bags = {}, stores = { BANK = { [2] = 1 } }, money = 5 }), "bags changed")
+  assertTrue(NS.Ledger.SnapshotsDiffer(base,
+    { bags = { [1] = 1 }, stores = { BANK = {} }, money = 5 }), "a store changed")
+  assertTrue(NS.Ledger.SnapshotsDiffer(base,
+    { bags = { [1] = 1 }, stores = { BANK = { [2] = 1 } }, money = 9 }), "money changed")
+end)
+
+test("Ledger: a movement whose halves are SECONDS apart is still recorded", function()
+  -- The live repro that debouncing alone could not reach: the bags update, a whole second passes
+  -- with several reconcile passes in between, and only then does the warband tab catch up.
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]     = { slots = 1, [1] = { itemID = 171276, count = 9 } },
+    [WARBAND_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+
+    -- The bags drop the stack. Several passes fire while the warband tab is still stale.
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:Reconcile()
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "nothing recorded yet — only one side has moved")
+
+    -- A second later the warband tab reflects it.
+    mocks.__now = mocks.__now + 1
+    mocks.__containers[WARBAND_ID][1] = { itemID = 171276, count = 9 }
+    NS.Ledger:Reconcile()
+
+    assertEqual(NS.Database:Count(), before + 1, "the held baseline still saw the bags half")
+    local e = NS.Database:Ledger()[NS.Database:Count()]
+    assertEqual(e.store, "WARBAND_BANK")
+    assertEqual(e.direction, "DEPOSIT")
+    assertEqual(e.quantity, 9)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger: a one-sided change that never completes re-anchors after the timeout", function()
+  -- Loot landing in the bags while the bank is open never balances. The baseline must not stay
+  -- pinned for the rest of the session, or a stale delta would eventually pair with something
+  -- unrelated and invent a movement.
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1 },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = { itemID = 19019, count = 1 }   -- looted, not withdrawn
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "not a movement")
+
+    mocks.__now = mocks.__now + NS.Ledger.SETTLE_TIMEOUT_SECONDS + 1
+    NS.Ledger:Reconcile()
+
+    -- The baseline has re-anchored, so the loot is now part of the accepted state.
+    assertFalse(NS.Ledger.SnapshotsDiffer(NS.State.lastSnapshot,
+      NS.Ledger:Snapshot("BANK_FRAME")), "baseline caught up")
+    assertEqual(NS.Database:Count(), before, "and still no phantom row")
+  end)
+end)
+
+test("Ledger: a re-anchored loot does not pair with a later unrelated deposit", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 2, [1] = { itemID = 2589, count = 1 } },
+    [BANK_ID] = { slots = 2 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    -- Loot arrives in the bags and never balances; let it time out.
+    mocks.__containers[BAG_ID][2] = { itemID = 19019, count = 1 }
+    NS.Ledger:Reconcile()
+    mocks.__now = mocks.__now + NS.Ledger.SETTLE_TIMEOUT_SECONDS + 1
+    NS.Ledger:Reconcile()
+
+    -- Now genuinely deposit the OTHER item.
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 2589, count = 1 }
+    NS.Ledger:Reconcile()
+
+    assertEqual(NS.Database:Count(), before + 1, "exactly one row, for the real deposit")
+    assertEqual(NS.Database:Ledger()[NS.Database:Count()].itemID, 2589)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 2589 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+test("Ledger: an unchanged world advances the baseline without waiting", function()
+  withContainers({ [BAG_ID] = { slots = 1 }, [BANK_ID] = { slots = 1 } }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Ledger._settleSince, nil, "nothing in flight, nothing to wait for")
+  end)
+end)
+
+test("Ledger: a completed movement clears the settle wait", function()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:Reconcile()                       -- one-sided: starts waiting
+    assertTrue(NS.Ledger._settleSince ~= nil, "waiting for the other half")
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 1 }
+    NS.Ledger:Reconcile()                       -- completes
+    assertEqual(NS.Ledger._settleSince, nil, "wait cleared")
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
 end)

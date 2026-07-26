@@ -49,18 +49,57 @@ test("Constants: the bag id group covers the backpack, four bags and the reagent
   assertTrue(contains(C.BAG_IDS, 5), "the reagent bag")
 end)
 
-test("Constants: the bank id group includes the classic bank container", function()
-  assertTrue(contains(C.BANK_IDS, -1), "the classic bank container id")
+test("Constants: the bank group is exactly the six character-bank tabs", function()
+  assertEqual(#C.BANK_IDS, 6)
+  for _, id in ipairs({ 6, 7, 8, 9, 10, 11 }) do
+    assertTrue(contains(C.BANK_IDS, id), "CharacterBankTab id " .. id)
+  end
 end)
 
 test("Constants: the warband bank spans its five account tabs", function()
   assertEqual(#C.WARBAND_BANK_IDS, 5)
+  for _, id in ipairs({ 12, 13, 14, 15, 16 }) do
+    assertTrue(contains(C.WARBAND_BANK_IDS, id), "AccountBankTab id " .. id)
+  end
 end)
 
-test("Constants: every container-backed store maps to a non-empty id list", function()
+test("Constants: no container id belongs to two stores", function()
+  -- The defect this guards: a numeric guess put AccountBankTab_1 (12) inside the character-bank
+  -- range, so two-thirds of the "character bank" scan was actually the warband bank.
+  local owner = {}
   for store, ids in pairs(C.STORE_CONTAINERS) do
-    assertTrue(#ids > 0, store .. " has no container ids")
+    for _, id in ipairs(ids) do
+      assertTrue(owner[id] == nil,
+        "id " .. id .. " is claimed by both " .. tostring(owner[id]) .. " and " .. store)
+      owner[id] = store
+    end
   end
+end)
+
+test("Constants: no group lists the same id twice", function()
+  -- Duplicates silently multiply every stack count in that store, because the scan sums per id.
+  for store, ids in pairs(C.STORE_CONTAINERS) do
+    local seen = {}
+    for _, id in ipairs(ids) do
+      assertTrue(not seen[id], store .. " lists id " .. id .. " more than once")
+      seen[id] = true
+    end
+  end
+end)
+
+test("Constants: the enum's type constants are never mistaken for containers", function()
+  -- Enum.BagIndex carries Characterbanktab = -2 and Accountbanktab = -3 alongside the real
+  -- container members. They are types, not containers, and scanning them finds nothing.
+  for store, ids in pairs(C.STORE_CONTAINERS) do
+    for _, id in ipairs(ids) do
+      assertTrue(id ~= -2 and id ~= -3, store .. " picked up a type constant (" .. id .. ")")
+    end
+  end
+end)
+
+test("Constants: a store absent from this build resolves to an empty group", function()
+  -- The reagent bank has no container on 12.0.7; it must resolve empty, not to a stray id.
+  assertEqual(#C.REAGENT_BANK_IDS, 0)
 end)
 
 test("Constants: the guild bank and void storage are NOT container-id scanned", function()

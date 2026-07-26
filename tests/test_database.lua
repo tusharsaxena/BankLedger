@@ -127,7 +127,7 @@ test("Database:QueryList combines filters with AND", function()
 end)
 
 test("Database:QueryList returns nothing when the filters exclude everything", function()
-  assertEqual(#NS.Database:QueryList(FIXTURE, { store = "VOID_STORAGE" }), 0)
+  assertEqual(#NS.Database:QueryList(FIXTURE, { store = "REAGENT_BANK" }), 0)
 end)
 
 -- ── Export / delete / prune / stats plumbing ───────────────────────────────────

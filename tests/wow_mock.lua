@@ -48,14 +48,21 @@ return function()
   M.__money = 1000000
   M.GetMoney = function() return M.__money end
 
-  -- Bag index enum (the ids Constants derives its container groups from).
+  -- Bag index enum, reproduced VERBATIM from a live 12.0.7 client (all 20 members, exact ids).
+  -- Mock fidelity is load-bearing here: the container groups are derived from these names, and an
+  -- idealised enum would have hidden the real defect — that `AccountBankTab_1` is 12, one past the
+  -- character-bank range, so a numeric guess put warband tab 1 inside the character bank.
+  --
+  -- Note `Characterbanktab` / `Accountbanktab`: those are *type* constants sharing the enum with
+  -- the real container members, and they must never be matched as containers.
   M.Enum = {
     BagIndex = {
+      Accountbanktab = -3, Characterbanktab = -2, Keyring = -1,
       Backpack = 0, Bag_1 = 1, Bag_2 = 2, Bag_3 = 3, Bag_4 = 4, ReagentBag = 5,
-      Bank = -1, Reagentbank = -3,
-      BankBag_1 = 6, BankBag_7 = 12,
-      AccountBankTab_1 = 13, AccountBankTab_5 = 17,
-      CharacterBankTab_1 = 18, CharacterBankTab_6 = 23,
+      CharacterBankTab_1 = 6, CharacterBankTab_2 = 7, CharacterBankTab_3 = 8,
+      CharacterBankTab_4 = 9, CharacterBankTab_5 = 10, CharacterBankTab_6 = 11,
+      AccountBankTab_1 = 12, AccountBankTab_2 = 13, AccountBankTab_3 = 14,
+      AccountBankTab_4 = 15, AccountBankTab_5 = 16,
     },
   }
 
@@ -118,6 +125,25 @@ return function()
   }
   M.StaticPopupDialogs = {}
 
+  -- Event names this fake client rejects, mirroring a build that has retired them.
+  M.__badEvents = {}
+
+  -- Pending AceTimer callbacks. __fireTimers runs every timer that is still live and returns how
+  -- many fired, so a test can prove that N rapid events produce exactly one reconcile pass.
+  M.__timers = {}
+  M.__fireTimers = function()
+    local due = M.__timers
+    M.__timers = {}
+    local fired = 0
+    for _, handle in ipairs(due) do
+      if not handle.cancelled then
+        fired = fired + 1
+        handle.callback()
+      end
+    end
+    return fired
+  end
+
   -- LibStub + Ace library mocks
   local libs = {}
   libs["AceDB-3.0"] = {
@@ -158,11 +184,26 @@ return function()
     NewAddon = function(_, target)
       target = target or {}
       local noop = function() end
-      target.RegisterEvent = noop
+      -- Modern retail RAISES on an unknown event name instead of ignoring it, which is what turned
+      -- one retired event into a whole unregistered addon. Tests put names in M.__badEvents to
+      -- reproduce that; a mock that silently accepted everything would hide the entire failure mode.
+      target.RegisterEvent = function(_, event)
+        if M.__badEvents[event] then
+          error("Attempt to register unknown event: " .. tostring(event), 2)
+        end
+      end
       target.UnregisterEvent = noop
       target.RegisterChatCommand = noop
-      target.ScheduleTimer = function() return {} end
-      target.CancelTimer = noop
+      -- A fireable timer queue. A no-op stub would have hidden the debounce entirely; tests fire
+      -- M.__fireTimers() to advance time and assert that several events coalesce into ONE pass.
+      target.ScheduleTimer = function(_, callback, delay)
+        local handle = { callback = callback, delay = delay, cancelled = false }
+        M.__timers[#M.__timers + 1] = handle
+        return handle
+      end
+      target.CancelTimer = function(_, handle)
+        if type(handle) == "table" then handle.cancelled = true end
+      end
       -- AceConsole's :Print mixin, reproduced faithfully: embedding it CLOBBERS a same-named custom
       -- NS.Print, and renders "|cff33ff99<msg>|r:" (green, trailing colon, no cyan tag). The addon
       -- reclaims its own printer right after NewAddon; without this stamp the test suite would never

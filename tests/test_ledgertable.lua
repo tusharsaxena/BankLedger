@@ -193,7 +193,7 @@ end)
 test("LedgerTable:BuildPreviewData covers every store", function()
   local seen = {}
   for _, x in ipairs(LT:BuildPreviewData()) do seen[x.store] = true end
-  for _, store in ipairs({ "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK", "VOID_STORAGE" }) do
+  for _, store in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
     assertTrue(seen[store], store .. " is missing from the preview data")
   end
 end)

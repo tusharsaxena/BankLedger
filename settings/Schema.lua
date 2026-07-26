@@ -214,6 +214,11 @@ NS.COMMANDS = {
       if not NS.DebugLog then return end
       if arg == "on" then NS.DebugLog:SetEnabled(true)
       elseif arg == "off" then NS.DebugLog:SetEnabled(false)
+      elseif arg == "scan" then
+        -- A structured dump verb (debug-logging-§4): writes the client's real container model into
+        -- the console through the RAW append, so it works whether or not logging is enabled.
+        NS.DebugLog:Show()
+        for _, line in ipairs(NS.Ledger:Diagnose()) do NS.DebugLog:Add("Scan", line) end
       else NS.DebugLog:Toggle() end
     end },
   { name = "help",     desc = "Show this help",          fn = function() NS.Slash:PrintHelp() end },

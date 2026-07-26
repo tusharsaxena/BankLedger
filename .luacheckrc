@@ -16,7 +16,7 @@ read_globals = {
   -- Item / container / bank APIs the Compat layer wraps
   "C_Item", "C_Container", "C_Map", "C_AddOns", "GetAddOnMetadata",
   "GetGuildBankItemLink", "GetGuildBankItemInfo", "GetNumGuildBankTabs",
-  "MAX_GUILDBANK_SLOTS_PER_TAB", "GetVoidItemInfo",
+  "MAX_GUILDBANK_SLOTS_PER_TAB",
   -- UI globals used by the window, console and panel
   "UIParent", "UISpecialFrames", "DEFAULT_CHAT_FRAME", "GameTooltip",
   "ITEM_QUALITY_COLORS", "RAID_CLASS_COLORS", "STANDARD_TEXT_FONT",

@@ -19,6 +19,33 @@ local C = NS.Constants
 -- as a deposit would be a lie. Guild and Warband banks are the only stores with a money slot.
 L.MONEY_STORES = { GUILD_BANK = true, WARBAND_BANK = true }
 
+-- Which stores a given open FRAME can reach.
+--
+-- The retail bank frame is one window with tabs — "Bank" and "Warband Bank" along the bottom, plus
+-- the reagent slots — all behind a single BANKFRAME_OPENED, and switching tabs fires nothing. There
+-- is therefore no event that says "the warband bank is now open", so an addon cannot track which
+-- tab you are looking at. It doesn't need to: on every pass it diffs the bags against EVERY store
+-- the open frame can reach, and the "both sides must change" rule sorts out which one you actually
+-- used. A store you didn't touch shows no change on its side and produces no row.
+L.CONTEXT_STORES = {
+  BANK_FRAME   = { C.Store.BANK, C.Store.REAGENT_BANK, C.Store.WARBAND_BANK },
+  GUILD_BANK   = { C.Store.GUILD_BANK },
+}
+
+-- The stores a frame can reach ON THIS CLIENT. A container-backed store whose id group came back
+-- empty does not exist on this build — the reagent bank is gone on 12.0.7, its contents having
+-- moved into the bank tabs — so it is dropped rather than scanned as a permanently empty store
+-- that clutters every debug line with `REAGENT_BANK 0`. Stores with their own API family (the guild
+-- bank) have no id group and are always reachable.
+function L:StoresFor(context)
+  local out = {}
+  for _, store in ipairs(L.CONTEXT_STORES[context] or {}) do
+    local ids = C.STORE_CONTAINERS[store]
+    if ids == nil or #ids > 0 then out[#out + 1] = store end
+  end
+  return out
+end
+
 -- Hot-path upvalues, re-cached whenever the settings or the filter lists change
 -- (events-frames-taint-§7). The capture gate runs once per moved item, so it must not walk AceDB.
 local DB_ENABLED, DB_TRACK_ITEMS, DB_TRACK_MONEY = true, true, true
@@ -98,6 +125,23 @@ function L.MoveSummary(store, recorded, skipped)
     tostring(store), tostring(recorded), tostring(skipped))
 end
 
+-- One-line summary of what a reconcile pass actually saw, emitted on EVERY pass — including a pass
+-- that found nothing. A pass that produces no ledger row is the case that most needs explaining
+-- (debug-logging-§8: log the not-recorded decisions too), and "silence" is not a diagnosis: it
+-- cannot distinguish "the scan found no items in the store" from "the diff found no movement".
+function L.DiffSummary(store, bagKinds, storeKinds, moveCount)
+  return ("%s: bags %s kinds, store %s kinds -> %s moves"):format(
+    tostring(store), tostring(bagKinds), tostring(storeKinds), tostring(moveCount))
+end
+
+-- Number of distinct item ids in a count map.
+local function countKinds(map)
+  local n = 0
+  for _ in pairs(map or {}) do n = n + 1 end
+  return n
+end
+L.CountKinds = countKinds
+
 -- ── Snapshot scanning ───────────────────────────────────────────────────────────
 
 -- Total count of each itemID across every container id belonging to `store`. Stores with their own
@@ -105,7 +149,6 @@ end
 function L:ScanStore(store)
   local counts = {}
   if store == C.Store.GUILD_BANK then return self:ScanGuildBank() end
-  if store == C.Store.VOID_STORAGE then return self:ScanVoidStorage() end
   for _, bagID in ipairs(C.STORE_CONTAINERS[store] or {}) do
     local slots = NS.Compat.GetContainerNumSlots(bagID)
     for slot = 1, slots do
@@ -132,28 +175,98 @@ function L:ScanGuildBank()
   return counts
 end
 
--- Void storage is two pages of 80 single-item slots.
-local VOID_PAGES, VOID_SLOTS = 2, 80
-function L:ScanVoidStorage()
-  local counts = {}
-  for page = 1, VOID_PAGES do
-    for slot = 1, VOID_SLOTS do
-      local info = NS.Compat.GetVoidStorageSlot(page, slot)
-      if info then
-        counts[info.itemID] = (counts[info.itemID] or 0) + 1
-      end
-    end
+-- Full snapshot: the bags, every store the open frame can reach, and the money balance, as one
+-- comparable value. Scanning all of a frame's stores together is what makes tab switching a
+-- non-event — there is nothing to detect, because every tab was already measured.
+function L:Snapshot(context)
+  local stores = {}
+  for _, store in ipairs(self:StoresFor(context)) do
+    stores[store] = self:ScanStore(store)
   end
-  return counts
-end
-
--- Full snapshot: the bags, the open store, and the money balance, as one comparable value.
-function L:Snapshot(store)
   return {
     bags = self:ScanStore(C.Store.BAGS),
-    store = self:ScanStore(store),
+    stores = stores,
     money = NS.Compat.GetMoney(),
   }
+end
+
+-- The single-store view Diff consumes, pulled out of a whole-frame snapshot. Keeping Diff on the
+-- narrow { bags, store, money } shape keeps it pure and keeps its tests readable.
+local function storeView(snapshot, store)
+  return {
+    bags = snapshot.bags,
+    store = (snapshot.stores or {})[store] or {},
+    money = snapshot.money,
+  }
+end
+
+-- ── Diagnostics (`/bl debug scan`) ──────────────────────────────────────────────
+-- A structured dump verb, which debug-logging-§4 explicitly sanctions. Its whole job is to replace
+-- guesswork about the client's container model with ground truth: which `Enum.BagIndex` members
+-- this build actually exposes and at what numeric ids, which ids report slots right now, and what
+-- the addon's own id groups resolved to. Run it with a bank window open.
+--
+-- Returns an array of plain lines so it is testable and can be routed to the console or to chat.
+local PROBE_MIN, PROBE_MAX = -8, 40
+
+function L:Diagnose()
+  local out = {}
+  local function add(fmt, ...)
+    out[#out + 1] = select("#", ...) > 0 and fmt:format(...) or fmt
+  end
+
+  add("openContext=%s snapshot=%s", tostring(NS.State.openContext),
+    NS.State.lastSnapshot and "yes" or "no")
+
+  -- Which BagIndex members this build exposes, sorted by id — the values the id groups are built
+  -- from. A member that is absent here is one this addon must not assume.
+  local members = {}
+  if Enum and Enum.BagIndex then
+    for name, value in pairs(Enum.BagIndex) do
+      if type(value) == "number" then members[#members + 1] = { name = name, value = value } end
+    end
+  end
+  table.sort(members, function(a, b)
+    if a.value ~= b.value then return a.value < b.value end
+    return a.name < b.name
+  end)
+  add("Enum.BagIndex has %s members", #members)
+  for _, m in ipairs(members) do add("  BagIndex.%s = %s", m.name, m.value) end
+
+  -- What this addon's own groups resolved to, so a wrong group is visible beside the truth above.
+  for _, store in ipairs({ "BAGS", "BANK", "REAGENT_BANK", "WARBAND_BANK" }) do
+    local ids = C.STORE_CONTAINERS[store] or {}
+    local parts = {}
+    for i, id in ipairs(ids) do parts[i] = tostring(id) end
+    add("group %s = [%s]", store, table.concat(parts, ", "))
+  end
+
+  -- Probe every plausible container id for slots and contents, whatever group it belongs to. This
+  -- is the line that says where the bank actually lives on this client.
+  add("container probe (id: slots / filled / distinct ids)")
+  for id = PROBE_MIN, PROBE_MAX do
+    local slots = NS.Compat.GetContainerNumSlots(id)
+    if slots and slots > 0 then
+      local filled, seen, kinds = 0, {}, 0
+      for slot = 1, slots do
+        local info = NS.Compat.GetContainerSlot(id, slot)
+        if info then
+          filled = filled + 1
+          if not seen[info.itemID] then seen[info.itemID] = true; kinds = kinds + 1 end
+        end
+      end
+      add("  %s: %s / %s / %s", id, slots, filled, kinds)
+    end
+  end
+
+  add("money=%s guildTabs=%s", NS.Compat.GetMoney(), NS.Compat.GetNumGuildBankTabs())
+
+  -- Which events this build actually accepted. An event in the unavailable list is one Blizzard has
+  -- retired; if a capture-critical one is in there, that is why nothing is being recorded.
+  add("events registered (%s): %s", #L.registeredEvents, table.concat(L.registeredEvents, ", "))
+  add("events UNAVAILABLE (%s): %s", #L.unavailableEvents,
+    #L.unavailableEvents > 0 and table.concat(L.unavailableEvents, ", ") or "none")
+  return out
 end
 
 -- ── Capture gate ────────────────────────────────────────────────────────────────
@@ -242,61 +355,199 @@ end
 
 -- Re-snapshot against the baseline, record everything that moved, and make the new snapshot the
 -- baseline. One summary debug line per pass, never one per item (debug-logging-§9).
+-- Do two snapshots differ anywhere — bags, any store, or the money balance?
+function L.SnapshotsDiffer(a, b)
+  local function mapsDiffer(x, y)
+    x, y = x or {}, y or {}
+    for id, count in pairs(x) do if (y[id] or 0) ~= count then return true end end
+    for id, count in pairs(y) do if (x[id] or 0) ~= count then return true end end
+    return false
+  end
+  if (a.money or 0) ~= (b.money or 0) then return true end
+  if mapsDiffer(a.bags, b.bags) then return true end
+  local stores = {}
+  for store in pairs(a.stores or {}) do stores[store] = true end
+  for store in pairs(b.stores or {}) do stores[store] = true end
+  for store in pairs(stores) do
+    if mapsDiffer((a.stores or {})[store], (b.stores or {})[store]) then return true end
+  end
+  return false
+end
+
+-- How long to keep waiting for a half-finished movement to complete, and how often to look.
+--
+-- The two sides of one deposit can be **seconds** apart, not milliseconds: the bags update
+-- immediately while a warband tab waits on a server round-trip. Debouncing alone cannot cover that
+-- — pick any window and a slower round-trip beats it — so the baseline is *held* until the change
+-- balances out instead of being advanced past a transaction that is still in flight.
+L.SETTLE_TIMEOUT_SECONDS = 6
+L.SETTLE_RETRY_SECONDS = 0.5
+
+-- Re-snapshot against the baseline and record what moved, for EVERY store the open frame reaches.
+-- Returns the total number of entries written.
+--
+-- The baseline advances only when the world is **settled**: either a movement was recorded, or
+-- nothing changed at all. A pass that sees a one-sided change has caught a transaction mid-flight,
+-- so it keeps the old baseline and looks again shortly. Advancing there was the bug that lost every
+-- warband movement — the pass that saw "bags −1, warband unchanged" moved the goalposts, so the
+-- pass a second later saw "warband +1, bags unchanged" and rejected that half too.
 function L:Reconcile()
-  local store = NS.State.openStore
-  if not store then return 0 end
+  local context = NS.State.openContext
+  if not context then return 0 end
   local before = NS.State.lastSnapshot
-  local after = self:Snapshot(store)
-  NS.State.lastSnapshot = after
-  if not before then return 0 end
-
-  local moves = L.Diff(before, after, store)
-  if #moves == 0 then return 0 end
-
-  local recorded, skipped = 0, 0
-  for _, move in ipairs(moves) do
-    if self:Record(move) then recorded = recorded + 1 else skipped = skipped + 1 end
+  local after = self:Snapshot(context)
+  if not before then
+    NS.State.lastSnapshot = after
+    return 0
   end
+
+  local totalRecorded = 0
+  for _, store in ipairs(self:StoresFor(context)) do
+    local moves = L.Diff(storeView(before, store), storeView(after, store), store)
+    -- Emitted before the skip, so a store that found nothing still says what it saw. Silence is not
+    -- a diagnosis: it cannot distinguish "this store scanned empty" from "nothing moved".
+    if NS.State.debug and NS.Debug then
+      NS.Debug("Diff", "%s", L.DiffSummary(store, countKinds(after.bags),
+        countKinds((after.stores or {})[store]), #moves))
+    end
+    if #moves > 0 then
+      local recorded, skipped = 0, 0
+      for _, move in ipairs(moves) do
+        if self:Record(move) then recorded = recorded + 1 else skipped = skipped + 1 end
+      end
+      totalRecorded = totalRecorded + recorded
+      if NS.State.debug and NS.Debug then
+        NS.Debug("Move", "%s", L.MoveSummary(store, recorded, skipped))
+      end
+    end
+  end
+
+  local now = (GetTime and GetTime()) or 0
+  if totalRecorded > 0 or not L.SnapshotsDiffer(before, after) then
+    -- Settled: either the movement completed, or nothing is in flight.
+    NS.State.lastSnapshot = after
+    L._settleSince = nil
+  else
+    -- A one-sided change: the other half may still be on its way from the server. HOLD the baseline
+    -- so the next pass can still see this half, and look again shortly.
+    L._settleSince = L._settleSince or now
+    if now - L._settleSince >= L.SETTLE_TIMEOUT_SECONDS then
+      -- It never balanced, so it was never a movement (an item looted into the bags while the bank
+      -- happened to be open, say). Accept the new state as the baseline and stop waiting, otherwise
+      -- a stale delta would sit there and eventually pair with something unrelated.
+      NS.State.lastSnapshot = after
+      L._settleSince = nil
+      if NS.State.debug and NS.Debug then
+        NS.Debug("Diff", "one-sided change never settled; baseline re-anchored")
+      end
+    else
+      self:ScheduleReconcile(L.SETTLE_RETRY_SECONDS)
+    end
+  end
+  return totalRecorded
+end
+
+-- Coalesce change events into ONE reconcile pass per user action.
+--
+-- A single deposit reports itself through more than one event, and they do not arrive together: the
+-- bags update on `BAG_UPDATE_DELAYED` while the warband tabs update on their own beat a moment
+-- later. Reconciling per event therefore splits one movement across two passes — the first sees
+-- bags −1 with the store unchanged, the second sees store +1 with the bags unchanged, and the
+-- "both sides must change" rule correctly rejects both halves. The movement vanishes.
+--
+-- Debouncing lines the passes up with user actions instead of with events, which is the unit the
+-- rule is actually about. It also collapses the several full container scans one action used to
+-- trigger into one. (Blizzard does exactly this themselves: `BAG_UPDATE_DELAYED` is a debounced
+-- `BAG_UPDATE`.) Two genuinely separate actions stay separate, because they are further apart than
+-- the window — which is what keeps "looted, then deposited later" from pairing up into a phantom row.
+L.DEBOUNCE_SECONDS = 0.35
+
+function L:ScheduleReconcile(delay)
+  if not NS.State.openContext then return end
+  local addon = NS.addon
+  -- No timer library (a headless run): reconcile inline rather than silently drop the change.
+  if not (addon and addon.ScheduleTimer) then return self:Reconcile() end
+  self:CancelPendingReconcile()
+  L._pendingTimer = addon:ScheduleTimer(function()
+    L._pendingTimer = nil
+    L:Reconcile()
+  end, delay or L.DEBOUNCE_SECONDS)
+end
+
+function L:CancelPendingReconcile()
+  local addon = NS.addon
+  if L._pendingTimer and addon and addon.CancelTimer then
+    addon:CancelTimer(L._pendingTimer)
+  end
+  L._pendingTimer = nil
+end
+
+function L:OpenContext(context)
+  NS.State.openContext = context
+  L._settleSince = nil
+  local snap = self:Snapshot(context)
+  NS.State.lastSnapshot = snap
+  -- The baseline counts go in the open line, per store: a store that scans as empty here can never
+  -- produce a movement, so that shows up immediately rather than as unexplained silence later.
   if NS.State.debug and NS.Debug then
-    NS.Debug("Move", "%s", L.MoveSummary(store, recorded, skipped))
+    local parts = {}
+    for _, store in ipairs(self:StoresFor(context)) do
+      parts[#parts + 1] = ("%s %s"):format(store, countKinds(snap.stores[store]))
+    end
+    NS.Debug("Store", "%s opened (baseline: bags %s kinds; stores %s)",
+      tostring(context), countKinds(snap.bags), table.concat(parts, ", "))
   end
-  return recorded
 end
 
-function L:OpenStore(store)
-  NS.State.openStore = store
-  NS.State.lastSnapshot = self:Snapshot(store)
-  if NS.State.debug and NS.Debug then NS.Debug("Store", "%s opened", tostring(store)) end
-end
-
-function L:CloseStore()
-  local store = NS.State.openStore
-  if not store then return end
-  self:Reconcile()   -- catch anything the last change event missed before the window closed
-  NS.State.openStore = nil
+function L:CloseContext()
+  local context = NS.State.openContext
+  if not context then return end
+  -- Run the pending pass NOW rather than waiting out the debounce: the frame is closing and the
+  -- last action's second half may still be in flight.
+  self:CancelPendingReconcile()
+  self:Reconcile()
+  NS.State.openContext = nil
   NS.State.lastSnapshot = nil
-  if NS.State.debug and NS.Debug then NS.Debug("Store", "%s closed", tostring(store)) end
+  L._settleSince = nil
+  if NS.State.debug and NS.Debug then NS.Debug("Store", "%s closed", tostring(context)) end
 end
 
--- Which store an open-event belongs to. The character-bank frame hosts the reagent and warband tabs
--- too, so BANK is the baseline and the tab-specific events refine it.
+-- Which FRAME an open-event belongs to. There is deliberately no event for the warband or reagent
+-- tabs, because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
 local OPEN_EVENTS = {
-  BANKFRAME_OPENED        = C.Store.BANK,
-  GUILDBANKFRAME_OPENED   = C.Store.GUILD_BANK,
-  VOID_STORAGE_OPEN       = C.Store.VOID_STORAGE,
+  BANKFRAME_OPENED        = "BANK_FRAME",
+  GUILDBANKFRAME_OPENED   = "GUILD_BANK",
 }
 local CLOSE_EVENTS = {
   BANKFRAME_CLOSED        = true,
   GUILDBANKFRAME_CLOSED   = true,
-  VOID_STORAGE_CLOSE      = true,
 }
 -- Events that mean "something in an open container changed". Each is a cue to re-diff, never a
 -- movement in itself.
 local CHANGE_EVENTS = {
   "BAG_UPDATE_DELAYED", "PLAYERBANKSLOTS_CHANGED", "PLAYERREAGENTBANKSLOTS_CHANGED",
-  "GUILDBANKBAGSLOTS_CHANGED", "VOID_STORAGE_UPDATE", "VOID_STORAGE_CONTENTS_UPDATE",
-  "PLAYER_MONEY",
+  "GUILDBANKBAGSLOTS_CHANGED", "PLAYER_MONEY",
 }
+
+-- Which event names this build accepted, and which it rejected. Read back by `/bl debug scan`.
+L.registeredEvents = {}
+L.unavailableEvents = {}
+
+-- Register one event in isolation.
+--
+-- Blizzard retires events between expansions, and on modern retail `RegisterEvent` **raises** on an
+-- unknown name rather than ignoring it. A bare `for ... do addon:RegisterEvent(...) end` therefore
+-- turns one stale name into a silent catastrophe: the loop aborts and every remaining event goes
+-- unregistered, leaving the addon deaf with no visible error unless the player has script errors
+-- switched on. That is exactly how this addon shipped able to see `BANKFRAME_OPENED` and nothing
+-- else. Isolating each registration means a name this build lacks is recorded and skipped while
+-- every other event still binds.
+function L:RegisterEventSafely(addon, event, handler)
+  local ok = pcall(addon.RegisterEvent, addon, event, handler)
+  local list = ok and L.registeredEvents or L.unavailableEvents
+  list[#list + 1] = event
+  return ok
+end
 
 function L:Enable()
   if self._enabled then return end
@@ -304,14 +555,17 @@ function L:Enable()
   self:RefreshUpvalues()
 
   local addon = NS.addon
-  for event, store in pairs(OPEN_EVENTS) do
-    addon:RegisterEvent(event, function() L:OpenStore(store) end)
+  L.registeredEvents, L.unavailableEvents = {}, {}
+  for event, context in pairs(OPEN_EVENTS) do
+    self:RegisterEventSafely(addon, event, function() L:OpenContext(context) end)
   end
   for event in pairs(CLOSE_EVENTS) do
-    addon:RegisterEvent(event, function() L:CloseStore() end)
+    self:RegisterEventSafely(addon, event, function() L:CloseContext() end)
   end
   for _, event in ipairs(CHANGE_EVENTS) do
-    addon:RegisterEvent(event, function() L:Reconcile() end)
+    -- Debounced, not immediate: one user action fires several of these, and the halves of a single
+    -- movement do not all arrive on the same one.
+    self:RegisterEventSafely(addon, event, function() L:ScheduleReconcile() end)
   end
 
   -- Re-cache the hot-path upvalues whenever a setting changes. Registered on this module's OWN

@@ -277,7 +277,7 @@ local PREVIEW_ITEMS = {
   { 190316,"Refreshing Healing Potion", 2, "Consumable", "Potion", 400 },
   { 200071,"Dragon Isles Herb",     2, "Tradegoods", "Herb",   90 },
 }
-local PREVIEW_STORES = { "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK", "VOID_STORAGE" }
+local PREVIEW_STORES = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
 local PREVIEW_CHARS = {
   { "Mageling-Ravencrest", "MAGE" },
   { "Tankadin-Ravencrest", "PALADIN" },

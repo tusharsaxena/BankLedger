@@ -11,13 +11,12 @@ C.Store = {
   REAGENT_BANK = "REAGENT_BANK",
   WARBAND_BANK = "WARBAND_BANK",
   GUILD_BANK   = "GUILD_BANK",
-  VOID_STORAGE = "VOID_STORAGE",
 }
 
 -- Display order for grouping, filters and the Insights breakdown (bags first, then the stores a
 -- movement can target).
 C.StoreOrder = {
-  "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK", "VOID_STORAGE", "BAGS",
+  "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK", "BAGS",
 }
 
 C.StoreLabel = {
@@ -26,7 +25,6 @@ C.StoreLabel = {
   REAGENT_BANK = "Reagent Bank",
   WARBAND_BANK = "Warband Bank",
   GUILD_BANK   = "Guild Bank",
-  VOID_STORAGE = "Void Storage",
 }
 
 -- ── Direction enum ──────────────────────────────────────────────────────────────
@@ -47,51 +45,65 @@ C.KindOrder = { "ITEM", "MONEY" }
 C.KindLabel = { ITEM = "Item", MONEY = "Gold", CURRENCY = "Currency" }
 
 -- ── Container id groups ─────────────────────────────────────────────────────────
--- Which numeric container ids belong to which store. Built from Enum.BagIndex where the client
--- exposes it and from the FrameXML constants otherwise, so a patch that renumbers a tab range is a
--- one-line change here and nowhere else. Ids the client doesn't know are simply absent — the
--- scanner skips them (Compat.GetContainerNumSlots returns 0).
-local function bagIndex(name, fallback)
-  local e = Enum and Enum.BagIndex
-  local v = e and e[name]
-  if type(v) == "number" then return v end
-  return fallback
-end
+-- Which numeric container ids belong to which store, derived **by member name** from
+-- Enum.BagIndex — never by hardcoded number.
+--
+-- This is not fussiness. Blizzard renumbers these between expansions, and a numeric guess for a
+-- member the build doesn't expose lands on a completely unrelated container: an earlier version of
+-- this file assumed `AccountBankTab_1 = 13` and `CharacterBankTab_1 = 18`, and on a live 12.0.7
+-- client (where they are 12 and 6) that put warband tab 1 inside the *character bank* group and
+-- listed ids 6–11 twice, double-counting every character-bank stack. Matching on the name means a
+-- member that moves is followed automatically, and a member that does not exist contributes
+-- nothing instead of colliding with its neighbour.
+--
+-- The patterns are anchored and case-sensitive on purpose. `Enum.BagIndex` also carries *type*
+-- constants that look deceptively similar to container ids — on 12.0.7, `Characterbanktab = -2` and
+-- `Accountbanktab = -3` sit alongside the real `CharacterBankTab_1..6` and `AccountBankTab_1..5`.
+-- A loose match would scoop those up and scan a container that does not exist.
+local GROUP_PATTERNS = {
+  BAGS         = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
+  -- `Bank` / `BankBag_N` are the pre-tab character bank; `CharacterBankTab_N` is the modern form.
+  BANK         = { "^Bank$", "^BankBag_%d+$", "^CharacterBankTab_%d+$" },
+  WARBAND_BANK = { "^AccountBankTab_%d+$" },
+  -- Absent on 12.0.7 — reagents live in the bank tabs now — so this resolves to an empty group.
+  REAGENT_BANK = { "^Reagentbank$", "^ReagentBank$" },
+}
 
-local function range(first, last)
-  local out = {}
-  if type(first) ~= "number" or type(last) ~= "number" then return out end
-  for i = first, last do out[#out + 1] = i end
-  return out
-end
-
-local function concatIDs(...)
-  local out = {}
-  for _, list in ipairs({ ... }) do
-    for _, id in ipairs(list) do out[#out + 1] = id end
+-- Every id whose Enum.BagIndex member name matches one of `patterns`, sorted and de-duplicated.
+local function idsMatching(patterns)
+  local seen, ids = {}, {}
+  local members = Enum and Enum.BagIndex
+  if type(members) == "table" then
+    for name, value in pairs(members) do
+      if type(value) == "number" then
+        for _, pattern in ipairs(patterns) do
+          if name:match(pattern) and not seen[value] then
+            seen[value] = true
+            ids[#ids + 1] = value
+            break
+          end
+        end
+      end
+    end
   end
-  return out
+  table.sort(ids)
+  return ids
 end
 
--- Carried inventory: backpack + the four bag slots + the reagent bag.
-C.BAG_IDS = concatIDs({ 0 }, range(1, 4), { bagIndex("ReagentBag", 5) })
+C.BAG_IDS          = idsMatching(GROUP_PATTERNS.BAGS)
+C.BANK_IDS         = idsMatching(GROUP_PATTERNS.BANK)
+C.WARBAND_BANK_IDS = idsMatching(GROUP_PATTERNS.WARBAND_BANK)
+C.REAGENT_BANK_IDS = idsMatching(GROUP_PATTERNS.REAGENT_BANK)
 
--- Character bank: the classic bank container + its purchased bag slots, plus the modern
--- character-bank tab range where the client has it.
-C.BANK_IDS = concatIDs(
-  { bagIndex("Bank", -1) },
-  range(bagIndex("BankBag_1", 6), bagIndex("BankBag_7", 12)),
-  range(bagIndex("CharacterBankTab_1", 18), bagIndex("CharacterBankTab_6", 23))
-)
+-- The backpack is id 0 on every build and predates the enum, so guarantee it rather than depend on
+-- `Backpack` being present. Without the bags side there is no movement to detect at all.
+if #C.BAG_IDS == 0 then C.BAG_IDS = { 0, 1, 2, 3, 4, 5 } end
 
--- Reagent bank is a single container id.
-C.REAGENT_BANK_IDS = { bagIndex("Reagentbank", -3) }
-
--- Warband (account) bank tabs.
-C.WARBAND_BANK_IDS = range(bagIndex("AccountBankTab_1", 13), bagIndex("AccountBankTab_5", 17))
-
--- Store → the container ids scanned for it. Guild bank and void storage have their own APIs and
--- are scanned through Compat rather than a container-id list, so they are absent here.
+-- Store → the container ids scanned for it. The guild bank has its own API family and is scanned
+-- through Compat rather than a container-id list, so it is absent here.
+--
+-- Void storage is not listed at all: it was retired in 12.0.7 — the client exposes neither its
+-- events nor a container for it — so the addon does not pretend to track it.
 C.STORE_CONTAINERS = {
   BAGS         = C.BAG_IDS,
   BANK         = C.BANK_IDS,

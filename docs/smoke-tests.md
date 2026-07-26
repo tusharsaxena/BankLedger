@@ -3,6 +3,8 @@
 In-game checks for the behaviour the headless suites cannot reach: real frames, real bank UIs, real
 taint. Run these before a release, on a character with a bank, a warband bank and a guild bank.
 
+Void storage is not covered: it was retired in 12.0.7 and the addon does not track it.
+
 Each test lists what to do and what must happen. Anything that does not match is a bug, not a
 tolerance.
 
@@ -27,11 +29,13 @@ tolerance.
 2. Take an item from your mailbox, or loot something, so it lands in your bags.
 3. **No** ledger row appears — the item changed on one side only, so it is not a bank movement.
 
-## S-4 · Reagent bank and warband bank
+## S-4 · Warband bank
 
-1. Deposit a reagent into the reagent bank → a **Reagent Bank** row.
-2. Move an item into a warband bank tab → a **Warband Bank** row.
-3. Both stores appear in the Store filter dropdown, which only lists stores your data contains.
+1. With the bank open, click the **Warband Bank** tab and move an item in → a **Warband Bank** row.
+2. Move it back out → a Withdraw row. Both must appear even though switching tabs fires no event.
+3. The row can take a second or two: the warband tab updates on a server round-trip, and the addon
+   deliberately waits for both halves of the movement before writing anything.
+4. Both stores appear in the Store filter dropdown, which only lists stores your data contains.
 
 ## S-5 · Gold
 

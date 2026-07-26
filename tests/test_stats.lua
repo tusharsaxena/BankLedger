@@ -150,7 +150,7 @@ test("Stats: a filter narrows every total, not just the count", function()
 end)
 
 test("Stats: an empty result set produces zeroed totals rather than nil", function()
-  local s = stats({ store = "VOID_STORAGE" })
+  local s = stats({ store = "REAGENT_BANK" })
   assertEqual(s.totals.entries, 0)
   assertEqual(s.totals.totalValue, 0)
   assertEqual(s.totals.netMoney, 0)

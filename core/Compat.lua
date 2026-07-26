@@ -91,14 +91,6 @@ function Compat.GuildBankTabSize()
   return (type(MAX_GUILDBANK_SLOTS_PER_TAB) == "number" and MAX_GUILDBANK_SLOTS_PER_TAB) or 98
 end
 
--- Void-storage slot info. Void storage is a flat 80-slot, stack-of-one store.
-function Compat.GetVoidStorageSlot(page, slot)
-  if type(GetVoidItemInfo) ~= "function" then return nil end
-  local itemID = GetVoidItemInfo(page, slot)
-  if not itemID then return nil end
-  return { itemID = itemID, link = nil, count = 1 }
-end
-
 -- ── Item identity / display ─────────────────────────────────────────────────────
 
 -- itemID parsed from an item link or itemString. Locale-independent; nil when absent.

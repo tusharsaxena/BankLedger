@@ -52,7 +52,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Compat.GetPlayerMapID returns the current map id
 - Compat.GetAddOnMetadata degrades to nil when neither getter exists
 
-### test_constants.lua (14)
+### test_constants.lua (17)
 
 - Constants: every Store enum member appears in the display order
 - Constants: every Store enum member has a display label
@@ -61,9 +61,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Constants: a deposit signs positive and a withdrawal negative
 - Constants: every Kind has a label, including the reserved CURRENCY
 - Constants: the bag id group covers the backpack, four bags and the reagent bag
-- Constants: the bank id group includes the classic bank container
+- Constants: the bank group is exactly the six character-bank tabs
 - Constants: the warband bank spans its five account tabs
-- Constants: every container-backed store maps to a non-empty id list
+- Constants: no container id belongs to two stores
+- Constants: no group lists the same id twice
+- Constants: the enum's type constants are never mistaken for containers
+- Constants: a store absent from this build resolves to an empty group
 - Constants: the guild bank and void storage are NOT container-id scanned
 - Constants: the store mute options exclude BAGS
 - Constants: every quality option carries a numeric value and a label
@@ -87,7 +90,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (34)
+### test_ledger.lua (69)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -106,7 +109,18 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger.Diff: the money movement sorts after the item movements
 - Ledger:ScanStore sums stacks across every container id of a store
 - Ledger:ScanStore returns an empty map for a store with no reachable containers
-- Ledger:Snapshot captures bags, the open store and the money balance together
+- Ledger:Snapshot captures bags, every reachable store and the money balance
+- Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs
+- Ledger:StoresFor drops a store this build has no container for
+- Ledger:StoresFor: the guild bank frame reaches only itself
+- Ledger: void storage is not a store at all (retired in 12.0.7)
+- Ledger:StoresFor: an unknown context reaches nothing
+- Ledger:Reconcile records a bags-to-character-bank deposit
+- Ledger:Reconcile records a warband move with no warband open event at all
+- Ledger:Reconcile writes ONE row, not one per store the frame reaches
+- Ledger:Reconcile records a withdrawal back out of the bank
+- Ledger:Reconcile writes nothing when no frame is open
+- Ledger:CloseContext reconciles once more, then disarms
 - Ledger:GateReason allows an ordinary item move
 - Ledger:GateReason blocks everything while capture is disabled
 - Ledger:GateReason blocks an item below the minimum quality
@@ -123,6 +137,30 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger:Record appends a gated-in movement to the ledger
 - Ledger:Record drops a gated-out movement and writes nothing
 - Ledger.MoveSummary renders one line per pass, not one per item (debug-logging-§9)
+- Ledger.DiffSummary reports both sides and the move count
+- Ledger.CountKinds counts distinct ids, not stack sizes
+- Ledger:Diagnose reports the open store and the resolved id groups
+- Ledger:Diagnose lists the BagIndex members the client exposes
+- Ledger:Diagnose probes containers and reports only the ones with slots
+- Ledger:Diagnose never raises when no container is reachable
+- Ledger:Enable registers every event on a build that has them all
+- Ledger:Enable survives a retired event and still binds the rest
+- Ledger:Enable binds the capture events even when several are retired
+- Ledger:Enable never lets a rejected open event silence the others
+- Ledger:RegisterEventSafely reports whether the binding took
+- Ledger:Diagnose names the events this build rejected
+- Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
+- Ledger: a movement whose halves arrive in separate events is still recorded
+- Ledger: a withdrawal whose halves arrive separately is also recorded
+- Ledger: two separate actions stay two separate rows
+- Ledger:ScheduleReconcile does nothing when no frame is open
+- Ledger:CloseContext runs the pending pass instead of waiting out the debounce
+- Ledger.SnapshotsDiffer spots a change on any side
+- Ledger: a movement whose halves are SECONDS apart is still recorded
+- Ledger: a one-sided change that never completes re-anchors after the timeout
+- Ledger: a re-anchored loot does not pair with a later unrelated deposit
+- Ledger: an unchanged world advances the baseline without waiting
+- Ledger: a completed movement clears the settle wait
 
 ### test_database.lua (29)
 
@@ -325,9 +363,9 @@ whenever the suite changes (see [testing.md](testing.md)).
 |-------|------:|
 | test_util.lua | 24 |
 | test_compat.lua | 16 |
-| test_constants.lua | 14 |
+| test_constants.lua | 17 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 34 |
+| test_ledger.lua | 69 |
 | test_database.lua | 29 |
 | test_stats.lua | 30 |
 | test_ledgertable.lua | 27 |
@@ -335,4 +373,4 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **277** |
+| **Total** | **315** |
