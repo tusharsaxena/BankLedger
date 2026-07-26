@@ -156,8 +156,11 @@ split one movement across two passes and the "both sides must change" rule rejec
 Debouncing lines passes up with user actions and collapses several full container scans per action
 into one, but it cannot cover a gap of *seconds* — the live warband tab took over a second to catch
 up after the bags. So the baseline is additionally **held whenever a pass sees a one-sided change**
-(`SETTLE_TIMEOUT_SECONDS`): the pass keeps the old baseline and looks again shortly, so the half
-that already happened is still visible when the other half lands. If it never balances — an item
+(`SETTLE_TIMEOUT_SECONDS`): the pass keeps the old baseline so the half that already happened is
+still visible when the other half lands. The wait is **event-driven, not polled** — a warband tab is
+a container, so the client updating it fires `BAG_UPDATE_DELAYED` and drives the re-check by itself;
+the timer is only a give-up deadline, re-armed on the remaining window so event traffic cannot push
+it out. If it never balances — an item
 looted into the bags while the bank happened to be open — the baseline re-anchors after the timeout,
 so a stale delta cannot later pair with something unrelated. Closing a frame runs the pending pass
 immediately rather than waiting out the window.
@@ -167,6 +170,20 @@ on an unknown event name rather than ignoring it, so a bare registration loop tu
 event into a silently deaf addon — every event after the throw goes unbound, with no visible error
 unless the player has script errors switched on. Names this build rejected are recorded in
 `Ledger.unavailableEvents` and reported by `/bl debug scan`.
+
+The guild bank is the one store with **no usable open event**. `GUILDBANKFRAME_OPENED` is a valid
+name that registers without complaint and never fires on 12.0.7, so it is the arrival of tab
+**data** (`GUILDBANKBAGSLOTS_CHANGED`) that arms the context — the first one lands as the window
+opens, before anything can be moved, which is exactly when the baseline wants taking. It never
+steals the context from an already-open bank frame, and it disarms itself once
+`Compat.IsGuildBankVisible()` reports an explicit `false`, so it does not keep rescanning six
+98-slot tabs on every bag update. That check is three-valued: `nil` means "this build cannot tell"
+and deliberately does not disarm.
+
+The guild bank also has a prerequisite the container stores do not: a tab holds **no data until it
+has been queried** (`QueryGuildBankTab`), so only the tab the player is looking at is readable for
+free. Arming queries every tab; the replies arrive asynchronously and reconcile like any other
+change.
 
 ## Taint notes
 

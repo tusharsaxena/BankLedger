@@ -50,6 +50,11 @@ tolerance.
 1. Open the guild bank and deposit an item.
 2. A **Guild Bank** row appears; the exported CSV's `guild` column carries your guild name.
 3. Deposit gold → a Gold row against the guild bank.
+4. `/bl debug scan` while it is open reports `openContext=GUILD_BANK`. The guild bank has no
+   working open event, so it arms itself when tab data arrives — if this reads `nil`, no data has
+   reached the addon and nothing will be recorded.
+5. Close the window, then move something in your bags. No further guild-bank scanning should
+   happen — it disarms once the window is gone.
 
 ## S-7 · Window behaviour
 

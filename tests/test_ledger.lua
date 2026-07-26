@@ -820,3 +820,265 @@ test("Ledger: a completed movement clears the settle wait", function()
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
 end)
+
+-- ── The settle wait must not poll ──────────────────────────────────────────────
+-- Deleting an item with the bank open is a one-sided change that will never balance. Waiting it out
+-- is correct; rescanning every half-second for the whole window is not — each pass walks the bags,
+-- six bank tabs and five warband tabs. The other half of a real movement always arrives with an
+-- event, so the timer is a give-up deadline rather than a poll.
+
+test("Ledger: a deletion writes no row and arms ONE deadline, not a poll", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 19019, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil          -- deleted, not deposited
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "a deletion is not a movement")
+    assertEqual(#mocks.__timers, 1, "one deadline armed")
+  end)
+end)
+
+test("Ledger: the deadline is armed for the REMAINING window, not a fixed retry", function()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 19019, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:Reconcile()
+    assertEqual(mocks.__timers[1].delay, NS.Ledger.SETTLE_TIMEOUT_SECONDS,
+      "the first wait covers the whole window")
+
+    -- An event arrives partway through and re-checks; the deadline must survive, shortened.
+    mocks.__now = mocks.__now + 4
+    mocks.__timers = {}
+    NS.Ledger:Reconcile()
+    assertEqual(mocks.__timers[1].delay, NS.Ledger.SETTLE_TIMEOUT_SECONDS - 4,
+      "re-armed on what is left, so the deadline cannot be pushed out forever")
+  end)
+end)
+
+test("Ledger: the deadline never schedules a near-zero timer", function()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 19019, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:Reconcile()
+    mocks.__now = mocks.__now + NS.Ledger.SETTLE_TIMEOUT_SECONDS - 0.1
+    mocks.__timers = {}
+    NS.Ledger:Reconcile()
+    assertTrue(mocks.__timers[1].delay >= NS.Ledger.SETTLE_MIN_RECHECK_SECONDS,
+      "floored, got " .. tostring(mocks.__timers[1].delay))
+  end)
+end)
+
+test("Ledger: firing the deadline re-anchors and stops waiting", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 19019, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:Reconcile()
+
+    mocks.__now = mocks.__now + NS.Ledger.SETTLE_TIMEOUT_SECONDS
+    mocks.__fireTimers()
+
+    assertEqual(NS.Ledger._settleSince, nil, "no longer waiting")
+    assertEqual(NS.Database:Count(), before, "and still no phantom row")
+    assertEqual(#mocks.__timers, 0, "nothing left armed")
+  end)
+end)
+
+-- ── Guild bank ─────────────────────────────────────────────────────────────────
+-- The guild bank has its own API family AND a prerequisite the container stores do not have: a tab
+-- returns nothing until it has been QUERIED. Only the tab you are looking at is populated for free,
+-- so without the query the scan sees an almost-empty guild bank whatever is really in it.
+
+test("Ledger:ScanGuildBank sees nothing from a tab that was never queried", function()
+  mocks.__guildQueried = {}
+  assertEqual(next(NS.Ledger:ScanGuildBank()), nil, "unqueried tabs report nothing")
+end)
+
+test("Ledger:QueryGuildBankTabs asks for every tab", function()
+  mocks.__guildQueried, mocks.__guildQueryCount = {}, 0
+  assertEqual(NS.Ledger:QueryGuildBankTabs(), 8)
+  assertEqual(mocks.__guildQueryCount, 8, "one query per tab")
+end)
+
+test("Ledger:ScanGuildBank reads a tab once it has been queried", function()
+  mocks.__guildQueried = {}
+  NS.Ledger:QueryGuildBankTabs()
+  assertEqual(NS.Ledger:ScanGuildBank()[2589], 5)
+end)
+
+test("Ledger:OpenContext queries the guild bank tabs on open", function()
+  mocks.__guildQueried, mocks.__guildQueryCount = {}, 0
+  NS.Ledger:OpenContext("GUILD_BANK")
+  assertEqual(mocks.__guildQueryCount, 8, "opening the frame populates every tab")
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+end)
+
+test("Ledger:OpenContext does NOT query guild tabs for the bank frame", function()
+  mocks.__guildQueried, mocks.__guildQueryCount = {}, 0
+  NS.Ledger:OpenContext("BANK_FRAME")
+  assertEqual(mocks.__guildQueryCount, 0)
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+end)
+
+test("Ledger: a guild-bank deposit is recorded", function()
+  local before = NS.Database:Count()
+  local savedTabs = mocks.__guildTabs
+  mocks.__guildTabs = { [1] = {} }
+  mocks.__guildQueried = {}
+  local savedBag = mocks.__containers[BAG_ID]
+  mocks.__containers[BAG_ID] = { slots = 1, [1] = { itemID = 171276, count = 4 } }
+
+  NS.Ledger:OpenContext("GUILD_BANK")
+  mocks.__containers[BAG_ID][1] = nil
+  mocks.__guildTabs[1][1] = { itemID = 171276, count = 4 }
+  NS.Ledger:Reconcile()
+
+  assertEqual(NS.Database:Count(), before + 1)
+  local e = NS.Database:Ledger()[NS.Database:Count()]
+  assertEqual(e.store, "GUILD_BANK")
+  assertEqual(e.direction, "DEPOSIT")
+  assertEqual(e.quantity, 4)
+  assertEqual(e.guild, "Ka0s", "guild-bank rows carry the guild name")
+
+  NS.Database:Delete(function(x) return x.itemID == 171276 end)
+  mocks.__guildTabs, mocks.__containers[BAG_ID] = savedTabs, savedBag
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+end)
+
+test("Ledger:Diagnose reports the guild-bank API and per-tab contents", function()
+  mocks.__guildQueried = {}
+  NS.Ledger:QueryGuildBankTabs()
+  local text = table.concat(NS.Ledger:Diagnose(), "\n")
+  assertTrue(text:find("guild bank API:", 1, true) ~= nil, "which globals exist")
+  assertTrue(text:find("guild bank tabs=8", 1, true) ~= nil)
+  assertTrue(text:find("  tab 1: 1 / 1", 1, true) ~= nil, "per-tab filled/distinct counts")
+end)
+
+test("Compat.GetGuildBankSlot survives a build with no guild-bank API", function()
+  -- Both getters are guarded independently: a build that keeps one and retires the other must
+  -- degrade to "no data" rather than raise part-way through a scan.
+  local savedLink = mocks.GetGuildBankItemLink
+  mocks.GetGuildBankItemLink = nil
+  local ok, result = pcall(function() return NS.Compat.GetGuildBankSlot(1, 1) end)
+  mocks.GetGuildBankItemLink = savedLink
+  assertTrue(ok, "no error")
+  assertEqual(result, nil)
+end)
+
+-- ── The guild bank arms itself on data, not on an open event ───────────────────
+-- GUILDBANKFRAME_OPENED is a valid event name that registers without complaint and then never
+-- fires on 12.0.7, so waiting for it left the addon permanently unarmed and every guild deposit
+-- unrecorded. Tab contents arriving is the signal that actually happens.
+
+local function clearContext()
+  NS.State.openContext, NS.State.lastSnapshot, NS.Ledger._settleSince = nil, nil, nil
+end
+
+test("Ledger:OnGuildBankData arms the guild bank when nothing else is open", function()
+  clearContext()
+  mocks.__guildQueried = {}
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "GUILD_BANK", "data arriving is what arms it")
+  assertTrue(NS.State.lastSnapshot ~= nil, "and takes a baseline")
+  clearContext()
+end)
+
+test("Ledger:OnGuildBankData queries the tabs when it arms", function()
+  clearContext()
+  mocks.__guildQueried, mocks.__guildQueryCount = {}, 0
+  NS.Ledger:OnGuildBankData()
+  assertEqual(mocks.__guildQueryCount, 8)
+  clearContext()
+end)
+
+test("Ledger:OnGuildBankData never steals the context from an open bank frame", function()
+  clearContext()
+  NS.Ledger:OpenContext("BANK_FRAME")
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "BANK_FRAME", "the bank frame has its own events")
+  clearContext()
+end)
+
+test("Ledger:OnGuildBankData re-arms without churning the baseline once armed", function()
+  clearContext()
+  NS.Ledger:OnGuildBankData()
+  local first = NS.State.lastSnapshot
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "GUILD_BANK")
+  assertTrue(NS.State.lastSnapshot == first, "a second data event does not re-baseline")
+  clearContext()
+end)
+
+test("Ledger: a guild-bank deposit is recorded with no open event at all", function()
+  local before = NS.Database:Count()
+  local savedTabs, savedBag = mocks.__guildTabs, mocks.__containers[BAG_ID]
+  mocks.__guildTabs, mocks.__guildQueried = { [1] = {} }, {}
+  mocks.__containers[BAG_ID] = { slots = 1, [1] = { itemID = 171276, count = 7 } }
+  clearContext()
+
+  NS.Ledger:OnGuildBankData()                       -- window opened; contents arrive
+  mocks.__containers[BAG_ID][1] = nil               -- deposited
+  mocks.__guildTabs[1][1] = { itemID = 171276, count = 7 }
+  NS.Ledger:OnGuildBankData()                       -- the tab update arrives
+  NS.Ledger:Reconcile()
+
+  assertEqual(NS.Database:Count(), before + 1)
+  local e = NS.Database:Ledger()[NS.Database:Count()]
+  assertEqual(e.store, "GUILD_BANK")
+  assertEqual(e.direction, "DEPOSIT")
+  assertEqual(e.quantity, 7)
+
+  NS.Database:Delete(function(x) return x.itemID == 171276 end)
+  mocks.__guildTabs, mocks.__containers[BAG_ID] = savedTabs, savedBag
+  clearContext()
+end)
+
+test("Ledger: the guild bank disarms once its window has gone", function()
+  clearContext()
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "GUILD_BANK")
+  mocks.__guildVisible = false
+  NS.Ledger:Reconcile()
+  assertEqual(NS.State.openContext, nil, "stops rescanning six tabs on every bag update")
+  mocks.__guildVisible = true
+  clearContext()
+end)
+
+test("Ledger: an unknown window state does NOT disarm the guild bank", function()
+  -- A build with no guild-bank frame to inspect reports nil, meaning "cannot tell". That must not
+  -- be read as "hidden", or the guild bank would disarm itself instantly and permanently there.
+  clearContext()
+  NS.Ledger:OnGuildBankData()
+  local savedFrame = mocks.GuildBankFrame
+  mocks.GuildBankFrame = nil
+  NS.Ledger:Reconcile()
+  assertEqual(NS.State.openContext, "GUILD_BANK", "still armed when visibility is unknowable")
+  mocks.GuildBankFrame = savedFrame
+  clearContext()
+end)
+
+test("Compat.IsGuildBankVisible is three-valued", function()
+  mocks.__guildVisible = true
+  assertEqual(NS.Compat.IsGuildBankVisible(), true)
+  mocks.__guildVisible = false
+  assertEqual(NS.Compat.IsGuildBankVisible(), false)
+  local savedFrame = mocks.GuildBankFrame
+  mocks.GuildBankFrame = nil
+  assertEqual(NS.Compat.IsGuildBankVisible(), nil, "no frame means unknown, not hidden")
+  mocks.GuildBankFrame, mocks.__guildVisible = savedFrame, true
+end)

@@ -83,6 +83,38 @@ return function()
     end,
   }
 
+  -- Guild bank. Tabs hold data only once QUERIED, exactly like the live API: an unqueried tab
+  -- returns nil from GetGuildBankItemLink no matter what is in it. A mock that handed out contents
+  -- unconditionally would hide the missing QueryGuildBankTab call entirely.
+  M.__guildTabs = { [1] = { [1] = { itemID = 2589, count = 5 } } }
+  M.__guildQueried = {}
+  M.__guildQueryCount = 0
+  M.GetNumGuildBankTabs = function() return 8 end
+  M.GetCurrentGuildBankTab = function() return 1 end
+  M.QueryGuildBankTab = function(tab)
+    M.__guildQueried[tab] = true
+    M.__guildQueryCount = M.__guildQueryCount + 1
+  end
+  M.GetGuildBankItemLink = function(tab, slot)
+    if not M.__guildQueried[tab] then return nil end
+    local s2 = M.__guildTabs[tab] and M.__guildTabs[tab][slot]
+    if not s2 then return nil end
+    return "|cffffffff|Hitem:" .. s2.itemID .. "::::::::::|h[Item]|h|r"
+  end
+  M.GetGuildBankItemInfo = function(tab, slot)
+    local s2 = M.__guildTabs[tab] and M.__guildTabs[tab][slot]
+    if not s2 then return nil end
+    return "texture", s2.count
+  end
+  M.MAX_GUILDBANK_SLOTS_PER_TAB = 98
+  -- The guild-bank window. Tests set __guildVisible to nil to model a build where the frame cannot
+  -- be found at all, which must NOT be read as "hidden".
+  M.__guildVisible = true
+  M.GuildBankFrame = setmetatable({}, { __index = function(_, k)
+    if k == "IsVisible" then return function() return M.__guildVisible end end
+    return nil
+  end })
+
   -- Item database: M.__items[itemID] = { name, quality, itemType, itemSubType, vendorPrice }.
   M.__items = {
     [2589]  = { "Linen Cloth",      1, "Tradegoods", "Cloth",  20 },

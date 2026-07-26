@@ -70,20 +70,59 @@ function Compat.GetContainerSlot(bagID, slot)
   return { itemID = info.itemID, link = info.hyperlink, count = info.stackCount or 1 }
 end
 
--- Guild-bank slot info for a tab. Guild bank keeps its own API family (not C_Container).
+-- Guild-bank slot info for a tab. The guild bank keeps its own API family (not C_Container), and
+-- both getters are guarded independently — a build that keeps one and retires the other must
+-- degrade to "no data", never raise mid-scan.
 function Compat.GetGuildBankSlot(tab, slot)
   if type(GetGuildBankItemLink) ~= "function" then return nil end
   local link = GetGuildBankItemLink(tab, slot)
   if not link then return nil end
-  local _, count = GetGuildBankItemInfo(tab, slot)
+  local count = 1
+  if type(GetGuildBankItemInfo) == "function" then
+    local _, n = GetGuildBankItemInfo(tab, slot)
+    count = n or 1
+  end
   local itemID = Compat.ItemIDFromLink(link)
   if not itemID then return nil end
-  return { itemID = itemID, link = link, count = count or 1 }
+  return { itemID = itemID, link = link, count = count }
 end
 
 function Compat.GetNumGuildBankTabs()
   if type(GetNumGuildBankTabs) == "function" then return GetNumGuildBankTabs() or 0 end
   return 0
+end
+
+-- Ask the server for a tab's contents.
+--
+-- This is not optional: the guild bank only holds data for tabs that have been **queried**, so
+-- `GetGuildBankItemLink` returns nil for every tab the player has not looked at. Without this the
+-- scan sees an almost-empty guild bank no matter what is really in it. The reply is asynchronous
+-- and arrives as GUILDBANKBAGSLOTS_CHANGED, which the addon already reconciles on.
+function Compat.QueryGuildBankTab(tab)
+  if type(QueryGuildBankTab) == "function" then QueryGuildBankTab(tab) end
+end
+
+-- The tab the guild-bank UI is currently showing (nil when unavailable). Only this one is
+-- guaranteed to hold data before any query.
+function Compat.GetCurrentGuildBankTab()
+  if type(GetCurrentGuildBankTab) == "function" then return GetCurrentGuildBankTab() end
+  return nil
+end
+
+-- Is the guild-bank window on screen?
+--
+-- Three-valued on purpose: **nil means "cannot tell on this build"**, which is different from
+-- false. The guild bank is armed by data arriving rather than by a frame-open event (that event
+-- registers fine but never fires on 12.0.7), so something has to say when it is gone — but a build
+-- without this frame must leave the addon armed rather than disarm it on a false negative.
+-- Read the frame as a bare global, NOT as `_G.GuildBankFrame`: the headless loader resolves globals
+-- through a mock environment, and an explicit `_G` lookup steps around it straight into the real
+-- global table — where nothing WoW-shaped exists. The bare name is also what the live client sees,
+-- so this is the form that is testable and correct at once.
+function Compat.IsGuildBankVisible()
+  local frame = GuildBankFrame
+  if not (frame and type(frame.IsVisible) == "function") then return nil end
+  return frame:IsVisible() and true or false
 end
 
 function Compat.GuildBankTabSize()

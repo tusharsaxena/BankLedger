@@ -161,6 +161,16 @@ function L:ScanStore(store)
   return counts
 end
 
+-- Ask the server for every guild-bank tab's contents. Cheap and idempotent; the data lands later.
+function L:QueryGuildBankTabs()
+  local tabs = NS.Compat.GetNumGuildBankTabs()
+  for tab = 1, tabs do NS.Compat.QueryGuildBankTab(tab) end
+  if NS.State.debug and NS.Debug then
+    NS.Debug("Store", "queried %s guild bank tabs", tabs)
+  end
+  return tabs
+end
+
 function L:ScanGuildBank()
   local counts = {}
   local tabSize = NS.Compat.GuildBankTabSize()
@@ -259,7 +269,28 @@ function L:Diagnose()
     end
   end
 
-  add("money=%s guildTabs=%s", NS.Compat.GetMoney(), NS.Compat.GetNumGuildBankTabs())
+  add("money=%s", NS.Compat.GetMoney())
+
+  -- Guild bank: which API globals this build exposes, and what each tab actually reports. A tab
+  -- showing 0 filled when you can see items in it means the query has not landed yet.
+  add("guild bank API: link=%s info=%s query=%s numTabs=%s current=%s visible=%s",
+    type(GetGuildBankItemLink), type(GetGuildBankItemInfo), type(QueryGuildBankTab),
+    type(GetNumGuildBankTabs), tostring(NS.Compat.GetCurrentGuildBankTab()),
+    tostring(NS.Compat.IsGuildBankVisible()))
+  local tabs = NS.Compat.GetNumGuildBankTabs()
+  add("guild bank tabs=%s (tab: filled / distinct ids)", tabs)
+  local tabSize = NS.Compat.GuildBankTabSize()
+  for tab = 1, tabs do
+    local filled, seen, kinds = 0, {}, 0
+    for slot = 1, tabSize do
+      local info = NS.Compat.GetGuildBankSlot(tab, slot)
+      if info then
+        filled = filled + 1
+        if not seen[info.itemID] then seen[info.itemID] = true; kinds = kinds + 1 end
+      end
+    end
+    add("  tab %s: %s / %s", tab, filled, kinds)
+  end
 
   -- Which events this build actually accepted. An event in the unavailable list is one Blizzard has
   -- retired; if a capture-critical one is in there, that is why nothing is being recorded.
@@ -380,8 +411,14 @@ end
 -- immediately while a warband tab waits on a server round-trip. Debouncing alone cannot cover that
 -- — pick any window and a slower round-trip beats it — so the baseline is *held* until the change
 -- balances out instead of being advanced past a transaction that is still in flight.
+-- The wait is **event-driven, not polled**. The other half of a movement cannot arrive silently: a
+-- warband tab is a container, so the client updating it fires BAG_UPDATE_DELAYED and drives a
+-- reconcile on its own. The timer here is only a give-up deadline for a change that will never
+-- balance — an item deleted or looted while the bank is open. Polling for it instead burned a dozen
+-- full rescans (bags + 6 bank tabs + 5 warband tabs, ~1600 slot reads each) to learn nothing.
 L.SETTLE_TIMEOUT_SECONDS = 6
-L.SETTLE_RETRY_SECONDS = 0.5
+-- Floor for the deadline, so a re-arm late in the window can't schedule a near-zero timer.
+L.SETTLE_MIN_RECHECK_SECONDS = 0.5
 
 -- Re-snapshot against the baseline and record what moved, for EVERY store the open frame reaches.
 -- Returns the total number of entries written.
@@ -441,8 +478,21 @@ function L:Reconcile()
         NS.Debug("Diff", "one-sided change never settled; baseline re-anchored")
       end
     else
-      self:ScheduleReconcile(L.SETTLE_RETRY_SECONDS)
+      -- Arm the deadline for whatever is LEFT of the window, not a fixed retry interval: events
+      -- drive the real re-checks, so with nothing in flight this fires exactly once. Re-arming on
+      -- the remainder each time keeps the deadline alive across event-driven rescheduling, which
+      -- cancels the pending timer.
+      self:ScheduleReconcile(math.max(L.SETTLE_MIN_RECHECK_SECONDS,
+        L.SETTLE_TIMEOUT_SECONDS - (now - L._settleSince)))
     end
+  end
+
+  -- Armed by data rather than by an open event, the guild bank has to disarm itself too, or it
+  -- would keep rescanning six 98-slot tabs on every bag update for the rest of the session. Only an
+  -- explicit false counts: nil means this build cannot tell, and a false negative must not disarm.
+  if context == C.Store.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false then
+    NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
+    if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK disarmed (window gone)") end
   end
   return totalRecorded
 end
@@ -485,6 +535,9 @@ end
 function L:OpenContext(context)
   NS.State.openContext = context
   L._settleSince = nil
+  -- The guild bank only holds data for tabs that have been queried, so ask for all of them up
+  -- front. The replies arrive asynchronously on GUILDBANKBAGSLOTS_CHANGED and reconcile normally.
+  if context == C.Store.GUILD_BANK then self:QueryGuildBankTabs() end
   local snap = self:Snapshot(context)
   NS.State.lastSnapshot = snap
   -- The baseline counts go in the open line, per store: a store that scans as empty here can never
@@ -497,6 +550,22 @@ function L:OpenContext(context)
     NS.Debug("Store", "%s opened (baseline: bags %s kinds; stores %s)",
       tostring(context), countKinds(snap.bags), table.concat(parts, ", "))
   end
+end
+
+-- Guild bank data arrived.
+--
+-- The guild bank gets no usable open event: GUILDBANKFRAME_OPENED is a valid name that registers
+-- without complaint and then never fires on 12.0.7, so waiting for it left the addon permanently
+-- unarmed and every guild deposit unrecorded. What the server DOES reliably send is the tab
+-- contents themselves, so data arriving is the signal that the guild bank is in play — the first
+-- one lands when the window opens, before anything can be moved, which is exactly when the baseline
+-- wants taking.
+function L:OnGuildBankData()
+  -- Never steal the context from a bank frame that is already open; that one has its own events.
+  if not NS.State.openContext then
+    self:OpenContext(C.Store.GUILD_BANK)
+  end
+  self:ScheduleReconcile()
 end
 
 function L:CloseContext()
@@ -526,8 +595,11 @@ local CLOSE_EVENTS = {
 -- movement in itself.
 local CHANGE_EVENTS = {
   "BAG_UPDATE_DELAYED", "PLAYERBANKSLOTS_CHANGED", "PLAYERREAGENTBANKSLOTS_CHANGED",
-  "GUILDBANKBAGSLOTS_CHANGED", "PLAYER_MONEY",
+  "PLAYER_MONEY",
 }
+-- Guild bank data. Handled separately because it ARMS the guild-bank context as well as
+-- reconciling it — see L:OnGuildBankData.
+local GUILD_DATA_EVENTS = { "GUILDBANKBAGSLOTS_CHANGED" }
 
 -- Which event names this build accepted, and which it rejected. Read back by `/bl debug scan`.
 L.registeredEvents = {}
@@ -566,6 +638,9 @@ function L:Enable()
     -- Debounced, not immediate: one user action fires several of these, and the halves of a single
     -- movement do not all arrive on the same one.
     self:RegisterEventSafely(addon, event, function() L:ScheduleReconcile() end)
+  end
+  for _, event in ipairs(GUILD_DATA_EVENTS) do
+    self:RegisterEventSafely(addon, event, function() L:OnGuildBankData() end)
   end
 
   -- Re-cache the hot-path upvalues whenever a setting changes. Registered on this module's OWN

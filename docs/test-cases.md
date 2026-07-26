@@ -90,7 +90,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (69)
+### test_ledger.lua (89)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -161,6 +161,26 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger: a re-anchored loot does not pair with a later unrelated deposit
 - Ledger: an unchanged world advances the baseline without waiting
 - Ledger: a completed movement clears the settle wait
+- Ledger: a deletion writes no row and arms ONE deadline, not a poll
+- Ledger: the deadline is armed for the REMAINING window, not a fixed retry
+- Ledger: the deadline never schedules a near-zero timer
+- Ledger: firing the deadline re-anchors and stops waiting
+- Ledger:ScanGuildBank sees nothing from a tab that was never queried
+- Ledger:QueryGuildBankTabs asks for every tab
+- Ledger:ScanGuildBank reads a tab once it has been queried
+- Ledger:OpenContext queries the guild bank tabs on open
+- Ledger:OpenContext does NOT query guild tabs for the bank frame
+- Ledger: a guild-bank deposit is recorded
+- Ledger:Diagnose reports the guild-bank API and per-tab contents
+- Compat.GetGuildBankSlot survives a build with no guild-bank API
+- Ledger:OnGuildBankData arms the guild bank when nothing else is open
+- Ledger:OnGuildBankData queries the tabs when it arms
+- Ledger:OnGuildBankData never steals the context from an open bank frame
+- Ledger:OnGuildBankData re-arms without churning the baseline once armed
+- Ledger: a guild-bank deposit is recorded with no open event at all
+- Ledger: the guild bank disarms once its window has gone
+- Ledger: an unknown window state does NOT disarm the guild bank
+- Compat.IsGuildBankVisible is three-valued
 
 ### test_database.lua (29)
 
@@ -365,7 +385,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_compat.lua | 16 |
 | test_constants.lua | 17 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 69 |
+| test_ledger.lua | 89 |
 | test_database.lua | 29 |
 | test_stats.lua | 30 |
 | test_ledgertable.lua | 27 |
@@ -373,4 +393,4 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **315** |
+| **Total** | **335** |
