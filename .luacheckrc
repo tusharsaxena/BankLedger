@@ -21,7 +21,7 @@ read_globals = {
   "UIParent", "UISpecialFrames", "DEFAULT_CHAT_FRAME", "GameTooltip",
   "ITEM_QUALITY_COLORS", "RAID_CLASS_COLORS", "CLASS_ICON_TCOORDS", "STANDARD_TEXT_FONT",
   "FauxScrollFrame_Update", "FauxScrollFrame_GetOffset", "FauxScrollFrame_OnVerticalScroll",
-  "ChatEdit_InsertLink", "IsShiftKeyDown", "BreakUpLargeNumbers",
+  "ChatEdit_InsertLink", "IsShiftKeyDown", "BreakUpLargeNumbers", "GetCursorPosition",
   "StaticPopup_Show", "YES", "NO",
   "GetCoinTextureString",
   "strtrim",

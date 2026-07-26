@@ -226,7 +226,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - NS.MigrationSummary renders a readable one-liner
 - NS.InitSummary identifies the build, schema, profile and size
 
-### test_stats.lua (30)
+### test_stats.lua (49)
 
 - Stats: the entry total counts every movement in scope
 - Stats: item quantities split by direction
@@ -249,6 +249,25 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Stats: the busiest day is the one with the most movements
 - Stats: a filter narrows every total, not just the count
 - Stats: an empty result set produces zeroed totals rather than nil
+- Stats: byItemSubType counts item rows by sub-type
+- Stats: byQuality counts item rows by quality id
+- Stats: byQuality ignores gold, which has no quality
+- Stats: byZone counts movements by where they happened
+- Stats: topZones ranks the banking spots, count-desc
+- Stats: byHour and byWeekday bucket every movement exactly once
+- Stats: byWeekday is keyed 0..6 with Sunday as 0
+- Stats: moneyByStore totals gross coin per store
+- Stats: moneyByDay totals coin per calendar day, items excluded
+- Stats: totals.moneyMoved is gross coin, not net
+- Stats: totals.netItems signs the item flow like netMoney signs gold
+- Stats: charByDirection splits each character's movements in and out
+- Stats: storeByDirection splits each store's movements in and out
+- Stats: topItemsByValue ranks the item index by copper value
+- Stats: topItemsByQuantity ranks the item index by stack count
+- Stats: the three top-item rankings share one record per item
+- Stats: topItems still ranks by movement count, unchanged
+- Stats: every new breakdown is empty rather than nil on an empty ledger
+- Stats: the new breakdowns honour the filter like every other key
 - Insights.RankRows sorts by count descending
 - Insights.RankRows breaks count ties on the label, so the order is stable
 - Insights.RankRows applies the label mapper and the value map
@@ -342,7 +361,65 @@ whenever the suite changes (see [testing.md](testing.md)).
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
-### test_export.lua (20)
+### test_insights.lua (55)
+
+- InsightsWidgets.PaletteColor returns an rgb triple for rank 1
+- InsightsWidgets.PaletteColor gives adjacent ranks different colours
+- InsightsWidgets.PaletteColor cycles past the end of the palette
+- InsightsWidgets.PaletteMap assigns colours by list position
+- InsightsWidgets.PaletteMap of an empty list is empty
+- InsightsWidgets.Truncate leaves a short label alone
+- InsightsWidgets.Truncate cuts a long label to an ellipsis at the limit
+- InsightsWidgets.Truncate handles nil as an empty label
+- InsightsWidgets.ShortChar drops the realm from a Name-Realm key
+- InsightsWidgets.FitFontSize keeps the base size when the string fits
+- InsightsWidgets.FitFontSize shrinks proportionally when it overflows
+- InsightsWidgets.FitFontSize never shrinks below the floor
+- InsightsWidgets.FitFontSize treats a missing measurement as fitting
+- InsightsWidgets.SignedMoney colours a gain green and a loss red
+- InsightsWidgets.SignedMoney renders zero as a neutral dash
+- InsightsWidgets.SignedCount signs a count the same way
+- InsightsWidgets.Money renders nothing as a plain zero, not an empty cell
+- InsightsWidgets.DivergingFill sends a gain right and a loss left
+- InsightsWidgets.DivergingFill draws nothing for zero or no scale
+- InsightsWidgets.DivergingFill shares one scale across both directions
+- InsightsWidgets.DivergingFill clamps a magnitude past the scale
+- InsightsWidgets.RatioShares splits proportionally and sums to one
+- InsightsWidgets.RatioShares reads an empty split as balanced
+- InsightsWidgets.RatioShares treats a negative side as zero
+- InsightsWidgets.Percent rounds to a whole percentage
+- InsightsWidgets.Percent is zero for an empty total, never a divide by zero
+- InsightsWidgets.StripMetrics widens the bars when there are few buckets
+- InsightsWidgets.StripMetrics keeps a minimum bar width when buckets are dense
+- InsightsWidgets.StripMetrics thins the axis labels as the bars tighten
+- InsightsWidgets.StripMetrics survives zero buckets
+- InsightsWidgets.DayKeys covers every day inclusive of both ends
+- InsightsWidgets.DayKeys includes the quiet days in between
+- InsightsWidgets.DayKeys caps a long span to the most recent bars
+- InsightsWidgets.DayKeys is empty without both ends, or when they are inverted
+- InsightsWidgets.ShortDay compacts an ISO day key for the axis
+- InsightsWidgets.SortedByCount ranks count-desc then key-asc
+- InsightsWidgets.NormalizeFractions makes the largest bar fill its track
+- InsightsWidgets.NormalizeFractions leaves an all-zero list alone
+- InsightsWidgets.StackSegments orders segments by their global rank
+- InsightsWidgets.StackSegments returns the row's total
+- InsightsWidgets.StackSegments lumps the overflow into one Other segment, last
+- InsightsWidgets.StackSegments drops zero and negative magnitudes
+- InsightsWidgets.BuildStackRows scales every row against the biggest row
+- InsightsWidgets.BuildStackRows breaks total ties on the label
+- InsightsWidgets.BuildStackRows tips each segment with its category and value
+- InsightsWidgets.BuildStackRows of an empty matrix is empty
+- InsightsWidgets pools reuse a released widget instead of building another
+- Insights.CardValues renders every declared card
+- Insights.CardValues shows a dash where there is genuinely nothing
+- Insights.CardValues survives being handed nothing at all
+- Insights.CardValues covers every card the panel declares
+- Insights.SummaryLine names the scope and the count
+- Insights:Attach and Refresh survive an empty ledger
+- Insights:Refresh lays out every section against a populated ledger
+- Insights:Refresh renders a slice with no gold at all
+
+### test_export.lua (29)
 
 - Export:CSV emits a header row even with no data
 - Export:CSV emits one row per entry
@@ -362,6 +439,15 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Export:InsightsCSV includes the signed net-by-store rows
 - Export:InsightsCSV includes the direction and kind breakdowns
 - Export:InsightsCSV includes the top-items ranking
+- Export:InsightsCSV carries the two new summary figures
+- Export:InsightsCSV includes the sub-type breakdown
+- Export:InsightsCSV includes the quality breakdown, in quality order
+- Export:InsightsCSV includes the zone breakdown
+- Export:InsightsCSV includes the gross coin per store
+- Export:InsightsCSV includes both extra top-item rankings
+- Export:InsightsCSV includes a per-day coin section
+- Export:InsightsCSV emits a full 24-hour and 7-day grid
+- Export:InsightsCSV keeps the original section headers unchanged
 - Export:InsightsCSV survives an empty stats result
 - Export:InsightsCSV survives being handed nothing at all
 
@@ -452,12 +538,13 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_filters.lua | 15 |
 | test_ledger.lua | 89 |
 | test_database.lua | 33 |
-| test_stats.lua | 30 |
+| test_stats.lua | 49 |
 | test_ledgertable.lua | 38 |
 | test_browser.lua | 12 |
 | test_sessionwindow.lua | 24 |
-| test_export.lua | 20 |
+| test_insights.lua | 55 |
+| test_export.lua | 29 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **394** |
+| **Total** | **477** |

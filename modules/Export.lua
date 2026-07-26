@@ -109,9 +109,11 @@ function E:InsightsCSV(stats)
   row("Summary", "Characters", t.distinctChars or 0)
   row("Summary", "Items deposited", t.itemsDeposited or 0)
   row("Summary", "Items withdrawn", t.itemsWithdrawn or 0)
+  row("Summary", "Net items", t.netItems or 0)
   row("Summary", "Gold in", nil, t.moneyIn or 0)
   row("Summary", "Gold out", nil, t.moneyOut or 0)
   row("Summary", "Net gold", nil, t.netMoney or 0)
+  row("Summary", "Gold moved", nil, t.moneyMoved or 0)
   row("Summary", "Value moved", nil, t.totalValue or 0)
   row("Summary", "Active days", t.activeDays or 0)
   if t.firstTs and t.lastTs then
@@ -129,9 +131,26 @@ function E:InsightsCSV(stats)
     local net = (stats.netByStore or {})[s]
     if net ~= nil then row("Net by Store", storeLabel(s), nil, net) end
   end
+  -- Gross coin moved per store, beside the value figures above.
+  for _, s in ipairs(C.StoreOrder) do
+    local amount = (stats.moneyByStore or {})[s]
+    if amount ~= nil then row("Money By Store", storeLabel(s), nil, amount) end
+  end
   section("By Direction", rankedRows(stats.byDirection, function(k) return C.DirectionLabel[k] or k end))
   section("By Kind", rankedRows(stats.byKind, function(k) return C.KindLabel[k] or k end))
   section("By Item Type", rankedRows(stats.byItemType))
+  section("By Sub-type", rankedRows(stats.byItemSubType))
+
+  -- Quality in ASCENDING quality order rather than by count: Poor→Legendary is the meaningful
+  -- ordering, and a spreadsheet reader gets it for free that way.
+  local qualityIDs = {}
+  for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
+  table.sort(qualityIDs)
+  for _, q in ipairs(qualityIDs) do
+    row("By Quality", NS.Compat.QualityLabel(q), stats.byQuality[q])
+  end
+
+  section("By Zone", rankedRows(stats.byZone))
 
   local charRows = {}
   for _, ce in pairs(stats.byChar or {}) do
@@ -143,16 +162,43 @@ function E:InsightsCSV(stats)
   end)
   section("By Character", charRows)
 
+  -- The item index, ranked three ways — the same three lists the Insights panel shows, so an export
+  -- answers "what moved most", "what was worth most" and "what moved in bulk" without re-sorting.
+  local function itemName(it) return it.itemName or ("item " .. tostring(it.itemID)) end
   for _, it in ipairs(stats.topItems or {}) do
-    row("Top Items", it.itemName or ("item " .. tostring(it.itemID)), it.moves, it.value)
+    row("Top Items", itemName(it), it.moves, it.value)
+  end
+  for _, it in ipairs(stats.topItemsByValue or {}) do
+    row("Top Items By Value", itemName(it), it.moves, it.value)
+  end
+  for _, it in ipairs(stats.topItemsByQuantity or {}) do
+    row("Top Items By Quantity", itemName(it), it.quantity, it.value)
   end
 
-  -- Per-day activity, chronological.
+  -- Per-day activity, chronological. `value` is the vendor value moved; the coin column follows in
+  -- its own section so a day's gold traffic is separable from its item traffic.
   local dayKeys = {}
   for day in pairs(stats.byDay or {}) do dayKeys[#dayKeys + 1] = day end
   table.sort(dayKeys)
   for _, day in ipairs(dayKeys) do
     row("By Day", day, stats.byDay[day], (stats.valueByDay or {})[day] or 0)
+  end
+  local moneyDays = {}
+  for day in pairs(stats.moneyByDay or {}) do moneyDays[#moneyDays + 1] = day end
+  table.sort(moneyDays)
+  for _, day in ipairs(moneyDays) do
+    row("Gold By Day", day, nil, stats.moneyByDay[day])
+  end
+
+  -- When the banking happens. Fixed 24-hour and Sunday-first weekday grids rather than only the
+  -- buckets that fired, so an empty hour reads as a quiet hour instead of a missing row.
+  for h = 0, 23 do
+    row("By Hour", ("%02d:00"):format(h), (stats.byHour or {})[h] or 0)
+  end
+  local WEEKDAY = { [0] = "Sunday", [1] = "Monday", [2] = "Tuesday", [3] = "Wednesday",
+                    [4] = "Thursday", [5] = "Friday", [6] = "Saturday" }
+  for d = 0, 6 do
+    row("By Weekday", WEEKDAY[d], (stats.byWeekday or {})[d] or 0)
   end
 
   return table.concat(lines, "\r\n") .. "\r\n"

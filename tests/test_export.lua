@@ -147,6 +147,67 @@ test("Export:InsightsCSV includes the top-items ranking", function()
   assertTrue(insightsCSV():find("Top Items,Linen Cloth", 1, true) ~= nil)
 end)
 
+-- ── The expanded Insights CSV sections ─────────────────────────────────────────
+-- The panel's new charts each have a matching CSV section, so an export stays a faithful dump of
+-- what is on screen rather than a subset of it.
+
+test("Export:InsightsCSV carries the two new summary figures", function()
+  local csv = insightsCSV()
+  assertTrue(csv:find("Summary,Net items,7", 1, true) ~= nil, "10 in - 3 out")
+  assertTrue(csv:find("Summary,Gold moved,", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the sub-type breakdown", function()
+  assertTrue(insightsCSV():find("By Sub-type,Cloth,2", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the quality breakdown, in quality order", function()
+  local csv = insightsCSV()
+  assertTrue(csv:find("By Quality,Common,2", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the zone breakdown", function()
+  assertTrue(insightsCSV():find("By Zone,Testville,3", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the gross coin per store", function()
+  assertTrue(insightsCSV():find("Money By Store,Guild Bank", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes both extra top-item rankings", function()
+  local csv = insightsCSV()
+  assertTrue(csv:find("Top Items By Value,Linen Cloth", 1, true) ~= nil)
+  assertTrue(csv:find("Top Items By Quantity,Linen Cloth", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes a per-day coin section", function()
+  assertTrue(insightsCSV():find("Gold By Day,", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV emits a full 24-hour and 7-day grid", function()
+  -- Fixed grids, not just the buckets that fired: a zero row says "quiet hour", a missing row says
+  -- nothing at all.
+  local csv = insightsCSV()
+  local hours, days = 0, 0
+  for _, line in ipairs(lines(csv)) do
+    if line:find("^By Hour,") then hours = hours + 1 end
+    if line:find("^By Weekday,") then days = days + 1 end
+  end
+  assertEqual(hours, 24)
+  assertEqual(days, 7)
+  assertTrue(csv:find("By Weekday,Sunday,", 1, true) ~= nil, "Sunday is the first weekday row")
+end)
+
+test("Export:InsightsCSV keeps the original section headers unchanged", function()
+  -- The new sections were appended; a downstream sheet keyed on these names must keep working.
+  local csv = insightsCSV()
+  for _, header in ipairs({ "Summary,", "By Store,", "Net by Store,", "By Direction,",
+                            "By Kind,", "By Item Type,", "By Character,", "Top Items,",
+                            "By Day," }) do
+    assertTrue(csv:find(header, 1, true) ~= nil, "missing section " .. header)
+  end
+end)
+
 test("Export:InsightsCSV survives an empty stats result", function()
   local csv = NS.Export:InsightsCSV({})
   assertTrue(csv:find("Summary,Movements,0", 1, true) ~= nil)

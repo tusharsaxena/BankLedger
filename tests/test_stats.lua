@@ -10,21 +10,26 @@ local FIXTURE = {
   -- 10 Linen Cloth deposited to the bank, vendor 20 → value 200
   { ts = NOW, char = "Mock-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
     store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
-    itemType = "Tradegoods", vendorPrice = 20, quantity = 10 },
+    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20, quantity = 10,
+    zone = "Valdrakken" },
   -- 3 Silk Cloth withdrawn from the bank, vendor 60 → value 180
   { ts = NOW - 86400, char = "Mock-Realm", classFile = "MAGE", kind = "ITEM",
-    direction = "WITHDRAW", store = "BANK", itemID = 4306, itemName = "Silk Cloth", quality = 1,
-    itemType = "Tradegoods", vendorPrice = 60, quantity = 3 },
+    direction = "WITHDRAW", store = "BANK", itemID = 4306, itemName = "Silk Cloth", quality = 2,
+    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 60, quantity = 3,
+    zone = "Valdrakken" },
   -- 2 more Linen Cloth deposited by an alt → value 40
   { ts = NOW - 86400, char = "Alt-Realm", classFile = "ROGUE", kind = "ITEM",
     direction = "DEPOSIT", store = "WARBAND_BANK", itemID = 2589, itemName = "Linen Cloth",
-    quality = 1, itemType = "Tradegoods", vendorPrice = 20, quantity = 2 },
+    quality = 1, itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20, quantity = 2,
+    zone = "Dornogal" },
   -- 50000 copper into the guild bank
   { ts = NOW - 2 * 86400, char = "Mock-Realm", classFile = "MAGE", kind = "MONEY",
-    direction = "DEPOSIT", store = "GUILD_BANK", itemName = "Gold", quantity = 50000 },
+    direction = "DEPOSIT", store = "GUILD_BANK", itemName = "Gold", quantity = 50000,
+    zone = "Valdrakken" },
   -- 20000 copper back out of the guild bank
   { ts = NOW - 2 * 86400, char = "Mock-Realm", classFile = "MAGE", kind = "MONEY",
-    direction = "WITHDRAW", store = "GUILD_BANK", itemName = "Gold", quantity = 20000 },
+    direction = "WITHDRAW", store = "GUILD_BANK", itemName = "Gold", quantity = 20000,
+    zone = "Valdrakken" },
 }
 
 local function stats(filter)
@@ -155,6 +160,150 @@ test("Stats: an empty result set produces zeroed totals rather than nil", functi
   assertEqual(s.totals.totalValue, 0)
   assertEqual(s.totals.netMoney, 0)
   assertEqual(s.totals.firstTs, nil)
+end)
+
+-- ── The expanded breakdowns ────────────────────────────────────────────────────
+-- Added for the expanded Insights panel. Every one rides the SAME single pass, so these assertions
+-- are also the guarantee that enriching the panel did not fork the aggregation.
+
+test("Stats: byItemSubType counts item rows by sub-type", function()
+  local s = stats()
+  assertEqual(s.byItemSubType.Cloth, 3)
+  assertEqual(s.byItemSubType.Gold, nil, "a gold movement has no sub-type to count")
+end)
+
+test("Stats: byQuality counts item rows by quality id", function()
+  local s = stats()
+  assertEqual(s.byQuality[1], 2)
+  assertEqual(s.byQuality[2], 1)
+end)
+
+test("Stats: byQuality ignores gold, which has no quality", function()
+  -- Bucketing a coin movement under Poor would invent a fact about it.
+  local s = stats()
+  local counted = 0
+  for _, n in pairs(s.byQuality) do counted = counted + n end
+  assertEqual(counted, 3, "only the three item rows are counted")
+end)
+
+test("Stats: byZone counts movements by where they happened", function()
+  local s = stats()
+  assertEqual(s.byZone.Valdrakken, 4)
+  assertEqual(s.byZone.Dornogal, 1)
+end)
+
+test("Stats: topZones ranks the banking spots, count-desc", function()
+  local s = stats()
+  assertEqual(s.topZones[1].zone, "Valdrakken")
+  assertEqual(s.topZones[1].count, 4)
+  assertEqual(s.topZones[2].zone, "Dornogal")
+end)
+
+test("Stats: byHour and byWeekday bucket every movement exactly once", function()
+  local s = stats()
+  local hours, days = 0, 0
+  for _, n in pairs(s.byHour) do hours = hours + n end
+  for _, n in pairs(s.byWeekday) do days = days + n end
+  assertEqual(hours, 5)
+  assertEqual(days, 5)
+end)
+
+test("Stats: byWeekday is keyed 0..6 with Sunday as 0", function()
+  local s = stats()
+  for key in pairs(s.byWeekday) do
+    assertTrue(key >= 0 and key <= 6, "weekday keys must be 0-based, got " .. tostring(key))
+  end
+  -- The mock clock is fixed, so the bucket for its own weekday must be the populated one.
+  local wd = tonumber(os.date("%w", NOW))
+  assertTrue((s.byWeekday[wd] or 0) > 0, "the fixture's own weekday must be populated")
+end)
+
+test("Stats: moneyByStore totals gross coin per store", function()
+  local s = stats()
+  assertEqual(s.moneyByStore.GUILD_BANK, 70000, "50000 in + 20000 out is 70000 moved")
+  assertEqual(s.moneyByStore.BANK, nil, "the character bank has no coin slot")
+end)
+
+test("Stats: moneyByDay totals coin per calendar day, items excluded", function()
+  local s = stats()
+  local goldDay = os.date("%Y-%m-%d", NOW - 2 * 86400)
+  assertEqual(s.moneyByDay[goldDay], 70000)
+  assertEqual(s.moneyByDay[os.date("%Y-%m-%d", NOW)], nil, "an item-only day has no coin total")
+end)
+
+test("Stats: totals.moneyMoved is gross coin, not net", function()
+  assertEqual(stats().totals.moneyMoved, 70000)
+end)
+
+test("Stats: totals.netItems signs the item flow like netMoney signs gold", function()
+  assertEqual(stats().totals.netItems, 9)   -- 12 in - 3 out
+end)
+
+test("Stats: charByDirection splits each character's movements in and out", function()
+  local s = stats()
+  assertEqual(s.charByDirection["Mock-Realm"].DEPOSIT, 2)
+  assertEqual(s.charByDirection["Mock-Realm"].WITHDRAW, 2)
+  assertEqual(s.charByDirection["Alt-Realm"].DEPOSIT, 1)
+  assertEqual(s.charByDirection["Alt-Realm"].WITHDRAW, nil)
+end)
+
+test("Stats: storeByDirection splits each store's movements in and out", function()
+  local s = stats()
+  assertEqual(s.storeByDirection.BANK.DEPOSIT, 1)
+  assertEqual(s.storeByDirection.BANK.WITHDRAW, 1)
+  assertEqual(s.storeByDirection.WARBAND_BANK.DEPOSIT, 1)
+end)
+
+test("Stats: topItemsByValue ranks the item index by copper value", function()
+  local s = stats()
+  -- Linen 200 + 40 = 240 beats Silk's 180, even though Silk moved a larger single stack.
+  assertEqual(s.topItemsByValue[1].itemName, "Linen Cloth")
+  assertEqual(s.topItemsByValue[1].value, 240)
+  assertEqual(s.topItemsByValue[2].itemName, "Silk Cloth")
+end)
+
+test("Stats: topItemsByQuantity ranks the item index by stack count", function()
+  local s = stats()
+  assertEqual(s.topItemsByQuantity[1].itemName, "Linen Cloth")
+  assertEqual(s.topItemsByQuantity[1].quantity, 12)
+end)
+
+test("Stats: the three top-item rankings share one record per item", function()
+  -- Three orderings over the same byItem index, not three copies of it.
+  local s = stats()
+  assertEqual(#s.topItems, #s.topItemsByValue)
+  assertEqual(#s.topItems, #s.topItemsByQuantity)
+  assertEqual(s.topItems[1], s.byItem[s.topItems[1].itemID],
+    "a ranked row IS the index record")
+end)
+
+test("Stats: topItems still ranks by movement count, unchanged", function()
+  local s = stats()
+  assertEqual(s.topItems[1].itemName, "Linen Cloth")
+  assertEqual(s.topItems[1].moves, 2)
+end)
+
+test("Stats: every new breakdown is empty rather than nil on an empty ledger", function()
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {}
+  local s = NS.Database:Stats({})
+  NS.db.global.ledger = saved
+  for _, key in ipairs({ "byItemSubType", "byQuality", "byZone", "byHour", "byWeekday",
+                         "moneyByDay", "moneyByStore", "charByDirection", "storeByDirection" }) do
+    assertTrue(type(s[key]) == "table", key .. " must be a table, not nil")
+    assertEqual(next(s[key]), nil, key .. " must be empty")
+  end
+  assertEqual(#s.topZones, 0)
+  assertEqual(#s.topItemsByValue, 0)
+  assertEqual(s.totals.netItems, 0)
+  assertEqual(s.totals.moneyMoved, 0)
+end)
+
+test("Stats: the new breakdowns honour the filter like every other key", function()
+  local s = stats({ store = "GUILD_BANK" })
+  assertEqual(s.totals.entries, 2)
+  assertEqual(next(s.byItemSubType), nil, "the guild-bank slice holds no item rows")
+  assertEqual(s.moneyByStore.GUILD_BANK, 70000)
 end)
 
 -- ── Insights ranking helpers ───────────────────────────────────────────────────

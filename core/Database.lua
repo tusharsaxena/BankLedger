@@ -157,6 +157,13 @@ function Database:Stats(filter)
   local moneyIn, moneyOut = 0, 0
   local totalValue = 0
   local biggestMove
+  -- The second wave of breakdowns, added for the expanded Insights panel. Every one is a plain
+  -- extra accumulator in the SAME single pass — the panel got richer without the aggregation
+  -- getting slower, and no existing key changed name or meaning.
+  local byItemSubType, byQuality, byZone = {}, {}, {}
+  local byHour, byWeekday = {}, {}
+  local moneyByDay, moneyByStore = {}, {}
+  local charByDirection, storeByDirection = {}, {}
 
   -- Nested-table increment used by the per-character × store matrix.
   local function bump(matrix, k1, k2, amt)
@@ -179,13 +186,24 @@ function Database:Stats(filter)
     valueByStore[store] = (valueByStore[store] or 0) + value
     netByStore[store] = (netByStore[store] or 0) + signed
 
+    bump(storeByDirection, store, dir, 1)
+    if e.zone and e.zone ~= "" then byZone[e.zone] = (byZone[e.zone] or 0) + 1 end
+
     if e.kind == "MONEY" then
       if dir == "DEPOSIT" then moneyIn = moneyIn + qty else moneyOut = moneyOut + qty end
+      moneyByStore[store] = (moneyByStore[store] or 0) + qty
     else
       if dir == "DEPOSIT" then itemsDeposited = itemsDeposited + qty
       else itemsWithdrawn = itemsWithdrawn + qty end
       local ty = e.itemType
       if ty and ty ~= "" then byItemType[ty] = (byItemType[ty] or 0) + 1 end
+      local sty = e.itemSubType
+      if sty and sty ~= "" then byItemSubType[sty] = (byItemSubType[sty] or 0) + 1 end
+      -- Quality is an item question by definition: a gold movement has none, and bucketing it under
+      -- Poor would invent a fact. Keyed on the numeric id so the chart can sort Poor→Legendary.
+      if type(e.quality) == "number" then
+        byQuality[e.quality] = (byQuality[e.quality] or 0) + 1
+      end
       local id = e.itemID
       if id ~= nil then
         local rec = byItem[id]
@@ -205,12 +223,22 @@ function Database:Stats(filter)
       local day = date("%Y-%m-%d", e.ts)
       byDay[day] = (byDay[day] or 0) + 1
       valueByDay[day] = (valueByDay[day] or 0) + value
+      if e.kind == "MONEY" then moneyByDay[day] = (moneyByDay[day] or 0) + qty end
       if not firstTs or e.ts < firstTs then firstTs = e.ts end
       if not lastTs or e.ts > lastTs then lastTs = e.ts end
+      -- Hour-of-day and weekday, for the "when do I actually visit the bank" strips. `wday` is
+      -- 1-based with Sunday = 1; normalized to 0..6 so it indexes a plain weekday-label array.
+      local t = date("*t", e.ts)
+      if t then
+        byHour[t.hour] = (byHour[t.hour] or 0) + 1
+        local wd = (t.wday or 1) - 1
+        byWeekday[wd] = (byWeekday[wd] or 0) + 1
+      end
     end
 
     local ch = e.char
     if ch then
+      bump(charByDirection, ch, dir, 1)
       local ce = byChar[ch]
       if not ce then
         ce = { char = ch, classFile = e.classFile, count = 0, value = 0 }
@@ -228,13 +256,35 @@ function Database:Stats(filter)
     end
   end
 
-  -- Top items by number of moves (ties → larger quantity, then id, so the order is deterministic).
-  local topItems = {}
-  for _, rec in pairs(byItem) do topItems[#topItems + 1] = rec end
+  -- Top items, ranked three ways off the one byItem index. Each list is a fresh array of the SAME
+  -- record tables (never a copy), so the three rankings cost three sorts and no extra memory.
+  -- Every comparator ends on the item id, so a tie can never reorder run to run.
+  local topItems, topItemsByValue, topItemsByQuantity = {}, {}, {}
+  for _, rec in pairs(byItem) do
+    topItems[#topItems + 1] = rec
+    topItemsByValue[#topItemsByValue + 1] = rec
+    topItemsByQuantity[#topItemsByQuantity + 1] = rec
+  end
   table.sort(topItems, function(a, b)
     if a.moves ~= b.moves then return a.moves > b.moves end
     if a.quantity ~= b.quantity then return a.quantity > b.quantity end
     return (a.itemID or 0) < (b.itemID or 0)
+  end)
+  table.sort(topItemsByValue, function(a, b)
+    if a.value ~= b.value then return a.value > b.value end
+    return (a.itemID or 0) < (b.itemID or 0)
+  end)
+  table.sort(topItemsByQuantity, function(a, b)
+    if a.quantity ~= b.quantity then return a.quantity > b.quantity end
+    return (a.itemID or 0) < (b.itemID or 0)
+  end)
+
+  -- Where the banking actually happens, ranked. Ties break on the zone name.
+  local topZones = {}
+  for zone, count in pairs(byZone) do topZones[#topZones + 1] = { zone = zone, count = count } end
+  table.sort(topZones, function(a, b)
+    if a.count ~= b.count then return a.count > b.count end
+    return a.zone < b.zone
   end)
 
   local activeDays, busiestDay = 0, nil
@@ -248,11 +298,20 @@ function Database:Stats(filter)
     byChar = byChar, byItem = byItem, byItemType = byItemType, topItems = topItems,
     valueByStore = valueByStore, netByStore = netByStore, valueByDay = valueByDay,
     charByStore = charByStore,
+    byItemSubType = byItemSubType, byQuality = byQuality, byZone = byZone,
+    byHour = byHour, byWeekday = byWeekday,
+    moneyByDay = moneyByDay, moneyByStore = moneyByStore,
+    charByDirection = charByDirection, storeByDirection = storeByDirection,
+    topItemsByValue = topItemsByValue, topItemsByQuantity = topItemsByQuantity,
+    topZones = topZones,
     totals = {
       entries = #entries, distinctItems = distinctItems, distinctChars = distinctChars,
       firstTs = firstTs, lastTs = lastTs, activeDays = activeDays, busiestDay = busiestDay,
       itemsDeposited = itemsDeposited, itemsWithdrawn = itemsWithdrawn,
+      -- Net items is signed the same way netMoney is: positive means you are a net saver.
+      netItems = itemsDeposited - itemsWithdrawn,
       moneyIn = moneyIn, moneyOut = moneyOut, netMoney = moneyIn - moneyOut,
+      moneyMoved = moneyIn + moneyOut,
       totalValue = totalValue, biggestMove = biggestMove,
     },
   }
