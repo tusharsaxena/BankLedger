@@ -1,0 +1,55 @@
+## Interface: 120007
+## Title: Ka0s Bank Ledger
+## Notes: A passbook of every item and gold movement between your bags and your banks.
+## Author: add1kted2ka0s
+## Version: 0.1.0
+## IconTexture: Interface\Icons\inv_misc_bag_15
+## SavedVariables: BankLedgerDB
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0
+## DefaultState: enabled
+## Category-enUS: Misc
+## X-License: MIT
+## X-Standard: https://github.com/tusharsaxena/WowAddonStandards
+
+# Libraries (vendored in libs/ — load first)
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\AceTimer-3.0\AceTimer-3.0.xml
+libs\AceConsole-3.0\AceConsole-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceGUI-3.0\AceGUI-3.0.xml
+libs\LibSharedMedia-3.0\lib.xml
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+# Locales
+locales\enUS.lua
+locales\PostLoad.lua
+
+# Core (Compat loads first)
+core\Compat.lua
+core\Constants.lua
+core\Namespace.lua
+core\State.lua
+core\Util.lua
+core\BankLedger.lua
+core\Database.lua
+
+# Defaults
+defaults\Global.lua
+
+# Modules (Filters before Ledger — the capture gate reads the lists)
+modules\Filters.lua
+modules\Ledger.lua
+modules\Browser.lua
+modules\LedgerTable.lua
+modules\Insights.lua
+modules\Export.lua
+modules\DebugLog.lua
+
+# Settings (last — depend on everything else being initialized)
+settings\Schema.lua
+settings\Slash.lua
+settings\Panel.lua

@@ -1,0 +1,157 @@
+local T = _G.BL_TEST
+local NS = T.NS
+local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
+
+local NOW = 1770000000
+-- A `field = nil` override is invisible to pairs(), so clearing a field needs an explicit sentinel.
+local NIL = {}
+local function e(over)
+  local x = {
+    ts = NOW, char = "Mock-Realm", classFile = "MAGE",
+    kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+    itemID = 2589, itemName = "Linen Cloth", quality = 1,
+    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20,
+    quantity = 10, zone = "Testville",
+  }
+  for k, v in pairs(over or {}) do x[k] = (v ~= NIL) and v or nil end
+  return x
+end
+
+local function lines(csv)
+  local out = {}
+  for line in csv:gmatch("([^\r\n]+)") do out[#out + 1] = line end
+  return out
+end
+
+local function cells(line)
+  -- Adequate for the fixtures below, which carry no quoted commas.
+  local out = {}
+  for field in (line .. ","):gmatch("(.-),") do out[#out + 1] = field end
+  return out
+end
+
+local function columnIndex(name)
+  for i, h in ipairs(NS.Export.HEADER) do if h == name then return i end end
+  return nil
+end
+
+test("Export:CSV emits a header row even with no data", function()
+  local l = lines(NS.Export:CSV({}))
+  assertEqual(#l, 1)
+  assertEqual(l[1], table.concat(NS.Export.HEADER, ","))
+end)
+
+test("Export:CSV emits one row per entry", function()
+  assertEqual(#lines(NS.Export:CSV({ e(), e(), e() })), 4)   -- header + 3
+end)
+
+test("Export:CSV uses CRLF line endings (RFC 4180)", function()
+  assertTrue(NS.Export:CSV({ e() }):find("\r\n", 1, true) ~= nil)
+end)
+
+test("Export:CSV writes the human direction and store labels", function()
+  local row = cells(lines(NS.Export:CSV({ e() }))[2])
+  assertEqual(row[columnIndex("direction")], "Deposit")
+  assertEqual(row[columnIndex("store")], "Character Bank")
+end)
+
+test("Export:CSV keeps the raw store token beside its label", function()
+  -- The label is for a reader; the raw token is what a script should match on.
+  local row = cells(lines(NS.Export:CSV({ e() }))[2])
+  assertEqual(row[columnIndex("storeRaw")], "BANK")
+end)
+
+test("Export:CSV pairs each human column with its raw sibling", function()
+  local row = cells(lines(NS.Export:CSV({ e({ quality = 4 }) }))[2])
+  assertEqual(row[columnIndex("quality")], "Epic")
+  assertEqual(row[columnIndex("qualityRaw")], "4")
+end)
+
+test("Export:CSV writes value as plain text and raw copper side by side", function()
+  local row = cells(lines(NS.Export:CSV({ e() }))[2])
+  assertEqual(row[columnIndex("value")], "0g 2s 0c")
+  assertEqual(row[columnIndex("valueRaw")], "200")
+end)
+
+test("Export:CSV signs the net column by direction", function()
+  local dep = cells(lines(NS.Export:CSV({ e() }))[2])
+  local wit = cells(lines(NS.Export:CSV({ e({ direction = "WITHDRAW" }) }))[2])
+  assertEqual(dep[columnIndex("net")], "200")
+  assertEqual(wit[columnIndex("net")], "-200")
+end)
+
+test("Export:CSV renders a gold row's amount as its value", function()
+  local row = cells(lines(NS.Export:CSV({
+    e({ kind = "MONEY", itemID = NIL, itemName = "Gold", quality = NIL,
+        itemType = NIL, itemSubType = NIL, vendorPrice = NIL, quantity = 50000 }) }))[2])
+  assertEqual(row[columnIndex("kind")], "Gold")
+  assertEqual(row[columnIndex("valueRaw")], "50000")
+end)
+
+test("Export:CSV quotes a field containing a comma and doubles embedded quotes", function()
+  local csv = NS.Export:CSV({ e({ itemName = 'Cloth, "fine"' }) })
+  assertTrue(csv:find('"Cloth, ""fine"""', 1, true) ~= nil, "RFC-4180 quoting")
+end)
+
+test("Export:CSV leaves an absent field empty rather than writing nil", function()
+  local row = cells(lines(NS.Export:CSV({ e({ guild = NIL }) }))[2])
+  assertEqual(row[columnIndex("guild")], "")
+end)
+
+test("Export:CSV never emits the item link (a raw link is unusable in a spreadsheet)", function()
+  assertEqual(columnIndex("itemLink"), nil)
+end)
+
+-- ── Insights CSV ───────────────────────────────────────────────────────────────
+
+local function insightsCSV()
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {
+    e(),
+    e({ direction = "WITHDRAW", itemID = 4306, itemName = "Silk Cloth", vendorPrice = 60, quantity = 3 }),
+    e({ kind = "MONEY", store = "GUILD_BANK", itemID = NIL, itemName = "Gold",
+        quality = NIL, itemType = NIL, itemSubType = NIL, vendorPrice = NIL, quantity = 50000 }),
+  }
+  local csv = NS.Export:InsightsCSV(NS.Database:Stats({}))
+  NS.db.global.ledger = saved
+  return csv
+end
+
+test("Export:InsightsCSV starts with the four-column header", function()
+  assertEqual(lines(insightsCSV())[1], "Section,Label,Count,Value")
+end)
+
+test("Export:InsightsCSV carries the summary card values", function()
+  local csv = insightsCSV()
+  assertTrue(csv:find("Summary,Movements,3", 1, true) ~= nil, "the movement total")
+  assertTrue(csv:find("Summary,Items deposited,10", 1, true) ~= nil)
+  assertTrue(csv:find("Summary,Items withdrawn,3", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes a per-store breakdown", function()
+  assertTrue(insightsCSV():find("By Store,Character Bank", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the signed net-by-store rows", function()
+  local csv = insightsCSV()
+  assertTrue(csv:find("Net by Store,Guild Bank", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the direction and kind breakdowns", function()
+  local csv = insightsCSV()
+  assertTrue(csv:find("By Direction,Deposit", 1, true) ~= nil)
+  assertTrue(csv:find("By Kind,", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV includes the top-items ranking", function()
+  assertTrue(insightsCSV():find("Top Items,Linen Cloth", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV survives an empty stats result", function()
+  local csv = NS.Export:InsightsCSV({})
+  assertTrue(csv:find("Summary,Movements,0", 1, true) ~= nil)
+end)
+
+test("Export:InsightsCSV survives being handed nothing at all", function()
+  assertTrue(NS.Export:InsightsCSV(nil):find("Section,Label", 1, true) ~= nil)
+end)

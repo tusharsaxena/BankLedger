@@ -1,0 +1,11 @@
+package-as: BankLedger
+
+# Libraries are vendored in libs/ and committed to git — NOT fetched as externals.
+
+ignore:
+  - .luacheckrc
+  - .gitignore
+  - docs        # holds docs/audits/ and docs/reviews/ too — all dev-only
+  - tests
+  - _dev
+  - "*.bak"
