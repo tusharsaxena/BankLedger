@@ -40,6 +40,9 @@ function addon:OnEnable()
   self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEnterWorld")
   if NS.Ledger and NS.Ledger.Enable then NS.Ledger:Enable() end
   if NS.Browser and NS.Browser.Enable then NS.Browser:Enable() end
+  -- Enabled independently of the Browser: the session window appears on a bank open whether or not
+  -- the main ledger window has ever been built.
+  if NS.SessionWindow and NS.SessionWindow.Enable then NS.SessionWindow:Enable() end
   -- No [Init] line here: the debug flag is session-only and off at login, so a boot-time summary
   -- would always be gated off and never render. It rides the DebugLog:SetEnabled seam instead,
   -- emitted when capture is actually enabled (debug-logging-§5/§8).

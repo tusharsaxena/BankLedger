@@ -38,6 +38,7 @@ Loader.loadAll({
   "modules/Ledger.lua",
   "modules/Browser.lua",
   "modules/LedgerTable.lua",
+  "modules/SessionWindow.lua",
   "modules/Insights.lua",
   "modules/Export.lua",
   "modules/DebugLog.lua",
@@ -52,6 +53,9 @@ NS:InitDB()
 -- exercise the real "settings change → re-cache the gate's upvalues" path rather than a fiction.
 NS.Schema:Register()
 NS.Ledger:Enable()
+-- The session window subscribes to the SessionChanged / EntryAdded / LedgerChanged messages here, so
+-- its suite exercises the real bus wiring rather than calling its handlers by hand.
+NS.SessionWindow:Enable()
 
 _G.BL_TEST = {
   NS = NS, mocks = mocks, test = test,
@@ -62,7 +66,7 @@ _G.BL_TEST = {
 local SUITE_FILES = {
   "test_util.lua", "test_compat.lua", "test_constants.lua", "test_filters.lua",
   "test_ledger.lua", "test_database.lua", "test_stats.lua", "test_ledgertable.lua",
-  "test_browser.lua",
+  "test_browser.lua", "test_sessionwindow.lua",
   "test_export.lua", "test_debuglog.lua", "test_schema.lua", "test_slash.lua",
 }
 for _, s in ipairs(SUITE_FILES) do

@@ -27,3 +27,10 @@ State.debug = false         -- session-only logging flag, independent of the con
 State.testRecords = nil     -- session-only synthetic dataset published by /bl preview; when set,
                             -- every read-path query (table + Insights) resolves against it instead
                             -- of the live ledger.
+
+-- The current BANKING SESSION's movements: references to the ledger entries recorded between a
+-- storage frame opening and closing. Deliberately NOT a second copy of the data and never persisted
+-- — the session window reads it live and it is dropped the moment the frame closes. Owned and
+-- mutated only by modules/SessionWindow.lua.
+State.sessionEntries = {}
+State.sessionActive = false   -- is a banking session open right now?

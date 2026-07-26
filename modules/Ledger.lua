@@ -379,6 +379,17 @@ function L:Record(move)
   return NS.Database:Add(self:BuildEntry(move))
 end
 
+-- A BANKING SESSION is exactly the span an open storage frame is armed for — the same span
+-- openContext tracks — so the session window rides this seam rather than re-deriving it from the
+-- open/close events (which would miss the guild bank, armed by tab data rather than by an event).
+-- Ledger is the ONLY sender of this message (architecture-§4). Declared here, above Reconcile, so
+-- every session boundary in this file can reach it — including the guild bank's self-disarm.
+local function fireSessionChanged(active, context)
+  if NS.bus then
+    NS.bus:SendMessage("Ka0s_BankLedger_SessionChanged", active and true or false, context)
+  end
+end
+
 -- ── Event shell ─────────────────────────────────────────────────────────────────
 -- A store's UI opening arms the differ (take the baseline snapshot); every change event while it is
 -- open re-snapshots and records what moved; closing disarms it. Capture is entirely inert outside
@@ -493,6 +504,9 @@ function L:Reconcile()
   if context == C.Store.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false then
     NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
     if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK disarmed (window gone)") end
+    -- Disarming here ends the session as surely as CloseContext does; the guild bank never gets a
+    -- close event, so without this the session window would sit open after the frame vanished.
+    fireSessionChanged(false, context)
   end
   return totalRecorded
 end
@@ -550,6 +564,7 @@ function L:OpenContext(context)
     NS.Debug("Store", "%s opened (baseline: bags %s kinds; stores %s)",
       tostring(context), countKinds(snap.bags), table.concat(parts, ", "))
   end
+  fireSessionChanged(true, context)
 end
 
 -- Guild bank data arrived.
@@ -579,6 +594,7 @@ function L:CloseContext()
   NS.State.lastSnapshot = nil
   L._settleSince = nil
   if NS.State.debug and NS.Debug then NS.Debug("Store", "%s closed", tostring(context)) end
+  fireSessionChanged(false, context)
 end
 
 -- Which FRAME an open-event belongs to. There is deliberately no event for the warband or reagent

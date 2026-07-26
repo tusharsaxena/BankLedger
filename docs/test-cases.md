@@ -259,9 +259,13 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights.FormatNet colours a gain green and a loss red
 - Insights.FormatNet renders zero as a neutral dash
 
-### test_ledgertable.lua (34)
+### test_ledgertable.lua (38)
 
 - LedgerTable:CellText renders the direction as a human label
+- LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
+- LedgerTable:PaintCell writes the column's text into the cell
+- LedgerTable:PaintCell drives the direction glyph only for the In/Out column
+- LedgerTable:PaintCell is a safe no-op for a missing cell or column
 - LedgerTable:CellText renders the store as a human label
 - LedgerTable:CellText falls back to 'Item <id>' for an uncached item
 - LedgerTable:CellText shows a gold row's amount as money in the Qty column
@@ -310,6 +314,33 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser:ClearFilters does not scope preview data to the real player
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:ExportWidth leaves the Export button a usable width
+
+### test_sessionwindow.lua (24)
+
+- SessionWindow drops the Date, Time and Character columns
+- SessionWindow keeps the seven data columns, in table order
+- SessionWindow resolves every column key against the shared LedgerTable spec
+- SessionWindow:MinFrameWidth covers every column plus the gutter and margins
+- SessionWindow:ColumnLayout lays columns left to right with the Item column flexing
+- SessionWindow:StartSession arms the session and clears the previous visit
+- SessionWindow:EndSession disarms and drops the rows
+- SessionWindow collects movements only while a session is open
+- SessionWindow shows newest movement first
+- SessionWindow:DisplayList never reorders the session list in place
+- SessionChanged from the Ledger opens and closes a session
+- Ledger:OpenContext and CloseContext drive the session window
+- a recorded movement reaches the session window through EntryAdded
+- the disable setting suppresses the window without suppressing collection
+- settings.showSessionWindow defaults to enabled
+- turning the setting off closes an open session window
+- SessionWindow:PruneMissing drops rows deleted from the ledger
+- a purge empties the session view
+- SessionWindow:TogglePreview shows placeholder rows through the real render path
+- SessionWindow:TogglePreview refuses to overwrite a real session
+- a preview session is never pruned against the live ledger
+- a real session replaces a preview session's rows
+- SessionWindow:ResetWindow clears the persisted geometry carve-out
+- the session window's geometry is a separate carve-out from the main window's
 
 ### test_export.lua (20)
 
@@ -422,10 +453,11 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_ledger.lua | 89 |
 | test_database.lua | 33 |
 | test_stats.lua | 30 |
-| test_ledgertable.lua | 34 |
+| test_ledgertable.lua | 38 |
 | test_browser.lua | 12 |
+| test_sessionwindow.lua | 24 |
 | test_export.lua | 20 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **366** |
+| **Total** | **394** |

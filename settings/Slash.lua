@@ -74,6 +74,7 @@ function Sl:ResetEverything()
   if NS.Database and NS.Database.Purge then NS.Database:Purge() end
   Sl:CliResetAll()   -- resets settings + filter lists and prints the confirmation line
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
+  if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
 end
 

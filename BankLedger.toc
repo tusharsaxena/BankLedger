@@ -45,6 +45,7 @@ modules\Filters.lua
 modules\Ledger.lua
 modules\Browser.lua
 modules\LedgerTable.lua
+modules\SessionWindow.lua
 modules\Insights.lua
 modules\Export.lua
 modules\DebugLog.lua

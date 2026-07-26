@@ -100,6 +100,16 @@ function LT:CellText(key, entry)
   return col.valueFn(entry)
 end
 
+-- The column spec behind a key (label, width, align, desc, valueFn, sortFn), or nil.
+--
+-- Public because the session window (modules/SessionWindow.lua) renders a SUBSET of these same
+-- columns in its own slim table. Sharing the spec — rather than restating widths and valueFns there
+-- — is what guarantees the Item column shows the same text and measures the same width in both
+-- windows. See also LT:PaintCell for the matching colour seam.
+function LT:Column(key)
+  return COLUMN_BY_KEY[key]
+end
+
 -- ── Pipeline ────────────────────────────────────────────────────────────────────
 LT.filter = {}
 LT.previewMode = false
@@ -411,6 +421,41 @@ local function qualityColor(q)
   local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q or 1]
   if c then return c.r, c.g, c.b end
   return 1, 1, 1
+end
+
+-- Paint ONE cell: set its text from the column's valueFn and its colour from the shared palette.
+--
+-- The single definition of "what colour is this cell", so the History table and the session window's
+-- slim table can never disagree. `glyphFS` is the row's direction glyph FontString; pass it only for
+-- the "direction" column (any other column ignores it).
+function LT:PaintCell(fs, colKey, entry, glyphFS)
+  local col = COLUMN_BY_KEY[colKey]
+  if not (fs and col and entry) then return end
+  fs:SetText(col.valueFn(entry))
+  if colKey == "item" or colKey == "quality" then
+    if entry.kind == C.Kind.MONEY then
+      fs:SetTextColor(MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
+    else
+      fs:SetTextColor(qualityColor(entry.quality))
+    end
+  elseif colKey == "direction" then
+    local rgb = C.DirectionRGB[entry.direction] or C.NEUTRAL_RGB
+    fs:SetTextColor(rgb[1], rgb[2], rgb[3])
+    if glyphFS then
+      local glyph = C.DirectionGlyph[entry.direction]
+      glyphFS:SetText(glyph or "")
+      glyphFS:SetTextColor(rgb[1], rgb[2], rgb[3])
+      glyphFS:SetShown(glyph ~= nil)
+    end
+  elseif colKey == "store" then
+    local rgb = C.StoreRGB[entry.store] or C.NEUTRAL_RGB
+    fs:SetTextColor(rgb[1], rgb[2], rgb[3])
+  elseif colKey == "char" then
+    local cc = RAID_CLASS_COLORS and entry.classFile and RAID_CLASS_COLORS[entry.classFile]
+    if cc then fs:SetTextColor(cc.r, cc.g, cc.b) else fs:SetTextColor(0.9, 0.9, 0.9) end
+  else
+    fs:SetTextColor(0.9, 0.9, 0.9)
+  end
 end
 
 function LT:AcquireRow()
@@ -748,30 +793,8 @@ function LT:BindRow(row, item, absIndex)
   row.header:Hide()
   local e = item.entry
   for _, col in ipairs(self.COLUMNS) do
-    local fs = row.cells[col.key]
-    fs:SetText(col.valueFn(e))
-    if col.key == "item" or col.key == "quality" then
-      if e.kind == C.Kind.MONEY then
-        fs:SetTextColor(MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
-      else
-        fs:SetTextColor(qualityColor(e.quality))
-      end
-    elseif col.key == "direction" then
-      local rgb = C.DirectionRGB[e.direction] or C.NEUTRAL_RGB
-      fs:SetTextColor(rgb[1], rgb[2], rgb[3])
-      local glyph = C.DirectionGlyph[e.direction]
-      row.dirGlyph:SetText(glyph or "")
-      row.dirGlyph:SetTextColor(rgb[1], rgb[2], rgb[3])
-      row.dirGlyph:SetShown(glyph ~= nil)
-    elseif col.key == "store" then
-      local rgb = C.StoreRGB[e.store] or C.NEUTRAL_RGB
-      fs:SetTextColor(rgb[1], rgb[2], rgb[3])
-    elseif col.key == "char" then
-      local cc = RAID_CLASS_COLORS and e.classFile and RAID_CLASS_COLORS[e.classFile]
-      if cc then fs:SetTextColor(cc.r, cc.g, cc.b) else fs:SetTextColor(0.9, 0.9, 0.9) end
-    else
-      fs:SetTextColor(0.9, 0.9, 0.9)
-    end
+    self:PaintCell(row.cells[col.key], col.key,
+      e, col.key == "direction" and row.dirGlyph or nil)
   end
 end
 

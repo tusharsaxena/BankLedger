@@ -12,9 +12,20 @@ end
 -- methods are always PascalCase (SetPoint, CreateTexture, HookScript, …), so only those keys get a
 -- no-op function; any other (lowercase/custom) field access misses through to nil, letting addon
 -- code do `if not f.someCustomField then f.someCustomField = ... end` safely.
+--
+-- VISIBILITY is the one piece of frame state the stub really models. A blanket no-op makes
+-- IsShown() return the frame — permanently truthy — so "the window closed" is untestable and a
+-- window that never hides looks identical to one that does. Real frames start shown, and Show /
+-- Hide / SetShown flip that flag, so the stub does too.
 local function stubFrame()
-  local f = {}
+  local f = { __shown = true }
   setmetatable(f, { __index = function(_, k)
+    if k == "Show" then return function() f.__shown = true; return f end end
+    if k == "Hide" then return function() f.__shown = false; return f end end
+    if k == "SetShown" then
+      return function(_, v) f.__shown = v and true or false; return f end
+    end
+    if k == "IsShown" or k == "IsVisible" then return function() return f.__shown end end
     if type(k) == "string" and k:match("^%u") then
       return function() return f end
     end
@@ -153,6 +164,13 @@ return function()
   M.UIParent = stubFrame()
   M.CreateFrame = function() return stubFrame() end
   M.UISpecialFrames = {}
+  -- FauxScrollFrame virtualizer. The pooled tables (History and the session window) call these on
+  -- every bind, so a headless build that lacks them cannot render a row at all. Offset 0 = the top
+  -- of the list, which is what a freshly-opened window shows.
+  M.FauxScrollFrame_Update = function() end
+  M.FauxScrollFrame_GetOffset = function() return 0 end
+  M.FauxScrollFrame_OnVerticalScroll = function() end
+  M.IsShiftKeyDown = function() return false end
   -- Chat sink for NS.Print (core/Util.lua). No-op by default; tests override AddMessage to capture.
   M.DEFAULT_CHAT_FRAME = { AddMessage = function() end }
   M.Settings = {

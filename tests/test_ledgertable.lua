@@ -26,6 +26,48 @@ test("LedgerTable:CellText renders the direction as a human label", function()
   assertEqual(LT:CellText("direction", e({ direction = "WITHDRAW" })), "Withdraw")
 end)
 
+test("LedgerTable:Column exposes the spec behind a key, and nil for an unknown one", function()
+  local col = LT:Column("item")
+  assertTrue(col ~= nil, "the Item column must be reachable")
+  assertEqual(col.key, "item")
+  assertTrue(col.flex == true, "Item is the flex column the session window also relies on")
+  assertEqual(LT:Column("nosuchcolumn"), nil)
+end)
+
+test("LedgerTable:PaintCell writes the column's text into the cell", function()
+  -- A minimal FontString stand-in: PaintCell is the ONE place both windows set text and colour, so
+  -- it must be callable against any FontString, not just a pooled History row's.
+  local calls = {}
+  local fs = {
+    SetText = function(_, v) calls.text = v end,
+    SetTextColor = function(_, r, g, b) calls.rgb = { r, g, b } end,
+  }
+  LT:PaintCell(fs, "store", e())
+  assertEqual(calls.text, "Character Bank")
+  assertEqual(calls.rgb[1], 1.00, "the Character Bank keeps its gold from the shared palette")
+end)
+
+test("LedgerTable:PaintCell drives the direction glyph only for the In/Out column", function()
+  local glyph = { shown = nil, text = nil,
+    SetText = function(self, v) self.text = v end,
+    SetTextColor = function() end,
+    SetShown = function(self, v) self.shown = v end }
+  local fs = { SetText = function() end, SetTextColor = function() end }
+  LT:PaintCell(fs, "direction", e({ direction = "WITHDRAW" }), glyph)
+  assertEqual(glyph.text, "\226\150\178", "a withdrawal draws the up arrow")
+  assertTrue(glyph.shown, "and the glyph is shown")
+  -- Passing a glyph for any other column must leave it alone.
+  glyph.text = "untouched"
+  LT:PaintCell(fs, "store", e(), glyph)
+  assertEqual(glyph.text, "untouched")
+end)
+
+test("LedgerTable:PaintCell is a safe no-op for a missing cell or column", function()
+  LT:PaintCell(nil, "store", e())
+  LT:PaintCell({ SetText = function() end, SetTextColor = function() end }, "nosuchcolumn", e())
+  assertTrue(true, "neither call may raise")
+end)
+
 test("LedgerTable:CellText renders the store as a human label", function()
   assertEqual(LT:CellText("store", e()), "Character Bank")
   assertEqual(LT:CellText("store", e({ store = "WARBAND_BANK" })), "Warband Bank")

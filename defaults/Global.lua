@@ -28,6 +28,10 @@ NS.defaults.global = {
     retentionDays    = 30,     -- 0 == keep Always
     windowScale      = 1.0,
     window           = {},     -- persisted position/size (standalone-windows carve-out)
+
+    -- The live "Current Banking Session" window: shown automatically whenever a bank frame is open.
+    showSessionWindow = true,
+    sessionWindow     = {},    -- its own persisted position/size (same carve-out as `window`)
   },
 
   minimap = { hide = false },  -- LibDBIcon state

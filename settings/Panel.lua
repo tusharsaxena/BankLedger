@@ -700,8 +700,9 @@ end
 
 function P:RestoreDefaults()
   if NS.Slash and NS.Slash.CliResetAll then NS.Slash:CliResetAll() end
-  -- Defaults also recentres the window (position is part of the stock state); the ledger is left alone.
+  -- Defaults also recentres both windows (position is part of the stock state); the ledger is left alone.
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
+  if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   P:Refresh()
 end
 

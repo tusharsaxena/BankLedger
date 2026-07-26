@@ -28,6 +28,14 @@ S.Schema = {
       if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
     end },
 
+  { path = "settings.showSessionWindow", default = true, type = "boolean", widget = "CheckBox",
+    group = "Master Controls", label = "Session window",
+    tooltip = "Show a small live window listing what you move while a bank is open. "
+      .. "Turning this off never stops capture \226\128\148 only the window.",
+    onChange = function()
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "sessionWindow") end
+    end },
+
   -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
   -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
   -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
@@ -200,6 +208,16 @@ NS.COMMANDS = {
   { name = "list",     desc = "List all settings",       fn = function() NS.Slash:CliList() end },
   { name = "reset",    desc = "Reset one setting",       fn = function(a) NS.Slash:CliReset(a) end },
   { name = "resetall", desc = "Reset all settings",      fn = function() NS.Slash:CliResetAll() end },
+  { name = "session",  desc = "Toggle the banking-session window (sample data outside a bank)",
+    fn = function()
+      if not NS.SessionWindow then return end
+      local on = NS.SessionWindow:TogglePreview()
+      if on == nil then
+        print("a real banking session is open \226\128\148 showing what you actually moved.")
+      else
+        print("session window sample " .. (on and "on" or "off"))
+      end
+    end },
   { name = "preview",  desc = "Toggle a sample ledger",  fn = function()
       local on = NS.LedgerTable and NS.LedgerTable.TogglePreview and NS.LedgerTable:TogglePreview()
       print("preview mode " .. (on and "on" or "off"))
