@@ -49,13 +49,17 @@ local frame
 
 -- The column specs this window renders, resolved from LedgerTable. Resolved lazily (not at load)
 -- because the TOC loads this file after LedgerTable but a nil-safe read is cheaper than a load-order
--- assumption.
+-- assumption — then cached, because this is read once per row per bind and the specs never change.
 function SW:Columns()
+  if self._columns then return self._columns end
   local cols = {}
   for _, key in ipairs(self.COLUMN_KEYS) do
     local col = NS.LedgerTable and NS.LedgerTable.Column and NS.LedgerTable:Column(key)
     if col then cols[#cols + 1] = col end
   end
+  -- Only cache a COMPLETE resolution: a partial one means LedgerTable was not loaded yet, and
+  -- caching that would leave the window permanently short of columns.
+  if #cols == #self.COLUMN_KEYS then self._columns = cols end
   return cols
 end
 
@@ -78,6 +82,10 @@ end
 
 -- Cumulative x offset + width for each column, with the Item column absorbing the slack. Shared by
 -- the header cells and the row cells so the two can never drift apart.
+--
+-- Recomputed once per bind (BuildHeaderCells caches it into `_layout`, which the rows then read),
+-- because the flex column's width depends on the window's current width and a bind lays out every
+-- visible row. Computing it per row was ~13 identical passes and 13 throwaway tables per repaint.
 function SW:ColumnLayout()
   local cols = self:Columns()
   local fixed = 0
@@ -100,12 +108,16 @@ function SW:Entries()
   return NS.State.sessionEntries or {}
 end
 
--- Is the window allowed to appear at all? The setting gates the WINDOW only — capture is untouched,
--- so turning it off loses no history.
+-- Is the window allowed to appear at all?
+--
+-- Two conditions, for opposite reasons. `showSessionWindow` gates the WINDOW only: capture is
+-- untouched by it, so turning it off loses no history. `enabled` is the master capture switch, and it
+-- gates the window because with capture off no movement can ever be recorded — a live window that is
+-- guaranteed to stay empty for the whole visit reads as a broken feature, not as a disabled one.
 function SW:Enabled()
   local s = NS.db and NS.db.global and NS.db.global.settings
   if not s then return true end
-  return s.showSessionWindow ~= false
+  return s.showSessionWindow ~= false and s.enabled ~= false
 end
 
 -- A session started: throw away the previous visit's rows and open on an empty table. Clearing here
@@ -328,7 +340,7 @@ function SW:AcquireRow()
 end
 
 function SW:LayoutRowCells(row)
-  for _, slot in ipairs(self:ColumnLayout()) do
+  for _, slot in ipairs(self._layout or self:ColumnLayout()) do
     local fs = row.cells[slot.col.key]
     if fs then
       fs:ClearAllPoints()
@@ -363,7 +375,9 @@ end
 function SW:BuildHeaderCells()
   local header = self.headerFrame
   header.cells = header.cells or {}
-  for _, slot in ipairs(self:ColumnLayout()) do
+  -- The one place the layout is recomputed per bind; the rows read the cached result.
+  self._layout = self:ColumnLayout()
+  for _, slot in ipairs(self._layout) do
     local col = slot.col
     local cell = header.cells[col.key]
     if not cell then

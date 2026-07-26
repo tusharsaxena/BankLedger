@@ -334,7 +334,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:ExportWidth leaves the Export button a usable width
 
-### test_sessionwindow.lua (24)
+### test_sessionwindow.lua (25)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -350,6 +350,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger:OpenContext and CloseContext drive the session window
 - a recorded movement reaches the session window through EntryAdded
 - the disable setting suppresses the window without suppressing collection
+- the window stays shut while capture itself is off
 - settings.showSessionWindow defaults to enabled
 - turning the setting off closes an open session window
 - SessionWindow:PruneMissing drops rows deleted from the ledger
@@ -541,10 +542,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_stats.lua | 49 |
 | test_ledgertable.lua | 38 |
 | test_browser.lua | 12 |
-| test_sessionwindow.lua | 24 |
+| test_sessionwindow.lua | 25 |
 | test_insights.lua | 55 |
 | test_export.lua | 29 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **477** |
+| **Total** | **478** |

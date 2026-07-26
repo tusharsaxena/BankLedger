@@ -177,6 +177,19 @@ test("the disable setting suppresses the window without suppressing collection",
   assertTrue(SW:Enabled())
 end)
 
+test("the window stays shut while capture itself is off", function()
+  -- With capture off nothing can ever be recorded, so a live window is guaranteed to stay empty for
+  -- the whole visit — which reads as broken rather than as switched off.
+  reset()
+  NS.Schema:Set("settings.enabled", false)
+  assertFalse(SW:Enabled())
+  SW:StartSession("BANK_FRAME")
+  assertFalse(SW:IsShown())
+  SW:EndSession()
+  NS.Schema:Set("settings.enabled", true)
+  assertTrue(SW:Enabled())
+end)
+
 test("settings.showSessionWindow defaults to enabled", function()
   assertEqual(NS.Schema:Default("settings.showSessionWindow"), true)
 end)

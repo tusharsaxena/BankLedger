@@ -631,18 +631,13 @@ function I:LayoutSections(y, w, stats, totals)
   local qualityIDs = {}
   for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
   table.sort(qualityIDs)
+  -- These rows are NOT in count order, so the largest bar is not row 1 — RenderBars normalizes
+  -- against the true peak, not against the first row, which is what makes that safe.
   local qualityRows = {}
   for _, q in ipairs(qualityIDs) do
     local color = W.QualityColor(q)
     qualityRows[#qualityRows + 1] = { label = NS.Compat.QualityLabel(q), color = color,
       labelColor = color, frac = stats.byQuality[q], value = tostring(stats.byQuality[q]) }
-  end
-  -- Quality order carries the meaning, so the largest bar is not necessarily the first: normalize
-  -- against the peak explicitly rather than letting RenderBars assume row 1 is the maximum.
-  do
-    local peak = 0
-    for _, row in ipairs(qualityRows) do peak = math.max(peak, row.frac) end
-    for _, row in ipairs(qualityRows) do row.frac = (peak > 0) and (row.frac / peak) or 0 end
   end
   y = self:RenderBars("quality", "quality", qualityRows, y, w)
 
@@ -689,7 +684,7 @@ function I:LayoutSections(y, w, stats, totals)
   end
   y = self:RenderStrip("hour", "hour", self.strips.hour, hourBuckets, y, w)
 
-  -- 14 ── Weekday, Sunday first, each day its own palette colour.
+  -- 14 ── Weekday, Sunday first (calendar order, not count order), each day its own palette colour.
   local weekdayRows = {}
   for d = 0, 6 do
     local count = (stats.byWeekday or {})[d]
@@ -697,11 +692,6 @@ function I:LayoutSections(y, w, stats, totals)
       weekdayRows[#weekdayRows + 1] = { label = W.WEEKDAY_LABEL[d], color = W.PaletteColor(d + 1),
         frac = count, value = tostring(count) }
     end
-  end
-  do
-    local peak = 0
-    for _, row in ipairs(weekdayRows) do peak = math.max(peak, row.frac) end
-    for _, row in ipairs(weekdayRows) do row.frac = (peak > 0) and (row.frac / peak) or 0 end
   end
   y = self:RenderBars("weekday", "weekday", weekdayRows, y, w)
 
