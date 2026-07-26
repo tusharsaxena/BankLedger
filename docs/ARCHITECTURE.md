@@ -55,8 +55,10 @@ warband movement, because no event announces one.
 | `modules/Filters.lua` | The item blacklist / whitelist id-sets and their copy-on-write mutations. |
 | `modules/Ledger.lua` | The capture engine: snapshot, diff, gate, build, record, plus the event shell. |
 | `modules/Browser.lua` | The standalone window: skin, tabs, the shared filter bar, footer, minimap launcher. |
-| `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, and the preview dataset. |
-| `modules/Insights.lua` | The Insights tab: summary cards and ranked bars over `Database:Stats`. |
+| `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, the preview dataset, and the shared `Column` / `PaintCell` column seams. |
+| `modules/SessionWindow.lua` | The live "Current Banking Session" window: its own slim pooled table over the movements of one bank visit. |
+| `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, diverging/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
+| `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
 | `modules/DebugLog.lua` | The on-screen debug console and the `NS.Debug` sink. |
 | `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. |
@@ -93,6 +95,7 @@ Rows render in schema order, so this table is also the panel's layout, top to bo
 |---|---|---|---|
 | `settings.enabled` | boolean | `true` | Master Controls |
 | `minimap.hide` | boolean | `false` | Master Controls |
+| `settings.showSessionWindow` | boolean | `true` | Master Controls |
 | `state.debugConsole` | boolean (session-only) | `false` | Master Controls |
 | `settings.windowScale` | number | `1.0` | Master Controls |
 | `settings.qualityThreshold` | number | `0` | Capture |
@@ -102,23 +105,31 @@ Rows render in schema order, so this table is also the panel's layout, top to bo
 | `settings.excludedStores` | table (muted set) | `{}` | Capture |
 
 **Storage carve-outs** — mutated by their owning module rather than through `Schema:Set`, because
-neither has a schema widget to drive: `settings.window` (geometry, `modules/Browser.lua`) and
+none has a schema widget to drive: `settings.window` (main-window geometry, `modules/Browser.lua`),
+`settings.sessionWindow` (session-window geometry, `modules/SessionWindow.lua`) and
 `db.global.blacklist` / `db.global.whitelist` (`modules/Filters.lua`).
 
 **Not settings:** the debug *logging* flag is `NS.State.debug` — session-only, off at login, never
-written to SavedVariables.
+written to SavedVariables. The current banking session's movements are `NS.State.sessionEntries` —
+references to already-stored entries, held only while a bank frame is open and never persisted.
 
 ## Message bus
 
-Three messages, one sender each. Consumers **must** register on their own `NS.NewBusTarget()`
+Four messages, one sender each. Consumers **must** register on their own `NS.NewBusTarget()`
 target, never on the shared bus-as-self: CallbackHandler keys callbacks by `(message, target)`, so
 two consumers sharing a target silently clobber each other.
 
 | Message | Sender | Payload | Consumers |
 |---|---|---|---|
-| `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, Panel (storage stats) |
-| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, Panel (storage stats + Filters page) |
-| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string | Ledger (re-caches its gate upvalues), Browser |
+| `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
+| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + Filters page) |
+| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
+
+`SessionChanged` exists so the session window rides the span the capture engine already arms
+`openContext` for, instead of re-deriving it from the open/close events — which would have missed the
+guild bank entirely, since that is armed by the arrival of tab data rather than by an event, and gets
+no close event at all.
 
 `NS.Filters` deliberately does **not** introduce a fourth sender: it calls
 `Database:FireLedgerChanged()` so `Database` stays the sole emitter of that message.
@@ -135,6 +146,7 @@ settings landing page and the README all read from one place.
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` / `resetall` | Read and write settings |
 | `/bl preview` | Toggle a sample ledger for previewing the window |
+| `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
 | `/bl debug scan` | Dump the client's live container model into the console |
@@ -189,10 +201,63 @@ has been queried** (`QueryGuildBankTab`), so only the tab the player is looking 
 free. Arming queries every tab; the replies arrive asynchronously and reconcile like any other
 change.
 
+## Windows
+
+Two standalone windows, both plain non-secure frames sharing one `SKIN` / `ApplySkin` seam and one
+close-glyph factory (`modules/Browser.lua`), each with its own persisted geometry carve-out.
+
+| Window | Frame | Opened by | Contents |
+|---|---|---|---|
+| Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one shared filter bar |
+| Current Banking Session | `BankLedgerSessionWindow` | a bank frame opening (`SessionChanged`), or `/bl session` | One slim table of this visit's movements |
+
+The session window is **not** a second `NS.LedgerTable` instance. That module is a stateful singleton
+— one row pool, one display list, one sort/group/filter/collapse state — and the session table has
+none of those, so a slim renderer is smaller than the refactor generalising it would take. What the
+two **do** share is the definition of a column: `LedgerTable:Column(key)` hands out the spec (label,
+width, align, tooltip, `valueFn`) and `LedgerTable:PaintCell(fs, key, entry, glyph)` sets a cell's
+text and colour, so a column cannot read one way in one window and another way in the other.
+
+Its column set is the History table's minus `date`, `time` and `char`: every row happened moments
+ago, and capture only ever records the logged-in character's own movements, so all three columns
+would carry the same value on every row.
+
+## Insights
+
+One `Database:Stats(filter)` pass per refresh, against the Browser's shared filter, feeds the whole
+panel — so the charts and the History table always describe the same slice. The panel is split in two:
+
+* `modules/InsightsWidgets.lua` — **how** things are drawn. Pooled primitives (KPI card, horizontal
+  bar, diverging bar, ratio bar, stacked bar, vertical strip, ranked list panel, legend, section
+  divider) plus the categorical palette, label truncation, colour helpers and the geometry maths.
+  It never touches a ledger entry, which is what makes that maths unit-testable headlessly.
+* `modules/Insights.lua` — **what** is drawn: fourteen stat cards and sixteen sections, each mapping
+  one `Stats` key to rows.
+
+Three choices worth stating, because they are the ones a future change is most likely to undo:
+
+* **Net flow uses diverging bars.** A plain bar has to drop the sign, and "what went in" versus "what
+  came out" is the same question from two sides. Both directions share one absolute scale, so a `+100`
+  bar is visibly twice a `-50` one.
+* **Colour is never decorative.** Store, direction, quality and class bars take their colour from the
+  shared palettes in `core/Constants.lua`, so a bar matches the table column it summarises. Only the
+  breakdowns with no palette of their own (item type, sub-type, weekday) fall back to
+  `InsightsWidgets.PaletteColor`, assigned by *rank* so adjacent bars are never lookalikes.
+* **Empty is drawn, missing is not.** A quiet day keeps a ghost bar in a strip (a gap cannot be told
+  apart from a day outside the range) and the cards paint "0" rather than vanishing; but the whole
+  GOLD block hides when the slice holds no coin movement, because two blank charts under a banner
+  read as a broken addon.
+
+Every widget is pooled and repainted in place. The Blizzard UI runs a super-linear pass over a frame
+tree on some transitions, so re-allocating widgets per refresh is what turns a smooth panel into a
+visible hitch.
+
 ## Taint notes
 
-- The ledger window and the debug console are plain **non-secure** frames, so they touch nothing
-  protected and need no combat gate. Both are registered in `UISpecialFrames` for ESC.
+- The ledger window, the session window and the debug console are plain **non-secure** frames, so they
+  touch nothing protected and need no combat gate. All three are registered in `UISpecialFrames` for
+  ESC. That the session window opens off a game event is safe for the same reason: it shows a frame
+  nobody protected, and it never calls a protected API.
 - The settings **category** is registered eagerly at load — that never taints. Each panel **body**
   is built lazily on its first `OnShow`.
 - Opening the settings panel **refuses** under combat lockdown with a grey notice and never defers:

@@ -90,10 +90,36 @@ tolerance.
 
 ## S-9 · Insights
 
-1. Switch to the **Insights** tab. The summary cards and bars populate.
-2. Apply a filter on the History tab, then switch back to Insights — the numbers reflect the same
-   filter. The two tabs never disagree.
-3. Net gold shows green when positive, red when negative.
+1. Switch to the **Insights** tab. Fourteen stat cards populate across the top; hovering each one
+   explains what it counts.
+2. A long money value (Value moved, Biggest move) shrinks to stay on one line inside its card —
+   it never clips or wraps.
+3. Net items and Net gold read green with a `+` when positive, red with a `-` when negative, and a
+   grey dash at exactly zero.
+4. **Deposits vs Withdrawals** is one bar split into two coloured shares whose counts and
+   percentages add up to the movement total. Hovering either half names it.
+5. **Net Flow By Store** grows right and green for a store you are filling, left and red for one you
+   are draining, from a centre baseline. A store with twice another's net has visibly twice the bar.
+6. **Movements By Character** is class-coloured and carries each class icon. The two `×` companions
+   below it stack one segment per store / per direction, each segment hover-tipped with its own
+   value, and a legend under each names the colours.
+7. **Movements By Quality** runs Poor → Legendary (not by count) in the game's own quality colours.
+8. **Item Type** and **Sub-type** bars are all visibly different colours — no two adjacent bars look
+   alike — and each has a legend.
+9. The per-day strips (movements, value, and gold if any) share one x-axis. Quiet days show a faint
+   ghost bar rather than a gap; the rotated date labels thin out as the bars tighten and never
+   overlap. Hovering a bar names the day and its figure.
+10. **By Hour Of Day** shows all 24 buckets, including the empty ones.
+11. Under **TOP OF THE LIST**, four panels: top items by value, by movements, by quantity, and top
+    banking spots. Item names carry their quality colour; a truncated name shows in full on hover.
+12. Move some gold, refresh — the **GOLD** divider and its two charts appear. With a filter that
+    excludes every gold movement, that whole block disappears rather than rendering empty.
+13. Apply a filter on the History tab, then switch back to Insights — every number and every bar
+    reflects the same filter. The two tabs never disagree.
+14. Resize the window: the cards re-flow to the new width, the bars and strips re-stretch, and the
+    two list columns stay side by side.
+15. With the tab open, move something at a bank — the panel updates live.
+16. Purge the ledger: the cards read 0 and one centred "no movements" line replaces every section.
 
 ## S-10 · Export
 
@@ -122,9 +148,9 @@ tolerance.
    Defaults button looks like every other button on the page — if it renders as Blizzard's red
    stone button, it was built before a UI skin hooked AceGUI (`/bl debug panel` shows the region
    list; the bare 5-region `130828` form is the unskinned one).
-   General's sections read **Master Controls** (enable, minimap, debug console, window scale +
-   Reset all), then **Capture** (quality, retention, item/gold toggles, per-store grid), then
-   **Storage**.
+   General's sections read **Master Controls** (enable, minimap, session window, debug console,
+   window scale + Reset all), then **Capture** (quality, retention, item/gold toggles, per-store
+   grid), then **Storage**.
 4. Toggle a checkbox, then run `/bl list` — the value matches.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
 6. The scrollbar is visible on both pages and greyed out on the one that fits, so the body width
@@ -159,4 +185,36 @@ tolerance.
 
 1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
 2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **Reset all** asks to confirm and restores everything, recentring the window.
+3. Settings ▸ General ▸ **Reset all** asks to confirm and restores everything, recentring both
+   windows.
+
+## S-17 · Current Banking Session window
+
+1. Open your character bank. A second window titled **Ka0s Bank Ledger - Current Banking Session**
+   appears alongside it, empty, reading "Nothing has moved yet this session."
+2. It has no tabs, no filter bar, no search, no Clear, no Export and no footer. Its columns are
+   In/Out, Store, Item, Qty, Quality, Type and Sub-type — no Date, no Time, no Character.
+3. Clicking a column header does nothing. Hovering one still shows that column's explanation.
+4. Deposit something. A row appears **immediately**, coloured exactly as the same movement reads in
+   the History window, newest at the top.
+5. Withdraw something. A second row appears above the first, with the red ▲ glyph.
+6. Move gold at the warband bank — the row shows "Gold" and the amount as coins.
+7. Drag the window somewhere else and resize it from the bottom-right grip.
+8. Close the bank. The window closes.
+9. Reopen the bank: it comes back **empty** (it is this visit's movements, not a running log) and in
+   the position and size you left it.
+10. Open the main ledger window — every movement from that session is still there. The session view
+    never stored anything of its own.
+11. Delete one of those rows from the History table while the bank is still open — it disappears from
+    the session window too.
+12. Repeat steps 1–5 at the **warband** tabs and at a **guild bank**. Both drive the same window; the
+    guild bank has no close event, so confirm the window also disappears when the guild bank frame
+    goes away.
+13. `/reload` while a bank is open: the window reappears empty when you next open a bank, because the
+    session data was never persisted.
+14. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
+    movements you make are still recorded (check the History window). Tick it again while a bank is
+    open and it appears on the next movement; untick it while it is open and it closes at once.
+15. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
+    again to dismiss it. While a real bank session is open, `/bl session` refuses and says so rather
+    than replacing your actual data with placeholders.
