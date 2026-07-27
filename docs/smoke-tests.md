@@ -63,7 +63,8 @@ tolerance.
 
 1. `/bl toggle` opens and closes the window; **Esc** closes it.
 2. Drag the title bar, then resize from the bottom-right grip. `/reload` — the position and size
-   come back.
+   come back. Repeat resizing *only* (never dragging), releasing the grip well outside the button,
+   and again with the window still open when you `/reload`: both must survive.
 3. The window will not shrink below the width that shows every column.
 4. `/bl set settings.windowScale 1.3` rescales the open window immediately.
 

@@ -390,11 +390,18 @@ test("Insights.SummaryLine names the scope and the count", function()
 end)
 
 -- ── Render smoke test ──────────────────────────────────────────────────────────
+-- Insights deliberately computes against the Browser's SHARED filter, which means these cases have
+-- to state the filter they expect rather than inherit whatever the last suite left behind — opening
+-- the ledger window scopes it to the current character, which would silently empty every fixture.
+local function unfiltered()
+  NS.Browser.activeFilter = {}
+end
 -- Attach the real panel to a stub pane and drive a full layout pass. The maths above is unit-tested
 -- in isolation; this proves the ~16 sections actually bind against a Stats result without raising,
 -- which is the failure mode that would otherwise only show up in-game.
 
 test("Insights:Attach and Refresh survive an empty ledger", function()
+  unfiltered()
   NS.db.global.ledger = {}
   I:Attach(T.mocks.CreateFrame())
   assertTrue(I.content ~= nil, "the panel built")
@@ -403,6 +410,7 @@ test("Insights:Attach and Refresh survive an empty ledger", function()
 end)
 
 test("Insights:Refresh lays out every section against a populated ledger", function()
+  unfiltered()
   local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
   local chars = { { "Mageling-Realm", "MAGE" }, { "Sneakerz-Realm", "ROGUE" } }
   local ledger = {}
@@ -433,6 +441,7 @@ test("Insights:Refresh lays out every section against a populated ledger", funct
 end)
 
 test("Insights:Refresh renders a slice with no gold at all", function()
+  unfiltered()
   -- The GOLD divider and its two charts must hide rather than render empty: two blank charts under a
   -- banner read as a broken addon, not as "you moved no gold".
   NS.db.global.ledger = {

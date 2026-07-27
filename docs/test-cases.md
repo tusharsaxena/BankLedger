@@ -323,7 +323,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - LedgerTable.RenderSummary is one line carrying the render's shape
 - LedgerTable:MinFrameWidth is wide enough for every column
 
-### test_browser.lua (12)
+### test_browser.lua (18)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -336,6 +336,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser:ClearFilters leaves every other filter empty
 - Browser:ClearFilters does not scope preview data to the real player
 - Browser:MinWidth fits every table column and the whole toolbar
+- Browser:SaveGeometry writes the live position and size
+- Browser:ApplyGeometry restores a saved position and size
+- Browser:ApplyGeometry never restores a size below the window floor
+- Browser:SaveGeometry refuses to write a point-less table
+- the ledger window saves its geometry when it hides
+- the ledger window saves its geometry at logout
 - Browser:ExportWidth leaves the Export button a usable width
 
 ### test_sessionwindow.lua (32)
@@ -552,11 +558,11 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_database.lua | 33 |
 | test_stats.lua | 49 |
 | test_ledgertable.lua | 38 |
-| test_browser.lua | 12 |
+| test_browser.lua | 18 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 55 |
 | test_export.lua | 29 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **489** |
+| **Total** | **495** |

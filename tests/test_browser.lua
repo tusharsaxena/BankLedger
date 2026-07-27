@@ -1,6 +1,7 @@
 local T = _G.BL_TEST
 local NS = T.NS
-local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
+local test, assertEqual, assertTrue, assertFalse =
+  T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
 local B = NS.Browser
 -- The Character dropdown's "Current" sentinel, as Browser.lua defines it. Duplicated here on
@@ -98,6 +99,91 @@ end)
 test("Browser:MinWidth fits every table column and the whole toolbar", function()
   assertTrue(B:MinWidth() >= NS.LedgerTable:MinFrameWidth(),
     "the window floor must clear the column floor")
+end)
+
+-- ── Window geometry (the same exposure the session window had) ─────────────────
+-- Saving only at the end of a drag or a resize means the geometry can live purely in the frame,
+-- which outlives every Hide/Show — so it looks persistent for a whole game session and is gone on
+-- the first /reload. Both windows anchor the save to guaranteed moments instead.
+
+test("Browser:SaveGeometry writes the live position and size", function()
+  NS.db.global.settings.window = {}
+  NS.Browser:Show()
+  local f = NS.Browser:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 77, -88)
+  f:SetSize(1000, 700)
+  NS.Browser:SaveGeometry()
+  local saved = NS.db.global.settings.window
+  assertEqual(saved.point, "TOPLEFT")
+  assertEqual(saved.x, 77)
+  assertEqual(saved.y, -88)
+  assertEqual(saved.w, 1000)
+  assertEqual(saved.h, 700)
+  NS.Browser:Hide()
+end)
+
+test("Browser:ApplyGeometry restores a saved position and size", function()
+  NS.db.global.settings.window = { point = "BOTTOMLEFT", x = 15, y = 25, w = 1100, h = 720 }
+  NS.Browser:Show()
+  local f = NS.Browser:GetWindow()
+  f:ClearAllPoints()
+  f:SetSize(0, 0)
+  NS.Browser:ApplyGeometry()
+  local point, _, _, x, y = f:GetPoint(1)
+  assertEqual(point, "BOTTOMLEFT")
+  assertEqual(x, 15)
+  assertEqual(y, 25)
+  assertEqual(f:GetWidth(), 1100)
+  NS.Browser:Hide()
+end)
+
+test("Browser:ApplyGeometry never restores a size below the window floor", function()
+  NS.db.global.settings.window = { point = "CENTER", x = 0, y = 0, w = 10, h = 10 }
+  NS.Browser:Show()
+  local f = NS.Browser:GetWindow()
+  NS.Browser:ApplyGeometry()
+  assertEqual(f:GetWidth(), NS.Browser:MinWidth(), "a too-narrow saved width clamps to the floor")
+  NS.Browser:Hide()
+end)
+
+test("Browser:SaveGeometry refuses to write a point-less table", function()
+  -- Writing one would make ApplyGeometry fall through to the default and silently discard a real
+  -- position the next time the window opened.
+  NS.db.global.settings.window = { point = "TOPLEFT", x = 5, y = -5, w = 1000, h = 600 }
+  NS.Browser:Show()
+  local f = NS.Browser:GetWindow()
+  f:ClearAllPoints()
+  assertFalse(NS.Browser:SaveGeometry(), "an unanchored frame has nothing worth saving")
+  assertEqual(NS.db.global.settings.window.point, "TOPLEFT", "the last good value survives")
+  NS.Browser:Hide()
+end)
+
+test("the ledger window saves its geometry when it hides", function()
+  NS.db.global.settings.window = {}
+  NS.Browser:Show()
+  local f = NS.Browser:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 111, -222)
+  f:SetSize(980, 640)
+  NS.Browser:Hide()
+  local saved = NS.db.global.settings.window
+  assertEqual(saved.point, "TOPLEFT", "closing the window persisted the position")
+  assertEqual(saved.x, 111)
+  assertEqual(saved.w, 980)
+end)
+
+test("the ledger window saves its geometry at logout", function()
+  NS.db.global.settings.window = {}
+  NS.Browser:Show()
+  local f = NS.Browser:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("CENTER", T.mocks.UIParent, "CENTER", 9, 19)
+  f:SetSize(960, 620)
+  NS.Browser:OnLogout()
+  assertEqual(NS.db.global.settings.window.x, 9)
+  assertEqual(NS.db.global.settings.window.y, 19)
+  NS.Browser:Hide()
 end)
 
 test("Browser:ExportWidth leaves the Export button a usable width", function()
