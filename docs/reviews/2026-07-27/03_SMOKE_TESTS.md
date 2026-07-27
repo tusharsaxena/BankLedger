@@ -3,6 +3,22 @@
 Execute **after** the changes in `02_PROPOSED_CHANGES.md` are applied. Derived from that document;
 one section per change ID. Fill in the sign-off table at the bottom.
 
+> **Revised 2026-07-27 after implementation.** C-001 was implemented in full (not the C-001b
+> fallback), so its pass criteria are now unconditional. C-001 also gained a section — **C-001-B** —
+> for a failure mode the live probe exposed that the design had not anticipated. C-005, C-008 and
+> C-012 have been corrected to match what shipped.
+
+## Priority order
+
+If you cannot run everything in one sitting, run it in this order — each tier is self-contained.
+
+| Tier | Sections | Why |
+|---|---|---|
+| **1 — must pass before merge** | C-001, C-001-B, C-008, R-2 | The capture engine. These are the only changes that can silently *lose or invent* permanent history. C-001 is the one place this cycle could cost you a real row rather than remove a false one. |
+| **2 — user-visible behaviour** | C-002, C-003, C-004, C-005, C-012 | Each is a defect a user would have reported. Fast to run, no special setup. |
+| **3 — regression / no-change-expected** | C-006, C-007, C-009, C-010, C-011, R-1, R-5…R-14 | Changes that should be invisible. Failures here are refactor slips. |
+| **4 — measurement** | Perf spot-checks 1–3, R-3, R-4 | Numbers for the record, not gates. |
+
 ---
 
 ## Pre-flight
@@ -36,8 +52,7 @@ one section per change ID. Fill in the sign-off table at the bottom.
 Character filter on *Current*, `settings.trackMoney` = true.
 
 **Steps**
-1. Run `/bl debug scan` at a **character bank**. In the console, find the new `money API:` line.
-   Record which readers this build exposes.
+1. Run `/bl debug scan` at a **character bank**. In the console, find the `money API:` block.
 2. Walk to a bank, open it, and **purchase a bank slot / bank tab** (any purchase that spends gold
    with the bank frame open). Close the bank.
 3. `/bl toggle` → History tab. Set the Store filter to *Warband Bank* and the Type filter to *Gold*.
@@ -47,16 +62,58 @@ Character filter on *Current*, `settings.trackMoney` = true.
 6. Clear the filters (**Clear** button) and read the Gold rows.
 
 **Expected**
+* Step 1: `bankFetch=function`, `bankTypes=true`, and a non-zero
+  `C_Bank.FetchDepositedMoney(Account)` figure matching your warband bank's gold. If `bankFetch` is
+  **not** `function` on this build, stop — the implementation's premise does not hold here and the
+  C-001b narrowing must be reconsidered.
 * After step 2–3: **no** gold row for the purchase. Console shows a `[Diff]` line for the pass and
   **no** `[Move]` line attributing money to `WARBAND_BANK`.
 * After step 4: exactly **one** row — Deposit / Warband Bank / Gold / `10g`.
 * After step 5: exactly **two** rows — Deposit `5g` and Withdraw `1g`, both Guild Bank.
 * No Lua error popup at any point.
 
-**Pass / Fail:** PASS when the purchase produces no row **and** both genuine deposits/withdrawals
-produce exactly one correctly-signed row each. If C-001b (the fallback) was implemented instead,
-step 4 legitimately produces **no** row — in that case PASS requires steps 2 and 4 to produce
-nothing and step 5 to produce two rows.
+**Pass / Fail:** PASS when the purchase produces no row **and** all three genuine movements produce
+exactly one correctly-signed row each. C-001 was implemented in full, so step 4 producing no row is
+a **FAIL**, not the documented fallback — it means corroboration is costing real rows.
+
+**If step 4 produces no row:** the likely cause is timing, not logic — `PLAYER_MONEY` arriving before
+`C_Bank.FetchDepositedMoney` reflects the deposit. Check the console for a `[Diff]` line followed by
+`one-sided change never settled; baseline re-anchored`. That would mean the store balance took longer
+than `SETTLE_TIMEOUT_SECONDS` to land, and the fix is to extend the settle window for money, not to
+weaken the rule.
+
+---
+
+## C-001-B — The guild bank's closed-frame balance lie
+
+**Change covered:** C-001 — `Compat.GetStoreMoney` returns `nil`, not the API's `0`, when the guild
+bank frame is down.
+
+**Why this exists:** the live probe found `GetGuildBankMoney()` answers **0** with the guild bank
+closed and its true balance (billions of copper) with it open. If that `0` ever reached the diff as
+a balance, opening the guild bank would look like the store gaining its entire holdings at once —
+and paired with any purse movement in the same pass, that fabricates a gold row. This is the single
+highest-risk edge in the change, and it cannot be reproduced headlessly at the client's real timing.
+
+**Setup:** `/bl debug on`, live ledger, guild bank tab you can deposit to.
+
+**Steps**
+1. Fresh `/reload`. Do **not** open a guild bank yet.
+2. Run `/bl debug scan` and read `GetGuildBankMoney()` — it should report `0` (the lie).
+3. Go to a **character bank**, open it, and spend some gold (repair, or buy a bank slot). Close it.
+4. Walk to a **guild bank** and open it.
+5. `/bl debug scan` again — `GetGuildBankMoney()` now reports the true balance.
+6. Close the guild bank, then `/bl toggle` → History → Type filter *Gold*.
+
+**Expected**
+* Step 3 produces **no** gold row (that is C-001 doing its job at the bank).
+* Steps 4–6 produce **no** gold row at all. In particular there must be **no** Guild Bank row for
+  the difference between `0` and the true balance, in either direction.
+* Console shows no `[Move]` line attributing money to `GUILD_BANK` across the whole sequence.
+
+**Pass / Fail:** PASS when opening a guild bank after spending gold elsewhere writes nothing. A row
+here of any size — especially a very large one — means the closed-frame `0` is reaching the diff and
+`Compat.IsGuildBankVisible()` is not gating the read.
 
 ---
 
@@ -141,11 +198,14 @@ enough to see behaviour but not load; for the perf half, use a real large ledger
 5. Switch to **History** and repeat.
 6. Change the **Store** dropdown to a single store.
 
-**Expected:** typing is smooth; the charts/table update once, shortly after you stop typing. The
-dropdown change (step 6) applies **immediately**, with no perceptible delay.
+**Expected:** typing is smooth; the charts/table update once, **0.20s** after the last keystroke
+(`FILTER_DEBOUNCE` in `modules/Browser.lua`). The dropdown change (step 6) applies **immediately** —
+only the search box is debounced.
 
 **Pass / Fail:** PASS when typing does not hitch, the result is correct after the pause, and
-dropdown selections still feel instant.
+dropdown selections still feel instant. This is checkpoint **C3**: if the dropdowns feel laggy the
+debounce has been applied too broadly, which is a worse experience than the cost it saves — report
+it rather than accepting it.
 
 ---
 
@@ -202,12 +262,18 @@ straight to a **guild bank** tab you have not opened this session containing a g
 3. Set **Minimum quality** back to *Poor and above*, then repeat the withdrawal with another item.
 
 **Expected**
-* Step 2: a `[Skip]` line whose reason is `quality` or `uncached` — **not** a silently recorded row.
-  The item must not appear in History.
-* Step 3: at threshold 0 the item **is** recorded, as before (this is the no-behaviour-change case).
+* Step 2: a `[Skip]` line — **not** a silently recorded row, and the item must not appear in
+  History. The reason distinguishes the two cases: `uncached` when the client had no data for the id
+  (the F-006 case), `quality` when it did and the item was genuinely below the threshold. Either is
+  a pass; `uncached` is the one that proves the fix.
+* Step 3: at threshold 0 the item **is** recorded, as before. This is checkpoint **C2**, the
+  no-behaviour-change case that governs every user who never set a threshold — it must not regress.
 
 **Pass / Fail:** PASS when a sub-threshold item is never recorded regardless of cache state, the
 console names the reason, and threshold 0 behaves exactly as it did before the change.
+
+**Note:** a skipped id is queued for caching, so the *second* movement of the same item may report
+`quality` where the first reported `uncached`. That is the intended progression, not a flap.
 
 ---
 
@@ -269,21 +335,27 @@ fixed before sign-off.
    summary line).
 2. Read the `[Init]` line in the console.
 3. `/bl version`, then `/bl help` — compare the version in both.
-4. `/bl test`, right-click a row → hover **Blacklist item** (it is disabled per C-002); instead turn
-   test mode off and blacklist a real row, and read the chat line.
+4. With test mode **off**, right-click a real ledger row → **Blacklist item**, and read the chat
+   line. (This is the `LedgerTable` printer alias, changed in this cycle.)
 5. Compare `README.md`'s command table with `/bl help` output line by line.
+6. `/bl show`, `/bl hide`, `/bl toggle` — each must work normally.
 
 **Expected**
 * Step 2: `[Init]` reads `BankLedger v0.1.0, schema v2, profile 'Default', 0 entries` — **schema v2**
-  on a brand-new database (not v1).
+  on a brand-new database (not v1), and **no** `[Migrate]` line, because a fresh DB is already
+  current and has nothing to migrate.
 * Step 3: both print the same version, both carry the cyan `[BL]` tag.
-* Step 4: the blacklist confirmation line carries the cyan `[BL]` tag (proving the printer alias
-  change did not fall through to the global `print`).
-* Step 5: same verbs in the same order; `/bl debug` documented with its `on` / `off` / `scan` /
-  `panel` arguments.
+* Step 4: the blacklist confirmation reads
+  `[BL] blacklisted <item>. Manage in Settings ▸ Filters.` — cyan tag present. A **green** line with
+  a trailing colon means the alias fell through to AceConsole's `:Print` mixin.
+* Step 5: same verbs in the same order — `show, hide, toggle, config, version, get, set, list,
+  reset, resetall, session, test, purge, debug, help` — plus README-only rows for `debug scan` and
+  `debug panel`.
+* Step 6: the window opens and closes. `B:Unavailable()` was deleted this cycle; these three verbs
+  were the only plausible callers, so this confirms nothing depended on it.
 
-**Pass / Fail:** PASS when a fresh DB starts at schema v2, both version paths agree, and every chat
-line is `[BL]`-tagged.
+**Pass / Fail:** PASS when a fresh DB starts at schema v2 with no migration line, both version paths
+agree, every chat line is `[BL]`-tagged, and the window verbs work.
 
 ---
 
@@ -348,6 +420,7 @@ entries.
 | ID | Tested? | Pass/Fail | Notes |
 |---|---|---|---|
 | C-001 | | | |
+| C-001-B | | | |
 | C-002 | | | |
 | C-003 | | | |
 | C-004 | | | |
