@@ -881,6 +881,22 @@ end
 -- Registered on this module's OWN AceEvent target, never the shared bus-as-self, so it can't clobber
 -- the Browser's consumers of the same messages (architecture-§4).
 
+-- One aggregation per burst of recorded entries, for the same reason the Browser coalesces its
+-- repaint. Off-screen this costs nothing either way — Refresh already returns early — but the
+-- on-screen case is exactly when the user is at the bank emptying their bags.
+local pendingRefreshTimer
+
+function I:ScheduleRefresh()
+  if not (self.pane and self.pane:IsShown()) then return end
+  local addon = NS.addon
+  if not (addon and addon.ScheduleTimer) then return self:Refresh() end
+  if pendingRefreshTimer then return end
+  pendingRefreshTimer = addon:ScheduleTimer(function()
+    pendingRefreshTimer = nil
+    if I.pane and I.pane:IsShown() then I:Refresh() end
+  end, 0)
+end
+
 function I:Enable()
   if self._enabled then return end
   self._enabled = true
@@ -889,6 +905,9 @@ function I:Enable()
   local onChange = function()
     if I.pane and I.pane:IsShown() then I:Refresh() end
   end
+  -- LedgerChanged is already one message per bulk operation, so it refreshes synchronously.
+  -- EntryAdded is one message per moved stack, and a Refresh here is a full Database:Stats pass —
+  -- so a 20-slot deposit would aggregate the whole ledger twenty times. Collapse the burst.
   I.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", onChange)
-  I.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", onChange)
+  I.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() I:ScheduleRefresh() end)
 end

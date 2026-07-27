@@ -3,6 +3,7 @@ local NS = T.NS
 local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
+local mocks = T.mocks
 local B = NS.Browser
 -- The Character dropdown's "Current" sentinel, as Browser.lua defines it. Duplicated here on
 -- purpose: if the sentinel ever changes shape, this suite must fail rather than follow it silently.
@@ -191,4 +192,60 @@ end)
 test("Browser:ExportWidth leaves the Export button a usable width", function()
   -- The filter dropdowns grew; Export takes the slack and must not collapse to nothing.
   assertTrue(B:ExportWidth() >= 110, "got " .. B:ExportWidth())
+end)
+
+-- ── Coalescing ─────────────────────────────────────────────────────────────────
+-- Both of these count how many times the expensive work actually ran. The filter path is spied at
+-- LedgerTable:SetFilter, which is the first thing an application does.
+
+local function countingFilter(fn)
+  local calls, saved = 0, NS.LedgerTable.SetFilter
+  NS.LedgerTable.SetFilter = function() calls = calls + 1 end
+  local ok, err = pcall(fn, function() return calls end)
+  NS.LedgerTable.SetFilter = saved
+  if not ok then error(err, 0) end
+  return calls
+end
+
+test("Browser: a burst of search keystrokes costs ONE filter application", function()
+  -- F-004: OnTextChanged fires per character, and each application is a full Database:Query plus,
+  -- on Insights, a full Database:Stats. Typing "linen" paid for five.
+  local duringTyping
+  local total = countingFilter(function(count)
+    mocks.__timers = {}
+    B:ScheduleApplyFilter()
+    B:ScheduleApplyFilter()
+    B:ScheduleApplyFilter()
+    B:ScheduleApplyFilter()
+    B:ScheduleApplyFilter()
+    duringTyping = count()
+    mocks.__fireTimers()
+  end)
+  assertEqual(duringTyping, 0, "nothing recomputed while the user is still typing")
+  assertEqual(total, 1, "five keystrokes, one recompute")
+end)
+
+test("Browser: the debounced filter still applies when there is no timer library", function()
+  -- Headless, and any load order where AceTimer is missing: dropping the edit silently would be
+  -- far worse than paying for it inline.
+  local saved = NS.addon
+  local total = countingFilter(function()
+    NS.addon = nil
+    B:ScheduleApplyFilter()
+  end)
+  NS.addon = saved
+  assertEqual(total, 1, "applied inline rather than dropped")
+end)
+
+test("Browser: a 20-stack deposit repaints the window once, not twenty times", function()
+  -- F-005: EntryAdded is one message per moved stack, and each one drove a full OnLedgerChanged.
+  local calls, saved = 0, B.OnLedgerChanged
+  B.OnLedgerChanged = function() calls = calls + 1 end
+  mocks.__timers = {}
+  for _ = 1, 20 do B:ScheduleLedgerRefresh() end
+  local duringDeposit = calls
+  mocks.__fireTimers()
+  B.OnLedgerChanged = saved
+  assertEqual(duringDeposit, 0, "no repaint mid-burst")
+  assertEqual(calls, 1, "twenty entries, one repaint")
 end)

@@ -635,6 +635,44 @@ local function ApplyFilter()
   end
 end
 
+-- Coalesce a BURST of filter edits into one recompute. Applying a filter costs a full
+-- Database:Query on History and a full Database:Stats (roughly twenty sorts) on Insights, and the
+-- search box fires OnTextChanged per keystroke — so typing "linen" used to pay that five times, four
+-- of them for a prefix the user was already past. Same idiom as Ledger's reconcile debounce.
+--
+-- Only the SEARCH BOX goes through here. A dropdown selection is a single deliberate act and must
+-- feel instant, so those keep calling ApplyFilter directly (C3: a debounce applied too broadly is a
+-- worse experience than the cost it saves).
+local FILTER_DEBOUNCE = 0.20
+local pendingFilterTimer
+
+function B:ScheduleApplyFilter()
+  local addon = NS.addon
+  -- No timer library (a headless run): apply inline rather than silently drop the edit.
+  if not (addon and addon.ScheduleTimer) then return ApplyFilter() end
+  if pendingFilterTimer and addon.CancelTimer then addon:CancelTimer(pendingFilterTimer) end
+  pendingFilterTimer = addon:ScheduleTimer(function()
+    pendingFilterTimer = nil
+    ApplyFilter()
+  end, FILTER_DEBOUNCE)
+end
+
+-- One repaint per burst of recorded entries. A reconcile pass records one entry per moved stack, so
+-- emptying a 20-slot bag into the bank fans out 20 EntryAdded messages and, before this, 20 full
+-- repaints of a window showing the same data each time. The ledger is fully written by the time the
+-- timer runs, so the single repaint sees all of them.
+local pendingRefreshTimer
+
+function B:ScheduleLedgerRefresh()
+  local addon = NS.addon
+  if not (addon and addon.ScheduleTimer) then return self:OnLedgerChanged() end
+  if pendingRefreshTimer then return end   -- already queued; the one pass will cover this entry too
+  pendingRefreshTimer = addon:ScheduleTimer(function()
+    pendingRefreshTimer = nil
+    B:OnLedgerChanged()
+  end, 0)
+end
+
 -- The active filter as a plain copy, for Insights. It shares the exact field shape
 -- Database:QueryList consumes, so the two views can never filter by different criteria.
 function B:CurrentFilter()
@@ -769,7 +807,7 @@ function B:BuildFilterBar(bar)
     local t = self2:GetText()
     ph:SetShown(t == "")
     B.activeFilter.text = (t ~= "") and t or nil
-    ApplyFilter()
+    B:ScheduleApplyFilter()
   end)
   search:SetScript("OnEscapePressed", function(self2) self2:ClearFocus() end)
   search:SetScript("OnEnterPressed", function(self2) self2:ClearFocus() end)
@@ -1103,7 +1141,7 @@ function B:Enable()
   B.__ev = NS.NewBusTarget() or NS.bus
   B.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() B:OnSettingsChanged() end)
   B.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() B:OnLedgerChanged() end)
-  B.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() B:OnLedgerChanged() end)
+  B.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() B:ScheduleLedgerRefresh() end)
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if B.__ev.RegisterEvent then
