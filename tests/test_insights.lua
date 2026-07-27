@@ -534,12 +534,23 @@ test("InsightsWidgets pools list panels, each carrying its own row pool", functi
   local parent = T.mocks.CreateFrame()
   local pool = W.NewPool()
   local a = W.Acquire(pool, function() return W.MakeListPanel(parent) end)
-  W.SetPanelTitle(a, "Top Items")
-  assertTrue(a._rows ~= nil, "a pooled panel owns its row pool")
-  W.ReleasePanels(pool)
-  assertEqual(#pool.active, 0, "releasing empties the active list")
   local b = W.Acquire(pool, function() return W.MakeListPanel(parent) end)
-  assertTrue(a == b, "the released panel is reused, never re-allocated")
+  W.SetPanelTitle(a, "Top Items")
+  assertTrue(a ~= b, "two acquisitions yield two distinct panels")
+  -- Rows are parented to a specific panel at creation, so two live panels sharing one row pool
+  -- would re-parent rows across panels and corrupt the layout. Assert the pools are SEPARATE
+  -- objects: a module-level pool would satisfy "not nil" while still being the bug.
+  assertTrue(a._rows ~= nil and b._rows ~= nil, "each pooled panel owns a row pool")
+  assertTrue(a._rows ~= b._rows, "and the two pools are distinct")
+  -- ReleasePanels must release each panel's ROWS as well as the panels, or rows leak on screen
+  -- between refreshes.
+  W.Acquire(a._rows, function() return W.MakeListRow(a) end)
+  assertEqual(#a._rows.active, 1, "the row is checked out")
+  W.ReleasePanels(pool)
+  assertEqual(#pool.active, 0, "releasing empties the active panel list")
+  assertEqual(#a._rows.active, 0, "and releases that panel's rows with it")
+  local c = W.Acquire(pool, function() return W.MakeListPanel(parent) end)
+  assertTrue(c == a or c == b, "a released panel is reused, never re-allocated")
 end)
 
 test("InsightsWidgets.MakeCard builds every headline on one base font template", function()
