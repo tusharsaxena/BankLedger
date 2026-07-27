@@ -55,6 +55,14 @@ function I.BarFraction(rows, index)
   return row.count / top
 end
 
+-- A bar's final label string. `icon` is markup (a |T...|t texture escape) and is emitted WHOLE:
+-- W.Truncate cuts on BYTES, so a cut that lands inside the escape breaks it and WoW renders the
+-- raw texture path as text. Only the name is subject to the budget.
+function I.BarLabel(row)
+  local name = (W.Truncate(row.label, row.labelMax))
+  return (row.icon or "") .. name
+end
+
 -- A signed copper amount as a coloured string. Shared with every other signed surface through the
 -- widget module, so a net figure reads identically wherever it appears.
 I.FormatNet = W.SignedMoney
@@ -249,7 +257,7 @@ function I:RenderBars(poolKey, headerKey, rows, y, w, legendPool)
     local color = row.color or W.NEUTRAL
     bar.fill:SetColorTexture(color[1], color[2], color[3], 0.95)
     bar._tip = row.fullLabel or row.label
-    bar.label:SetText((W.Truncate(row.label)))
+    bar.label:SetText(I.BarLabel(row))
     -- The label defaults to its bar's colour, which makes a single bar self-legending.
     local lc = row.labelColor or color
     bar.label:SetTextColor(lc[1], lc[2], lc[3])
@@ -564,7 +572,9 @@ function I:LayoutSections(y, w, stats, totals)
   for i, ce in ipairs(charRows) do
     if i > BAR_ROWS then break end
     barCharRows[#barCharRows + 1] = {
-      label = NS.Util.ClassIconMarkup(ce.classFile) .. W.ShortChar(ce.char),
+      icon = NS.Util.ClassIconMarkup(ce.classFile), label = W.ShortChar(ce.char),
+      -- 14, not the default 17: the class icon eats ~14px of the 118px label column.
+      labelMax = 14,
       fullLabel = ce.char, color = W.ClassColor(ce.classFile),
       frac = ce.count, value = tostring(ce.count),
     }

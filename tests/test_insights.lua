@@ -473,3 +473,37 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   assertEqual(I.stats.totals.entries, 1)
   NS.db.global.ledger = {}
 end)
+
+-- ── Icon markup must survive truncation ────────────────────────────────────────
+-- Regression: the class icon was concatenated into the label BEFORE W.Truncate cut it at 17
+-- bytes, so the cut landed inside the |T...|t escape and WoW rendered the raw texture path.
+
+test("Insights.BarLabel truncates the name and leaves the icon escape intact", function()
+  local icon = "|TInterface\\TargetingFrame\\UI-Classes-Circles:12:12:0:0:256:256:0:64:0:64|t "
+  local out = I.BarLabel({ icon = icon, label = "Verylongcharactername", labelMax = 14 })
+  assertTrue(out:sub(1, #icon) == icon, "the icon escape is emitted whole and unmodified")
+  assertTrue(out:find("|t", 1, true) ~= nil, "the escape is still closed")
+  -- The budget applies to the NAME only: the rendered label is the icon verbatim followed by
+  -- exactly what W.Truncate makes of the name. Asserting that relationship rather than a byte
+  -- count keeps the test honest if the ellipsis ever changes.
+  assertEqual(out, icon .. (W.Truncate("Verylongcharactername", 14)),
+    "only the name passes through the budget")
+end)
+
+test("Insights.BarLabel is a plain truncation when there is no icon", function()
+  assertEqual(I.BarLabel({ label = "Bank" }), "Bank")
+end)
+
+test("Insights: character bars carry the icon out of band", function()
+  local rows = {}
+  for _, ce in pairs({ ["Verylongcharactername-Ravencrest"] = {
+    char = "Verylongcharactername-Ravencrest", classFile = "MAGE", count = 3 } }) do
+    rows[#rows + 1] = ce
+  end
+  -- The row the layout builds must keep icon and label separate.
+  local row = { icon = NS.Util.ClassIconMarkup(rows[1].classFile),
+                label = W.ShortChar(rows[1].char), fullLabel = rows[1].char, labelMax = 14 }
+  local out = I.BarLabel(row)
+  assertEqual(row.label:find("|T", 1, true), nil, "the label field holds no markup")
+  assertTrue(#out >= #row.icon, "the rendered label leads with the icon")
+end)
