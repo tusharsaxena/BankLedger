@@ -68,9 +68,9 @@ end
 I.FormatNet = W.SignedMoney
 
 -- ── Stat cards ─────────────────────────────────────────────────────────────────
--- In display order, 4 per row; `wide` spans two columns and `smallValue` drops to the body font for
--- a value that is a sentence rather than a number. Every card carries a tooltip: half of these are
--- derived figures, and a bare number with a two-word caption is a quiz, not an insight.
+-- In display order, 4 per row; `wide` spans two columns. Every card shares one base headline font
+-- and every card carries a tooltip: half of these are derived figures, and a bare number with a
+-- two-word caption is a quiz, not an insight.
 
 local CARD_DEFS = {
   { key = "movements", caption = "movements",
@@ -150,7 +150,7 @@ function I:Attach(pane)
   -- Cards: one frame each, created once and repainted. Not pooled — the set is fixed.
   self.cards = {}
   for _, def in ipairs(CARD_DEFS) do
-    self.cards[def.key] = W.MakeCard(content, { smallValue = def.smallValue })
+    self.cards[def.key] = W.MakeCard(content)
   end
 
   -- Section headers, dividers, strips and list panels: persistent chrome, shown or hidden per pass.
@@ -524,13 +524,13 @@ function I:LayoutSections(y, w, stats, totals)
     local inFrac, outFrac = W.RatioShares(inCount, outCount)
     W.PlaceRatioBar(self.ratioBar, content, PAD, y, innerW,
       { frac = inFrac, color = directionColor(C.Direction.DEPOSIT),
-        text = ("In %d  %d%%"):format(inCount, W.Percent(inCount, total)),
+        text = ("In %d \194\183 %d%%"):format(inCount, W.Percent(inCount, total)),
         tip = ("Deposits: %d of %d movements"):format(inCount, total) },
       { frac = outFrac, color = directionColor(C.Direction.WITHDRAW),
-        text = ("Out %d  %d%%"):format(outCount, W.Percent(outCount, total)),
+        text = ("Out %d \194\183 %d%%"):format(outCount, W.Percent(outCount, total)),
         tip = ("Withdrawals: %d of %d movements"):format(outCount, total) })
     self.ratioBar:Show()
-    y = y - 22 - W.SECTION_GAP
+    y = y - W.RATIO_H - W.RATIO_CAPTION_H - W.SECTION_GAP
   else
     self.headers.split:Hide()
     self.ratioBar:Hide()

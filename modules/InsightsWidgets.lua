@@ -24,6 +24,7 @@ W.POSITIVE = { 0.35, 0.80, 0.45 }   -- net in — the same green as a DEPOSIT
 W.NEGATIVE = { 1.00, 0.33, 0.33 }   -- net out — the same red as a WITHDRAW
 
 W.BAR_H, W.BAR_GAP = 16, 3
+W.RATIO_H, W.RATIO_CAPTION_H = 22, 14   -- the split bar, and the caption row beneath it
 W.SECTION_GAP = 16
 W.STRIP_H = 46
 W.STRIP_LABEL_H = 40        -- room under a strip for its rotated x-axis labels
@@ -334,19 +335,20 @@ end
 local function hideTooltip() if GameTooltip then GameTooltip:Hide() end end
 
 -- ── KPI card ───────────────────────────────────────────────────────────────────
--- A bordered panel: gold headline over a grey caption. `bigStr` marks a card whose value is a long
--- string (money, a date range) so the headline shrinks to fit rather than clipping.
+-- A bordered panel: gold headline over a grey caption. Every card shares one base headline font;
+-- a long value (money, a date range) shrinks to fit via SetCard rather than clipping.
 
-function W.MakeCard(parent, opts)
-  opts = opts or {}
+function W.MakeCard(parent)
   local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
   card:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
                      insets = { left = 1, right = 1, top = 1, bottom = 1 } })
   card:SetBackdropColor(0.10, 0.10, 0.12, 0.85)
   card:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.90)
 
-  local template = (opts.smallValue and "GameFontNormal") or "GameFontNormalHuge"
-  local value = card:CreateFontString(nil, "OVERLAY", template)
+  -- Every card shares ONE base headline font. A long string (a date range, a coin amount) is
+  -- handled by the shrink-to-fit pass in SetCard, not by a second smaller template -- two nominal
+  -- sizes made the wide cards read as a different kind of card.
+  local value = card:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
   value:SetPoint("TOP", 0, -9)
   value:SetPoint("LEFT", 4, 0)
   value:SetPoint("RIGHT", -4, 0)
@@ -512,7 +514,7 @@ end
 
 function W.MakeRatioBar(parent)
   local bar = CreateFrame("Frame", nil, parent)
-  bar:SetHeight(22)
+  bar:SetHeight(W.RATIO_H)
   bar.left = CreateFrame("Frame", nil, bar)
   bar.right = CreateFrame("Frame", nil, bar)
   for _, side in ipairs({ bar.left, bar.right }) do
@@ -520,18 +522,27 @@ function W.MakeRatioBar(parent)
     local tex = side:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(side)
     side.tex = tex
-    local fs = side:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    fs:SetPoint("CENTER")
-    fs:SetWordWrap(false)
-    side.fs = fs
     side:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip) end)
     side:SetScript("OnLeave", hideTooltip)
   end
+  -- The captions sit BELOW the bar, pinned to its two ends. Inside the bar they were unreadable at
+  -- a lopsided split -- the narrow share had no room for its own text and dropped it entirely.
+  local lfs = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  lfs:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -2)
+  lfs:SetJustifyH("LEFT")
+  lfs:SetWordWrap(false)
+  bar.leftText = lfs
+  local rfs = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  rfs:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", 0, -2)
+  rfs:SetJustifyH("RIGHT")
+  rfs:SetWordWrap(false)
+  bar.rightText = rfs
   return bar
 end
 
--- `left`/`right` are { frac, color, text, tip }. A share too narrow for its own text drops the text
--- rather than overprinting its neighbour — the hover tip still carries the number.
+-- `left`/`right` are { frac, color, text, tip }. The two texts are painted in the caption row under
+-- the bar, each in its own direction colour, so both stay readable at any split -- including 97/3,
+-- where the old in-bar text vanished. The per-side hover tips are unchanged.
 function W.PlaceRatioBar(bar, host, x, y, barW, left, right)
   bar:ClearAllPoints()
   bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
@@ -541,14 +552,17 @@ function W.PlaceRatioBar(bar, host, x, y, barW, left, right)
   local function place(side, w, anchor, spec)
     side:ClearAllPoints()
     side:SetPoint(anchor, bar, anchor, 0, 0)
-    side:SetSize(math.max(1, w), 22)
+    side:SetSize(math.max(1, w), W.RATIO_H)
     side.tex:SetColorTexture(spec.color[1], spec.color[2], spec.color[3], 0.9)
-    side.fs:SetText(w >= 56 and (spec.text or "") or "")
     side._tip = spec.tip
     side:SetShown(w > 0)
   end
   place(bar.left, leftW, "LEFT", left)
   place(bar.right, rightW, "RIGHT", right)
+  bar.leftText:SetText(left.text or "")
+  bar.leftText:SetTextColor(left.color[1], left.color[2], left.color[3])
+  bar.rightText:SetText(right.text or "")
+  bar.rightText:SetTextColor(right.color[1], right.color[2], right.color[3])
 end
 
 -- ── Stacked bar ────────────────────────────────────────────────────────────────
