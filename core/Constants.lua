@@ -189,8 +189,11 @@ end
 -- styling exception — WoW ships no monospace font object (debug-logging-§2).
 C.FONT_MONO = "Interface\\AddOns\\BankLedger\\media\\fonts\\JetBrainsMono-Regular.ttf"
 
--- Addon logo, shown on the settings landing page (options-ui-§5). WoW cannot load .jpg/.png at
--- runtime, so the shipped runtime asset is a .tga; a missing file simply renders nothing.
+-- Addon logo, shown on the settings landing page at 300px (options-ui-§5). WoW cannot load
+-- .jpg/.png at runtime, so the shipped runtime asset is a 512×512 24-bit RLE .tga — a power of two,
+-- because the client rescales anything else and the master art is 1254×1254. A missing file renders
+-- nothing and raises no error, which is exactly how this shipped blank for a while, so treat the
+-- .tga as required rather than optional. See docs/ARCHITECTURE.md ▸ Logo art.
 C.LOGO_PATH = "Interface\\AddOns\\BankLedger\\media\\logos\\bankledger.logo.tga"
 
 -- Convenience aliases.

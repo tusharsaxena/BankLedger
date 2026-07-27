@@ -144,7 +144,10 @@ tolerance.
 ## S-12 · Settings panel
 
 1. `/bl config` opens the panel with the addon's entry already present in the list.
-2. The landing page shows the tagline and every slash command.
+2. The landing page shows the **logo**, the tagline and every slash command. The logo must actually
+   be there and be crisp — a missing texture draws nothing and raises no error, so blank is a real
+   failure mode, and a soft or jagged one means the `.tga` was regenerated at the wrong size (it
+   must be a power of two; see ARCHITECTURE ▸ Logo art).
 3. General and Filters both render a breadcrumb header, a gold divider and a Defaults button. The
    Defaults button looks like every other button on the page — if it renders as Blizzard's red
    stone button, it was built before a UI skin hooked AceGUI (`/bl debug panel` shows the region
