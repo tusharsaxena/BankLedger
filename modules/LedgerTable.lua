@@ -112,7 +112,7 @@ end
 
 -- ── Pipeline ────────────────────────────────────────────────────────────────────
 LT.filter = {}
-LT.previewMode = false
+LT.testMode = false
 
 -- Active sort. Default: newest movement first.
 LT.sortKey = "date"
@@ -280,7 +280,7 @@ function LT:GroupEntries(entries)
   return list
 end
 
--- The base dataset the table shows: the synthetic dataset in preview mode, else the live ledger.
+-- The base dataset the table shows: the synthetic dataset in test mode, else the live ledger.
 function LT:CurrentEntries()
   return NS.Database:ActiveLedger()
 end
@@ -309,31 +309,75 @@ function LT:OrderedFilteredEntries()
   return out
 end
 
--- ── Preview dataset (preview-mode) ──────────────────────────────────────────────
+-- ── Test dataset (test-mode) ────────────────────────────────────────────────────
 -- A synthetic ledger so the window and the Insights charts can be seen (and positioned) without
--- waiting to actually fill a bank. A deterministic PRNG — a fixed seed, NOT math.random — keeps the
--- data byte-identical every run, so the headless tests can assert on it.
-local PREVIEW_ITEMS = {
-  { 2589,  "Linen Cloth",           1, "Tradegoods", "Cloth" },
-  { 4306,  "Silk Cloth",            1, "Tradegoods", "Cloth" },
-  { 171276,"Spectral Flask",        3, "Consumable", "Flask" },
-  { 19019, "Thunderfury",           5, "Weapon",     "Swords" },
-  { 6948,  "Hearthstone",           1, "Miscellaneous", "Junk" },
-  { 194863,"Serevite Ore",          1, "Tradegoods", "Metal" },
-  { 190316,"Refreshing Healing Potion", 2, "Consumable", "Potion" },
-  { 200071,"Dragon Isles Herb",     2, "Tradegoods", "Herb" },
-}
-local PREVIEW_STORES = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
-local PREVIEW_CHARS = {
-  { "Mageling-Ravencrest", "MAGE" },
-  { "Tankadin-Ravencrest", "PALADIN" },
-  { "Sneakerz-Ravencrest", "ROGUE" },
-}
-local PREVIEW_DAY, PREVIEW_SPAN_DAYS = 86400, 21
+-- waiting to actually fill a bank. A deliberately NON-uniform spread so the charts read like real
+-- play: weighted stores/directions/classes/zones/types/qualities/timestamps, a handful of "hot"
+-- items over a long tail, and an evening-leaning hour curve. A deterministic PRNG (fixed seed,
+-- NOT math.random) keeps the data byte-identical every run so the headless tests stay stable. A
+-- coverage seed pass first guarantees every store, both directions, every quality and every
+-- character appear and that the range spans >14 days regardless of how the dice fall.
 
--- Minimal-standard (Park–Miller) LCG: products stay below 2^46, so the double arithmetic is exact
+local TEST_CLASSES = {
+  "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "EVOKER",
+}
+-- A few "mains" do most of the banking.
+local TEST_CLASS_W = {
+  { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
+  { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "EVOKER", 5 },
+}
+local TEST_ZONES = {
+  { name = "Valdrakken",       mapID = 2112 },
+  { name = "Dornogal",         mapID = 2339 },
+  { name = "Orgrimmar",        mapID = 85 },
+  { name = "Stormwind City",   mapID = 84 },
+  { name = "Silvermoon City",  mapID = 110 },
+  { name = "Boralus",          mapID = 1161 },
+}
+local TEST_ZONE_W = { { 1, 26 }, { 2, 20 }, { 4, 16 }, { 3, 14 }, { 5, 12 }, { 6, 8 } }
+-- The character bank takes the bulk; the reagent bank is a trickle.
+local TEST_STORE_W = {
+  { "BANK", 34 }, { "WARBAND_BANK", 26 }, { "GUILD_BANK", 22 }, { "REAGENT_BANK", 8 },
+}
+local TEST_TYPE_W = {
+  { "Tradegoods", 30 }, { "Consumable", 22 }, { "Armor", 16 }, { "Weapon", 12 },
+  { "Recipe", 8 }, { "Gem", 7 }, { "Miscellaneous", 5 },
+}
+local TEST_SUBTYPES = {
+  Tradegoods    = { "Cloth", "Herb", "Metal & Stone", "Leather", "Elemental" },
+  Consumable    = { "Potion", "Flask", "Food & Drink", "Bandage" },
+  Armor         = { "Cloth", "Leather", "Mail", "Plate" },
+  Weapon        = { "Swords", "Daggers", "Staves", "Bows" },
+  Recipe        = { "Tailoring", "Alchemy", "Blacksmithing" },
+  Gem           = { "Cut Gem", "Uncut Gem" },
+  Miscellaneous = { "Junk", "Other" },
+}
+local TEST_QUALITY_W = { { 0, 7 }, { 1, 16 }, { 2, 28 }, { 3, 22 }, { 4, 11 }, { 5, 3 } }
+local TEST_HOUR_W = {}   -- evening-leaning hour-of-day curve
+do
+  local w = { [0] = 2, [1] = 1, [2] = 1, [3] = 1, [4] = 1, [5] = 1, [6] = 2, [7] = 3,
+              [8] = 4, [9] = 5, [10] = 6, [11] = 6, [12] = 7, [13] = 6, [14] = 5, [15] = 5,
+              [16] = 6, [17] = 8, [18] = 11, [19] = 13, [20] = 14, [21] = 12, [22] = 9, [23] = 5 }
+  for h = 0, 23 do TEST_HOUR_W[#TEST_HOUR_W + 1] = { h, w[h] } end
+end
+-- The first 8 are "hot" (recur often), the rest a long tail, so the ranked lists have real shape.
+local TEST_ITEM_NAMES = {
+  "Linen Cloth", "Serevite Ore", "Dragon Isles Herb", "Spectral Flask",
+  "Refreshing Healing Potion", "Silk Cloth", "Awakened Fire", "Primal Chaos",
+  "Thunderfury", "Hearthstone", "Writhebark", "Hochenblume",
+  "Rousing Frost", "Mireslush Hide", "Resilient Leather", "Khaz'gorite Ore",
+  "Vibrant Shard", "Illimited Diamond", "Alexstraszite", "Neltharite",
+  "Convincingly Realistic Jumper Cables", "Zaralek Glowspore", "Bismuth", "Ironclaw Ore",
+  "Weavercloth", "Gloom Chitin", "Storm Dust", "Null Stone",
+  "Arathor's Spear", "Everburning Ember",
+}
+local TEST_DAY = 86400
+local TEST_SPAN_DAYS = 21
+local TEST_HOT_ITEMS = 8
+
+-- Minimal-standard (Park-Miller) LCG: products stay below 2^46, so the double arithmetic is exact
 -- and the sequence is identical on every platform. rng(n) returns an integer in [1, n].
-local function previewRng(seed)
+local function testRng(seed)
   local state = seed % 2147483647
   if state <= 0 then state = state + 2147483646 end
   return function(n)
@@ -342,77 +386,99 @@ local function previewRng(seed)
   end
 end
 
-function LT:BuildPreviewData()
+-- Weighted pick from a { {value, weight}, ... } table.
+local function testPick(rng, weighted)
+  local total = 0
+  for _, e in ipairs(weighted) do total = total + e[2] end
+  local roll, acc = rng(total), 0
+  for _, e in ipairs(weighted) do
+    acc = acc + e[2]
+    if roll <= acc then return e[1] end
+  end
+  return weighted[#weighted][1]
+end
+
+function LT:BuildTestData()
   local now = time()
-  local rng = previewRng(0x0BA17ED9)   -- fixed seed → an identical dataset every run
+  local rng = testRng(0x0BA17ED9)   -- fixed seed -> an identical dataset every run
   local out = {}
 
-  local function push(store, dir, itemIdx, ch, dayOffset)
-    local it = PREVIEW_ITEMS[itemIdx]
-    local who = PREVIEW_CHARS[ch]
-    local qty = (it[3] >= 4) and 1 or (1 + rng(40))
+  -- Build one entry from the pivot values; everything else is derived and jittered.
+  local function make(store, dir, quality, cls, dayOffset)
+    local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
+    local ty = testPick(rng, TEST_TYPE_W)
+    local isGear = (ty == "Armor" or ty == "Weapon")
+    -- ~45% of movements land on a hot item, the rest on the long tail.
+    local idBase = (rng(100) <= 45) and rng(TEST_HOT_ITEMS)
+                   or (TEST_HOT_ITEMS + rng(#TEST_ITEM_NAMES - TEST_HOT_ITEMS))
+    local subs = TEST_SUBTYPES[ty]
+    local secInto = testPick(rng, TEST_HOUR_W) * 3600 + (rng(60) - 1) * 60 + (rng(60) - 1)
     out[#out + 1] = {
-      ts = now - dayOffset * PREVIEW_DAY - rng(80000),
-      char = who[1], classFile = who[2],
+      ts = now - dayOffset * TEST_DAY - secInto,
+      char = cls:sub(1, 1) .. cls:sub(2):lower() .. "-Ravencrest", classFile = cls,
       kind = C.Kind.ITEM, direction = dir, store = store,
       guild = (store == "GUILD_BANK") and "Ka0s" or nil,
-      itemID = it[1], itemName = it[2], quality = it[3],
-      itemType = it[4], itemSubType = it[5],
-      quantity = qty,
-      zone = "Valdrakken", mapID = 2112,
+      itemID = 190000 + idBase, itemName = TEST_ITEM_NAMES[idBase], quality = quality,
+      itemType = ty, itemSubType = subs[(idBase % #subs) + 1],
+      quantity = isGear and 1 or ((quality <= 1) and (1 + rng(60)) or (1 + rng(8))),
+      zone = zone.name, mapID = zone.mapID,
     }
   end
 
-  -- Coverage seed: every store, both directions and every character appear at least once, and the
-  -- timestamps reach both ends of the window, whatever the dice do afterwards.
-  for i = 1, PREVIEW_SPAN_DAYS do
-    push(PREVIEW_STORES[((i - 1) % #PREVIEW_STORES) + 1],
+  -- 1) Coverage seed: every store, both directions, every quality 0-5 and every class appear at
+  --    least once, and the timestamps walk the full window.
+  local stores = { "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK" }
+  local seedN = math.max(#stores, #TEST_CLASSES, 6, TEST_SPAN_DAYS)
+  for i = 1, seedN do
+    make(stores[((i - 1) % #stores) + 1],
          (i % 2 == 0) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
-         ((i - 1) % #PREVIEW_ITEMS) + 1,
-         ((i - 1) % #PREVIEW_CHARS) + 1,
-         (i - 1) % PREVIEW_SPAN_DAYS)
+         (i - 1) % 6,
+         TEST_CLASSES[((i - 1) % #TEST_CLASSES) + 1],
+         (i - 1) % TEST_SPAN_DAYS)
   end
 
-  -- Weighted bulk: deposits outnumber withdrawals, as a real bank does.
-  for _ = 1, 140 do
-    push(PREVIEW_STORES[rng(#PREVIEW_STORES)],
+  -- 2) Weighted bulk: deposits outnumber withdrawals, as a real bank does, and a third of the
+  --    movements cluster onto the last few days.
+  for _ = 1, 220 do
+    local dayOffset = rng(TEST_SPAN_DAYS) - 1
+    if rng(3) == 1 then dayOffset = rng(5) - 1 end
+    make(testPick(rng, TEST_STORE_W),
          (rng(10) <= 6) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
-         rng(#PREVIEW_ITEMS), rng(#PREVIEW_CHARS), rng(PREVIEW_SPAN_DAYS) - 1)
+         testPick(rng, TEST_QUALITY_W), testPick(rng, TEST_CLASS_W), dayOffset)
   end
 
-  -- Gold movements, at the two stores that hold gold.
-  for i = 1, 24 do
+  -- 3) Gold movements, at the two stores that hold coin.
+  for i = 1, 30 do
     local store = (i % 2 == 0) and "WARBAND_BANK" or "GUILD_BANK"
-    local who = PREVIEW_CHARS[rng(#PREVIEW_CHARS)]
+    local cls = testPick(rng, TEST_CLASS_W)
+    local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
     out[#out + 1] = {
-      ts = now - (rng(PREVIEW_SPAN_DAYS) - 1) * PREVIEW_DAY - rng(80000),
-      char = who[1], classFile = who[2],
+      ts = now - (rng(TEST_SPAN_DAYS) - 1) * TEST_DAY - rng(80000),
+      char = cls:sub(1, 1) .. cls:sub(2):lower() .. "-Ravencrest", classFile = cls,
       kind = C.Kind.MONEY,
       direction = (rng(10) <= 7) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
       store = store,
       guild = (store == "GUILD_BANK") and "Ka0s" or nil,
-      itemName = "Gold",
-      quantity = rng(500) * 10000,
-      zone = "Valdrakken", mapID = 2112,
+      itemName = "Gold", quantity = rng(500) * 10000,
+      zone = zone.name, mapID = zone.mapID,
     }
   end
 
   return out
 end
 
--- Toggle the preview dataset (`/bl preview`). Publishing it to State means every read-path query —
--- the table AND Insights — resolves against the same data, through the real render path
--- (preview-mode).
-function LT:TogglePreview()
-  self.previewMode = not self.previewMode
-  NS.State.testRecords = self.previewMode and self:BuildPreviewData() or nil
+-- Toggle the test dataset (`/bl test`). Publishing it to State means every read-path query -- the
+-- table AND Insights -- resolves against the same data, through the real render path (test-mode).
+function LT:ToggleTestMode()
+  self.testMode = not self.testMode
+  NS.State.testRecords = self.testMode and self:BuildTestData() or nil
   if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
   if NS.Browser and NS.Browser.OnDatasetChanged then
     NS.Browser:OnDatasetChanged()
   else
     self:Refresh()
   end
-  return self.previewMode
+  return self.testMode
 end
 
 -- ── Pooled rows ─────────────────────────────────────────────────────────────────

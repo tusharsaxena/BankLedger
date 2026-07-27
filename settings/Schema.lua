@@ -218,9 +218,10 @@ NS.COMMANDS = {
         print("session window sample " .. (on and "on" or "off"))
       end
     end },
-  { name = "preview",  desc = "Toggle a sample ledger",  fn = function()
-      local on = NS.LedgerTable and NS.LedgerTable.TogglePreview and NS.LedgerTable:TogglePreview()
-      print("preview mode " .. (on and "on" or "off"))
+  { name = "test",     desc = "Toggle a sample ledger",  fn = function()
+      local on = NS.LedgerTable and NS.LedgerTable.ToggleTestMode
+        and NS.LedgerTable:ToggleTestMode()
+      print("test mode " .. (on and "on" or "off"))
     end },
   { name = "purge",    desc = "Delete ALL ledger history (asks first)", fn = function()
       if type(StaticPopup_Show) == "function" then

@@ -24,7 +24,7 @@ State.lastSnapshot = nil
 State.cleanupDone = false   -- retention prune runs once per session
 State.debug = false         -- session-only logging flag, independent of the console window's
                             -- visibility. /bl debug on|off; default off, never in SavedVariables.
-State.testRecords = nil     -- session-only synthetic dataset published by /bl preview; when set,
+State.testRecords = nil     -- session-only synthetic dataset published by /bl test; when set,
                             -- every read-path query (table + Insights) resolves against it instead
                             -- of the live ledger.
 

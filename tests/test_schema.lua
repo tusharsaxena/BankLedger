@@ -134,8 +134,8 @@ test("COMMANDS: the standard's required verbs are all present", function()
   end
 end)
 
-test("COMMANDS: a preview verb exists (preview-mode)", function()
+test("COMMANDS: a test verb exists (test-mode)", function()
   local names = {}
   for _, cmd in ipairs(NS.COMMANDS) do names[cmd.name] = true end
-  assertTrue(names.preview)
+  assertTrue(names.test)
 end)

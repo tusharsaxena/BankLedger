@@ -80,16 +80,16 @@ test("Browser:ClearFilters leaves every other filter empty", function()
   end)
 end)
 
-test("Browser:ClearFilters does not scope preview data to the real player", function()
-  -- The preview dataset is synthetic alts; defaulting to Current would open onto an empty table.
+test("Browser:ClearFilters does not scope test data to the real player", function()
+  -- The test dataset is synthetic alts; defaulting to Current would open onto an empty table.
   withCleanFilter(function()
-    local saved = NS.LedgerTable.previewMode
-    NS.LedgerTable.previewMode = true
+    local saved = NS.LedgerTable.testMode
+    NS.LedgerTable.testMode = true
     local ok, err = pcall(function()
       B:ClearFilters()
-      assertEqual(B.activeFilter.char, nil, "preview mode starts unscoped")
+      assertEqual(B.activeFilter.char, nil, "test mode starts unscoped")
     end)
-    NS.LedgerTable.previewMode = saved
+    NS.LedgerTable.testMode = saved
     if not ok then error(err, 0) end
   end)
 end)

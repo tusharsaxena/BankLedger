@@ -57,7 +57,7 @@ function Database:Ledger()
 end
 
 -- The dataset every read-path query (Query/Stats/Export, and therefore the table + Insights)
--- resolves against: the synthetic preview dataset while `/bl preview` is on, otherwise the live
+-- resolves against: the synthetic test dataset while `/bl test` is on, otherwise the live
 -- account-wide ledger.
 function Database:ActiveLedger()
   return (NS.State and NS.State.testRecords) or NS.db.global.ledger
@@ -85,7 +85,7 @@ end
 --   kind · direction · store · char · itemType · itemSubType · quality · from/to (ts, inclusive) ·
 --   text (case-insensitive substring on itemName)
 -- An empty/nil filter returns everything. Kept generic (not tied to the live ledger) so the browser
--- can filter its preview dataset through exactly the same code.
+-- can filter its test dataset through exactly the same code.
 function Database:QueryList(entries, filter)
   filter = filter or {}
   local qIsSet = type(filter.quality) == "table"
@@ -126,7 +126,7 @@ function Database:QueryList(entries, filter)
   return out
 end
 
--- Query the active dataset (live ledger, or the preview dataset while preview mode is on).
+-- Query the active dataset (live ledger, or the test dataset while test mode is on).
 function Database:Query(filter)
   return self:QueryList(self:ActiveLedger(), filter)
 end

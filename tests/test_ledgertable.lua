@@ -1,6 +1,7 @@
 local T = _G.BL_TEST
 local NS = T.NS
-local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
+local test, assertEqual, assertTrue, assertFalse =
+  T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
 local LT = NS.LedgerTable
 local NOW = 1770000000
@@ -276,46 +277,46 @@ test("LedgerTable:GroupEntries puts gold in its own quality group", function()
   end)
 end)
 
--- ── Preview dataset (preview-mode) ─────────────────────────────────────────────
+-- ── Test dataset (test-mode) ───────────────────────────────────────────────────
 
-test("LedgerTable:BuildPreviewData produces a non-trivial sample ledger", function()
-  local data = LT:BuildPreviewData()
+test("LedgerTable:BuildTestData produces a non-trivial sample ledger", function()
+  local data = LT:BuildTestData()
   assertTrue(#data > 150, "enough rows for the charts to look real, got " .. #data)
 end)
 
-test("LedgerTable:BuildPreviewData is deterministic across runs", function()
+test("LedgerTable:BuildTestData is deterministic across runs", function()
   -- A fixed-seed PRNG, never math.random: the tests below could not assert on the data otherwise.
-  local a, b = LT:BuildPreviewData(), LT:BuildPreviewData()
+  local a, b = LT:BuildTestData(), LT:BuildTestData()
   assertEqual(#a, #b)
   assertEqual(a[1].itemID, b[1].itemID)
   assertEqual(a[#a].quantity, b[#b].quantity)
 end)
 
-test("LedgerTable:BuildPreviewData covers every store", function()
+test("LedgerTable:BuildTestData covers every store", function()
   local seen = {}
-  for _, x in ipairs(LT:BuildPreviewData()) do seen[x.store] = true end
-  for _, store in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
-    assertTrue(seen[store], store .. " is missing from the preview data")
+  for _, x in ipairs(LT:BuildTestData()) do seen[x.store] = true end
+  for _, store in ipairs({ "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK" }) do
+    assertTrue(seen[store], store .. " is missing from the test data")
   end
 end)
 
-test("LedgerTable:BuildPreviewData covers both directions and both kinds", function()
+test("LedgerTable:BuildTestData covers both directions and both kinds", function()
   local dirs, kinds = {}, {}
-  for _, x in ipairs(LT:BuildPreviewData()) do dirs[x.direction] = true; kinds[x.kind] = true end
+  for _, x in ipairs(LT:BuildTestData()) do dirs[x.direction] = true; kinds[x.kind] = true end
   assertTrue(dirs.DEPOSIT and dirs.WITHDRAW, "both directions")
   assertTrue(kinds.ITEM and kinds.MONEY, "items and gold")
 end)
 
-test("LedgerTable:BuildPreviewData only puts gold where gold can live", function()
-  for _, x in ipairs(LT:BuildPreviewData()) do
+test("LedgerTable:BuildTestData only puts gold where gold can live", function()
+  for _, x in ipairs(LT:BuildTestData()) do
     if x.kind == "MONEY" then
       assertTrue(NS.Ledger.MONEY_STORES[x.store], x.store .. " has no gold slot")
     end
   end
 end)
 
-test("LedgerTable:BuildPreviewData stamps the guild name only on guild-bank rows", function()
-  for _, x in ipairs(LT:BuildPreviewData()) do
+test("LedgerTable:BuildTestData stamps the guild name only on guild-bank rows", function()
+  for _, x in ipairs(LT:BuildTestData()) do
     if x.store == "GUILD_BANK" then assertTrue(x.guild ~= nil)
     else assertEqual(x.guild, nil) end
   end
@@ -331,4 +332,73 @@ end)
 
 test("LedgerTable:MinFrameWidth is wide enough for every column", function()
   assertTrue(LT:MinFrameWidth() > 800, "got " .. LT:MinFrameWidth())
+end)
+
+-- ── Test-mode dataset coverage ─────────────────────────────────────────────────
+-- The generator is deterministic (fixed-seed Park-Miller LCG, never math.random), so these
+-- assertions are stable. The coverage seed pass is what guarantees them regardless of the dice.
+
+local function testData() return NS.LedgerTable:BuildTestData() end
+
+test("BuildTestData is byte-identical across two builds", function()
+  local a, b = testData(), testData()
+  assertEqual(#a, #b)
+  for i = 1, #a do
+    assertEqual(a[i].itemID, b[i].itemID, "entry " .. i .. " itemID")
+    assertEqual(a[i].store, b[i].store, "entry " .. i .. " store")
+    assertEqual(a[i].quantity, b[i].quantity, "entry " .. i .. " quantity")
+  end
+end)
+
+test("BuildTestData covers every store and both directions", function()
+  local stores, dirs = {}, {}
+  for _, e in ipairs(testData()) do
+    stores[e.store] = true
+    dirs[e.direction] = true
+  end
+  for _, s in ipairs({ "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK" }) do
+    assertTrue(stores[s], "store " .. s .. " must appear")
+  end
+  assertTrue(dirs.DEPOSIT and dirs.WITHDRAW, "both directions must appear")
+end)
+
+test("BuildTestData covers every item quality 0-5", function()
+  local seen = {}
+  for _, e in ipairs(testData()) do
+    if e.kind == "ITEM" then seen[e.quality] = true end
+  end
+  for q = 0, 5 do assertTrue(seen[q], "quality " .. q .. " must appear") end
+end)
+
+test("BuildTestData spans more than 14 days", function()
+  local first, last
+  for _, e in ipairs(testData()) do
+    if not first or e.ts < first then first = e.ts end
+    if not last or e.ts > last then last = e.ts end
+  end
+  assertTrue((last - first) > 14 * 86400, "the span must exceed a fortnight")
+end)
+
+test("BuildTestData spreads across many characters and zones", function()
+  local chars, zones = {}, {}
+  local nc, nz = 0, 0
+  for _, e in ipairs(testData()) do
+    if e.char and not chars[e.char] then chars[e.char] = true; nc = nc + 1 end
+    if e.zone and not zones[e.zone] then zones[e.zone] = true; nz = nz + 1 end
+  end
+  assertTrue(nc >= 8, "at least 8 characters, got " .. nc)
+  assertTrue(nz >= 6, "at least 6 zones, got " .. nz)
+end)
+
+test("BuildTestData never carries vendor value", function()
+  for _, e in ipairs(testData()) do
+    assertEqual(e.vendorPrice, nil)
+  end
+end)
+
+test("LedgerTable:ToggleTestMode publishes and clears the dataset", function()
+  assertTrue(NS.LedgerTable:ToggleTestMode(), "first toggle turns it on")
+  assertTrue(NS.State.testRecords ~= nil, "the dataset is published to State")
+  assertFalse(NS.LedgerTable:ToggleTestMode(), "second toggle turns it off")
+  assertEqual(NS.State.testRecords, nil)
 end)

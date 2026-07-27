@@ -465,7 +465,7 @@ local function makeBarButton(parent, text, width, onClick, tooltip)
   return b
 end
 
--- The dataset the filter bar reflects: whatever the table is currently showing (preview data or the
+-- The dataset the filter bar reflects: whatever the table is currently showing (test data or the
 -- live ledger), so the dropdown options and the footer always match what is on screen.
 local function dataset()
   if NS.LedgerTable and NS.LedgerTable.CurrentEntries then
@@ -674,10 +674,10 @@ end
 -- The Character filter's DEFAULT selection: the character you are on. Opening the ledger answers
 -- "what did I move?" far more often than "what did all eleven of my alts move?", so the window
 -- starts scoped to you and widens on demand — one step to "All", instead of everyone having to
--- narrow it every session. Preview mode is the exception: its dataset is synthetic alts, so scoping
+-- narrow it every session. Test mode is the exception: its dataset is synthetic alts, so scoping
 -- it to the real player would open the window on an empty table.
 local function defaultCharSelection()
-  if NS.LedgerTable and NS.LedgerTable.previewMode then return {} end
+  if NS.LedgerTable and NS.LedgerTable.testMode then return {} end
   return { [CURRENT_CHAR] = true }
 end
 
@@ -706,20 +706,20 @@ function B:ClearFilters()
   ApplyFilter()
 end
 
--- The dataset changed under the bar (entering/leaving preview mode): rebuild the dropdowns from the
+-- The dataset changed under the bar (entering/leaving test mode): rebuild the dropdowns from the
 -- new data and clear the filters, since the old values may not exist in it.
 function B:OnDatasetChanged()
   self:RefreshFilterOptions()
   self:ClearFilters()
   self:UpdateFooter()
   self:UpdateDbSize()
-  self:UpdatePreviewBadge()
+  self:UpdateTestBadge()
   if NS.Insights and NS.Insights.Refresh then NS.Insights:Refresh() end
 end
 
-function B:UpdatePreviewBadge()
-  if not (frame and frame.previewBadge) then return end
-  frame.previewBadge:SetShown(NS.LedgerTable and NS.LedgerTable.previewMode or false)
+function B:UpdateTestBadge()
+  if not (frame and frame.testBadge) then return end
+  frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable.testMode or false)
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
@@ -910,12 +910,12 @@ local function EnsureFrame()
   title:SetText("Ka0s Bank Ledger")
   frame.title = title
 
-  local previewBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  previewBadge:SetPoint("LEFT", title, "RIGHT", 10, 0)
-  previewBadge:SetText("PREVIEW")
-  previewBadge:SetTextColor(1, 0.15, 0.15)
-  previewBadge:Hide()
-  frame.previewBadge = previewBadge
+  local testBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  testBadge:SetPoint("LEFT", title, "RIGHT", 10, 0)
+  testBadge:SetText("TEST MODE")
+  testBadge:SetTextColor(1, 0.15, 0.15)
+  testBadge:Hide()
+  frame.testBadge = testBadge
 
   local divider = frame:CreateTexture(nil, "ARTWORK")
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
@@ -1013,7 +1013,7 @@ function B:Show()
   -- then reads correctly even when the window opens straight onto the Insights tab.
   BuildPane("History")
   B:SelectTab(lastTab)
-  B:UpdatePreviewBadge()
+  B:UpdateTestBadge()
 end
 
 function B:Hide()
