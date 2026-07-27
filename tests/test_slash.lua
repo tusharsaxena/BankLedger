@@ -87,13 +87,18 @@ test("Slash:BuildListLines emits one row for every schema row", function()
 end)
 
 test("Slash:BuildListLines groups the rows under their declared page order", function()
+  -- Asserted against the SCHEMA's first group rather than a literal. The old form named "Capture"
+  -- on both sides, so it agreed with a LIST_GROUP_ORDER that named a non-existent group and matched
+  -- nothing — the listing was really falling through to first-seen order, and the test passed
+  -- anyway (F-007).
   local lines = Sl:BuildListLines()
   local firstGroup
   for i = 2, #lines do
     local g = lines[i]:match("^  |cff3399ff%[(.-)%]")
     if g then firstGroup = g; break end
   end
-  assertEqual(firstGroup, "Capture", "the declared order puts Capture first")
+  assertEqual(firstGroup, NS.Schema.Schema[1].group,
+    "the listing must lead with the panel's first section")
 end)
 
 -- ── get / set / reset ──────────────────────────────────────────────────────────
@@ -209,5 +214,16 @@ test("Slash: every chat line carries the cyan [BL] tag", function()
   local out = captureChat(function() Sl:PrintHelp(); Sl:CliList(); Sl:CliVersion() end)
   for _, line in ipairs(out) do
     assertTrue(line:find("|cff00ffff[BL]|r", 1, true) == 1, "untagged line: " .. line)
+  end
+end)
+
+test("Slash: every declared /bl list group actually exists in the schema", function()
+  -- F-007: the constant named "Window", a group that no longer exists, and omitted "Master
+  -- Controls" — so the "declared order" silently was not the order in force. Ordering by a name
+  -- nothing matches is invisible until someone compares the output to the panel.
+  local groups = {}
+  for _, row in ipairs(NS.Schema.Schema) do groups[row.group or "?"] = true end
+  for _, name in ipairs(NS.Slash.LIST_GROUP_ORDER) do
+    assertTrue(groups[name], ("/bl list orders by %q, which no schema row declares"):format(name))
   end
 end)

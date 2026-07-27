@@ -138,7 +138,13 @@ end
 -- The declared group order for `/bl list` (slash-commands-§5's "stable, declared page order").
 -- Bank Ledger's schema groups are its panel section headers, which stand in for the standard's
 -- `[page]` headers; any group not named here is appended in first-seen order.
-local LIST_GROUP_ORDER = { "Capture", "Window" }
+--
+-- These are SCHEMA GROUP NAMES and must match them exactly. The old value named "Window", a group
+-- that no longer exists, and omitted "Master Controls" — so every name in it was inert and the
+-- listing silently fell through to first-seen order (F-007). Exposed on NS.Slash so a test can
+-- assert each name still resolves, because a name that matches nothing fails invisibly.
+local LIST_GROUP_ORDER = { "Master Controls", "Capture" }
+Sl.LIST_GROUP_ORDER = LIST_GROUP_ORDER
 
 -- Build the `/bl list` lines (tag-less content; CliList prints each through NS.Print, which
 -- prepends the cyan tag) as a pure array, so the output shape is unit-testable without capturing

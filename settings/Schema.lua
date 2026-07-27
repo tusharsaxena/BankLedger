@@ -101,6 +101,9 @@ S.Schema = {
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
     wide = true, invert = true,
     group = "Capture", label = "Record movements to and from", options = C.STORE_OPTIONS,
+    -- Spells the inversion out: the stored value is the MUTED set, so a ticked box means "record".
+    tooltip = "Tick a store to RECORD movements to and from it. Unticking mutes that store; "
+      .. "capture for every other store is unaffected.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "stores") end
     end },

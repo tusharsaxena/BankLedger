@@ -170,3 +170,11 @@ test("COMMANDS: a test verb exists (test-mode)", function()
   for _, cmd in ipairs(NS.COMMANDS) do names[cmd.name] = true end
   assertTrue(names.test)
 end)
+
+test("Schema: every row carries a tooltip", function()
+  -- The panel renders one per row; a missing one is an empty hover with no explanation, and the
+  -- inverted per-store grid is exactly the row that most needed the sentence (F-019).
+  for _, row in ipairs(S.Schema) do
+    assertTrue((row.tooltip or "") ~= "", row.path .. " has no tooltip")
+  end
+end)
