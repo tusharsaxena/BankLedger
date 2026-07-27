@@ -694,8 +694,14 @@ end
 -- Scalar re-sync only: run each rendered widget's updater closure. Structural rebuilds are the
 -- rebuilders' job and are gated separately (options-ui-§11).
 function P:Refresh()
-  if not P.general or not P.general.refreshers then return end
-  for _, fn in ipairs(P.general.refreshers) do pcall(fn) end
+  local ctx = P.general
+  -- A hidden panel is not worth refreshing: its widget values are re-synced by its own OnShow, and
+  -- one of the refreshers walks the WHOLE ledger to estimate the SavedVariables size. Off-screen
+  -- that is pure cost — and it was being paid on every settings change and every /bl debug toggle
+  -- (F-018). This is options-ui-§11's "scope work to the on-screen subcategory" applied to the
+  -- scalar-refresh path, matching the guard the bus path already uses.
+  if not (ctx and ctx.refreshers and ctx.panel and ctx.panel:IsShown()) then return end
+  for _, fn in ipairs(ctx.refreshers) do pcall(fn) end
 end
 
 function P:RestoreDefaults()
