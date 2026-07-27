@@ -45,8 +45,8 @@ warband movement, because no event announces one.
 | `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container/guild-bank/void-storage readers, item lookups, money, guild name, TOC metadata. |
 | `core/Constants.lua` | The `Store` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, the cyan `NS.PREFIX` chat tag. |
-| `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the preview dataset. Never persisted. |
-| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, entry valuation, and the shared secret-safe chat printer. |
+| `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
+| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, and the shared secret-safe chat printer. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
 | `core/Database.lua` | AceDB init, the migration runner, ledger CRUD, `QueryList`, `Export`, `Stats`, retention prune, storage estimate. |
 | `defaults/Global.lua` | The account-wide defaults table — the only place a default value is hardcoded. |
@@ -55,7 +55,7 @@ warband movement, because no event announces one.
 | `modules/Filters.lua` | The item blacklist / whitelist id-sets and their copy-on-write mutations. |
 | `modules/Ledger.lua` | The capture engine: snapshot, diff, gate, build, record, plus the event shell. |
 | `modules/Browser.lua` | The standalone window: skin, tabs, the shared filter bar, footer, minimap launcher. |
-| `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, the preview dataset, and the shared `Column` / `PaintCell` column seams. |
+| `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, the test dataset (`/bl test`), and the shared `Column` / `PaintCell` column seams. |
 | `modules/SessionWindow.lua` | The live "Current Banking Session" window: its own slim pooled table over the movements of one bank visit. |
 | `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, diverging/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
 | `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
@@ -77,12 +77,41 @@ One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 | `direction` | `DEPOSIT` (bags → store) or `WITHDRAW` (store → bags). |
 | `store` | `BANK`, `WARBAND_BANK`, `GUILD_BANK`. (`REAGENT_BANK` remains in the enum for older builds.) |
 | `guild` | Set on guild-bank rows only. |
-| `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType`, `vendorPrice` | Item rows. An item the client has not cached yet stores its id alone. |
+| `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType` | Item rows. An item the client has not cached yet stores its id alone. |
 | `quantity` | Stack size for an item row; copper for a `MONEY` row. |
 | `zone`, `subzone`, `mapID` | Where the movement happened. |
 
 Every stored enum **value** equals its key and is part of the CSV export contract — extend the
 enums freely, never rename a member.
+
+### Schema v2 — the value dimension is gone
+
+`db.global.schemaVersion` is now **2**. Vendor price was a poor proxy for worth, so the addon stopped
+deriving, capturing and persisting it entirely: `Util.EntryValue`/`Util.SignedValue` are deleted,
+`Compat.GetItemDetails` returns 5 values (`name, quality, itemType, itemSubType, link`, no vendor
+price), and a ledger entry never carries `vendorPrice`. Gold is unaffected — a `MONEY` row's amount
+lives in `quantity` and was never vendor-priced.
+
+`NS:RunMigrations` is no longer a bare seam: the v1 → v2 step walks `db.global.ledger` once, sets
+`e.vendorPrice = nil` on every entry, bumps `schemaVersion` to 2, and emits the standard `[Migrate]`
+debug line via `NS.MigrationSummary`. It is idempotent — a v2 database is skipped entirely, and
+clearing an already-absent field on a partially-migrated one is a no-op.
+
+### Accepted deviation — the CSV export contract broke
+
+`core/Database.lua` and `modules/Export.lua` document the CSV column set as stable, and the schema-v2
+bump breaks it — recorded here as an **accepted, deliberate deviation**, versioned by the schema
+bump rather than left open-ended:
+
+- The **ledger CSV** loses the `vendorPrice`, `value`, `valueRaw` and `net` columns.
+- The **Insights CSV** loses the `Summary / Value moved` row and the whole `Top Items By Value`
+  section; `Net by Store` now writes its movement count into the **Count** column instead of a
+  value.
+
+Keeping the columns and emitting blanks was considered and rejected: a `value` column with no value
+behind it is a promise the data no longer keeps, and it would outlive everyone's memory of why the
+column went empty. The break is one-time and tied to `schemaVersion`, not an open-ended contract
+violation.
 
 ## Settings schema
 
@@ -145,13 +174,20 @@ settings landing page and the README all read from one place.
 | `/bl config` | Open the settings panel |
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` / `resetall` | Read and write settings |
-| `/bl preview` | Toggle a sample ledger for previewing the window |
+| `/bl test` | Toggle a sample ledger for previewing the window |
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
 | `/bl debug scan` | Dump the client's live container model into the console |
 | `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
 | `/bl help` | The help index |
+
+`/bl test` is the renamed History-table sample data (`LT.testMode`, `LT:ToggleTestMode`,
+`LT:BuildTestData`, badge `TEST MODE`) — matching the Ka0s house vocabulary set by LootHistory's
+`/lh test`. `/bl session`'s `previewSession` / `TogglePreview` on `NS.SessionWindow` **deliberately
+keep the "preview" name**: it is a separate synthetic-data feature (placeholder movements for
+positioning the Current Banking Session window away from a bank) with no LootHistory counterpart to
+match, so it was left alone rather than folded into the rename.
 
 ## Event subscriptions
 
@@ -265,8 +301,62 @@ panel — so the charts and the History table always describe the same slice. Th
   bar, diverging bar, ratio bar, stacked bar, vertical strip, ranked list panel, legend, section
   divider) plus the categorical palette, label truncation, colour helpers and the geometry maths.
   It never touches a ledger entry, which is what makes that maths unit-testable headlessly.
-* `modules/Insights.lua` — **what** is drawn: fourteen stat cards and sixteen sections, each mapping
-  one `Stats` key to rows.
+* `modules/Insights.lua` — **what** is drawn: fourteen stat cards and eighteen chart sections, each
+  mapping one `Stats` key to rows, plus the reorganized "Top Of The List" ranked-panel grid below them.
+
+### `Database:Stats` keys
+
+One `Stats(filter)` pass computes every breakdown the panel and the Insights CSV read. Schema v2
+removed the value dimension from it entirely:
+
+- **Removed:** `totalValue`, `valueByStore`, `valueByDay`, `topItemsByValue`, `biggestMove`, and the
+  `.value` field that used to sit on every `byItem` / `byChar` record.
+- **Changed:** `netByStore` is now a **signed movement count** (`+1` per deposit, `-1` per
+  withdrawal), not a value — the only surviving signed non-gold quantity.
+- **Added:** `qualityByDirection`, `itemTypeByDirection`, `itemSubTypeByDirection`, `zoneByDirection`
+  (the four `× In/Out` companion accumulators), `byTypeSub` (keyed `Type "\t" SubType`, records
+  `{ type, subType, label, count, inCount, outCount }`), `itemsByStore` (`[store][itemID] = moves`),
+  `topItemsIn`/`topItemsOut`, `topItemsByQuantityIn`/`topItemsByQuantityOut`, `topZonesIn`/
+  `topZonesOut`, `topTypeSub`/`topTypeSubIn`/`topTypeSubOut`, `topItemsByStore`, `totals.itemsMoved`
+  (`itemsDeposited + itemsWithdrawn`) and `totals.topStore` (the busiest store, ties broken on the
+  store key). `byItem` records gain `movesIn`/`movesOut`/`qtyIn`/`qtyOut`, and `topZones` records
+  gain `inCount`/`outCount`.
+- **Unchanged:** `stats.byZone` deliberately keeps its plain `{ [zone] = count }` map shape —
+  `modules/Export.lua` feeds it straight to `rankedRows` for the stats CSV, and reshaping it would
+  break that export for no gain.
+
+Every new breakdown is a plain extra accumulator in the same single O(n) pass, so the panel got
+richer without the aggregation getting slower, and every comparator still ends on `itemID`/the
+label/the store key so a tie can never reorder run to run.
+
+### Section order
+
+In render order: Deposits vs Withdrawals (caption labels **below** the bar, not inside it), Movements
+By Store + its Store × In/Out companion, Net Flow By Store (diverging), Movements By Character,
+Character × Store, Character × In/Out, Movements By Quality + its Quality × In/Out companion,
+Movements By Item Type + its Item Type × In/Out companion, Movements By Sub-type + its Sub-type ×
+In/Out companion, Movements Over Time (per day), Movements By Hour Of Day, Movements By Weekday, then
+— only when the slice holds a coin movement — the GOLD block (Gold Moved Over Time, Gold By Store).
+
+Each `× In/Out` companion sits **immediately after its parent chart**, stacked deposit-green /
+withdraw-red with a legend, through the same `RenderStacked` + `RenderLegend` path Character × In/Out
+already used; each row keeps its parent chart's colour (store colour, quality colour, palette colour
+by rank) so a category stays recognisable across the pair.
+
+Last comes "TOP OF THE LIST", reorganized into a three-column grid grouped under **ITEMS**
+(Top Items By Movements, Top Items By Quantity), **CATEGORIES** (Top Type · Sub-type), **WHERE**
+(Top Banking Spots) and **BY STORE** (one panel per store with movements). Each metric renders as one
+row of three panels — All / Deposits / Withdrawals — so the triptych *is* the visual organization; a
+panel with no rows simply hides, so a slice with no withdrawals has no Withdrawals column, and each
+row advances by the height of its tallest panel. *Top Items By Value* is gone with the rest of the
+value dimension.
+
+**Panel pooling.** List panels are pooled and carry a **per-pass title** (`W.MakeListPanel` gained a
+settable title; `W.NewPanelPool` joins the existing pool vocabulary in `InsightsWidgets.lua`) because
+the store panels are variable in count — up to five, only those with movements — instead of the fixed
+four the old two-column layout had baked in at `Attach`. A pooled panel carries **its own row pool**
+on itself (`panel._rows`), because rows are parented to a specific panel at creation and cannot be
+shared across panels.
 
 Three choices worth stating, because they are the ones a future change is most likely to undo:
 

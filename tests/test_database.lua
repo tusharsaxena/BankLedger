@@ -237,7 +237,7 @@ test("Database:StorageStats reports a zero span for an empty ledger", function()
   end)
 end)
 
-test("Database:ActiveLedger prefers the preview dataset when one is published", function()
+test("Database:ActiveLedger prefers the test dataset when one is published", function()
   withLedger({ entry() }, function()
     NS.State.testRecords = { entry(), entry() }
     assertEqual(#NS.Database:ActiveLedger(), 2)

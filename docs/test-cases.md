@@ -6,7 +6,7 @@ The full inventory of every headless test case, grouped by suite. This file is t
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
 whenever the suite changes (see [testing.md](testing.md)).
 
-### test_util.lua (30)
+### test_util.lua (25)
 
 - Util.PlayerKey joins name and realm with spaces stripped
 - Util.SplitPath splits a dotted settings path
@@ -26,11 +26,6 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Util.FormatBytes steps through B, kB and MB
 - Util.RangeFrom returns nil for the no-bound 'all' range
 - Util.RangeFrom windows are ordered today > 7d > 30d
-- Util.EntryValue is the amount itself for a gold movement
-- Util.EntryValue is vendor price times stack for an item movement
-- Util.EntryValue is zero for an unpriced item
-- Util.EntryValue is zero for nothing at all
-- Util.SignedValue makes a deposit positive and a withdrawal negative
 - NS.IsConcatSafe accepts an ordinary value
 - NS.IsConcatSafe rejects a value table.concat would refuse
 - NS.SafeToString substitutes a sentinel for an unconcatenable value
@@ -194,7 +189,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_database.lua (33)
+### test_database.lua (36)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -224,18 +219,20 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Database:PruneOld keeps everything when retention is Always (0)
 - Database:StorageStats reports count, span and an estimated size
 - Database:StorageStats reports a zero span for an empty ledger
-- Database:ActiveLedger prefers the preview dataset when one is published
+- Database:ActiveLedger prefers the test dataset when one is published
 - RunMigrations stamps a schema version onto a fresh database
 - RunMigrations is idempotent — running it twice changes nothing
 - NS.MigrationSummary renders a readable one-liner
 - NS.InitSummary identifies the build, schema, profile and size
+- RunMigrations strips vendorPrice from every stored entry and bumps to v2
+- RunMigrations is idempotent on an already-migrated database
+- Database:Export never emits a vendorPrice field
 
-### test_stats.lua (49)
+### test_stats.lua (58)
 
 - Stats: the entry total counts every movement in scope
 - Stats: item quantities split by direction
 - Stats: gold in, gold out and the net between them
-- Stats: total value sums item vendor value and gold amounts alike
 - Stats: distinct items counts item ids, not movements
 - Stats: distinct characters counts the players involved
 - Stats: the first and last timestamps bracket the data
@@ -243,13 +240,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Stats: byStore counts movements per store
 - Stats: byDirection counts deposits and withdrawals
 - Stats: byKind separates item movements from gold movements
-- Stats: netByStore applies the direction sign
-- Stats: valueByStore is unsigned — it totals what passed through
-- Stats: byChar carries a per-character count and value
+- Stats: byChar carries a per-character count
 - Stats: charByStore is a per-character by-store matrix
 - Stats: byItemType counts item movements only
 - Stats: topItems ranks by number of moves, most first
-- Stats: the biggest single movement is the largest by value
 - Stats: the busiest day is the one with the most movements
 - Stats: a filter narrows every total, not just the count
 - Stats: an empty result set produces zeroed totals rather than nil
@@ -266,12 +260,16 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Stats: totals.netItems signs the item flow like netMoney signs gold
 - Stats: charByDirection splits each character's movements in and out
 - Stats: storeByDirection splits each store's movements in and out
-- Stats: topItemsByValue ranks the item index by copper value
 - Stats: topItemsByQuantity ranks the item index by stack count
-- Stats: the three top-item rankings share one record per item
+- Stats: the two top-item rankings share one record per item
 - Stats: topItems still ranks by movement count, unchanged
 - Stats: every new breakdown is empty rather than nil on an empty ledger
 - Stats: the new breakdowns honour the filter like every other key
+- Stats no longer reports any value figure
+- Stats: netByStore counts movements, deposits positive
+- Stats: itemsMoved totals every stack unit that crossed the line
+- Stats: topStore names the store with the most movements
+- Stats: topStore is nil on an empty slice
 - Insights.RankRows sorts by count descending
 - Insights.RankRows breaks count ties on the label, so the order is stable
 - Insights.RankRows applies the label mapper and the value map
@@ -281,8 +279,17 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights.BarFraction is zero for an empty list or a missing row
 - Insights.FormatNet colours a gain green and a loss red
 - Insights.FormatNet renders zero as a neutral dash
+- Stats: qualityByDirection is keyed on the numeric quality id
+- Stats: itemTypeByDirection and itemSubTypeByDirection split by direction
+- Stats: the direction split always sums back to its parent breakdown
+- Stats: item records split their moves and quantities by direction
+- Stats: the In and Out item rankings sum back to the combined ranking
+- Stats: byZone keeps its plain count-map shape for the CSV
+- Stats: topZones records carry the in/out split
+- Stats: topTypeSub ranks type and sub-type pairs with a display label
+- Stats: topItemsByStore ranks each store's items independently
 
-### test_ledgertable.lua (38)
+### test_ledgertable.lua (45)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -314,14 +321,21 @@ whenever the suite changes (see [testing.md](testing.md)).
 - LedgerTable:GroupEntries labels an untyped item group Unknown
 - LedgerTable:GroupEntries orders quality groups Poor to Legendary
 - LedgerTable:GroupEntries puts gold in its own quality group
-- LedgerTable:BuildPreviewData produces a non-trivial sample ledger
-- LedgerTable:BuildPreviewData is deterministic across runs
-- LedgerTable:BuildPreviewData covers every store
-- LedgerTable:BuildPreviewData covers both directions and both kinds
-- LedgerTable:BuildPreviewData only puts gold where gold can live
-- LedgerTable:BuildPreviewData stamps the guild name only on guild-bank rows
+- LedgerTable:BuildTestData produces a non-trivial sample ledger
+- LedgerTable:BuildTestData is deterministic across runs
+- LedgerTable:BuildTestData covers every store
+- LedgerTable:BuildTestData covers both directions and both kinds
+- LedgerTable:BuildTestData only puts gold where gold can live
+- LedgerTable:BuildTestData stamps the guild name only on guild-bank rows
 - LedgerTable.RenderSummary is one line carrying the render's shape
 - LedgerTable:MinFrameWidth is wide enough for every column
+- BuildTestData is byte-identical across two builds
+- BuildTestData covers every store and both directions
+- BuildTestData covers every item quality 0-5
+- BuildTestData spans more than 14 days
+- BuildTestData spreads across many characters and zones
+- BuildTestData never carries vendor value
+- LedgerTable:ToggleTestMode publishes and clears the dataset
 
 ### test_browser.lua (18)
 
@@ -334,7 +348,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser.ResolveCharFilter copies the set rather than aliasing it
 - Browser:ClearFilters defaults the Character filter to the current character
 - Browser:ClearFilters leaves every other filter empty
-- Browser:ClearFilters does not scope preview data to the real player
+- Browser:ClearFilters does not scope test data to the real player
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -379,7 +393,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
-### test_insights.lua (55)
+### test_insights.lua (66)
 
 - InsightsWidgets.PaletteColor returns an rgb triple for rank 1
 - InsightsWidgets.PaletteColor gives adjacent ranks different colours
@@ -432,12 +446,23 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights.CardValues shows a dash where there is genuinely nothing
 - Insights.CardValues survives being handed nothing at all
 - Insights.CardValues covers every card the panel declares
+- Insights.CardValues no longer produces value or biggest-move cards
+- Insights.CardValues reports items moved and the top store
+- Insights.CardValues em-dashes the top store on an empty slice
 - Insights.SummaryLine names the scope and the count
 - Insights:Attach and Refresh survive an empty ledger
 - Insights:Refresh lays out every section against a populated ledger
 - Insights:Refresh renders a slice with no gold at all
+- Insights: the four direction-split companions render without raising
+- Insights.BarLabel truncates the name and leaves the icon escape intact
+- Insights.BarLabel is a plain truncation when there is no icon
+- Insights: character bars carry the icon out of band
+- InsightsWidgets exports the ratio bar's two-part height
+- InsightsWidgets pools list panels, each carrying its own row pool
+- InsightsWidgets.MakeCard builds every headline on one base font template
+- Insights: the reorganized list section renders every group
 
-### test_export.lua (29)
+### test_export.lua (30)
 
 - Export:CSV emits a header row even with no data
 - Export:CSV emits one row per entry
@@ -445,9 +470,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Export:CSV writes the human direction and store labels
 - Export:CSV keeps the raw store token beside its label
 - Export:CSV pairs each human column with its raw sibling
-- Export:CSV writes value as plain text and raw copper side by side
-- Export:CSV signs the net column by direction
-- Export:CSV renders a gold row's amount as its value
+- Export:CSV renders a gold row's kind label
 - Export:CSV quotes a field containing a comma and doubles embedded quotes
 - Export:CSV leaves an absent field empty rather than writing nil
 - Export:CSV never emits the item link (a raw link is unusable in a spreadsheet)
@@ -462,12 +485,15 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Export:InsightsCSV includes the quality breakdown, in quality order
 - Export:InsightsCSV includes the zone breakdown
 - Export:InsightsCSV includes the gross coin per store
-- Export:InsightsCSV includes both extra top-item rankings
+- Export:InsightsCSV includes the extra top-item ranking
 - Export:InsightsCSV includes a per-day coin section
 - Export:InsightsCSV emits a full 24-hour and 7-day grid
 - Export:InsightsCSV keeps the original section headers unchanged
 - Export:InsightsCSV survives an empty stats result
 - Export:InsightsCSV survives being handed nothing at all
+- Export: the ledger CSV carries no value columns
+- Export: the insights CSV drops the value summary and the value ranking
+- Export: net by store is written as a count, not a coin string
 
 ### test_debuglog.lua (18)
 
@@ -510,7 +536,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - COMMANDS: every entry has a name, a description and a function
 - COMMANDS: names are unique, so dispatch can never be ambiguous
 - COMMANDS: the standard's required verbs are all present
-- COMMANDS: a preview verb exists (preview-mode)
+- COMMANDS: a test verb exists (test-mode)
 
 ### test_slash.lua (31)
 
@@ -550,19 +576,19 @@ whenever the suite changes (see [testing.md](testing.md)).
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 30 |
+| test_util.lua | 25 |
 | test_compat.lua | 16 |
 | test_constants.lua | 19 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 93 |
-| test_database.lua | 33 |
-| test_stats.lua | 49 |
-| test_ledgertable.lua | 38 |
+| test_database.lua | 36 |
+| test_stats.lua | 58 |
+| test_ledgertable.lua | 45 |
 | test_browser.lua | 18 |
 | test_sessionwindow.lua | 32 |
-| test_insights.lua | 55 |
-| test_export.lua | 29 |
+| test_insights.lua | 66 |
+| test_export.lua | 30 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **495** |
+| **Total** | **521** |

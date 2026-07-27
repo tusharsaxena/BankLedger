@@ -3,7 +3,7 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-495%2F495_passing-green)
+![Tests](https://img.shields.io/badge/Tests-521%2F521_passing-green)
 
 ![Logo](media/logos/bankledger.logo.jpg)
 
@@ -32,9 +32,10 @@ Close the bank and it closes with it.
 - History tab with search, per-column filters, grouping and sorting over a fast pooled table.
 - A live **Current Banking Session** window that opens with any bank and shows exactly what you moved
   during that visit.
-- Insights tab with fourteen headline figures and sixteen charts: the deposit/withdrawal split, net
-  flow per store, per-character and per-quality breakdowns, activity by day, hour and weekday, and
-  ranked lists of your most-moved, most-valuable and most-numerous items.
+- Insights tab with fourteen headline figures and eighteen charts: the deposit/withdrawal split, net
+  flow per store, per-character/per-store/per-quality/per-type breakdowns (each with an In/Out
+  companion), activity by day, hour and weekday, and ranked lists — by item, category and location,
+  each split into All / Deposits / Withdrawals — of your most-moved and most-numerous items.
 - Export either tab to CSV, for all your data or just the view you are looking at.
 - Blacklist and whitelist by item, so the ledger records exactly what you care about.
 
@@ -57,7 +58,7 @@ addon prints to chat carries the cyan `[BL]` tag.
 | `/bl list` | List all settings |
 | `/bl reset <setting>` | Reset one setting |
 | `/bl resetall` | Reset all settings |
-| `/bl preview` | Toggle a sample ledger |
+| `/bl test` | Toggle a sample ledger |
 | `/bl session` | Toggle the banking-session window (sample data outside a bank) |
 | `/bl purge` | Delete ALL ledger history (asks first) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
