@@ -28,12 +28,11 @@ test("Compat.QualityLabel defaults to Poor when given nothing", function()
 end)
 
 test("Compat.GetItemDetails returns name, quality, type, subtype and vendor price", function()
-  local name, quality, itemType, itemSubType, vendorPrice = NS.Compat.GetItemDetails(171276)
+  local name, quality, itemType, itemSubType = NS.Compat.GetItemDetails(171276)
   assertEqual(name, "Spectral Flask")
   assertEqual(quality, 3)
   assertEqual(itemType, "Consumable")
   assertEqual(itemSubType, "Flask")
-  assertEqual(vendorPrice, 5000)
 end)
 
 test("Compat.GetItemDetails returns nil for an item the client has not cached", function()

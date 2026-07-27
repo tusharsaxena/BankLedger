@@ -10,7 +10,7 @@ local function e(over)
     ts = NOW, char = "Mock-Realm", classFile = "MAGE",
     kind = "ITEM", direction = "DEPOSIT", store = "BANK",
     itemID = 2589, itemName = "Linen Cloth", quality = 1,
-    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20,
+    itemType = "Tradegoods", itemSubType = "Cloth",
     quantity = 10, zone = "Testville",
   }
   for k, v in pairs(over or {}) do x[k] = (v ~= NIL) and v or nil end
@@ -67,25 +67,11 @@ test("Export:CSV pairs each human column with its raw sibling", function()
   assertEqual(row[columnIndex("qualityRaw")], "4")
 end)
 
-test("Export:CSV writes value as plain text and raw copper side by side", function()
-  local row = cells(lines(NS.Export:CSV({ e() }))[2])
-  assertEqual(row[columnIndex("value")], "0g 2s 0c")
-  assertEqual(row[columnIndex("valueRaw")], "200")
-end)
-
-test("Export:CSV signs the net column by direction", function()
-  local dep = cells(lines(NS.Export:CSV({ e() }))[2])
-  local wit = cells(lines(NS.Export:CSV({ e({ direction = "WITHDRAW" }) }))[2])
-  assertEqual(dep[columnIndex("net")], "200")
-  assertEqual(wit[columnIndex("net")], "-200")
-end)
-
-test("Export:CSV renders a gold row's amount as its value", function()
+test("Export:CSV renders a gold row's kind label", function()
   local row = cells(lines(NS.Export:CSV({
     e({ kind = "MONEY", itemID = NIL, itemName = "Gold", quality = NIL,
-        itemType = NIL, itemSubType = NIL, vendorPrice = NIL, quantity = 50000 }) }))[2])
+        itemType = NIL, itemSubType = NIL, quantity = 50000 }) }))[2])
   assertEqual(row[columnIndex("kind")], "Gold")
-  assertEqual(row[columnIndex("valueRaw")], "50000")
 end)
 
 test("Export:CSV quotes a field containing a comma and doubles embedded quotes", function()
@@ -108,9 +94,9 @@ local function insightsCSV()
   local saved = NS.db.global.ledger
   NS.db.global.ledger = {
     e(),
-    e({ direction = "WITHDRAW", itemID = 4306, itemName = "Silk Cloth", vendorPrice = 60, quantity = 3 }),
+    e({ direction = "WITHDRAW", itemID = 4306, itemName = "Silk Cloth", quantity = 3 }),
     e({ kind = "MONEY", store = "GUILD_BANK", itemID = NIL, itemName = "Gold",
-        quality = NIL, itemType = NIL, itemSubType = NIL, vendorPrice = NIL, quantity = 50000 }),
+        quality = NIL, itemType = NIL, itemSubType = NIL, quantity = 50000 }),
   }
   local csv = NS.Export:InsightsCSV(NS.Database:Stats({}))
   NS.db.global.ledger = saved
@@ -174,10 +160,8 @@ test("Export:InsightsCSV includes the gross coin per store", function()
   assertTrue(insightsCSV():find("Money By Store,Guild Bank", 1, true) ~= nil)
 end)
 
-test("Export:InsightsCSV includes both extra top-item rankings", function()
-  local csv = insightsCSV()
-  assertTrue(csv:find("Top Items By Value,Linen Cloth", 1, true) ~= nil)
-  assertTrue(csv:find("Top Items By Quantity,Linen Cloth", 1, true) ~= nil)
+test("Export:InsightsCSV includes the extra top-item ranking", function()
+  assertTrue(insightsCSV():find("Top Items By Quantity,Linen Cloth", 1, true) ~= nil)
 end)
 
 test("Export:InsightsCSV includes a per-day coin section", function()
@@ -215,4 +199,34 @@ end)
 
 test("Export:InsightsCSV survives being handed nothing at all", function()
   assertTrue(NS.Export:InsightsCSV(nil):find("Section,Label", 1, true) ~= nil)
+end)
+
+-- ── Value is gone from both CSVs (schema v2) ────────────────────────────────────
+
+test("Export: the ledger CSV carries no value columns", function()
+  for _, name in ipairs({ "vendorPrice", "value", "valueRaw", "net" }) do
+    for _, h in ipairs(NS.Export.HEADER) do
+      assertTrue(h ~= name, "column '" .. name .. "' must be gone from the ledger CSV")
+    end
+  end
+end)
+
+test("Export: the insights CSV drops the value summary and the value ranking", function()
+  local csv = NS.Export:InsightsCSV(NS.Database:Stats({}))
+  assertEqual(csv:find("Value moved", 1, true), nil)
+  assertEqual(csv:find("Top Items By Value", 1, true), nil)
+end)
+
+test("Export: net by store is written as a count, not a coin string", function()
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {
+    { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 10 },
+    { ts = 2, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 4306, itemName = "Silk Cloth", quantity = 1 },
+  }
+  local csv = NS.Export:InsightsCSV(NS.Database:Stats({}))
+  assertTrue(csv:find("Net by Store,Character Bank,2,", 1, true) ~= nil,
+    "the net lands in the Count column as a plain 2")
+  NS.db.global.ledger = saved
 end)

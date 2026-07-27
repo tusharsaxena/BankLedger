@@ -169,15 +169,15 @@ function Compat.QualityLabel(q)
   return _G["ITEM_QUALITY" .. q .. "_DESC"] or QUALITY_LABEL_EN[q] or tostring(q)
 end
 
--- Display + valuation info for an item id (or link). Returns name, quality, itemType, itemSubType,
--- vendorPrice — each nil when the client hasn't cached the item yet.
+-- Display info for an item id (or link). Returns name, quality, itemType, itemSubType, link --
+-- each nil when the client hasn't cached the item yet. Vendor price is deliberately NOT read: the
+-- addon does not derive or persist item value (schema v2).
 function Compat.GetItemDetails(idOrLink)
   if not idOrLink then return nil end
   if not (C_Item and C_Item.GetItemInfo) then return nil end
-  local name, link, quality, _, _, itemType, itemSubType, _, _, _, vendorPrice =
-    C_Item.GetItemInfo(idOrLink)
+  local name, link, quality, _, _, itemType, itemSubType = C_Item.GetItemInfo(idOrLink)
   if not name then return nil end
-  return name, quality, itemType, itemSubType, vendorPrice, link
+  return name, quality, itemType, itemSubType, link
 end
 
 -- Resolve an item id to a display name + quality for the filter-management UI. Returns

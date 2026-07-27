@@ -422,7 +422,7 @@ test("Ledger:BuildEntry enriches an item movement from the item cache", function
   assertEqual(e.quality, 3)
   assertEqual(e.itemType, "Consumable")
   assertEqual(e.itemSubType, "Flask")
-  assertEqual(e.vendorPrice, 5000)
+  assertEqual(e.vendorPrice, nil, "schema v2 never persists vendor value")
 end)
 
 test("Ledger:BuildEntry names a money movement and leaves the item fields empty", function()

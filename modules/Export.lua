@@ -17,11 +17,11 @@ local function csvField(v)
 end
 
 -- Ledger CSV columns: { header, value(entry) }. `ts` is followed by human `date` and `time`.
--- Renamed raw columns carry a *Raw suffix beside a human sibling — human `quality` (label) before
--- `qualityRaw` (number), human `value` ("Ng Ns Nc") before `valueRaw` (copper) — so a spreadsheet
--- can sort on the raw number while a reader sees the readable form. `net` is the direction-signed
--- value: positive means it went into the store.
--- itemLink / mapID / subzone are intentionally not exported.
+-- Renamed raw columns carry a *Raw suffix beside a human sibling -- human `quality` (label) before
+-- `qualityRaw` (number) -- so a spreadsheet can sort on the raw number while a reader sees the
+-- readable form. itemLink / mapID / subzone are intentionally not exported.
+-- Schema v2 removed the vendorPrice / value / valueRaw / net columns: the addon no longer derives
+-- item value at all (an accepted, documented break of the otherwise-stable column contract).
 local COLUMNS = {
   { "ts",           function(e) return e.ts end },
   { "date",         function(e) return NS.Util.FormatDate(e.ts) end },
@@ -40,10 +40,6 @@ local COLUMNS = {
   { "itemType",     function(e) return e.itemType end },
   { "itemSubType",  function(e) return e.itemSubType end },
   { "quantity",     function(e) return e.quantity end },
-  { "vendorPrice",  function(e) return NS.Util.PlainMoney(e.vendorPrice) end },
-  { "value",        function(e) return NS.Util.PlainMoney(NS.Util.EntryValue(e)) end },
-  { "valueRaw",     function(e) return NS.Util.EntryValue(e) end },
-  { "net",          function(e) return NS.Util.SignedValue(e) end },
   { "zone",         function(e) return e.zone end },
 }
 local HEADER = {}
@@ -73,13 +69,12 @@ end
 -- Insights view (summary cards + each breakdown + the ranked list) rather than raw ledger rows.
 -- Columns: Section, Label, Count, Value. Pure — takes a Database:Stats result, returns text.
 
--- Count-map → array of { label, count, value } sorted count-desc then label-asc. `labelOf` maps a
--- raw key to a display label; `valueMap` (optional) supplies the value column per key.
-local function rankedRows(map, labelOf, valueMap)
+-- Count-map → array of { label, count } sorted count-desc then label-asc. `labelOf` maps a raw key
+-- to a display label.
+local function rankedRows(map, labelOf)
   local rows = {}
   for key, count in pairs(map or {}) do
-    rows[#rows + 1] = { label = labelOf and labelOf(key) or tostring(key),
-      count = count, value = valueMap and valueMap[key] or nil }
+    rows[#rows + 1] = { label = labelOf and labelOf(key) or tostring(key), count = count }
   end
   table.sort(rows, function(a, b)
     if a.count ~= b.count then return a.count > b.count end
@@ -114,7 +109,6 @@ function E:InsightsCSV(stats)
   row("Summary", "Gold out", nil, t.moneyOut or 0)
   row("Summary", "Net gold", nil, t.netMoney or 0)
   row("Summary", "Gold moved", nil, t.moneyMoved or 0)
-  row("Summary", "Value moved", nil, t.totalValue or 0)
   row("Summary", "Active days", t.activeDays or 0)
   if t.firstTs and t.lastTs then
     row("Summary", "Date range",
@@ -125,11 +119,12 @@ function E:InsightsCSV(stats)
   end
 
   local storeLabel = function(k) return C.StoreLabel[k] or k end
-  section("By Store", rankedRows(stats.byStore, storeLabel, stats.valueByStore))
-  -- Net flow per store: signed, so a store you keep draining reads negative.
+  section("By Store", rankedRows(stats.byStore, storeLabel))
+  -- Net flow per store, signed and counted in MOVEMENTS (schema v2): a store you keep draining
+  -- reads negative.
   for _, s in ipairs(C.StoreOrder) do
     local net = (stats.netByStore or {})[s]
-    if net ~= nil then row("Net by Store", storeLabel(s), nil, net) end
+    if net ~= nil then row("Net by Store", storeLabel(s), net) end
   end
   -- Gross coin moved per store, beside the value figures above.
   for _, s in ipairs(C.StoreOrder) do
@@ -154,7 +149,7 @@ function E:InsightsCSV(stats)
 
   local charRows = {}
   for _, ce in pairs(stats.byChar or {}) do
-    charRows[#charRows + 1] = { label = ce.char, count = ce.count, value = ce.value }
+    charRows[#charRows + 1] = { label = ce.char, count = ce.count }
   end
   table.sort(charRows, function(a, b)
     if a.count ~= b.count then return a.count > b.count end
@@ -162,26 +157,23 @@ function E:InsightsCSV(stats)
   end)
   section("By Character", charRows)
 
-  -- The item index, ranked three ways — the same three lists the Insights panel shows, so an export
-  -- answers "what moved most", "what was worth most" and "what moved in bulk" without re-sorting.
+  -- The item index, ranked two ways — the same two lists the Insights panel shows, so an export
+  -- answers "what moved most" and "what moved in bulk" without re-sorting.
   local function itemName(it) return it.itemName or ("item " .. tostring(it.itemID)) end
   for _, it in ipairs(stats.topItems or {}) do
-    row("Top Items", itemName(it), it.moves, it.value)
-  end
-  for _, it in ipairs(stats.topItemsByValue or {}) do
-    row("Top Items By Value", itemName(it), it.moves, it.value)
+    row("Top Items", itemName(it), it.moves)
   end
   for _, it in ipairs(stats.topItemsByQuantity or {}) do
-    row("Top Items By Quantity", itemName(it), it.quantity, it.value)
+    row("Top Items By Quantity", itemName(it), it.quantity)
   end
 
-  -- Per-day activity, chronological. `value` is the vendor value moved; the coin column follows in
-  -- its own section so a day's gold traffic is separable from its item traffic.
+  -- Per-day activity, chronological. The coin column follows in its own section so a day's gold
+  -- traffic is separable from its item traffic.
   local dayKeys = {}
   for day in pairs(stats.byDay or {}) do dayKeys[#dayKeys + 1] = day end
   table.sort(dayKeys)
   for _, day in ipairs(dayKeys) do
-    row("By Day", day, stats.byDay[day], (stats.valueByDay or {})[day] or 0)
+    row("By Day", day, stats.byDay[day])
   end
   local moneyDays = {}
   for day in pairs(stats.moneyByDay or {}) do moneyDays[#moneyDays + 1] = day end

@@ -249,13 +249,14 @@ end)
 -- ── Migrations ─────────────────────────────────────────────────────────────────
 
 test("RunMigrations stamps a schema version onto a fresh database", function()
-  assertEqual(NS.db.global.schemaVersion, 1)
+  -- Schema v2 shipped alongside this suite, so a freshly-initialized database is already migrated.
+  assertEqual(NS.db.global.schemaVersion, 2)
 end)
 
 test("RunMigrations is idempotent — running it twice changes nothing", function()
   NS:RunMigrations()
   NS:RunMigrations()
-  assertEqual(NS.db.global.schemaVersion, 1)
+  assertEqual(NS.db.global.schemaVersion, 2)
 end)
 
 test("NS.MigrationSummary renders a readable one-liner", function()
@@ -265,7 +266,47 @@ end)
 test("NS.InitSummary identifies the build, schema, profile and size", function()
   local s = NS.InitSummary()
   assertTrue(s:find("BankLedger", 1, true) ~= nil, "names the addon")
-  assertTrue(s:find("schema v1", 1, true) ~= nil, "names the schema version")
+  assertTrue(s:find("schema v2", 1, true) ~= nil, "names the schema version")
   assertTrue(s:find("profile 'Default'", 1, true) ~= nil, "names the profile")
   assertTrue(s:find("entries", 1, true) ~= nil, "carries the entry count")
+end)
+
+-- ── Schema v1 -> v2: vendorPrice leaves the SavedVariables file --------------------
+
+test("RunMigrations strips vendorPrice from every stored entry and bumps to v2", function()
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = 1
+  NS.db.global.ledger = {
+    { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
+    { ts = 2, char = "A-R", kind = "MONEY", direction = "DEPOSIT", store = "GUILD_BANK",
+      itemName = "Gold", quantity = 50000 },
+  }
+  NS:RunMigrations()
+  assertEqual(NS.db.global.schemaVersion, 2)
+  assertEqual(NS.db.global.ledger[1].vendorPrice, nil)
+  assertEqual(NS.db.global.ledger[1].quantity, 10, "the rest of the entry is untouched")
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+end)
+
+test("RunMigrations is idempotent on an already-migrated database", function()
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = 2
+  NS.db.global.ledger = { { ts = 1, kind = "ITEM", quantity = 3 } }
+  NS:RunMigrations()
+  assertEqual(NS.db.global.schemaVersion, 2)
+  assertEqual(NS.db.global.ledger[1].quantity, 3)
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+end)
+
+test("Database:Export never emits a vendorPrice field", function()
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {
+    { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
+  }
+  local out = NS.Database:Export()
+  assertEqual(out[1].vendorPrice, nil)
+  assertEqual(out[1].itemName, "Linen Cloth")
+  NS.db.global.ledger = saved
 end)

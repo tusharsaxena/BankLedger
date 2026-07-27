@@ -183,11 +183,11 @@ end
 -- rows are never recorded, and a real session opening replaces them.
 
 local PREVIEW_ROWS = {
-  { "WITHDRAW", "BANK",         2589,   "Linen Cloth",     1, "Tradegoods",    "Cloth",  20,     40 },
-  { "DEPOSIT",  "BANK",         194863, "Serevite Ore",    1, "Tradegoods",    "Metal",  35,     200 },
-  { "DEPOSIT",  "WARBAND_BANK", 171276, "Spectral Flask",  3, "Consumable",    "Flask",  5000,   4 },
-  { "WITHDRAW", "WARBAND_BANK", 19019,  "Thunderfury",     5, "Weapon",        "Swords", 250000, 1 },
-  { "DEPOSIT",  "GUILD_BANK",   6948,   "Hearthstone",     1, "Miscellaneous", "Junk",   0,      1 },
+  { "WITHDRAW", "BANK",         2589,   "Linen Cloth",     1, "Tradegoods",    "Cloth",  40 },
+  { "DEPOSIT",  "BANK",         194863, "Serevite Ore",    1, "Tradegoods",    "Metal",  200 },
+  { "DEPOSIT",  "WARBAND_BANK", 171276, "Spectral Flask",  3, "Consumable",    "Flask",  4 },
+  { "WITHDRAW", "WARBAND_BANK", 19019,  "Thunderfury",     5, "Weapon",        "Swords", 1 },
+  { "DEPOSIT",  "GUILD_BANK",   6948,   "Hearthstone",     1, "Miscellaneous", "Junk",   1 },
 }
 
 function SW:BuildPreviewSession()
@@ -201,7 +201,7 @@ function SW:BuildPreviewSession()
       kind = C.Kind.ITEM, direction = r[1], store = r[2],
       guild = (r[2] == "GUILD_BANK") and NS.Compat.GetGuildName() or nil,
       itemID = r[3], itemName = r[4], quality = r[5],
-      itemType = r[6], itemSubType = r[7], vendorPrice = r[8], quantity = r[9],
+      itemType = r[6], itemSubType = r[7], quantity = r[8],
     }
   end
   -- One gold movement, at a store that actually holds gold.

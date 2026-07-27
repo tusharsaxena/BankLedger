@@ -7,20 +7,20 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
 local NOW = 1770000000
 local FIXTURE = {
-  -- 10 Linen Cloth deposited to the bank, vendor 20 → value 200
+  -- 10 Linen Cloth deposited to the bank
   { ts = NOW, char = "Mock-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
     store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
-    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20, quantity = 10,
+    itemType = "Tradegoods", itemSubType = "Cloth", quantity = 10,
     zone = "Valdrakken" },
-  -- 3 Silk Cloth withdrawn from the bank, vendor 60 → value 180
+  -- 3 Silk Cloth withdrawn from the bank
   { ts = NOW - 86400, char = "Mock-Realm", classFile = "MAGE", kind = "ITEM",
     direction = "WITHDRAW", store = "BANK", itemID = 4306, itemName = "Silk Cloth", quality = 2,
-    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 60, quantity = 3,
+    itemType = "Tradegoods", itemSubType = "Cloth", quantity = 3,
     zone = "Valdrakken" },
-  -- 2 more Linen Cloth deposited by an alt → value 40
+  -- 2 more Linen Cloth deposited by an alt
   { ts = NOW - 86400, char = "Alt-Realm", classFile = "ROGUE", kind = "ITEM",
     direction = "DEPOSIT", store = "WARBAND_BANK", itemID = 2589, itemName = "Linen Cloth",
-    quality = 1, itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20, quantity = 2,
+    quality = 1, itemType = "Tradegoods", itemSubType = "Cloth", quantity = 2,
     zone = "Dornogal" },
   -- 50000 copper into the guild bank
   { ts = NOW - 2 * 86400, char = "Mock-Realm", classFile = "MAGE", kind = "MONEY",
@@ -55,11 +55,6 @@ test("Stats: gold in, gold out and the net between them", function()
   assertEqual(t.moneyIn, 50000)
   assertEqual(t.moneyOut, 20000)
   assertEqual(t.netMoney, 30000)
-end)
-
-test("Stats: total value sums item vendor value and gold amounts alike", function()
-  -- 200 + 180 + 40 + 50000 + 20000
-  assertEqual(stats().totals.totalValue, 70420)
 end)
 
 test("Stats: distinct items counts item ids, not movements", function()
@@ -100,22 +95,10 @@ test("Stats: byKind separates item movements from gold movements", function()
   assertEqual(s.byKind.MONEY, 2)
 end)
 
-test("Stats: netByStore applies the direction sign", function()
-  local s = stats()
-  assertEqual(s.netByStore.BANK, 200 - 180)          -- deposited 200, withdrew 180
-  assertEqual(s.netByStore.GUILD_BANK, 50000 - 20000)
-  assertEqual(s.netByStore.WARBAND_BANK, 40)
-end)
-
-test("Stats: valueByStore is unsigned — it totals what passed through", function()
-  assertEqual(stats().valueByStore.BANK, 380)
-end)
-
-test("Stats: byChar carries a per-character count and value", function()
+test("Stats: byChar carries a per-character count", function()
   local s = stats()
   assertEqual(s.byChar["Mock-Realm"].count, 4)
   assertEqual(s.byChar["Alt-Realm"].count, 1)
-  assertEqual(s.byChar["Alt-Realm"].value, 40)
   assertEqual(s.byChar["Alt-Realm"].classFile, "ROGUE")
 end)
 
@@ -137,10 +120,6 @@ test("Stats: topItems ranks by number of moves, most first", function()
   assertEqual(top[2].itemID, 4306)
 end)
 
-test("Stats: the biggest single movement is the largest by value", function()
-  assertEqual(stats().totals.biggestMove.value, 50000)
-end)
-
 test("Stats: the busiest day is the one with the most movements", function()
   local b = stats().totals.busiestDay
   assertTrue(b ~= nil)
@@ -151,13 +130,13 @@ test("Stats: a filter narrows every total, not just the count", function()
   local s = stats({ kind = "ITEM" })
   assertEqual(s.totals.entries, 3)
   assertEqual(s.totals.moneyIn, 0)
-  assertEqual(s.totals.totalValue, 420)
+  assertEqual(s.totals.itemsMoved, 15)
 end)
 
 test("Stats: an empty result set produces zeroed totals rather than nil", function()
   local s = stats({ store = "REAGENT_BANK" })
   assertEqual(s.totals.entries, 0)
-  assertEqual(s.totals.totalValue, 0)
+  assertEqual(s.totals.itemsMoved, 0)
   assertEqual(s.totals.netMoney, 0)
   assertEqual(s.totals.firstTs, nil)
 end)
@@ -254,24 +233,15 @@ test("Stats: storeByDirection splits each store's movements in and out", functio
   assertEqual(s.storeByDirection.WARBAND_BANK.DEPOSIT, 1)
 end)
 
-test("Stats: topItemsByValue ranks the item index by copper value", function()
-  local s = stats()
-  -- Linen 200 + 40 = 240 beats Silk's 180, even though Silk moved a larger single stack.
-  assertEqual(s.topItemsByValue[1].itemName, "Linen Cloth")
-  assertEqual(s.topItemsByValue[1].value, 240)
-  assertEqual(s.topItemsByValue[2].itemName, "Silk Cloth")
-end)
-
 test("Stats: topItemsByQuantity ranks the item index by stack count", function()
   local s = stats()
   assertEqual(s.topItemsByQuantity[1].itemName, "Linen Cloth")
   assertEqual(s.topItemsByQuantity[1].quantity, 12)
 end)
 
-test("Stats: the three top-item rankings share one record per item", function()
-  -- Three orderings over the same byItem index, not three copies of it.
+test("Stats: the two top-item rankings share one record per item", function()
+  -- Two orderings over the same byItem index, not two copies of it.
   local s = stats()
-  assertEqual(#s.topItems, #s.topItemsByValue)
   assertEqual(#s.topItems, #s.topItemsByQuantity)
   assertEqual(s.topItems[1], s.byItem[s.topItems[1].itemID],
     "a ranked row IS the index record")
@@ -294,7 +264,7 @@ test("Stats: every new breakdown is empty rather than nil on an empty ledger", f
     assertEqual(next(s[key]), nil, key .. " must be empty")
   end
   assertEqual(#s.topZones, 0)
-  assertEqual(#s.topItemsByValue, 0)
+  assertEqual(#s.topItemsByQuantity, 0)
   assertEqual(s.totals.netItems, 0)
   assertEqual(s.totals.moneyMoved, 0)
 end)
@@ -304,6 +274,44 @@ test("Stats: the new breakdowns honour the filter like every other key", functio
   assertEqual(s.totals.entries, 2)
   assertEqual(next(s.byItemSubType), nil, "the guild-bank slice holds no item rows")
   assertEqual(s.moneyByStore.GUILD_BANK, 70000)
+end)
+
+-- ── Value is gone; net flow is counted in movements ─────────────────────────────
+
+test("Stats no longer reports any value figure", function()
+  local s = stats()
+  assertEqual(s.totals.totalValue, nil)
+  assertEqual(s.totals.biggestMove, nil)
+  assertEqual(s.valueByStore, nil)
+  assertEqual(s.valueByDay, nil)
+  assertEqual(s.topItemsByValue, nil)
+  assertEqual(s.topItems[1].value, nil, "item records carry no value")
+end)
+
+test("Stats: netByStore counts movements, deposits positive", function()
+  local s = stats()
+  -- BANK: 1 deposit + 1 withdrawal -> 0. WARBAND_BANK: 1 deposit -> +1.
+  -- GUILD_BANK: 1 coin deposit + 1 coin withdrawal -> 0.
+  assertEqual(s.netByStore.BANK, 0)
+  assertEqual(s.netByStore.WARBAND_BANK, 1)
+  assertEqual(s.netByStore.GUILD_BANK, 0)
+end)
+
+test("Stats: itemsMoved totals every stack unit that crossed the line", function()
+  assertEqual(stats().totals.itemsMoved, 15)   -- 12 in + 3 out
+end)
+
+test("Stats: topStore names the store with the most movements", function()
+  local top = stats().totals.topStore
+  assertEqual(top.store, "BANK")   -- 2 movements, vs 1 warband and 2 guild; BANK wins the tie
+  assertEqual(top.count, 2)
+end)
+
+test("Stats: topStore is nil on an empty slice", function()
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {}
+  assertEqual(NS.Database:Stats({}).totals.topStore, nil)
+  NS.db.global.ledger = saved
 end)
 
 -- ── Insights ranking helpers ───────────────────────────────────────────────────

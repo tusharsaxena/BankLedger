@@ -359,13 +359,11 @@ function L:BuildEntry(move)
   end
 
   entry.itemID = move.itemID
-  local name, quality, itemType, itemSubType, vendorPrice, link =
-    NS.Compat.GetItemDetails(move.itemID)
+  local name, quality, itemType, itemSubType, link = NS.Compat.GetItemDetails(move.itemID)
   entry.itemName = name
   entry.quality = quality
   entry.itemType = itemType
   entry.itemSubType = itemSubType
-  entry.vendorPrice = vendorPrice
   entry.itemLink = link
   return entry
 end

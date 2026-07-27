@@ -1,4 +1,5 @@
 local addonName, NS = ...
+local C = NS.Constants
 
 -- AceDB init. Account-wide: the whole ledger + every setting live in NS.db.global.
 function NS:InitDB()
@@ -14,14 +15,19 @@ function NS:RunMigrations()
   local g = NS.db and NS.db.global
   if not g then return end
   g.schemaVersion = g.schemaVersion or 1
-  -- v0.1.0 ships schema v1 — the initial shape, so there is nothing to upgrade from yet. A future
-  -- bump adds its block here, e.g.:
-  --   if g.schemaVersion < 2 then
-  --     local n = 0
-  --     for _, e in ipairs(g.ledger or {}) do ... n = n + 1 end
-  --     g.schemaVersion = 2
-  --     if NS.State.debug and NS.Debug then NS.Debug("Migrate", "%s", NS.MigrationSummary(1, 2, n)) end
-  --   end
+  -- v1 -> v2: the addon no longer derives, captures or persists vendor value, so the field leaves
+  -- the SavedVariables file rather than merely going unread. Idempotent: clearing an absent field
+  -- is a no-op, so a partially-migrated database converges on a second run.
+  if g.schemaVersion < 2 then
+    local n = 0
+    for _, e in ipairs(g.ledger or {}) do
+      if e.vendorPrice ~= nil then e.vendorPrice = nil; n = n + 1 end
+    end
+    g.schemaVersion = 2
+    if NS.State.debug and NS.Debug then
+      NS.Debug("Migrate", "%s", NS.MigrationSummary(1, 2, n))
+    end
+  end
 end
 
 -- Pure migration summary for the [Migrate] debug line.
@@ -134,29 +140,27 @@ function Database:Export(filter)
       ts = e.ts, char = e.char, classFile = e.classFile,
       kind = e.kind, direction = e.direction, store = e.store, guild = e.guild,
       itemID = e.itemID, itemLink = e.itemLink, itemName = e.itemName, quality = e.quality,
-      itemType = e.itemType, itemSubType = e.itemSubType, vendorPrice = e.vendorPrice,
+      itemType = e.itemType, itemSubType = e.itemSubType,
       quantity = e.quantity, zone = e.zone, mapID = e.mapID, subzone = e.subzone,
     }
   end
   return out
 end
 
--- Aggregate the (optionally filtered) ledger in one O(n) pass. Returns count maps, value maps,
+-- Aggregate the (optionally filtered) ledger in one O(n) pass. Returns count maps,
 -- per-store/character/day breakdowns, a pre-sorted top-items list, and the totals the Insights
--- widgets consume. "Value" is copper: a MONEY entry's own amount, or an ITEM entry's vendor price ×
--- stack count (NS.Util.EntryValue). "Net" applies the direction sign — deposits add, withdrawals
--- subtract — so a store's net flow reads as "what you actually put in".
+-- widgets consume. Value is not derived or reported (schema v2). "Net" per store is a MOVEMENT
+-- count — deposits add, withdrawals subtract — so a store's net flow reads as "did you put more in
+-- than you took out", the only signed non-gold quantity left once vendor value is gone.
 function Database:Stats(filter)
   local entries = self:Query(filter or {})
   local byStore, byDirection, byKind, byDay, byChar, byItem, byItemType = {}, {}, {}, {}, {}, {}, {}
-  local valueByStore, netByStore, valueByDay = {}, {}, {}
+  local netByStore = {}
   local charByStore = {}
   local distinctItems, distinctChars = 0, 0
   local firstTs, lastTs
   local itemsDeposited, itemsWithdrawn = 0, 0
   local moneyIn, moneyOut = 0, 0
-  local totalValue = 0
-  local biggestMove
   -- The second wave of breakdowns, added for the expanded Insights panel. Every one is a plain
   -- extra accumulator in the SAME single pass — the panel got richer without the aggregation
   -- getting slower, and no existing key changed name or meaning.
@@ -174,17 +178,15 @@ function Database:Stats(filter)
 
   for _, e in ipairs(entries) do
     local qty = e.quantity or 1
-    local value = NS.Util.EntryValue(e)
-    local signed = NS.Util.SignedValue(e)
     local store = e.store or "BAGS"
     local dir = e.direction or "DEPOSIT"
 
-    totalValue = totalValue + value
     byStore[store] = (byStore[store] or 0) + 1
     byDirection[dir] = (byDirection[dir] or 0) + 1
     byKind[e.kind or "ITEM"] = (byKind[e.kind or "ITEM"] or 0) + 1
-    valueByStore[store] = (valueByStore[store] or 0) + value
-    netByStore[store] = (netByStore[store] or 0) + signed
+    -- Net flow per store, counted in MOVEMENTS: +1 for a deposit, -1 for a withdrawal. The only
+    -- signed non-gold quantity the addon keeps now that vendor value is gone (schema v2).
+    netByStore[store] = (netByStore[store] or 0) + (C.DirectionSign[dir] or 1)
 
     bump(storeByDirection, store, dir, 1)
     if e.zone and e.zone ~= "" then byZone[e.zone] = (byZone[e.zone] or 0) + 1 end
@@ -210,10 +212,9 @@ function Database:Stats(filter)
         if rec then
           rec.moves = rec.moves + 1
           rec.quantity = rec.quantity + qty
-          rec.value = rec.value + value
         else
           byItem[id] = { itemID = id, itemName = e.itemName, quality = e.quality,
-                         moves = 1, quantity = qty, value = value }
+                         moves = 1, quantity = qty }
           distinctItems = distinctItems + 1
         end
       end
@@ -222,7 +223,6 @@ function Database:Stats(filter)
     if e.ts then
       local day = date("%Y-%m-%d", e.ts)
       byDay[day] = (byDay[day] or 0) + 1
-      valueByDay[day] = (valueByDay[day] or 0) + value
       if e.kind == "MONEY" then moneyByDay[day] = (moneyByDay[day] or 0) + qty end
       if not firstTs or e.ts < firstTs then firstTs = e.ts end
       if not lastTs or e.ts > lastTs then lastTs = e.ts end
@@ -241,37 +241,26 @@ function Database:Stats(filter)
       bump(charByDirection, ch, dir, 1)
       local ce = byChar[ch]
       if not ce then
-        ce = { char = ch, classFile = e.classFile, count = 0, value = 0 }
+        ce = { char = ch, classFile = e.classFile, count = 0 }
         byChar[ch] = ce
         distinctChars = distinctChars + 1
       end
       ce.count = ce.count + 1
-      ce.value = ce.value + value
       bump(charByStore, ch, store, 1)
-    end
-
-    if value > 0 and (not biggestMove or value > biggestMove.value) then
-      biggestMove = { itemName = e.itemName, kind = e.kind, quality = e.quality,
-                      quantity = qty, value = value, direction = dir, store = store }
     end
   end
 
-  -- Top items, ranked three ways off the one byItem index. Each list is a fresh array of the SAME
-  -- record tables (never a copy), so the three rankings cost three sorts and no extra memory.
-  -- Every comparator ends on the item id, so a tie can never reorder run to run.
-  local topItems, topItemsByValue, topItemsByQuantity = {}, {}, {}
+  -- Top items, ranked two ways off the one byItem index. Each list is a fresh array of the SAME
+  -- record tables (never a copy), so the rankings cost two sorts and no extra memory. Every
+  -- comparator ends on the item id, so a tie can never reorder run to run.
+  local topItems, topItemsByQuantity = {}, {}
   for _, rec in pairs(byItem) do
     topItems[#topItems + 1] = rec
-    topItemsByValue[#topItemsByValue + 1] = rec
     topItemsByQuantity[#topItemsByQuantity + 1] = rec
   end
   table.sort(topItems, function(a, b)
     if a.moves ~= b.moves then return a.moves > b.moves end
     if a.quantity ~= b.quantity then return a.quantity > b.quantity end
-    return (a.itemID or 0) < (b.itemID or 0)
-  end)
-  table.sort(topItemsByValue, function(a, b)
-    if a.value ~= b.value then return a.value > b.value end
     return (a.itemID or 0) < (b.itemID or 0)
   end)
   table.sort(topItemsByQuantity, function(a, b)
@@ -293,16 +282,26 @@ function Database:Stats(filter)
     if not busiestDay or count > busiestDay.count then busiestDay = { day = day, count = count } end
   end
 
+  -- The store with the most movements, for the "top store" card. Ties break on the store key so
+  -- the card cannot flicker between two equally-busy stores across refreshes.
+  local topStore
+  for store, count in pairs(byStore) do
+    if not topStore or count > topStore.count
+      or (count == topStore.count and store < topStore.store) then
+      topStore = { store = store, count = count }
+    end
+  end
+
   return {
     byStore = byStore, byDirection = byDirection, byKind = byKind, byDay = byDay,
     byChar = byChar, byItem = byItem, byItemType = byItemType, topItems = topItems,
-    valueByStore = valueByStore, netByStore = netByStore, valueByDay = valueByDay,
+    netByStore = netByStore,
     charByStore = charByStore,
     byItemSubType = byItemSubType, byQuality = byQuality, byZone = byZone,
     byHour = byHour, byWeekday = byWeekday,
     moneyByDay = moneyByDay, moneyByStore = moneyByStore,
     charByDirection = charByDirection, storeByDirection = storeByDirection,
-    topItemsByValue = topItemsByValue, topItemsByQuantity = topItemsByQuantity,
+    topItemsByQuantity = topItemsByQuantity,
     topZones = topZones,
     totals = {
       entries = #entries, distinctItems = distinctItems, distinctChars = distinctChars,
@@ -312,7 +311,8 @@ function Database:Stats(filter)
       netItems = itemsDeposited - itemsWithdrawn,
       moneyIn = moneyIn, moneyOut = moneyOut, netMoney = moneyIn - moneyOut,
       moneyMoved = moneyIn + moneyOut,
-      totalValue = totalValue, biggestMove = biggestMove,
+      itemsMoved = itemsDeposited + itemsWithdrawn,
+      topStore = topStore,
     },
   }
 end

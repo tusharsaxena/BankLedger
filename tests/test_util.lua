@@ -99,30 +99,6 @@ test("Util.RangeFrom windows are ordered today > 7d > 30d", function()
   assertTrue(d7 > d30, "7 days ago is later than 30 days ago")
 end)
 
-test("Util.EntryValue is the amount itself for a gold movement", function()
-  assertEqual(NS.Util.EntryValue({ kind = "MONEY", quantity = 12345 }), 12345)
-end)
-
-test("Util.EntryValue is vendor price times stack for an item movement", function()
-  assertEqual(NS.Util.EntryValue({ kind = "ITEM", quantity = 4, vendorPrice = 250 }), 1000)
-end)
-
-test("Util.EntryValue is zero for an unpriced item", function()
-  assertEqual(NS.Util.EntryValue({ kind = "ITEM", quantity = 4 }), 0)
-end)
-
-test("Util.EntryValue is zero for nothing at all", function()
-  assertEqual(NS.Util.EntryValue(nil), 0)
-end)
-
-test("Util.SignedValue makes a deposit positive and a withdrawal negative", function()
-  local e = { kind = "MONEY", quantity = 500 }
-  e.direction = "DEPOSIT"
-  assertEqual(NS.Util.SignedValue(e), 500)
-  e.direction = "WITHDRAW"
-  assertEqual(NS.Util.SignedValue(e), -500)
-end)
-
 -- ── Secret-safe printer (events-frames-taint-§8) ────────────────────────────────
 
 test("NS.IsConcatSafe accepts an ordinary value", function()

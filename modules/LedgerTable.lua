@@ -314,14 +314,14 @@ end
 -- waiting to actually fill a bank. A deterministic PRNG — a fixed seed, NOT math.random — keeps the
 -- data byte-identical every run, so the headless tests can assert on it.
 local PREVIEW_ITEMS = {
-  { 2589,  "Linen Cloth",           1, "Tradegoods", "Cloth",  20 },
-  { 4306,  "Silk Cloth",            1, "Tradegoods", "Cloth",  60 },
-  { 171276,"Spectral Flask",        3, "Consumable", "Flask",  5000 },
-  { 19019, "Thunderfury",           5, "Weapon",     "Swords", 250000 },
-  { 6948,  "Hearthstone",           1, "Miscellaneous", "Junk", 0 },
-  { 194863,"Serevite Ore",          1, "Tradegoods", "Metal",  35 },
-  { 190316,"Refreshing Healing Potion", 2, "Consumable", "Potion", 400 },
-  { 200071,"Dragon Isles Herb",     2, "Tradegoods", "Herb",   90 },
+  { 2589,  "Linen Cloth",           1, "Tradegoods", "Cloth" },
+  { 4306,  "Silk Cloth",            1, "Tradegoods", "Cloth" },
+  { 171276,"Spectral Flask",        3, "Consumable", "Flask" },
+  { 19019, "Thunderfury",           5, "Weapon",     "Swords" },
+  { 6948,  "Hearthstone",           1, "Miscellaneous", "Junk" },
+  { 194863,"Serevite Ore",          1, "Tradegoods", "Metal" },
+  { 190316,"Refreshing Healing Potion", 2, "Consumable", "Potion" },
+  { 200071,"Dragon Isles Herb",     2, "Tradegoods", "Herb" },
 }
 local PREVIEW_STORES = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
 local PREVIEW_CHARS = {
@@ -357,7 +357,7 @@ function LT:BuildPreviewData()
       kind = C.Kind.ITEM, direction = dir, store = store,
       guild = (store == "GUILD_BANK") and "Ka0s" or nil,
       itemID = it[1], itemName = it[2], quality = it[3],
-      itemType = it[4], itemSubType = it[5], vendorPrice = it[6],
+      itemType = it[4], itemSubType = it[5],
       quantity = qty,
       zone = "Valdrakken", mapID = 2112,
     }

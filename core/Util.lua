@@ -120,22 +120,6 @@ function Util.FormatBytes(bytes)
   end
 end
 
--- The copper value a ledger entry represents: a MONEY row IS its amount; an ITEM row is its vendor
--- price × stack count (0 when the item was never priced). Used by the Insights value totals and the
--- CSV `value` column, so both read the same number.
-function Util.EntryValue(entry)
-  if entry == nil then return 0 end
-  if entry.kind == "MONEY" then return entry.quantity or 0 end
-  return (entry.vendorPrice or 0) * (entry.quantity or 1)
-end
-
--- The signed magnitude an entry contributes to a store's net flow: deposits positive, withdrawals
--- negative. Shared by the table's Net column and the Insights net totals.
-function Util.SignedValue(entry)
-  local sign = NS.Constants.DirectionSign[entry and entry.direction] or 1
-  return sign * Util.EntryValue(entry)
-end
-
 -- ── Secret-safe chat printer (events-frames-taint-§8) ────────────────────────────
 -- In combat, retail protects combat-sensitive returns (unit absorb/health totals, threat, some aura
 -- amounts) as "secret" values. A secret survives tostring() AND the `..` operator (which silently
