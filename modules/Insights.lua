@@ -82,7 +82,8 @@ local CARD_DEFS = {
   { key = "topStore", caption = "top store",
     tooltip = "The store with the most movements in this slice." },
   { key = "itemsMoved", caption = "items moved",
-    tooltip = "Every stack unit that crossed the line, in either direction: items in plus items out." },
+    tooltip = "Every stack unit that crossed the line, in either direction: "
+      .. "items in plus items out." },
   { key = "goldIn", caption = "gold in",
     tooltip = "Coin deposited into the guild and warband banks. The character bank has no coin slot." },
   { key = "goldOut", caption = "gold out",
