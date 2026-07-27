@@ -48,7 +48,7 @@ test("LedgerTable:PaintCell writes the column's text into the cell", function()
   assertEqual(calls.rgb[1], 1.00, "the Character Bank keeps its gold from the shared palette")
 end)
 
-test("LedgerTable:PaintCell drives the direction glyph only for the In/Out column", function()
+test("LedgerTable:PaintCell drives the direction glyph only for the Direction column", function()
   local glyph = { shown = nil, text = nil,
     SetText = function(self, v) self.text = v end,
     SetTextColor = function() end,

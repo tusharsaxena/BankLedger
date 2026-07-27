@@ -231,7 +231,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - RunMigrations never downgrades a future schema version
 - Database:Export never emits a vendorPrice field
 
-### test_stats.lua (56)
+### test_stats.lua (59)
 
 - Stats: the entry total counts every movement in scope
 - Stats: item quantities split by direction
@@ -289,13 +289,16 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Stats: topZones records carry the in/out split
 - Stats: topTypeSub ranks type and sub-type pairs with a display label
 - Stats: topItemsByStore ranks each store's items independently
+- Stats: per-store item records split moves by direction
+- Stats: the per-store In and Out lists rank independently
+- Stats: a store with no withdrawals has an empty per-store Out list
 
 ### test_ledgertable.lua (45)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
 - LedgerTable:PaintCell writes the column's text into the cell
-- LedgerTable:PaintCell drives the direction glyph only for the In/Out column
+- LedgerTable:PaintCell drives the direction glyph only for the Direction column
 - LedgerTable:PaintCell is a safe no-op for a missing cell or column
 - LedgerTable:CellText renders the store as a human label
 - LedgerTable:CellText falls back to 'Item <id>' for an uncached item
@@ -394,7 +397,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
-### test_insights.lua (73)
+### test_insights.lua (72)
 
 - InsightsWidgets.PaletteColor returns an rgb triple for rank 1
 - InsightsWidgets.PaletteColor gives adjacent ranks different colours
@@ -413,10 +416,6 @@ whenever the suite changes (see [testing.md](testing.md)).
 - InsightsWidgets.SignedMoney renders zero as a neutral dash
 - InsightsWidgets.SignedCount signs a count the same way
 - InsightsWidgets.Money renders nothing as a plain zero, not an empty cell
-- InsightsWidgets.DivergingFill sends a gain right and a loss left
-- InsightsWidgets.DivergingFill draws nothing for zero or no scale
-- InsightsWidgets.DivergingFill shares one scale across both directions
-- InsightsWidgets.DivergingFill clamps a magnitude past the scale
 - InsightsWidgets.RatioShares splits proportionally and sums to one
 - InsightsWidgets.RatioShares reads an empty split as balanced
 - InsightsWidgets.RatioShares treats a negative side as zero
@@ -460,7 +459,6 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights:Attach and Refresh survive an empty ledger
 - Insights:Refresh lays out every section against a populated ledger
 - Insights:Refresh renders a slice with no gold at all
-- Insights: Net Flow By Store renders a movement count, not a money value
 - Insights: the four direction-split companions render without raising
 - Insights.BarLabel truncates the name and leaves the icon escape intact
 - Insights.BarLabel is a plain truncation when there is no icon
@@ -469,6 +467,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - InsightsWidgets pools list panels, each carrying its own row pool
 - InsightsWidgets.MakeCard builds every headline on one base font template
 - Insights: the reorganized list section renders every group
+- Insights.ElementTip pairs the full label with the figure the element shows
+- Insights.ElementTip falls back to the bare label when there is no value
+- Insights: a bar's tip carries its untruncated label AND its value
+- Insights: a back-to-back half's tip carries its count and its share of the row
 
 ### test_export.lua (30)
 
@@ -590,13 +592,13 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_filters.lua | 15 |
 | test_ledger.lua | 93 |
 | test_database.lua | 39 |
-| test_stats.lua | 56 |
+| test_stats.lua | 59 |
 | test_ledgertable.lua | 45 |
 | test_browser.lua | 18 |
 | test_sessionwindow.lua | 32 |
-| test_insights.lua | 73 |
+| test_insights.lua | 72 |
 | test_export.lua | 30 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **529** |
+| **Total** | **531** |

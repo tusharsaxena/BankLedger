@@ -289,9 +289,9 @@ local function EnsureMenu()
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(false)   -- a long label truncates on its row; it never wraps into the next
         b.fs = fs
-        -- Optional leading glyph (the In/Out ▲/▼). A separate FontString in the vendored mono font,
+        -- Optional leading glyph (the direction ▲/▼). A separate FontString in the vendored mono font,
         -- because the row font has no such glyph — the same reason, and the same documented
-        -- deviation, as the In/Out column in the table.
+        -- deviation, as the Direction column in the table.
         local gl = b:CreateFontString(nil, "OVERLAY")
         gl:SetFont(C.FONT_MONO, 11, "")
         gl:SetPoint("LEFT", 8, 0)
@@ -478,7 +478,7 @@ local GROUP_OPTIONS = {
   { value = "none",      label = "Group: None" },
   { value = "day",       label = "Group: Day" },
   { value = "store",     label = "Group: Store" },
-  { value = "direction", label = "Group: In/Out" },
+  { value = "direction", label = "Group: Direction" },
   { value = "kind",      label = "Group: Item/Gold" },
   { value = "type",      label = "Group: Type" },
   { value = "subtype",   label = "Group: Sub-type" },
@@ -505,13 +505,13 @@ end
 
 -- Data-driven option lists: only the values the dataset actually contains are offered, so an empty
 -- ledger doesn't show five stores you've never used.
--- In/Out and Store options carry the same colours (and, for a direction, the same ▲/▼ glyph) the
+-- Direction and Store options carry the same colours (and, for a direction, the same ▲/▼ glyph) the
 -- table paints those values with, straight out of the shared palette in Constants — so the menu
 -- reads as the column it filters.
 local function directionOptions()
   local present = {}
   for _, e in ipairs(dataset()) do present[e.direction or "DEPOSIT"] = true end
-  local items = { { value = "all", label = "In/Out: All" } }
+  local items = { { value = "all", label = "Direction: All" } }
   for _, k in ipairs(C.DirectionOrder) do
     if present[k] then
       items[#items + 1] = { value = k, label = C.DirectionLabel[k],
@@ -725,7 +725,7 @@ end
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
 -- EnsureFrame, above both tab panes, so one filter drives the table AND the charts.
 --   Row 1: Group by · [search…] · Clear
---   Row 2: Date · In/Out · Store · Type · Character · Export
+--   Row 2: Date · Direction · Store · Type · Character · Export
 function B:BuildFilterBar(bar)
   local ROW1, ROW2 = 0, -24
   local dd = {}

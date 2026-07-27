@@ -135,17 +135,6 @@ function W.SignedCount(n)
   return "|cffff4040" .. n .. "|r"
 end
 
--- A diverging bar's geometry: which side of the centre baseline the fill sits on, and how far it
--- reaches as a fraction of that half. `scale` is the largest ABSOLUTE magnitude in the list, so the
--- two directions share one scale and a +100 bar is visibly twice a -50 one.
-function W.DivergingFill(value, scale)
-  value = value or 0
-  scale = math.abs(scale or 0)
-  if scale <= 0 or value == 0 then return "none", 0 end
-  local frac = math.min(1, math.abs(value) / scale)
-  return (value > 0) and "right" or "left", frac
-end
-
 -- Two shares of one full-width bar, as fractions summing to 1 (0.5/0.5 when both sides are zero, so
 -- an empty ratio bar reads as balanced rather than collapsing to nothing).
 function W.RatioShares(a, b)
@@ -481,73 +470,6 @@ function W.PlaceBar(bar, host, x, y, barW, frac)
   bar.fill:ClearAllPoints()
   bar.fill:SetPoint("LEFT", bar.track, "LEFT", 0, 0)
   bar.fill:SetSize(math.max(1, trackW * math.min(1, frac or 0)), W.BAR_H - 4)
-  return trackW
-end
-
--- ── Diverging bar ──────────────────────────────────────────────────────────────
--- A centre baseline with the fill growing right for a net gain and left for a net loss. The honest
--- form for net flow: a plain bar would have to drop the sign, and "how much went in" and "how much
--- came out" are the same question asked from two sides.
-
-function W.MakeDivergingBar(parent)
-  local bar = CreateFrame("Frame", nil, parent)
-  bar:SetHeight(W.BAR_H)
-  local label = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  label:SetJustifyH("LEFT")
-  label:SetWordWrap(false)
-  bar.label = label
-  local track = bar:CreateTexture(nil, "BACKGROUND")
-  track:SetColorTexture(1, 1, 1, 0.06)
-  bar.track = track
-  local baseline = bar:CreateTexture(nil, "BORDER")
-  baseline:SetColorTexture(0.55, 0.55, 0.60, 0.9)
-  bar.baseline = baseline
-  local fill = bar:CreateTexture(nil, "ARTWORK")
-  bar.fill = fill
-  local value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  value:SetJustifyH("RIGHT")
-  value:SetWordWrap(false)
-  bar.value = value
-  bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.GOLD) end)
-  bar:SetScript("OnLeave", hideTooltip)
-  return bar
-end
-
-function W.PlaceDivergingBar(bar, host, x, y, barW, side, frac)
-  bar:ClearAllPoints()
-  bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
-  bar:SetWidth(barW)
-  bar.label:ClearAllPoints()
-  bar.label:SetPoint("LEFT", 0, 0)
-  bar.label:SetWidth(W.LABEL_W)
-  bar.value:ClearAllPoints()
-  bar.value:SetPoint("RIGHT", 0, 0)
-  bar.value:SetWidth(W.VALUE_W)
-  local trackW = math.max(2, barW - W.LABEL_W - W.VALUE_W - 12)
-  local halfW = trackW / 2
-  bar.track:ClearAllPoints()
-  bar.track:SetPoint("LEFT", W.LABEL_W + 6, 0)
-  bar.track:SetSize(trackW, W.BAR_H - 4)
-  bar.baseline:ClearAllPoints()
-  bar.baseline:SetPoint("CENTER", bar.track, "CENTER", 0, 0)
-  bar.baseline:SetSize(1, W.BAR_H - 2)
-
-  bar.fill:ClearAllPoints()
-  if side == "none" or (frac or 0) <= 0 then
-    bar.fill:Hide()
-    return trackW
-  end
-  local w = math.max(1, halfW * math.min(1, frac))
-  if side == "right" then
-    bar.fill:SetPoint("LEFT", bar.track, "CENTER", 0, 0)
-    bar.fill:SetColorTexture(W.POSITIVE[1], W.POSITIVE[2], W.POSITIVE[3], 0.95)
-  else
-    bar.fill:SetPoint("RIGHT", bar.track, "CENTER", 0, 0)
-    bar.fill:SetColorTexture(W.NEGATIVE[1], W.NEGATIVE[2], W.NEGATIVE[3], 0.95)
-  end
-  bar.fill:SetSize(w, W.BAR_H - 4)
-  bar.fill:Show()
   return trackW
 end
 

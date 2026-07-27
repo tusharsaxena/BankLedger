@@ -33,7 +33,7 @@ Close the bank and it closes with it.
 - A live **Current Banking Session** window that opens with any bank and shows exactly what you moved
   during that visit.
 - Insights tab with fourteen headline figures and eighteen charts: the deposit/withdrawal split, net
-  flow per store, per-character/per-store/per-quality/per-type breakdowns (each with an In/Out
+  per-character/per-store/per-quality/per-type breakdowns (each with a deposits/withdrawals
   companion), activity by day, hour and weekday, and ranked lists — by item, category and location,
   each split into All / Deposits / Withdrawals — of your most-moved and most-numerous items.
 - Export either tab to CSV, for all your data or just the view you are looking at.

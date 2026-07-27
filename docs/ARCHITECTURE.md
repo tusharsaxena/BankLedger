@@ -57,7 +57,7 @@ warband movement, because no event announces one.
 | `modules/Browser.lua` | The standalone window: skin, tabs, the shared filter bar, footer, minimap launcher. |
 | `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, the test dataset (`/bl test`), and the shared `Column` / `PaintCell` column seams. |
 | `modules/SessionWindow.lua` | The live "Current Banking Session" window: its own slim pooled table over the movements of one bank visit. |
-| `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, diverging/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
+| `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
 | `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
 | `modules/DebugLog.lua` | The on-screen debug console and the `NS.Debug` sink. |
@@ -314,7 +314,8 @@ removed the value dimension from it entirely:
 - **Changed:** `netByStore` is now a **signed movement count** (`+1` per deposit, `-1` per
   withdrawal), not a value — the only surviving signed non-gold quantity.
 - **Added:** `storeByDirection`, `qualityByDirection`, `itemTypeByDirection`, `itemSubTypeByDirection`
-  (the four `× In/Out` companion accumulators), `itemsByStore` (`[store][itemID] = moves`),
+  (the four `× Deposits/Withdrawals` companion accumulators), `itemsByStore`
+  (`[store][itemID] = { moves, movesIn, movesOut }`, behind the per-store triptychs),
   `topItemsIn`/`topItemsOut`, `topItemsByQuantityIn`/`topItemsByQuantityOut`, `topZonesIn`/
   `topZonesOut`, `topTypeSub`/`topTypeSubIn`/`topTypeSubOut`, `topItemsByStore`, `totals.itemsMoved`
   (`itemsDeposited + itemsWithdrawn`) and `totals.topStore` (the busiest store, ties broken on the
@@ -332,17 +333,17 @@ label/the store key so a tie can never reorder run to run.
 ### Section order
 
 In render order: Deposits vs Withdrawals (caption labels **below** the bar, not inside it), Movements
-By Store + its companion, Net Flow By Store (diverging), Movements By Character, Movements By
-Character × Store, Movements By Character × In/Out, Movements By Quality + its companion, Movements
+By Store + its companion, Movements By Character, Movements By
+Character × Store, Movements By Character × Deposits/Withdrawals, Movements By Quality + its companion, Movements
 By Item Type + its companion, Movements By Sub-type + its companion, Movements Over Time (per day),
 Movements By Hour Of Day, Movements By Weekday, then — only when the slice holds a coin movement —
 the GOLD block (Gold Moved Over Time, Gold By Store).
 
-Every companion **mirrors its parent's full title** — `Movements By Item Type × In/Out`, not
-`Item Type × In/Out` — so a companion scrolled past in isolation still says what it is a companion
+Every companion **mirrors its parent's full title** — `Movements By Item Type × Deposits/Withdrawals`, not
+`Item Type × Deposits/Withdrawals` — so a companion scrolled past in isolation still says what it is a companion
 to.
 
-Each `× In/Out` companion sits **immediately after its parent chart** and is drawn **back to back**
+Each `× Deposits/Withdrawals` companion sits **immediately after its parent chart** and is drawn **back to back**
 (`W.BuildBackToBackRows` → `I:RenderBackToBack` → `W.PlaceBackToBackBar`): withdrawals grow LEFT of a
 fixed centre axis, deposits grow RIGHT. Both sides share **one** scale — the largest single-direction
 magnitude in the list — so the split sits on the same vertical line in every row and the lean of the
@@ -408,10 +409,10 @@ visible hitch.
 
 Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
 
-- **The vendored mono font is used for the In/Out glyph**, not only for the debug console.
+- **The vendored mono font is used for the direction glyph**, not only for the debug console.
   `media/fonts/JetBrainsMono-Regular.ttf` ships as a *sanctioned styling exception* whose stated
-  scope is the debug console and its copy boxes (debug-logging-§2). The History table's In/Out
-  column and the In/Out filter dropdown draw a ▲/▼ (U+25B2 / U+25BC) in that font, because WoW's
+  scope is the debug console and its copy boxes (debug-logging-§2). The History table's Direction
+  column and the Direction filter dropdown draw a ▲/▼ (U+25B2 / U+25BC) in that font, because WoW's
   default font carries neither glyph and renders a box for both.
   **Why the extension was accepted:** the alternative is a texture, and Blizzard's arrow art carries
   uneven padding — the up arrow sits low in its canvas, the down arrow high — so a texture pair

@@ -45,7 +45,7 @@ LT.COLUMNS = {
     desc = "Time of day the movement happened.",
     valueFn = function(e) return NS.Util.FormatClock(e.ts) end,
     sortFn = function(e) return e.ts or 0 end },
-  { key = "direction", label = "In/Out", width = 74, align = "LEFT",
+  { key = "direction", label = "Direction", width = 82, align = "LEFT",
     desc = "Deposit (\226\150\188) means it left your bags for the store; "
       .. "withdraw (\226\150\178) means it came back out.",
     valueFn = function(e) return C.DirectionLabel[e.direction] or e.direction or "" end,
@@ -556,7 +556,7 @@ function LT:AcquireRow()
     row.cells[col.key] = fs
   end
 
-  -- The direction glyph, drawn to the left of the In/Out text and coloured with it.
+  -- The direction glyph, drawn to the left of the Direction text and coloured with it.
   local glyph = row:CreateFontString(nil, "OVERLAY")
   glyph:SetFont(C.FONT_MONO, ARROW_SIZE, "")
   glyph:SetJustifyH("CENTER")
@@ -650,7 +650,7 @@ function LT:LayoutRowCells(row)
     local w = col.flex and flexW or col.width
     local fs = row.cells[col.key]
     fs:ClearAllPoints()
-    -- The In/Out cell gives its first ARROW_SIZE+ARROW_GAP pixels to the direction glyph.
+    -- The Direction cell gives its first ARROW_SIZE+ARROW_GAP pixels to the direction glyph.
     if col.key == "direction" and row.dirGlyph then
       row.dirGlyph:ClearAllPoints()
       row.dirGlyph:SetPoint("LEFT", row, "LEFT", x, 0)

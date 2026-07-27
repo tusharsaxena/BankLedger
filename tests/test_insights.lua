@@ -115,37 +115,7 @@ test("InsightsWidgets.Money renders nothing as a plain zero, not an empty cell",
   assertEqual(W.Money(10000), "1g")
 end)
 
--- ── Diverging + ratio geometry ─────────────────────────────────────────────────
-
-test("InsightsWidgets.DivergingFill sends a gain right and a loss left", function()
-  local side, frac = W.DivergingFill(50, 100)
-  assertEqual(side, "right")
-  assertEqual(frac, 0.5)
-  side, frac = W.DivergingFill(-100, 100)
-  assertEqual(side, "left")
-  assertEqual(frac, 1)
-end)
-
-test("InsightsWidgets.DivergingFill draws nothing for zero or no scale", function()
-  local side, frac = W.DivergingFill(0, 100)
-  assertEqual(side, "none")
-  assertEqual(frac, 0)
-  side, frac = W.DivergingFill(50, 0)
-  assertEqual(side, "none")
-  assertEqual(frac, 0)
-end)
-
-test("InsightsWidgets.DivergingFill shares one scale across both directions", function()
-  -- +100 must be visibly twice -50, which only holds if both divide by the same absolute peak.
-  local _, big = W.DivergingFill(100, 100)
-  local _, small = W.DivergingFill(-50, 100)
-  assertEqual(big / small, 2)
-end)
-
-test("InsightsWidgets.DivergingFill clamps a magnitude past the scale", function()
-  local _, frac = W.DivergingFill(500, 100)
-  assertEqual(frac, 1)
-end)
+-- ── Ratio geometry ────────────────────────────────────────────────────────────
 
 test("InsightsWidgets.RatioShares splits proportionally and sums to one", function()
   local a, b = W.RatioShares(75, 25)
@@ -305,7 +275,7 @@ test("InsightsWidgets.BuildStackRows breaks total ties on the label", function()
   assertEqual(rows[1].label, "Abe")
 end)
 
--- ── Back-to-back (x In/Out) rows ───────────────────────────────────────────────
+-- ── Back-to-back (x Deposits/Withdrawals) rows ────────────────────────────────
 -- The whole point of the form is that the split sits on ONE vertical line in every row, which
 -- only holds if both sides share a single scale. These pin that.
 
@@ -531,44 +501,6 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   NS.db.global.ledger = {}
 end)
 
--- Regression: netByStore was rebased from copper to a signed movement count, but the Net Flow By
--- Store panel kept formatting it with W.SignedMoney, so three net deposits rendered as a copper
--- coin amount ("+3c") instead of a count ("+3"). Drive the real row builder (as above) rather than
--- hand-building a row, and assert the value string is exactly what W.SignedCount produces.
-test("Insights: Net Flow By Store renders a movement count, not a money value", function()
-  unfiltered()
-  NS.db.global.ledger = {
-    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
-      store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
-      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
-    { ts = NOW - DAY, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
-      direction = "DEPOSIT", store = "BANK", itemID = 2590, itemName = "Silk Cloth", quality = 1,
-      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 2, zone = "Valdrakken" },
-    { ts = NOW - 2 * DAY, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
-      direction = "DEPOSIT", store = "BANK", itemID = 2591, itemName = "Wool Cloth", quality = 1,
-      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 1, zone = "Valdrakken" },
-  }
-  local captured
-  local original = I.RenderDiverging
-  I.RenderDiverging = function(self, poolKey, headerKey, rows, y, w)
-    if headerKey == "netStore" then captured = rows end
-    return original(self, poolKey, headerKey, rows, y, w)
-  end
-  local ok, err = pcall(function() I:Refresh() end)
-  I.RenderDiverging = original
-  NS.db.global.ledger = {}
-  if not ok then error(err, 0) end
-
-  assertTrue(captured ~= nil and #captured > 0, "the net-flow section built at least one row")
-  local row
-  for _, r in ipairs(captured) do
-    if r.signed == 3 then row = r end
-  end
-  assertTrue(row ~= nil, "BANK's net flow of +3 movements is among the rows")
-  assertEqual(row.value, W.SignedCount(3), "the value string is exactly a plain signed count")
-  assertTrue(row.value:find("|T", 1, true) == nil, "no coin texture escape leaks into the value")
-end)
-
 test("Insights: the four direction-split companions render without raising", function()
   unfiltered()
   NS.db.global.ledger = {
@@ -701,5 +633,65 @@ test("Insights: the reorganized list section renders every group", function()
   local first = #I.panelPool.active + #I.panelPool.free
   I:Refresh()
   assertEqual(#I.panelPool.active + #I.panelPool.free, first, "panels are pooled, not leaked")
+  NS.db.global.ledger = {}
+end)
+
+-- ── Hover tips carry the value ─────────────────────────────────────────────────
+
+test("Insights.ElementTip pairs the full label with the figure the element shows", function()
+  assertEqual(I.ElementTip("Character Bank", "12  67%"), "Character Bank:  12  67%")
+end)
+
+test("Insights.ElementTip falls back to the bare label when there is no value", function()
+  assertEqual(I.ElementTip("Character Bank", nil), "Character Bank")
+  assertEqual(I.ElementTip("Character Bank", ""), "Character Bank")
+end)
+
+test("Insights: a bar's tip carries its untruncated label AND its value", function()
+  -- The bar prints the value and a TRUNCATED label, so the tip is the only place the full name
+  -- and the number appear together.
+  local captured
+  local original = I.RenderBars
+  I.RenderBars = function(self, poolKey, headerKey, rows, yy, ww, legendKey)
+    if headerKey == "store" then captured = rows end
+    return original(self, poolKey, headerKey, rows, yy, ww, legendKey)
+  end
+  unfiltered()
+  NS.db.global.ledger = {
+    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+      store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
+  }
+  I:Refresh()
+  I.RenderBars = original
+  assertTrue(captured ~= nil, "the store chart rendered")
+  local tip = I.ElementTip(captured[1].fullLabel or captured[1].label, captured[1].value)
+  assertTrue(tip:find("Character Bank", 1, true) ~= nil, "the tip names the store")
+  assertTrue(tip:find("1", 1, true) ~= nil, "and carries its count")
+  NS.db.global.ledger = {}
+end)
+
+test("Insights: a back-to-back half's tip carries its count and its share of the row", function()
+  local captured
+  local original = I.RenderBackToBack
+  I.RenderBackToBack = function(self, poolKey, headerKey, rows, yy, ww)
+    if headerKey == "storeDir" then captured = rows end
+    return original(self, poolKey, headerKey, rows, yy, ww)
+  end
+  unfiltered()
+  -- Three deposits and one withdrawal at the same store: 75% / 25%.
+  local ledger = {}
+  for i = 1, 4 do
+    ledger[i] = { ts = NOW - i, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+      direction = (i == 4) and "WITHDRAW" or "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 1, zone = "Valdrakken" }
+  end
+  NS.db.global.ledger = ledger
+  I:Refresh()
+  I.RenderBackToBack = original
+  assertTrue(captured ~= nil, "the store x direction chart rendered")
+  assertEqual(captured[1].rightTip, "Deposit: 3 (75%)")
+  assertEqual(captured[1].leftTip, "Withdraw: 1 (25%)")
   NS.db.global.ledger = {}
 end)

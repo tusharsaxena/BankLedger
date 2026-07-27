@@ -369,7 +369,7 @@ function SW:LayoutRowCells(row)
     local fs = row.cells[slot.col.key]
     if fs then
       fs:ClearAllPoints()
-      -- The In/Out cell gives its first ARROW_SIZE+ARROW_GAP pixels to the direction glyph.
+      -- The Direction cell gives its first ARROW_SIZE+ARROW_GAP pixels to the direction glyph.
       if slot.col.key == "direction" and row.dirGlyph then
         row.dirGlyph:ClearAllPoints()
         row.dirGlyph:SetPoint("LEFT", row, "LEFT", slot.x, 0)

@@ -255,10 +255,14 @@ function Database:Stats(filter)
           rec.movesOut = rec.movesOut + 1
           rec.qtyOut = rec.qtyOut + qty
         end
-        -- Per-store item index, for the "Top Items - <Store>" panels.
+        -- Per-store item index, for the per-store All/Deposits/Withdrawals panels. Split by
+        -- direction here so each store gets the same three rankings the global lists have.
         local m = itemsByStore[store]
         if not m then m = {}; itemsByStore[store] = m end
-        m[id] = (m[id] or 0) + 1
+        local sRec = m[id]
+        if not sRec then sRec = { moves = 0, movesIn = 0, movesOut = 0 }; m[id] = sRec end
+        sRec.moves = sRec.moves + 1
+        if isIn then sRec.movesIn = sRec.movesIn + 1 else sRec.movesOut = sRec.movesOut + 1 end
       end
     end
 
@@ -365,21 +369,35 @@ function Database:Stats(filter)
   table.sort(topTypeSubIn, byTSField("inCount"))
   table.sort(topTypeSubOut, byTSField("outCount"))
 
-  -- One ranked item list per store, off the per-store index. Names and qualities come from the
-  -- shared byItem records, so a store list can never disagree with the global one about an item.
-  local topItemsByStore = {}
+  -- Three ranked item lists per store — all, deposits, withdrawals — off the per-store index, so a
+  -- store gets the same All/Deposits/Withdrawals treatment the global lists have. Names and
+  -- qualities come from
+  -- the shared byItem records, so a store list can never disagree with the global one about an
+  -- item. As with the global rankings, the three arrays hold the SAME record tables.
+  local topItemsByStore, topItemsByStoreIn, topItemsByStoreOut = {}, {}, {}
   for store, ids in pairs(itemsByStore) do
-    local list = {}
-    for id, moves in pairs(ids) do
+    local all, into, outOf = {}, {}, {}
+    for id, sRec in pairs(ids) do
       local rec = byItem[id]
-      list[#list + 1] = { itemID = id, itemName = rec and rec.itemName,
-                          quality = rec and rec.quality, moves = moves }
+      local out = { itemID = id, itemName = rec and rec.itemName,
+                    quality = rec and rec.quality,
+                    moves = sRec.moves, movesIn = sRec.movesIn, movesOut = sRec.movesOut }
+      all[#all + 1] = out
+      if out.movesIn > 0 then into[#into + 1] = out end
+      if out.movesOut > 0 then outOf[#outOf + 1] = out end
     end
-    table.sort(list, function(a, b)
-      if a.moves ~= b.moves then return a.moves > b.moves end
-      return (a.itemID or 0) < (b.itemID or 0)
-    end)
-    topItemsByStore[store] = list
+    local function byStoreField(field)
+      return function(a, b)
+        if a[field] ~= b[field] then return a[field] > b[field] end
+        return (a.itemID or 0) < (b.itemID or 0)
+      end
+    end
+    table.sort(all, byStoreField("moves"))
+    table.sort(into, byStoreField("movesIn"))
+    table.sort(outOf, byStoreField("movesOut"))
+    topItemsByStore[store] = all
+    topItemsByStoreIn[store] = into
+    topItemsByStoreOut[store] = outOf
   end
 
   local activeDays, busiestDay = 0, nil
@@ -415,6 +433,7 @@ function Database:Stats(filter)
     topZones = topZones, topZonesIn = topZonesIn, topZonesOut = topZonesOut,
     topTypeSub = topTypeSub, topTypeSubIn = topTypeSubIn, topTypeSubOut = topTypeSubOut,
     topItemsByStore = topItemsByStore,
+    topItemsByStoreIn = topItemsByStoreIn, topItemsByStoreOut = topItemsByStoreOut,
     totals = {
       entries = #entries, distinctItems = distinctItems, distinctChars = distinctChars,
       firstTs = firstTs, lastTs = lastTs, activeDays = activeDays, busiestDay = busiestDay,

@@ -442,3 +442,30 @@ test("Stats: topItemsByStore ranks each store's items independently", function()
   assertEqual(byStore.WARBAND_BANK[1].itemID, 2589)
   assertEqual(byStore.GUILD_BANK, nil, "a coin-only store has no item list")
 end)
+
+-- ── Per-store direction-split item lists ───────────────────────────────────────
+-- Each store gets its own All / Deposits / Withdrawals triptych, so the three lists must
+-- reconcile per store exactly as the global ones do.
+
+test("Stats: per-store item records split moves by direction", function()
+  local rec = stats().topItemsByStore.BANK[1]
+  assertEqual(rec.movesIn + rec.movesOut, rec.moves,
+    "a store record's directions must sum to its total")
+end)
+
+test("Stats: the per-store In and Out lists rank independently", function()
+  local s = stats()
+  -- BANK holds one Linen Cloth deposit and one Silk Cloth withdrawal.
+  assertEqual(s.topItemsByStoreIn.BANK[1].itemID, 2589, "Linen Cloth leads BANK's deposits")
+  assertEqual(#s.topItemsByStoreIn.BANK, 1, "only the deposited item appears in the In list")
+  assertEqual(s.topItemsByStoreOut.BANK[1].itemID, 4306, "Silk Cloth leads BANK's withdrawals")
+  assertEqual(#s.topItemsByStoreOut.BANK, 1, "only the withdrawn item appears in the Out list")
+end)
+
+test("Stats: a store with no withdrawals has an empty per-store Out list", function()
+  local s = stats()
+  -- WARBAND_BANK holds a single deposit and nothing outgoing.
+  assertEqual(#s.topItemsByStoreIn.WARBAND_BANK, 1)
+  assertEqual(#s.topItemsByStoreOut.WARBAND_BANK, 0,
+    "an empty list, not a nil -- the panel decides whether to draw a column")
+end)

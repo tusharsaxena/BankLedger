@@ -11,10 +11,10 @@ local W = NS.InsightsWidgets
 -- This file is about WHAT is shown: which breakdown, out of which Stats key, in which colour and in
 -- which order. HOW it is drawn lives in modules/InsightsWidgets.lua.
 --
--- A bank ledger measures FLOW, so the panel is organised around direction, store and net rather than
--- around a flat "count by category" list: the in/out split leads, net flow per store gets a diverging
--- bar (the only honest form for a signed quantity), and the per-character companions answer "who is
--- filling this bank and who is emptying it".
+-- A bank ledger measures FLOW, so the panel is organised around direction and store rather than
+-- around a flat "count by category" list: the in/out split leads, and every breakdown that can be
+-- split by direction carries a back-to-back companion answering "which way does this lean" — for a
+-- store, a quality, an item type, a character.
 
 local BAR_ROWS = 12          -- cap on a ranked bar list, so one section can't run off the page
 local LIST_ROWS = 10         -- cap on a ranked list panel
@@ -64,6 +64,15 @@ function I.BarLabel(row)
   return (row.icon or "") .. name
 end
 
+-- A chart element's hover tip: its FULL label and the figure it is showing. The element usually
+-- prints that figure already, but the label beside it is often truncated to fit its column — the
+-- tip is the one place the untruncated name and its number are guaranteed to appear together.
+function I.ElementTip(label, value)
+  label = tostring(label or "")
+  if value == nil or value == "" then return label end
+  return label .. ":  " .. tostring(value)
+end
+
 -- ── Stat cards ─────────────────────────────────────────────────────────────────
 -- In display order, 4 per row; `wide` spans two columns. Every card shares one base headline font
 -- and every card carries a tooltip: half of these are derived figures, and a bare number with a
@@ -72,12 +81,12 @@ end
 local CARD_DEFS = {
   { key = "movements", caption = "movements",
     tooltip = "Rows in the current slice — one per item stack or coin amount that crossed the line." },
-  { key = "itemsIn", caption = "items in",
+  { key = "itemsIn", caption = "items deposited",
     tooltip = "Total stack count deposited into a bank from your bags." },
-  { key = "itemsOut", caption = "items out",
+  { key = "itemsOut", caption = "items withdrawn",
     tooltip = "Total stack count withdrawn from a bank back into your bags." },
   { key = "netItems", caption = "net items",
-    tooltip = "Items in minus items out. Positive means you are stockpiling." },
+    tooltip = "Items deposited minus items withdrawn. Positive means you are stockpiling." },
   { key = "distinctItems", caption = "distinct items",
     tooltip = "How many different items appear, however often each one moved." },
   { key = "chars", caption = "characters",
@@ -88,13 +97,14 @@ local CARD_DEFS = {
     tooltip = "The store with the most movements in this slice." },
   { key = "itemsMoved", caption = "items moved",
     tooltip = "Every stack unit that crossed the line, in either direction: "
-      .. "items in plus items out." },
-  { key = "goldIn", caption = "gold in",
+      .. "items deposited plus items withdrawn." },
+  { key = "goldIn", caption = "gold deposited",
     tooltip = "Coin deposited into the guild and warband banks. The character bank has no coin slot." },
-  { key = "goldOut", caption = "gold out",
+  { key = "goldOut", caption = "gold withdrawn",
     tooltip = "Coin withdrawn from the guild and warband banks." },
   { key = "netGold", caption = "net gold",
-    tooltip = "Gold in minus gold out. Green means the banks gained; red means you drew down." },
+    tooltip = "Gold deposited minus gold withdrawn. Green means the banks gained; "
+      .. "red means you drew down." },
   { key = "span", caption = "date range", wide = true,
     tooltip = "Earliest and latest movement in this slice." },
   { key = "busiest", caption = "busiest day", wide = true,
@@ -106,19 +116,18 @@ local CARD_DEFS = {
 local SECTION_TITLES = {
   split      = "Deposits vs Withdrawals",
   store      = "Movements By Store",
-  netStore   = "Net Flow By Store",
   char       = "Movements By Character",
-  -- Every companion mirrors its parent chart's full title, so a reader scrolling past a "... x
-  -- In/Out" never has to look up to work out what it is a companion TO.
+  -- Every companion mirrors its parent chart's full title, so a companion scrolled past on its
+  -- own still says what it is a companion TO.
   charStore  = "Movements By Character \195\151 Store",
-  charDir    = "Movements By Character \195\151 In/Out",
+  charDir    = "Movements By Character \195\151 Deposits/Withdrawals",
   quality    = "Movements By Quality",
   itemType   = "Movements By Item Type",
   subType    = "Movements By Sub-type",
-  storeDir   = "Movements By Store \195\151 In/Out",
-  qualityDir = "Movements By Quality \195\151 In/Out",
-  itemTypeDir= "Movements By Item Type \195\151 In/Out",
-  subTypeDir = "Movements By Sub-type \195\151 In/Out",
+  storeDir   = "Movements By Store \195\151 Deposits/Withdrawals",
+  qualityDir = "Movements By Quality \195\151 Deposits/Withdrawals",
+  itemTypeDir= "Movements By Item Type \195\151 Deposits/Withdrawals",
+  subTypeDir = "Movements By Sub-type \195\151 Deposits/Withdrawals",
   perDay     = "Movements Over Time (Per Day)",
   hour       = "Movements By Hour Of Day",
   weekday    = "Movements By Weekday",
@@ -127,7 +136,7 @@ local SECTION_TITLES = {
 }
 
 local POOL_KEYS = {
-  "store", "netStore", "char", "quality", "itemType", "subType",
+  "store", "char", "quality", "itemType", "subType",
   "weekday", "goldStore", "charStore", "charDir", "perDay", "hour", "goldDay",
   "listHead",
   "itemTypeLeg", "subTypeLeg", "charStoreLeg", "charDirLeg",
@@ -268,7 +277,7 @@ function I:RenderBars(poolKey, headerKey, rows, y, w, legendPool)
     local bar = W.Acquire(self.pools[poolKey], function() return W.MakeBar(self.content) end)
     local color = row.color or W.NEUTRAL
     bar.fill:SetColorTexture(color[1], color[2], color[3], 0.95)
-    bar._tip = row.fullLabel or row.label
+    bar._tip = I.ElementTip(row.fullLabel or row.label, row.value)
     bar.label:SetText(I.BarLabel(row))
     -- The label defaults to its bar's colour, which makes a single bar self-legending.
     local lc = row.labelColor or color
@@ -288,35 +297,7 @@ function I:RenderBars(poolKey, headerKey, rows, y, w, legendPool)
   return y - W.SECTION_GAP
 end
 
--- A diverging (signed) bar section. `rows` is { label, color?, signed, value }; the scale is the
--- largest absolute magnitude across the list, so both directions share one scale.
-function I:RenderDiverging(poolKey, headerKey, rows, y, w)
-  local header = self.headers[headerKey]
-  if #rows == 0 then header:Hide(); return y end
-  local scale = 0
-  for _, row in ipairs(rows) do scale = math.max(scale, math.abs(row.signed or 0)) end
-  header:ClearAllPoints()
-  header:SetPoint("TOPLEFT", self.content, "TOPLEFT", PAD, y)
-  header:Show()
-  y = y - 18
-  local innerW = w - PAD * 2
-  for _, row in ipairs(rows) do
-    local bar = W.Acquire(self.pools[poolKey],
-      function() return W.MakeDivergingBar(self.content) end)
-    bar._tip = row.fullLabel or row.label
-    bar.label:SetText((W.Truncate(row.label)))
-    local lc = row.color or W.MUTED
-    bar.label:SetTextColor(lc[1], lc[2], lc[3])
-    bar.value:SetText(row.value or "")
-    bar.value:SetTextColor(W.MUTED[1], W.MUTED[2], W.MUTED[3])
-    local side, frac = W.DivergingFill(row.signed, scale)
-    W.PlaceDivergingBar(bar, self.content, PAD, y, innerW, side, frac)
-    y = y - (W.BAR_H + W.BAR_GAP)
-  end
-  return y - W.SECTION_GAP
-end
-
--- A per-row stacked-bar section (the "× Store" / "× In/Out" companions).
+-- A per-row stacked-bar section (the "× Store" companion).
 function I:RenderStacked(poolKey, headerKey, rows, y, w)
   local header = self.headers[headerKey]
   if #rows == 0 then header:Hide(); return y end
@@ -328,7 +309,7 @@ function I:RenderStacked(poolKey, headerKey, rows, y, w)
   for _, row in ipairs(rows) do
     local bar = W.Acquire(self.pools[poolKey],
       function() return W.MakeStackedBar(self.content) end)
-    bar._tip = row.fullLabel or row.label
+    bar._tip = I.ElementTip(row.fullLabel or row.label, row.value)
     bar.label:SetText((W.Truncate(row.label)))
     local lc = row.labelColor or W.MUTED
     bar.label:SetTextColor(lc[1], lc[2], lc[3])
@@ -355,7 +336,7 @@ function I:RenderBackToBack(poolKey, headerKey, rows, y, w)
   for _, row in ipairs(rows) do
     local bar = W.Acquire(self.pools[poolKey],
       function() return W.MakeBackToBackBar(self.content) end)
-    bar._tip = row.fullLabel or row.label
+    bar._tip = I.ElementTip(row.fullLabel or row.label, row.value)
     bar.label:SetText(I.BarLabel(row))
     local lc = row.labelColor or W.MUTED
     bar.label:SetTextColor(lc[1], lc[2], lc[3])
@@ -466,7 +447,7 @@ function I:RenderList(title, rows, y, x, colW, rightW)
     r:SetWidth(colW - 8)
     r.name:SetWidth(math.max(1, colW - 8 - (rightW or 48) - 6))
     r.name:SetText(row.name)
-    r._tip = row.fullName or row.name
+    r._tip = I.ElementTip(row.fullName or row.name, row.right)
     local nc = row.nameColor or W.MUTED
     r.name:SetTextColor(nc[1], nc[2], nc[3])
     r.right:SetWidth(rightW or 48)
@@ -572,7 +553,7 @@ local function placeDivider(divider, content, y)
 end
 
 
--- A "<segment> x In/Out" companion: the same stacked-bar form as Character x In/Out, in the
+-- A "<segment> x Deposits/Withdrawals" companion, drawn back to back, in the
 -- direction colours, with a legend. `labelOf`/`labelColorOf` keep each row recognisable against
 -- the parent chart it sits under.
 function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, w)
@@ -586,9 +567,14 @@ function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, 
   local rows = W.BuildBackToBackRows(matrix, C.Direction.DEPOSIT, C.Direction.WITHDRAW, {
     labelOf = opts.labelOf, labelColorOf = opts.labelColorOf, valueFmt = tostring,
   })
+  -- Each half's tip carries its share of THAT ROW's movements, not of the chart: the question a
+  -- split bar raises is "how much of this store/quality/type went each way", and the percentage is
+  -- what the eye cannot read off two bar lengths.
   for _, row in ipairs(rows) do
-    row.rightTip = directionLabel(C.Direction.DEPOSIT) .. ": " .. row.rightMag
-    row.leftTip = directionLabel(C.Direction.WITHDRAW) .. ": " .. row.leftMag
+    row.rightTip = ("%s: %d (%d%%)"):format(
+      directionLabel(C.Direction.DEPOSIT), row.rightMag, W.Percent(row.rightMag, row.total))
+    row.leftTip = ("%s: %d (%d%%)"):format(
+      directionLabel(C.Direction.WITHDRAW), row.leftMag, W.Percent(row.leftMag, row.total))
   end
   -- Cap at BAR_ROWS to match the parent bar chart above it: the rows are already sorted
   -- total-desc, so truncating after the sort keeps the largest.
@@ -624,10 +610,10 @@ function I:LayoutSections(y, w, stats, totals)
     local inFrac, outFrac = W.RatioShares(inCount, outCount)
     W.PlaceRatioBar(self.ratioBar, content, PAD, y, innerW,
       { frac = inFrac, color = directionColor(C.Direction.DEPOSIT),
-        text = ("In %d \194\183 %d%%"):format(inCount, W.Percent(inCount, total)),
+        text = ("Deposits %d \194\183 %d%%"):format(inCount, W.Percent(inCount, total)),
         tip = ("Deposits: %d of %d movements"):format(inCount, total) },
       { frac = outFrac, color = directionColor(C.Direction.WITHDRAW),
-        text = ("Out %d \194\183 %d%%"):format(outCount, W.Percent(outCount, total)),
+        text = ("Withdrawals %d \194\183 %d%%"):format(outCount, W.Percent(outCount, total)),
         tip = ("Withdrawals: %d of %d movements"):format(outCount, total) })
     self.ratioBar:Show()
     y = y - W.RATIO_H - W.RATIO_CAPTION_H - W.SECTION_GAP
@@ -648,20 +634,7 @@ function I:LayoutSections(y, w, stats, totals)
   y = self:RenderDirectionSplit("storeDir", "storeDir", "storeDirLeg", stats.storeByDirection,
     { labelOf = storeLabel, labelColorOf = storeColor }, y, w)
 
-  -- 3 ── Net flow per store, signed. A store you keep draining reads left and red; one you keep
-  -- filling reads right and green. Ordered by the store display order, not by magnitude, so the
-  -- rows stay in the same place between refreshes and the eye can compare across passes.
-  local netRows = {}
-  for _, key in ipairs(C.StoreOrder) do
-    local net = (stats.netByStore or {})[key]
-    if net ~= nil then
-      netRows[#netRows + 1] = { label = storeLabel(key), color = storeColor(key),
-        signed = net, value = W.SignedCount(net) }
-    end
-  end
-  y = self:RenderDiverging("netStore", "netStore", netRows, y, w)
-
-  -- 4 ── Movements by character, class-coloured and behind the class icon.
+  -- 3 ── Movements by character, class-coloured and behind the class icon.
   local charRows = {}
   for _, ce in pairs(stats.byChar or {}) do
     if (ce.count or 0) > 0 then charRows[#charRows + 1] = ce end
@@ -703,9 +676,9 @@ function I:LayoutSections(y, w, stats, totals)
     y = self:RenderLegend("charStoreLeg", legend, y, w)
   end
 
-  -- 6 ── Movements By Character × In/Out: who fills the bank and who empties it. Rendered through
-  -- the same back-to-back path as the other × In/Out companions, so every in/out chart in the
-  -- panel shares one centre axis and one reading.
+  -- 5 ── Movements By Character × Deposits/Withdrawals: who fills the bank and who empties it.
+  -- Rendered through the same back-to-back path as every other direction companion, so all of
+  -- them share one centre axis and one reading.
   y = self:RenderDirectionSplit("charDir", "charDir", "charDirLeg", stats.charByDirection,
     { labelOf = W.ShortChar,
       labelColorOf = function(ch) return W.ClassColor(classOf[ch]) end }, y, w)
@@ -877,19 +850,28 @@ function I:LayoutSections(y, w, stats, totals)
     { title = "Withdrawals", rows = countRows(stats.topZonesOut, "outCount") },
   }, y, innerW)
 
-  -- Per-store item lists, in the store display order so the columns keep their places between
-  -- refreshes. A coin-only store contributes no list and simply does not appear.
-  local storeSpecs = {}
+  -- Per-store lists, each store its OWN sub-section with the same All / Deposits / Withdrawals
+  -- triptych every other metric gets — so "what moves through the guild bank, and which way" is
+  -- answered in one place instead of by cross-referencing a single combined panel against the
+  -- charts above. Stores run in display order so a store keeps its position between refreshes; a
+  -- coin-only store has no item list and simply does not appear.
+  local anyStore = false
   for _, key in ipairs(C.StoreOrder) do
-    local list = (stats.topItemsByStore or {})[key]
-    if list and #list > 0 then
-      storeSpecs[#storeSpecs + 1] =
-        { title = storeLabel(key), rows = itemRows(list, moves("moves")) }
+    local all = (stats.topItemsByStore or {})[key]
+    if all and #all > 0 then
+      if not anyStore then
+        y = self:RenderSubHead("BY STORE", y)
+        anyStore = true
+      end
+      y = self:RenderSubHead(storeLabel(key), y, 10)
+      y = self:RenderListRow({
+        { title = "All", rows = itemRows(all, moves("moves")) },
+        { title = "Deposits",
+          rows = itemRows((stats.topItemsByStoreIn or {})[key], moves("movesIn")) },
+        { title = "Withdrawals",
+          rows = itemRows((stats.topItemsByStoreOut or {})[key], moves("movesOut")) },
+      }, y, innerW)
     end
-  end
-  if #storeSpecs > 0 then
-    y = self:RenderSubHead("BY STORE", y)
-    y = self:RenderListRow(storeSpecs, y, innerW)
   end
 
   return y - W.SECTION_GAP
