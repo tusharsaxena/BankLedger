@@ -58,11 +58,21 @@ addon prints to chat carries the cyan `[BL]` tag.
 | `/bl list` | List all settings |
 | `/bl reset <setting>` | Reset one setting |
 | `/bl resetall` | Reset all settings |
-| `/bl test` | Toggle a sample ledger |
 | `/bl session` | Toggle the banking-session window (sample data outside a bank) |
+| `/bl test` | Toggle a sample ledger |
 | `/bl purge` | Delete ALL ledger history (asks first) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
+| `/bl debug scan` | Dump this client's container model and money readers to the console |
+| `/bl debug panel` | Dump the settings header's Defaults button state to the console |
 | `/bl help` | Show this help |
+
+`/bl debug scan` and `/bl debug panel` write straight to the console whether or not logging is on,
+so you can run one without turning logging on first. `scan` is the one to paste into a bug report:
+it reports which container ids and which money-balance readers this build actually exposes.
+
+While the sample ledger (`/bl test`) is on screen the History table's right-click menu offers
+**Link to chat** only — Delete, Blacklist and Whitelist are greyed out, because the sample rows are
+synthetic and those actions would otherwise reach your real settings and history.
 
 ### Settings panel
 

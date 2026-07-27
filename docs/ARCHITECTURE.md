@@ -16,8 +16,21 @@ a change it takes a fresh snapshot and diffs the two, **per store**:
 2. The reverse is a **withdrawal**.
 3. A change on only one side (loot landing in the bags, a stack destroyed) is deliberately **not** a
    movement, so ordinary play never pollutes the ledger.
-4. Gold is diffed the same way, but only at the two stores that hold gold — the guild bank and the
-   warband bank. A character-bank money change came from somewhere else entirely.
+4. Gold is diffed the same way, and under the **same corroboration rule**, at the two stores that
+   hold gold — the guild bank and the warband bank. A character-bank money change came from
+   somewhere else entirely.
+
+The corroboration in rule 4 is the whole of it: a gold row requires the player's purse **and the
+store's own coin balance** to move by the same amount in opposite directions. The purse alone proves
+nothing, because `BANK_FRAME` reaches the warband bank — so buying a bank tab, repairing, or a mail
+COD landing mid-visit would otherwise each be recorded as a warband deposit. A store whose balance
+cannot be read on both snapshots contributes no money movement at all.
+
+`Compat.GetStoreMoney(store)` is the reader, and it returns `nil` rather than a number whenever it
+cannot answer honestly. That matters more than it looks: `GetGuildBankMoney()` returns **0**, not
+`nil`, when the guild bank frame is closed, so the guild read is gated on
+`Compat.IsGuildBankVisible()`. The warband balance comes from
+`C_Bank.FetchDepositedMoney(Enum.BankType.Account)`, which is not frame-bound.
 
 Capture is completely inert outside an open storage frame. That single gate is what keeps a vendor
 sale or a quest turn-in out of the ledger.
@@ -42,9 +55,9 @@ warband movement, because no event announces one.
 
 | File | Role |
 |---|---|
-| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container/guild-bank/void-storage readers, item lookups, money, guild name, TOC metadata. |
-| `core/Constants.lua` | The `Store` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
-| `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, the cyan `NS.PREFIX` chat tag. |
+| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container/guild-bank/void-storage readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
+| `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
+| `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
 | `core/Util.lua` | Player key, path splitting, date/money/byte formatting, and the shared secret-safe chat printer. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
@@ -152,7 +165,7 @@ two consumers sharing a target silently clobber each other.
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
 | `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + Filters page) |
-| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
@@ -476,6 +489,15 @@ src.resize((256, 256), Image.LANCZOS) \
   to be one of the two sides. It would need a second rule that pairs two stores against each other.
 - **A movement made while the addon is disabled is lost**, not backfilled — the baseline snapshot is
   only taken while capture is on.
+- **Gold rows written before the balance-corroboration fix cannot be cleaned up retroactively.**
+  Nothing in a stored row distinguishes a real warband deposit from a bank-tab purchase that was
+  recorded as one, so the addon cannot find them after the fact. Filter to Gold + Warband Bank in
+  the History tab to review them, and delete any that were not real from the row menu.
+- **An item the client has not cached is skipped when a minimum quality is set**, because it has no
+  quality to judge. The id is queued for loading so the next movement of it is judged properly. At
+  the default threshold of 0 nothing is skipped. There is **no name backfill** — a row stored
+  without a cached name keeps only its item id and stays out of the Type, Sub-type and Quality
+  breakdowns for good.
 - **The settings landing page renders no logo if the art is missing.** `C.LOGO_PATH` points at
   `media/logos/bankledger.logo.tga`; a missing file simply draws nothing rather than erroring —
   silently, which is why the art was absent for a while without anything failing. The runtime asset
