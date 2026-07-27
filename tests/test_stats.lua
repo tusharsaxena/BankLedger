@@ -397,3 +397,57 @@ test("Stats: the direction split always sums back to its parent breakdown", func
       "qualityByDirection must reconcile with byQuality for quality " .. tostring(q))
   end
 end)
+
+-- ── Direction-split rankings for the Top Of The List section ────────────────────
+
+test("Stats: item records split their moves and quantities by direction", function()
+  local byItem = stats().byItem
+  local linen = byItem[2589]      -- 2 deposits (10 + 2), no withdrawals
+  assertEqual(linen.movesIn, 2)
+  assertEqual(linen.movesOut, 0)
+  assertEqual(linen.qtyIn, 12)
+  assertEqual(linen.qtyOut, 0)
+  local silk = byItem[4306]       -- 1 withdrawal of 3
+  assertEqual(silk.movesOut, 1)
+  assertEqual(silk.qtyOut, 3)
+end)
+
+test("Stats: the In and Out item rankings sum back to the combined ranking", function()
+  local s = stats()
+  for _, rec in ipairs(s.topItems) do
+    assertEqual(rec.movesIn + rec.movesOut, rec.moves,
+      "moves must reconcile for item " .. tostring(rec.itemID))
+    assertEqual(rec.qtyIn + rec.qtyOut, rec.quantity,
+      "quantity must reconcile for item " .. tostring(rec.itemID))
+  end
+  assertEqual(s.topItemsIn[1].itemID, 2589, "Linen Cloth leads the deposits")
+  assertEqual(s.topItemsOut[1].itemID, 4306, "Silk Cloth leads the withdrawals")
+end)
+
+test("Stats: byZone keeps its plain count-map shape for the CSV", function()
+  assertEqual(stats().byZone.Valdrakken, 4)
+end)
+
+test("Stats: topZones records carry the in/out split", function()
+  local z = stats().topZones[1]
+  assertEqual(z.zone, "Valdrakken")
+  assertEqual(z.count, 4)
+  assertEqual(z.inCount + z.outCount, z.count)
+end)
+
+test("Stats: topTypeSub ranks type and sub-type pairs with a display label", function()
+  local t = stats().topTypeSub[1]
+  assertEqual(t.type, "Tradegoods")
+  assertEqual(t.subType, "Cloth")
+  assertEqual(t.label, "Tradegoods \194\183 Cloth")
+  assertEqual(t.count, 3)
+  assertEqual(t.inCount, 2)
+  assertEqual(t.outCount, 1)
+end)
+
+test("Stats: topItemsByStore ranks each store's items independently", function()
+  local byStore = stats().topItemsByStore
+  assertEqual(byStore.BANK[1].itemID, 2589, "Linen Cloth and Silk Cloth tie at 1; id breaks it")
+  assertEqual(byStore.WARBAND_BANK[1].itemID, 2589)
+  assertEqual(byStore.GUILD_BANK, nil, "a coin-only store has no item list")
+end)

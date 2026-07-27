@@ -18,6 +18,7 @@ local W = NS.InsightsWidgets
 
 local BAR_ROWS = 12          -- cap on a ranked bar list, so one section can't run off the page
 local LIST_ROWS = 10         -- cap on a ranked list panel
+local LIST_COLS = 3          -- All / Deposits / Withdrawals, side by side
 local CARD_COLS = 4
 local CARD_GAP, PAD = 8, 8
 local EM_DASH = "\226\128\148"
@@ -130,7 +131,7 @@ local SECTION_TITLES = {
 local POOL_KEYS = {
   "store", "netStore", "char", "quality", "itemType", "subType",
   "weekday", "goldStore", "charStore", "charDir", "perDay", "hour", "goldDay",
-  "itemMoves", "itemQty", "zone",
+  "listHead",
   "storeLeg", "itemTypeLeg", "subTypeLeg", "charStoreLeg", "charDirLeg",
   "storeDir", "qualityDir", "itemTypeDir", "subTypeDir",
   "storeDirLeg", "qualityDirLeg", "itemTypeDirLeg", "subTypeDirLeg",
@@ -174,11 +175,9 @@ function I:Attach(pane)
     hour     = CreateFrame("Frame", nil, content),
     goldDay  = CreateFrame("Frame", nil, content),
   }
-  self.panels = {
-    itemMoves = W.MakeListPanel(content, "Top Items By Movements"),
-    itemQty   = W.MakeListPanel(content, "Top Items By Quantity"),
-    zone      = W.MakeListPanel(content, "Top Banking Spots"),
-  }
+  -- Ranked-list panels are POOLED, not fixed: the per-store lists vary in count and every panel
+  -- takes its title per pass.
+  self.panelPool = W.NewPool()
   self.ratioBar = W.MakeRatioBar(content)
 
   self.pools = {}
@@ -413,19 +412,21 @@ function I:RenderStrip(poolKey, headerKey, strip, buckets, y, w)
   return y - W.STRIP_H - W.STRIP_LABEL_H - W.SECTION_GAP
 end
 
--- A ranked list panel. `rows` is { name, fullName, nameColor, right }. Returns the panel's height so
--- the caller can stack two columns of differing lengths.
-function I:RenderList(poolKey, panel, rows, y, x, colW, rightW)
+-- A ranked list panel, acquired from the pool and titled per pass. `rows` is
+-- { name, fullName, nameColor, right }. Returns the panel's height (0 when there is nothing to
+-- show, so the caller can collapse the slot) so columns of differing lengths can be stacked.
+function I:RenderList(title, rows, y, x, colW, rightW)
   local n = math.min(LIST_ROWS, #rows)
-  if n == 0 then panel:Hide(); return 0 end
+  if n == 0 then return 0 end
+  local panel = W.Acquire(self.panelPool, function() return W.MakeListPanel(self.content) end)
+  W.SetPanelTitle(panel, title)
   local panelH = 20 + n * W.LIST_ROW_H + 4
   panel:ClearAllPoints()
   panel:SetPoint("TOPLEFT", self.content, "TOPLEFT", x, y)
   panel:SetSize(colW, panelH)
-  panel:Show()
   for i = 1, n do
     local row = rows[i]
-    local r = W.Acquire(self.pools[poolKey], function() return W.MakeListRow(panel) end)
+    local r = W.Acquire(panel._rows, function() return W.MakeListRow(panel) end)
     r:ClearAllPoints()
     r:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -20 - (i - 1) * W.LIST_ROW_H)
     r:SetWidth(colW - 8)
@@ -441,12 +442,41 @@ function I:RenderList(poolKey, panel, rows, y, x, colW, rightW)
   return panelH
 end
 
+-- A pooled sub-heading inside the Top Of The List section, so the groups can be named without a
+-- fixed header per group.
+function I:RenderSubHead(text, y, indent)
+  local fs = W.Acquire(self.pools.listHead,
+    function() return W.MakeSectionHeader(self.content, "") end)
+  fs:SetText(text)
+  fs:ClearAllPoints()
+  fs:SetPoint("TOPLEFT", self.content, "TOPLEFT", PAD + (indent or 0), y)
+  return y - 18
+end
+
+-- One row of up to LIST_COLS panels. `specs` is { title, rows, rightW }; an empty list simply
+-- leaves its column blank. The row advances by its TALLEST panel so nothing overlaps.
+function I:RenderListRow(specs, y, innerW)
+  local gap = 12
+  local colW = math.floor((innerW - gap * (LIST_COLS - 1)) / LIST_COLS)
+  local tallest, col = 0, 0
+  for _, spec in ipairs(specs) do
+    if col >= LIST_COLS then
+      y = y - tallest - W.SECTION_GAP
+      tallest, col = 0, 0
+    end
+    local h = self:RenderList(spec.title, spec.rows, y, PAD + col * (colW + gap), colW, spec.rightW)
+    if h > tallest then tallest = h end
+    col = col + 1
+  end
+  if tallest == 0 then return y end
+  return y - tallest - W.SECTION_GAP
+end
+
 -- ── Layout ─────────────────────────────────────────────────────────────────────
 
 function I:HideAllSections()
   for _, h in pairs(self.headers) do h:Hide() end
   for _, s in pairs(self.strips) do s:Hide() end
-  for _, p in pairs(self.panels) do p:Hide() end
   for _, d in pairs(self.dividers) do d:Hide() end
   self.ratioBar:Hide()
 end
@@ -458,6 +488,7 @@ function I:Layout()
   self.content:SetWidth(w)
 
   for _, key in ipairs(POOL_KEYS) do W.ReleaseAll(self.pools[key]) end
+  W.ReleasePanels(self.panelPool)
 
   local stats = self.stats or {}
   local totals = stats.totals or {}
@@ -751,12 +782,11 @@ function I:LayoutSections(y, w, stats, totals)
     self.strips.goldDay:Hide()
   end
 
-  -- ── Ranked lists, two columns ─────────────────────────────────────────────────
+  -- ── Ranked lists: grouped, three columns of All / Deposits / Withdrawals ───────
+  -- The triptych IS the organization: a metric's combined ranking and its two direction-split
+  -- rankings sit side by side, so "what moves most" and "what moves most INTO the bank" are one
+  -- glance apart rather than one scroll apart.
   y = placeDivider(self.dividers.top, content, y)
-
-  local COL_GAP = 12
-  local listColW = math.floor((innerW - COL_GAP) / 2)
-  local leftX, rightX = PAD, PAD + listColW + COL_GAP
 
   local function itemRows(list, rightOf)
     local rows = {}
@@ -772,29 +802,62 @@ function I:LayoutSections(y, w, stats, totals)
     end
     return rows
   end
+  local function countRows(list, field)
+    local rows = {}
+    for i = 1, math.min(LIST_ROWS, #(list or {})) do
+      local r = list[i]
+      rows[#rows + 1] = { name = r.label or r.zone, right = tostring(r[field]) }
+    end
+    return rows
+  end
+  local moves = function(field) return function(it) return tostring(it[field]) end end
 
-  local movesList = itemRows(stats.topItems, function(it) return tostring(it.moves) end)
-  local qtyList = itemRows(stats.topItemsByQuantity, function(it) return tostring(it.quantity) end)
-  local zoneList = {}
-  for i = 1, math.min(LIST_ROWS, #(stats.topZones or {})) do
-    local z = stats.topZones[i]
-    zoneList[#zoneList + 1] = { name = z.zone, right = tostring(z.count) }
+  y = self:RenderSubHead("ITEMS", y)
+  y = self:RenderSubHead("Top Items By Movements", y, 10)
+  y = self:RenderListRow({
+    { title = "All",         rows = itemRows(stats.topItems, moves("moves")) },
+    { title = "Deposits",    rows = itemRows(stats.topItemsIn, moves("movesIn")) },
+    { title = "Withdrawals", rows = itemRows(stats.topItemsOut, moves("movesOut")) },
+  }, y, innerW)
+  y = self:RenderSubHead("Top Items By Quantity", y, 10)
+  y = self:RenderListRow({
+    { title = "All",         rows = itemRows(stats.topItemsByQuantity, moves("quantity")) },
+    { title = "Deposits",    rows = itemRows(stats.topItemsByQuantityIn, moves("qtyIn")) },
+    { title = "Withdrawals", rows = itemRows(stats.topItemsByQuantityOut, moves("qtyOut")) },
+  }, y, innerW)
+
+  y = self:RenderSubHead("CATEGORIES", y)
+  y = self:RenderSubHead("Top Type \194\183 Sub-type", y, 10)
+  y = self:RenderListRow({
+    { title = "All",         rows = countRows(stats.topTypeSub, "count") },
+    { title = "Deposits",    rows = countRows(stats.topTypeSubIn, "inCount") },
+    { title = "Withdrawals", rows = countRows(stats.topTypeSubOut, "outCount") },
+  }, y, innerW)
+
+  y = self:RenderSubHead("WHERE", y)
+  y = self:RenderSubHead("Top Banking Spots", y, 10)
+  y = self:RenderListRow({
+    { title = "All",         rows = countRows(stats.topZones, "count") },
+    { title = "Deposits",    rows = countRows(stats.topZonesIn, "inCount") },
+    { title = "Withdrawals", rows = countRows(stats.topZonesOut, "outCount") },
+  }, y, innerW)
+
+  -- Per-store item lists, in the store display order so the columns keep their places between
+  -- refreshes. A coin-only store contributes no list and simply does not appear.
+  local storeSpecs = {}
+  for _, key in ipairs(C.StoreOrder) do
+    local list = (stats.topItemsByStore or {})[key]
+    if list and #list > 0 then
+      storeSpecs[#storeSpecs + 1] =
+        { title = storeLabel(key), rows = itemRows(list, moves("moves")) }
+    end
+  end
+  if #storeSpecs > 0 then
+    y = self:RenderSubHead("BY STORE", y)
+    y = self:RenderListRow(storeSpecs, y, innerW)
   end
 
-  -- Left column is zones; right column stacks moves-then-quantity. The block below advances y by
-  -- the TALLER of the two columns, so nothing overlaps whichever list runs long.
-  local leftTop = y
-  local zoneH = self:RenderList("zone", self.panels.zone, zoneList, leftTop, leftX, listColW)
-  local leftTotal = zoneH
-
-  local rightTop = y
-  local movesH = self:RenderList("itemMoves", self.panels.itemMoves, movesList,
-    rightTop, rightX, listColW)
-  local qtyY = rightTop - (movesH > 0 and (movesH + W.SECTION_GAP) or 0)
-  local qtyH = self:RenderList("itemQty", self.panels.itemQty, qtyList, qtyY, rightX, listColW)
-  local rightTotal = (rightTop - qtyY) + qtyH
-
-  return y - math.max(leftTotal, rightTotal) - W.SECTION_GAP
+  return y - W.SECTION_GAP
 end
 
 -- ── Live refresh ───────────────────────────────────────────────────────────────

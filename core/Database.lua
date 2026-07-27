@@ -169,6 +169,9 @@ function Database:Stats(filter)
   local moneyByDay, moneyByStore = {}, {}
   local charByDirection, storeByDirection = {}, {}
   local qualityByDirection, itemTypeByDirection, itemSubTypeByDirection = {}, {}, {}
+  -- Third wave: the direction-split rankings behind the reorganized "Top Of The List" grid.
+  local byTypeSub, itemsByStore = {}, {}
+  local zoneByDirection = {}
 
   -- Nested-table increment used by the per-character × store matrix.
   local function bump(matrix, k1, k2, amt)
@@ -190,7 +193,10 @@ function Database:Stats(filter)
     netByStore[store] = (netByStore[store] or 0) + (C.DirectionSign[dir] or 1)
 
     bump(storeByDirection, store, dir, 1)
-    if e.zone and e.zone ~= "" then byZone[e.zone] = (byZone[e.zone] or 0) + 1 end
+    if e.zone and e.zone ~= "" then
+      byZone[e.zone] = (byZone[e.zone] or 0) + 1
+      bump(zoneByDirection, e.zone, dir, 1)
+    end
 
     if e.kind == "MONEY" then
       if dir == "DEPOSIT" then moneyIn = moneyIn + qty else moneyOut = moneyOut + qty end
@@ -208,6 +214,20 @@ function Database:Stats(filter)
         byItemSubType[sty] = (byItemSubType[sty] or 0) + 1
         bump(itemSubTypeByDirection, sty, dir, 1)
       end
+      -- Type + sub-type as one pivot. Keyed on a tab-joined pair so "Armor/Cloth" and
+      -- "Tradegoods/Cloth" can never collide; `label` is the display form.
+      if ty and ty ~= "" and sty and sty ~= "" then
+        local key = ty .. "\t" .. sty
+        local tsRec = byTypeSub[key]
+        if not tsRec then
+          tsRec = { type = ty, subType = sty, label = ty .. " \194\183 " .. sty,
+                    count = 0, inCount = 0, outCount = 0 }
+          byTypeSub[key] = tsRec
+        end
+        tsRec.count = tsRec.count + 1
+        if dir == "DEPOSIT" then tsRec.inCount = tsRec.inCount + 1
+        else tsRec.outCount = tsRec.outCount + 1 end
+      end
       -- Quality is an item question by definition: a gold movement has none, and bucketing it under
       -- Poor would invent a fact. Keyed on the numeric id so the chart can sort Poor→Legendary.
       if type(e.quality) == "number" then
@@ -216,15 +236,29 @@ function Database:Stats(filter)
       end
       local id = e.itemID
       if id ~= nil then
+        local isIn = (dir == "DEPOSIT")
         local rec = byItem[id]
         if rec then
           rec.moves = rec.moves + 1
           rec.quantity = rec.quantity + qty
         else
-          byItem[id] = { itemID = id, itemName = e.itemName, quality = e.quality,
-                         moves = 1, quantity = qty }
+          rec = { itemID = id, itemName = e.itemName, quality = e.quality,
+                  moves = 1, quantity = qty,
+                  movesIn = 0, movesOut = 0, qtyIn = 0, qtyOut = 0 }
+          byItem[id] = rec
           distinctItems = distinctItems + 1
         end
+        if isIn then
+          rec.movesIn = rec.movesIn + 1
+          rec.qtyIn = rec.qtyIn + qty
+        else
+          rec.movesOut = rec.movesOut + 1
+          rec.qtyOut = rec.qtyOut + qty
+        end
+        -- Per-store item index, for the "Top Items - <Store>" panels.
+        local m = itemsByStore[store]
+        if not m then m = {}; itemsByStore[store] = m end
+        m[id] = (m[id] or 0) + 1
       end
     end
 
@@ -258,31 +292,95 @@ function Database:Stats(filter)
     end
   end
 
-  -- Top items, ranked two ways off the one byItem index. Each list is a fresh array of the SAME
-  -- record tables (never a copy), so the rankings cost two sorts and no extra memory. Every
+  -- Top items, ranked five ways off the one byItem index. Each list is a fresh array of the SAME
+  -- record tables (never a copy), so five rankings cost five sorts and no extra memory. Every
   -- comparator ends on the item id, so a tie can never reorder run to run.
   local topItems, topItemsByQuantity = {}, {}
+  local topItemsIn, topItemsOut = {}, {}
+  local topItemsByQuantityIn, topItemsByQuantityOut = {}, {}
   for _, rec in pairs(byItem) do
     topItems[#topItems + 1] = rec
     topItemsByQuantity[#topItemsByQuantity + 1] = rec
+    if rec.movesIn > 0 then
+      topItemsIn[#topItemsIn + 1] = rec
+      topItemsByQuantityIn[#topItemsByQuantityIn + 1] = rec
+    end
+    if rec.movesOut > 0 then
+      topItemsOut[#topItemsOut + 1] = rec
+      topItemsByQuantityOut[#topItemsByQuantityOut + 1] = rec
+    end
+  end
+  -- One comparator factory: rank on `field` desc, tiebreak on the item id asc.
+  local function byField(field)
+    return function(a, b)
+      if a[field] ~= b[field] then return a[field] > b[field] end
+      return (a.itemID or 0) < (b.itemID or 0)
+    end
   end
   table.sort(topItems, function(a, b)
     if a.moves ~= b.moves then return a.moves > b.moves end
     if a.quantity ~= b.quantity then return a.quantity > b.quantity end
     return (a.itemID or 0) < (b.itemID or 0)
   end)
-  table.sort(topItemsByQuantity, function(a, b)
-    if a.quantity ~= b.quantity then return a.quantity > b.quantity end
-    return (a.itemID or 0) < (b.itemID or 0)
-  end)
+  table.sort(topItemsByQuantity, byField("quantity"))
+  table.sort(topItemsIn, byField("movesIn"))
+  table.sort(topItemsOut, byField("movesOut"))
+  table.sort(topItemsByQuantityIn, byField("qtyIn"))
+  table.sort(topItemsByQuantityOut, byField("qtyOut"))
 
-  -- Where the banking actually happens, ranked. Ties break on the zone name.
-  local topZones = {}
-  for zone, count in pairs(byZone) do topZones[#topZones + 1] = { zone = zone, count = count } end
-  table.sort(topZones, function(a, b)
-    if a.count ~= b.count then return a.count > b.count end
-    return a.zone < b.zone
-  end)
+  -- Where the banking actually happens, ranked three ways. Ties break on the zone name.
+  local topZones, topZonesIn, topZonesOut = {}, {}, {}
+  for zone, count in pairs(byZone) do
+    local m = zoneByDirection[zone] or {}
+    local rec = { zone = zone, count = count,
+                  inCount = m.DEPOSIT or 0, outCount = m.WITHDRAW or 0 }
+    topZones[#topZones + 1] = rec
+    if rec.inCount > 0 then topZonesIn[#topZonesIn + 1] = rec end
+    if rec.outCount > 0 then topZonesOut[#topZonesOut + 1] = rec end
+  end
+  local function byZoneField(field)
+    return function(a, b)
+      if a[field] ~= b[field] then return a[field] > b[field] end
+      return a.zone < b.zone
+    end
+  end
+  table.sort(topZones, byZoneField("count"))
+  table.sort(topZonesIn, byZoneField("inCount"))
+  table.sort(topZonesOut, byZoneField("outCount"))
+
+  -- Type + sub-type pairs, ranked three ways. Ties break on the display label.
+  local topTypeSub, topTypeSubIn, topTypeSubOut = {}, {}, {}
+  for _, rec in pairs(byTypeSub) do
+    topTypeSub[#topTypeSub + 1] = rec
+    if rec.inCount > 0 then topTypeSubIn[#topTypeSubIn + 1] = rec end
+    if rec.outCount > 0 then topTypeSubOut[#topTypeSubOut + 1] = rec end
+  end
+  local function byTSField(field)
+    return function(a, b)
+      if a[field] ~= b[field] then return a[field] > b[field] end
+      return a.label < b.label
+    end
+  end
+  table.sort(topTypeSub, byTSField("count"))
+  table.sort(topTypeSubIn, byTSField("inCount"))
+  table.sort(topTypeSubOut, byTSField("outCount"))
+
+  -- One ranked item list per store, off the per-store index. Names and qualities come from the
+  -- shared byItem records, so a store list can never disagree with the global one about an item.
+  local topItemsByStore = {}
+  for store, ids in pairs(itemsByStore) do
+    local list = {}
+    for id, moves in pairs(ids) do
+      local rec = byItem[id]
+      list[#list + 1] = { itemID = id, itemName = rec and rec.itemName,
+                          quality = rec and rec.quality, moves = moves }
+    end
+    table.sort(list, function(a, b)
+      if a.moves ~= b.moves then return a.moves > b.moves end
+      return (a.itemID or 0) < (b.itemID or 0)
+    end)
+    topItemsByStore[store] = list
+  end
 
   local activeDays, busiestDay = 0, nil
   for day, count in pairs(byDay) do
@@ -312,7 +410,11 @@ function Database:Stats(filter)
     qualityByDirection = qualityByDirection, itemTypeByDirection = itemTypeByDirection,
     itemSubTypeByDirection = itemSubTypeByDirection,
     topItemsByQuantity = topItemsByQuantity,
-    topZones = topZones,
+    topItemsIn = topItemsIn, topItemsOut = topItemsOut,
+    topItemsByQuantityIn = topItemsByQuantityIn, topItemsByQuantityOut = topItemsByQuantityOut,
+    topZones = topZones, topZonesIn = topZonesIn, topZonesOut = topZonesOut,
+    topTypeSub = topTypeSub, topTypeSubIn = topTypeSubIn, topTypeSubOut = topTypeSubOut,
+    topItemsByStore = topItemsByStore,
     totals = {
       entries = #entries, distinctItems = distinctItems, distinctChars = distinctChars,
       firstTs = firstTs, lastTs = lastTs, activeDays = activeDays, busiestDay = busiestDay,

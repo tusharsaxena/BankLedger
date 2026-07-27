@@ -671,6 +671,9 @@ end
 
 -- ── Ranked list panel ──────────────────────────────────────────────────────────
 
+-- A bordered ranked-list panel. Pooled, so the title is set per pass rather than baked in, and
+-- each panel carries its OWN row pool: rows are parented to a specific panel at creation and can
+-- never be shared across panels.
 function W.MakeListPanel(parent, title)
   local p = CreateFrame("Frame", nil, parent, "BackdropTemplate")
   p:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
@@ -682,7 +685,18 @@ function W.MakeListPanel(parent, title)
   t:SetTextColor(W.GOLD[1], W.GOLD[2], W.GOLD[3])
   t:SetText(title or "")
   p.title = t
+  p._rows = W.NewPool()
   return p
+end
+
+function W.SetPanelTitle(panel, text)
+  panel.title:SetText(text or "")
+end
+
+-- Release a panel pool AND every panel's rows, so a shrinking pass leaves no orphan row visible.
+function W.ReleasePanels(pool)
+  for _, p in ipairs(pool.active) do W.ReleaseAll(p._rows) end
+  W.ReleaseAll(pool)
 end
 
 function W.MakeListRow(parent)

@@ -530,6 +530,18 @@ test("InsightsWidgets exports the ratio bar's two-part height", function()
   assertEqual(W.RATIO_CAPTION_H, 14)
 end)
 
+test("InsightsWidgets pools list panels, each carrying its own row pool", function()
+  local parent = T.mocks.CreateFrame()
+  local pool = W.NewPool()
+  local a = W.Acquire(pool, function() return W.MakeListPanel(parent) end)
+  W.SetPanelTitle(a, "Top Items")
+  assertTrue(a._rows ~= nil, "a pooled panel owns its row pool")
+  W.ReleasePanels(pool)
+  assertEqual(#pool.active, 0, "releasing empties the active list")
+  local b = W.Acquire(pool, function() return W.MakeListPanel(parent) end)
+  assertTrue(a == b, "the released panel is reused, never re-allocated")
+end)
+
 test("InsightsWidgets.MakeCard builds every headline on one base font template", function()
   local a = W.MakeCard(T.mocks.CreateFrame())
   local b = W.MakeCard(T.mocks.CreateFrame())
@@ -538,4 +550,31 @@ test("InsightsWidgets.MakeCard builds every headline on one base font template",
   assertEqual(a.__fontTemplates[1], "GameFontNormalHuge")
   assertEqual(b.__fontTemplates[1], "GameFontNormalHuge")
   assertEqual(a.__fontTemplates[2], "GameFontDisableSmall", "the caption keeps its own template")
+end)
+
+test("Insights: the reorganized list section renders every group", function()
+  unfiltered()
+  local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
+  local ledger = {}
+  for i = 1, 18 do
+    ledger[#ledger + 1] = {
+      ts = NOW - (i % 5) * DAY, char = "Mageling-Realm", classFile = "MAGE",
+      kind = "ITEM", direction = (i % 3 == 0) and "WITHDRAW" or "DEPOSIT",
+      store = stores[(i % #stores) + 1],
+      itemID = 2589 + (i % 4), itemName = "Item " .. (i % 4), quality = i % 5,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = i,
+      zone = (i % 2 == 0) and "Valdrakken" or "Dornogal",
+    }
+  end
+  NS.db.global.ledger = ledger
+  I:Refresh()
+  assertTrue(#I.stats.topItemsIn > 0, "the deposits ranking has rows")
+  assertTrue(#I.stats.topItemsOut > 0, "the withdrawals ranking has rows")
+  assertTrue(#I.stats.topTypeSub > 0, "the type/sub-type ranking has rows")
+  assertTrue(#I.panelPool.active > 0, "panels were acquired from the pool")
+  -- A second pass must reuse, never re-allocate.
+  local first = #I.panelPool.active + #I.panelPool.free
+  I:Refresh()
+  assertEqual(#I.panelPool.active + #I.panelPool.free, first, "panels are pooled, not leaked")
+  NS.db.global.ledger = {}
 end)
