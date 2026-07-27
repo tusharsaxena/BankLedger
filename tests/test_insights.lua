@@ -513,9 +513,12 @@ test("InsightsWidgets exports the ratio bar's two-part height", function()
   assertEqual(W.RATIO_CAPTION_H, 14)
 end)
 
-test("InsightsWidgets.MakeCard takes no options and always builds one headline font", function()
+test("InsightsWidgets.MakeCard builds every headline on one base font template", function()
   local a = W.MakeCard(T.mocks.CreateFrame())
   local b = W.MakeCard(T.mocks.CreateFrame())
-  assertTrue(a.value ~= nil and b.value ~= nil, "both cards have a headline")
-  assertEqual(a.baseSize, b.baseSize, "every card shares one base headline size")
+  -- The headline is the FIRST font string a card creates; the caption follows it. Asserting the
+  -- template is what catches a reintroduced second, smaller template for the wide cards.
+  assertEqual(a.__fontTemplates[1], "GameFontNormalHuge")
+  assertEqual(b.__fontTemplates[1], "GameFontNormalHuge")
+  assertEqual(a.__fontTemplates[2], "GameFontDisableSmall", "the caption keeps its own template")
 end)

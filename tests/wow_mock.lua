@@ -78,6 +78,17 @@ local function stubFrame()
     if k == "SetHeight" then return function(_, h) f.__h = h; return f end end
     if k == "GetWidth" then return function() return f.__w end end
     if k == "GetHeight" then return function() return f.__h end end
+    -- Font strings resolve to the frame itself (the catch-all below), which is fine for the
+    -- geometry the tests exercise. What is NOT recoverable that way is which FONT TEMPLATE a
+    -- widget asked for, and "every card shares one headline template" is a real invariant, so
+    -- record the templates in creation order.
+    if k == "CreateFontString" then
+      return function(_, _, _, template)
+        f.__fontTemplates = f.__fontTemplates or {}
+        f.__fontTemplates[#f.__fontTemplates + 1] = template
+        return f
+      end
+    end
     if type(k) == "string" and k:match("^%u") then
       return function() return f end
     end
