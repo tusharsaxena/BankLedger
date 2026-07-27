@@ -17,15 +17,67 @@ end
 -- IsShown() return the frame — permanently truthy — so "the window closed" is untestable and a
 -- window that never hides looks identical to one that does. Real frames start shown, and Show /
 -- Hide / SetShown flip that flag, so the stub does too.
+-- GEOMETRY is the other piece of real state. Window position and size are persisted to
+-- SavedVariables and restored on the next login, and a blanket no-op makes that round trip
+-- untestable: GetPoint() would hand back the frame itself, so "we saved the position" and "we saved
+-- a garbage table" look identical. SetPoint's overloads are modelled because addon code uses both
+-- the (point, x, y) and (point, relativeTo, relativePoint, x, y) forms.
+local function recordPoint(point, ...)
+  local a, b, c, d = ...
+  if type(a) == "number" or a == nil then
+    -- (point) or (point, x, y)
+    return { point = point, relativeTo = nil, relativePoint = point, x = a or 0, y = b or 0 }
+  end
+  -- (point, relativeTo, relativePoint[, x, y])
+  return { point = point, relativeTo = a, relativePoint = b or point, x = c or 0, y = d or 0 }
+end
+
 local function stubFrame()
-  local f = { __shown = true }
+  local f = { __shown = true, __points = {}, __w = 0, __h = 0 }
   setmetatable(f, { __index = function(_, k)
     if k == "Show" then return function() f.__shown = true; return f end end
-    if k == "Hide" then return function() f.__shown = false; return f end end
+    if k == "Hide" then
+      return function()
+        local was = f.__shown
+        f.__shown = false
+        -- Real frames run their OnHide when they actually go from shown to hidden.
+        if was and f.__onHide then
+          for _, fn in ipairs(f.__onHide) do fn(f) end
+        end
+        return f
+      end
+    end
     if k == "SetShown" then
-      return function(_, v) f.__shown = v and true or false; return f end
+      return function(_, v) if v then f:Show() else f:Hide() end; return f end
     end
     if k == "IsShown" or k == "IsVisible" then return function() return f.__shown end end
+    if k == "HookScript" then
+      return function(_, script, handler)
+        if script == "OnHide" then
+          f.__onHide = f.__onHide or {}
+          f.__onHide[#f.__onHide + 1] = handler
+        end
+        return f
+      end
+    end
+    if k == "SetPoint" then
+      return function(_, point, ...) f.__points[#f.__points + 1] = recordPoint(point, ...); return f end
+    end
+    if k == "ClearAllPoints" then
+      return function() f.__points = {}; return f end
+    end
+    if k == "GetPoint" then
+      return function(_, i)
+        local p = f.__points[i or 1]
+        if not p then return nil end
+        return p.point, p.relativeTo, p.relativePoint, p.x, p.y
+      end
+    end
+    if k == "SetSize" then return function(_, w, h) f.__w, f.__h = w, h; return f end end
+    if k == "SetWidth" then return function(_, w) f.__w = w; return f end end
+    if k == "SetHeight" then return function(_, h) f.__h = h; return f end end
+    if k == "GetWidth" then return function() return f.__w end end
+    if k == "GetHeight" then return function() return f.__h end end
     if type(k) == "string" and k:match("^%u") then
       return function() return f end
     end

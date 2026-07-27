@@ -234,27 +234,52 @@ end
 -- as settings.window is for the main window: geometry is runtime view state that standalone-windows
 -- requires be persisted and that has no place in the settings panel (architecture-§5).
 
-local function saveWindow()
-  if not frame then return end
+-- WHEN the save happens matters as much as what it writes. Saving only at the end of a drag or a
+-- resize looks sufficient and is not: those fire at the end of an *interaction*, and the resize one
+-- in particular is easy to miss, because releasing the grip a pixel outside a 16×16 button never
+-- delivers its OnMouseUp. Miss it and the geometry lives only in the frame — which survives every
+-- Hide/Show, so it looks perfectly persistent all game and is gone on the first /reload.
+--
+-- So the save is anchored to moments that are GUARANTEED instead: every time the window hides (which
+-- is every bank close) and at logout (for a /reload with the window still on screen, where OnHide
+-- never runs). The interaction handlers stay as well — they cost nothing and keep the saved value
+-- current mid-session.
+
+function SW:SaveGeometry()
+  if not frame then return false end
+  local settings = NS.db and NS.db.global and NS.db.global.settings
+  if not settings then return false end
   local point, _, _, x, y = frame:GetPoint(1)
-  if not (NS.db and NS.db.global and NS.db.global.settings) then return end
-  NS.db.global.settings.sessionWindow = {
-    point = point, x = x, y = y, w = frame:GetWidth(), h = frame:GetHeight(),
+  -- A frame with no anchor yet has nothing worth saving, and writing a point-less table would make
+  -- ApplyGeometry fall through to the default and quietly discard the real position.
+  if not point then return false end
+  settings.sessionWindow = {
+    point = point, x = x or 0, y = y or 0,
+    w = frame:GetWidth(), h = frame:GetHeight(),
   }
+  return true
 end
 
-local function restoreWindow()
+function SW:ApplyGeometry()
+  if not frame then return end
   local g = NS.db and NS.db.global and NS.db.global.settings.sessionWindow
   frame:ClearAllPoints()
   if g and g.point then
     frame:SetPoint(g.point, UIParent, g.point, g.x or 0, g.y or 0)
+    -- Clamped on the way back in as well as on the way out: a saved size from an older column set
+    -- (or a hand-edited SavedVariables) must not be able to reopen the window too small to read.
     if type(g.w) == "number" and type(g.h) == "number" then
-      frame:SetSize(math.max(SW._minW or 0, g.w), math.max(MIN_H, g.h))
+      frame:SetSize(math.max(self._minW or 0, g.w), math.max(MIN_H, g.h))
     end
   else
     -- Default: right of centre, clear of the bank frame rather than on top of it.
     frame:SetPoint("CENTER", UIParent, "CENTER", 420, 0)
   end
+end
+
+-- Persist at logout, the one teardown path that does not run OnHide.
+function SW:OnLogout()
+  self:SaveGeometry()
 end
 
 function SW:ResetWindow()
@@ -263,7 +288,7 @@ function SW:ResetWindow()
   end
   if frame then
     frame:SetSize(SW._minW or 0, DEFAULT_H)
-    restoreWindow()
+    self:ApplyGeometry()
   end
 end
 
@@ -439,7 +464,7 @@ local function ensureFrame()
   titleBar:SetScript("OnDragStart", function() frame:StartMoving() end)
   titleBar:SetScript("OnDragStop", function()
     frame:StopMovingOrSizing()
-    saveWindow()
+    SW:SaveGeometry()
   end)
   frame.titleBar = titleBar
 
@@ -503,7 +528,7 @@ local function ensureFrame()
   grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
   grip:SetScript("OnMouseUp", function()
     frame:StopMovingOrSizing()
-    saveWindow()
+    SW:SaveGeometry()
     SW:Refresh()
   end)
   frame.resizeGrip = grip
@@ -515,8 +540,13 @@ local function ensureFrame()
                         insets = { left = 1, right = 1, top = 1, bottom = 1 } })
   end
 
+  -- Persist on every hide. This is the save that actually carries the geometry across a game
+  -- session: the window hides on every bank close, where the drag/resize handlers may never have
+  -- fired at all.
+  frame:HookScript("OnHide", function() SW:SaveGeometry() end)
+
   SW:BuildHeaderCells()
-  restoreWindow()
+  SW:ApplyGeometry()
   frame:SetScale((NS.db and NS.db.global.settings.windowScale) or 1.0)
   frame:Hide()
 
@@ -627,4 +657,9 @@ function SW:Enable()
   end)
   SW.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() SW:PruneMissing() end)
   SW.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() SW:OnSettingsChanged() end)
+  -- The last belt on geometry: a /reload with the window on screen tears the frame down without
+  -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
+  if SW.__ev.RegisterEvent then
+    SW.__ev:RegisterEvent("PLAYER_LOGOUT", function() SW:OnLogout() end)
+  end
 end

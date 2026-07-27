@@ -338,7 +338,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:ExportWidth leaves the Export button a usable width
 
-### test_sessionwindow.lua (26)
+### test_sessionwindow.lua (32)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -364,6 +364,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - SessionWindow:TogglePreview refuses to overwrite a real session
 - a preview session is never pruned against the live ledger
 - a real session replaces a preview session's rows
+- SessionWindow:SaveGeometry writes the live position and size
+- SessionWindow:ApplyGeometry restores a saved position and size
+- SessionWindow:ApplyGeometry never restores a size below the column minimum
+- the session window saves its geometry when it hides
+- the session window saves its geometry at logout
+- a full save/reload round trip lands the window back where it was
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
@@ -547,10 +553,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_stats.lua | 49 |
 | test_ledgertable.lua | 38 |
 | test_browser.lua | 12 |
-| test_sessionwindow.lua | 26 |
+| test_sessionwindow.lua | 32 |
 | test_insights.lua | 55 |
 | test_export.lua | 29 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **483** |
+| **Total** | **489** |

@@ -212,8 +212,11 @@ tolerance.
     the frame's own `OnHide`. Open the guild bank, move something, then close it **without touching
     your bags afterwards** — the session window must disappear *immediately*, not on your next bag
     change. If it lingers, `/bl debug scan` will say `guild bank close hook: NOT INSTALLED`.
-14. `/reload` while a bank is open: the window reappears empty when you next open a bank, because the
-    session data was never persisted.
+14. **Geometry across a game session.** Move and resize the window, close the bank, then `/reload`.
+    Open a bank again: it comes back at the size and position you left it, with no rows. Repeat
+    logging in on a **different character** — the geometry is account-wide, so it follows you.
+    Do it once more resizing *only* (never dragging), and once more with the window still on screen
+    when you `/reload`: both must survive. Session *data* is never persisted; only the geometry is.
 15. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
     movements you make are still recorded (check the History window). Tick it again while a bank is
     open and it appears on the next movement; untick it while it is open and it closes at once.

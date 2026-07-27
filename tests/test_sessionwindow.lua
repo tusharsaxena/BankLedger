@@ -285,6 +285,112 @@ end)
 
 -- ── Geometry persistence ───────────────────────────────────────────────────────
 
+-- Surviving a BANKING session proves nothing about persistence: the frame object outlives every
+-- Hide/Show, so the geometry would look right even if nothing was ever written to SavedVariables.
+-- A GAME session is the real test — the frame is destroyed and rebuilt from the saved table alone.
+
+test("SessionWindow:SaveGeometry writes the live position and size", function()
+  reset()
+  NS.db.global.settings.sessionWindow = {}
+  SW:Show()
+  local f = SW:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 123, -456)
+  f:SetSize(900, 400)
+  SW:SaveGeometry()
+  local saved = NS.db.global.settings.sessionWindow
+  assertEqual(saved.point, "TOPLEFT")
+  assertEqual(saved.x, 123)
+  assertEqual(saved.y, -456)
+  assertEqual(saved.w, 900)
+  assertEqual(saved.h, 400)
+  SW:Hide()
+end)
+
+test("SessionWindow:ApplyGeometry restores a saved position and size", function()
+  reset()
+  NS.db.global.settings.sessionWindow = { point = "BOTTOMRIGHT", x = -80, y = 60, w = 880, h = 360 }
+  SW:Show()
+  local f = SW:GetWindow()
+  -- Stand in for a fresh login: the frame has no anchors and no size until the saved table is read.
+  f:ClearAllPoints()
+  f:SetSize(0, 0)
+  SW:ApplyGeometry()
+  local point, _, _, x, y = f:GetPoint(1)
+  assertEqual(point, "BOTTOMRIGHT")
+  assertEqual(x, -80)
+  assertEqual(y, 60)
+  assertEqual(f:GetWidth(), 880)
+  assertEqual(f:GetHeight(), 360)
+  SW:Hide()
+end)
+
+test("SessionWindow:ApplyGeometry never restores a size below the column minimum", function()
+  reset()
+  NS.db.global.settings.sessionWindow = { point = "CENTER", x = 0, y = 0, w = 100, h = 20 }
+  SW:Show()
+  local f = SW:GetWindow()
+  SW:ApplyGeometry()
+  assertEqual(f:GetWidth(), SW:MinFrameWidth(), "a too-narrow saved width clamps to the floor")
+  assertTrue(f:GetHeight() >= 200, "and a too-short saved height clamps too")
+  SW:Hide()
+end)
+
+test("the session window saves its geometry when it hides", function()
+  -- The drag and resize handlers fire at the END of an interaction, which is exactly the moment
+  -- that can be missed — releasing the resize grip off the edge of a 16px button being the classic
+  -- case. Hiding is guaranteed and happens on every single bank close, so that is where the save
+  -- has to be anchored. Without this, geometry survives every banking session and is lost on the
+  -- first /reload.
+  reset()
+  NS.db.global.settings.sessionWindow = {}
+  SW:StartSession("BANK_FRAME")
+  local f = SW:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 321, -654)
+  f:SetSize(850, 300)
+  SW:EndSession()   -- closing the bank hides the window
+  local saved = NS.db.global.settings.sessionWindow
+  assertEqual(saved.point, "TOPLEFT", "closing the bank persisted the position")
+  assertEqual(saved.x, 321)
+  assertEqual(saved.w, 850)
+end)
+
+test("the session window saves its geometry at logout", function()
+  -- A /reload with the window on screen never runs OnHide, so the last belt is PLAYER_LOGOUT.
+  reset()
+  NS.db.global.settings.sessionWindow = {}
+  SW:Show()
+  local f = SW:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("CENTER", T.mocks.UIParent, "CENTER", 42, 24)
+  f:SetSize(800, 280)
+  SW:OnLogout()
+  assertEqual(NS.db.global.settings.sessionWindow.x, 42)
+  assertEqual(NS.db.global.settings.sessionWindow.y, 24)
+  SW:Hide()
+end)
+
+test("a full save/reload round trip lands the window back where it was", function()
+  reset()
+  NS.db.global.settings.sessionWindow = {}
+  SW:Show()
+  local f = SW:GetWindow()
+  f:ClearAllPoints()
+  f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 200, -300)
+  f:SetSize(820, 340)
+  SW:Hide()                       -- persist
+  f:ClearAllPoints()              -- the reload: nothing left in memory
+  f:SetSize(0, 0)
+  SW:ApplyGeometry()              -- what ensureFrame does on the next login
+  local point, _, _, x, y = f:GetPoint(1)
+  assertEqual(point, "TOPLEFT")
+  assertEqual(x, 200)
+  assertEqual(y, -300)
+  assertEqual(f:GetWidth(), 820)
+  assertEqual(f:GetHeight(), 340)
+end)
+
 test("SessionWindow:ResetWindow clears the persisted geometry carve-out", function()
   reset()
   NS.db.global.settings.sessionWindow = { point = "TOPLEFT", x = 11, y = 22, w = 900, h = 700 }
