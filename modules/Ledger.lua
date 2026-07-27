@@ -370,8 +370,21 @@ function L:GateReason(move)
     local id = move.itemID
     if id and DB_BLACKLIST[id] then return "blacklist" end
     if id and DB_WHITELIST[id] then return nil end   -- whitelist bypasses the quality gate
+    -- An id the client has not cached has NO quality, so it cannot be judged against the user's
+    -- minimum — and "cannot be judged" is not "passes" (F-006). Ask the client to cache it so the
+    -- next move of that id can be judged properly, and report the skip honestly: the console says
+    -- "uncached", rather than the row silently appearing under a threshold that should have
+    -- excluded it. At the default threshold of 0 this branch is unreachable (every quality clears
+    -- 0), so nothing changes for a user who never set one.
     local _, quality = NS.Compat.ItemNameQuality(id)
-    if quality ~= nil and quality < DB_QUALITY then return "quality" end
+    if quality == nil then
+      if DB_QUALITY > 0 then
+        NS.Compat.LoadItem(id)
+        return "uncached"
+      end
+    elseif quality < DB_QUALITY then
+      return "quality"
+    end
   end
   return nil
 end
@@ -379,8 +392,11 @@ end
 -- ── Entry construction ──────────────────────────────────────────────────────────
 
 -- Turn a movement into a stored ledger entry: stamp who/where/when and, for an item, whatever the
--- client has cached about it. An item the client hasn't cached yet stores its id alone — the table
--- shows "Item <id>" and a later session fills in the name.
+-- client has cached about it. An item the client hasn't cached yet stores its id alone and the
+-- table shows "Item <id>". There is NO backfill: the stored row keeps only its id, so such an item
+-- stays invisible to the Type / Sub-type / Quality breakdowns for good. This is why GateReason
+-- refuses to admit an uncached item under a non-zero quality threshold rather than recording it and
+-- hoping — a row that can never be classified is not one a threshold ever asked for.
 function L:BuildEntry(move)
   local zone, subzone = NS.Compat.GetZone()
   local _, classFile = UnitClass("player")

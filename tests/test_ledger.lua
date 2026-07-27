@@ -439,6 +439,46 @@ test("Ledger:GateReason lets a whitelisted item through the quality gate", funct
   end)
 end)
 
+-- 999999 is the id the item mock deliberately has no entry for: the client has not cached it.
+test("Ledger:GateReason skips an uncached item when a minimum quality is set", function()
+  -- F-006: nil quality skipped the comparison entirely, so an unjudgeable item was recorded no
+  -- matter what threshold the user asked for. It cannot be judged, so it cannot be admitted.
+  withSettings({ qualityThreshold = 3 }, function()
+    assertEqual(NS.Ledger:GateReason(itemMove(999999)), "uncached")
+  end)
+end)
+
+test("Ledger:GateReason records an uncached item at the default threshold", function()
+  -- The asymmetry that keeps this safe: at qualityThreshold 0 every quality passes anyway, so
+  -- nothing changes for the users who never set a threshold — which is all of them by default.
+  withSettings({ qualityThreshold = 0 }, function()
+    assertEqual(NS.Ledger:GateReason(itemMove(999999)), nil)
+  end)
+end)
+
+test("Ledger:GateReason lets a whitelisted uncached item through", function()
+  -- The whitelist is an explicit "record this id whatever the rules say", and it is checked before
+  -- the quality gate, so it must outrank the uncached skip too.
+  withSettings({ qualityThreshold = 5 }, function()
+    NS.Filters:AddWhitelist(999999)
+    assertEqual(NS.Ledger:GateReason(itemMove(999999)), nil)
+    NS.Filters:RemoveWhitelist(999999)
+  end)
+end)
+
+test("Ledger:GateReason asks the client to cache an item it had to skip", function()
+  -- Without the request the id would stay uncached forever and every future move of it would be
+  -- skipped for the same reason.
+  local saved = mocks.__loadRequests
+  mocks.__loadRequests = {}
+  withSettings({ qualityThreshold = 3 }, function()
+    NS.Ledger:GateReason(itemMove(999999))
+  end)
+  local requested = mocks.__loadRequests[999999]
+  mocks.__loadRequests = saved
+  assertTrue(requested, "the skipped id was queued for loading")
+end)
+
 test("Ledger:GateReason blocks a blacklisted item even when it would otherwise pass", function()
   NS.Filters:AddBlacklist(171276)
   assertEqual(NS.Ledger:GateReason(itemMove(171276)), "blacklist")

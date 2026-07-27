@@ -245,8 +245,11 @@ return function()
       local id = tonumber(idOrLink) or tonumber(tostring(idOrLink):match("|?H?item:(%d+)") or "")
       return id
     end,
-    RequestLoadItemDataByID = function() end,
+    -- Records what was asked for. An addon that SKIPS an uncached item must also ask the client to
+    -- cache it, or that id stays unjudgeable forever and is skipped again on every future move.
+    RequestLoadItemDataByID = function(id) M.__loadRequests[id] = true end,
   }
+  M.__loadRequests = {}
 
   -- strings / helpers
   M.ITEM_QUALITY_COLORS = setmetatable({}, {
