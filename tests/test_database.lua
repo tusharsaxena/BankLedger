@@ -10,7 +10,7 @@ local function entry(over)
     ts = NOW, char = "Mock-Realm", classFile = "MAGE",
     kind = "ITEM", direction = "DEPOSIT", store = "BANK",
     itemID = 2589, itemName = "Linen Cloth", quality = 1,
-    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20,
+    itemType = "Tradegoods", itemSubType = "Cloth",
     quantity = 10, zone = "Testville", mapID = 2657,
   }
   for k, v in pairs(over or {}) do e[k] = v end
@@ -73,7 +73,7 @@ local FIXTURE = {
     zone = "Testville", mapID = 2657 },
   entry({ char = "Alt-Realm", classFile = "ROGUE", store = "WARBAND_BANK",
           itemID = 171276, itemName = "Spectral Flask", quality = 3,
-          itemType = "Consumable", itemSubType = "Flask", vendorPrice = 5000,
+          itemType = "Consumable", itemSubType = "Flask",
           quantity = 2, ts = NOW - 3 * 86400 }),
 }
 
@@ -296,6 +296,47 @@ test("RunMigrations is idempotent on an already-migrated database", function()
   NS:RunMigrations()
   assertEqual(NS.db.global.schemaVersion, 2)
   assertEqual(NS.db.global.ledger[1].quantity, 3)
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+end)
+
+-- This migration runs against real user SavedVariables and a ledger is irreplaceable, so its
+-- boundary cases are pinned here rather than left to inspection.
+
+test("RunMigrations treats a database with no schemaVersion key at all as v1", function()
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = nil
+  NS.db.global.ledger = {
+    { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
+  }
+  NS:RunMigrations()
+  assertEqual(NS.db.global.schemaVersion, 2, "an absent version is treated as v1 and upgraded")
+  assertEqual(NS.db.global.ledger[1].vendorPrice, nil)
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+end)
+
+test("RunMigrations survives a database with no ledger at all", function()
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = 1
+  NS.db.global.ledger = nil
+  local ok, err = pcall(function() NS:RunMigrations() end)
+  assertTrue(ok, "must not raise on a nil ledger: " .. tostring(err))
+  assertEqual(NS.db.global.schemaVersion, 2)
+  assertEqual(NS.db.global.ledger, nil, "no ledger is fabricated where none existed")
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+end)
+
+test("RunMigrations never downgrades a future schema version", function()
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = 3
+  NS.db.global.ledger = {
+    { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
+  }
+  NS:RunMigrations()
+  assertEqual(NS.db.global.schemaVersion, 3, "a future version is left exactly as it was")
+  assertEqual(NS.db.global.ledger[1].vendorPrice, 20,
+    "a future schema's entries are not touched by the v1->v2 step")
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
 end)
 

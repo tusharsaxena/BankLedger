@@ -143,9 +143,9 @@ function SW:EndSession()
   NS.State.sessionEntries = {}
 end
 
--- A movement was recorded. Only movements made DURING a session belong here; anything else (a
--- preview dataset toggle, a future backfill) is ignored rather than silently attributed to a visit
--- that isn't happening.
+-- A movement was recorded. Only movements made DURING a session belong here; anything else (the
+-- `/bl test` dataset toggle, a future backfill) is ignored rather than silently attributed to a
+-- visit that isn't happening.
 function SW:OnEntryAdded(entry)
   if not (NS.State.sessionActive and entry) then return end
   local list = NS.State.sessionEntries

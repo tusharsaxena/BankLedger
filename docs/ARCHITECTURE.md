@@ -313,14 +313,14 @@ removed the value dimension from it entirely:
   `.value` field that used to sit on every `byItem` / `byChar` record.
 - **Changed:** `netByStore` is now a **signed movement count** (`+1` per deposit, `-1` per
   withdrawal), not a value — the only surviving signed non-gold quantity.
-- **Added:** `qualityByDirection`, `itemTypeByDirection`, `itemSubTypeByDirection`, `zoneByDirection`
-  (the four `× In/Out` companion accumulators), `byTypeSub` (keyed `Type "\t" SubType`, records
-  `{ type, subType, label, count, inCount, outCount }`), `itemsByStore` (`[store][itemID] = moves`),
+- **Added:** `storeByDirection`, `qualityByDirection`, `itemTypeByDirection`, `itemSubTypeByDirection`
+  (the four `× In/Out` companion accumulators), `itemsByStore` (`[store][itemID] = moves`),
   `topItemsIn`/`topItemsOut`, `topItemsByQuantityIn`/`topItemsByQuantityOut`, `topZonesIn`/
   `topZonesOut`, `topTypeSub`/`topTypeSubIn`/`topTypeSubOut`, `topItemsByStore`, `totals.itemsMoved`
   (`itemsDeposited + itemsWithdrawn`) and `totals.topStore` (the busiest store, ties broken on the
   store key). `byItem` records gain `movesIn`/`movesOut`/`qtyIn`/`qtyOut`, and `topZones` records
-  gain `inCount`/`outCount`.
+  gain `inCount`/`outCount`. (`zoneByDirection` and `byTypeSub` are function-local working tables used
+  to build `topZones*`/`topTypeSub*` — they are never in the returned `Stats` table themselves.)
 - **Unchanged:** `stats.byZone` deliberately keeps its plain `{ [zone] = count }` map shape —
   `modules/Export.lua` feeds it straight to `rankedRows` for the stats CSV, and reshaping it would
   break that export for no gain.

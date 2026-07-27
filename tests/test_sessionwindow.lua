@@ -11,7 +11,7 @@ local function e(over)
     ts = NOW, char = "Mock-Realm", classFile = "MAGE",
     kind = "ITEM", direction = "DEPOSIT", store = "BANK",
     itemID = 2589, itemName = "Linen Cloth", quality = 1,
-    itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20, quantity = 10,
+    itemType = "Tradegoods", itemSubType = "Cloth", quantity = 10,
   }
   for k, v in pairs(over or {}) do x[k] = v end
   return x

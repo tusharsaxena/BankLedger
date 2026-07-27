@@ -375,11 +375,14 @@ test("Insights.CardValues survives being handed nothing at all", function()
 end)
 
 test("Insights.CardValues covers every card the panel declares", function()
-  -- A card with no value would silently render a dash forever, so the two lists must agree.
+  -- CARD_DEFS is local to modules/Insights.lua, so this cannot read it directly. Instead it drives
+  -- I:Attach, whose card frames ARE built one-per-CARD_DEFS-entry (see I:Attach), and checks every
+  -- key that produced a card also has a value. That way a newly added card with no CardValues entry
+  -- fails here automatically, rather than requiring this list to be kept in sync by hand.
+  if not I.pane then I:Attach(T.mocks.CreateFrame()) end
+  assertTrue(next(I.cards) ~= nil, "the panel must have built at least one card")
   local values = I.CardValues({ entries = 1 })
-  for _, key in ipairs({ "movements", "itemsIn", "itemsOut", "netItems", "distinctItems", "chars",
-                         "activeDays", "topStore", "itemsMoved", "goldIn", "goldOut", "netGold",
-                         "span", "busiest" }) do
+  for key in pairs(I.cards) do
     assertTrue(values[key] ~= nil, "card '" .. key .. "' has no value")
   end
 end)
@@ -474,6 +477,44 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   NS.db.global.ledger = {}
 end)
 
+-- Regression: netByStore was rebased from copper to a signed movement count, but the Net Flow By
+-- Store panel kept formatting it with W.SignedMoney, so three net deposits rendered as a copper
+-- coin amount ("+3c") instead of a count ("+3"). Drive the real row builder (as above) rather than
+-- hand-building a row, and assert the value string is exactly what W.SignedCount produces.
+test("Insights: Net Flow By Store renders a movement count, not a money value", function()
+  unfiltered()
+  NS.db.global.ledger = {
+    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+      store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
+    { ts = NOW - DAY, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+      direction = "DEPOSIT", store = "BANK", itemID = 2590, itemName = "Silk Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 2, zone = "Valdrakken" },
+    { ts = NOW - 2 * DAY, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+      direction = "DEPOSIT", store = "BANK", itemID = 2591, itemName = "Wool Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 1, zone = "Valdrakken" },
+  }
+  local captured
+  local original = I.RenderDiverging
+  I.RenderDiverging = function(self, poolKey, headerKey, rows, y, w)
+    if headerKey == "netStore" then captured = rows end
+    return original(self, poolKey, headerKey, rows, y, w)
+  end
+  local ok, err = pcall(function() I:Refresh() end)
+  I.RenderDiverging = original
+  NS.db.global.ledger = {}
+  if not ok then error(err, 0) end
+
+  assertTrue(captured ~= nil and #captured > 0, "the net-flow section built at least one row")
+  local row
+  for _, r in ipairs(captured) do
+    if r.signed == 3 then row = r end
+  end
+  assertTrue(row ~= nil, "BANK's net flow of +3 movements is among the rows")
+  assertEqual(row.value, W.SignedCount(3), "the value string is exactly a plain signed count")
+  assertTrue(row.value:find("|T", 1, true) == nil, "no coin texture escape leaks into the value")
+end)
+
 test("Insights: the four direction-split companions render without raising", function()
   unfiltered()
   NS.db.global.ledger = {
@@ -512,17 +553,36 @@ test("Insights.BarLabel is a plain truncation when there is no icon", function()
 end)
 
 test("Insights: character bars carry the icon out of band", function()
-  local rows = {}
-  for _, ce in pairs({ ["Verylongcharactername-Ravencrest"] = {
-    char = "Verylongcharactername-Ravencrest", classFile = "MAGE", count = 3 } }) do
-    rows[#rows + 1] = ce
+  -- Drive the REAL row builder (I:Refresh -> I:Layout -> LayoutSections), rather than hand-building
+  -- a row, so this actually regresses if the production code goes back to concatenating the icon
+  -- into `label` before truncation. Capture the rows LayoutSections hands to RenderBars for the
+  -- character-bar section by temporarily wrapping I:RenderBars.
+  unfiltered()
+  NS.db.global.ledger = {
+    { ts = NOW, char = "Verylongcharactername-Ravencrest", classFile = "MAGE", kind = "ITEM",
+      direction = "DEPOSIT", store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
+  }
+  local captured
+  local original = I.RenderBars
+  I.RenderBars = function(self, poolKey, headerKey, rows, y, w, legendPool)
+    if headerKey == "char" then captured = rows end
+    return original(self, poolKey, headerKey, rows, y, w, legendPool)
   end
-  -- The row the layout builds must keep icon and label separate.
-  local row = { icon = NS.Util.ClassIconMarkup(rows[1].classFile),
-                label = W.ShortChar(rows[1].char), fullLabel = rows[1].char, labelMax = 14 }
+  local ok, err = pcall(function() I:Refresh() end)
+  I.RenderBars = original
+  NS.db.global.ledger = {}
+  if not ok then error(err, 0) end
+
+  assertTrue(captured ~= nil and #captured > 0, "the character-bar section built at least one row")
+  local row = captured[1]
+  assertEqual(row.label:find("|T", 1, true), nil, "the row's label field holds no markup")
+  assertTrue(row.icon ~= nil and row.icon:find("|T", 1, true) ~= nil,
+    "the icon markup is carried out of band on its own field")
+  -- The truncation guard itself: I.BarLabel must still emit the icon whole and keep the escape closed.
   local out = I.BarLabel(row)
-  assertEqual(row.label:find("|T", 1, true), nil, "the label field holds no markup")
-  assertTrue(#out >= #row.icon, "the rendered label leads with the icon")
+  assertTrue(out:sub(1, #row.icon) == row.icon, "the icon escape is emitted whole and unmodified")
+  assertTrue(out:find("|t", 1, true) ~= nil, "the escape is still closed")
 end)
 
 test("InsightsWidgets exports the ratio bar's two-part height", function()

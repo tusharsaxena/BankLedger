@@ -357,15 +357,6 @@ test("Insights.BarFraction is zero for an empty list or a missing row", function
   assertEqual(NS.Insights.BarFraction(nil, 1), 0)
 end)
 
-test("Insights.FormatNet colours a gain green and a loss red", function()
-  assertTrue(NS.Insights.FormatNet(100):find("40ff40", 1, true) ~= nil, "green for a gain")
-  assertTrue(NS.Insights.FormatNet(-100):find("ff4040", 1, true) ~= nil, "red for a loss")
-end)
-
-test("Insights.FormatNet renders zero as a neutral dash", function()
-  assertTrue(NS.Insights.FormatNet(0):find("808080", 1, true) ~= nil)
-end)
-
 -- ── Direction-split companions ─────────────────────────────────────────────────
 
 -- storeByDirection is covered above: Stats has computed it since before these companions

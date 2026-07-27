@@ -126,7 +126,7 @@ function E:InsightsCSV(stats)
     local net = (stats.netByStore or {})[s]
     if net ~= nil then row("Net by Store", storeLabel(s), net) end
   end
-  -- Gross coin moved per store, beside the value figures above.
+  -- Gross coin moved per store.
   for _, s in ipairs(C.StoreOrder) do
     local amount = (stats.moneyByStore or {})[s]
     if amount ~= nil then row("Money By Store", storeLabel(s), nil, amount) end

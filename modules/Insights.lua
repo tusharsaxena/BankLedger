@@ -64,10 +64,6 @@ function I.BarLabel(row)
   return (row.icon or "") .. name
 end
 
--- A signed copper amount as a coloured string. Shared with every other signed surface through the
--- widget module, so a net figure reads identically wherever it appears.
-I.FormatNet = W.SignedMoney
-
 -- ── Stat cards ─────────────────────────────────────────────────────────────────
 -- In display order, 4 per row; `wide` spans two columns. Every card shares one base headline font
 -- and every card carries a tooltip: half of these are derived figures, and a bare number with a
@@ -132,7 +128,7 @@ local POOL_KEYS = {
   "store", "netStore", "char", "quality", "itemType", "subType",
   "weekday", "goldStore", "charStore", "charDir", "perDay", "hour", "goldDay",
   "listHead",
-  "storeLeg", "itemTypeLeg", "subTypeLeg", "charStoreLeg", "charDirLeg",
+  "itemTypeLeg", "subTypeLeg", "charStoreLeg", "charDirLeg",
   "storeDir", "qualityDir", "itemTypeDir", "subTypeDir",
   "storeDirLeg", "qualityDirLeg", "itemTypeDirLeg", "subTypeDirLeg",
 }
@@ -550,11 +546,16 @@ function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, 
     self.headers[headerKey]:Hide()
     return y
   end
-  y = self:RenderStacked(poolKey, headerKey,
-    W.BuildStackRows(matrix, C.DirectionOrder, {
-      labelOf = opts.labelOf, colorOf = directionColor, catLabelOf = directionLabel,
-      valueFmt = tostring, labelColorOf = opts.labelColorOf,
-    }), y, w)
+  local rows = W.BuildStackRows(matrix, C.DirectionOrder, {
+    labelOf = opts.labelOf, colorOf = directionColor, catLabelOf = directionLabel,
+    valueFmt = tostring, labelColorOf = opts.labelColorOf,
+  })
+  -- Cap at BAR_ROWS to match the parent bar chart above it: BuildStackRows already sorts
+  -- total-desc, so truncating after the sort keeps the largest rows.
+  if #rows > BAR_ROWS then
+    for i = #rows, BAR_ROWS + 1, -1 do rows[i] = nil end
+  end
+  y = self:RenderStacked(poolKey, headerKey, rows, y, w)
   local legend = {}
   for _, key in ipairs(C.DirectionOrder) do
     legend[#legend + 1] = { label = directionLabel(key), color = directionColor(key) }
@@ -613,7 +614,7 @@ function I:LayoutSections(y, w, stats, totals)
     local net = (stats.netByStore or {})[key]
     if net ~= nil then
       netRows[#netRows + 1] = { label = storeLabel(key), color = storeColor(key),
-        signed = net, value = W.SignedMoney(net) }
+        signed = net, value = W.SignedCount(net) }
     end
   end
   y = self:RenderDiverging("netStore", "netStore", netRows, y, w)
