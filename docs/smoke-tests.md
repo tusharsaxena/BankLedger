@@ -106,24 +106,32 @@ tolerance.
 5. **Net Flow By Store** grows right and green for a store you are filling, left and red for one you
    are draining, from a centre baseline. A store with twice another's net has visibly twice the bar.
 6. **Movements By Character** is class-coloured and carries each class icon rendered as an actual
-   icon — never a raw `|TInterface\...|t` texture path as literal text. The two `×` companions below
-   it (Character × Store, Character × In/Out) stack one segment per store / per direction, each
-   segment hover-tipped with its own value, and a legend under each names the colours.
-7. **Movements By Quality** runs Poor → Legendary (not by count) in the game's own quality colours,
-   immediately followed by its **Quality × In/Out** stacked companion (deposit-green / withdraw-red
-   segments, with a legend).
-8. **Item Type** and **Sub-type** bars are all visibly different colours — no two adjacent bars look
-   alike — each with a legend, and each immediately followed by its own **× In/Out** stacked
-   companion in the same colours as its parent chart's bars.
-9. The per-day strip (movements, and gold if any) shares its x-axis with the hour and weekday charts.
-   Quiet days show a faint ghost bar rather than a gap; the rotated date labels thin out as the bars
-   tighten and never overlap. Hovering a bar names the day and its figure. There is no value-moved
-   strip.
-10. **By Hour Of Day** shows all 24 buckets, including the empty ones.
-11. With an enriched slice (see the Test mode scenario below), every store shows a bar, both
+   icon — never a raw `|TInterface\...|t` texture path as literal text. **Movements By Character ×
+   Store** below it stacks one segment per store, left-aligned, each segment hover-tipped with its
+   own value and a legend beneath.
+7. **Every `× In/Out` companion is drawn back to back**: withdraw-red grows LEFT of a centre line,
+   deposit-green grows RIGHT. Check the centre line falls in the **same horizontal position on every
+   row** of a chart — that is the whole point of the form. A row that is mostly withdrawals visibly
+   leans left; mostly deposits leans right. Hovering either half names the direction and its exact
+   count. The legend reads **Withdraw then Deposit**, matching the chart left to right.
+8. **Companion titles mirror their parent in full** — the companion under *Movements By Item Type*
+   reads **Movements By Item Type × In/Out**, not *Item Type × In/Out*. Same for Store, Quality,
+   Sub-type and Character.
+9. **Movements By Quality** runs Poor → Legendary (not by count) in the game's own quality colours,
+   immediately followed by its back-to-back companion.
+10. **Item Type** and **Sub-type** bars are all visibly different colours — no two adjacent bars look
+    alike — each with a legend, and each immediately followed by its own back-to-back `× In/Out`
+    companion whose row labels keep the parent chart's colours. A parent capped at 12 bars has a
+    companion capped at 12 too.
+11. The per-day strip (movements, and gold if any) shares its x-axis with the hour and weekday charts.
+    Quiet days show a faint ghost bar rather than a gap; the rotated date labels thin out as the bars
+    tighten and never overlap. Hovering a bar names the day and its figure. There is no value-moved
+    strip.
+12. **By Hour Of Day** shows all 24 buckets, including the empty ones.
+13. With an enriched slice (see the Test mode scenario below), every store shows a bar, both
     directions are visible on every split chart, and the character/zone/type/quality spreads look
     visibly uneven rather than a flat comb of equal-height bars.
-12. Under **TOP OF THE LIST**, a three-column grid grouped under four sub-headings:
+14. Under **TOP OF THE LIST**, a three-column grid grouped under four sub-headings:
     - **ITEMS** — Top Items By Movements, then Top Items By Quantity, each one row of three panels
       (All / Deposits / Withdrawals).
     - **CATEGORIES** — Top Type · Sub-type, one row of three panels.
@@ -133,14 +141,14 @@ tolerance.
     A slice with no withdrawals simply has no Withdrawals column in a row — the row is not padded
     with an empty panel. Item names carry their quality colour; a truncated name shows in full on
     hover. There is no Top Items By Value panel.
-13. Move some gold, refresh — the **GOLD** divider and its two charts appear. With a filter that
+15. Move some gold, refresh — the **GOLD** divider and its two charts appear. With a filter that
     excludes every gold movement, that whole block disappears rather than rendering empty.
-14. Apply a filter on the History tab, then switch back to Insights — every number and every bar
+16. Apply a filter on the History tab, then switch back to Insights — every number and every bar
     reflects the same filter. The two tabs never disagree.
-15. Resize the window: the cards re-flow to the new width, the bars and strips re-stretch, and the
+17. Resize the window: the cards re-flow to the new width, the bars and strips re-stretch, and the
     Top Of The List columns stay side by side.
-16. With the tab open, move something at a bank — the panel updates live.
-17. Purge the ledger: the cards read 0 and one centred "no movements" line replaces every section.
+18. With the tab open, move something at a bank — the panel updates live.
+19. Purge the ledger: the cards read 0 and one centred "no movements" line replaces every section.
 
 ## S-10 · Export
 

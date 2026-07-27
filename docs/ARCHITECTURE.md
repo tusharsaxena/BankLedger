@@ -332,16 +332,29 @@ label/the store key so a tie can never reorder run to run.
 ### Section order
 
 In render order: Deposits vs Withdrawals (caption labels **below** the bar, not inside it), Movements
-By Store + its Store × In/Out companion, Net Flow By Store (diverging), Movements By Character,
-Character × Store, Character × In/Out, Movements By Quality + its Quality × In/Out companion,
-Movements By Item Type + its Item Type × In/Out companion, Movements By Sub-type + its Sub-type ×
-In/Out companion, Movements Over Time (per day), Movements By Hour Of Day, Movements By Weekday, then
-— only when the slice holds a coin movement — the GOLD block (Gold Moved Over Time, Gold By Store).
+By Store + its companion, Net Flow By Store (diverging), Movements By Character, Movements By
+Character × Store, Movements By Character × In/Out, Movements By Quality + its companion, Movements
+By Item Type + its companion, Movements By Sub-type + its companion, Movements Over Time (per day),
+Movements By Hour Of Day, Movements By Weekday, then — only when the slice holds a coin movement —
+the GOLD block (Gold Moved Over Time, Gold By Store).
 
-Each `× In/Out` companion sits **immediately after its parent chart**, stacked deposit-green /
-withdraw-red with a legend, through the same `RenderStacked` + `RenderLegend` path Character × In/Out
-already used; each row keeps its parent chart's colour (store colour, quality colour, palette colour
-by rank) so a category stays recognisable across the pair.
+Every companion **mirrors its parent's full title** — `Movements By Item Type × In/Out`, not
+`Item Type × In/Out` — so a companion scrolled past in isolation still says what it is a companion
+to.
+
+Each `× In/Out` companion sits **immediately after its parent chart** and is drawn **back to back**
+(`W.BuildBackToBackRows` → `I:RenderBackToBack` → `W.PlaceBackToBackBar`): withdrawals grow LEFT of a
+fixed centre axis, deposits grow RIGHT. Both sides share **one** scale — the largest single-direction
+magnitude in the list — so the split sits on the same vertical line in every row and the lean of the
+whole chart reads straight down that line. A left-aligned stacked bar puts that boundary somewhere
+different on every row and answers the question only after arithmetic, which is why the form changed.
+Each row keeps its parent chart's label colour (store colour, quality colour, class colour, palette
+colour by rank) so a category stays recognisable across the pair, and each half carries its own
+hover tip with the exact count. The legend is ordered **withdraw, deposit** to match the chart's
+left-to-right reading rather than `C.DirectionOrder`.
+
+`Movements By Character × Store` is the one `×` chart that is *not* back to back — it splits by store,
+not by direction, so it keeps the ordinary left-aligned `I:RenderStacked` path.
 
 Last comes "TOP OF THE LIST", reorganized into a three-column grid grouped under **ITEMS**
 (Top Items By Movements, Top Items By Quantity), **CATEGORIES** (Top Type · Sub-type), **WHERE**

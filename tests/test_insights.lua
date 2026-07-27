@@ -305,6 +305,60 @@ test("InsightsWidgets.BuildStackRows breaks total ties on the label", function()
   assertEqual(rows[1].label, "Abe")
 end)
 
+-- ── Back-to-back (x In/Out) rows ───────────────────────────────────────────────
+-- The whole point of the form is that the split sits on ONE vertical line in every row, which
+-- only holds if both sides share a single scale. These pin that.
+
+test("InsightsWidgets.BuildBackToBackRows scales both sides against one shared maximum", function()
+  -- Largest single magnitude anywhere is Main's 10 deposits, so that fills its half exactly and
+  -- everything else -- including the OTHER direction -- is measured against the same 10.
+  local rows, scale = W.BuildBackToBackRows(
+    { Main = { DEPOSIT = 10, WITHDRAW = 5 }, Alt = { DEPOSIT = 2, WITHDRAW = 4 } },
+    "DEPOSIT", "WITHDRAW")
+  assertEqual(scale, 10)
+  assertEqual(rows[1].label, "Main", "the biggest total sorts first")
+  assertEqual(rows[1].rightFrac, 1)
+  assertEqual(rows[1].leftFrac, 0.5)
+  assertEqual(rows[2].rightFrac, 0.2, "the second row uses the SAME scale, not its own")
+  assertEqual(rows[2].leftFrac, 0.4)
+end)
+
+test("InsightsWidgets.BuildBackToBackRows reports each side's raw magnitude and the total",
+  function()
+    local rows = W.BuildBackToBackRows({ Main = { DEPOSIT = 7, WITHDRAW = 3 } },
+      "DEPOSIT", "WITHDRAW")
+    assertEqual(rows[1].rightMag, 7)
+    assertEqual(rows[1].leftMag, 3)
+    assertEqual(rows[1].total, 10)
+    assertEqual(rows[1].value, "10")
+  end)
+
+test("InsightsWidgets.BuildBackToBackRows gives a one-sided row a zero-width other half", function()
+  local rows = W.BuildBackToBackRows({ Main = { DEPOSIT = 4 } }, "DEPOSIT", "WITHDRAW")
+  assertEqual(rows[1].rightFrac, 1)
+  assertEqual(rows[1].leftFrac, 0, "an absent direction contributes nothing, not a stub bar")
+  assertEqual(rows[1].leftMag, 0)
+end)
+
+test("InsightsWidgets.BuildBackToBackRows breaks total ties on the label", function()
+  local rows = W.BuildBackToBackRows(
+    { Zed = { DEPOSIT = 3 }, Abe = { DEPOSIT = 3 } }, "DEPOSIT", "WITHDRAW")
+  assertEqual(rows[1].label, "Abe")
+end)
+
+test("InsightsWidgets.BuildBackToBackRows survives an all-zero matrix", function()
+  -- Every magnitude zero must yield zero-width halves, never a divide by zero.
+  local rows, scale = W.BuildBackToBackRows({ Main = { DEPOSIT = 0, WITHDRAW = 0 } },
+    "DEPOSIT", "WITHDRAW")
+  assertEqual(scale, 0)
+  assertEqual(rows[1].rightFrac, 0)
+  assertEqual(rows[1].leftFrac, 0)
+end)
+
+test("InsightsWidgets.BuildBackToBackRows of an empty matrix is empty", function()
+  assertEqual(#W.BuildBackToBackRows({}, "DEPOSIT", "WITHDRAW"), 0)
+end)
+
 test("InsightsWidgets.BuildStackRows tips each segment with its category and value", function()
   local rows = W.BuildStackRows({ Main = { BANK = 4 } }, { "BANK" },
     { catLabelOf = function() return "Character Bank" end })

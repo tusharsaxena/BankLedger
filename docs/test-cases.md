@@ -189,7 +189,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_database.lua (36)
+### test_database.lua (39)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -226,9 +226,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - NS.InitSummary identifies the build, schema, profile and size
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
+- RunMigrations treats a database with no schemaVersion key at all as v1
+- RunMigrations survives a database with no ledger at all
+- RunMigrations never downgrades a future schema version
 - Database:Export never emits a vendorPrice field
 
-### test_stats.lua (58)
+### test_stats.lua (56)
 
 - Stats: the entry total counts every movement in scope
 - Stats: item quantities split by direction
@@ -277,8 +280,6 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights.RankRows returns an empty array for an empty map
 - Insights.BarFraction scales each bar against the largest count
 - Insights.BarFraction is zero for an empty list or a missing row
-- Insights.FormatNet colours a gain green and a loss red
-- Insights.FormatNet renders zero as a neutral dash
 - Stats: qualityByDirection is keyed on the numeric quality id
 - Stats: itemTypeByDirection and itemSubTypeByDirection split by direction
 - Stats: the direction split always sums back to its parent breakdown
@@ -393,7 +394,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
-### test_insights.lua (66)
+### test_insights.lua (73)
 
 - InsightsWidgets.PaletteColor returns an rgb triple for rank 1
 - InsightsWidgets.PaletteColor gives adjacent ranks different colours
@@ -439,6 +440,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - InsightsWidgets.StackSegments drops zero and negative magnitudes
 - InsightsWidgets.BuildStackRows scales every row against the biggest row
 - InsightsWidgets.BuildStackRows breaks total ties on the label
+- InsightsWidgets.BuildBackToBackRows scales both sides against one shared maximum
+- InsightsWidgets.BuildBackToBackRows reports each side's raw magnitude and the total
+- InsightsWidgets.BuildBackToBackRows gives a one-sided row a zero-width other half
+- InsightsWidgets.BuildBackToBackRows breaks total ties on the label
+- InsightsWidgets.BuildBackToBackRows survives an all-zero matrix
+- InsightsWidgets.BuildBackToBackRows of an empty matrix is empty
 - InsightsWidgets.BuildStackRows tips each segment with its category and value
 - InsightsWidgets.BuildStackRows of an empty matrix is empty
 - InsightsWidgets pools reuse a released widget instead of building another
@@ -453,6 +460,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights:Attach and Refresh survive an empty ledger
 - Insights:Refresh lays out every section against a populated ledger
 - Insights:Refresh renders a slice with no gold at all
+- Insights: Net Flow By Store renders a movement count, not a money value
 - Insights: the four direction-split companions render without raising
 - Insights.BarLabel truncates the name and leaves the icon escape intact
 - Insights.BarLabel is a plain truncation when there is no icon
@@ -581,14 +589,14 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_constants.lua | 19 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 93 |
-| test_database.lua | 36 |
-| test_stats.lua | 58 |
+| test_database.lua | 39 |
+| test_stats.lua | 56 |
 | test_ledgertable.lua | 45 |
 | test_browser.lua | 18 |
 | test_sessionwindow.lua | 32 |
-| test_insights.lua | 66 |
+| test_insights.lua | 73 |
 | test_export.lua | 30 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **521** |
+| **Total** | **529** |

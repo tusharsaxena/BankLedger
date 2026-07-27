@@ -108,15 +108,17 @@ local SECTION_TITLES = {
   store      = "Movements By Store",
   netStore   = "Net Flow By Store",
   char       = "Movements By Character",
-  charStore  = "Character \195\151 Store",
-  charDir    = "Character \195\151 In/Out",
+  -- Every companion mirrors its parent chart's full title, so a reader scrolling past a "... x
+  -- In/Out" never has to look up to work out what it is a companion TO.
+  charStore  = "Movements By Character \195\151 Store",
+  charDir    = "Movements By Character \195\151 In/Out",
   quality    = "Movements By Quality",
   itemType   = "Movements By Item Type",
   subType    = "Movements By Sub-type",
-  storeDir   = "Store \195\151 In/Out",
-  qualityDir = "Quality \195\151 In/Out",
-  itemTypeDir= "Item Type \195\151 In/Out",
-  subTypeDir = "Sub-type \195\151 In/Out",
+  storeDir   = "Movements By Store \195\151 In/Out",
+  qualityDir = "Movements By Quality \195\151 In/Out",
+  itemTypeDir= "Movements By Item Type \195\151 In/Out",
+  subTypeDir = "Movements By Sub-type \195\151 In/Out",
   perDay     = "Movements Over Time (Per Day)",
   hour       = "Movements By Hour Of Day",
   weekday    = "Movements By Weekday",
@@ -238,6 +240,15 @@ function I.CardValues(totals)
   }
 end
 
+-- ── Shared key → display lookups ───────────────────────────────────────────────
+-- Declared above the render helpers because those close over them; a local declared later would
+-- resolve as a nil global at call time.
+
+local function storeColor(key) return C.StoreRGB[key] or W.NEUTRAL end
+local function storeLabel(key) return C.StoreLabel[key] or tostring(key) end
+local function directionColor(key) return C.DirectionRGB[key] or W.NEUTRAL end
+local function directionLabel(key) return C.DirectionLabel[key] or tostring(key) end
+
 -- ── Render helpers ─────────────────────────────────────────────────────────────
 
 -- A ranked horizontal-bar section. `rows` is an ordered array of
@@ -324,6 +335,33 @@ function I:RenderStacked(poolKey, headerKey, rows, y, w)
     bar.value:SetText(row.value or "")
     bar.value:SetTextColor(W.MUTED[1], W.MUTED[2], W.MUTED[3])
     W.PlaceStackedBar(bar, self.content, PAD, y, innerW, row.segments)
+    y = y - (W.BAR_H + W.BAR_GAP)
+  end
+  return y - W.SECTION_GAP
+end
+
+-- A back-to-back section: withdrawals grow left of a fixed centre axis, deposits grow right.
+-- `rows` comes from W.BuildBackToBackRows, already scaled and sorted.
+function I:RenderBackToBack(poolKey, headerKey, rows, y, w)
+  local header = self.headers[headerKey]
+  if #rows == 0 then header:Hide(); return y end
+  header:ClearAllPoints()
+  header:SetPoint("TOPLEFT", self.content, "TOPLEFT", PAD, y)
+  header:Show()
+  y = y - 18
+  local innerW = w - PAD * 2
+  local leftColor = directionColor(C.Direction.WITHDRAW)
+  local rightColor = directionColor(C.Direction.DEPOSIT)
+  for _, row in ipairs(rows) do
+    local bar = W.Acquire(self.pools[poolKey],
+      function() return W.MakeBackToBackBar(self.content) end)
+    bar._tip = row.fullLabel or row.label
+    bar.label:SetText(I.BarLabel(row))
+    local lc = row.labelColor or W.MUTED
+    bar.label:SetTextColor(lc[1], lc[2], lc[3])
+    bar.value:SetText(row.value or "")
+    bar.value:SetTextColor(W.MUTED[1], W.MUTED[2], W.MUTED[3])
+    W.PlaceBackToBackBar(bar, self.content, PAD, y, innerW, row, leftColor, rightColor)
     y = y - (W.BAR_H + W.BAR_GAP)
   end
   return y - W.SECTION_GAP
@@ -533,10 +571,6 @@ local function placeDivider(divider, content, y)
   return y - 30
 end
 
-local function storeColor(key) return C.StoreRGB[key] or W.NEUTRAL end
-local function storeLabel(key) return C.StoreLabel[key] or tostring(key) end
-local function directionColor(key) return C.DirectionRGB[key] or W.NEUTRAL end
-local function directionLabel(key) return C.DirectionLabel[key] or tostring(key) end
 
 -- A "<segment> x In/Out" companion: the same stacked-bar form as Character x In/Out, in the
 -- direction colours, with a legend. `labelOf`/`labelColorOf` keep each row recognisable against
@@ -546,18 +580,26 @@ function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, 
     self.headers[headerKey]:Hide()
     return y
   end
-  local rows = W.BuildStackRows(matrix, C.DirectionOrder, {
-    labelOf = opts.labelOf, colorOf = directionColor, catLabelOf = directionLabel,
-    valueFmt = tostring, labelColorOf = opts.labelColorOf,
+  -- Deposits right of the centre axis, withdrawals left of it. Both sides share one scale, so the
+  -- split sits on the same vertical line in every row and the lean of the whole chart reads at a
+  -- glance rather than row by row.
+  local rows = W.BuildBackToBackRows(matrix, C.Direction.DEPOSIT, C.Direction.WITHDRAW, {
+    labelOf = opts.labelOf, labelColorOf = opts.labelColorOf, valueFmt = tostring,
   })
-  -- Cap at BAR_ROWS to match the parent bar chart above it: BuildStackRows already sorts
-  -- total-desc, so truncating after the sort keeps the largest rows.
+  for _, row in ipairs(rows) do
+    row.rightTip = directionLabel(C.Direction.DEPOSIT) .. ": " .. row.rightMag
+    row.leftTip = directionLabel(C.Direction.WITHDRAW) .. ": " .. row.leftMag
+  end
+  -- Cap at BAR_ROWS to match the parent bar chart above it: the rows are already sorted
+  -- total-desc, so truncating after the sort keeps the largest.
   if #rows > BAR_ROWS then
     for i = #rows, BAR_ROWS + 1, -1 do rows[i] = nil end
   end
-  y = self:RenderStacked(poolKey, headerKey, rows, y, w)
+  y = self:RenderBackToBack(poolKey, headerKey, rows, y, w)
+  -- Legend order follows the CHART left-to-right (withdraw, deposit), not C.DirectionOrder: a
+  -- legend that reads in the opposite order to the thing it explains is a small lie.
   local legend = {}
-  for _, key in ipairs(C.DirectionOrder) do
+  for _, key in ipairs({ C.Direction.WITHDRAW, C.Direction.DEPOSIT }) do
     legend[#legend + 1] = { label = directionLabel(key), color = directionColor(key) }
   end
   return self:RenderLegend(legendKey, legend, y, w)
@@ -661,20 +703,12 @@ function I:LayoutSections(y, w, stats, totals)
     y = self:RenderLegend("charStoreLeg", legend, y, w)
   end
 
-  -- 6 ── Character × In/Out: who fills the bank and who empties it.
-  y = self:RenderStacked("charDir", "charDir",
-    W.BuildStackRows(stats.charByDirection, C.DirectionOrder, {
-      labelOf = W.ShortChar, colorOf = directionColor, catLabelOf = directionLabel,
-      valueFmt = tostring,
-      labelColorOf = function(ch) return W.ClassColor(classOf[ch]) end,
-    }), y, w)
-  if next(stats.charByDirection or {}) then
-    local legend = {}
-    for _, key in ipairs(C.DirectionOrder) do
-      legend[#legend + 1] = { label = directionLabel(key), color = directionColor(key) }
-    end
-    y = self:RenderLegend("charDirLeg", legend, y, w)
-  end
+  -- 6 ── Movements By Character × In/Out: who fills the bank and who empties it. Rendered through
+  -- the same back-to-back path as the other × In/Out companions, so every in/out chart in the
+  -- panel shares one centre axis and one reading.
+  y = self:RenderDirectionSplit("charDir", "charDir", "charDirLeg", stats.charByDirection,
+    { labelOf = W.ShortChar,
+      labelColorOf = function(ch) return W.ClassColor(classOf[ch]) end }, y, w)
 
   -- 7 ── Quality, in ASCENDING quality order (Poor→Legendary is meaningful; count-desc is not) and
   -- in the game's own quality colours, so the bars are self-legending.

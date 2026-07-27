@@ -291,6 +291,50 @@ function W.BuildStackRows(matrix, catOrder, opts)
   return rows
 end
 
+-- Back-to-back ("butterfly") rows from a two-category matrix: one category grows LEFT of a fixed
+-- centre axis, the other grows RIGHT. Returns the rows and the shared scale.
+--
+-- Both sides share ONE scale — the largest single-category magnitude anywhere in the list — which
+-- is what makes the form worth having: the split sits on the same vertical line in every row, so
+-- "which way does this lean" reads straight down the centre without comparing bar lengths. A
+-- left-aligned stacked bar puts that boundary in a different place on every row and answers the
+-- question only after arithmetic.
+--
+-- Domain-agnostic like everything else here: the caller names the two category keys.
+--   labelOf(rowKey) → display label   labelColorOf(rowKey) → the label's {r,g,b}
+--   valueFmt(total) → the value string
+-- Rows sort total-desc then label-asc, so ties are deterministic.
+function W.BuildBackToBackRows(matrix, rightKey, leftKey, opts)
+  opts = opts or {}
+  local labelOf = opts.labelOf or tostring
+  local colorOfLabel = opts.labelColorOf
+  local valueFmt = opts.valueFmt or tostring
+
+  local rows, scale = {}, 0
+  for key, mags in pairs(matrix or {}) do
+    local rightMag = math.max(0, (mags or {})[rightKey] or 0)
+    local leftMag = math.max(0, (mags or {})[leftKey] or 0)
+    if rightMag > scale then scale = rightMag end
+    if leftMag > scale then scale = leftMag end
+    rows[#rows + 1] = {
+      key = key, label = labelOf(key),
+      labelColor = colorOfLabel and colorOfLabel(key) or nil,
+      rightMag = rightMag, leftMag = leftMag, total = rightMag + leftMag,
+    }
+  end
+  -- A list whose every magnitude is 0 keeps 0-width halves rather than dividing by zero.
+  for _, row in ipairs(rows) do
+    row.rightFrac = scale > 0 and (row.rightMag / scale) or 0
+    row.leftFrac = scale > 0 and (row.leftMag / scale) or 0
+    row.value = valueFmt(row.total)
+  end
+  table.sort(rows, function(a, b)
+    if a.total ~= b.total then return a.total > b.total end
+    return tostring(a.label) < tostring(b.label)
+  end)
+  return rows, scale
+end
+
 -- ── Pools ──────────────────────────────────────────────────────────────────────
 
 function W.NewPool() return { free = {}, active = {} } end
@@ -630,6 +674,82 @@ function W.PlaceStackedBar(bar, host, x, y, barW, segments)
       seg:Hide()
     end
   end
+  return trackW
+end
+
+-- ── Back-to-back bar ───────────────────────────────────────────────────────────
+-- Two magnitudes meeting at a fixed centre axis: one grows left, the other right. The honest form
+-- for a two-way split across many rows — the boundary never moves, so the lean of every row is
+-- readable down one line instead of one bar at a time.
+
+function W.MakeBackToBackBar(parent)
+  local bar = CreateFrame("Frame", nil, parent)
+  bar:SetHeight(W.BAR_H)
+  local label = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  label:SetJustifyH("LEFT")
+  label:SetWordWrap(false)
+  bar.label = label
+  local track = bar:CreateTexture(nil, "BACKGROUND")
+  track:SetColorTexture(1, 1, 1, 0.06)
+  bar.track = track
+  local baseline = bar:CreateTexture(nil, "OVERLAY")
+  baseline:SetColorTexture(0.55, 0.55, 0.60, 0.9)
+  bar.baseline = baseline
+  local value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  value:SetJustifyH("RIGHT")
+  value:SetWordWrap(false)
+  bar.value = value
+  -- Each half is a mouse-enabled FRAME, not a bare texture, so it can carry its own
+  -- "<category>: <n>" tip — the only way to read the exact split off the chart.
+  bar.leftSide = CreateFrame("Frame", nil, bar)
+  bar.rightSide = CreateFrame("Frame", nil, bar)
+  for _, side in ipairs({ bar.leftSide, bar.rightSide }) do
+    side:EnableMouse(true)
+    local tex = side:CreateTexture(nil, "ARTWORK")
+    tex:SetAllPoints(side)
+    side.tex = tex
+    side:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip) end)
+    side:SetScript("OnLeave", hideTooltip)
+  end
+  bar:EnableMouse(true)
+  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.GOLD) end)
+  bar:SetScript("OnLeave", hideTooltip)
+  return bar
+end
+
+-- `row` is a W.BuildBackToBackRows row ({ leftFrac, rightFrac, leftTip, rightTip }); each fraction
+-- is of ONE HALF of the track, so a 1.0 fills its side exactly.
+function W.PlaceBackToBackBar(bar, host, x, y, barW, row, leftColor, rightColor)
+  bar:ClearAllPoints()
+  bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
+  bar:SetWidth(barW)
+  bar.label:ClearAllPoints()
+  bar.label:SetPoint("LEFT", 0, 0)
+  bar.label:SetWidth(W.LABEL_W)
+  bar.value:ClearAllPoints()
+  bar.value:SetPoint("RIGHT", 0, 0)
+  bar.value:SetWidth(W.VALUE_W)
+  local trackW = math.max(2, barW - W.LABEL_W - W.VALUE_W - 12)
+  local halfW = trackW / 2
+  bar.track:ClearAllPoints()
+  bar.track:SetPoint("LEFT", W.LABEL_W + 6, 0)
+  bar.track:SetSize(trackW, W.BAR_H - 4)
+  bar.baseline:ClearAllPoints()
+  bar.baseline:SetPoint("CENTER", bar.track, "CENTER", 0, 0)
+  bar.baseline:SetSize(1, W.BAR_H - 2)
+
+  -- Anchored to the track's CENTRE, not to its edges: that is what pins the split to one line.
+  local function place(side, frac, anchor, color, tip)
+    local w = halfW * math.min(1, math.max(0, frac or 0))
+    side:ClearAllPoints()
+    side:SetPoint(anchor, bar.track, "CENTER", 0, 0)
+    side:SetSize(math.max(1, w), W.BAR_H - 4)
+    side.tex:SetColorTexture(color[1], color[2], color[3], 0.95)
+    side._tip = tip
+    side:SetShown(w > 0)
+  end
+  place(bar.leftSide, row.leftFrac, "RIGHT", leftColor, row.leftTip)
+  place(bar.rightSide, row.rightFrac, "LEFT", rightColor, row.rightTip)
   return trackW
 end
 
