@@ -83,13 +83,15 @@ end)
 test("Browser:ClearFilters does not scope test data to the real player", function()
   -- The test dataset is synthetic alts; defaulting to Current would open onto an empty table.
   withCleanFilter(function()
-    local saved = NS.LedgerTable.testMode
-    NS.LedgerTable.testMode = true
+    -- Set the DATASET, not a flag beside it: test mode is derived from State.testRecords, so this
+    -- is the only way to be in test mode and there is nothing left that can disagree with it.
+    local saved = NS.State.testRecords
+    NS.State.testRecords = { { kind = "ITEM" } }
     local ok, err = pcall(function()
       B:ClearFilters()
       assertEqual(B.activeFilter.char, nil, "test mode starts unscoped")
     end)
-    NS.LedgerTable.testMode = saved
+    NS.State.testRecords = saved
     if not ok then error(err, 0) end
   end)
 end)

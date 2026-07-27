@@ -2,6 +2,7 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 NS.LedgerTable = NS.LedgerTable or {}
 local LT = NS.LedgerTable
 local C = NS.Constants
+local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 
 -- Virtualized pooled-row table over Database:Query — filter → sort → group → slice → bind.
 -- Rows are pooled (events-frames-taint-§6): a 10,000-entry ledger still only ever builds as many
@@ -112,7 +113,6 @@ end
 
 -- ── Pipeline ────────────────────────────────────────────────────────────────────
 LT.filter = {}
-LT.testMode = false
 
 -- Active sort. Default: newest movement first.
 LT.sortKey = "date"
@@ -467,18 +467,24 @@ function LT:BuildTestData()
   return out
 end
 
+-- Is the sample dataset on screen? DERIVED from the one stored fact rather than tracked beside it,
+-- so a flag and a dataset can never disagree — and every write path can ask the same question the
+-- read paths already answer through State.
+function LT:IsTestMode()
+  return NS.State.testRecords ~= nil
+end
+
 -- Toggle the test dataset (`/bl test`). Publishing it to State means every read-path query -- the
 -- table AND Insights -- resolves against the same data, through the real render path (test-mode).
 function LT:ToggleTestMode()
-  self.testMode = not self.testMode
-  NS.State.testRecords = self.testMode and self:BuildTestData() or nil
+  NS.State.testRecords = (not self:IsTestMode()) and self:BuildTestData() or nil
   if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
   if NS.Browser and NS.Browser.OnDatasetChanged then
     NS.Browser:OnDatasetChanged()
   else
     self:Refresh()
   end
-  return self.testMode
+  return self:IsTestMode()
 end
 
 -- ── Pooled rows ─────────────────────────────────────────────────────────────────
@@ -888,32 +894,44 @@ local function EnsureRowMenu()
   return rowMenu
 end
 
-function LT:ShowRowMenu(anchor, entry)
-  local m = EnsureRowMenu()
-  local MENU_ROW_H, W = 18, 160
-  local items = {
+-- The row menu's entries, as plain data — no frames, so the enable rules are unit-testable.
+--
+-- Every entry that WRITES is disabled while the sample dataset is on screen. The sample rows carry
+-- synthetic item ids (190001+) that exist nowhere but State, so blacklisting one used to put a fake
+-- id into the real, persisted capture filter, and Delete matched nothing in storage while still
+-- broadcasting LedgerChanged — the row visibly stayed (F-002). "Link to chat" mutates nothing and
+-- stays available; refusing here is right, rather than teaching Database which dataset is live.
+function LT:RowMenuItems(entry)
+  local live = not self:IsTestMode()
+  return {
     { label = "Link to chat", enabled = entry.itemLink ~= nil, fn = function()
         if entry.itemLink and ChatEdit_InsertLink then ChatEdit_InsertLink(entry.itemLink) end
       end },
     -- Blacklisting is point-in-time: it stops FUTURE movements of this id being recorded and leaves
     -- every stored row alone. Manage the list in Settings ▸ Filters.
-    { label = "Blacklist item", enabled = entry.itemID ~= nil, fn = function()
+    { label = "Blacklist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddBlacklist(entry.itemID) then
-          NS.Print(("blacklisted %s. Manage in Settings \226\150\184 Filters."):format(
+          print(("blacklisted %s. Manage in Settings \226\150\184 Filters."):format(
             entry.itemName or ("item " .. tostring(entry.itemID))))
         end
       end },
-    { label = "Whitelist item", enabled = entry.itemID ~= nil, fn = function()
+    { label = "Whitelist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddWhitelist(entry.itemID) then
-          NS.Print(("whitelisted %s. Manage in Settings \226\150\184 Filters."):format(
+          print(("whitelisted %s. Manage in Settings \226\150\184 Filters."):format(
             entry.itemName or ("item " .. tostring(entry.itemID))))
         end
       end },
-    { label = "|cffff5555Delete|r", enabled = true, fn = function()
+    { label = "|cffff5555Delete|r", enabled = live, fn = function()
         NS.Database:Delete(function(r) return r == entry end)   -- fires LedgerChanged
         LT:Refresh()
       end },
   }
+end
+
+function LT:ShowRowMenu(anchor, entry)
+  local m = EnsureRowMenu()
+  local MENU_ROW_H, W = 18, 160
+  local items = self:RowMenuItems(entry)
 
   for _, b in ipairs(m.buttons) do b:Hide() end
   for i, item in ipairs(items) do

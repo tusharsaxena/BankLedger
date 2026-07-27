@@ -402,3 +402,60 @@ test("LedgerTable:ToggleTestMode publishes and clears the dataset", function()
   assertFalse(NS.LedgerTable:ToggleTestMode(), "second toggle turns it off")
   assertEqual(NS.State.testRecords, nil)
 end)
+
+-- ── Test mode is a read-only sandbox ───────────────────────────────────────────
+-- The sample rows carry synthetic item ids (190001+) and live only in State. Any menu action that
+-- WRITES would cross out of the sandbox: blacklisting one puts a fake id into the real, persisted
+-- capture filter, and Delete matches nothing in real storage while still firing LedgerChanged.
+
+-- Build the menu under a given test-mode state and put State back BEFORE asserting. State.testRecords
+-- is global to the suite, so a failed assertion left mid-test would otherwise leak test mode into
+-- every later file (Insights and Export both resolve their data through it).
+local function menuByLabel(entry, testMode)
+  local saved = NS.State.testRecords
+  NS.State.testRecords = testMode and { { kind = "ITEM" } } or nil
+  local ok, items = pcall(function() return NS.LedgerTable:RowMenuItems(entry) end)
+  NS.State.testRecords = saved
+  if not ok then error(items, 0) end
+  local out = {}
+  for _, item in ipairs(items) do
+    -- Labels carry colour escapes; key on the visible text.
+    out[(item.label:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))] = item
+  end
+  return out
+end
+
+test("LedgerTable:IsTestMode is derived from the published dataset, not a second flag", function()
+  -- One stored fact means the two can never disagree.
+  local saved = NS.State.testRecords
+  NS.State.testRecords = nil
+  local whenClear = NS.LedgerTable:IsTestMode()
+  NS.State.testRecords = { { kind = "ITEM" } }
+  local whenSet = NS.LedgerTable:IsTestMode()
+  NS.State.testRecords = saved
+  assertFalse(whenClear)
+  assertTrue(whenSet)
+end)
+
+test("LedgerTable row menu offers the mutating actions on a real row", function()
+  local m = menuByLabel({ itemID = 2589, itemName = "Linen Cloth", itemLink = "|Hitem:2589|h" }, false)
+  assertTrue(m["Blacklist item"].enabled, "blacklist is live")
+  assertTrue(m["Whitelist item"].enabled)
+  assertTrue(m["Delete"].enabled)
+end)
+
+test("LedgerTable row menu disables every mutating action in test mode", function()
+  local m = menuByLabel({ itemID = 190001, itemName = "Sample", itemLink = "|Hitem:190001|h" }, true)
+  assertFalse(m["Blacklist item"].enabled, "a synthetic id must never reach the real filter list")
+  assertFalse(m["Whitelist item"].enabled)
+  assertFalse(m["Delete"].enabled, "Delete matched nothing yet still broadcast LedgerChanged")
+  assertTrue(m["Link to chat"].enabled, "linking mutates nothing, so it stays available")
+end)
+
+test("LedgerTable row menu still disables item actions on a money row", function()
+  -- The pre-existing rule (no itemID, no item actions) must survive the test-mode gate.
+  local m = menuByLabel({ kind = "MONEY", quantity = 5000 }, false)
+  assertFalse(m["Blacklist item"].enabled)
+  assertFalse(m["Link to chat"].enabled)
+  assertTrue(m["Delete"].enabled, "a real money row is still deletable")
+end)

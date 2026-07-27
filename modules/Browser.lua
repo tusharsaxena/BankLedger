@@ -677,7 +677,7 @@ end
 -- narrow it every session. Test mode is the exception: its dataset is synthetic alts, so scoping
 -- it to the real player would open the window on an empty table.
 local function defaultCharSelection()
-  if NS.LedgerTable and NS.LedgerTable.testMode then return {} end
+  if NS.LedgerTable and NS.LedgerTable:IsTestMode() then return {} end
   return { [CURRENT_CHAR] = true }
 end
 
@@ -719,7 +719,7 @@ end
 
 function B:UpdateTestBadge()
   if not (frame and frame.testBadge) then return end
-  frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable.testMode or false)
+  frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable:IsTestMode() or false)
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
