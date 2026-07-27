@@ -249,3 +249,26 @@ test("Browser: a 20-stack deposit repaints the window once, not twenty times", f
   assertEqual(duringDeposit, 0, "no repaint mid-burst")
   assertEqual(calls, 1, "twenty entries, one repaint")
 end)
+
+-- ── Filter ownership ───────────────────────────────────────────────────────────
+
+test("Browser hands the table a filter COPY, not its own mutable one", function()
+  -- F-013: the table held a live reference to Browser.activeFilter, so a later dropdown toggle
+  -- reached the table's filter before ApplyFilter ran — the table could paint under criteria that
+  -- had never been applied. Insights already got a copy; both consumers now get the same guarantee.
+  withCleanFilter(function()
+    local captured
+    local saved = NS.LedgerTable.SetFilter
+    NS.LedgerTable.SetFilter = function(_, f) captured = f end
+    local ok, err = pcall(function()
+      B.activeFilter = { store = { BANK = true } }
+      B:ApplyFilterNow()
+    end)
+    NS.LedgerTable.SetFilter = saved
+    if not ok then error(err, 0) end
+    assertTrue(captured ~= nil, "the table was handed a filter")
+    assertTrue(captured ~= B.activeFilter, "and it is not the Browser's own table")
+    B.activeFilter.text = "typed after applying"
+    assertEqual(captured.text, nil, "a later edit cannot reach an already-applied filter")
+  end)
+end)

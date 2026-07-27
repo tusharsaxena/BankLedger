@@ -3,7 +3,6 @@ NS.Browser = NS.Browser or {}
 local B = NS.Browser
 local C = NS.Constants
 local frame
-local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 
 local LDB_NAME = "Ka0s Bank Ledger"   -- LibDataBroker object + LibDBIcon registration key
 local minimapObject                   -- the LDB launcher, created once on first Enable
@@ -628,11 +627,21 @@ end
 -- whole window: it always drives the table (keeping matchCount and the footer current on either
 -- tab), and it drives the Insights charts live while Insights is the tab on screen.
 local function ApplyFilter()
-  if NS.LedgerTable then NS.LedgerTable:SetFilter(B.activeFilter) end
+  -- A COPY, not the live table. Handing over B.activeFilter itself meant a later dropdown toggle
+  -- mutated the filter the table was already painting under, so the table could show results for
+  -- criteria that had never been applied (F-013). Insights always got a copy; both consumers now
+  -- have the same guarantee.
+  if NS.LedgerTable then NS.LedgerTable:SetFilter(B:CurrentFilter()) end
   B:UpdateFooter()
   if lastTab == "Insights" and NS.Insights and NS.Insights.Refresh and NS.Insights.pane then
     NS.Insights:Refresh()
   end
+end
+
+-- The immediate path, by name — what a dropdown selection and the tests use, as against the
+-- debounced B:ScheduleApplyFilter the search box goes through.
+function B:ApplyFilterNow()
+  ApplyFilter()
 end
 
 -- Coalesce a BURST of filter edits into one recompute. Applying a filter costs a full
@@ -1136,9 +1145,20 @@ end
 function B:Enable()
   if self._enabled then return end
   self._enabled = true
-  -- A private bus target (never the shared bus-as-self) so these can't clobber the Ledger's
-  -- SettingsChanged handler or the Insights consumers of the same messages (architecture-§4).
-  B.__ev = NS.NewBusTarget() or NS.bus
+  if NS.Insights and NS.Insights.Enable then NS.Insights:Enable() end
+  B:SetupMinimap()
+
+  -- A private bus target, never the shared bus-as-self: CallbackHandler keys callbacks by
+  -- (message, target), so sharing one would silently clobber the Ledger's SettingsChanged handler
+  -- and the Insights consumers of the same messages (architecture-§4).
+  --
+  -- There is deliberately NO fallback to NS.bus. A nil here means AceEvent is missing, and
+  -- registering on the shared bus is exactly the receiver-clobber this factory exists to prevent —
+  -- the "safety" fallback would have caused the failure it was written to avoid (F-010). Live
+  -- refresh simply stays inert, as it already does in SessionWindow and Insights. The window itself,
+  -- the minimap button and the tabs above still work, which is why they are set up first.
+  B.__ev = NS.NewBusTarget()
+  if not B.__ev then return end
   B.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() B:OnSettingsChanged() end)
   B.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() B:OnLedgerChanged() end)
   B.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() B:ScheduleLedgerRefresh() end)
@@ -1147,12 +1167,4 @@ function B:Enable()
   if B.__ev.RegisterEvent then
     B.__ev:RegisterEvent("PLAYER_LOGOUT", function() B:OnLogout() end)
   end
-  if NS.Insights and NS.Insights.Enable then NS.Insights:Enable() end
-  B:SetupMinimap()
-end
-
--- Print the addon's chat notice when the window can't be built (used by the slash verbs when the
--- UI libraries are unavailable — a soft fallback rather than a hard error).
-function B:Unavailable()
-  print("the ledger window is unavailable (a required library did not load).")
 end
