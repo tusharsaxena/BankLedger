@@ -51,6 +51,37 @@ function Compat.GetMoney()
   return 0
 end
 
+-- Coin held BY a store, not by the player — the corroborating side of a money movement. Returns nil
+-- for a store that holds no coin of its own, and for one whose balance this build cannot read; the
+-- caller must then decline to attribute the movement rather than guess (see Ledger.Diff).
+--
+-- Returning nil rather than 0 is the whole point. `GetGuildBankMoney()` answers **0** when the guild
+-- bank frame is closed, not nil — verified on 12.0.7 via `/bl debug scan`, which read 0 at a bank
+-- and 65537936844 at the guild bank moments later. Passing that 0 through as a balance would make
+-- the next open look like a six-thousand-gold deposit, so the read is gated on the frame being up.
+-- `C_Bank.FetchDepositedMoney` has no such frame dependency: it reported the same warband figure in
+-- both sessions. `Enum.BankType.Account` is read BY NAME — the ids (Character=0, Guild=1, Account=2)
+-- share no ordering with any other enum here and must never be assumed numerically.
+--
+-- Constants is resolved at call time, not as an upvalue: Compat loads first (TOC), so C.Store does
+-- not exist yet at this file's load.
+function Compat.GetStoreMoney(store)
+  local Store = NS.Constants and NS.Constants.Store
+  if not (Store and store) then return nil end
+  if store == Store.GUILD_BANK then
+    if type(GetGuildBankMoney) ~= "function" then return nil end
+    if not Compat.IsGuildBankVisible() then return nil end
+    return GetGuildBankMoney()
+  end
+  if store == Store.WARBAND_BANK then
+    local fn = C_Bank and C_Bank.FetchDepositedMoney
+    local bankType = Enum and Enum.BankType and Enum.BankType.Account
+    if type(fn) ~= "function" or bankType == nil then return nil end
+    return fn(bankType)
+  end
+  return nil
+end
+
 -- ── Container (bag / bank) inventory ────────────────────────────────────────────
 
 -- Number of slots in a container id, 0 when the id isn't accessible right now.

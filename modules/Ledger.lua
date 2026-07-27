@@ -103,15 +103,24 @@ function L.Diff(before, after, store)
     end
   end
 
-  -- Gold, at the stores that hold it. The player's balance FALLING is a deposit into the store.
-  if L.MONEY_STORES[store] then
-    local delta = (after.money or 0) - (before.money or 0)
-    if delta < 0 then
-      moves[#moves + 1] = { kind = C.Kind.MONEY, direction = C.Direction.DEPOSIT, store = store,
-                            quantity = -delta }
-    elseif delta > 0 then
-      moves[#moves + 1] = { kind = C.Kind.MONEY, direction = C.Direction.WITHDRAW, store = store,
-                            quantity = delta }
+  -- Gold, at the stores that hold it — under the SAME rule as items: both sides must change, in
+  -- opposite directions, and the amount is the smaller of the two.
+  --
+  -- The purse alone proves nothing. The retail bank frame reaches the warband bank, so a bank-tab
+  -- purchase, a repair or a mail COD landing mid-visit all look identical to a deposit if you only
+  -- watch the player's balance — and each one used to be written to permanent history as a warband
+  -- deposit (F-001). Requiring the store's own balance to mirror the change makes a money row as
+  -- evidence-backed as an item row. A store whose balance cannot be read on BOTH snapshots
+  -- contributes nothing: half an observation is not an observation.
+  if L.MONEY_STORES[store] and before.storeMoney and after.storeMoney then
+    local purseDelta = (after.money or 0) - (before.money or 0)
+    local storeDelta = after.storeMoney - before.storeMoney
+    if purseDelta ~= 0 and storeDelta ~= 0 and (purseDelta < 0) ~= (storeDelta < 0) then
+      local amount = math.min(math.abs(purseDelta), math.abs(storeDelta))
+      moves[#moves + 1] = {
+        kind = C.Kind.MONEY, store = store, quantity = amount,
+        direction = purseDelta < 0 and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
+      }
     end
   end
 
@@ -189,24 +198,31 @@ end
 -- comparable value. Scanning all of a frame's stores together is what makes tab switching a
 -- non-event — there is nothing to detect, because every tab was already measured.
 function L:Snapshot(context)
-  local stores = {}
+  local stores, storeMoney = {}, {}
   for _, store in ipairs(self:StoresFor(context)) do
     stores[store] = self:ScanStore(store)
+    -- The store's own coin balance, where it has one and this build can read it. nil is a real and
+    -- expected answer — Diff treats it as "no money movement provable here" (see C-001).
+    if L.MONEY_STORES[store] then
+      storeMoney[store] = NS.Compat.GetStoreMoney(store)
+    end
   end
   return {
     bags = self:ScanStore(C.Store.BAGS),
     stores = stores,
     money = NS.Compat.GetMoney(),
+    storeMoney = storeMoney,
   }
 end
 
 -- The single-store view Diff consumes, pulled out of a whole-frame snapshot. Keeping Diff on the
--- narrow { bags, store, money } shape keeps it pure and keeps its tests readable.
+-- narrow { bags, store, money, storeMoney } shape keeps it pure and keeps its tests readable.
 local function storeView(snapshot, store)
   return {
     bags = snapshot.bags,
     store = (snapshot.stores or {})[store] or {},
     money = snapshot.money,
+    storeMoney = (snapshot.storeMoney or {})[store],
   }
 end
 
@@ -270,6 +286,39 @@ function L:Diagnose()
   end
 
   add("money=%s", NS.Compat.GetMoney())
+
+  -- Money capture rests on being able to read a STORE's own coin balance, not just the purse: a
+  -- purse delta alone cannot tell a warband deposit apart from a bank-tab purchase. This line says
+  -- which balance readers this build exposes, and what each one actually returns right now.
+  add("money API: purse=%s guildBank=%s bankFetch=%s bankTypes=%s",
+    type(GetMoney), type(GetGuildBankMoney),
+    type(C_Bank and C_Bank.FetchDepositedMoney), tostring(Enum and Enum.BankType ~= nil))
+  if Enum and Enum.BankType then
+    local names = {}
+    for name, value in pairs(Enum.BankType) do
+      if type(value) == "number" then names[#names + 1] = ("%s=%s"):format(name, value) end
+    end
+    table.sort(names)
+    add("  Enum.BankType: %s", table.concat(names, ", "))
+  end
+  -- Read each candidate behind a pcall: a reader that exists but errors off its own frame is no
+  -- more usable than one that is absent, and this is the line that tells the two apart.
+  local function probeMoney(label, fn)
+    if type(fn) ~= "function" then return add("  %s: absent", label) end
+    local ok, value = pcall(fn)
+    add("  %s: %s", label, ok and tostring(value) or ("ERROR " .. tostring(value)))
+  end
+  probeMoney("GetGuildBankMoney()", GetGuildBankMoney)
+  if C_Bank and C_Bank.FetchDepositedMoney and Enum and Enum.BankType then
+    if Enum.BankType.Account then
+      probeMoney("C_Bank.FetchDepositedMoney(Account)",
+        function() return C_Bank.FetchDepositedMoney(Enum.BankType.Account) end)
+    end
+    if Enum.BankType.Character then
+      probeMoney("C_Bank.FetchDepositedMoney(Character)",
+        function() return C_Bank.FetchDepositedMoney(Enum.BankType.Character) end)
+    end
+  end
 
   -- Guild bank: which API globals this build exposes, and what each tab actually reports. A tab
   -- showing 0 filled when you can see items in it means the query has not landed yet.

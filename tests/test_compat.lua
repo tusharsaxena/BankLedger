@@ -79,6 +79,42 @@ test("Compat.GetMoney reads the carried balance", function()
   mocks.__money = saved
 end)
 
+-- ── Store-held coin ────────────────────────────────────────────────────────────
+-- The corroboration side of a money movement. Every one of these is about the shim REFUSING to
+-- answer: a wrong balance is worse than no balance, because the caller cannot tell it is wrong.
+
+test("Compat.GetStoreMoney reads the guild bank's own balance while the frame is open", function()
+  mocks.__guildVisible = true
+  assertEqual(NS.Compat.GetStoreMoney("GUILD_BANK"), 65537936844)
+end)
+
+test("Compat.GetStoreMoney returns nil for the guild bank when the frame is closed", function()
+  -- The live API returns 0 here, not nil. Passing that 0 through would make the next open look like
+  -- a 6,553g deposit; nil makes the caller decline to attribute anything, which is the truth.
+  local saved = mocks.__guildVisible
+  mocks.__guildVisible = false
+  assertEqual(NS.Compat.GetStoreMoney("GUILD_BANK"), nil)
+  mocks.__guildVisible = saved
+end)
+
+test("Compat.GetStoreMoney reads the warband balance by BankType name, not by number", function()
+  assertEqual(NS.Compat.GetStoreMoney("WARBAND_BANK"), 16348260386)
+end)
+
+test("Compat.GetStoreMoney returns nil for a store that holds no coin of its own", function()
+  assertEqual(NS.Compat.GetStoreMoney("BANK"), nil)
+  assertEqual(NS.Compat.GetStoreMoney("BAGS"), nil)
+  assertEqual(NS.Compat.GetStoreMoney(nil), nil)
+end)
+
+test("Compat.GetStoreMoney returns nil when the build exposes no reader", function()
+  local savedBank, savedGuild = mocks.C_Bank, mocks.GetGuildBankMoney
+  mocks.C_Bank, mocks.GetGuildBankMoney = nil, nil
+  assertEqual(NS.Compat.GetStoreMoney("WARBAND_BANK"), nil)
+  assertEqual(NS.Compat.GetStoreMoney("GUILD_BANK"), nil)
+  mocks.C_Bank, mocks.GetGuildBankMoney = savedBank, savedGuild
+end)
+
 test("Compat.GetPlayerMapID returns the current map id", function()
   assertEqual(NS.Compat.GetPlayerMapID(), 2657)
 end)

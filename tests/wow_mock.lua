@@ -138,6 +138,9 @@ return function()
       AccountBankTab_1 = 12, AccountBankTab_2 = 13, AccountBankTab_3 = 14,
       AccountBankTab_4 = 15, AccountBankTab_5 = 16,
     },
+    -- Verbatim from the same live client. Account=2 is the warband bank; the ids are NOT sequential
+    -- with any other enum here, so they must be read by name, never assumed.
+    BankType = { Character = 0, Guild = 1, Account = 2 },
   }
 
   -- Fake container inventory: M.__containers[bagID] = { [slot] = { itemID, link, count } }.
@@ -202,6 +205,26 @@ return function()
     M.__guildVisible = false
     for _, fn in ipairs(M.__guildHideHooks) do fn(M.GuildBankFrame) end
   end
+
+  -- Coin held BY a store. Reproduced from a live 12.0.7 `/bl debug scan` at a bank and at a guild
+  -- bank, and the fidelity that matters is the FAILURE mode: with the guild bank closed
+  -- GetGuildBankMoney() returns **0**, not nil. A mock that returned nil there would hide the whole
+  -- defect — a closed-then-open transition would read as a 6,553g deposit appearing from nowhere.
+  -- C_Bank.FetchDepositedMoney is not frame-bound: it reported the same figure in both sessions.
+  M.__guildBankMoney = 65537936844
+  M.GetGuildBankMoney = function()
+    if not M.__guildVisible then return 0 end
+    return M.__guildBankMoney
+  end
+  M.__warbandMoney = 16348260386
+  M.__characterBankMoney = 0
+  M.C_Bank = {
+    FetchDepositedMoney = function(bankType)
+      if bankType == M.Enum.BankType.Account then return M.__warbandMoney end
+      if bankType == M.Enum.BankType.Character then return M.__characterBankMoney end
+      return nil
+    end,
+  }
 
   -- Item database: M.__items[itemID] = { name, quality, itemType, itemSubType, vendorPrice }.
   M.__items = {

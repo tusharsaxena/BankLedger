@@ -7,8 +7,10 @@ local test, assertEqual, assertTrue, assertFalse =
 -- The capture engine. Diff is the pure heart of the addon: two inventory snapshots in, ledger
 -- movements out. Everything below it (event wiring, item enrichment) is a thin shell around it.
 
-local function snap(bags, store, money)
-  return { bags = bags or {}, store = store or {}, money = money or 0 }
+-- `storeMoney` is the store's OWN coin balance — the corroborating side of a money movement. Left
+-- nil it models a store whose balance this build cannot read, which must produce no money row.
+local function snap(bags, store, money, storeMoney)
+  return { bags = bags or {}, store = store or {}, money = money or 0, storeMoney = storeMoney }
 end
 
 -- Find the single move for an itemID (nil when absent), so a test reads by intent not by index.
@@ -116,38 +118,94 @@ end)
 
 -- ── Diff: money ────────────────────────────────────────────────────────────────
 
-test("Ledger.Diff: money leaving the player at a money-holding store is a DEPOSIT", function()
-  local moves = NS.Ledger.Diff(snap({}, {}, 500000), snap({}, {}, 300000), "GUILD_BANK")
+-- Money obeys the same "both sides must change, in opposite directions" rule as items. The purse
+-- alone proves nothing: at the bank window a purse drop is just as likely to be a bank-tab purchase
+-- or a repair as a deposit, and only the store's own balance can tell those apart.
+
+test("Ledger.Diff: money leaving the player and arriving at the store is a DEPOSIT", function()
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 500000, 1000000), snap({}, {}, 300000, 1200000), "GUILD_BANK")
   local m = moneyMove(moves)
   assertTrue(m ~= nil, "a money movement")
   assertEqual(m.direction, "DEPOSIT")
   assertEqual(m.quantity, 200000)
 end)
 
-test("Ledger.Diff: money arriving at a money-holding store is a WITHDRAW", function()
-  local moves = NS.Ledger.Diff(snap({}, {}, 300000), snap({}, {}, 500000), "WARBAND_BANK")
+test("Ledger.Diff: money leaving the store and arriving at the player is a WITHDRAW", function()
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 300000, 1200000), snap({}, {}, 500000, 1000000), "WARBAND_BANK")
   local m = moneyMove(moves)
   assertTrue(m ~= nil)
   assertEqual(m.direction, "WITHDRAW")
   assertEqual(m.quantity, 200000)
 end)
 
+test("Ledger.Diff: a purse drop the store's balance does not mirror is NOT a deposit", function()
+  -- F-001: buying a bank tab, repairing, or a mail COD landing while the bank window is open. The
+  -- purse falls; the store gained nothing. This produced a phantom warband deposit before C-001.
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 10000000, 1000000), snap({}, {}, 0, 1000000), "WARBAND_BANK")
+  assertEqual(moneyMove(moves), nil, "no store balance change means nothing moved to the store")
+end)
+
+test("Ledger.Diff: a store balance change the purse does not mirror is not a movement", function()
+  -- Someone else deposited into the guild bank during your session. Real, but not YOUR movement,
+  -- and the addon has no business writing it to your history.
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 500000, 1000000), snap({}, {}, 500000, 1200000), "GUILD_BANK")
+  assertEqual(moneyMove(moves), nil)
+end)
+
+test("Ledger.Diff: both balances falling together is not a movement", function()
+  -- Same direction on both sides cannot be a transfer between them.
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 500000, 1000000), snap({}, {}, 300000, 900000), "GUILD_BANK")
+  assertEqual(moneyMove(moves), nil)
+end)
+
+test("Ledger.Diff: the recorded amount is the smaller of the two deltas", function()
+  -- A repair AND a deposit in the same pass: the purse fell 300000 but only 200000 reached the
+  -- store. Only what the store actually received is provable, so only that is recorded.
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 500000, 1000000), snap({}, {}, 200000, 1200000), "GUILD_BANK")
+  local m = moneyMove(moves)
+  assertTrue(m ~= nil)
+  assertEqual(m.direction, "DEPOSIT")
+  assertEqual(m.quantity, 200000)
+end)
+
+test("Ledger.Diff: an unreadable store balance produces no money movement", function()
+  -- storeMoney nil = this build exposes no reader for that store. Declining is the only honest
+  -- answer; guessing from the purse alone is exactly the bug C-001 removes.
+  local moves = NS.Ledger.Diff(snap({}, {}, 500000, nil), snap({}, {}, 300000, nil), "GUILD_BANK")
+  assertEqual(moneyMove(moves), nil)
+end)
+
+test("Ledger.Diff: a balance readable on only one side produces no money movement", function()
+  -- The guild bank frame closed mid-session, so the second read came back nil. Half an observation
+  -- is not an observation.
+  local moves = NS.Ledger.Diff(snap({}, {}, 500000, 1000000), snap({}, {}, 300000, nil), "GUILD_BANK")
+  assertEqual(moneyMove(moves), nil)
+end)
+
 test("Ledger.Diff: money is ignored at a store that holds no gold", function()
   -- The character bank has no gold slot, so a money change there came from something else entirely
   -- (a vendor sale, a quest turn-in) and must never be logged as a deposit.
-  local moves = NS.Ledger.Diff(snap({}, {}, 500000), snap({}, {}, 300000), "BANK")
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 500000, 1000000), snap({}, {}, 300000, 1200000), "BANK")
   assertEqual(moneyMove(moves), nil)
 end)
 
 test("Ledger.Diff: an unchanged balance produces no money movement", function()
-  local moves = NS.Ledger.Diff(snap({}, {}, 500000), snap({}, {}, 500000), "GUILD_BANK")
+  local moves = NS.Ledger.Diff(
+    snap({}, {}, 500000, 1000000), snap({}, {}, 500000, 1000000), "GUILD_BANK")
   assertEqual(moneyMove(moves), nil)
 end)
 
 test("Ledger.Diff: the money movement sorts after the item movements", function()
   local moves = NS.Ledger.Diff(
-    snap({ [2589] = 1 }, {}, 500000),
-    snap({}, { [2589] = 1 }, 400000),
+    snap({ [2589] = 1 }, {}, 500000, 1000000),
+    snap({}, { [2589] = 1 }, 400000, 1100000),
     "GUILD_BANK")
   assertEqual(#moves, 2)
   assertEqual(moves[1].kind, "ITEM")
@@ -181,6 +239,20 @@ test("Ledger:Snapshot captures bags, every reachable store and the money balance
   assertTrue(s.stores.WARBAND_BANK ~= nil, "the warband tab was scanned in the same pass")
   assertEqual(s.stores.REAGENT_BANK, nil, "a store this build does not have is not scanned")
   mocks.__containers[0] = nil
+end)
+
+test("Ledger:Snapshot carries each money-holding store's own balance", function()
+  local s = NS.Ledger:Snapshot("BANK_FRAME")
+  assertEqual(s.storeMoney.WARBAND_BANK, 16348260386, "read via C_Bank, not from the purse")
+  assertEqual(s.storeMoney.BANK, nil, "the character bank holds no coin of its own")
+end)
+
+test("Ledger:Snapshot omits a store balance this build cannot read", function()
+  local saved = mocks.C_Bank
+  mocks.C_Bank = nil
+  local s = NS.Ledger:Snapshot("BANK_FRAME")
+  assertEqual((s.storeMoney or {}).WARBAND_BANK, nil)
+  mocks.C_Bank = saved
 end)
 
 -- ── Frame-to-store mapping ─────────────────────────────────────────────────────
@@ -745,6 +817,57 @@ test("Ledger: a movement whose halves are SECONDS apart is still recorded", func
     assertEqual(e.quantity, 9)
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
+  assertEqual(NS.Database:Count(), before)
+end)
+
+-- Money end-to-end, through the real reconcile path. The Diff tests prove the rule; these two prove
+-- the rule survives the settle machinery, which is where a corroborated movement could still be
+-- lost (the store's balance lands a pass later than the purse).
+
+test("Ledger: gold spent at the bank window is not recorded as a warband deposit", function()
+  -- F-001, end to end: buying a bank tab. The purse falls by 1000g and the warband bank receives
+  -- nothing. Before C-001 this wrote a permanent "1000g deposited to the Warband Bank" row.
+  local before = NS.Database:Count()
+  local savedMoney, savedWarband = mocks.__money, mocks.__warbandMoney
+  withContainers({ [BAG_ID] = { slots = 1 }, [WARBAND_ID] = { slots = 1 } }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__money = mocks.__money - 10000000
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "the purse moved alone — nothing is provable")
+
+    -- And it must not sit in the held baseline waiting to pair with something later either.
+    mocks.__now = mocks.__now + NS.Ledger.SETTLE_TIMEOUT_SECONDS + 1
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "still no phantom row after the baseline re-anchors")
+  end)
+  mocks.__money, mocks.__warbandMoney = savedMoney, savedWarband
+end)
+
+test("Ledger: a real gold deposit still records when the store balance lands a pass later", function()
+  -- The corroboration must not cost real rows. The purse updates on PLAYER_MONEY; the store's own
+  -- balance can lag. The held baseline is what carries the purse half across to the pass that sees
+  -- the other half — the same mechanism the item path already relies on.
+  local before = NS.Database:Count()
+  local savedMoney, savedWarband = mocks.__money, mocks.__warbandMoney
+  withContainers({ [BAG_ID] = { slots = 1 }, [WARBAND_ID] = { slots = 1 } }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__money = mocks.__money - 500000
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "nothing recorded yet — the balance has not landed")
+
+    mocks.__now = mocks.__now + 1
+    mocks.__warbandMoney = mocks.__warbandMoney + 500000
+    NS.Ledger:Reconcile()
+
+    assertEqual(NS.Database:Count(), before + 1, "the held baseline still saw the purse half")
+    local e = NS.Database:Ledger()[NS.Database:Count()]
+    assertEqual(e.kind, "MONEY")
+    assertEqual(e.store, "WARBAND_BANK")
+    assertEqual(e.direction, "DEPOSIT")
+    assertEqual(e.quantity, 500000)
+  end)
+  mocks.__money, mocks.__warbandMoney = savedMoney, savedWarband
+  NS.Database:Delete(function(e) return e.kind == "MONEY" and e.quantity == 500000 end)
   assertEqual(NS.Database:Count(), before)
 end)
 

@@ -17,6 +17,8 @@ read_globals = {
   "C_Item", "C_Container", "C_Map", "C_AddOns", "GetAddOnMetadata",
   "GetGuildBankItemLink", "GetGuildBankItemInfo", "GetNumGuildBankTabs",
   "MAX_GUILDBANK_SLOTS_PER_TAB", "QueryGuildBankTab", "GetCurrentGuildBankTab", "GuildBankFrame",
+  -- Store-held coin balances: the corroboration side of a money movement
+  "GetGuildBankMoney", "C_Bank",
   -- UI globals used by the window, console and panel
   "UIParent", "UISpecialFrames", "DEFAULT_CHAT_FRAME", "GameTooltip",
   "ITEM_QUALITY_COLORS", "RAID_CLASS_COLORS", "CLASS_ICON_TCOORDS", "STANDARD_TEXT_FONT",
