@@ -98,7 +98,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (89)
+### test_ledger.lua (93)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -187,6 +187,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger:OnGuildBankData re-arms without churning the baseline once armed
 - Ledger: a guild-bank deposit is recorded with no open event at all
 - Ledger: the guild bank disarms once its window has gone
+- Ledger: hiding the guild-bank frame disarms it there and then, with no event
+- Ledger: the guild-bank OnHide hook is installed once, not once per data event
+- Ledger:Diagnose reports whether the guild-bank close hook is installed
+- Ledger: hiding the guild-bank frame leaves an open BANK frame alone
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
@@ -334,7 +338,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:ExportWidth leaves the Export button a usable width
 
-### test_sessionwindow.lua (25)
+### test_sessionwindow.lua (26)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -348,6 +352,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - SessionWindow:DisplayList never reorders the session list in place
 - SessionChanged from the Ledger opens and closes a session
 - Ledger:OpenContext and CloseContext drive the session window
+- closing the guild bank closes the session window
 - a recorded movement reaches the session window through EntryAdded
 - the disable setting suppresses the window without suppressing collection
 - the window stays shut while capture itself is off
@@ -537,15 +542,15 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_compat.lua | 16 |
 | test_constants.lua | 19 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 89 |
+| test_ledger.lua | 93 |
 | test_database.lua | 33 |
 | test_stats.lua | 49 |
 | test_ledgertable.lua | 38 |
 | test_browser.lua | 12 |
-| test_sessionwindow.lua | 25 |
+| test_sessionwindow.lua | 26 |
 | test_insights.lua | 55 |
 | test_export.lua | 29 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 19 |
 | test_slash.lua | 31 |
-| **Total** | **478** |
+| **Total** | **483** |

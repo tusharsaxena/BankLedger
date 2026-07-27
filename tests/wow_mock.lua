@@ -120,11 +120,25 @@ return function()
   M.MAX_GUILDBANK_SLOTS_PER_TAB = 98
   -- The guild-bank window. Tests set __guildVisible to nil to model a build where the frame cannot
   -- be found at all, which must NOT be read as "hidden".
+  --
+  -- It accepts an OnHide hook, because that is the ONLY notice the client gives that the guild bank
+  -- has closed: GUILDBANKFRAME_CLOSED registers fine and never fires on 12.0.7, the same as its
+  -- _OPENED sibling. __closeGuildBank() closes it the way the client does — hide the frame, then run
+  -- the hooks — so a test can prove the addon notices.
   M.__guildVisible = true
-  M.GuildBankFrame = setmetatable({}, { __index = function(_, k)
+  M.__guildHideHooks = {}
+  M.GuildBankFrame = setmetatable({
+    HookScript = function(_, script, handler)
+      if script == "OnHide" then M.__guildHideHooks[#M.__guildHideHooks + 1] = handler end
+    end,
+  }, { __index = function(_, k)
     if k == "IsVisible" then return function() return M.__guildVisible end end
     return nil
   end })
+  M.__closeGuildBank = function()
+    M.__guildVisible = false
+    for _, fn in ipairs(M.__guildHideHooks) do fn(M.GuildBankFrame) end
+  end
 
   -- Item database: M.__items[itemID] = { name, quality, itemType, itemSubType, vendorPrice }.
   M.__items = {

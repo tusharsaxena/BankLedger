@@ -154,6 +154,20 @@ test("Ledger:OpenContext and CloseContext drive the session window", function()
   assertFalse(NS.State.sessionActive, "disarming ends it")
 end)
 
+test("closing the guild bank closes the session window", function()
+  -- The guild bank gets no close event at all, so its session has to end on the frame going away.
+  reset()
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+  NS.Ledger:OnGuildBankData()
+  assertTrue(NS.State.sessionActive, "guild-bank data arriving starts a session")
+  assertTrue(SW:IsShown())
+  T.mocks.__closeGuildBank()
+  assertFalse(NS.State.sessionActive, "and the window going away ends it")
+  assertFalse(SW:IsShown(), "the session window closes with the guild bank")
+  T.mocks.__guildVisible = true
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+end)
+
 test("a recorded movement reaches the session window through EntryAdded", function()
   reset()
   NS.Ledger:OpenContext("BANK_FRAME")

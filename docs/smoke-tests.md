@@ -207,14 +207,16 @@ tolerance.
     never stored anything of its own.
 11. Delete one of those rows from the History table while the bank is still open — it disappears from
     the session window too.
-12. Repeat steps 1–5 at the **warband** tabs and at a **guild bank**. Both drive the same window; the
-    guild bank has no close event, so confirm the window also disappears when the guild bank frame
-    goes away.
-13. `/reload` while a bank is open: the window reappears empty when you next open a bank, because the
+12. Repeat steps 1–5 at the **warband** tabs and at a **guild bank**. Both drive the same window.
+13. **Guild bank close, specifically.** The guild bank fires no close event, so its session ends on
+    the frame's own `OnHide`. Open the guild bank, move something, then close it **without touching
+    your bags afterwards** — the session window must disappear *immediately*, not on your next bag
+    change. If it lingers, `/bl debug scan` will say `guild bank close hook: NOT INSTALLED`.
+14. `/reload` while a bank is open: the window reappears empty when you next open a bank, because the
     session data was never persisted.
-14. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
+15. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
     movements you make are still recorded (check the History window). Tick it again while a bank is
     open and it appears on the next movement; untick it while it is open and it closes at once.
-15. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
+16. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
     again to dismiss it. While a real bank session is open, `/bl session` refuses and says so rather
     than replacing your actual data with placeholders.

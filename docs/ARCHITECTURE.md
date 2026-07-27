@@ -159,7 +159,7 @@ settings landing page and the README all read from one place.
 |---|---|
 | `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune |
 | `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches |
-| `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm |
+| `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm (the guild one never fires — see below) |
 | `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYERREAGENTBANKSLOTS_CHANGED`, `GUILDBANKBAGSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
 
 On a live 12.0.7 client `PLAYERREAGENTBANKSLOTS_CHANGED` is **retired** and rejected at
@@ -187,14 +187,26 @@ event into a silently deaf addon — every event after the throw goes unbound, w
 unless the player has script errors switched on. Names this build rejected are recorded in
 `Ledger.unavailableEvents` and reported by `/bl debug scan`.
 
-The guild bank is the one store with **no usable open event**. `GUILDBANKFRAME_OPENED` is a valid
-name that registers without complaint and never fires on 12.0.7, so it is the arrival of tab
-**data** (`GUILDBANKBAGSLOTS_CHANGED`) that arms the context — the first one lands as the window
-opens, before anything can be moved, which is exactly when the baseline wants taking. It never
-steals the context from an already-open bank frame, and it disarms itself once
-`Compat.IsGuildBankVisible()` reports an explicit `false`, so it does not keep rescanning six
-98-slot tabs on every bag update. That check is three-valued: `nil` means "this build cannot tell"
-and deliberately does not disarm.
+The guild bank is the one store with **no usable open event, and no usable close event either**.
+`GUILDBANKFRAME_OPENED` is a valid name that registers without complaint and never fires on 12.0.7,
+so it is the arrival of tab **data** (`GUILDBANKBAGSLOTS_CHANGED`) that arms the context — the first
+one lands as the window opens, before anything can be moved, which is exactly when the baseline wants
+taking. It never steals the context from an already-open bank frame.
+
+`GUILDBANKFRAME_CLOSED` is the same story, so closing it is caught two ways:
+
+- **`GuildBankFrame`'s own `OnHide`** (`Ledger:HookGuildBankFrame`) is the close path. It is the one
+  notice the client gives, and it has to be a hook rather than a check inside `Reconcile`, because
+  closing the window changes no container and moves no money — so no event fires and no reconcile
+  pass runs. The hook only ends the guild bank's *own* context (the frame also hides whenever it is
+  simply not the panel on screen). `GuildBankFrame` lives in `Blizzard_GuildBankUI`, loaded on
+  demand, so the hook is installed the first time the guild bank is in play, and once only.
+- **`Compat.IsGuildBankVisible() == false`, checked in `Reconcile`**, is the backstop for a frame
+  that went away without hiding, and stops the addon rescanning six 98-slot tabs on every bag update.
+  That check is three-valued: `nil` means "this build cannot tell" and deliberately does not disarm.
+
+`/bl debug scan` reports whether the close hook is installed — a `NOT INSTALLED` there is the
+explanation for a guild session that will not end.
 
 The guild bank also has a prerequisite the container stores do not: a tab holds **no data until it
 has been queried** (`QueryGuildBankTab`), so only the tab the player is looking at is readable for

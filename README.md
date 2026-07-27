@@ -3,7 +3,7 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-478%2F478_passing-green)
+![Tests](https://img.shields.io/badge/Tests-483%2F483_passing-green)
 
 ![Logo](media/logos/bankledger.logo.jpg)
 

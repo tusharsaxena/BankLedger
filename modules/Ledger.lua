@@ -277,6 +277,10 @@ function L:Diagnose()
     type(GetGuildBankItemLink), type(GetGuildBankItemInfo), type(QueryGuildBankTab),
     type(GetNumGuildBankTabs), tostring(NS.Compat.GetCurrentGuildBankTab()),
     tostring(NS.Compat.IsGuildBankVisible()))
+  -- The guild bank fires no close event, so its OnHide hook IS its close path. A `no` here means a
+  -- guild session will linger until some unrelated bag update triggers the visibility backstop.
+  add("guild bank close hook: %s (frame=%s)",
+    L._guildHooked and "installed" or "NOT INSTALLED", type(GuildBankFrame))
   local tabs = NS.Compat.GetNumGuildBankTabs()
   add("guild bank tabs=%s (tab: filled / distinct ids)", tabs)
   local tabSize = NS.Compat.GuildBankTabSize()
@@ -546,12 +550,43 @@ function L:CancelPendingReconcile()
   L._pendingTimer = nil
 end
 
+-- Notice the guild bank CLOSING.
+--
+-- Every other frame announces its own close and `CloseContext` runs off that event. The guild bank
+-- announces nothing: `GUILDBANKFRAME_CLOSED` registers without complaint and never fires on 12.0.7,
+-- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check inside `Reconcile` is not a
+-- substitute, because closing the window changes no container and moves no money — so no event
+-- fires, no reconcile pass runs, and the context stays armed until some unrelated bag update happens
+-- along. That check is the backstop for a frame that vanished without hiding; this is the close.
+--
+-- The frame's own `OnHide` is the one notice the client does give. `GuildBankFrame` lives in
+-- Blizzard_GuildBankUI, loaded on demand, so the hook is installed the first time the guild bank is
+-- actually in play rather than at load — and once only, because a hook cannot be removed and this
+-- runs on every arming. Hooking `OnHide` on a plain non-secure frame taints nothing.
+function L:HookGuildBankFrame()
+  if L._guildHooked then return true end
+  local frame = GuildBankFrame
+  if not (frame and type(frame.HookScript) == "function") then return false end
+  L._guildHooked = true
+  frame:HookScript("OnHide", function()
+    -- Only ever ends the GUILD BANK's own session. The guild frame also hides whenever it is simply
+    -- not the window on screen, and closing the character bank's context on that basis would throw
+    -- away a baseline that is still in use.
+    if NS.State.openContext == C.Store.GUILD_BANK then L:CloseContext() end
+  end)
+  if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK close hook installed") end
+  return true
+end
+
 function L:OpenContext(context)
   NS.State.openContext = context
   L._settleSince = nil
   -- The guild bank only holds data for tabs that have been queried, so ask for all of them up
   -- front. The replies arrive asynchronously on GUILDBANKBAGSLOTS_CHANGED and reconcile normally.
-  if context == C.Store.GUILD_BANK then self:QueryGuildBankTabs() end
+  if context == C.Store.GUILD_BANK then
+    self:QueryGuildBankTabs()
+    self:HookGuildBankFrame()
+  end
   local snap = self:Snapshot(context)
   NS.State.lastSnapshot = snap
   -- The baseline counts go in the open line, per store: a store that scans as empty here can never

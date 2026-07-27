@@ -1059,6 +1059,51 @@ test("Ledger: the guild bank disarms once its window has gone", function()
   clearContext()
 end)
 
+-- Disarming on the next Reconcile is not enough on its own. Closing the guild bank changes nothing,
+-- so NO event fires afterwards and no reconcile pass runs — the context (and anything watching it)
+-- would sit armed until some unrelated bag update happened along, possibly minutes later. The frame's
+-- own OnHide is the only notice the client actually gives.
+
+test("Ledger: hiding the guild-bank frame disarms it there and then, with no event", function()
+  clearContext()
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "GUILD_BANK")
+  mocks.__closeGuildBank()          -- no event, no bag change: just the window going away
+  assertEqual(NS.State.openContext, nil, "the close is noticed immediately, not on the next event")
+  mocks.__guildVisible = true
+  clearContext()
+end)
+
+test("Ledger: the guild-bank OnHide hook is installed once, not once per data event", function()
+  clearContext()
+  local before = #mocks.__guildHideHooks
+  NS.Ledger:OnGuildBankData()
+  NS.Ledger:OnGuildBankData()
+  NS.Ledger:OnGuildBankData()
+  assertTrue(#mocks.__guildHideHooks <= before + 1, "a hook must never be stacked per event")
+  clearContext()
+end)
+
+test("Ledger:Diagnose reports whether the guild-bank close hook is installed", function()
+  clearContext()
+  NS.Ledger:OnGuildBankData()
+  local text = table.concat(NS.Ledger:Diagnose(), "\n")
+  assertTrue(text:find("guild bank close hook: installed", 1, true) ~= nil,
+    "the one line that explains a guild session that will not end")
+  clearContext()
+end)
+
+test("Ledger: hiding the guild-bank frame leaves an open BANK frame alone", function()
+  -- The guild frame hides whenever it is not the window you are looking at. Closing the character
+  -- bank's session on that basis would throw away a baseline that is still in use.
+  clearContext()
+  NS.Ledger:OpenContext("BANK_FRAME")
+  mocks.__closeGuildBank()
+  assertEqual(NS.State.openContext, "BANK_FRAME", "only the guild bank's own context is ended")
+  mocks.__guildVisible = true
+  clearContext()
+end)
+
 test("Ledger: an unknown window state does NOT disarm the guild bank", function()
   -- A build with no guild-bank frame to inspect reports nil, meaning "cannot tell". That must not
   -- be read as "hidden", or the guild bank would disarm itself instantly and permanently there.
