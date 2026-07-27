@@ -3,7 +3,7 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-521%2F521_passing-green)
+![Tests](https://img.shields.io/badge/Tests-531%2F531_passing-green)
 
 ![Logo](media/logos/bankledger.logo.jpg)
 
@@ -32,10 +32,10 @@ Close the bank and it closes with it.
 - History tab with search, per-column filters, grouping and sorting over a fast pooled table.
 - A live **Current Banking Session** window that opens with any bank and shows exactly what you moved
   during that visit.
-- Insights tab with fourteen headline figures and eighteen charts: the deposit/withdrawal split, net
+- Insights tab with fourteen headline figures and seventeen charts: the deposit/withdrawal split,
   per-character/per-store/per-quality/per-type breakdowns (each with a deposits/withdrawals
-  companion), activity by day, hour and weekday, and ranked lists — by item, category and location,
-  each split into All / Deposits / Withdrawals — of your most-moved and most-numerous items.
+  companion), activity by day, hour and weekday, and ranked lists — by item, category, location and
+  store, each split into All / Deposits / Withdrawals — of your most-moved and most-numerous items.
 - Export either tab to CSV, for all your data or just the view you are looking at.
 - Blacklist and whitelist by item, so the ledger records exactly what you care about.
 

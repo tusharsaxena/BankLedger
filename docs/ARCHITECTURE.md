@@ -298,10 +298,10 @@ One `Database:Stats(filter)` pass per refresh, against the Browser's shared filt
 panel — so the charts and the History table always describe the same slice. The panel is split in two:
 
 * `modules/InsightsWidgets.lua` — **how** things are drawn. Pooled primitives (KPI card, horizontal
-  bar, diverging bar, ratio bar, stacked bar, vertical strip, ranked list panel, legend, section
+  bar, back-to-back bar, ratio bar, stacked bar, vertical strip, ranked list panel, legend, section
   divider) plus the categorical palette, label truncation, colour helpers and the geometry maths.
   It never touches a ledger entry, which is what makes that maths unit-testable headlessly.
-* `modules/Insights.lua` — **what** is drawn: fourteen stat cards and eighteen chart sections, each
+* `modules/Insights.lua` — **what** is drawn: fourteen stat cards and seventeen chart sections, each
   mapping one `Stats` key to rows, plus the reorganized "Top Of The List" ranked-panel grid below them.
 
 ### `Database:Stats` keys
@@ -374,9 +374,10 @@ shared across panels.
 
 Three choices worth stating, because they are the ones a future change is most likely to undo:
 
-* **Net flow uses diverging bars.** A plain bar has to drop the sign, and "what went in" versus "what
-  came out" is the same question from two sides. Both directions share one absolute scale, so a `+100`
-  bar is visibly twice a `-50` one.
+* **The direction companions are back to back, not stacked.** Withdrawals grow left of a fixed
+  centre axis and deposits grow right, both sides on one shared scale. A left-aligned stacked bar
+  puts the in/out boundary in a different place on every row, so "which way does this lean" takes
+  arithmetic; pinning the split to one vertical line makes it readable straight down the column.
 * **Colour is never decorative.** Store, direction, quality and class bars take their colour from the
   shared palettes in `core/Constants.lua`, so a bar matches the table column it summarises. Only the
   breakdowns with no palette of their own (item type, sub-type, weekday) fall back to
