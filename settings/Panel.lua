@@ -419,11 +419,25 @@ local function renderStorage(ctx)
   end
 end
 
+-- Run one widget callback without letting it take the loop down with it — but never silently.
+--
+-- The pcall is right: one bad widget must not abort the whole refresh. Discarding the error was
+-- not: a refresher that starts failing then stops updating FOREVER, with nothing in chat, nothing
+-- on the console and nothing in a test to say so (F-011). The reason goes to the on-screen debug
+-- console under a [Panel] tag, never to chat (anti-pattern #18).
+local function safeRun(fn, tag)
+  local ok, err = pcall(fn)
+  if not ok and NS.State and NS.State.debug and NS.Debug then
+    NS.Debug("Panel", "%s failed: %s", tostring(tag), tostring(err))
+  end
+  return ok
+end
+
 -- Run a page's structural rebuilders (list rows) and relayout, then clear its dirty flag. Called on
 -- first paint, on an on-screen edit, and on the next OnShow after an off-screen change — the gate
 -- that keeps AceGUI teardown+rebuild off every tab click (options-ui-§11).
 local function runRebuilders(ctx)
-  for _, fn in ipairs(ctx.rebuilders or {}) do pcall(fn) end
+  for i, fn in ipairs(ctx.rebuilders or {}) do safeRun(fn, "rebuilder " .. i) end
   ctx.dirty = false
   if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
 end
@@ -701,7 +715,7 @@ function P:Refresh()
   -- (F-018). This is options-ui-§11's "scope work to the on-screen subcategory" applied to the
   -- scalar-refresh path, matching the guard the bus path already uses.
   if not (ctx and ctx.refreshers and ctx.panel and ctx.panel:IsShown()) then return end
-  for _, fn in ipairs(ctx.refreshers) do pcall(fn) end
+  for i, fn in ipairs(ctx.refreshers) do safeRun(fn, "General refresher " .. i) end
 end
 
 function P:RestoreDefaults()
@@ -782,7 +796,7 @@ function P:Register()
     elseif fctx.dirty then
       runRebuilders(fctx)   -- lists changed while hidden → repaint once (options-ui-§11)
     end
-    for _, fn in ipairs(fctx.refreshers) do pcall(fn) end
+    for i, fn in ipairs(fctx.refreshers) do safeRun(fn, "Filters refresher " .. i) end
   end)
   Settings.RegisterCanvasLayoutSubcategory(mainCategory, fctx.panel, "Filters")
 end
