@@ -27,6 +27,20 @@ C.StoreLabel = {
   GUILD_BANK   = "Guild Bank",
 }
 
+-- ── Open-frame context enum ─────────────────────────────────────────────────────
+-- Which storage FRAME is open. Deliberately NOT a C.Store value: the retail bank frame reaches the
+-- character bank, the reagent tab AND the warband tabs at once behind a single BANKFRAME_OPENED,
+-- and switching between them fires nothing — which is the whole reason this is a separate axis. It
+-- was previously expressed with C.Store values, whose comment promises they are the stored export
+-- keys; BANK_FRAME never was one (F-012).
+--
+-- Runtime-only: never persisted, never exported. GUILD_BANK is the one token that is legitimately
+-- both a frame and a store, and shares its value with C.Store.GUILD_BANK on purpose.
+C.Context = {
+  BANK_FRAME = "BANK_FRAME",
+  GUILD_BANK = "GUILD_BANK",
+}
+
 -- ── Direction enum ──────────────────────────────────────────────────────────────
 -- A ledger entry is always written from the CHARACTER's point of view: DEPOSIT = it left your bags
 -- for the store, WITHDRAW = it came out of the store into your bags. Stored keys are stable.

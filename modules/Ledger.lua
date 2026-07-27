@@ -28,8 +28,8 @@ L.MONEY_STORES = { GUILD_BANK = true, WARBAND_BANK = true }
 -- the open frame can reach, and the "both sides must change" rule sorts out which one you actually
 -- used. A store you didn't touch shows no change on its side and produces no row.
 L.CONTEXT_STORES = {
-  BANK_FRAME   = { C.Store.BANK, C.Store.REAGENT_BANK, C.Store.WARBAND_BANK },
-  GUILD_BANK   = { C.Store.GUILD_BANK },
+  [C.Context.BANK_FRAME] = { C.Store.BANK, C.Store.REAGENT_BANK, C.Store.WARBAND_BANK },
+  [C.Context.GUILD_BANK] = { C.Store.GUILD_BANK },
 }
 
 -- The stores a frame can reach ON THIS CLIENT. A container-backed store whose id group came back
@@ -568,7 +568,7 @@ function L:Reconcile()
   -- Armed by data rather than by an open event, the guild bank has to disarm itself too, or it
   -- would keep rescanning six 98-slot tabs on every bag update for the rest of the session. Only an
   -- explicit false counts: nil means this build cannot tell, and a false negative must not disarm.
-  if context == C.Store.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false then
+  if context == C.Context.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false then
     NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
     if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK disarmed (window gone)") end
     -- Disarming here ends the session as surely as CloseContext does; the guild bank never gets a
@@ -635,7 +635,7 @@ function L:HookGuildBankFrame()
     -- Only ever ends the GUILD BANK's own session. The guild frame also hides whenever it is simply
     -- not the window on screen, and closing the character bank's context on that basis would throw
     -- away a baseline that is still in use.
-    if NS.State.openContext == C.Store.GUILD_BANK then L:CloseContext() end
+    if NS.State.openContext == C.Context.GUILD_BANK then L:CloseContext() end
   end)
   if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK close hook installed") end
   return true
@@ -698,8 +698,8 @@ end
 -- Which FRAME an open-event belongs to. There is deliberately no event for the warband or reagent
 -- tabs, because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
 local OPEN_EVENTS = {
-  BANKFRAME_OPENED        = "BANK_FRAME",
-  GUILDBANKFRAME_OPENED   = "GUILD_BANK",
+  BANKFRAME_OPENED        = C.Context.BANK_FRAME,
+  GUILDBANKFRAME_OPENED   = C.Context.GUILD_BANK,
 }
 local CLOSE_EVENTS = {
   BANKFRAME_CLOSED        = true,

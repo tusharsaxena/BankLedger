@@ -5,7 +5,7 @@ local State = NS.State
 -- Runtime-only state. Nothing here is ever persisted to SavedVariables — every field resets on a
 -- /reload or a fresh login.
 
--- Which storage FRAME is currently open ("BANK_FRAME" or "GUILD_BANK") or nil. A
+-- Which storage FRAME is currently open — a C.Context value (BANK_FRAME or GUILD_BANK) — or nil. A
 -- movement is only attributed while one is open: that is what tells a deposit apart from a loot or
 -- a vendor buy.
 --

@@ -149,3 +149,24 @@ test("Constants: every direction has a colour and a glyph", function()
   assertEqual(C.DirectionGlyph.WITHDRAW, "\226\150\178")
   assertEqual(C.DirectionGlyph.DEPOSIT, "\226\150\188")
 end)
+
+-- ── Open-frame context ─────────────────────────────────────────────────────────
+
+test("Constants: every open-frame context has a Ledger store list", function()
+  -- The token is what CONTEXT_STORES is keyed by, so a context with no entry would arm capture over
+  -- nothing at all.
+  for _, token in pairs(C.Context) do
+    assertTrue(NS.Ledger.CONTEXT_STORES[token] ~= nil, "no store list for context " .. token)
+  end
+end)
+
+test("Constants: C.Context is its own axis, not a subset of C.Store", function()
+  -- BANK_FRAME is deliberately NOT a store: the retail bank frame reaches three stores at once,
+  -- which is the entire reason the two are separate. Values are runtime-only — never persisted,
+  -- never exported — so this asserts the SHAPE, not a storage contract.
+  assertEqual(C.Store.BANK_FRAME, nil, "a frame is not a store")
+  assertEqual(C.Context.BANK_FRAME, "BANK_FRAME")
+  -- GUILD_BANK is the one token that is legitimately both a frame and a store, and the two must
+  -- keep the same value or the guild-bank close path stops matching.
+  assertEqual(C.Context.GUILD_BANK, C.Store.GUILD_BANK)
+end)
