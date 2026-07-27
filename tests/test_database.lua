@@ -351,3 +351,31 @@ test("Database:Export never emits a vendorPrice field", function()
   assertEqual(out[1].itemName, "Linen Cloth")
   NS.db.global.ledger = saved
 end)
+
+-- ── Schema version ─────────────────────────────────────────────────────────────
+
+test("Database: the shipped default matches the migration runner's target", function()
+  -- F-008: the default shipped 1 while the runner migrated to 2, so every fresh install replayed a
+  -- v1->v2 pass over an empty ledger. Both now read NS.SCHEMA_VERSION; this asserts they still do.
+  assertEqual(NS.defaults.global.schemaVersion, NS.SCHEMA_VERSION)
+end)
+
+test("Database: a fresh database needs no migration", function()
+  local saved = NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = NS.defaults.global.schemaVersion
+  NS:RunMigrations()
+  local after = NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = saved
+  assertEqual(after, NS.SCHEMA_VERSION, "already current, and left alone")
+end)
+
+test("Database: an older database is migrated up to the current version", function()
+  local savedVersion, savedLedger = NS.db.global.schemaVersion, NS.db.global.ledger
+  NS.db.global.schemaVersion = 1
+  NS.db.global.ledger = { { kind = "ITEM", itemID = 2589, vendorPrice = 20 } }
+  NS:RunMigrations()
+  local version, price = NS.db.global.schemaVersion, NS.db.global.ledger[1].vendorPrice
+  NS.db.global.schemaVersion, NS.db.global.ledger = savedVersion, savedLedger
+  assertEqual(version, NS.SCHEMA_VERSION)
+  assertEqual(price, nil, "the v1->v2 pass still strips vendor value")
+end)

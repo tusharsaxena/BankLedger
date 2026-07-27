@@ -227,3 +227,14 @@ test("Slash: every declared /bl list group actually exists in the schema", funct
     assertTrue(groups[name], ("/bl list orders by %q, which no schema row declares"):format(name))
   end
 end)
+
+test("Slash: /bl version and the help header report the same version", function()
+  -- F-017: the help header read NS.version directly while /bl version preferred the TOC metadata,
+  -- so the two could disagree the moment the TOC was bumped without the constant.
+  local versionLine = captureChat(function() Sl:CliVersion() end)[1]
+  local helpHeader = captureChat(function() Sl:PrintHelp() end)[1]
+  local v = versionLine:match("v([%d%.]+)")
+  assertTrue(v ~= nil, "no version in " .. tostring(versionLine))
+  assertTrue(helpHeader:find("v" .. v, 1, true) ~= nil,
+    ("help says %q, /bl version says v%s"):format(helpHeader, v))
+end)

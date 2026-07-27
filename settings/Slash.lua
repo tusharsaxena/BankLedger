@@ -102,7 +102,7 @@ end
 -- The help index, generated from NS.COMMANDS (slash-commands-§4): a version/alias header, then one
 -- prefixed row per command — gold command, em-dash, white description. Never hand-maintained.
 function Sl:PrintHelp()
-  print("v" .. (NS.version or "") ..
+  print("v" .. tostring(Sl:Version()) ..
     " slash commands (|cffffff00/bankledger|r is an alias for |cffffff00/bl|r)")
   for _, cmd in ipairs(NS.COMMANDS) do
     print(("|cffffff00/bl %s|r — |cffffffff%s|r"):format(cmd.name, cmd.desc))
@@ -224,10 +224,16 @@ end
 -- `/bl version` → the canonical single-line answer every Ka0s addon shares (slash-commands-§3).
 -- Read from the TOC metadata so it can't drift from the packaged manifest, with the in-code
 -- constant as the fallback.
-function Sl:CliVersion()
-  local v = (NS.Compat and NS.Compat.GetAddOnMetadata
+-- The addon's version, resolved once. The TOC's ## Version is the truth; NS.version is the fallback
+-- for builds where the metadata API is unavailable. `/bl version` and the help header both come
+-- through here, so they cannot report different numbers (F-017).
+function Sl:Version()
+  return (NS.Compat and NS.Compat.GetAddOnMetadata
     and NS.Compat.GetAddOnMetadata(NS.name, "Version")) or NS.version or "?"
-  print("v" .. tostring(v))
+end
+
+function Sl:CliVersion()
+  print("v" .. tostring(Sl:Version()))
 end
 
 function Sl:CliReset(arg)

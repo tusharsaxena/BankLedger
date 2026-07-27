@@ -5,10 +5,13 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 -- profile would split the very history the addon exists to join up.
 NS.defaults = NS.defaults or {}
 NS.defaults.global = {
-  -- Version stamp for the persisted DB. 0.1.0 ships the initial shape (1). NS:RunMigrations
-  -- (core/Database.lua) reads/writes this field once at init — the idempotent seam future schema
-  -- changes hook into (savedvariables-§1).
-  schemaVersion = 1,
+  -- Version stamp for the persisted DB. 0.1.0 ships schema v2. NS:RunMigrations (core/Database.lua)
+  -- reads/writes this field once at init — the idempotent seam future schema changes hook into
+  -- (savedvariables-§1). Taken from NS.SCHEMA_VERSION so the shipped default and the runner's target
+  -- cannot drift apart; a fresh install starts at the current shape instead of replaying the v1->v2
+  -- pass over an empty ledger. Existing profiles are untouched — they already carry an explicit
+  -- value, and AceDB only applies a default where the key is absent.
+  schemaVersion = NS.SCHEMA_VERSION,
 
   ledger = {},   -- array of movement entries, oldest first
 

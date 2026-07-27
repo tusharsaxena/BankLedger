@@ -18,14 +18,15 @@ function NS:RunMigrations()
   -- v1 -> v2: the addon no longer derives, captures or persists vendor value, so the field leaves
   -- the SavedVariables file rather than merely going unread. Idempotent: clearing an absent field
   -- is a no-op, so a partially-migrated database converges on a second run.
-  if g.schemaVersion < 2 then
+  if g.schemaVersion < NS.SCHEMA_VERSION then
     local n = 0
     for _, e in ipairs(g.ledger or {}) do
       if e.vendorPrice ~= nil then e.vendorPrice = nil; n = n + 1 end
     end
-    g.schemaVersion = 2
+    local from = g.schemaVersion
+    g.schemaVersion = NS.SCHEMA_VERSION
     if NS.State.debug and NS.Debug then
-      NS.Debug("Migrate", "%s", NS.MigrationSummary(1, 2, n))
+      NS.Debug("Migrate", "%s", NS.MigrationSummary(from, NS.SCHEMA_VERSION, n))
     end
   end
 end
