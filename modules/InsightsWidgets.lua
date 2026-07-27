@@ -73,6 +73,9 @@ end
 
 -- Cap a label to a glyph count with a trailing ellipsis. English-only labels, so a byte-based sub is
 -- safe. Returns the text and whether it was cut (the caller keeps the full string for the tooltip).
+-- Never pass a string with markup (e.g. a |T...|t texture escape) concatenated in: the cut is
+-- byte-based and can land inside the escape. Keep markup out of band and prepend it after
+-- truncating.
 function W.Truncate(text, maxChars)
   text = tostring(text or "")
   maxChars = maxChars or W.LABEL_MAXCHARS
