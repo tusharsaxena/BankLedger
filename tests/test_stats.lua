@@ -368,12 +368,8 @@ end)
 
 -- ── Direction-split companions ─────────────────────────────────────────────────
 
-test("Stats: storeByDirection splits each store's movements in and out", function()
-  local m = stats().storeByDirection
-  assertEqual(m.BANK.DEPOSIT, 1)
-  assertEqual(m.BANK.WITHDRAW, 1)
-  assertEqual(m.WARBAND_BANK.DEPOSIT, 1)
-end)
+-- storeByDirection is covered above: Stats has computed it since before these companions
+-- existed, and this task was simply its first consumer.
 
 test("Stats: qualityByDirection is keyed on the numeric quality id", function()
   local m = stats().qualityByDirection
