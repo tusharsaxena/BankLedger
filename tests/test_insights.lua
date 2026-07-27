@@ -341,20 +341,20 @@ end)
 
 test("Insights.CardValues renders every declared card", function()
   local v = I.CardValues({ entries = 12, itemsDeposited = 30, itemsWithdrawn = 8, netItems = 22,
-    distinctItems = 5, distinctChars = 2, activeDays = 3, totalValue = 10000,
+    distinctItems = 5, distinctChars = 2, activeDays = 3,
     moneyIn = 20000, moneyOut = 5000, netMoney = 15000, moneyMoved = 25000,
     firstTs = NOW - DAY, lastTs = NOW, busiestDay = { day = "2026-02-01", count = 9 },
-    biggestMove = { value = 250000 } })
+    topStore = { store = "GUILD_BANK", count = 7 } })
   assertEqual(v.movements, "12")
   assertEqual(v.itemsIn, "30")
   assertEqual(v.itemsOut, "8")
   assertEqual(v.distinctItems, "5")
   assertEqual(v.chars, "2")
   assertEqual(v.activeDays, "3")
-  assertEqual(v.value, "1g")
+  assertEqual(v.topStore, "Guild Bank")
+  assertEqual(v.itemsMoved, "38")
   assertEqual(v.goldIn, "2g")
   assertEqual(v.goldOut, "50s")
-  assertEqual(v.biggest, "25g")
   assertTrue(v.netItems:find("+22", 1, true) ~= nil, "net items is signed")
   assertTrue(v.netGold:find("40ff40", 1, true) ~= nil, "net gold is signed and coloured")
   assertTrue(v.busiest:find("2026-02-01", 1, true) ~= nil)
@@ -367,7 +367,6 @@ test("Insights.CardValues shows a dash where there is genuinely nothing", functi
   assertEqual(v.movements, "0", "a count of nothing is zero, not a dash")
   assertEqual(v.span, "\226\128\148", "no date range at all is a dash")
   assertEqual(v.busiest, "\226\128\148")
-  assertEqual(v.biggest, "\226\128\148")
 end)
 
 test("Insights.CardValues survives being handed nothing at all", function()
@@ -379,10 +378,29 @@ test("Insights.CardValues covers every card the panel declares", function()
   -- A card with no value would silently render a dash forever, so the two lists must agree.
   local values = I.CardValues({ entries = 1 })
   for _, key in ipairs({ "movements", "itemsIn", "itemsOut", "netItems", "distinctItems", "chars",
-                         "activeDays", "value", "goldIn", "goldOut", "netGold", "biggest",
+                         "activeDays", "topStore", "itemsMoved", "goldIn", "goldOut", "netGold",
                          "span", "busiest" }) do
     assertTrue(values[key] ~= nil, "card '" .. key .. "' has no value")
   end
+end)
+
+test("Insights.CardValues no longer produces value or biggest-move cards", function()
+  local v = I.CardValues({ entries = 3, itemsDeposited = 10, itemsWithdrawn = 4 })
+  assertEqual(v.value, nil)
+  assertEqual(v.biggest, nil)
+end)
+
+test("Insights.CardValues reports items moved and the top store", function()
+  local v = I.CardValues({
+    entries = 3, itemsDeposited = 10, itemsWithdrawn = 4,
+    topStore = { store = "GUILD_BANK", count = 7 },
+  })
+  assertEqual(v.itemsMoved, "14")
+  assertEqual(v.topStore, "Guild Bank")
+end)
+
+test("Insights.CardValues em-dashes the top store on an empty slice", function()
+  assertEqual(I.CardValues({}).topStore, "\226\128\148")
 end)
 
 test("Insights.SummaryLine names the scope and the count", function()
@@ -421,7 +439,7 @@ test("Insights:Refresh lays out every section against a populated ledger", funct
       kind = "ITEM", direction = (i % 3 == 0) and "WITHDRAW" or "DEPOSIT",
       store = stores[(i % #stores) + 1],
       itemID = 2589 + (i % 4), itemName = "Item " .. (i % 4), quality = i % 5,
-      itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20 * i, quantity = i,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = i,
       zone = (i % 2 == 0) and "Valdrakken" or "Dornogal",
     }
   end
@@ -447,7 +465,7 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   NS.db.global.ledger = {
     { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
       store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
-      itemType = "Tradegoods", itemSubType = "Cloth", vendorPrice = 20, quantity = 5,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5,
       zone = "Valdrakken" },
   }
   I:Refresh()

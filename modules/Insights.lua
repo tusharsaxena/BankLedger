@@ -20,7 +20,6 @@ local BAR_ROWS = 12          -- cap on a ranked bar list, so one section can't r
 local LIST_ROWS = 10         -- cap on a ranked list panel
 local CARD_COLS = 4
 local CARD_GAP, PAD = 8, 8
-local MONEY_COL_W = 116      -- a value column wide enough for a coin string without wrapping
 local EM_DASH = "\226\128\148"
 
 -- ── Pure ranking helpers (unit-tested) ─────────────────────────────────────────
@@ -80,20 +79,19 @@ local CARD_DEFS = {
     tooltip = "How many of your characters appear in this slice." },
   { key = "activeDays", caption = "active days",
     tooltip = "Calendar days on which at least one movement happened." },
-  { key = "value", caption = "value moved", smallValue = false,
-    tooltip = "Total vendor value that moved: an item's vendor price times its stack count, "
-      .. "plus every coin amount. Vendor value, not market price." },
+  { key = "topStore", caption = "top store",
+    tooltip = "The store with the most movements in this slice." },
+  { key = "itemsMoved", caption = "items moved",
+    tooltip = "Every stack unit that crossed the line, in either direction: items in plus items out." },
   { key = "goldIn", caption = "gold in",
     tooltip = "Coin deposited into the guild and warband banks. The character bank has no coin slot." },
   { key = "goldOut", caption = "gold out",
     tooltip = "Coin withdrawn from the guild and warband banks." },
   { key = "netGold", caption = "net gold",
     tooltip = "Gold in minus gold out. Green means the banks gained; red means you drew down." },
-  { key = "biggest", caption = "biggest move",
-    tooltip = "The single most valuable movement in this slice." },
-  { key = "span", caption = "date range", wide = true, smallValue = true,
+  { key = "span", caption = "date range", wide = true,
     tooltip = "Earliest and latest movement in this slice." },
-  { key = "busiest", caption = "busiest day", wide = true, smallValue = true,
+  { key = "busiest", caption = "busiest day", wide = true,
     tooltip = "The calendar day with the most movements, and how many." },
 }
 
@@ -103,7 +101,6 @@ local SECTION_TITLES = {
   split      = "Deposits vs Withdrawals",
   store      = "Movements By Store",
   netStore   = "Net Flow By Store",
-  valueStore = "Value Moved By Store",
   char       = "Movements By Character",
   charStore  = "Character \195\151 Store",
   charDir    = "Character \195\151 In/Out",
@@ -111,7 +108,6 @@ local SECTION_TITLES = {
   itemType   = "Movements By Item Type",
   subType    = "Movements By Sub-type",
   perDay     = "Movements Over Time (Per Day)",
-  valueDay   = "Value Moved Over Time (Per Day)",
   hour       = "Movements By Hour Of Day",
   weekday    = "Movements By Weekday",
   goldDay    = "Gold Moved Over Time (Per Day)",
@@ -119,9 +115,9 @@ local SECTION_TITLES = {
 }
 
 local POOL_KEYS = {
-  "store", "netStore", "valueStore", "char", "quality", "itemType", "subType",
-  "weekday", "goldStore", "charStore", "charDir", "perDay", "valueDay", "hour", "goldDay",
-  "itemValue", "itemMoves", "itemQty", "zone",
+  "store", "netStore", "char", "quality", "itemType", "subType",
+  "weekday", "goldStore", "charStore", "charDir", "perDay", "hour", "goldDay",
+  "itemMoves", "itemQty", "zone",
   "storeLeg", "itemTypeLeg", "subTypeLeg", "charStoreLeg", "charDirLeg",
 }
 
@@ -160,12 +156,10 @@ function I:Attach(pane)
   }
   self.strips = {
     perDay   = CreateFrame("Frame", nil, content),
-    valueDay = CreateFrame("Frame", nil, content),
     hour     = CreateFrame("Frame", nil, content),
     goldDay  = CreateFrame("Frame", nil, content),
   }
   self.panels = {
-    itemValue = W.MakeListPanel(content, "Top Items By Value"),
     itemMoves = W.MakeListPanel(content, "Top Items By Movements"),
     itemQty   = W.MakeListPanel(content, "Top Items By Quantity"),
     zone      = W.MakeListPanel(content, "Top Banking Spots"),
@@ -210,7 +204,6 @@ end
 -- formatting rules (what counts as "nothing", which figures are signed) are testable.
 function I.CardValues(totals)
   local t = totals or {}
-  local biggest = t.biggestMove
   local span = EM_DASH
   if t.firstTs and t.lastTs then
     -- \226\128\147 = en-dash, the range dash.
@@ -224,11 +217,11 @@ function I.CardValues(totals)
     distinctItems = tostring(t.distinctItems or 0),
     chars         = tostring(t.distinctChars or 0),
     activeDays    = tostring(t.activeDays or 0),
-    value         = W.Money(t.totalValue or 0),
+    topStore      = t.topStore and (C.StoreLabel[t.topStore.store] or t.topStore.store) or EM_DASH,
+    itemsMoved    = tostring((t.itemsDeposited or 0) + (t.itemsWithdrawn or 0)),
     goldIn        = W.Money(t.moneyIn or 0),
     goldOut       = W.Money(t.moneyOut or 0),
     netGold       = W.SignedMoney(t.netMoney or 0),
-    biggest       = biggest and W.Money(biggest.value) or EM_DASH,
     span          = span,
     busiest       = t.busiestDay
       and (t.busiestDay.day .. "  (" .. t.busiestDay.count .. ")") or EM_DASH,
@@ -557,21 +550,7 @@ function I:LayoutSections(y, w, stats, totals)
   end
   y = self:RenderDiverging("netStore", "netStore", netRows, y, w)
 
-  -- 4 ── Gross value moved per store (unsigned), so a busy store with a near-zero net still shows.
-  local valueRows = {}
-  for key, v in pairs(stats.valueByStore or {}) do
-    if v > 0 then
-      valueRows[#valueRows + 1] = { label = storeLabel(key), color = storeColor(key),
-        frac = v, value = W.Money(v), count = v }
-    end
-  end
-  table.sort(valueRows, function(a, b)
-    if a.count ~= b.count then return a.count > b.count end
-    return a.label < b.label
-  end)
-  y = self:RenderBars("valueStore", "valueStore", valueRows, y, w)
-
-  -- 5 ── Movements by character, class-coloured and behind the class icon.
+  -- 4 ── Movements by character, class-coloured and behind the class icon.
   local charRows = {}
   for _, ce in pairs(stats.byChar or {}) do
     if (ce.count or 0) > 0 then charRows[#charRows + 1] = ce end
@@ -591,7 +570,7 @@ function I:LayoutSections(y, w, stats, totals)
   end
   y = self:RenderBars("char", "char", barCharRows, y, w)
 
-  -- 6 ── Character × Store. Segment order follows the parent chart's order, so a store keeps the
+  -- 5 ── Character × Store. Segment order follows the parent chart's order, so a store keeps the
   -- same position in every character's bar.
   local storeOrder = {}
   for _, e in ipairs(W.SortedByCount(stats.byStore)) do storeOrder[#storeOrder + 1] = e.key end
@@ -611,7 +590,7 @@ function I:LayoutSections(y, w, stats, totals)
     y = self:RenderLegend("charStoreLeg", legend, y, w)
   end
 
-  -- 7 ── Character × In/Out: who fills the bank and who empties it.
+  -- 6 ── Character × In/Out: who fills the bank and who empties it.
   y = self:RenderStacked("charDir", "charDir",
     W.BuildStackRows(stats.charByDirection, C.DirectionOrder, {
       labelOf = W.ShortChar, colorOf = directionColor, catLabelOf = directionLabel,
@@ -626,7 +605,7 @@ function I:LayoutSections(y, w, stats, totals)
     y = self:RenderLegend("charDirLeg", legend, y, w)
   end
 
-  -- 8 ── Quality, in ASCENDING quality order (Poor→Legendary is meaningful; count-desc is not) and
+  -- 7 ── Quality, in ASCENDING quality order (Poor→Legendary is meaningful; count-desc is not) and
   -- in the game's own quality colours, so the bars are self-legending.
   local qualityIDs = {}
   for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
@@ -641,7 +620,7 @@ function I:LayoutSections(y, w, stats, totals)
   end
   y = self:RenderBars("quality", "quality", qualityRows, y, w)
 
-  -- 9/10 ── Item type and sub-type, from the categorical palette by rank, so adjacent bars are
+  -- 8/9 ── Item type and sub-type, from the categorical palette by rank, so adjacent bars are
   -- always dissimilar hues.
   local function paletteRows(map, poolKey, headerKey, legendKey, yy)
     local ranked = W.SortedByCount(map)
@@ -659,23 +638,18 @@ function I:LayoutSections(y, w, stats, totals)
   y = paletteRows(stats.byItemType, "itemType", "itemType", "itemTypeLeg", y)
   y = paletteRows(stats.byItemSubType, "subType", "subType", "subTypeLeg", y)
 
-  -- 11/12 ── Movements and value over time. One day-key list drives both strips, so the two share an
-  -- x-axis and can be read against each other.
+  -- 10 ── Movements over time. One day-key list drives the strip.
   local dayKeys = W.DayKeys(totals.firstTs, totals.lastTs)
-  local perDay, valueDay = {}, {}
+  local perDay = {}
   for _, key in ipairs(dayKeys) do
     local count = (stats.byDay or {})[key] or 0
-    local value = (stats.valueByDay or {})[key] or 0
     local label = W.ShortDay(key)
     perDay[#perDay + 1] = { magnitude = count, label = label,
       tip = ("%s:  %d movements"):format(key, count) }
-    valueDay[#valueDay + 1] = { magnitude = value, label = label,
-      tip = ("%s:  %s"):format(key, W.Money(value)) }
   end
   y = self:RenderStrip("perDay", "perDay", self.strips.perDay, perDay, y, w)
-  y = self:RenderStrip("valueDay", "valueDay", self.strips.valueDay, valueDay, y, w)
 
-  -- 13 ── Hour of day, 24 fixed buckets (a quiet hour is a fact, so every hour is plotted).
+  -- 11 ── Hour of day, 24 fixed buckets (a quiet hour is a fact, so every hour is plotted).
   local hourBuckets = {}
   for h = 0, 23 do
     local count = (stats.byHour or {})[h] or 0
@@ -684,7 +658,7 @@ function I:LayoutSections(y, w, stats, totals)
   end
   y = self:RenderStrip("hour", "hour", self.strips.hour, hourBuckets, y, w)
 
-  -- 14 ── Weekday, Sunday first (calendar order, not count order), each day its own palette colour.
+  -- 12 ── Weekday, Sunday first (calendar order, not count order), each day its own palette colour.
   local weekdayRows = {}
   for d = 0, 6 do
     local count = (stats.byWeekday or {})[d]
@@ -750,8 +724,6 @@ function I:LayoutSections(y, w, stats, totals)
     return rows
   end
 
-  local valueList = itemRows(stats.topItemsByValue,
-    function(it) return (it.value or 0) > 0 and W.Money(it.value) or nil end)
   local movesList = itemRows(stats.topItems, function(it) return tostring(it.moves) end)
   local qtyList = itemRows(stats.topItemsByQuantity, function(it) return tostring(it.quantity) end)
   local zoneList = {}
@@ -760,14 +732,11 @@ function I:LayoutSections(y, w, stats, totals)
     zoneList[#zoneList + 1] = { name = z.zone, right = tostring(z.count) }
   end
 
-  -- Left column stacks value-then-zones; right column stacks moves-then-quantity. The block below
-  -- advances y by the TALLER of the two columns, so nothing overlaps whichever list runs long.
+  -- Left column is zones; right column stacks moves-then-quantity. The block below advances y by
+  -- the TALLER of the two columns, so nothing overlaps whichever list runs long.
   local leftTop = y
-  local leftH = self:RenderList("itemValue", self.panels.itemValue, valueList,
-    leftTop, leftX, listColW, MONEY_COL_W)
-  local zoneY = leftTop - (leftH > 0 and (leftH + W.SECTION_GAP) or 0)
-  local zoneH = self:RenderList("zone", self.panels.zone, zoneList, zoneY, leftX, listColW)
-  local leftTotal = (leftTop - zoneY) + zoneH
+  local zoneH = self:RenderList("zone", self.panels.zone, zoneList, leftTop, leftX, listColW)
+  local leftTotal = zoneH
 
   local rightTop = y
   local movesH = self:RenderList("itemMoves", self.panels.itemMoves, movesList,
