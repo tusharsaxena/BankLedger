@@ -365,3 +365,39 @@ end)
 test("Insights.FormatNet renders zero as a neutral dash", function()
   assertTrue(NS.Insights.FormatNet(0):find("808080", 1, true) ~= nil)
 end)
+
+-- ── Direction-split companions ─────────────────────────────────────────────────
+
+test("Stats: storeByDirection splits each store's movements in and out", function()
+  local m = stats().storeByDirection
+  assertEqual(m.BANK.DEPOSIT, 1)
+  assertEqual(m.BANK.WITHDRAW, 1)
+  assertEqual(m.WARBAND_BANK.DEPOSIT, 1)
+end)
+
+test("Stats: qualityByDirection is keyed on the numeric quality id", function()
+  local m = stats().qualityByDirection
+  assertEqual(m[1].DEPOSIT, 2)    -- both Linen Cloth deposits are quality 1
+  assertEqual(m[2].WITHDRAW, 1)   -- the Silk Cloth withdrawal is quality 2
+end)
+
+test("Stats: itemTypeByDirection and itemSubTypeByDirection split by direction", function()
+  local s = stats()
+  assertEqual(s.itemTypeByDirection.Tradegoods.DEPOSIT, 2)
+  assertEqual(s.itemTypeByDirection.Tradegoods.WITHDRAW, 1)
+  assertEqual(s.itemSubTypeByDirection.Cloth.DEPOSIT, 2)
+end)
+
+test("Stats: the direction split always sums back to its parent breakdown", function()
+  local s = stats()
+  for ty, count in pairs(s.byItemType) do
+    local m = s.itemTypeByDirection[ty] or {}
+    assertEqual((m.DEPOSIT or 0) + (m.WITHDRAW or 0), count,
+      "itemTypeByDirection must reconcile with byItemType for " .. ty)
+  end
+  for q, count in pairs(s.byQuality) do
+    local m = s.qualityByDirection[q] or {}
+    assertEqual((m.DEPOSIT or 0) + (m.WITHDRAW or 0), count,
+      "qualityByDirection must reconcile with byQuality for quality " .. tostring(q))
+  end
+end)

@@ -168,6 +168,7 @@ function Database:Stats(filter)
   local byHour, byWeekday = {}, {}
   local moneyByDay, moneyByStore = {}, {}
   local charByDirection, storeByDirection = {}, {}
+  local qualityByDirection, itemTypeByDirection, itemSubTypeByDirection = {}, {}, {}
 
   -- Nested-table increment used by the per-character × store matrix.
   local function bump(matrix, k1, k2, amt)
@@ -198,13 +199,20 @@ function Database:Stats(filter)
       if dir == "DEPOSIT" then itemsDeposited = itemsDeposited + qty
       else itemsWithdrawn = itemsWithdrawn + qty end
       local ty = e.itemType
-      if ty and ty ~= "" then byItemType[ty] = (byItemType[ty] or 0) + 1 end
+      if ty and ty ~= "" then
+        byItemType[ty] = (byItemType[ty] or 0) + 1
+        bump(itemTypeByDirection, ty, dir, 1)
+      end
       local sty = e.itemSubType
-      if sty and sty ~= "" then byItemSubType[sty] = (byItemSubType[sty] or 0) + 1 end
+      if sty and sty ~= "" then
+        byItemSubType[sty] = (byItemSubType[sty] or 0) + 1
+        bump(itemSubTypeByDirection, sty, dir, 1)
+      end
       -- Quality is an item question by definition: a gold movement has none, and bucketing it under
       -- Poor would invent a fact. Keyed on the numeric id so the chart can sort Poor→Legendary.
       if type(e.quality) == "number" then
         byQuality[e.quality] = (byQuality[e.quality] or 0) + 1
+        bump(qualityByDirection, e.quality, dir, 1)
       end
       local id = e.itemID
       if id ~= nil then
@@ -301,6 +309,8 @@ function Database:Stats(filter)
     byHour = byHour, byWeekday = byWeekday,
     moneyByDay = moneyByDay, moneyByStore = moneyByStore,
     charByDirection = charByDirection, storeByDirection = storeByDirection,
+    qualityByDirection = qualityByDirection, itemTypeByDirection = itemTypeByDirection,
+    itemSubTypeByDirection = itemSubTypeByDirection,
     topItemsByQuantity = topItemsByQuantity,
     topZones = topZones,
     totals = {

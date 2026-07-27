@@ -474,6 +474,23 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   NS.db.global.ledger = {}
 end)
 
+test("Insights: the four direction-split companions render without raising", function()
+  unfiltered()
+  NS.db.global.ledger = {
+    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+      store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
+    { ts = NOW - DAY, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+      direction = "WITHDRAW", store = "GUILD_BANK", itemID = 4306, itemName = "Silk Cloth",
+      quality = 2, itemType = "Tradegoods", itemSubType = "Cloth", quantity = 2,
+      zone = "Valdrakken" },
+  }
+  I:Refresh()
+  assertTrue(next(I.stats.qualityByDirection) ~= nil, "the quality split had data")
+  assertTrue(next(I.stats.storeByDirection) ~= nil, "the store split had data")
+  NS.db.global.ledger = {}
+end)
+
 -- ── Icon markup must survive truncation ────────────────────────────────────────
 -- Regression: the class icon was concatenated into the label BEFORE W.Truncate cut it at 17
 -- bytes, so the cut landed inside the |T...|t escape and WoW rendered the raw texture path.

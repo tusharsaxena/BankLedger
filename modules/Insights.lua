@@ -116,6 +116,10 @@ local SECTION_TITLES = {
   quality    = "Movements By Quality",
   itemType   = "Movements By Item Type",
   subType    = "Movements By Sub-type",
+  storeDir   = "Store \195\151 In/Out",
+  qualityDir = "Quality \195\151 In/Out",
+  itemTypeDir= "Item Type \195\151 In/Out",
+  subTypeDir = "Sub-type \195\151 In/Out",
   perDay     = "Movements Over Time (Per Day)",
   hour       = "Movements By Hour Of Day",
   weekday    = "Movements By Weekday",
@@ -128,6 +132,8 @@ local POOL_KEYS = {
   "weekday", "goldStore", "charStore", "charDir", "perDay", "hour", "goldDay",
   "itemMoves", "itemQty", "zone",
   "storeLeg", "itemTypeLeg", "subTypeLeg", "charStoreLeg", "charDirLeg",
+  "storeDir", "qualityDir", "itemTypeDir", "subTypeDir",
+  "storeDirLeg", "qualityDirLeg", "itemTypeDirLeg", "subTypeDirLeg",
 }
 
 -- ── Build ──────────────────────────────────────────────────────────────────────
@@ -505,6 +511,26 @@ local function storeLabel(key) return C.StoreLabel[key] or tostring(key) end
 local function directionColor(key) return C.DirectionRGB[key] or W.NEUTRAL end
 local function directionLabel(key) return C.DirectionLabel[key] or tostring(key) end
 
+-- A "<segment> x In/Out" companion: the same stacked-bar form as Character x In/Out, in the
+-- direction colours, with a legend. `labelOf`/`labelColorOf` keep each row recognisable against
+-- the parent chart it sits under.
+function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, w)
+  if not next(matrix or {}) then
+    self.headers[headerKey]:Hide()
+    return y
+  end
+  y = self:RenderStacked(poolKey, headerKey,
+    W.BuildStackRows(matrix, C.DirectionOrder, {
+      labelOf = opts.labelOf, colorOf = directionColor, catLabelOf = directionLabel,
+      valueFmt = tostring, labelColorOf = opts.labelColorOf,
+    }), y, w)
+  local legend = {}
+  for _, key in ipairs(C.DirectionOrder) do
+    legend[#legend + 1] = { label = directionLabel(key), color = directionColor(key) }
+  end
+  return self:RenderLegend(legendKey, legend, y, w)
+end
+
 function I:LayoutSections(y, w, stats, totals)
   local content, innerW = self.content, w - PAD * 2
   local total = totals.entries or 0
@@ -545,6 +571,8 @@ function I:LayoutSections(y, w, stats, totals)
     }
   end
   y = self:RenderBars("store", "store", storeRows, y, w)
+  y = self:RenderDirectionSplit("storeDir", "storeDir", "storeDirLeg", stats.storeByDirection,
+    { labelOf = storeLabel, labelColorOf = storeColor }, y, w)
 
   -- 3 ── Net flow per store, signed. A store you keep draining reads left and red; one you keep
   -- filling reads right and green. Ordered by the store display order, not by magnitude, so the
@@ -630,6 +658,9 @@ function I:LayoutSections(y, w, stats, totals)
       labelColor = color, frac = stats.byQuality[q], value = tostring(stats.byQuality[q]) }
   end
   y = self:RenderBars("quality", "quality", qualityRows, y, w)
+  y = self:RenderDirectionSplit("qualityDir", "qualityDir", "qualityDirLeg",
+    stats.qualityByDirection,
+    { labelOf = NS.Compat.QualityLabel, labelColorOf = W.QualityColor }, y, w)
 
   -- 8/9 ── Item type and sub-type, from the categorical palette by rank, so adjacent bars are
   -- always dissimilar hues.
@@ -644,10 +675,17 @@ function I:LayoutSections(y, w, stats, totals)
       rows[#rows + 1] = { label = tostring(e.key), color = colors[e.key],
         frac = e.count, value = ("%d  %d%%"):format(e.count, W.Percent(e.count, total)) }
     end
-    return self:RenderBars(poolKey, headerKey, rows, yy, w, legendKey)
+    return self:RenderBars(poolKey, headerKey, rows, yy, w, legendKey), colors
   end
-  y = paletteRows(stats.byItemType, "itemType", "itemType", "itemTypeLeg", y)
-  y = paletteRows(stats.byItemSubType, "subType", "subType", "subTypeLeg", y)
+  local typeColors, subColors
+  y, typeColors = paletteRows(stats.byItemType, "itemType", "itemType", "itemTypeLeg", y)
+  y = self:RenderDirectionSplit("itemTypeDir", "itemTypeDir", "itemTypeDirLeg",
+    stats.itemTypeByDirection,
+    { labelOf = tostring, labelColorOf = function(k) return typeColors[k] end }, y, w)
+  y, subColors = paletteRows(stats.byItemSubType, "subType", "subType", "subTypeLeg", y)
+  y = self:RenderDirectionSplit("subTypeDir", "subTypeDir", "subTypeDirLeg",
+    stats.itemSubTypeByDirection,
+    { labelOf = tostring, labelColorOf = function(k) return subColors[k] end }, y, w)
 
   -- 10 ── Movements over time. One day-key list drives the strip.
   local dayKeys = W.DayKeys(totals.firstTs, totals.lastTs)
