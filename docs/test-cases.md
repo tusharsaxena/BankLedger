@@ -34,7 +34,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - NS.Print never raises on a value that would break table.concat
 - NS.Print survives the AceConsole embed (architecture-§2)
 
-### test_compat.lua (16)
+### test_compat.lua (21)
 
 - Compat.ItemIDFromLink pulls the id out of a full item link
 - Compat.ItemIDFromLink accepts a bare itemString
@@ -50,10 +50,15 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Compat.GetZone returns the zone and subzone
 - Compat.GetGuildName returns the player's guild
 - Compat.GetMoney reads the carried balance
+- Compat.GetStoreMoney reads the guild bank's own balance while the frame is open
+- Compat.GetStoreMoney returns nil for the guild bank when the frame is closed
+- Compat.GetStoreMoney reads the warband balance by BankType name, not by number
+- Compat.GetStoreMoney returns nil for a store that holds no coin of its own
+- Compat.GetStoreMoney returns nil when the build exposes no reader
 - Compat.GetPlayerMapID returns the current map id
 - Compat.GetAddOnMetadata degrades to nil when neither getter exists
 
-### test_constants.lua (19)
+### test_constants.lua (21)
 
 - Constants: every Store enum member appears in the display order
 - Constants: every Store enum member has a display label
@@ -74,6 +79,8 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Constants: the retention presets offer an 'Always' (0) option
 - Constants: every store has a display colour
 - Constants: every direction has a colour and a glyph
+- Constants: every open-frame context has a Ledger store list
+- Constants: C.Context is its own axis, not a subset of C.Store
 
 ### test_filters.lua (15)
 
@@ -93,7 +100,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (93)
+### test_ledger.lua (107)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -105,14 +112,22 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger.Diff: several items in one pass each get their own movement
 - Ledger.Diff: movements come back in ascending itemID order (deterministic)
 - Ledger.Diff: the store name is carried on every movement
-- Ledger.Diff: money leaving the player at a money-holding store is a DEPOSIT
-- Ledger.Diff: money arriving at a money-holding store is a WITHDRAW
+- Ledger.Diff: money leaving the player and arriving at the store is a DEPOSIT
+- Ledger.Diff: money leaving the store and arriving at the player is a WITHDRAW
+- Ledger.Diff: a purse drop the store's balance does not mirror is NOT a deposit
+- Ledger.Diff: a store balance change the purse does not mirror is not a movement
+- Ledger.Diff: both balances falling together is not a movement
+- Ledger.Diff: the recorded amount is the smaller of the two deltas
+- Ledger.Diff: an unreadable store balance produces no money movement
+- Ledger.Diff: a balance readable on only one side produces no money movement
 - Ledger.Diff: money is ignored at a store that holds no gold
 - Ledger.Diff: an unchanged balance produces no money movement
 - Ledger.Diff: the money movement sorts after the item movements
 - Ledger:ScanStore sums stacks across every container id of a store
 - Ledger:ScanStore returns an empty map for a store with no reachable containers
 - Ledger:Snapshot captures bags, every reachable store and the money balance
+- Ledger:Snapshot carries each money-holding store's own balance
+- Ledger:Snapshot omits a store balance this build cannot read
 - Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs
 - Ledger:StoresFor drops a store this build has no container for
 - Ledger:StoresFor: the guild bank frame reaches only itself
@@ -128,6 +143,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger:GateReason blocks everything while capture is disabled
 - Ledger:GateReason blocks an item below the minimum quality
 - Ledger:GateReason lets a whitelisted item through the quality gate
+- Ledger:GateReason skips an uncached item when a minimum quality is set
+- Ledger:GateReason records an uncached item at the default threshold
+- Ledger:GateReason lets a whitelisted uncached item through
+- Ledger:GateReason asks the client to cache an item it had to skip
 - Ledger:GateReason blocks a blacklisted item even when it would otherwise pass
 - Ledger:GateReason blocks a muted store
 - Ledger:GateReason blocks item moves when item tracking is off
@@ -160,6 +179,8 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger:CloseContext runs the pending pass instead of waiting out the debounce
 - Ledger.SnapshotsDiffer spots a change on any side
 - Ledger: a movement whose halves are SECONDS apart is still recorded
+- Ledger: gold spent at the bank window is not recorded as a warband deposit
+- Ledger: a real gold deposit still records when the store balance lands a pass later
 - Ledger: a one-sided change that never completes re-anchors after the timeout
 - Ledger: a re-anchored loot does not pair with a later unrelated deposit
 - Ledger: an unchanged world advances the baseline without waiting
@@ -189,7 +210,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_database.lua (39)
+### test_database.lua (42)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -230,6 +251,9 @@ whenever the suite changes (see [testing.md](testing.md)).
 - RunMigrations survives a database with no ledger at all
 - RunMigrations never downgrades a future schema version
 - Database:Export never emits a vendorPrice field
+- Database: the shipped default matches the migration runner's target
+- Database: a fresh database needs no migration
+- Database: an older database is migrated up to the current version
 
 ### test_stats.lua (59)
 
@@ -293,7 +317,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (45)
+### test_ledgertable.lua (49)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -340,8 +364,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - BuildTestData spreads across many characters and zones
 - BuildTestData never carries vendor value
 - LedgerTable:ToggleTestMode publishes and clears the dataset
+- LedgerTable:IsTestMode is derived from the published dataset, not a second flag
+- LedgerTable row menu offers the mutating actions on a real row
+- LedgerTable row menu disables every mutating action in test mode
+- LedgerTable row menu still disables item actions on a money row
 
-### test_browser.lua (18)
+### test_browser.lua (22)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -361,6 +389,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - the ledger window saves its geometry when it hides
 - the ledger window saves its geometry at logout
 - Browser:ExportWidth leaves the Export button a usable width
+- Browser: a burst of search keystrokes costs ONE filter application
+- Browser: the debounced filter still applies when there is no timer library
+- Browser: a 20-stack deposit repaints the window once, not twenty times
+- Browser hands the table a filter COPY, not its own mutable one
 
 ### test_sessionwindow.lua (32)
 
@@ -526,10 +558,11 @@ whenever the suite changes (see [testing.md](testing.md)).
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (19)
+### test_schema.lua (21)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
+- Schema: changing the window scale broadcasts it so every window rescales
 - Schema: every row declares a default
 - Schema: dropdown rows carry their option list
 - Schema:FindRow finds a declared path and rejects an unknown one
@@ -547,8 +580,9 @@ whenever the suite changes (see [testing.md](testing.md)).
 - COMMANDS: names are unique, so dispatch can never be ambiguous
 - COMMANDS: the standard's required verbs are all present
 - COMMANDS: a test verb exists (test-mode)
+- Schema: every row carries a tooltip
 
-### test_slash.lua (31)
+### test_slash.lua (33)
 
 - Slash.FormatSchemaValue renders booleans as true/false
 - Slash.FormatSchemaValue applies a row's number format
@@ -581,24 +615,26 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Slash: dispatch lower-cases only the verb, preserving the argument's case
 - Slash:CliVersion prints a single tagged version line
 - Slash: every chat line carries the cyan [BL] tag
+- Slash: every declared /bl list group actually exists in the schema
+- Slash: /bl version and the help header report the same version
 
 ## Totals
 
 | Suite | Cases |
 |-------|------:|
 | test_util.lua | 25 |
-| test_compat.lua | 16 |
-| test_constants.lua | 19 |
+| test_compat.lua | 21 |
+| test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 93 |
-| test_database.lua | 39 |
+| test_ledger.lua | 107 |
+| test_database.lua | 42 |
 | test_stats.lua | 59 |
-| test_ledgertable.lua | 45 |
-| test_browser.lua | 18 |
+| test_ledgertable.lua | 49 |
+| test_browser.lua | 22 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 72 |
 | test_export.lua | 30 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 19 |
-| test_slash.lua | 31 |
-| **Total** | **531** |
+| test_schema.lua | 21 |
+| test_slash.lua | 33 |
+| **Total** | **567** |

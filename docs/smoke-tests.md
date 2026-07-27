@@ -47,12 +47,22 @@ tolerance.
 4. Withdraw gold → a Withdraw row with the same shape.
 5. Open your **character** bank and sell something to a vendor with the bank open. **No** gold row
    appears — the character bank holds no gold, so its money changes are never attributed.
+6. Open the bank again and **spend** gold with it open — buy a bank slot, or repair. **No** gold row
+   appears. A purse change alone is not a movement: the store's own balance has to mirror it, which
+   is what stops a purchase at the bank being filed as a warband deposit.
+7. `/bl debug scan` at the bank and read the `money API:` block. `bankFetch=function` and a non-zero
+   `C_Bank.FetchDepositedMoney(Account)` mean the warband balance is readable on this build; if it
+   is not, gold movements to the warband bank are declined rather than guessed.
 
 ## S-6 · Guild bank
 
 1. Open the guild bank and deposit an item.
 2. A **Guild Bank** row appears; the exported CSV's `guild` column carries your guild name.
 3. Deposit gold → a Gold row against the guild bank.
+   Then, from a fresh `/reload`, spend gold at a **character bank** and only afterwards open the
+   guild bank. **No** guild-bank gold row appears. This is worth doing deliberately: with the guild
+   frame closed the client reports the guild balance as `0` rather than "unknown", so a naive read
+   would see the true balance arrive as an enormous gain the moment you open it.
 4. `/bl debug scan` while it is open reports `openContext=GUILD_BANK`. The guild bank has no
    working open event, so it arms itself when tab data arrives — if this reads `nil`, no data has
    reached the addon and nothing will be recorded.
@@ -66,7 +76,9 @@ tolerance.
    come back. Repeat resizing *only* (never dragging), releasing the grip well outside the button,
    and again with the window still open when you `/reload`: both must survive.
 3. The window will not shrink below the width that shows every column.
-4. `/bl set settings.windowScale 1.3` rescales the open window immediately.
+4. `/bl set settings.windowScale 1.3` rescales the open window immediately. With the Current
+   Banking Session window also open (`/bl session`), **both** windows rescale together, from the
+   slash path and from the Settings slider alike, with no `/reload`.
 
 ## S-8 · Filtering, grouping and sorting
 
@@ -217,7 +229,12 @@ tolerance.
    zones; a hot-item head over a long tail in the Top Items lists; an evening-leaning hour-of-day
    curve; every store, both directions and every quality 0–5 appear at least once; the date range
    spans more than 14 days.
-4. `/bl test` again returns to the real data and the badge disappears.
+4. Right-click a sample row. **Link to chat** is available; **Blacklist item**, **Whitelist item**
+   and **Delete** are greyed out and click-inert. The sample rows carry synthetic item ids, so those
+   three would otherwise reach the real filter lists and the real ledger.
+5. `/bl config` ▸ **Filters** — both lists are unchanged by anything done in step 4.
+6. `/bl test` again returns to the real data and the badge disappears. Right-click a real row: all
+   four entries are now available, and **Delete** removes the row and decrements the footer count.
 
 ## S-16 · Retention and purge
 

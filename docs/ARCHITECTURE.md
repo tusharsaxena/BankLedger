@@ -191,11 +191,11 @@ settings landing page and the README all read from one place.
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
-| `/bl debug scan` | Dump the client's live container model into the console |
+| `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console |
 | `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
 | `/bl help` | The help index |
 
-`/bl test` is the renamed History-table sample data (`LT.testMode`, `LT:ToggleTestMode`,
+`/bl test` is the renamed History-table sample data (`LT:IsTestMode`, `LT:ToggleTestMode`,
 `LT:BuildTestData`, badge `TEST MODE`) — matching the Ka0s house vocabulary set by LootHistory's
 `/lh test`. `/bl session`'s `previewSession` / `TogglePreview` on `NS.SessionWindow` **deliberately
 keep the "preview" name**: it is a separate synthetic-data feature (placeholder movements for

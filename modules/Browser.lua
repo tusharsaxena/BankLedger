@@ -750,7 +750,7 @@ function B:ClearFilters()
     NS.LedgerTable.sortKey = "date"
     NS.LedgerTable.sortAsc = false
   end
-  ApplyFilter()
+  B:ApplyFilterNow()
 end
 
 -- The dataset changed under the bar (entering/leaving test mode): rebuild the dropdowns from the
@@ -829,7 +829,7 @@ function B:BuildFilterBar(bar)
   dd.date:SetValue("all", "Date: All")
   dd.date.onSelect = function(v)
     B.activeFilter.from = (v ~= "all") and NS.Util.RangeFrom(v) or nil
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   dd.direction = MakeDropdown(bar, DD_W.direction)
@@ -838,7 +838,7 @@ function B:BuildFilterBar(bar)
   dd.direction:SetOptions(directionOptions())
   dd.direction.onMultiSelect = function(set)
     B.activeFilter.direction = setToFilter(set)
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   dd.store = MakeDropdown(bar, DD_W.store)
@@ -847,7 +847,7 @@ function B:BuildFilterBar(bar)
   dd.store:SetOptions(storeOptions())
   dd.store.onMultiSelect = function(set)
     B.activeFilter.store = setToFilter(set)
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   dd.quality = MakeDropdown(bar, DD_W.quality)
@@ -855,7 +855,7 @@ function B:BuildFilterBar(bar)
   dd.quality:SetMulti(true)
   dd.quality.onMultiSelect = function(set)
     B.activeFilter.quality = setToFilter(set)
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   dd.type = MakeDropdown(bar, DD_W.type)
@@ -863,7 +863,7 @@ function B:BuildFilterBar(bar)
   dd.type:SetMulti(true)
   dd.type.onMultiSelect = function(set)
     B.activeFilter.itemType = setToFilter(set)
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   dd.subtype = MakeDropdown(bar, DD_W.subtype)
@@ -871,7 +871,7 @@ function B:BuildFilterBar(bar)
   dd.subtype:SetMulti(true)
   dd.subtype.onMultiSelect = function(set)
     B.activeFilter.itemSubType = setToFilter(set)
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   dd.char = MakeDropdown(bar, DD_W.char)
@@ -879,7 +879,7 @@ function B:BuildFilterBar(bar)
   dd.char:SetMulti(true)
   dd.char.onMultiSelect = function(set)
     B.activeFilter.char = B.ResolveCharFilter(set)
-    ApplyFilter()
+    B:ApplyFilterNow()
   end
 
   -- Pin the row-1 search box's right edge to the Character dropdown's; -ROW2 lifts the top-right
