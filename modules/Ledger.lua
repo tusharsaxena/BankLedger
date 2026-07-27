@@ -21,22 +21,22 @@ L.MONEY_STORES = { GUILD_BANK = true, WARBAND_BANK = true }
 
 -- Which stores a given open FRAME can reach.
 --
--- The retail bank frame is one window with tabs — "Bank" and "Warband Bank" along the bottom, plus
--- the reagent slots — all behind a single BANKFRAME_OPENED, and switching tabs fires nothing. There
+-- The retail bank frame is one window with tabs — "Bank" and "Warband Bank" along the bottom — all
+-- behind a single BANKFRAME_OPENED, and switching tabs fires nothing. There
 -- is therefore no event that says "the warband bank is now open", so an addon cannot track which
 -- tab you are looking at. It doesn't need to: on every pass it diffs the bags against EVERY store
 -- the open frame can reach, and the "both sides must change" rule sorts out which one you actually
 -- used. A store you didn't touch shows no change on its side and produces no row.
 L.CONTEXT_STORES = {
-  [C.Context.BANK_FRAME] = { C.Store.BANK, C.Store.REAGENT_BANK, C.Store.WARBAND_BANK },
+  [C.Context.BANK_FRAME] = { C.Store.BANK, C.Store.WARBAND_BANK },
   [C.Context.GUILD_BANK] = { C.Store.GUILD_BANK },
 }
 
 -- The stores a frame can reach ON THIS CLIENT. A container-backed store whose id group came back
--- empty does not exist on this build — the reagent bank is gone on 12.0.7, its contents having
--- moved into the bank tabs — so it is dropped rather than scanned as a permanently empty store
--- that clutters every debug line with `REAGENT_BANK 0`. Stores with their own API family (the guild
--- bank) have no id group and are always reachable.
+-- empty does not exist on this build, so it is dropped rather than scanned as a permanently empty
+-- store that clutters every debug line with `<STORE> 0`. Blizzard renumbers and retires containers
+-- between expansions, so this stays as a general guard even when every declared store resolves.
+-- Stores with their own API family (the guild bank) have no id group and are always reachable.
 function L:StoresFor(context)
   local out = {}
   for _, store in ipairs(L.CONTEXT_STORES[context] or {}) do
@@ -154,7 +154,7 @@ L.CountKinds = countKinds
 -- ── Snapshot scanning ───────────────────────────────────────────────────────────
 
 -- Total count of each itemID across every container id belonging to `store`. Stores with their own
--- API family (guild bank, void storage) are scanned through their Compat readers instead.
+-- API family (the guild bank) are scanned through their Compat readers instead.
 function L:ScanStore(store)
   local counts = {}
   if store == C.Store.GUILD_BANK then return self:ScanGuildBank() end
@@ -260,7 +260,7 @@ function L:Diagnose()
   for _, m in ipairs(members) do add("  BagIndex.%s = %s", m.name, m.value) end
 
   -- What this addon's own groups resolved to, so a wrong group is visible beside the truth above.
-  for _, store in ipairs({ "BAGS", "BANK", "REAGENT_BANK", "WARBAND_BANK" }) do
+  for _, store in ipairs({ "BAGS", "BANK", "WARBAND_BANK" }) do
     local ids = C.STORE_CONTAINERS[store] or {}
     local parts = {}
     for i, id in ipairs(ids) do parts[i] = tostring(id) end
@@ -695,8 +695,8 @@ function L:CloseContext()
   fireSessionChanged(false, context)
 end
 
--- Which FRAME an open-event belongs to. There is deliberately no event for the warband or reagent
--- tabs, because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
+-- Which FRAME an open-event belongs to. There is deliberately no event for the warband tabs,
+-- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
 local OPEN_EVENTS = {
   BANKFRAME_OPENED        = C.Context.BANK_FRAME,
   GUILDBANKFRAME_OPENED   = C.Context.GUILD_BANK,
@@ -708,8 +708,7 @@ local CLOSE_EVENTS = {
 -- Events that mean "something in an open container changed". Each is a cue to re-diff, never a
 -- movement in itself.
 local CHANGE_EVENTS = {
-  "BAG_UPDATE_DELAYED", "PLAYERBANKSLOTS_CHANGED", "PLAYERREAGENTBANKSLOTS_CHANGED",
-  "PLAYER_MONEY",
+  "BAG_UPDATE_DELAYED", "PLAYERBANKSLOTS_CHANGED", "PLAYER_MONEY",
 }
 -- Guild bank data. Handled separately because it ARMS the guild-bank context as well as
 -- reconciling it — see L:OnGuildBankData.

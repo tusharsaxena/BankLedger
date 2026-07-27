@@ -97,15 +97,18 @@ test("Constants: the enum's type constants are never mistaken for containers", f
   end
 end)
 
-test("Constants: a store absent from this build resolves to an empty group", function()
-  -- The reagent bank has no container on 12.0.7; it must resolve empty, not to a stray id.
-  assertEqual(#C.REAGENT_BANK_IDS, 0)
+test("Constants: every container-backed store resolves to a non-empty group", function()
+  -- Groups are derived by Enum.BagIndex member NAME, so a renamed or retired member silently
+  -- empties its group instead of erroring. An empty group here means a store the addon declares but
+  -- can no longer scan — exactly how the retired reagent bank surfaced.
+  for store, ids in pairs(C.STORE_CONTAINERS) do
+    assertTrue(#ids > 0, store .. " resolved to an empty container group")
+  end
 end)
 
-test("Constants: the guild bank and void storage are NOT container-id scanned", function()
-  -- They have their own API families and are read through Compat instead.
+test("Constants: the guild bank is NOT container-id scanned", function()
+  -- It has its own API family and is read through Compat instead.
   assertEqual(C.STORE_CONTAINERS.GUILD_BANK, nil)
-  assertEqual(C.STORE_CONTAINERS.VOID_STORAGE, nil)
 end)
 
 test("Constants: the store mute options exclude BAGS", function()

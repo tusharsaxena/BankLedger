@@ -8,7 +8,6 @@ local C = NS.Constants
 C.Store = {
   BAGS         = "BAGS",
   BANK         = "BANK",
-  REAGENT_BANK = "REAGENT_BANK",
   WARBAND_BANK = "WARBAND_BANK",
   GUILD_BANK   = "GUILD_BANK",
 }
@@ -16,21 +15,20 @@ C.Store = {
 -- Display order for grouping, filters and the Insights breakdown (bags first, then the stores a
 -- movement can target).
 C.StoreOrder = {
-  "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK", "BAGS",
+  "BANK", "WARBAND_BANK", "GUILD_BANK", "BAGS",
 }
 
 C.StoreLabel = {
   BAGS         = "Bags",
   BANK         = "Character Bank",
-  REAGENT_BANK = "Reagent Bank",
   WARBAND_BANK = "Warband Bank",
   GUILD_BANK   = "Guild Bank",
 }
 
 -- ── Open-frame context enum ─────────────────────────────────────────────────────
 -- Which storage FRAME is open. Deliberately NOT a C.Store value: the retail bank frame reaches the
--- character bank, the reagent tab AND the warband tabs at once behind a single BANKFRAME_OPENED,
--- and switching between them fires nothing — which is the whole reason this is a separate axis. It
+-- character bank AND the warband tabs at once behind a single BANKFRAME_OPENED, and switching
+-- between them fires nothing — which is the whole reason this is a separate axis. It
 -- was previously expressed with C.Store values, whose comment promises they are the stored export
 -- keys; BANK_FRAME never was one (F-012).
 --
@@ -77,13 +75,12 @@ C.DirectionGlyph = {
 }
 
 -- The character bank keeps the addon's gold; the warband bank takes the heirloom cyan (it is
--- account-wide, as heirlooms are); the guild bank a magenta. Bags and the reagent bank stay muted —
--- they are the counterparty of a movement, not its subject.
+-- account-wide, as heirlooms are); the guild bank a magenta. Bags stay muted — they are the
+-- counterparty of a movement, not its subject.
 C.StoreRGB = {
   BANK         = { 1.00, 0.82, 0.00 },
   WARBAND_BANK = { 0.00, 0.80, 1.00 },
   GUILD_BANK   = { 0.93, 0.45, 0.88 },
-  REAGENT_BANK = { 0.95, 0.65, 0.30 },
   BAGS         = { 0.75, 0.75, 0.78 },
 }
 
@@ -107,12 +104,12 @@ C.NEUTRAL_RGB = { 0.90, 0.90, 0.90 }
 -- `Accountbanktab = -3` sit alongside the real `CharacterBankTab_1..6` and `AccountBankTab_1..5`.
 -- A loose match would scoop those up and scan a container that does not exist.
 local GROUP_PATTERNS = {
+  -- `ReagentBag` is the reagent BAG worn in the inventory's fifth slot — a live container, and not
+  -- to be confused with the reagent BANK, which Midnight removed. Do not strip it.
   BAGS         = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
   -- `Bank` / `BankBag_N` are the pre-tab character bank; `CharacterBankTab_N` is the modern form.
   BANK         = { "^Bank$", "^BankBag_%d+$", "^CharacterBankTab_%d+$" },
   WARBAND_BANK = { "^AccountBankTab_%d+$" },
-  -- Absent on 12.0.7 — reagents live in the bank tabs now — so this resolves to an empty group.
-  REAGENT_BANK = { "^Reagentbank$", "^ReagentBank$" },
 }
 
 -- Every id whose Enum.BagIndex member name matches one of `patterns`, sorted and de-duplicated.
@@ -139,7 +136,6 @@ end
 C.BAG_IDS          = idsMatching(GROUP_PATTERNS.BAGS)
 C.BANK_IDS         = idsMatching(GROUP_PATTERNS.BANK)
 C.WARBAND_BANK_IDS = idsMatching(GROUP_PATTERNS.WARBAND_BANK)
-C.REAGENT_BANK_IDS = idsMatching(GROUP_PATTERNS.REAGENT_BANK)
 
 -- The backpack is id 0 on every build and predates the enum, so guarantee it rather than depend on
 -- `Backpack` being present. Without the bags side there is no movement to detect at all.
@@ -147,13 +143,9 @@ if #C.BAG_IDS == 0 then C.BAG_IDS = { 0, 1, 2, 3, 4, 5 } end
 
 -- Store → the container ids scanned for it. The guild bank has its own API family and is scanned
 -- through Compat rather than a container-id list, so it is absent here.
---
--- Void storage is not listed at all: it was retired in 12.0.7 — the client exposes neither its
--- events nor a container for it — so the addon does not pretend to track it.
 C.STORE_CONTAINERS = {
   BAGS         = C.BAG_IDS,
   BANK         = C.BANK_IDS,
-  REAGENT_BANK = C.REAGENT_BANK_IDS,
   WARBAND_BANK = C.WARBAND_BANK_IDS,
 }
 

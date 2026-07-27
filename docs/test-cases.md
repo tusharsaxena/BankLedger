@@ -72,8 +72,8 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Constants: no container id belongs to two stores
 - Constants: no group lists the same id twice
 - Constants: the enum's type constants are never mistaken for containers
-- Constants: a store absent from this build resolves to an empty group
-- Constants: the guild bank and void storage are NOT container-id scanned
+- Constants: every container-backed store resolves to a non-empty group
+- Constants: the guild bank is NOT container-id scanned
 - Constants: the store mute options exclude BAGS
 - Constants: every quality option carries a numeric value and a label
 - Constants: the retention presets offer an 'Always' (0) option
@@ -100,7 +100,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (107)
+### test_ledger.lua (106)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -131,7 +131,6 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs
 - Ledger:StoresFor drops a store this build has no container for
 - Ledger:StoresFor: the guild bank frame reaches only itself
-- Ledger: void storage is not a store at all (retired in 12.0.7)
 - Ledger:StoresFor: an unknown context reaches nothing
 - Ledger:Reconcile records a bags-to-character-bank deposit
 - Ledger:Reconcile records a warband move with no warband open event at all
@@ -582,7 +581,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - COMMANDS: a test verb exists (test-mode)
 - Schema: every row carries a tooltip
 
-### test_slash.lua (33)
+### test_slash.lua (35)
 
 - Slash.FormatSchemaValue renders booleans as true/false
 - Slash.FormatSchemaValue applies a row's number format
@@ -606,6 +605,8 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Slash:CliSet prints usage when the value is missing
 - Slash:CliReset restores one setting to its default
 - Slash:CliReset echoes a table default through the shared formatter
+- Slash:CliReset echoes the coloured key = value shape, like get and set
+- Slash:CliReset echoes the stored value, not the requested one
 - Slash:CliResetAll restores the schema AND clears the filter lists
 - Slash: a bare /bl prints the help index
 - Slash: the help index has one row per COMMANDS entry, plus the header
@@ -618,6 +619,15 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Slash: every declared /bl list group actually exists in the schema
 - Slash: /bl version and the help header report the same version
 
+### test_panel.lua (6)
+
+- Panel: every registered canvas frame is handed to the Settings framework
+- Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
+- Panel: the landing page's OnDefault is inert — it manages no settings
+- Panel: OnDefault is the same closure as the header Defaults button
+- Panel: the General defaults action resets settings but never the ledger
+- Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
+
 ## Totals
 
 | Suite | Cases |
@@ -626,7 +636,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_compat.lua | 21 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 107 |
+| test_ledger.lua | 106 |
 | test_database.lua | 42 |
 | test_stats.lua | 59 |
 | test_ledgertable.lua | 49 |
@@ -636,5 +646,6 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_export.lua | 30 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 21 |
-| test_slash.lua | 33 |
-| **Total** | **567** |
+| test_slash.lua | 35 |
+| test_panel.lua | 6 |
+| **Total** | **574** |

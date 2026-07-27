@@ -243,8 +243,10 @@ function Sl:CliReset(arg)
   local def = NS.Schema:Default(path)
   if not row or def == nil then print("Setting not found: " .. tostring(path)); return end
   NS.Schema:Set(path, def)
-  -- Echoed through the shared formatter so a table default reads "(none)", not a raw table pointer.
-  print(path .. " reset to " .. Sl.FormatSchemaValue(row, def))
+  -- One coloured `key = value` renderer for every schema read/write echo (slash-commands-§5), and
+  -- read back the STORED value so the echo reflects clamping, exactly as CliSet does. FormatSchemaValue
+  -- keeps a table default reading "(none)" rather than a raw table pointer.
+  print(Sl.FormatKV(path, Sl.FormatSchemaValue(row, NS.Schema:Get(path))))
 end
 
 -- Reset every user setting to its default. Covers the schema rows AND the two item-id filter lists

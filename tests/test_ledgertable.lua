@@ -295,7 +295,7 @@ end)
 test("LedgerTable:BuildTestData covers every store", function()
   local seen = {}
   for _, x in ipairs(LT:BuildTestData()) do seen[x.store] = true end
-  for _, store in ipairs({ "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK" }) do
+  for _, store in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
     assertTrue(seen[store], store .. " is missing from the test data")
   end
 end)
@@ -356,7 +356,7 @@ test("BuildTestData covers every store and both directions", function()
     stores[e.store] = true
     dirs[e.direction] = true
   end
-  for _, s in ipairs({ "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK" }) do
+  for _, s in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
     assertTrue(stores[s], "store " .. s .. " must appear")
   end
   assertTrue(dirs.DEPOSIT and dirs.WITHDRAW, "both directions must appear")

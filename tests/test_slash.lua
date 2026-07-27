@@ -159,6 +159,25 @@ test("Slash:CliReset echoes a table default through the shared formatter", funct
   assertTrue(joined(out):find("(none)", 1, true) ~= nil, "not a raw table pointer")
 end)
 
+-- slash-commands-§5: ONE coloured `key = value` renderer across the whole read/write surface, so a
+-- reset echo is byte-identical in shape to the get/set echo two functions away.
+test("Slash:CliReset echoes the coloured key = value shape, like get and set", function()
+  local out = captureChat(function() Sl:CliReset("settings.qualityThreshold") end)
+  local want = Sl.FormatKV("settings.qualityThreshold",
+    Sl.FormatSchemaValue(NS.Schema:FindRow("settings.qualityThreshold"), 0))
+  assertTrue(out[#out]:find(want, 1, true) ~= nil, "coloured key = value after the [BL] tag")
+end)
+
+-- The echo reads the STORED value back, so it reports what was actually written rather than what
+-- was requested — the same clamping guarantee CliSet gives.
+test("Slash:CliReset echoes the stored value, not the requested one", function()
+  captureChat(function() Sl:CliSet("settings.windowScale 1.25") end)
+  local out = captureChat(function() Sl:CliReset("settings.windowScale") end)
+  local stored = NS.Schema:Get("settings.windowScale")
+  assertTrue(joined(out):find(
+    Sl.FormatSchemaValue(NS.Schema:FindRow("settings.windowScale"), stored), 1, true) ~= nil)
+end)
+
 test("Slash:CliResetAll restores the schema AND clears the filter lists", function()
   captureChat(function() Sl:CliSet("settings.qualityThreshold 4") end)
   NS.Filters:AddBlacklist(2589)

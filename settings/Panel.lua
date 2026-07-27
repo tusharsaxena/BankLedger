@@ -110,12 +110,31 @@ local function ensureDefaultsButton(panel)
   if panel.defaultsOnClick then btn:SetCallback("OnClick", panel.defaultsOnClick) end
 end
 
+-- One defaults action per page, reachable from both routes: the header Defaults button (via the
+-- parked `defaultsOnClick` closure) and Blizzard's own Settings-window defaults control (via
+-- `OnDefault`, options-ui-§1). Setting them together here is what keeps the two from drifting.
+local function setDefaultsAction(panel, fn)
+  panel.defaultsOnClick = fn
+  panel.OnDefault       = fn
+end
+
 -- ── createPanel — a Frame for RegisterCanvasLayout(Sub)category, plus its render context ──
 local function createPanel(title, opts)
   opts = opts or {}
   local panel = CreateFrame("Frame", nil)
   panel.name = title
   panel:Hide()
+
+  -- options-ui-§1: every frame handed to RegisterCanvasLayout(Sub)category carries all three
+  -- framework entry points, so Blizzard's Settings window never calls into a missing method.
+  -- `OnCommit` and `OnRefresh` are deliberately inert: every write already lands immediately via
+  -- NS.Schema:Set (nothing is staged to apply), and the panel's own OnShow handler is the single
+  -- refresh path — a second, differently-ordered one would double the work and race the rebuilders.
+  -- `OnDefault` starts inert and is pointed at the page's real defaults action by setDefaultsAction.
+  panel.OnCommit  = function() end
+  panel.OnRefresh = function() end
+  panel.OnDefault = function() end
+
   buildHeader(panel, title, opts)
 
   local body = CreateFrame("Frame", nil, panel)
@@ -749,7 +768,10 @@ function P:Register()
   -- General subcategory = the actual settings.
   local ctx = createPanel("General", { defaultsButton = true })
   P.general = ctx
-  ctx.panel.defaultsOnClick = function() P:RestoreDefaults() end
+  -- Non-destructive on both routes: this resets settings and window geometry, never the ledger, so
+  -- it is safe behind Blizzard's un-gated footer control. The destructive path stays behind the
+  -- confirm-gated KA0S_BANKLEDGER_RESETALL popup below.
+  setDefaultsAction(ctx.panel, function() P:RestoreDefaults() end)
   local rendered = false
   ctx.panel:SetScript("OnShow", function()
     ensureDefaultsButton(ctx.panel)
@@ -779,13 +801,13 @@ function P:Register()
   P.filters = fctx
   -- Defaults here = clear both id-lists (their stock state is empty), confirm-gated. The page holds
   -- no Schema rows, so this is the "restore defaults" for what it manages.
-  fctx.panel.defaultsOnClick = function()
+  setDefaultsAction(fctx.panel, function()
     if type(StaticPopup_Show) == "function" then
       StaticPopup_Show("KA0S_BANKLEDGER_CLEAR_FILTERS")
     elseif NS.Filters then
       NS.Filters:ClearAll()
     end
-  end
+  end)
   local fRendered = false
   fctx.panel:SetScript("OnShow", function()
     ensureDefaultsButton(fctx.panel)

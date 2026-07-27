@@ -335,9 +335,9 @@ local TEST_ZONES = {
   { name = "Boralus",          mapID = 1161 },
 }
 local TEST_ZONE_W = { { 1, 26 }, { 2, 20 }, { 4, 16 }, { 3, 14 }, { 5, 12 }, { 6, 8 } }
--- The character bank takes the bulk; the reagent bank is a trickle.
+-- The character bank takes the bulk; the guild bank is the lightest.
 local TEST_STORE_W = {
-  { "BANK", 34 }, { "WARBAND_BANK", 26 }, { "GUILD_BANK", 22 }, { "REAGENT_BANK", 8 },
+  { "BANK", 38 }, { "WARBAND_BANK", 30 }, { "GUILD_BANK", 24 },
 }
 local TEST_TYPE_W = {
   { "Tradegoods", 30 }, { "Consumable", 22 }, { "Armor", 16 }, { "Weapon", 12 },
@@ -427,7 +427,7 @@ function LT:BuildTestData()
 
   -- 1) Coverage seed: every store, both directions, every quality 0-5 and every class appear at
   --    least once, and the timestamps walk the full window.
-  local stores = { "BANK", "REAGENT_BANK", "WARBAND_BANK", "GUILD_BANK" }
+  local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
   local seedN = math.max(#stores, #TEST_CLASSES, 6, TEST_SPAN_DAYS)
   for i = 1, seedN do
     make(stores[((i - 1) % #stores) + 1],

@@ -47,7 +47,10 @@ tests/
   - the AceAddon mock stamps AceConsole's colliding `:Print` mixin, so the tests exercise the real
     printer-reclaim path;
   - the message bus keys callbacks by `(message, target)` and fans `SendMessage` out to every
-    target, so a test can catch two receivers clobbering each other on a shared target.
+    target, so a test can catch two receivers clobbering each other on a shared target;
+  - the `Settings.RegisterCanvasLayout(Sub)category` fakes keep each frame they are handed in
+    `mocks.__settingsPanels`, so `test_panel.lua` can assert the `OnCommit` / `OnDefault` /
+    `OnRefresh` contract on what the framework actually received (options-ui-§1).
 
 A suite reads:
 

@@ -10,7 +10,7 @@ local State = NS.State
 -- a vendor buy.
 --
 -- This is a frame, not a store, and the distinction is the whole point: the retail bank frame hosts
--- the character bank, the reagent tab AND the warband tabs behind a single BANKFRAME_OPENED, and
+-- the character bank AND the warband tabs behind a single BANKFRAME_OPENED, and
 -- switching between those tabs fires no event at all. So the addon can never know "which store is
 -- open" — it knows which frame is open, and reconciles every store that frame can reach.
 State.openContext = nil

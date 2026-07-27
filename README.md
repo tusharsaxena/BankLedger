@@ -3,7 +3,7 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-567%2F567_passing-green)
+![Tests](https://img.shields.io/badge/Tests-574%2F574_passing-green)
 
 ![Logo](media/logos/bankledger.logo.jpg)
 
@@ -131,7 +131,7 @@ questing — never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ Filters. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | Settings ▸ General ▸ **Reset all** recentres both windows (it also clears your history, so export first if you want to keep it). |
+| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recentres both windows. It restores your settings and clears your filter lists, but your history is untouched. (The **Reset all** button in the body also recentres them, but it deletes your history too — export first if you want to keep it.) |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. |
 

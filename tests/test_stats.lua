@@ -134,7 +134,8 @@ test("Stats: a filter narrows every total, not just the count", function()
 end)
 
 test("Stats: an empty result set produces zeroed totals rather than nil", function()
-  local s = stats({ store = "REAGENT_BANK" })
+  -- BAGS is the counterparty of every movement, never a target, so it matches no entry.
+  local s = stats({ store = "BAGS" })
   assertEqual(s.totals.entries, 0)
   assertEqual(s.totals.itemsMoved, 0)
   assertEqual(s.totals.netMoney, 0)

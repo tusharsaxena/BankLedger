@@ -55,7 +55,7 @@ warband movement, because no event announces one.
 
 | File | Role |
 |---|---|
-| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container/guild-bank/void-storage readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
+| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
@@ -88,7 +88,7 @@ One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 | `char`, `classFile` | `Name-Realm` and the class token, for the per-character views. |
 | `kind` | `ITEM` or `MONEY`. `CURRENCY` is reserved for a later iteration. |
 | `direction` | `DEPOSIT` (bags → store) or `WITHDRAW` (store → bags). |
-| `store` | `BANK`, `WARBAND_BANK`, `GUILD_BANK`. (`REAGENT_BANK` remains in the enum for older builds.) |
+| `store` | `BANK`, `WARBAND_BANK`, `GUILD_BANK`. |
 | `guild` | Set on guild-bank rows only. |
 | `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType` | Item rows. An item the client has not cached yet stores its id alone. |
 | `quantity` | Stack size for an item row; copper for a `MONEY` row. |
@@ -96,6 +96,25 @@ One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 
 Every stored enum **value** equals its key and is part of the CSV export contract — extend the
 enums freely, never rename a member.
+
+### Retired stores
+
+`REAGENT_BANK` and `VOID_STORAGE` were removed from `C.Store` outright rather than kept as dead
+members, and the removal deliberately sits outside the rule above.
+
+The rule protects rows that already exist: renaming a member orphans stored data that still carries
+the old string. Neither of these could ever have produced one. The addon is Retail-only at Interface
+120007, where Midnight has already removed both — void storage exposes no container or events at
+all, and `REAGENT_BANK`'s container group resolved empty, so `StoresFor` dropped it from every scan
+before a movement could be attributed to it. There is no installed base either: v0.1.0 is
+unpublished, with no tags and no CurseForge listing. Zero reachable rows, so nothing to orphan.
+
+`StoresFor`'s empty-group guard stays regardless — it is what makes a retired container degrade to
+"not on this build" instead of a permanently empty store in every debug line, and Blizzard will
+retire another one. `tests/test_ledger.lua` drives it directly by emptying a live store's group.
+
+If a store is ever retired *after* rows exist, the answer is the opposite one: keep the member,
+drop it from `CONTEXT_STORES`, and let the history keep rendering.
 
 ### Schema v2 — the value dimension is gone
 
@@ -209,10 +228,12 @@ match, so it was left alone rather than folded into the rename.
 | `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune |
 | `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches |
 | `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm (the guild one never fires — see below) |
-| `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYERREAGENTBANKSLOTS_CHANGED`, `GUILDBANKBAGSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
+| `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `GUILDBANKBAGSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
 
-On a live 12.0.7 client `PLAYERREAGENTBANKSLOTS_CHANGED` is **retired** and rejected at
-registration; the addon records that and carries on.
+The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
+retires names between expansions, and modern retail **raises** on an unknown one rather than
+ignoring it, so registration is isolated per event (below) and a name that goes away is recorded and
+survived rather than fatal.
 
 Change events are **debounced** into one reconcile pass per user action (`Ledger.DEBOUNCE_SECONDS`,
 0.35s). A single deposit reports itself through several events that do not arrive together — the
@@ -379,9 +400,10 @@ row advances by the height of its tallest panel. *Top Items By Value* is gone wi
 value dimension.
 
 **Panel pooling.** List panels are pooled and carry a **per-pass title** (`W.MakeListPanel` gained a
-settable title; `W.NewPanelPool` joins the existing pool vocabulary in `InsightsWidgets.lua`) because
-the store panels are variable in count — up to five, only those with movements — instead of the fixed
-four the old two-column layout had baked in at `Attach`. A pooled panel carries **its own row pool**
+settable title, set per pass through `W.SetPanelTitle`; the pool itself is the generic `W.NewPool`,
+drained by `W.ReleasePanels` rather than the plain `W.ReleaseAll`, because a panel has to release its
+own row pool too) because the store panels are variable in count — at most three, only those with
+movements — instead of the fixed four the old two-column layout had baked in at `Attach`. A pooled panel carries **its own row pool**
 on itself (`panel._rows`), because rows are parented to a specific panel at creation and cannot be
 shared across panels.
 
@@ -411,7 +433,15 @@ visible hitch.
   ESC. That the session window opens off a game event is safe for the same reason: it shows a frame
   nobody protected, and it never calls a protected API.
 - The settings **category** is registered eagerly at load — that never taints. Each panel **body**
-  is built lazily on its first `OnShow`.
+  is built lazily on its first `OnShow`, as is the header's Defaults button.
+- Every registered canvas frame carries `OnCommit`, `OnDefault` and `OnRefresh`, so Blizzard's
+  Settings window never calls into a missing method. `OnCommit` and `OnRefresh` are inert by design
+  — writes land immediately through `NS.Schema:Set` (nothing is staged), and the panel's own
+  `OnShow` is the single refresh path. `OnDefault` is set from the *same* closure as the header
+  Defaults button (`setDefaultsAction`), so the framework's footer control and the addon's own
+  button can never drift apart. On General that action is `P:RestoreDefaults()`, which is
+  non-destructive — settings and window geometry only; wiping the ledger stays behind the
+  confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
 - Opening the settings panel **refuses** under combat lockdown with a grey notice and never defers:
   `Settings.OpenToCategory` is protected, and calling it under lockdown taints the panel for the
   rest of the session.
@@ -423,17 +453,34 @@ visible hitch.
 
 Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
 
-- **The vendored mono font is used for the direction glyph**, not only for the debug console.
-  `media/fonts/JetBrainsMono-Regular.ttf` ships as a *sanctioned styling exception* whose stated
-  scope is the debug console and its copy boxes (debug-logging-§2). The History table's Direction
-  column and the Direction filter dropdown draw a ▲/▼ (U+25B2 / U+25BC) in that font, because WoW's
-  default font carries neither glyph and renders a box for both.
-  **Why the extension was accepted:** the alternative is a texture, and Blizzard's arrow art carries
-  uneven padding — the up arrow sits low in its canvas, the down arrow high — so a texture pair
-  visibly misaligns against the row text. A text glyph sits on the label's own baseline, so it is
-  centred by construction and takes the direction's colour from the same `SetTextColor` call as the
-  label. The font is already shipped, so this costs no new asset. Scope is two glyphs; no body text
-  anywhere uses the mono font outside the console.
+- **All defaults live in `defaults/Global.lua`; there is no `defaults/Profile.lua`.**
+  `savedvariables-§2` names `defaults/Profile.lua` as the required home for defaults, and
+  `layout-§1` lists it in the tree. Bank Ledger is **account-wide by design** — you deposit on one
+  character and withdraw on another, so a per-character profile would split the very history the
+  addon exists to join up. `NS.defaults` therefore carries a `global` table only, and every schema
+  path resolves against `NS.db.global`. AceDB still creates the profile namespace (the addon calls
+  `AceDB:New("BankLedgerDB", NS.defaults, true)`); it is simply unused.
+  **Why not an empty `Profile.lua`:** a defaults file nothing reads would satisfy the filename while
+  weakening `savedvariables-§2`'s real invariant — that there is exactly *one* place a default value
+  is hardcoded — by standing up a second candidate home for it.
+
+## Mono font outside the debug console
+
+`media/fonts/JetBrainsMono-Regular.ttf` ships as a sanctioned styling exception. Its primary scope is
+the debug console and its copy boxes, but the History table's Direction column and the Direction
+filter dropdown also draw a ▲/▼ (U+25B2 / U+25BC) in it, because WoW's default font carries neither
+glyph and renders a box for both.
+
+This is **not a deviation**: `debug-logging-§2` sanctions the vendored mono font for an individual
+glyph the default font lacks, naming ▲/▼ direction markers in a table cell as the example, and states
+that an audit must not flag it.
+
+The reason the standard settled there is the reason this addon needs it: the alternative is a
+texture, and Blizzard's arrow art carries uneven padding — the up arrow sits low in its canvas, the
+down arrow high — so a texture pair visibly misaligns against the row text. A text glyph sits on the
+label's own baseline, so it is centred by construction and takes the direction's colour from the same
+`SetTextColor` call as the label. The font is already shipped, so this costs no new asset. Scope is
+two glyphs; no body text anywhere uses the mono font outside the console.
 
 ## Logo art
 
@@ -479,11 +526,10 @@ src.resize((256, 256), Image.LANCZOS) \
   contract are in place so adding it is additive, but no capture path exists in v0.1.0.
 - **Guild-bank withdrawals by other players are invisible.** The addon only sees your own client's
   view, so it records what *you* moved, not the guild log.
-- **The reagent bank no longer exists on 12.0.7** — reagents live in the character-bank tabs, so
-  the `REAGENT_BANK` store resolves to an empty container group and is dropped from the bank
-  frame. The enum member stays for the export contract and for older builds.
-- **Void storage is not tracked.** It was retired in 12.0.7 — the client exposes neither its events
-  nor a container for it — so the addon does not advertise a store it cannot observe.
+- **The reagent bank and void storage are not stores.** Midnight removed both — reagents live in the
+  character-bank tabs now, and the client exposes neither events nor a container for void storage —
+  so the addon does not advertise stores it cannot observe. Neither has an enum member; see
+  *Retired stores* below for why removing them was safe.
 - **A store-to-store transfer is not recorded.** Moving an item straight from the character bank to
   a warband tab changes neither bag count, and the "both sides must change" rule requires the bags
   to be one of the two sides. It would need a second rule that pairs two stores against each other.
@@ -501,4 +547,4 @@ src.resize((256, 256), Image.LANCZOS) \
 - **The settings landing page renders no logo if the art is missing.** `C.LOGO_PATH` points at
   `media/logos/bankledger.logo.tga`; a missing file simply draws nothing rather than erroring —
   silently, which is why the art was absent for a while without anything failing. The runtime asset
-  is now shipped (see *Logo art* below), so this is a fallback rather than a live limitation.
+  is now shipped (see *Logo art* above), so this is a fallback rather than a live limitation.

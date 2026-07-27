@@ -3,8 +3,6 @@
 In-game checks for the behaviour the headless suites cannot reach: real frames, real bank UIs, real
 taint. Run these before a release, on a character with a bank, a warband bank and a guild bank.
 
-Void storage is not covered: it was retired in 12.0.7 and the addon does not track it.
-
 Each test lists what to do and what must happen. Anything that does not match is a bug, not a
 tolerance.
 
@@ -147,7 +145,7 @@ tolerance.
     - **CATEGORIES** — Top Type · Sub-type, one row of three panels.
     - **WHERE** — Top Banking Spots, one row of three panels.
     - **BY STORE** — a sub-section per store that has movements (Character Bank, Warband Bank,
-      Guild Bank, Reagent Bank, Bags), each with its OWN row of three panels (All / Deposits /
+      Guild Bank), each with its OWN row of three panels (All / Deposits /
       Withdrawals), not a single combined panel. A coin-only store has no item list and does not
       appear at all.
     A slice with no withdrawals simply has no Withdrawals column in a row — the row is not padded
@@ -199,6 +197,11 @@ tolerance.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
 6. The scrollbar is visible on both pages and greyed out on the one that fits, so the body width
    does not jump between them.
+7. **Blizzard's own defaults control** (the Settings window's footer, not the addon's header button)
+   reaches the addon: on General, change a setting, then use it — the settings return to stock and
+   the ledger is untouched (`/bl` reports the same entry count as before). Headless coverage stops at
+   the callback contract; only the live client proves the framework actually invokes it. On Filters
+   the same control raises the clear-both-lists confirmation, exactly as the header button does.
 
 ## S-13 · Combat
 
@@ -224,7 +227,7 @@ tolerance.
 1. `/bl test` opens the window on a sample ledger with a red **TEST MODE** badge by the title.
 2. The filters, grouping, Insights and export all work against it.
 3. The dataset reads as a real bank's history, not a uniform grid: character-bank rows dominate,
-   guild and warband are mid-weight, reagent bank is light; roughly 60/40 deposit-leaning; about
+   warband is mid-weight and the guild bank lightest; roughly 60/40 deposit-leaning; about
    eight characters across distinct classes with two or three clear "mains"; six real bank-city
    zones; a hot-item head over a long tail in the Top Items lists; an evening-leaning hour-of-day
    curve; every store, both directions and every quality 0–5 appear at least once; the date range

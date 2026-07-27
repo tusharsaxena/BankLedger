@@ -276,9 +276,19 @@ return function()
   M.IsShiftKeyDown = function() return false end
   -- Chat sink for NS.Print (core/Util.lua). No-op by default; tests override AddMessage to capture.
   M.DEFAULT_CHAT_FRAME = { AddMessage = function() end }
+  -- Every canvas frame handed to the Settings framework, keyed by the name it was registered under.
+  -- options-ui-§1 makes the frame's OnCommit/OnDefault/OnRefresh a contract with Blizzard, and the
+  -- only way to assert on a contract is to keep what was actually handed over.
+  M.__settingsPanels = {}
   M.Settings = {
-    RegisterCanvasLayoutCategory = function() return { GetID = function() return 1 end } end,
-    RegisterCanvasLayoutSubcategory = function() return { GetID = function() return 2 end } end,
+    RegisterCanvasLayoutCategory = function(panel, name)
+      M.__settingsPanels[name] = panel
+      return { GetID = function() return 1 end }
+    end,
+    RegisterCanvasLayoutSubcategory = function(_, panel, name)
+      M.__settingsPanels[name] = panel
+      return { GetID = function() return 2 end }
+    end,
     RegisterAddOnCategory = function() end,
     OpenToCategory = function() end,
   }
@@ -316,6 +326,12 @@ return function()
       }
     end,
   }
+
+  -- AceGUI is present but hands back nothing: P:Register only needs the library to EXIST (the panel
+  -- bodies are built lazily on first OnShow, which never fires headless), and every widget call site
+  -- already guards on the create returning a usable widget. That is enough to exercise registration
+  -- and the framework callback contract without modelling AceGUI's whole widget tree.
+  libs["AceGUI-3.0"] = { Create = function() return nil end }
 
   -- Message bus modelled on CallbackHandler: callbacks keyed by (message, target). Registering the
   -- same message twice on ONE target overwrites (only the last survives); SendMessage fires to every

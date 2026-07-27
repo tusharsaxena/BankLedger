@@ -8,10 +8,15 @@
   Source of truth: https://github.com/tusharsaxena/WowAddonStandards
   (standards/NEW_ADDON_CONTEXT.md). When the standard moves on, re-drop this file rather than
   hand-editing it, and record any deliberate BankLedger-specific divergence in
-  docs/ARCHITECTURE.md's "Known limitations" instead.
+  docs/ARCHITECTURE.md's "Documented deviations" instead.
+
+  One repo-local addition survives every re-drop: the "Conform to the Ka0s WoW Addon Standard"
+  bullet that opens the Hard rules cheat sheet. The upstream pack carries it only inside a fenced
+  example of what THIS file should contain, so a verbatim re-drop deletes it — and it is one of the
+  four mandated standards-reference sites (documentation-§6 item 4). Put it back after re-dropping.
 -->
 
-# New Ka0s Addon — Context Pack (v2.6.0, 2026-07-20)
+# New Ka0s Addon — Context Pack (v2.7.0, 2026-07-26)
 
 **Drop this file's *contents* into the new addon's `docs/` as the full agent context, and leave a short `CLAUDE.md` stub at the addon root that points to it (documentation).** Self-contained — no external lookups required for an LLM or new contributor to scaffold a fully standards-compliant addon.
 
@@ -480,7 +485,7 @@ push and never bump the version without an explicit instruction.
 5. TOC: single latest-Retail `## Interface:` (Retail only), plus `X-Standard`, and `X-Curse-Project-ID` (mandatory once published on CurseForge). `X-Wago-ID` / `X-WoWI-ID` are optional — include each only if the addon is actually listed on that platform.
 6. Slash: AceConsole `:RegisterChatCommand`. Never raw `SLASH_*`.
 7. Locale: metatable fallback `__index = function(_,k) return k end`. Never AceLocale strict.
-8. Options UI: Blizzard `Settings.RegisterCanvasLayoutCategory` + raw AceGUI body. Register the **category eagerly at load** (always visible); build the **body lazily** on first `OnShow`. Never AceConfigDialog for content; never defer registration to first `/config`.
+8. Options UI: Blizzard `Settings.RegisterCanvasLayoutCategory` + raw AceGUI body. Register the **category eagerly at load** (always visible); build the **body lazily** on first `OnShow` — and build the header's **Defaults button lazily too**, in that same first `OnShow`, never at registration time (options-ui-§5). AceGUI is shared and UI skins hook `RegisterAsWidget`, so a widget created during load keeps Blizzard's stock red `UI-Panel-Button-Up` art forever while later-created ones come out skinned — building it at registration makes the button's look a race against addon load order. Never AceConfigDialog for content; never defer registration to first `/config`.
 9. Schema-as-single-source: one table drives panel widgets + slash + defaults reset. One write seam.
 10. Closed message bus: modules talk via `Ka0s_<Addon>_<Event>` messages, one sender each. No cross-module table reach.
 11. All deprecated-API calls live in `Compat.lua`. Modules call `NS.Compat.X`. No `WOW_PROJECT_ID` flavor branching (Retail only).
@@ -549,6 +554,7 @@ push and never bump the version without an explicit instruction.
 - [ ] Settings module exposes Schema with at least one row, single write seam, slash dispatch from `COMMANDS` table.
 - [ ] AceConsole `:RegisterChatCommand` registered.
 - [ ] Options panel uses `Settings.RegisterCanvasLayoutCategory`, **category registered eagerly at load** (entry always visible), **body built lazily** on first `OnShow`.
+- [ ] The header **Defaults button** is an AceGUI `Button` **created in the first `OnShow`** (not at registration), with its callback parked on the panel (`panel.defaultsOnClick`) and wired by the builder (options-ui-§5, anti-pattern #42).
 - [ ] Combat-lockdown: secure writes defer on `PLAYER_REGEN_ENABLED`; options-panel open **refuses** under lockdown (grey notice, no defer — options-ui-§2).
 - [ ] Debug **console** (debug-logging) — on-screen, styled like the main window; monospace font (10pt) + tagged colour-coded lines `<ts> | [<Tag>] <content>`; `/<slash> debug` toggles the window, `/<slash> debug on|off` set logging (colour-coded `ON` green / `OFF` red chat ack); enabled-state **session-only** (never in SV), decoupled from window visibility; title-bar `Debug: ON/OFF` toggle; on enable emits an `[Init]` session summary (addon+version, schema, profile). (No-window addons MAY use chat.)
 - [ ] Preview/test mode (preview-mode) if the addon has a positionable display.
@@ -583,6 +589,7 @@ named evidence is in `INDUSTRY_RESEARCH.md`.)
 | Preview/test mode | Placeholder data fed through the real render path while the display is unlocked and/or via `/<slash> preview`. |
 | Headless test harness | `tests/run.lua` micro-framework + `tests/loader.lua` (`setfenv` over ordered sources) + `tests/wow_mock.lua` (self-returning no-op frame; CreateFrame/Settings/LibStub fakes); per-module `test_*.lua` suites. |
 | Lazy first-OnShow panel build | Latch (`rendered` flag) so the AceGUI body builds once, on first `OnShow`, when the panel width is non-zero. |
+| Lazy header Defaults button | `ensureDefaultsButton(panel)` at the top of every `OnShow` builds the AceGUI `Button` once, after every addon has loaded — so a UI skin's `RegisterAsWidget` hook is already in place and the button isn't left on stock red art (options-ui-§5). |
 | Soft-fallback discipline | Load-safe shims for missing optional libs (AceDB-missing flat table, LSM-missing Blizzard constants) so the addon runs with `OptionalDeps` absent. |
 
 ---

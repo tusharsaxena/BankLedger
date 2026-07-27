@@ -237,7 +237,7 @@ test("Ledger:Snapshot captures bags, every reachable store and the money balance
   assertEqual(s.money, 4242)
   assertTrue(s.stores.BANK ~= nil, "the character bank was scanned")
   assertTrue(s.stores.WARBAND_BANK ~= nil, "the warband tab was scanned in the same pass")
-  assertEqual(s.stores.REAGENT_BANK, nil, "a store this build does not have is not scanned")
+  assertEqual(s.stores.GUILD_BANK, nil, "a store this frame cannot reach is not scanned")
   mocks.__containers[0] = nil
 end)
 
@@ -256,9 +256,9 @@ test("Ledger:Snapshot omits a store balance this build cannot read", function()
 end)
 
 -- ── Frame-to-store mapping ─────────────────────────────────────────────────────
--- The retail bank frame hosts the character bank, the reagent tab and the warband tabs behind ONE
--- BANKFRAME_OPENED, and switching between them fires no event whatsoever. These pin the model that
--- replaced "one open store, chosen by which event fired" — which could never see a warband move.
+-- The retail bank frame hosts the character bank and the warband tabs behind ONE BANKFRAME_OPENED,
+-- and switching between them fires no event whatsoever. These pin the model that replaced "one open
+-- store, chosen by which event fired" — which could never see a warband move.
 
 test("Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs", function()
   local stores = {}
@@ -268,22 +268,31 @@ test("Ledger:StoresFor: the bank frame reaches the character bank and the warban
 end)
 
 test("Ledger:StoresFor drops a store this build has no container for", function()
-  -- The reagent bank is gone on 12.0.7 (reagents live in the bank tabs). Scanning it every pass
-  -- would be a permanently empty store cluttering every debug line.
+  -- Every declared store resolves on the current client, so drive the guard directly: a store whose
+  -- id group comes back empty is not on this build and must be dropped, not scanned every pass as a
+  -- permanently empty store cluttering every debug line. Blizzard retires containers between
+  -- expansions — the reagent bank was the last one — so this path stays live.
+  local containers = NS.Constants.STORE_CONTAINERS
+  local saved = containers.WARBAND_BANK
+  containers.WARBAND_BANK = {}
+  local ok, err = pcall(function()
+    for _, s in ipairs(NS.Ledger:StoresFor("BANK_FRAME")) do
+      assertTrue(s ~= "WARBAND_BANK", "a store with no containers must be dropped")
+    end
+  end)
+  containers.WARBAND_BANK = saved
+  if not ok then error(err, 0) end
+  -- ...and comes back once its containers do.
+  local back = false
   for _, s in ipairs(NS.Ledger:StoresFor("BANK_FRAME")) do
-    assertTrue(s ~= "REAGENT_BANK", "REAGENT_BANK has no containers and must be dropped")
+    if s == "WARBAND_BANK" then back = true end
   end
+  assertTrue(back, "restored containers make the store reachable again")
 end)
 
 test("Ledger:StoresFor: the guild bank frame reaches only itself", function()
   assertEqual(#NS.Ledger:StoresFor("GUILD_BANK"), 1)
   assertEqual(NS.Ledger:StoresFor("GUILD_BANK")[1], "GUILD_BANK")
-end)
-
-test("Ledger: void storage is not a store at all (retired in 12.0.7)", function()
-  -- The client exposes neither its events nor a container, so the addon does not advertise it.
-  assertEqual(NS.Constants.Store.VOID_STORAGE, nil)
-  assertEqual(NS.Ledger.CONTEXT_STORES.VOID_STORAGE, nil)
 end)
 
 test("Ledger:StoresFor: an unknown context reaches nothing", function()
@@ -647,11 +656,13 @@ test("Ledger:Enable registers every event on a build that has them all", functio
 end)
 
 test("Ledger:Enable survives a retired event and still binds the rest", function()
-  -- The regression: PLAYERREAGENTBANKSLOTS_CHANGED belongs to a reagent bank this build no longer
-  -- has. Before this fix, it aborted the loop and BAG_UPDATE_DELAYED never bound — so no bag change
-  -- ever reached Reconcile and not one movement was recorded.
-  reEnable({ PLAYERREAGENTBANKSLOTS_CHANGED = true })
-  assertTrue(listHas(NS.Ledger.unavailableEvents, "PLAYERREAGENTBANKSLOTS_CHANGED"),
+  -- The regression, in its general form: Blizzard retires an event name the addon still asks for,
+  -- and modern retail RAISES on the unknown name instead of ignoring it. Before this fix that abort
+  -- took the rest of the loop with it — BAG_UPDATE_DELAYED never bound, so no bag change ever
+  -- reached Reconcile and not one movement was recorded. (The original offender was the reagent
+  -- bank's own event, retired with the reagent bank itself; any name can be next.)
+  reEnable({ PLAYERBANKSLOTS_CHANGED = true })
+  assertTrue(listHas(NS.Ledger.unavailableEvents, "PLAYERBANKSLOTS_CHANGED"),
     "the retired event is recorded, not fatal")
   assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"),
     "the event capture actually depends on still bound")
@@ -659,9 +670,9 @@ end)
 
 test("Ledger:Enable binds the capture events even when several are retired", function()
   reEnable({
-    PLAYERREAGENTBANKSLOTS_CHANGED = true,
     PLAYERBANKSLOTS_CHANGED = true,
     GUILDBANKBAGSLOTS_CHANGED = true,
+    GUILDBANKFRAME_CLOSED = true,
   })
   assertEqual(#NS.Ledger.unavailableEvents, 3)
   assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"))
@@ -685,10 +696,10 @@ test("Ledger:RegisterEventSafely reports whether the binding took", function()
 end)
 
 test("Ledger:Diagnose names the events this build rejected", function()
-  reEnable({ PLAYERREAGENTBANKSLOTS_CHANGED = true })
+  reEnable({ PLAYERBANKSLOTS_CHANGED = true })
   local text = table.concat(NS.Ledger:Diagnose(), "\n")
   assertTrue(text:find("events UNAVAILABLE (1)", 1, true) ~= nil)
-  assertTrue(text:find("PLAYERREAGENTBANKSLOTS_CHANGED", 1, true) ~= nil)
+  assertTrue(text:find("PLAYERBANKSLOTS_CHANGED", 1, true) ~= nil)
   reEnable(nil)
 end)
 

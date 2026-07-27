@@ -149,7 +149,9 @@ test("Database:QueryList combines filters with AND", function()
 end)
 
 test("Database:QueryList returns nothing when the filters exclude everything", function()
-  assertEqual(#NS.Database:QueryList(FIXTURE, { store = "REAGENT_BANK" }), 0)
+  -- BAGS is a real Store member that can never be an entry's `store`: it is the counterparty of
+  -- every movement, never its target. So it matches nothing, by construction.
+  assertEqual(#NS.Database:QueryList(FIXTURE, { store = "BAGS" }), 0)
 end)
 
 -- ── Export / delete / prune / stats plumbing ───────────────────────────────────
