@@ -19,6 +19,37 @@ test("Schema: every row declares a label, a widget and a group", function()
   end
 end)
 
+-- ── Propagation ────────────────────────────────────────────────────────────────
+
+local function rowFor(path)
+  for _, row in ipairs(S.Schema) do
+    if row.path == path then return row end
+  end
+  return nil
+end
+
+-- Run `fn` and return the SettingsChanged reasons broadcast while it ran.
+local function reasonsFrom(fn)
+  local seen = {}
+  local target = NS.NewBusTarget()
+  target:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function(_, reason)
+    seen[#seen + 1] = reason
+  end)
+  local ok, err = pcall(fn)
+  target:UnregisterMessage("Ka0s_BankLedger_SettingsChanged")
+  if not ok then error(err, 0) end
+  return seen
+end
+
+test("Schema: changing the window scale broadcasts it so every window rescales", function()
+  -- F-003: the row called Browser:SetScale directly and sent nothing, so SessionWindow — which
+  -- already subscribes and already reads windowScale — never heard about it until a /reload.
+  local reasons = reasonsFrom(function() rowFor("settings.windowScale").onChange(1.25) end)
+  local found = false
+  for _, r in ipairs(reasons) do if r == "windowScale" then found = true end end
+  assertTrue(found, "windowScale must reach the bus, not just the Browser")
+end)
+
 test("Schema: every row declares a default", function()
   for _, row in ipairs(S.Schema) do
     assertTrue(row.default ~= nil, row.path .. " has no default")

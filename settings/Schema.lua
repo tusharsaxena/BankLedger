@@ -54,8 +54,14 @@ S.Schema = {
     fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
     group = "Master Controls", label = "Window scale",
     tooltip = "Scale of the ledger window.",
+    -- The direct call repaints the window the user is almost certainly looking at with no latency;
+    -- the broadcast is what reaches everything ELSE that scales. SessionWindow already subscribes
+    -- to SettingsChanged and already reads windowScale, so it needed no change — it was simply
+    -- never told (F-003). A second direct call would have been one line and anti-pattern #19, and
+    -- would have left the same hole for the next window added.
     onChange = function(v)
       if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "windowScale") end
     end },
 
   -- ── Capture ──
