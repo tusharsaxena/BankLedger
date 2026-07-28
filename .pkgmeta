@@ -9,3 +9,4 @@ ignore:
   - tests
   - _dev
   - "*.bak"
+  - media/screenshots   # project-page art, served from the CurseForge CDN — never downloaded by a player
