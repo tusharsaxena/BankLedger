@@ -728,36 +728,155 @@ local function defaultCharSelection()
   return { [CURRENT_CHAR] = true }
 end
 
--- Return every filter to its default, and the group/sort to stock. This is what the Clear button,
--- a dataset swap and the first build all use, so "default" has exactly one definition.
-function B:ClearFilters()
+-- ── The view: group + sort + column filters ───────────────────────────────────
+-- A "view" is everything the filter bar expresses EXCEPT the character scope: the grouping, the
+-- sort, the six multi-select column filters, the date range and the search text. STOCK_VIEW is the
+-- out-of-the-box baseline; the user's own baseline, once they press Save, lives account-wide in
+-- NS.db.global.savedView.
+--
+-- Character is deliberately NOT part of a view. "What did I move?" is the question the window is
+-- opened to answer far more often than "what did all my alts move?", so the scope is a per-session
+-- default of Current that widens on demand — never something a stale save can pin to one alt.
+--
+-- Field names match the activeFilter / Database:QueryList keys, so nothing has to translate between
+-- the two shapes. An empty set means "All". `date` stores the RANGE OPTION ("7d"), never a resolved
+-- timestamp, so it recomputes against each session's clock instead of freezing a week in the past.
+local STOCK_VIEW = {
+  groupBy = "none", sortKey = "date", sortAsc = false,
+  direction = {}, store = {}, quality = {}, itemType = {}, itemSubType = {},
+  date = "all", search = "",
+}
+
+-- The baseline Clear returns to: the saved view when one exists, else stock. Type-checked, so a
+-- SavedVariables value corrupted to a scalar degrades to stock rather than erroring on first paint.
+local function savedViewOrStock()
+  local v = NS.db and NS.db.global and NS.db.global.savedView
+  if type(v) == "table" then return v end
+  return STOCK_VIEW
+end
+
+-- Normalize a stored view field into a selection set. Tolerates a bare scalar and the "all" sentinel
+-- alongside the set form — cheap insurance for a table that survives in SavedVariables across
+-- versions, and it keeps a hand-edited saved view from breaking the bar.
+local function asSet(v)
+  local s = {}
+  if type(v) == "table" then
+    for k, on in pairs(v) do if on then s[k] = true end end
+  elseif v ~= nil and v ~= "all" then
+    s[v] = true
+  end
+  return s
+end
+
+-- Capture what is on screen as a view table. Every set is a COPY (setToFilter's fresh table), never
+-- an alias of a live dropdown's set — otherwise the next toggle would silently rewrite the view the
+-- user just saved, the same aliasing hazard ApplyFilter guards against (F-013).
+function B:CaptureView()
+  local dd, LT = self._dd, NS.LedgerTable
+  return {
+    groupBy = LT and LT.groupBy or "none",
+    sortKey = LT and LT.sortKey or "date",
+    sortAsc = LT and LT.sortAsc == true,
+    direction   = setToFilter(dd and dd.direction._selected) or {},
+    store       = setToFilter(dd and dd.store._selected) or {},
+    quality     = setToFilter(dd and dd.quality._selected) or {},
+    itemType    = setToFilter(dd and dd.type._selected) or {},
+    itemSubType = setToFilter(dd and dd.subtype._selected) or {},
+    date   = (dd and dd.date._value) or "all",
+    search = (self._search and self._search:GetText()) or "",
+  }
+end
+
+-- Paint a view: the table's group/sort, every dropdown, the search box and the resolved filter. The
+-- character scope is not in the view — it resets to `scope` ("all" for everyone, anything else for
+-- the current player). That scope write goes last and carries the single ApplyFilterNow that paints
+-- everything set above it, so a view swap costs one query, not nine.
+function B:ApplyView(view, scope)
+  view = view or STOCK_VIEW
   local dd = self._dd
-  local chars = defaultCharSelection()
-  self.activeFilter = { char = B.ResolveCharFilter(chars) }
+  local chars = (scope == "all") and {} or defaultCharSelection()
+
+  if NS.LedgerTable then
+    NS.LedgerTable.groupBy = view.groupBy or "none"
+    NS.LedgerTable.sortKey = view.sortKey or "date"
+    NS.LedgerTable.sortAsc = view.sortAsc == true
+  end
+
+  local direction, store = asSet(view.direction), asSet(view.store)
+  local quality, itemType = asSet(view.quality), asSet(view.itemType)
+  local itemSubType = asSet(view.itemSubType)
+  local date   = view.date or "all"
+  local search = view.search or ""
+
   if dd then
-    dd.group:SelectValue("none")
-    dd.date:SelectValue("all")
-    dd.direction:SetSelected({})
-    dd.store:SetSelected({})
-    dd.type:SetSelected({})
-    dd.subtype:SetSelected({})
-    dd.quality:SetSelected({})
+    dd.group:SelectValue(view.groupBy or "none")
+    dd.date:SelectValue(date)
+    dd.direction:SetSelected(direction)
+    dd.store:SetSelected(store)
+    dd.quality:SetSelected(quality)
+    dd.type:SetSelected(itemType)
+    dd.subtype:SetSelected(itemSubType)
     dd.char:SetSelected(chars)
   end
-  if self._search then self._search:SetText("") end
-  if NS.LedgerTable then
-    NS.LedgerTable.groupBy = "none"
-    NS.LedgerTable.sortKey = "date"
-    NS.LedgerTable.sortAsc = false
-  end
+  -- Set the box before rebuilding activeFilter: OnTextChanged fires on SetText and writes
+  -- activeFilter.text itself, so doing it the other way round would let the widget clobber the
+  -- value we just resolved.
+  if self._search then self._search:SetText(search) end
+
+  self.activeFilter = {
+    char        = B.ResolveCharFilter(chars),
+    direction   = setToFilter(direction),
+    store       = setToFilter(store),
+    quality     = setToFilter(quality),
+    itemType    = setToFilter(itemType),
+    itemSubType = setToFilter(itemSubType),
+    from = (date ~= "all") and NS.Util.RangeFrom(date) or nil,
+    text = (search ~= "") and search or nil,
+  }
   B:ApplyFilterNow()
 end
 
+-- Return the bar to its baseline: the saved view when there is one, else stock, always scoped to the
+-- current character. This is what the Clear button, a dataset swap and the first build all use, so
+-- "the view you start from" has exactly one definition.
+function B:ClearFilters()
+  self:ApplyView(savedViewOrStock(), "current")
+end
+
+-- Save what is on screen as the account-wide baseline. Account-wide, like the ledger itself: a bank
+-- ledger is cross-character by design, so a per-alt view would fragment the one thing the addon
+-- exists to join up.
+function B:SaveView()
+  if not (NS.db and NS.db.global) then return end
+  NS.db.global.savedView = self:CaptureView()
+  print("view saved as your default.")
+end
+
+-- Drop the saved baseline back to stock and apply it now. `silent` suppresses the chat line for
+-- programmatic callers (Slash:CliResetAll prints its own single confirmation); the bar's Reset
+-- button passes nothing and keeps the message.
+function B:ResetView(silent)
+  if NS.db and NS.db.global then NS.db.global.savedView = nil end
+  self:ApplyView(STOCK_VIEW, "current")
+  if not silent then print("view reset to stock defaults.") end
+end
+
+-- Test seams: the module-locals the view machinery is built on, exposed by name rather than
+-- reconstructed in the tests, so a change to either definition is caught rather than duplicated.
+B._STOCK_VIEW = STOCK_VIEW
+B._savedViewOrStock = savedViewOrStock
+
 -- The dataset changed under the bar (entering/leaving test mode): rebuild the dropdowns from the
--- new data and clear the filters, since the old values may not exist in it.
+-- new data, since the old values may not exist in it. Entering test mode opens on the STOCK view
+-- across ALL characters — the test data is synthetic alts, so a saved Store/Type filter would very
+-- likely match nothing and the window would look broken. Leaving it restores the saved view.
 function B:OnDatasetChanged()
   self:RefreshFilterOptions()
-  self:ClearFilters()
+  if NS.LedgerTable and NS.LedgerTable:IsTestMode() then
+    self:ApplyView(STOCK_VIEW, "all")
+  else
+    self:ClearFilters()
+  end
   self:UpdateFooter()
   self:UpdateDbSize()
   self:UpdateTestBadge()
@@ -791,10 +910,24 @@ function B:BuildFilterBar(bar)
   local exportBtn = makeBarButton(bar, "Export", exportW, function() B:OpenExport() end,
     "Export the current tab — ledger rows (History) or the summary (Insights).")
 
-  local clear = makeBarButton(bar, "Clear", exportW, function() B:ClearFilters() end,
-    "Return every filter, the grouping and the sort to their defaults "
-    .. "(Character goes back to Current, not All).")
+  -- Right cluster: Save · Reset · Clear, spanning exactly exportW so its right edge sits flush above
+  -- Export's and both stay static as the window widens. Three buttons + two 6px gaps = exportW:
+  -- Clear and Reset each take floor((exportW - 12) / 3), Save absorbs the rounding remainder so the
+  -- widths sum exactly.
+  local btnW = math.floor((exportW - 12) / 3)
+  local clear = makeBarButton(bar, "Clear", btnW, function() B:ClearFilters() end,
+    "Return the filters, grouping and sort to your saved view "
+    .. "(or the stock defaults when nothing is saved). Character goes back to Current, not All.")
   clear:SetPoint("TOPRIGHT", exportBtn, "TOPRIGHT", 0, ROW1 - ROW2)
+
+  local resetBtn = makeBarButton(bar, "Reset", btnW, function() B:ResetView() end,
+    "Discard your saved view, returning the defaults to stock.")
+  resetBtn:SetPoint("RIGHT", clear, "LEFT", -6, 0)
+
+  local saveBtn = makeBarButton(bar, "Save", exportW - 12 - 2 * btnW, function() B:SaveView() end,
+    "Save the current grouping, sort and filters as your default view. "
+    .. "Character scope is not saved \226\128\148 it always starts at Current.")
+  saveBtn:SetPoint("RIGHT", resetBtn, "LEFT", -6, 0)
 
   -- Item-name search. Its LEFT sits beside Group; its RIGHT is pinned to the row-2 Character
   -- dropdown below it (set once that exists), so the two right edges stay aligned at every window

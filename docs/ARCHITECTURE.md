@@ -186,8 +186,18 @@ Rows render in schema order, so this table is also the panel's layout, top to bo
 
 **Storage carve-outs** — mutated by their owning module rather than through `Schema:Set`, because
 none has a schema widget to drive: `settings.window` (main-window geometry, `modules/Browser.lua`),
-`settings.sessionWindow` (session-window geometry, `modules/SessionWindow.lua`) and
-`db.global.blacklist` / `db.global.whitelist` (`modules/Filters.lua`).
+`settings.sessionWindow` (session-window geometry, `modules/SessionWindow.lua`),
+`db.global.blacklist` / `db.global.whitelist` (`modules/Filters.lua`) and `db.global.savedView`
+(the filter bar's saved baseline, `modules/Browser.lua`).
+
+**The saved view** — `db.global.savedView` holds the grouping, sort, date range, search text and the
+five multi-select column filters, captured by the filter bar's **Save** button. It is *absent* until
+the user saves: no key is what "nothing saved" means, so an empty table stays available to mean a
+deliberately all-cleared save. **Clear** returns to it (or to `STOCK_VIEW` when absent); **Reset**
+discards it, as does `Slash:CliResetAll` and therefore the Panel's Defaults button. The character
+scope is deliberately *not* part of a view — it is a per-session default of Current that widens on
+demand, so a stale save can never pin the window to one alt. Applied once, at frame build, so
+closing and reopening the window mid-session keeps whatever you were working with.
 
 **Not settings:** the debug *logging* flag is `NS.State.debug` — session-only, off at login, never
 written to SavedVariables. The current banking session's movements are `NS.State.sessionEntries` —
@@ -550,7 +560,7 @@ src.resize((256, 256), Image.LANCZOS) \
 - **The reagent bank and void storage are not stores.** Midnight removed both — reagents live in the
   character-bank tabs now, and the client exposes neither events nor a container for void storage —
   so the addon does not advertise stores it cannot observe. Neither has an enum member; see
-  *Retired stores* below for why removing them was safe.
+  [Retired stores](#retired-stores) for why removing them was safe.
 - **A store-to-store transfer is not recorded.** Moving an item straight from the character bank to
   a warband tab changes neither bag count, and the "both sides must change" rule requires the bags
   to be one of the two sides. It would need a second rule that pairs two stores against each other.

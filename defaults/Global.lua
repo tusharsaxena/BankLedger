@@ -22,6 +22,13 @@ NS.defaults.global = {
   blacklist = {},
   whitelist = {},
 
+  -- savedView — the ledger window's saved filter/group/sort baseline, written by the filter bar's
+  -- Save button (NS.Browser:SaveView). Deliberately ABSENT from these defaults: "no key" is what
+  -- "nothing saved" means, and seeding it as {} would make an empty table indistinguishable from a
+  -- deliberate save of an all-cleared view. Another architecture-§5 carve-out like `window` and the
+  -- id-lists above — a captured view has no Schema widget to drive it, so it is written directly
+  -- rather than through Schema:Set. Character scope is never part of it (Browser's STOCK_VIEW).
+
   settings = {
     enabled          = true,
     trackItems       = true,

@@ -97,6 +97,174 @@ test("Browser:ClearFilters does not scope test data to the real player", functio
   end)
 end)
 
+-- ── The saved view ─────────────────────────────────────────────────────────────
+
+-- CaptureView and ApplyView both read and write the filter bar's widgets, which only exist once the
+-- window has been built. Stand in a minimal fake bar that honours the same tiny contract the real
+-- dropdowns expose (_selected / _value / SetSelected / SelectValue) so the view logic itself is
+-- exercised headlessly, rather than skipped.
+local function fakeDropdown()
+  local dd = { _selected = {}, _value = "all" }
+  function dd:SetSelected(set)
+    local s = {}
+    if type(set) == "table" then for k, on in pairs(set) do if on then s[k] = true end end end
+    self._selected = s
+  end
+  function dd:SelectValue(v) self._value = v end
+  return dd
+end
+
+local function fakeSearch()
+  local s = { _text = "" }
+  function s:SetText(t) self._text = t or "" end
+  function s:GetText() return self._text end
+  return s
+end
+
+-- Run `fn` against a fake bar and a parked saved view, restoring the real ones (and the shared
+-- filter) whether it passes or throws.
+local function withFakeBar(fn)
+  local savedDd, savedSearch = B._dd, B._search
+  local savedView = NS.db.global.savedView
+  local savedGroup, savedSort, savedAsc =
+    NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc
+  local dd = {}
+  for _, k in ipairs({ "group", "date", "direction", "store", "quality", "type", "subtype", "char" }) do
+    dd[k] = fakeDropdown()
+  end
+  B._dd, B._search = dd, fakeSearch()
+  NS.db.global.savedView = nil
+  local ok, err = pcall(function() withCleanFilter(function() fn(dd) end) end)
+  B._dd, B._search = savedDd, savedSearch
+  NS.db.global.savedView = savedView
+  NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc =
+    savedGroup, savedSort, savedAsc
+  if not ok then error(err, 0) end
+end
+
+test("Browser: with nothing saved, the baseline IS the stock view", function()
+  withFakeBar(function()
+    assertEqual(B._savedViewOrStock(), B._STOCK_VIEW)
+  end)
+end)
+
+test("Browser: a corrupt saved view degrades to stock rather than erroring", function()
+  withFakeBar(function()
+    NS.db.global.savedView = "not a table"
+    assertEqual(B._savedViewOrStock(), B._STOCK_VIEW, "a scalar is not a view")
+  end)
+end)
+
+test("Browser:SaveView then ClearFilters returns to the SAVED view, not stock", function()
+  withFakeBar(function(dd)
+    -- Set up a view by hand, exactly as the widgets would after the user drove them.
+    NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc = "store", "qty", true
+    dd.store:SetSelected({ BANK = true })
+    dd.quality:SetSelected({ [4] = true })
+    dd.date:SelectValue("7d")
+    B._search:SetText("linen")
+    B:SaveView()
+
+    -- Wander off it, then Clear.
+    NS.LedgerTable.groupBy = "none"
+    dd.store:SetSelected({})
+    B._search:SetText("silk")
+    B:ClearFilters()
+
+    assertEqual(NS.LedgerTable.groupBy, "store")
+    assertEqual(NS.LedgerTable.sortKey, "qty")
+    assertEqual(NS.LedgerTable.sortAsc, true)
+    assertEqual(dd.store._selected.BANK, true)
+    assertEqual(dd.quality._selected[4], true)
+    assertEqual(dd.date._value, "7d")
+    assertEqual(B._search:GetText(), "linen")
+    assertEqual((B.activeFilter.store or {}).BANK, true)
+    assertEqual(B.activeFilter.text, "linen")
+  end)
+end)
+
+test("Browser:ResetView drops the saved view, and Clear then lands on stock", function()
+  withFakeBar(function(dd)
+    NS.LedgerTable.groupBy = "store"
+    dd.store:SetSelected({ BANK = true })
+    B:SaveView()
+    B:ResetView(true)
+
+    assertEqual(NS.db.global.savedView, nil, "the saved view is gone from storage")
+    assertEqual(NS.LedgerTable.groupBy, "none")
+    assertEqual(B.activeFilter.store, nil)
+    assertEqual(B._savedViewOrStock(), B._STOCK_VIEW)
+
+    dd.store:SetSelected({ BANK = true })
+    B:ClearFilters()
+    assertEqual(B.activeFilter.store, nil, "Clear now lands on stock again")
+  end)
+end)
+
+test("Browser:CaptureView never captures the character scope", function()
+  -- Character is a per-session default of Current, not something a stale save can pin to one alt.
+  withFakeBar(function(dd)
+    dd.char:SetSelected({ ["Alt-Realm"] = true })
+    assertEqual(B:CaptureView().char, nil)
+  end)
+end)
+
+test("Browser:ApplyView always scopes to the current character", function()
+  withFakeBar(function(dd)
+    dd.char:SetSelected({ ["Alt-Realm"] = true })
+    B:SaveView()
+    B:ClearFilters()
+    assertEqual((B.activeFilter.char or {})[NS.Util.PlayerKey()], true)
+    assertEqual((B.activeFilter.char or {})["Alt-Realm"], nil)
+  end)
+end)
+
+test("Browser:ApplyView with the 'all' scope drops the character filter entirely", function()
+  -- What entering test mode uses: the synthetic dataset is alts, so scoping to the real player
+  -- would open the window onto an empty table.
+  withFakeBar(function()
+    B:ApplyView(B._STOCK_VIEW, "all")
+    assertEqual(B.activeFilter.char, nil)
+  end)
+end)
+
+test("Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view", function()
+  withFakeBar(function(dd)
+    dd.store:SetSelected({ BANK = true })
+    B:SaveView()
+    dd.store:SetSelected({ BANK = true, GUILD_BANK = true })   -- the user keeps filtering
+    assertEqual(NS.db.global.savedView.store.GUILD_BANK, nil)
+  end)
+end)
+
+test("Browser: a saved date range is stored as the OPTION, not a resolved timestamp", function()
+  -- A frozen `from` would mean "the week ending whenever I pressed Save"; the option recomputes
+  -- against each session's clock.
+  withFakeBar(function(dd)
+    dd.date:SelectValue("7d")
+    B:SaveView()
+    assertEqual(NS.db.global.savedView.date, "7d")
+    assertEqual(NS.db.global.savedView.from, nil)
+  end)
+end)
+
+test("Browser:ApplyView tolerates a scalar filter value in a stored view", function()
+  withFakeBar(function(dd)
+    B:ApplyView({ store = "BANK" }, "current")
+    assertEqual(dd.store._selected.BANK, true)
+    assertEqual((B.activeFilter.store or {}).BANK, true)
+  end)
+end)
+
+test("Slash:CliResetAll also discards the saved view", function()
+  withFakeBar(function(dd)
+    dd.store:SetSelected({ BANK = true })
+    B:SaveView()
+    NS.Slash:CliResetAll()
+    assertEqual(NS.db.global.savedView, nil)
+  end)
+end)
+
 -- ── Toolbar geometry ───────────────────────────────────────────────────────────
 
 test("Browser:MinWidth fits every table column and the whole toolbar", function()

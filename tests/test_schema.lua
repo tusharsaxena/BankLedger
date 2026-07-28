@@ -171,6 +171,26 @@ test("COMMANDS: a test verb exists (test-mode)", function()
   assertTrue(names.test)
 end)
 
+test("Schema: the four Master Controls switches pair into two full rows", function()
+  -- The panel pairs consecutive non-wide rows two to a line (settings/Panel.lua renderRows), so
+  -- this order plus the absence of any row-breaking flag is what produces the intended 2x2:
+  --   Enable capture   Hide minimap button
+  --   Session window   Debug console
+  -- A stray soloRow/wide on any of the four would push the rest down into a ragged single column.
+  local want = { "settings.enabled", "minimap.hide",
+                 "settings.showSessionWindow", "state.debugConsole" }
+  local i = 1
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Master Controls" and row.widget == "CheckBox" then
+      assertEqual(row.path, want[i], "Master Controls checkbox #" .. i .. " is out of order")
+      assertFalse(row.soloRow == true, row.path .. " breaks the two-column pairing")
+      assertFalse(row.wide == true, row.path .. " breaks the two-column pairing")
+      i = i + 1
+    end
+  end
+  assertEqual(i - 1, #want, "expected exactly four Master Controls checkboxes")
+end)
+
 test("Schema: every row carries a tooltip", function()
   -- The panel renders one per row; a missing one is an empty hover with no explanation, and the
   -- inverted per-store grid is exactly the row that most needed the sentence (F-019).

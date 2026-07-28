@@ -249,14 +249,16 @@ function Sl:CliReset(arg)
   print(Sl.FormatKV(path, Sl.FormatSchemaValue(row, NS.Schema:Get(path))))
 end
 
--- Reset every user setting to its default. Covers the schema rows AND the two item-id filter lists
--- — the lists are user-configured settings even though they are a storage carve-out with no Schema
--- widget. Non-destructive: the ledger and the window geometry are left alone (the confirm-gated
--- Sl:ResetEverything handles those).
+-- Reset every user setting to its default. Covers the schema rows AND the two storage carve-outs
+-- that are user-configured settings despite having no Schema widget: the item-id filter lists, and
+-- the ledger window's saved view. ResetView is called SILENTLY so this path keeps emitting exactly
+-- one confirmation line. Non-destructive: the ledger and the window geometry are left alone (the
+-- confirm-gated Sl:ResetEverything handles those).
 function Sl:CliResetAll()
   for _, row in ipairs(NS.Schema.Schema) do
     NS.Schema:Set(row.path, row.default)
   end
   if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
+  if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
   print("all settings reset to defaults")
 end

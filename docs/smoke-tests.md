@@ -98,6 +98,17 @@ tolerance.
 10. Group by **Type**, **Sub-type** and **Quality**. Quality groups run Poor→Legendary and gold sits
     in its own "None" group.
 11. **Clear** returns every filter, the grouping and the sort to their defaults.
+12. **Save · Reset · Clear** sit in one cluster above **Export**, their right edges flush with it,
+    and stay put as the window is widened.
+13. Set a grouping, a couple of column filters and a search term, then press **Save** — a
+    "view saved as your default" line appears in chat. Change the filters, press **Clear**: you land
+    back on the saved view, not on stock. `/reload` and the window opens on it too.
+14. Set **Character: All**, press **Save**, then `/reload` — the window still opens on **Current**.
+    Character scope is never part of a saved view.
+15. Press **Reset** — chat confirms, the bar returns to stock, and **Clear** now lands on stock.
+    `/bl reset all` and the Settings **Defaults** button discard the saved view the same way.
+16. With a view saved, `/bl test` opens the synthetic data **unscoped and unfiltered**; leaving test
+    mode restores the saved view scoped back to Current.
 
 ## S-9 · Insights
 
@@ -197,7 +208,9 @@ tolerance.
    list; the bare 5-region `130828` form is the unskinned one).
    General's sections read **Master Controls** (enable, minimap, session window, debug console,
    window scale + Reset all), then **Capture** (quality, retention, item/gold toggles, per-store
-   grid), then **Storage**.
+   grid), then **Storage**. Master Controls' four checkboxes pair two to a line — *Enable capture ·
+   Hide minimap button* on the first, *Session window · Debug console* on the second — with no
+   ragged single-column gap between them.
 4. Toggle a checkbox, then run `/bl list` — the value matches.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
 6. The scrollbar is visible on both pages and greyed out on the one that fits, so the body width

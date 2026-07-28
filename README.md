@@ -1,12 +1,12 @@
 # Ka0s Bank Ledger
 
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
-![CurseForge Version](https://img.shields.io/curseforge/v/xxx)
+![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-574%2F574_passing-green)
+![Tests](https://img.shields.io/badge/Tests-603%2F603_passing-green)
 
-![Logo](media/logos/bankledger.logo.jpg)
+![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
 
 Ka0s Bank Ledger is a passbook for your banks. Every time you put something in or take something
 out — your own bank, the warband bank, the guild bank — it writes a
@@ -22,24 +22,38 @@ Open it with `/bl`, browse and filter the History tab, switch to Insights for th
 Export whenever you want the numbers in a spreadsheet. Configure it in the Blizzard settings panel
 or with `/bl config`.
 
+Once you have the filters, grouping and sort the way you like them, **Save** makes that your default
+view and every session opens on it. **Clear** returns to it whenever you have wandered off, and
+**Reset** puts the default back to stock. The Character filter is the one thing never saved — the
+window always opens scoped to whoever you are logged in as, one click away from All.
+
 There is also a second, smaller window you never have to open yourself: whenever you are standing at
 a bank, **Current Banking Session** lists what you have moved during that visit, as you move it.
 Close the bank and it closes with it.
 
-## What's new in 0.1.0
+## Screenshots
 
-- First release: a full passbook of item and gold movements between your bags and your banks.
-- Covers the character bank, the warband bank and the guild bank.
-- History tab with search, per-column filters, grouping and sorting over a fast pooled table.
-- A live **Current Banking Session** window that opens with any bank and shows exactly what you moved
-  during that visit.
-- Insights tab with fourteen headline figures and seventeen charts: the deposit/withdrawal split,
-  per-character/per-store/per-quality/per-type breakdowns (each with a deposits/withdrawals
-  companion), activity by day, hour and weekday, and ranked lists — by item, category, location and
-  store, each split into All / Deposits / Withdrawals — of your most-moved and most-numerous items.
-- Export either tab to CSV, for all your data or just the view you are looking at. Every History row
-  carries a Wowhead link for the exact item that moved, bonus IDs and all.
-- Blacklist and whitelist by item, so the ledger records exactly what you care about.
+**_History browser_**
+
+![History browser](https://media.forgecdn.net/attachments/1825/818/bankledger-screenshot-01-png.png)
+
+![History browser](https://media.forgecdn.net/attachments/1825/820/bankledger-screenshot-02-png.png)
+
+**_Insights_**
+
+![Insights](https://media.forgecdn.net/attachments/1825/821/bankledger-screenshot-03-png.png)
+
+![Insights](https://media.forgecdn.net/attachments/1825/822/bankledger-screenshot-04-png.png)
+
+**_Current Banking Session_**
+
+![Current Banking Session](https://media.forgecdn.net/attachments/1825/823/bankledger-screenshot-05-png.png)
+
+**_Settings Panel_**
+
+![Settings Panel](https://media.forgecdn.net/attachments/1825/824/bankledger-screenshot-06-png.png)
+
+![Settings Panel](https://media.forgecdn.net/attachments/1825/825/bankledger-screenshot-07-png.png)
 
 ## Usage
 
@@ -133,7 +147,7 @@ questing — never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ Filters. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recentres both windows. It restores your settings and clears your filter lists, but your history is untouched. (The **Reset all** button in the body also recentres them, but it deletes your history too — export first if you want to keep it.) |
+| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recentres both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all** button in the body also recentres them, but it deletes your history too — export first if you want to keep it.) |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. |
 

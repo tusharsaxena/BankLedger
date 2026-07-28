@@ -381,7 +381,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - LedgerTable row menu disables every mutating action in test mode
 - LedgerTable row menu still disables item actions on a money row
 
-### test_browser.lua (22)
+### test_browser.lua (33)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -393,6 +393,17 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Browser:ClearFilters defaults the Character filter to the current character
 - Browser:ClearFilters leaves every other filter empty
 - Browser:ClearFilters does not scope test data to the real player
+- Browser: with nothing saved, the baseline IS the stock view
+- Browser: a corrupt saved view degrades to stock rather than erroring
+- Browser:SaveView then ClearFilters returns to the SAVED view, not stock
+- Browser:ResetView drops the saved view, and Clear then lands on stock
+- Browser:CaptureView never captures the character scope
+- Browser:ApplyView always scopes to the current character
+- Browser:ApplyView with the 'all' scope drops the character filter entirely
+- Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
+- Browser: a saved date range is stored as the OPTION, not a resolved timestamp
+- Browser:ApplyView tolerates a scalar filter value in a stored view
+- Slash:CliResetAll also discards the saved view
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -574,7 +585,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (21)
+### test_schema.lua (22)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -596,6 +607,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - COMMANDS: names are unique, so dispatch can never be ambiguous
 - COMMANDS: the standard's required verbs are all present
 - COMMANDS: a test verb exists (test-mode)
+- Schema: the four Master Controls switches pair into two full rows
 - Schema: every row carries a tooltip
 
 ### test_slash.lua (35)
@@ -657,12 +669,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_database.lua | 42 |
 | test_stats.lua | 59 |
 | test_ledgertable.lua | 49 |
-| test_browser.lua | 22 |
+| test_browser.lua | 33 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 72 |
 | test_export.lua | 34 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 21 |
+| test_schema.lua | 22 |
 | test_slash.lua | 35 |
 | test_panel.lua | 6 |
-| **Total** | **591** |
+| **Total** | **603** |

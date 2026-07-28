@@ -40,7 +40,7 @@ S.Schema = {
   -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
   -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
   { path = "state.debugConsole", sessionOnly = true, default = false, type = "boolean",
-    widget = "CheckBox", soloRow = true, group = "Master Controls", label = "Debug console",
+    widget = "CheckBox", group = "Master Controls", label = "Debug console",
     tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
     get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
     set = function(v)
