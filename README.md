@@ -1,6 +1,7 @@
 # Ka0s Bank Ledger
 
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
+![CurseForge Version](https://img.shields.io/curseforge/v/xxx)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
 ![Tests](https://img.shields.io/badge/Tests-574%2F574_passing-green)
@@ -36,7 +37,8 @@ Close the bank and it closes with it.
   per-character/per-store/per-quality/per-type breakdowns (each with a deposits/withdrawals
   companion), activity by day, hour and weekday, and ranked lists — by item, category, location and
   store, each split into All / Deposits / Withdrawals — of your most-moved and most-numerous items.
-- Export either tab to CSV, for all your data or just the view you are looking at.
+- Export either tab to CSV, for all your data or just the view you are looking at. Every History row
+  carries a Wowhead link for the exact item that moved, bonus IDs and all.
 - Blacklist and whitelist by item, so the ledger records exactly what you care about.
 
 ## Usage

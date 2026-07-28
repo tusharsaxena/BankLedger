@@ -146,3 +146,42 @@ test("NS.Print survives the AceConsole embed (architecture-§2)", function()
   -- this test fails, because the AceConsole form has no cyan tag and a trailing colon.
   assertEqual(NS.Print, NS.Util.print, "NS.Print is the reclaimed secret-safe printer")
 end)
+
+-- ── Wowhead URL ────────────────────────────────────────────────────────────────
+-- The CSV export's trailing column. A real link's bonus IDs are what make the URL resolve to the
+-- variant that moved rather than to the base item, so they are the thing worth pinning down.
+
+local GEAR_LINK = "|cffa335ee|Hitem:151300::::::::80:250::5:5:12801:13440:6652:13577:12699"
+  .. ":1:28:2437|h[Sample Helm]|h|r"
+
+test("Util.WowheadURL carries every bonus id from the item link", function()
+  assertEqual(NS.Util.WowheadURL({ itemID = 151300, itemLink = GEAR_LINK }),
+    "https://www.wowhead.com/item=151300?bonus=12801:13440:6652:13577:12699")
+end)
+
+test("Util.WowheadURL stops at the declared bonus count", function()
+  -- The fields after the bonus list are crafting modifiers (here 1:28:2437) and belong to a
+  -- different list -- reading past numBonusIDs would smuggle them into the URL as bonuses.
+  local url = NS.Util.WowheadURL({ itemID = 151300, itemLink = GEAR_LINK })
+  assertEqual(url:find("2437", 1, true), nil, "no modifier leaks into the bonus list")
+end)
+
+test("Util.WowheadURL omits the bonus query for an item that has none", function()
+  assertEqual(NS.Util.WowheadURL({ itemID = 2589, itemLink = "|cff9d9d9d|Hitem:2589::::::::80:250"
+    .. "::::::|h[Linen Cloth]|h|r" }), "https://www.wowhead.com/item=2589")
+end)
+
+test("Util.WowheadURL falls back to the stored item id when there is no link", function()
+  assertEqual(NS.Util.WowheadURL({ itemID = 2589 }), "https://www.wowhead.com/item=2589")
+end)
+
+test("Util.WowheadURL accepts a bare item string as well as a full hyperlink", function()
+  assertEqual(NS.Util.WowheadURL({ itemLink = "item:151300::::::::80:250::5:2:12801:13440" }),
+    "https://www.wowhead.com/item=151300?bonus=12801:13440")
+end)
+
+test("Util.WowheadURL returns nothing for a row with no item at all", function()
+  -- A gold movement, and a defensive nil.
+  assertEqual(NS.Util.WowheadURL({ kind = "MONEY", itemName = "Gold" }), "")
+  assertEqual(NS.Util.WowheadURL(nil), "")
+end)

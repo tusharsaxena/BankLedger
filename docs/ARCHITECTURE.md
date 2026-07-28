@@ -32,6 +32,21 @@ cannot answer honestly. That matters more than it looks: `GetGuildBankMoney()` r
 `Compat.IsGuildBankVisible()`. The warband balance comes from
 `C_Bank.FetchDepositedMoney(Enum.BankType.Account)`, which is not frame-bound.
 
+### Bonus IDs survive the scan
+
+A snapshot's counts are keyed by `itemID` — that is all the diff needs, and all it sees. But an id is
+not an item variant: item level, tertiaries and sockets live in a link's **bonus IDs**, and
+`GetItemInfo(itemID)` can only ever answer with the base item. So the scan keeps a side table,
+`snapshot.links = { [itemID] = hyperlink }` (the first link seen for an id), the diff passes it
+through onto the movement as `move.link`, and `BuildEntry` prefers it over the derived link.
+
+Two consequences worth knowing: the counts map keeps its plain `{ [itemID] = count }` shape, so the
+diff and the settle check are untouched; and one id resolves to one link per snapshot, which is
+exact for gear (it does not stack) and irrelevant for stackables (they carry no bonuses).
+
+This is what lets the ledger CSV's `wowhead` column point at the variant that actually moved rather
+than at the base item.
+
 Capture is completely inert outside an open storage frame. That single gate is what keeps a vendor
 sale or a quest turn-in out of the ledger.
 
@@ -59,7 +74,7 @@ warband movement, because no event announces one.
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
-| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, and the shared secret-safe chat printer. |
+| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder, and the shared secret-safe chat printer. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
 | `core/Database.lua` | AceDB init, the migration runner, ledger CRUD, `QueryList`, `Export`, `Stats`, retention prune, storage estimate. |
 | `defaults/Global.lua` | The account-wide defaults table — the only place a default value is hardcoded. |
@@ -90,7 +105,7 @@ One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 | `direction` | `DEPOSIT` (bags → store) or `WITHDRAW` (store → bags). |
 | `store` | `BANK`, `WARBAND_BANK`, `GUILD_BANK`. |
 | `guild` | Set on guild-bank rows only. |
-| `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType` | Item rows. An item the client has not cached yet stores its id alone. |
+| `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType` | Item rows. An item the client has not cached yet stores its id alone. `itemLink` is the link the **scan** saw, so it carries the item's bonus IDs (see [Bonus IDs survive the scan](#bonus-ids-survive-the-scan)). |
 | `quantity` | Stack size for an item row; copper for a `MONEY` row. |
 | `zone`, `subzone`, `mapID` | Where the movement happened. |
 
@@ -144,6 +159,10 @@ Keeping the columns and emitting blanks was considered and rejected: a `value` c
 behind it is a promise the data no longer keeps, and it would outlive everyone's memory of why the
 column went empty. The break is one-time and tied to `schemaVersion`, not an open-ended contract
 violation.
+
+The later `wowhead` column is **not** part of that break: it is appended after `zone`, so every
+existing column keeps its index and a sheet keyed on position is unaffected. Growth at the end is
+what the stable-column-set promise allows.
 
 ## Settings schema
 
@@ -226,9 +245,11 @@ match, so it was left alone rather than folded into the rename.
 | Event | Handler |
 |---|---|
 | `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune |
-| `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches |
+| `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches (the guild one never fires — see below) |
 | `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm (the guild one never fires — see below) |
-| `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `GUILDBANKBAGSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
+| `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
+| `GUILDBANKBAGSLOTS_CHANGED` | Both at once: **arms** the guild-bank context if nothing else holds it, then schedules the same debounced pass. It is the guild bank's stand-in for an open event — see below |
+| `PLAYER_LOGOUT` | Flush each window's geometry to SavedVariables (`modules/Browser.lua`, `modules/SessionWindow.lua`) |
 
 The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
 retires names between expansions, and modern retail **raises** on an unknown one rather than

@@ -67,9 +67,11 @@ end
 
 -- Compare two snapshots and return the movements between the bags and `store`.
 --
--- A snapshot is { bags = { [itemID] = count }, store = { [itemID] = count }, money = <copper> }.
--- Each movement is { kind, direction, store, itemID, quantity } — no item names, no timestamps:
--- enrichment is BuildEntry's job, so this stays pure and cheap.
+-- A snapshot is { bags = { [itemID] = count }, store = { [itemID] = count }, money = <copper> },
+-- optionally carrying `links = { [itemID] = hyperlink }` from the scan.
+-- Each movement is { kind, direction, store, itemID, quantity, link } — no item names, no
+-- timestamps: enrichment is BuildEntry's job, so this stays pure and cheap. `link` is passed
+-- through rather than derived: it is the observation that carries the item's bonus IDs.
 --
 -- Item movements come back in ascending itemID order and the money movement (if any) last, so the
 -- output is deterministic run to run — which is what lets the tests assert on it by index.
@@ -89,17 +91,22 @@ function L.Diff(before, after, store)
   end
   table.sort(ids)
 
+  -- Either snapshot's link for an id will do: a deposit is only in the "before" bags, a withdrawal
+  -- only in the "before" store, and both are gone from one side by the time we look.
+  local linksBefore, linksAfter = before.links or {}, after.links or {}
+
   for _, id in ipairs(ids) do
     local bagDelta   = (bagsAfter[id] or 0) - (bagsBefore[id] or 0)
     local storeDelta = (storeAfter[id] or 0) - (storeBefore[id] or 0)
+    local link       = linksAfter[id] or linksBefore[id]
     -- A movement needs BOTH sides to have changed, in opposite directions. The quantity is the
     -- smaller of the two: if 5 left the bags but only 3 landed, only 3 actually moved.
     if storeDelta > 0 and bagDelta < 0 then
       moves[#moves + 1] = { kind = C.Kind.ITEM, direction = C.Direction.DEPOSIT, store = store,
-                            itemID = id, quantity = math.min(storeDelta, -bagDelta) }
+                            itemID = id, quantity = math.min(storeDelta, -bagDelta), link = link }
     elseif storeDelta < 0 and bagDelta > 0 then
       moves[#moves + 1] = { kind = C.Kind.ITEM, direction = C.Direction.WITHDRAW, store = store,
-                            itemID = id, quantity = math.min(-storeDelta, bagDelta) }
+                            itemID = id, quantity = math.min(-storeDelta, bagDelta), link = link }
     end
   end
 
@@ -155,15 +162,22 @@ L.CountKinds = countKinds
 
 -- Total count of each itemID across every container id belonging to `store`. Stores with their own
 -- API family (the guild bank) are scanned through their Compat readers instead.
-function L:ScanStore(store)
+--
+-- `links` is an optional accumulator the caller owns: the first hyperlink seen for an id is kept in
+-- it. The counts map stays a pure { [itemID] = count } — the diff, the settle check and their tests
+-- all read that shape and must not learn about links — but the live link is the ONLY place an
+-- item's bonus IDs exist. Re-deriving one later from the id (GetItemInfo) yields the base item, so
+-- if the scan drops it, the variant that actually moved is gone for good.
+function L:ScanStore(store, links)
   local counts = {}
-  if store == C.Store.GUILD_BANK then return self:ScanGuildBank() end
+  if store == C.Store.GUILD_BANK then return self:ScanGuildBank(links) end
   for _, bagID in ipairs(C.STORE_CONTAINERS[store] or {}) do
     local slots = NS.Compat.GetContainerNumSlots(bagID)
     for slot = 1, slots do
       local info = NS.Compat.GetContainerSlot(bagID, slot)
       if info then
         counts[info.itemID] = (counts[info.itemID] or 0) + (info.count or 1)
+        if links and info.link and links[info.itemID] == nil then links[info.itemID] = info.link end
       end
     end
   end
@@ -180,7 +194,7 @@ function L:QueryGuildBankTabs()
   return tabs
 end
 
-function L:ScanGuildBank()
+function L:ScanGuildBank(links)
   local counts = {}
   local tabSize = NS.Compat.GuildBankTabSize()
   for tab = 1, NS.Compat.GetNumGuildBankTabs() do
@@ -188,6 +202,7 @@ function L:ScanGuildBank()
       local info = NS.Compat.GetGuildBankSlot(tab, slot)
       if info then
         counts[info.itemID] = (counts[info.itemID] or 0) + (info.count or 1)
+        if links and info.link and links[info.itemID] == nil then links[info.itemID] = info.link end
       end
     end
   end
@@ -199,8 +214,11 @@ end
 -- non-event — there is nothing to detect, because every tab was already measured.
 function L:Snapshot(context)
   local stores, storeMoney = {}, {}
+  -- One link table for the whole snapshot, not one per store: an id is the same item wherever it
+  -- sits, and a withdrawal must still find a link after the item has left the store it came from.
+  local links = {}
   for _, store in ipairs(self:StoresFor(context)) do
-    stores[store] = self:ScanStore(store)
+    stores[store] = self:ScanStore(store, links)
     -- The store's own coin balance, where it has one and this build can read it. nil is a real and
     -- expected answer — Diff treats it as "no money movement provable here" (see C-001).
     if L.MONEY_STORES[store] then
@@ -208,10 +226,11 @@ function L:Snapshot(context)
     end
   end
   return {
-    bags = self:ScanStore(C.Store.BAGS),
+    bags = self:ScanStore(C.Store.BAGS, links),
     stores = stores,
     money = NS.Compat.GetMoney(),
     storeMoney = storeMoney,
+    links = links,
   }
 end
 
@@ -223,6 +242,7 @@ local function storeView(snapshot, store)
     store = (snapshot.stores or {})[store] or {},
     money = snapshot.money,
     storeMoney = (snapshot.storeMoney or {})[store],
+    links = snapshot.links,
   }
 end
 
@@ -429,7 +449,10 @@ function L:BuildEntry(move)
   entry.quality = quality
   entry.itemType = itemType
   entry.itemSubType = itemSubType
-  entry.itemLink = link
+  -- The scanned link first: GetItemInfo(itemID) can only ever answer with the BASE item, so it
+  -- would silently flatten a 483 socketed drop back to its plain form (and with it the wowhead URL
+  -- the export builds). The derived link is the fallback for a movement observed without one.
+  entry.itemLink = move.link or link
   return entry
 end
 

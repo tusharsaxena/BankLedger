@@ -166,7 +166,12 @@ tolerance.
 2. The copy window opens with the text pre-selected in a monospace font. Ctrl+C copies it; Esc
    closes it.
 3. The row count matches what the table showed.
-4. Repeat on the **Insights** tab — the CSV is the sectioned summary, not raw rows.
+4. The last column is `wowhead`. Open the URL from a **gear** row: the page must show the item at the
+   item level and with the sockets/tertiaries the piece you moved actually has — that is the
+   `?bonus=…` list doing its job. A stackable trade good has no bonuses, so it is a plain
+   `item=<id>` URL, and a gold row's cell is empty. Use a row recorded **after** this build: rows
+   captured earlier stored the base link, so their URL resolves to the base item.
+5. Repeat on the **Insights** tab — the CSV is the sectioned summary, not raw rows.
 
 ## S-11 · Filters (blacklist / whitelist)
 

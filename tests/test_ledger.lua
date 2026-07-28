@@ -1301,3 +1301,61 @@ test("Compat.IsGuildBankVisible is three-valued", function()
   assertEqual(NS.Compat.IsGuildBankVisible(), nil, "no frame means unknown, not hidden")
   mocks.GuildBankFrame, mocks.__guildVisible = savedFrame, true
 end)
+
+-- ── Bonus-carrying links ───────────────────────────────────────────────────────
+-- The scanned hyperlink is the only place an item's bonus IDs ever exist: GetItemInfo(itemID)
+-- answers with the BASE item, so a link re-derived from the id has lost the variant that moved.
+-- The export's wowhead URL is built from what these tests protect.
+
+local SAMPLE_LINK = "|cffa335ee|Hitem:19019::::::::80:250::5:2:12801:13440|h[Thunderfury]|h|r"
+
+test("Ledger:ScanStore hands back the first hyperlink seen for each item", function()
+  mocks.__containers[0] = { slots = 2, [1] = { itemID = 19019, count = 1, link = SAMPLE_LINK },
+                                       [2] = { itemID = 2589, count = 5 } }
+  local links = {}
+  local counts = NS.Ledger:ScanStore("BAGS", links)
+  assertEqual(counts[19019], 1, "the counts map is unchanged by the link accumulator")
+  assertEqual(links[19019], SAMPLE_LINK)
+  assertEqual(links[2589], nil, "a slot with no link contributes none")
+  mocks.__containers[0] = nil
+end)
+
+test("Ledger:Snapshot carries a links table beside the counts", function()
+  mocks.__containers[0] = { slots = 1, [1] = { itemID = 19019, count = 1, link = SAMPLE_LINK } }
+  local s = NS.Ledger:Snapshot("BANK_FRAME")
+  assertEqual(s.links[19019], SAMPLE_LINK)
+  assertEqual(s.bags[19019], 1, "counts stay a plain id -> count map")
+  mocks.__containers[0] = nil
+end)
+
+test("Ledger.Diff attaches the observed link to a deposit", function()
+  local before = snap({ [19019] = 1 }, {})
+  before.links = { [19019] = SAMPLE_LINK }
+  local moves = NS.Ledger.Diff(before, snap({}, { [19019] = 1 }), "BANK")
+  assertEqual(moveFor(moves, 19019).link, SAMPLE_LINK,
+    "the item has left the bags by the after-snapshot; the before-snapshot still knows it")
+end)
+
+test("Ledger.Diff attaches the observed link to a withdrawal", function()
+  local before = snap({}, { [19019] = 1 })
+  before.links = { [19019] = SAMPLE_LINK }
+  local moves = NS.Ledger.Diff(before, snap({ [19019] = 1 }, {}), "BANK")
+  assertEqual(moveFor(moves, 19019).link, SAMPLE_LINK)
+end)
+
+test("Ledger.Diff leaves the link nil when neither snapshot observed one", function()
+  local moves = NS.Ledger.Diff(snap({ [2589] = 1 }, {}), snap({}, { [2589] = 1 }), "BANK")
+  assertEqual(moveFor(moves, 2589).link, nil)
+end)
+
+test("Ledger:BuildEntry keeps the scanned link over the one derived from the id", function()
+  local move = itemMove(19019, 1)
+  move.link = SAMPLE_LINK
+  assertEqual(NS.Ledger:BuildEntry(move).itemLink, SAMPLE_LINK)
+end)
+
+test("Ledger:BuildEntry falls back to the item cache's link when the move carries none", function()
+  local e = NS.Ledger:BuildEntry(itemMove(19019, 1))
+  assertTrue(type(e.itemLink) == "string" and e.itemLink:find("19019", 1, true) ~= nil,
+    "still a usable link, just without bonuses")
+end)

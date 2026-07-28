@@ -230,3 +230,30 @@ test("Export: net by store is written as a count, not a coin string", function()
     "the net lands in the Count column as a plain 2")
   NS.db.global.ledger = saved
 end)
+
+-- ── The wowhead column ─────────────────────────────────────────────────────────
+
+test("Export:CSV ends with the wowhead column", function()
+  -- Appended last on purpose: a sheet keyed on column position keeps working.
+  assertEqual(NS.Export.HEADER[#NS.Export.HEADER], "wowhead")
+end)
+
+test("Export:CSV writes a wowhead URL carrying the item's bonus ids", function()
+  local row = cells(lines(NS.Export:CSV({ e({ itemID = 151300,
+    itemLink = "|cffa335ee|Hitem:151300::::::::80:250::5:3:12801:13440:6652:1:28:2437"
+      .. "|h[Sample Helm]|h|r" }) }))[2])
+  assertEqual(row[columnIndex("wowhead")],
+    "https://www.wowhead.com/item=151300?bonus=12801:13440:6652")
+end)
+
+test("Export:CSV writes a bare item URL when the row has no link", function()
+  local row = cells(lines(NS.Export:CSV({ e() }))[2])
+  assertEqual(row[columnIndex("wowhead")], "https://www.wowhead.com/item=2589")
+end)
+
+test("Export:CSV leaves the wowhead cell empty for a gold row", function()
+  local row = cells(lines(NS.Export:CSV({
+    e({ kind = "MONEY", itemID = NIL, itemName = "Gold", quality = NIL,
+        itemType = NIL, itemSubType = NIL, quantity = 50000 }) }))[2])
+  assertEqual(row[columnIndex("wowhead")], "")
+end)

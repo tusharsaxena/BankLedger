@@ -6,7 +6,7 @@ The full inventory of every headless test case, grouped by suite. This file is t
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
 whenever the suite changes (see [testing.md](testing.md)).
 
-### test_util.lua (25)
+### test_util.lua (31)
 
 - Util.PlayerKey joins name and realm with spaces stripped
 - Util.SplitPath splits a dotted settings path
@@ -33,6 +33,12 @@ whenever the suite changes (see [testing.md](testing.md)).
 - NS.Print prefixes the cyan [BL] tag and space-joins its arguments
 - NS.Print never raises on a value that would break table.concat
 - NS.Print survives the AceConsole embed (architecture-§2)
+- Util.WowheadURL carries every bonus id from the item link
+- Util.WowheadURL stops at the declared bonus count
+- Util.WowheadURL omits the bonus query for an item that has none
+- Util.WowheadURL falls back to the stored item id when there is no link
+- Util.WowheadURL accepts a bare item string as well as a full hyperlink
+- Util.WowheadURL returns nothing for a row with no item at all
 
 ### test_compat.lua (21)
 
@@ -100,7 +106,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (106)
+### test_ledger.lua (113)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -208,6 +214,13 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Ledger: hiding the guild-bank frame leaves an open BANK frame alone
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
+- Ledger:ScanStore hands back the first hyperlink seen for each item
+- Ledger:Snapshot carries a links table beside the counts
+- Ledger.Diff attaches the observed link to a deposit
+- Ledger.Diff attaches the observed link to a withdrawal
+- Ledger.Diff leaves the link nil when neither snapshot observed one
+- Ledger:BuildEntry keeps the scanned link over the one derived from the id
+- Ledger:BuildEntry falls back to the item cache's link when the move carries none
 
 ### test_database.lua (42)
 
@@ -503,7 +516,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Insights: a bar's tip carries its untruncated label AND its value
 - Insights: a back-to-back half's tip carries its count and its share of the row
 
-### test_export.lua (30)
+### test_export.lua (34)
 
 - Export:CSV emits a header row even with no data
 - Export:CSV emits one row per entry
@@ -535,6 +548,10 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Export: the ledger CSV carries no value columns
 - Export: the insights CSV drops the value summary and the value ranking
 - Export: net by store is written as a count, not a coin string
+- Export:CSV ends with the wowhead column
+- Export:CSV writes a wowhead URL carrying the item's bonus ids
+- Export:CSV writes a bare item URL when the row has no link
+- Export:CSV leaves the wowhead cell empty for a gold row
 
 ### test_debuglog.lua (18)
 
@@ -632,20 +649,20 @@ whenever the suite changes (see [testing.md](testing.md)).
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 25 |
+| test_util.lua | 31 |
 | test_compat.lua | 21 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 106 |
+| test_ledger.lua | 113 |
 | test_database.lua | 42 |
 | test_stats.lua | 59 |
 | test_ledgertable.lua | 49 |
 | test_browser.lua | 22 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 72 |
-| test_export.lua | 30 |
+| test_export.lua | 34 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 21 |
 | test_slash.lua | 35 |
 | test_panel.lua | 6 |
-| **Total** | **574** |
+| **Total** | **591** |

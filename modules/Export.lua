@@ -19,7 +19,8 @@ end
 -- Ledger CSV columns: { header, value(entry) }. `ts` is followed by human `date` and `time`.
 -- Renamed raw columns carry a *Raw suffix beside a human sibling -- human `quality` (label) before
 -- `qualityRaw` (number) -- so a spreadsheet can sort on the raw number while a reader sees the
--- readable form. itemLink / mapID / subzone are intentionally not exported.
+-- readable form. itemLink / mapID / subzone are intentionally not exported — the raw link is
+-- unusable in a spreadsheet, so what it knows is exported as the trailing `wowhead` URL instead.
 -- Schema v2 removed the vendorPrice / value / valueRaw / net columns: the addon no longer derives
 -- item value at all (an accepted, documented break of the otherwise-stable column contract).
 local COLUMNS = {
@@ -41,6 +42,9 @@ local COLUMNS = {
   { "itemSubType",  function(e) return e.itemSubType end },
   { "quantity",     function(e) return e.quantity end },
   { "zone",         function(e) return e.zone end },
+  -- Last column by design: it is long, and appending keeps every existing column index stable for
+  -- a sheet keyed on position.
+  { "wowhead",      function(e) return NS.Util.WowheadURL(e) end },
 }
 local HEADER = {}
 for i, c in ipairs(COLUMNS) do HEADER[i] = c[1] end

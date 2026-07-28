@@ -90,6 +90,49 @@ function Util.EntrySubType(entry)
   return entry.itemSubType or ""
 end
 
+-- ── Wowhead link ────────────────────────────────────────────────────────────────
+-- A wowhead URL for the exact item variant a row moved rather than for its base item: everything
+-- that makes a modern drop what it is (item level, tertiaries, sockets) lives in its bonus IDs, so
+-- the URL carries them — https://www.wowhead.com/item=151300?bonus=12801:13440:6652.
+--
+-- The bonuses come out of the stored hyperlink's item string, which is positional:
+--   item:id:ench:g1:g2:g3:g4:suffix:unique:level:spec:mask:context:numBonusIDs:bonus1..N:…
+-- Field 13 declares how many of the fields after it are bonus IDs; whatever follows them (crafting
+-- modifiers) is a different list and is not read here.
+--
+-- Returns "" for a row with no item at all (a gold movement, or an entry whose link never
+-- resolved), and a plain item= URL when the link carries no bonuses — which is the honest answer
+-- for a stackable trade good, since those have none.
+local WOWHEAD_ITEM_URL = "https://www.wowhead.com/item="
+
+-- Split an item string into its positional fields, keeping the empty ones: the whole scheme is
+-- positional, so "item:2589::::" must come back as five fields, not one.
+local function itemStringFields(s)
+  local fields = {}
+  for f in (s .. ":"):gmatch("([^:]*):") do fields[#fields + 1] = f end
+  return fields
+end
+
+function Util.WowheadURL(entry)
+  if type(entry) ~= "table" then return "" end
+  local link = type(entry.itemLink) == "string" and entry.itemLink or nil
+  local itemString = link and (link:match("|Hitem:([^|]+)") or link:match("^item:([^|]+)"))
+  local fields = itemString and itemStringFields(itemString) or {}
+
+  -- The link's own id wins over the stored one: they agree, but the link is what the bonuses
+  -- belong to.
+  local itemID = tonumber(fields[1]) or tonumber(entry.itemID)
+  if not itemID then return "" end
+
+  local bonuses = {}
+  for i = 14, 13 + (tonumber(fields[13]) or 0) do
+    local id = tonumber(fields[i])
+    if id then bonuses[#bonuses + 1] = id end
+  end
+  if #bonuses == 0 then return WOWHEAD_ITEM_URL .. itemID end
+  return WOWHEAD_ITEM_URL .. itemID .. "?bonus=" .. table.concat(bonuses, ":")
+end
+
 -- ── Class icon ──────────────────────────────────────────────────────────────────
 -- Inline texture markup for a class's round icon, for prefixing a character name. The class icons
 -- all live in one 256×256 sheet, so the markup carries the class's slice from CLASS_ICON_TCOORDS
