@@ -31,6 +31,19 @@ There is also a second, smaller window you never have to open yourself: whenever
 a bank, **Current Banking Session** lists what you have moved during that visit, as you move it.
 Close the bank and it closes with it.
 
+## What's new in 1.0.0
+
+- First release: a complete passbook of every item and gold movement between your bags and your
+  character bank, warband bank and guild bank.
+- History tab with search, per-column filters, grouping and sorting — plus a saved view, so **Save**
+  makes your layout the one every session opens on.
+- Insights tab with fourteen headline figures and seventeen charts, including deposit/withdrawal
+  companions for every breakdown and ranked "Top Of The List" panels.
+- A live **Current Banking Session** window that opens with any bank and lists what you moved during
+  that visit.
+- CSV export for either tab — all your data or just the view on screen — with a Wowhead link for the
+  exact item that moved, bonus IDs and all.
+
 ## Screenshots
 
 **_History browser_**
@@ -45,7 +58,7 @@ Close the bank and it closes with it.
 
 ![Insights](https://media.forgecdn.net/attachments/1825/822/bankledger-screenshot-04-png.png)
 
-**_Current Banking Session_**
+**_Current Banking Session (opens automatically at a bank)_**
 
 ![Current Banking Session](https://media.forgecdn.net/attachments/1825/823/bankledger-screenshot-05-png.png)
 
@@ -162,4 +175,4 @@ lives.
 
 | Version | Date | Highlights |
 | ------- | ---- | ---------- |
-| 0.1.0 | 2026-07-26 | First release. Item and gold movements across the character bank, the warband bank and the guild bank; History and Insights tabs; a live Current Banking Session window; CSV export; item blacklist and whitelist. |
+| 1.0.0 | 2026-07-28 | First release: a complete passbook of item and gold movements across the character, warband and guild banks<br>History tab with search, per-column filters, grouping, sorting and a saved view<br>Insights tab with fourteen headline figures and seventeen charts<br>A live Current Banking Session window<br>CSV export for either tab, with a Wowhead link per row |

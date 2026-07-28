@@ -2,7 +2,7 @@
 ## Title: Ka0s Bank Ledger
 ## Notes: A passbook of every item and gold movement between your bags and your banks.
 ## Author: add1kted2ka0s
-## Version: 0.1.0
+## Version: 1.0.0
 ## IconTexture: Interface\Icons\inv_misc_bag_15
 ## SavedVariables: BankLedgerDB
 ## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0
@@ -10,6 +10,7 @@
 ## Category-enUS: Misc
 ## X-License: MIT
 ## X-Standard: https://github.com/tusharsaxena/WowAddonStandards
+## X-Curse-Project-ID: 1629058
 
 # Libraries (vendored in libs/ — load first)
 libs\LibStub\LibStub.lua

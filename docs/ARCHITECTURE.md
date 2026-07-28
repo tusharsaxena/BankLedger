@@ -79,7 +79,7 @@ warband movement, because no event announces one.
 | `core/Database.lua` | AceDB init, the migration runner, ledger CRUD, `QueryList`, `Export`, `Stats`, retention prune, storage estimate. |
 | `defaults/Global.lua` | The account-wide defaults table — the only place a default value is hardcoded. |
 | `locales/enUS.lua` | The `NS.L` metatable-fallback locale seam. |
-| `locales/PostLoad.lua` | Derived-key aliases (empty in v0.1.0). |
+| `locales/PostLoad.lua` | Derived-key aliases (empty in v1.0.0). |
 | `modules/Filters.lua` | The item blacklist / whitelist id-sets and their copy-on-write mutations. |
 | `modules/Ledger.lua` | The capture engine: snapshot, diff, gate, build, record, plus the event shell. |
 | `modules/Browser.lua` | The standalone window: skin, tabs, the shared filter bar, footer, minimap launcher. |
@@ -121,8 +121,9 @@ The rule protects rows that already exist: renaming a member orphans stored data
 the old string. Neither of these could ever have produced one. The addon is Retail-only at Interface
 120007, where Midnight has already removed both — void storage exposes no container or events at
 all, and `REAGENT_BANK`'s container group resolved empty, so `StoresFor` dropped it from every scan
-before a movement could be attributed to it. There is no installed base either: v0.1.0 is
-unpublished, with no tags and no CurseForge listing. Zero reachable rows, so nothing to orphan.
+before a movement could be attributed to it. There is no installed base either: both were removed
+before v1.0.0, the first published release, so no shipped build ever wrote a row against them. Zero
+reachable rows, so nothing to orphan.
 
 `StoresFor`'s empty-group guard stays regardless — it is what makes a retired container degrade to
 "not on this build" instead of a permanently empty store in every debug line, and Blizzard will
@@ -554,7 +555,7 @@ src.resize((256, 256), Image.LANCZOS) \
 ## Known limitations
 
 - **Currency movements are not captured yet.** The `Kind.CURRENCY` enum member and the export
-  contract are in place so adding it is additive, but no capture path exists in v0.1.0.
+  contract are in place so adding it is additive, but no capture path exists in v1.0.0.
 - **Guild-bank withdrawals by other players are invisible.** The addon only sees your own client's
   view, so it records what *you* moved, not the guild log.
 - **The reagent bank and void storage are not stores.** Midnight removed both — reagents live in the

@@ -5,7 +5,7 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 -- profile would split the very history the addon exists to join up.
 NS.defaults = NS.defaults or {}
 NS.defaults.global = {
-  -- Version stamp for the persisted DB. 0.1.0 ships schema v2. NS:RunMigrations (core/Database.lua)
+  -- Version stamp for the persisted DB. 1.0.0 ships schema v2. NS:RunMigrations (core/Database.lua)
   -- reads/writes this field once at init — the idempotent seam future schema changes hook into
   -- (savedvariables-§1). Taken from NS.SCHEMA_VERSION so the shipped default and the runner's target
   -- cannot drift apart; a fresh install starts at the current shape instead of replaying the v1->v2

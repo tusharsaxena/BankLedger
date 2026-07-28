@@ -9,7 +9,7 @@ tolerance.
 ## S-1 · Load
 
 1. Enable the addon and log in.
-2. `/bl version` prints one cyan-tagged line, `[BL] v0.1.0`.
+2. `/bl version` prints one cyan-tagged line, `[BL] v1.0.0`.
 3. No Lua errors on login (turn error display on first: `/console scriptErrors 1`).
 4. The minimap button is present and its tooltip shows the movement count.
 
