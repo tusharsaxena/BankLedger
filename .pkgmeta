@@ -10,3 +10,8 @@ ignore:
   - _dev
   - "*.bak"
   - media/screenshots   # project-page art, served from the CurseForge CDN — never downloaded by a player
+  # Only the .tga logo is loadable at runtime; WoW cannot read .png or .jpg at all. The master .png
+  # and the .jpg render exist for the project page and for regenerating the .tga, so shipping them
+  # would add ~3MB to every download for files the client physically cannot use.
+  - media/logos/*.png
+  - media/logos/*.jpg
