@@ -82,10 +82,10 @@ addon prints to chat carries the cyan `[BL]` tag.
 | `/bl toggle` | Toggle the ledger window |
 | `/bl config` | Open settings |
 | `/bl version` | Print addon version |
-| `/bl get <setting>` | Get a setting value |
-| `/bl set <setting> <value>` | Set a setting value |
+| `/bl get setting` | Get a setting value |
+| `/bl set setting value` | Set a setting value |
 | `/bl list` | List all settings |
-| `/bl reset <setting>` | Reset one setting |
+| `/bl reset setting` | Reset one setting |
 | `/bl resetall` | Reset all settings |
 | `/bl session` | Toggle the banking-session window (sample data outside a bank) |
 | `/bl test` | Toggle a sample ledger |
