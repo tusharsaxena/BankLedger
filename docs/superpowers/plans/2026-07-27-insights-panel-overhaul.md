@@ -1,5 +1,10 @@
 # Insights Panel Overhaul Implementation Plan
 
+> **Status: implemented.** Delivered in full across commits `1144bc1`…`377757f` (schema v2 and the
+> vendor-value removal through to the back-to-back In/Out charts). The step checkboxes below were
+> never ticked as the work landed — this document is history, not an open work list. Do not
+> re-execute it.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Remove the vendor-value dimension from Ka0s Bank Ledger entirely, fix three Insights rendering defects, add eight new direction-split breakdowns, reorganize the ranked-list section, and rename/enrich the synthetic test dataset.

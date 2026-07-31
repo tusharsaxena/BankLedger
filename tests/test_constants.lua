@@ -37,7 +37,7 @@ test("Constants: a deposit signs positive and a withdrawal negative", function()
   assertEqual(C.DirectionSign.WITHDRAW, -1)
 end)
 
-test("Constants: every Kind has a label, including the reserved CURRENCY", function()
+test("Constants: every Kind has a label", function()
   for key in pairs(C.Kind) do
     assertTrue(C.KindLabel[key] ~= nil, key .. " has no label")
   end

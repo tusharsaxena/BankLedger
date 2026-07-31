@@ -417,20 +417,22 @@ entries.
 
 ## Sign-off
 
+Run in-client and signed off before the v1.0.0 release.
+
 | ID | Tested? | Pass/Fail | Notes |
 |---|---|---|---|
-| C-001 | | | |
-| C-001-B | | | |
-| C-002 | | | |
-| C-003 | | | |
-| C-004 | | | |
-| C-005 | | | |
-| C-006 | | | |
-| C-007 | | | |
-| C-008 | | | |
-| C-009 | | | |
-| C-010 | | | |
-| C-011 | | | |
-| C-012 | | | |
-| Regression R-1…R-14 | | | |
-| Perf spot-checks 1–3 | | | |
+| C-001 | Yes | PASS | |
+| C-001-B | Yes | PASS | |
+| C-002 | Yes | PASS | |
+| C-003 | Yes | PASS | |
+| C-004 | Yes | PASS | |
+| C-005 | Yes | PASS | |
+| C-006 | Yes | PASS | |
+| C-007 | Yes | PASS | |
+| C-008 | Yes | PASS | |
+| C-009 | Yes | PASS | |
+| C-010 | Yes | PASS | |
+| C-011 | Yes | PASS | |
+| C-012 | Yes | PASS | |
+| Regression R-1…R-14 | Yes | PASS | |
+| Perf spot-checks 1–3 | Yes | PASS | |

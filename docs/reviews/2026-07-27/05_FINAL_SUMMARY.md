@@ -1,9 +1,9 @@
 # Ka0s Bank Ledger — Review Cycle Final Summary (2026-07-27)
 
-> **Status: implemented, pending in-client verification.** All 19 findings are closed in code on
-> branch `review/2026-07-27`, and the headless gate is green. The in-client smoke tests in
-> `03_SMOKE_TESTS.md` have **not** been run yet — see *Verification evidence* for exactly what is
-> and is not proven.
+> **Status: implemented and verified.** All 19 findings are closed in code on branch
+> `review/2026-07-27`, the headless gate is green, and the in-client smoke tests in
+> `03_SMOKE_TESTS.md` have been run and passed — see that file's sign-off table. The *Verification
+> evidence* section below describes the state at the time of writing, before the in-client run.
 
 ---
 

@@ -13,6 +13,21 @@ lua tests/run.lua     # all suites green; exits non-zero on any failure
 luacheck .            # 0 errors, 0 warnings
 ```
 
+## Release checklist
+
+Run through this before a version bump, on top of the green gate:
+
+- [ ] `lua tests/run.lua` green and `luacheck .` at 0/0.
+- [ ] `docs/test-cases.md` regenerated (`lua tests/run.lua --list > docs/test-cases.md`) and the
+      README `[tests]` badge updated in the **same** change.
+- [ ] **Reconcile `docs/agent-context.md` whenever the Ka0s WoW Addon Standard's minor version
+      moves.** The file started as the standard's context pack but is now **specialized to Bank
+      Ledger** (a recorded deviation — see ARCHITECTURE ▸ *Documented deviations*), so it must
+      **not** be re-dropped wholesale: that would erase the specialization. Instead `curl` the
+      current `standards/NEW_ADDON_CONTEXT.md`, diff it against this file, and port the **changed
+      rules** by hand, leaving the Bank Ledger specifics in place. This is the recurrence guard for
+      audit deviation BL-08.
+
 ## Local toolchain
 
 WoW runs Lua 5.1, so the harness targets 5.1.

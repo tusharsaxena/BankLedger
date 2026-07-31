@@ -145,7 +145,7 @@ questing — never ends up in the book.
 | -------- | ------ |
 | Does it track what's in my bank right now? | No. It tracks what moved in and out. Plenty of addons show you bank contents; this one shows you the history. |
 | Is my history shared between characters? | Yes. One account-wide ledger, so an alt's deposits and your withdrawals sit in the same list. |
-| Does it record currencies like Valorstones? | Not yet. Items and gold in this release; currencies are planned. |
+| Does it record currencies like Valorstones? | No. The book covers items and gold; currencies are deliberately out of scope. |
 | Will it see what other people put in the guild bank? | No. It only sees what your own character does. |
 | What is the small window that opens with my bank? | Current Banking Session — a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |
 | Why does the session window forget everything when I reopen the bank? | Because it answers "what did I just do", not "what have I ever done". The full record is in the main window. |

@@ -101,7 +101,7 @@ One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 |---|---|
 | `ts` | Epoch seconds. |
 | `char`, `classFile` | `Name-Realm` and the class token, for the per-character views. |
-| `kind` | `ITEM` or `MONEY`. `CURRENCY` is reserved for a later iteration. |
+| `kind` | `ITEM` or `MONEY`. Those two are the whole enum; currencies are not recorded. |
 | `direction` | `DEPOSIT` (bags → store) or `WITHDRAW` (store → bags). |
 | `store` | `BANK`, `WARBAND_BANK`, `GUILD_BANK`. |
 | `guild` | Set on guild-bank rows only. |
@@ -496,6 +496,20 @@ Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://githu
   weakening `savedvariables-§2`'s real invariant — that there is exactly *one* place a default value
   is hardcoded — by standing up a second candidate home for it.
 
+- **`docs/agent-context.md` is specialized to this addon, not a verbatim copy of the upstream pack.**
+  `documentation-§3`/`§5` treat the file as the standard's context pack dropped in unchanged, so it
+  can be re-dropped wholesale whenever the standard moves. Bank Ledger's copy has instead been filled
+  in with the addon's real TOC, file tree, `Compat` surface, schema rows, `NS.COMMANDS` verbs, bus
+  messages and test seams, and its new-addon scaffolding steps rewritten as the shipped state.
+  **Rationale:** the brief loads into every agent session, and a generic pack made an agent read
+  `<Addon>DB`, `Locale.lua`, `Settings.lua` and `_G.MYADDON_TEST` — none of which exist here — before
+  finding the real names in `ARCHITECTURE.md`. Concrete beats canonical for a file whose whole job is
+  orienting someone fast.
+  **The cost, accepted knowingly:** the file can no longer be re-dropped. When the standard ships a
+  new pack, its changes must be **diffed and ported by hand**, leaving the Bank Ledger specifics in
+  place — recorded in the release checklist in `docs/testing.md` and in the file's own header
+  comment. The rules content still tracks the standard; only the examples are local.
+
 ## Mono font outside the debug console
 
 `media/fonts/JetBrainsMono-Regular.ttf` ships as a sanctioned styling exception. Its primary scope is
@@ -528,8 +542,10 @@ cannot read `.png` or `.jpg` at runtime.
 
 Three rules the derivatives have to follow, each of which has already gone wrong once:
 
-- **The `.tga` must actually exist.** A missing texture draws nothing and raises no error, so the
-  landing page just renders blank and nobody notices.
+- **The `.tga` must actually exist.** `C.LOGO_PATH` points at `media/logos/bankledger.logo.tga`, and
+  a missing file draws nothing rather than erroring — so the settings landing page just renders
+  blank and nobody notices. That silence is why the art was absent for a while without anything
+  failing. The runtime asset ships now, so this is a fallback path rather than a live problem.
 - **Power-of-two dimensions.** The master is 1254×1254, which is not one; a non-power-of-two texture
   is rescaled by the client and softens. 512 is the smallest power of two comfortably above the
   300px display size, and matches the sibling addons.
@@ -554,8 +570,9 @@ src.resize((256, 256), Image.LANCZOS) \
 
 ## Known limitations
 
-- **Currency movements are not captured yet.** The `Kind.CURRENCY` enum member and the export
-  contract are in place so adding it is additive, but no capture path exists in v1.0.0.
+- **Currency movements are not recorded, and are not planned.** The book covers items and gold.
+  Currencies were considered and deliberately left out, so `Kind` carries no member for them and the
+  export contract reserves no column — adding them later would be a new feature, not a fill-in.
 - **Guild-bank withdrawals by other players are invisible.** The addon only sees your own client's
   view, so it records what *you* moved, not the guild log.
 - **The reagent bank and void storage are not stores.** Midnight removed both — reagents live in the
@@ -576,7 +593,3 @@ src.resize((256, 256), Image.LANCZOS) \
   the default threshold of 0 nothing is skipped. There is **no name backfill** — a row stored
   without a cached name keeps only its item id and stays out of the Type, Sub-type and Quality
   breakdowns for good.
-- **The settings landing page renders no logo if the art is missing.** `C.LOGO_PATH` points at
-  `media/logos/bankledger.logo.tga`; a missing file simply draws nothing rather than erroring —
-  silently, which is why the art was absent for a while without anything failing. The runtime asset
-  is now shipped (see *Logo art* above), so this is a fallback rather than a live limitation.

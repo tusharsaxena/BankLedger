@@ -71,7 +71,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Constants: every Store enum value equals its key (the stable stored form)
 - Constants: every Direction enum member has a label and a sign
 - Constants: a deposit signs positive and a withdrawal negative
-- Constants: every Kind has a label, including the reserved CURRENCY
+- Constants: every Kind has a label
 - Constants: the bag id group covers the backpack, four bags and the reagent bag
 - Constants: the bank group is exactly the six character-bank tabs
 - Constants: the warband bank spans its five account tabs

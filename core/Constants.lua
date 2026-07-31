@@ -50,11 +50,11 @@ C.DirectionSign = { DEPOSIT = 1, WITHDRAW = -1 }
 
 -- ── Entry kind ──────────────────────────────────────────────────────────────────
 -- ITEM rows carry an itemID + a stack count; MONEY rows carry a copper amount in `quantity`.
--- CURRENCY is reserved for a later iteration — the enum is declared now so the export contract and
--- the stored `kind` field never have to change shape when it lands.
-C.Kind = { ITEM = "ITEM", MONEY = "MONEY", CURRENCY = "CURRENCY" }
+-- These two are the whole enum. Currencies are deliberately not captured and no member is reserved
+-- for them — see Known limitations in docs/ARCHITECTURE.md.
+C.Kind = { ITEM = "ITEM", MONEY = "MONEY" }
 C.KindOrder = { "ITEM", "MONEY" }
-C.KindLabel = { ITEM = "Item", MONEY = "Gold", CURRENCY = "Currency" }
+C.KindLabel = { ITEM = "Item", MONEY = "Gold" }
 
 -- ── Display palette ─────────────────────────────────────────────────────────────
 -- Colours and glyphs shared by the History table and the filter dropdowns, so a store or a

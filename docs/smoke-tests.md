@@ -106,7 +106,7 @@ tolerance.
 14. Set **Character: All**, press **Save**, then `/reload` — the window still opens on **Current**.
     Character scope is never part of a saved view.
 15. Press **Reset** — chat confirms, the bar returns to stock, and **Clear** now lands on stock.
-    `/bl reset all` and the Settings **Defaults** button discard the saved view the same way.
+    `/bl resetall` and the Settings **Defaults** button discard the saved view the same way.
 16. With a view saved, `/bl test` opens the synthetic data **unscoped and unfiltered**; leaving test
     mode restores the saved view scoped back to Current.
 

@@ -1,7 +1,8 @@
 # Saved view — Save / Reset / Clear for the History + Insights filter bar
 
 **Date:** 2026-07-28
-**Status:** approved, ready for planning
+**Status:** implemented — shipped in `91c9c1c` (`NS.db.global.savedView`, `modules/Browser.lua`
+`savedViewOrStock` / `ApplyView`). Kept as the design record; there is no outstanding work here.
 
 ## Problem
 
