@@ -9,7 +9,9 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- surfaces pick it up with no other edit. Paths resolve against NS.db.global (account-wide).
 --
 -- `group` names the panel section header, and row order within a group drives the two-column
--- pairing. `wide` forces a full-width row; `soloRow` puts a row on its own line.
+-- pairing. `wide` forces a full-width row; `solo` puts a row on its own line; `skipRender` keeps a
+-- row in the schema — so the CLI, the defaults and a reset all still see it — while the panel draws
+-- it by hand. Those three names are LibKa0s-Options-1.0's, not ours: the flow engine reads them.
 S.Schema = {
   -- ── Master Controls ──
   -- The master switches and the window controls, ahead of what is actually captured: the same
@@ -50,6 +52,10 @@ S.Schema = {
 
   -- Paired with the "Reset all" button by the panel's `companions` map (settings/Panel.lua).
   { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
+    -- Declared explicitly because the two renderers disagree about the default: this addon's old
+    -- panel assumed 0.05, LibKa0s-Options-1.0's makeSlider assumes 1. Left undeclared, the library
+    -- would snap a 0.6-1.6 slider to its two endpoints and nothing else.
+    step = 0.05,
     widget = "Slider",
     fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
     group = "Master Controls", label = "Window scale",
@@ -98,8 +104,12 @@ S.Schema = {
 
   -- Stored as the set of MUTED stores (excludedStores); the panel renders it inverted
   -- (invert = true) as "Record movements to and from", so a ticked box means "record this store".
+  -- `skipRender` because no library maker draws a multi-select set picker, let alone an inverted
+  -- one — RenderField dispatches on bool/number/string/color and answers nil for anything else. The
+  -- row stays in the schema so `/bl list`, `/bl get` and every reset still see it; the panel emits
+  -- the checkbox grid itself, in the library's own flow, between two of its spacers.
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
-    wide = true, invert = true,
+    wide = true, invert = true, skipRender = true,
     group = "Capture", label = "Record movements to and from", values = C.STORE_OPTIONS,
     -- Spells the inversion out: the stored value is the MUTED set, so a ticked box means "record".
     tooltip = "Tick a store to RECORD movements to and from it. Unticking mutes that store; "

@@ -205,3 +205,53 @@ test("Schema: every row carries a tooltip", function()
     assertTrue((row.tooltip or "") ~= "", row.path .. " has no tooltip")
   end
 end)
+
+-- ── LibKa0s-Options-1.0 row vocabulary ─────────────────────────────────────────
+--
+-- The flow engine reads a fixed set of row field names. Three of them are easy to get wrong in a
+-- way nothing reports: a missing `step` silently snaps a slider to its endpoints, an unrenderable
+-- type silently drops a row from the page, and the old `soloRow` / `panelSkip` spellings are simply
+-- never read.
+
+test("Schema: settings.windowScale declares its own step", function()
+  -- The library's makeSlider defaults `row.step or 1`. With min 0.6 and max 1.6 that is a slider
+  -- with exactly two positions, and nothing raises.
+  local row = NS.Schema:FindRow("settings.windowScale")
+  assertEqual(row.step, 0.05, "an undeclared step becomes 1 and collapses the slider")
+  assertTrue(row.min < row.max)
+end)
+
+test("Schema: a row the library cannot draw is marked skipRender, not left to vanish", function()
+  -- RenderField dispatches on bool/number/string/color and returns nil for anything else — one row
+  -- silently missing from the page, never an error. `skipRender` makes the host-drawn intent
+  -- explicit and keeps the row visible to the CLI and to every reset.
+  local RENDERABLE = { bool = true, number = true, string = true, color = true }
+  for _, row in ipairs(NS.Schema.Schema) do
+    if not RENDERABLE[row.type] then
+      assertTrue(row.skipRender == true,
+        row.path .. " is type '" .. tostring(row.type) .. "', which no library maker draws — it "
+        .. "must declare skipRender = true or it will silently disappear from its page")
+    end
+  end
+end)
+
+test("Schema: no row uses the pre-library field spellings", function()
+  -- soloRow -> solo, panelSkip -> skipRender. Both old names are simply never read by the library,
+  -- so a row carrying one lays out wrong with nothing to notice it.
+  for _, row in ipairs(NS.Schema.Schema) do
+    assertTrue(row.soloRow == nil, row.path .. " uses soloRow; the library reads solo")
+    assertTrue(row.panelSkip == nil, row.path .. " uses panelSkip; the library reads skipRender")
+  end
+end)
+
+test("Schema: a numeric row carrying values is an enum the panel must draw as a dropdown", function()
+  -- LibKa0s-Options-1.0 minor 5 infers this from `values`. Before it, both of these rendered as
+  -- 0-to-1 sliders because neither declares min/max/step.
+  for _, path in ipairs({ "settings.qualityThreshold", "settings.retentionDays" }) do
+    local row = NS.Schema:FindRow(path)
+    assertEqual(row.type, "number", path)
+    assertTrue(type(row.values) == "table" and #row.values > 0, path .. " has no values list")
+    assertTrue(row.min == nil and row.max == nil,
+      path .. " is an enum; declaring min/max would make it look like a range")
+  end
+end)

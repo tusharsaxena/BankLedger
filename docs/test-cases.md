@@ -585,7 +585,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (22)
+### test_schema.lua (26)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -609,6 +609,10 @@ badge and any count quoted in the docs must agree with it.
 - COMMANDS: a test verb exists (test-mode)
 - Schema: the four Master Controls switches pair into two full rows
 - Schema: every row carries a tooltip
+- Schema: settings.windowScale declares its own step
+- Schema: a row the library cannot draw is marked skipRender, not left to vanish
+- Schema: no row uses the pre-library field spellings
+- Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
 
 ### test_slash.lua (33)
 
@@ -747,9 +751,9 @@ badge and any count quoted in the docs must agree with it.
 | test_insights.lua | 72 |
 | test_export.lua | 34 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 22 |
+| test_schema.lua | 26 |
 | test_slash.lua | 33 |
 | test_panel.lua | 13 |
 | test_harness.lua | 7 |
 | test_libka0s.lua | 55 |
-| **Total** | **670** |
+| **Total** | **674** |
