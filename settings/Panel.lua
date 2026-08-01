@@ -40,12 +40,16 @@ local registered
 
 
 
--- One defaults action per page, reachable from both routes: the header Defaults button (via the
--- parked `defaultsOnClick` closure) and Blizzard's own Settings-window defaults control (via
--- `OnDefault`, options-ui-§1). Setting them together here is what keeps the two from drifting.
+-- One defaults action per page, reachable from BOTH routes — the header Defaults button and
+-- Blizzard's own Settings-window footer control — and parked rather than wired, because the button
+-- does not exist yet: the library builds it on the panel's first OnShow.
+--
+-- Only `defaultsOnClick` is set. The library's CreatePanel stamps an `OnDefault` that FORWARDS here
+-- (Options minor 5), so the two routes cannot drift by construction and the host no longer has to
+-- remember to set both. Setting OnDefault as well would replace that forwarder with a copy — the
+-- exact duplication the forwarder removes.
 local function setDefaultsAction(panel, fn)
   panel.defaultsOnClick = fn
-  panel.OnDefault       = fn
 end
 
 -- ── createPanel — a Frame for RegisterCanvasLayout(Sub)category, plus its render context ──
@@ -504,22 +508,6 @@ end
 -- them, the refresher closures that captured them; keeping those would pcall an ever-growing pile
 -- of dead closures on every later write (options-ui-§11).
 
--- Blizzard's Settings window calls all three of these on a registered canvas frame — OnCommit on
--- apply, OnDefault from its own footer defaults control, OnRefresh on re-show. The LIBRARY sets
--- none of them, so this stays the host's job (docs/pending/LEDGER.md, LIBKA0S-19). OnCommit and
--- OnRefresh are inert by design: every write already lands immediately through NS.Schema:Set, and
--- the library's own renderer already handles re-show. OnDefault is pointed at the page's real
--- action by setDefaultsAction, so the footer control and the header button stay one implementation.
-local function stampCanvasContract(panel)
-  if not panel then return end
-  -- rawget, because a canvas frame is a real frame: indexing a missing key can answer from a
-  -- metatable rather than nil, and "already set" must mean the ADDON set it. Only the absent ones
-  -- are filled, so a page that has already parked a real OnDefault keeps it.
-  if rawget(panel, "OnCommit")  == nil then panel.OnCommit  = function() end end
-  if rawget(panel, "OnRefresh") == nil then panel.OnRefresh = function() end end
-  if rawget(panel, "OnDefault") == nil then panel.OnDefault = function() end end
-end
-
 function P:Register()
   if registered then return end
   registered = true
@@ -542,7 +530,6 @@ function P:Register()
         .. "is never touched.",
     })
     P.general = ctx
-    stampCanvasContract(ctx.panel)
     -- Non-destructive on both routes, so it is safe behind Blizzard's own un-gated footer control.
     -- The destructive path stays behind the confirm-gated KA0S_BANKLEDGER_RESETALL popup.
     setDefaultsAction(ctx.panel, function() P:RestoreDefaults() end)
@@ -591,7 +578,6 @@ function P:Register()
         .. "touched.",
     })
     P.filters = ctx
-    stampCanvasContract(ctx.panel)
     -- Defaults here = clear both id-lists, whose stock state is empty. The page holds no Schema
     -- rows, so this is what "restore defaults" means for what it manages.
     setDefaultsAction(ctx.panel, function()
@@ -612,14 +598,6 @@ function P:Register()
   end)
 
   O.CreateOptionsPanel()
-
-  -- Stamped AFTER the build, over the library's own registry, which is the only place the main
-  -- canvas is reachable — the library creates it from `mainPanelName` and never hands it back.
-  -- Doing it here rather than inside each renderer also fixes the timing: a renderer runs on FIRST
-  -- SHOW, and Blizzard can call OnCommit on a page the user has never opened.
-  for _, ctx in ipairs(O.__panels and O.__panels() or {}) do
-    stampCanvasContract(ctx.panel)
-  end
 end
 
 function P:Open()

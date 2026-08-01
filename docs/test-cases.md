@@ -655,7 +655,7 @@ badge and any count quoted in the docs must agree with it.
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
 - Panel: the landing page's OnDefault is inert — it manages no settings
-- Panel: OnDefault is the same closure as the header Defaults button
+- Panel: OnDefault runs the same action as the header Defaults button
 - Panel: the General defaults action resets settings but never the ledger
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
 - Panel: a schema write refreshes an open page

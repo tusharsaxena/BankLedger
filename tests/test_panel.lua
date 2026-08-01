@@ -49,14 +49,24 @@ test("Panel: the landing page's OnDefault is inert — it manages no settings", 
   rawget(p, "OnDefault")()   -- must not raise
 end)
 
--- The header Defaults button and Blizzard's own defaults control must be ONE implementation, not two
--- that can drift. setDefaultsAction sets both from a single closure; this pins that identity.
-test("Panel: OnDefault is the same closure as the header Defaults button", function()
+-- The header Defaults button and Blizzard's own footer control must be ONE implementation, not two
+-- that can drift.
+--
+-- Asserted as BEHAVIOUR, not identity. It used to compare the two function objects, which worked
+-- while the host set both from a single closure. LibKa0s-Options-1.0 minor 5 stamps an `OnDefault`
+-- that FORWARDS to whatever the page parked as `defaultsOnClick` — so they are deliberately no
+-- longer the same object, and identity was only ever a proxy for the thing that matters: calling
+-- one runs the other.
+test("Panel: OnDefault runs the same action as the header Defaults button", function()
   for _, name in ipairs({ "General", "Filters" }) do
     local p = panel(name)
-    assertTrue(rawget(p, "defaultsOnClick") ~= nil, name .. " parks a defaults action")
-    assertEqual(rawget(p, "OnDefault"), rawget(p, "defaultsOnClick"),
-      name .. " shares one defaults implementation")
+    local parked = rawget(p, "defaultsOnClick")
+    assertTrue(parked ~= nil, name .. " parks a defaults action")
+    local ran = 0
+    p.defaultsOnClick = function() ran = ran + 1 end
+    rawget(p, "OnDefault")()
+    p.defaultsOnClick = parked
+    assertEqual(ran, 1, name .. ": the footer control must reach the page's parked action")
   end
 end)
 
