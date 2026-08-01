@@ -73,8 +73,10 @@ warband movement, because no event announces one.
 | `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
+| `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
+| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin` and `makeCloseButton` so the console keeps **this addon's** chrome rather than Core's — both resolved through `NS.Browser` at call time, which is what lets a `core/` file reach a `modules/` member without inverting the load order. Degrades to a stub answering every member `/bl debug` reaches. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
-| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder, and the shared secret-safe chat printer. |
+| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
 | `core/Database.lua` | AceDB init, the migration runner, ledger CRUD, `QueryList`, `Export`, `Stats`, retention prune, storage estimate. |
 | `defaults/Global.lua` | The account-wide defaults table — the only place a default value is hardcoded. |
@@ -88,10 +90,10 @@ warband movement, because no event announces one.
 | `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
 | `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
-| `modules/DebugLog.lua` | The on-screen debug console and the `NS.Debug` sink. |
-| `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. |
-| `settings/Slash.lua` | AceConsole registration, dispatch, and the `list`/`get`/`set`/`reset` CLI. |
-| `settings/Panel.lua` | The Blizzard Settings landing page plus the General and Filters subcategories. |
+| `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. `S:Set` is the **single write seam**: it validates, writes, emits the one debug trace, runs the row's `onChange`, and repaints an open settings panel (options-ui-§41) — so a slash write and a panel widget take exactly the same path. |
+| `settings/Slash.lua` | The **LibKa0s-Slash-1.0 seam**, plus what stays the host's: AceConsole registration, the five confirm dialogs, `Sl:Version`, and the full reset. The dispatcher, the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's. Supplies `groupKey` (this schema groups by `group`, not `page`), a `format` hook for the set-typed `excludedStores` row, and a `parse` override that refuses a chat edit of that row by name. Wraps `CliResetAll` so the two carve-outs with no Schema widget — the filter lists and the saved ledger view — are still reset. |
+| `settings/OptionsSetup.lua` | The **LibKa0s-Options-1.0 seam**. `NS.Helpers` IS the library instance (options-ui-§1), not a wrapper — `settings/Panel.lua` decorates it in place. Supplies the schema seams through `NS.Schema:Set`, so a panel widget takes exactly the path `/bl set` takes. Degrades LOAD-COMPLETING rather than member-answering, with a measured load-time member set of zero. |
+| `settings/Panel.lua` | What did **not** generalise: the inverted store grid, the Storage section, the whole Filters page, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer. Registers three pages with the library and lets it own the shell, the makers, the flow engine and the render timing. |
 
 ## Data model
 
@@ -174,15 +176,15 @@ Rows render in schema order, so this table is also the panel's layout, top to bo
 
 | Path | Type | Default | Group |
 |---|---|---|---|
-| `settings.enabled` | boolean | `true` | Master Controls |
-| `minimap.hide` | boolean | `false` | Master Controls |
-| `settings.showSessionWindow` | boolean | `true` | Master Controls |
-| `state.debugConsole` | boolean (session-only) | `false` | Master Controls |
+| `settings.enabled` | bool | `true` | Master Controls |
+| `minimap.hide` | bool | `false` | Master Controls |
+| `settings.showSessionWindow` | bool | `true` | Master Controls |
+| `state.debugConsole` | bool (session-only) | `false` | Master Controls |
 | `settings.windowScale` | number | `1.0` | Master Controls |
 | `settings.qualityThreshold` | number | `0` | Capture |
 | `settings.retentionDays` | number | `30` | Capture |
-| `settings.trackItems` | boolean | `true` | Capture |
-| `settings.trackMoney` | boolean | `true` | Capture |
+| `settings.trackItems` | bool | `true` | Capture |
+| `settings.trackMoney` | bool | `true` | Capture |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture |
 
 **Storage carve-outs** — mutated by their owning module rather than through `Schema:Set`, because
@@ -467,11 +469,13 @@ visible hitch.
 - The settings **category** is registered eagerly at load — that never taints. Each panel **body**
   is built lazily on its first `OnShow`, as is the header's Defaults button.
 - Every registered canvas frame carries `OnCommit`, `OnDefault` and `OnRefresh`, so Blizzard's
-  Settings window never calls into a missing method. `OnCommit` and `OnRefresh` are inert by design
-  — writes land immediately through `NS.Schema:Set` (nothing is staged), and the panel's own
-  `OnShow` is the single refresh path. `OnDefault` is set from the *same* closure as the header
-  Defaults button (`setDefaultsAction`), so the framework's footer control and the addon's own
-  button can never drift apart. On General that action is `P:RestoreDefaults()`, which is
+  Settings window never calls into a missing method — **stamped by `LibKa0s-Options-1.0`'s
+  `CreatePanel`** (Options minor 5), not by this addon, which is what options-ui-§1 now requires.
+  `OnCommit` and `OnRefresh` are inert by design — writes land immediately through `NS.Schema:Set`
+  (nothing is staged), and the library's renderer already owns re-show. `OnDefault` **forwards** to
+  whatever the page parked as `defaultsOnClick` (`setDefaultsAction`), so the framework's footer
+  control and the addon's own header button are one implementation by construction rather than two
+  that have to be kept in step. On General that action is `P:RestoreDefaults()`, which is
   non-destructive — settings and window geometry only; wiping the ledger stays behind the
   confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
 - Opening the settings panel **refuses** under combat lockdown with a grey notice and never defers:

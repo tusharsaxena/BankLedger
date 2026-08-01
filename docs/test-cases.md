@@ -1,10 +1,10 @@
 # Test Cases
 
-The full inventory of every headless test case, grouped by suite. This file is the
-**authoritative pass count** for the addon.
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
 
-**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
-whenever the suite changes (see [testing.md](testing.md)).
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
 ### test_util.lua (31)
 
@@ -585,7 +585,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (22)
+### test_schema.lua (26)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -603,22 +603,24 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Schema: a session-only row never touches SavedVariables
 - Schema: the session-only row reads through its own getter
 - Schema: the debug LOGGING flag is deliberately not a schema row
-- COMMANDS: every entry has a name, a description and a function
+- COMMANDS: every entry is a { name, description, handler } triple
 - COMMANDS: names are unique, so dispatch can never be ambiguous
 - COMMANDS: the standard's required verbs are all present
 - COMMANDS: a test verb exists (test-mode)
 - Schema: the four Master Controls switches pair into two full rows
 - Schema: every row carries a tooltip
+- Schema: settings.windowScale declares its own step
+- Schema: a row the library cannot draw is marked skipRender, not left to vanish
+- Schema: no row uses the pre-library field spellings
+- Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
 
-### test_slash.lua (35)
+### test_slash.lua (33)
 
-- Slash.FormatSchemaValue renders booleans as true/false
-- Slash.FormatSchemaValue applies a row's number format
-- Slash.FormatSchemaValue renders a set as a sorted brace list
-- Slash.FormatSchemaValue renders an empty set as (none)
-- Slash.FormatSchemaValue renders nil as nil
-- Slash.FormatKV colours the key gold and the value white
-- Slash.FormatKV carries no trailing colon (house style)
+- Slash: a set renders as a sorted brace list, through the format hook
+- Slash: an empty set renders as (none), not as an empty brace pair
+- Slash: a number row keeps its declared fmt
+- Slash: a boolean row still reads true/false
+- Slash: the key = value line carries no trailing colon (house style)
 - Slash:BuildListLines opens with the green 'Available settings' header
 - Slash:BuildListLines has no trailing colon on any line
 - Slash:BuildListLines indents group headers by two and rows by four
@@ -631,7 +633,7 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Slash:CliSet writes a number and echoes the STORED value back
 - Slash:CliSet rejects a non-numeric value for a number setting
 - Slash:CliSet reports an unknown path
-- Slash:CliSet prints usage when the value is missing
+- Slash:CliSet refuses a value-less set and says why
 - Slash:CliReset restores one setting to its default
 - Slash:CliReset echoes a table default through the shared formatter
 - Slash:CliReset echoes the coloured key = value shape, like get and set
@@ -640,22 +642,107 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Slash: a bare /bl prints the help index
 - Slash: the help index has one row per COMMANDS entry, plus the header
 - Slash: the help header names both the short verb and its alias
-- Slash: help rows are gold command, em-dash, white description
+- Slash: help rows are gold command, em-dash, white description, indented
 - Slash: an unknown verb says so and then prints the help index
 - Slash: dispatch lower-cases only the verb, preserving the argument's case
 - Slash:CliVersion prints a single tagged version line
 - Slash: every chat line carries the cyan [BL] tag
-- Slash: every declared /bl list group actually exists in the schema
+- Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (6)
+### test_panel.lua (23)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
 - Panel: the landing page's OnDefault is inert — it manages no settings
-- Panel: OnDefault is the same closure as the header Defaults button
+- Panel: OnDefault runs the same action as the header Defaults button
 - Panel: the General defaults action resets settings but never the ledger
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
+- Panel: a schema write refreshes an open page
+- Panel: a schema write does NOT refresh a hidden page
+- Panel: Refresh walks EVERY registered page, not just General
+- Panel: a bulk reset coalesces into exactly ONE refresh
+- Panel: Batch unwinds its depth on the error path
+- Panel: /bl resetall repaints, and only once
+- Panel: a refresher that raises does not stop the others
+- Panel: the General page renders without the library reporting a failure
+- Panel: every renderable schema row reaches the page as a labelled widget
+- Panel: a boolean row is a CheckBox and a range row is a Slider
+- Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
+- Panel: a checkbox write goes through the single write seam
+- Panel: the Reset all button is paired into the Window scale row
+- Panel: the store grid renders as an inverted checkbox set, host-drawn
+- Panel: the Storage section renders under the schema rows
+- Panel: the Filters page renders its two id lists
+- Panel: re-rendering a page releases the previous widgets and their refreshers
+
+### test_harness.lua (7)
+
+- Harness: every suite the runner lists exists on disk
+- Harness: every suite on disk is listed in the runner
+- Harness: the runner's suite list has no duplicates
+- Harness: the TOC is what the headless runner loads, and it is non-empty
+- Harness: Compat loads before everything else in core/
+- Harness: Filters loads before Ledger — the capture gate reads the lists
+- Harness: the settings files load last, and in order
+
+### test_libka0s.lua (55)
+
+- LibKa0s-Core: the vendored major registered and the addon is running on it
+- LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
+- LibKa0s-Core: the seam publishes ONE object to NS.Print and NS.Util.print
+- LibKa0s-Core: the reclaim in core/BankLedger.lua survives the AceConsole embed
+- LibKa0s-Core: a printed line is byte-identical to the pre-library printer
+- LibKa0s-Core: a bare NS.Print() emits the tag and its separator
+- LibKa0s-Core: the degraded fallback renders the SAME bytes as the library on every input
+- LibKa0s-Core: an unconcatenable argument renders as the sentinel, never raising
+- LibKa0s-Core: nil and booleans are not masked by the secret guard
+- LibKa0s-Core: the prefix is re-read on every call, so a later change lands
+- LibKa0s-Core degraded: the addon loads with no library at all
+- LibKa0s-Core degraded: the fallback printer renders the same bytes
+- LibKa0s-Core degraded: the notice is said exactly ONCE, on the first line printed
+- LibKa0s: the shared cause clause is set on BOTH paths, word for word
+- LibKa0s-Core tripwire: Core ships no STRINGS and reads no descriptor L
+- LibKa0s: no seam file hands a descriptor the addon-wide locale table
+- LibKa0s: the locale-descriptor matcher catches all three spellings
+- LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
+- LibKa0s: the vendored folder carries the licence it ships under
+- LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
+- LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
+- LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+- LibKa0s-DebugLog: the vendored major registered and the console is running on it
+- LibKa0s-DebugLog: the module needs the minor that carries the chrome hooks
+- LibKa0s-DebugLog: NS.Debug is bound and still gates on the session-only flag
+- LibKa0s-DebugLog: the enable seam reads and writes NS.State.debug, never SavedVariables
+- LibKa0s-DebugLog: the window title composes to exactly what the old console rendered
+- LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's
+- LibKa0s-DebugLog: a 24-wide host close button does not collide with Clear
+- LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
+- LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
+- LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
+- LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
+- LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
+- LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
+- LibKa0s-DebugLog: the chat acknowledgement still carries the [BL] tag
+- LibKa0s-DebugLog: hiding the console repaints the settings panel
+- LibKa0s-Slash: the vendored major registered and the CLI is running on it
+- LibKa0s-Slash: the module needs the minor that carries the format hook
+- LibKa0s-Slash: every printed line still carries the [BL] tag
+- LibKa0s-Slash: /bl list keeps its section headings
+- LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel
+- LibKa0s-Slash: the format hook defers to the library for every OTHER row type
+- LibKa0s-Slash: booleans are settable, because the schema says 'bool'
+- LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
+- LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
+- LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
+- LibKa0s-Slash: CliResetAll keeps this addon's two carve-outs
+- LibKa0s-Slash: the landing page and the chat help render the SAME rows
+- LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
+- LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
+- LibKa0s-Slash degraded: the verbs that never needed the library still work
+- LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
+- LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
+- LibKa0s-Slash: the seam loads after the schema it reads
 
 ## Totals
 
@@ -674,7 +761,9 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_insights.lua | 72 |
 | test_export.lua | 34 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 22 |
-| test_slash.lua | 35 |
-| test_panel.lua | 6 |
-| **Total** | **603** |
+| test_schema.lua | 26 |
+| test_slash.lua | 33 |
+| test_panel.lua | 23 |
+| test_harness.lua | 7 |
+| test_libka0s.lua | 55 |
+| **Total** | **684** |

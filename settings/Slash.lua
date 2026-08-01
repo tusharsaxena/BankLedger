@@ -83,147 +83,21 @@ function Sl:Register()
   NS.addon:RegisterChatCommand("bankledger", function(input) Sl:OnSlash(input) end)
 end
 
--- Bare `/bl` prints the help index (slash-commands-§4); window display is explicit
--- (`/bl toggle`, `/bl show|hide`). Only the VERB is lower-cased — `rest` keeps its case, so schema
--- paths survive `/bl set <path> <value>`.
-function Sl:OnSlash(input)
-  if input == nil or input:match("^%s*$") then
-    return Sl:PrintHelp()
-  end
-  local verb, rest = input:match("^(%S+)%s*(.-)$")
-  verb = verb and verb:lower()
-  for _, cmd in ipairs(NS.COMMANDS) do
-    if cmd.name == verb then return cmd.fn(rest) end
-  end
-  print("unknown command '" .. tostring(verb) .. "'")
-  Sl:PrintHelp()
-end
 
--- The help index, generated from NS.COMMANDS (slash-commands-§4): a version/alias header, then one
--- prefixed row per command — gold command, em-dash, white description. Never hand-maintained.
-function Sl:PrintHelp()
-  print("v" .. tostring(Sl:Version()) ..
-    " slash commands (|cffffff00/bankledger|r is an alias for |cffffff00/bl|r)")
-  for _, cmd in ipairs(NS.COMMANDS) do
-    print(("|cffffff00/bl %s|r — |cffffffff%s|r"):format(cmd.name, cmd.desc))
-  end
-end
-
--- ── Schema-driven CLI: list / get / set / reset (slash-commands-§5 output format) ──
-
--- The shared value formatter for list/get/set, so the three can never diverge. Type-aware and
--- schema-driven: a row's optional `fmt` formats numbers (windowScale "%.2fx" → "1.00x"); booleans
--- render true/false; a table setting renders as a sorted {a, b} of its present keys, or "(none)".
-function Sl.FormatSchemaValue(row, v)
-  if v == nil then return "nil" end
-  if row and row.fmt and type(v) == "number" then return row.fmt:format(v) end
-  if row and row.type == "boolean" then return v and "true" or "false" end
-  if row and row.type == "table" then
-    if type(v) ~= "table" then return tostring(v) end
-    local keys = {}
-    for k, on in pairs(v) do if on then keys[#keys + 1] = tostring(k) end end
-    table.sort(keys)
-    if #keys == 0 then return "(none)" end
-    return "{" .. table.concat(keys, ", ") .. "}"
-  end
-  return tostring(v)
-end
-
--- The shared coloured `key = value` line — gold key, white value, ` = ` left default — reused by
--- the list rows and the get/set echo so the colouring can't drift (slash-commands-§5).
-function Sl.FormatKV(path, valueStr)
-  return ("|cffffff00%s|r = |cffffffff%s|r"):format(tostring(path), tostring(valueStr))
-end
-
--- The declared group order for `/bl list` (slash-commands-§5's "stable, declared page order").
--- Bank Ledger's schema groups are its panel section headers, which stand in for the standard's
--- `[page]` headers; any group not named here is appended in first-seen order.
+-- ── The dispatcher and the schema CLI ──────────────────────────────────────────────────────────
 --
--- These are SCHEMA GROUP NAMES and must match them exactly. The old value named "Window", a group
--- that no longer exists, and omitted "Master Controls" — so every name in it was inert and the
--- listing silently fell through to first-seen order (F-007). Exposed on NS.Slash so a test can
--- assert each name still resolves, because a name that matches nothing fails invisibly.
-local LIST_GROUP_ORDER = { "Master Controls", "Capture" }
-Sl.LIST_GROUP_ORDER = LIST_GROUP_ORDER
+-- Everything from `Sl:OnSlash` down used to live here: the dispatch loop, the help renderer, a value
+-- formatter, a `key = value` renderer, the list builder, and get/set/reset/resetall. All of it is
+-- now LibKa0s-Slash-1.0 (slash-commands), and what is left above this line is the part that is
+-- genuinely ours — the confirm dialogs, the chat-command registration, and the full reset.
+--
+-- WHAT STAYS THE HOST'S BY DESIGN, not by omission: `NS.COMMANDS`. The library takes the table in
+-- rather than owning it, so the settings panel can render the same verbs on its landing page without
+-- the options library having to resolve the slash library — which would be a real dependency cycle
+-- between two majors at load time.
 
--- Build the `/bl list` lines (tag-less content; CliList prints each through NS.Print, which
--- prepends the cyan tag) as a pure array, so the output shape is unit-testable without capturing
--- chat. Header green, [group] headers azure, value rows via FormatKV — two-space indent on group
--- headers, four-space on value rows (slash-commands-§5).
-function Sl:BuildListLines()
-  local lines = { "|cff33ff99Available settings|r" }
+local lib = LibStub and LibStub("LibKa0s-Slash-1.0", true)
 
-  local byGroup, seenOrder = {}, {}
-  for _, row in ipairs(NS.Schema.Schema) do
-    local g = row.group or "?"
-    if not byGroup[g] then byGroup[g] = {}; seenOrder[#seenOrder + 1] = g end
-    byGroup[g][#byGroup[g] + 1] = row
-  end
-
-  local emitted = {}
-  local function emit(g)
-    if emitted[g] or not byGroup[g] then return end
-    emitted[g] = true
-    lines[#lines + 1] = "  |cff3399ff[" .. g .. "]|r"
-    for _, row in ipairs(byGroup[g]) do
-      local v = NS.Schema:Get(row.path)
-      lines[#lines + 1] = "    " .. Sl.FormatKV(row.path, Sl.FormatSchemaValue(row, v))
-    end
-  end
-
-  for _, g in ipairs(LIST_GROUP_ORDER) do emit(g) end
-  for _, g in ipairs(seenOrder) do emit(g) end
-  return lines
-end
-
-function Sl:CliList()
-  for _, line in ipairs(Sl:BuildListLines()) do print(line) end
-end
-
-function Sl:CliGet(arg)
-  local path = (strtrim and strtrim(tostring(arg or "")) or tostring(arg or "")):match("^(%S+)")
-  if not path then
-    print("Usage: /bl get <path>")
-    return
-  end
-  local row = NS.Schema:FindRow(path)
-  if not row then
-    print("Setting not found: " .. path)
-    return
-  end
-  print(Sl.FormatKV(path, Sl.FormatSchemaValue(row, NS.Schema:Get(path))))
-end
-
-function Sl:CliSet(arg)
-  local path, raw = tostring(arg or ""):match("^(%S+)%s+(.+)$")
-  if not path then
-    print("Usage: /bl set <path> <value>  (try /bl list)")
-    return
-  end
-  local row = NS.Schema:FindRow(path)
-  if not row then
-    print("Setting not found: " .. path)
-    return
-  end
-  local value = raw
-  if row.type == "number" then
-    value = tonumber(raw)
-    if not value then print("expected a number"); return end
-  elseif row.type == "boolean" then
-    value = (raw == "true" or raw == "1" or raw == "on" or raw == "yes")
-  end
-  local ok, err = NS.Schema:Set(path, value)
-  if ok then
-    -- Read back the STORED value so the echo reflects any clamping or coercion (slash-commands-§5).
-    print(Sl.FormatKV(path, Sl.FormatSchemaValue(row, NS.Schema:Get(path))))
-  else
-    print("error: " .. tostring(err))
-  end
-end
-
--- `/bl version` → the canonical single-line answer every Ka0s addon shares (slash-commands-§3).
--- Read from the TOC metadata so it can't drift from the packaged manifest, with the in-code
--- constant as the fallback.
 -- The addon's version, resolved once. The TOC's ## Version is the truth; NS.version is the fallback
 -- for builds where the metadata API is unavailable. `/bl version` and the help header both come
 -- through here, so they cannot report different numbers (F-017).
@@ -232,33 +106,144 @@ function Sl:Version()
     and NS.Compat.GetAddOnMetadata(NS.name, "Version")) or NS.version or "?"
 end
 
-function Sl:CliVersion()
-  print("v" .. tostring(Sl:Version()))
-end
+if not lib then
+  -- Degrade, do not error. Unlike the console, the slash surface is how a user reaches ANYTHING
+  -- without the settings panel, so every verb in NS.COMMANDS has to keep working: `show`, `hide`,
+  -- `toggle`, `config`, `session`, `test`, `purge` and `debug` are all host handlers that never
+  -- touched this library. What is lost is the schema CLI and the generated help index, and those say
+  -- so through the shared cause clause.
+  local UNAVAILABLE = NS.LIBKA0S_MISSING .. ", so the slash help index and the settings CLI "
+    .. "(list/get/set/reset) are unavailable."
 
-function Sl:CliReset(arg)
-  local path = arg and tostring(arg):match("^%S+") or nil
-  if not path then print("Usage: /bl reset <path>"); return end
-  local row = NS.Schema:FindRow(path)
-  local def = NS.Schema:Default(path)
-  if not row or def == nil then print("Setting not found: " .. tostring(path)); return end
-  NS.Schema:Set(path, def)
-  -- One coloured `key = value` renderer for every schema read/write echo (slash-commands-§5), and
-  -- read back the STORED value so the echo reflects clamping, exactly as CliSet does. FormatSchemaValue
-  -- keeps a table default reading "(none)" rather than a raw table pointer.
-  print(Sl.FormatKV(path, Sl.FormatSchemaValue(row, NS.Schema:Get(path))))
-end
+  function Sl:PrintHelp() print(UNAVAILABLE) end
+  function Sl:BuildListLines() return { UNAVAILABLE } end
+  function Sl:CliList() print(UNAVAILABLE) end
+  function Sl:CliGet() print(UNAVAILABLE) end
+  function Sl:CliSet() print(UNAVAILABLE) end
+  function Sl:CliReset() print(UNAVAILABLE) end
+  function Sl:CliVersion() print("v" .. tostring(Sl:Version())) end
+  function Sl:LandingRows() return { UNAVAILABLE } end
 
--- Reset every user setting to its default. Covers the schema rows AND the two storage carve-outs
--- that are user-configured settings despite having no Schema widget: the item-id filter lists, and
--- the ledger window's saved view. ResetView is called SILENTLY so this path keeps emitting exactly
--- one confirmation line. Non-destructive: the ledger and the window geometry are left alone (the
--- confirm-gated Sl:ResetEverything handles those).
-function Sl:CliResetAll()
-  for _, row in ipairs(NS.Schema.Schema) do
-    NS.Schema:Set(row.path, row.default)
+  -- The one verb that must keep WORKING rather than merely explaining itself: it is the body the
+  -- settings panel's Defaults button and the confirm-gated `/bl resetall` both share, and a reset
+  -- that silently did nothing is worse than a missing help index.
+  function Sl:CliResetAll()
+    local function walk()
+      for _, row in ipairs(NS.Schema.Schema) do
+        NS.Schema:Set(row.path, NS.Schema:Default(row.path))
+      end
+    end
+    if NS.Panel and NS.Panel.Batch then NS.Panel:Batch(walk) else walk() end
+    if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
+    if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
+    print("All settings reset to defaults")
   end
+
+  -- Dispatch still has to work, so this is the library's loop reproduced at its smallest.
+  function Sl:OnSlash(input)
+    local raw = (input or ""):match("^%s*(.-)%s*$") or ""
+    if raw == "" then return Sl:PrintHelp() end
+    local verb, rest = raw:match("^(%S+)%s*(.*)$")
+    verb = (verb or ""):lower()
+    for _, cmd in ipairs(NS.COMMANDS) do
+      if cmd[1] == verb then return cmd[3](rest or "") end
+    end
+    print(("unknown command '%s'"):format(verb))
+    Sl:PrintHelp()
+  end
+  return
+end
+
+-- Render a stored value the library has no type for. `settings.excludedStores` is a SET of muted
+-- stores, and lib.FormatValue ends at Core's SafeToString — which probes table.concat, refuses a
+-- table, and answers "<secret>". A user being told a plain settings value is combat-protected is
+-- worse than an ugly one, so this is the reason LibKa0s grew a `format` hook at Slash minor 5.
+-- Byte-identical to what the deleted Sl.FormatSchemaValue rendered.
+local function formatValue(row, v)
+  if row and row.type == "table" then
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k, on in pairs(v) do if on then keys[#keys + 1] = tostring(k) end end
+    table.sort(keys)
+    if #keys == 0 then return "(none)" end
+    return "{" .. table.concat(keys, ", ") .. "}"
+  end
+  return nil   -- nil means "not mine" — the caller falls through to the library's own renderer
+end
+
+local cli = lib:New({
+  slash        = "/bl",
+  slashAliases = { "/bankledger" },
+  commands     = NS.COMMANDS,
+  print        = function(line) print(line) end,
+  version      = function() return Sl:Version() end,
+
+  -- The schema seam. Every one of these is the SINGLE write/read path the settings panel already
+  -- uses, so a slash change and a panel change take the same route: same validation, same debug
+  -- trace, same onChange reaction.
+  get          = function(path) return NS.Schema:Get(path) end,
+  set          = function(path, v) NS.Schema:Set(path, v) end,
+  findRow      = function(path) return NS.Schema:FindRow(path) end,
+  allRows      = function() return NS.Schema.Schema end,
+  applyDefault = function(row) NS.Schema:Set(row.path, NS.Schema:Default(row.path)) end,
+
+  -- This addon's schema groups its rows under `group`, which is its panel section header; the
+  -- library defaults to `row.page`. Without this every row collapses under one "[settings]" heading
+  -- and `/bl list` silently loses both its section headings.
+  groupKey = function(row) return row.group or "?" end,
+
+  -- Added upstream at Slash minor 5 for exactly this row. Returning nil for everything else lets the
+  -- library's own type-aware renderer answer, so numbers keep their `fmt` and booleans keep reading
+  -- true/false.
+  format = function(row, v)
+    local mine = formatValue(row, v)
+    if mine ~= nil then return mine end
+    return lib.FormatValue(row, v)
+  end,
+
+  -- Same shape, for reading. The library parses bool/number/string/color; `table` is ours and there
+  -- is no sensible chat grammar for editing a set, so it refuses with a line that points at the
+  -- place that CAN edit it rather than at the library's "unknown setting type 'table'".
+  parse = function(row, text)
+    if row and row.type == "table" then
+      return nil, "edit this one in the settings panel (/bl config)"
+    end
+    return lib.ParseValue(row, text)
+  end,
+})
+
+function Sl:OnSlash(input) return cli:OnSlash(input) end
+function Sl:PrintHelp() return cli:PrintHelp() end
+function Sl:BuildListLines() return cli:BuildListLines() end
+function Sl:CliList() return cli:CliList() end
+function Sl:CliGet(rest) return cli:CliGet(rest) end
+function Sl:CliSet(rest) return cli:CliSet(rest) end
+function Sl:CliReset(rest) return cli:CliReset(rest) end
+function Sl:CliVersion() return cli:CliVersion() end
+
+-- The settings landing page renders the same verbs, through the same one row formatter, in the help
+-- colours — un-indented, because there each row is its own label. This is the convergence: the panel
+-- used to carry a SECOND formatter for the same data, with doubled spaces around a white-wrapped em
+-- dash and a bare description, and the two drifted apart the moment either was touched.
+function Sl:LandingRows() return cli:LandingRows() end
+
+-- Reset every user setting to its default. The library's CliResetAll walks the schema rows and
+-- acknowledges; it cannot know about this addon's two carve-outs — user-configured state with no
+-- Schema widget — so they are wrapped around it rather than forked from it. ResetView is called
+-- SILENTLY so this path still emits exactly ONE confirmation line.
+--
+-- Order matters: the carve-outs run BEFORE the library's call, because that call is what prints the
+-- acknowledgement and a line claiming everything was reset must not precede half the reset.
+-- Non-destructive: the ledger and the window geometry are left alone (the confirm-gated
+-- Sl:ResetEverything handles those).
+function Sl:CliResetAll()
   if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
   if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
-  print("all settings reset to defaults")
+  -- Batched: the library's CliResetAll walks every schema row and each one goes through the write
+  -- seam, which now repaints. Ten rows would otherwise be ten refreshes, and one of General's
+  -- refreshers walks the whole ledger.
+  if NS.Panel and NS.Panel.Batch then
+    return NS.Panel:Batch(function() cli:CliResetAll() end)
+  end
+  return cli:CliResetAll()
 end

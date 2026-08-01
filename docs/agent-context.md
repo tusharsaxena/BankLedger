@@ -29,8 +29,8 @@ references it: <https://github.com/tusharsaxena/WowAddonStandards>.
 **Scope:** Retail (Mainline) only.
 
 **This addon at a glance:** `BankLedger` v1.0.0, Interface 120007, SavedVariables `BankLedgerDB`
-(account-wide `global` only), slash `/bl` aliased `/bankledger`, 22 source files across
-`core/ defaults/ locales/ modules/ settings/`, 603 headless test cases.
+(account-wide `global` only), slash `/bl` aliased `/bankledger`, 24 source files across
+`core/ defaults/ locales/ modules/ settings/`, 684 headless test cases.
 
 ---
 
@@ -48,7 +48,7 @@ The working loop for a change here:
    ARCHITECTURE is the *system*.
 2. **Test-first.** Write or extend a failing case under `tests/`, then implement. See
    `docs/testing.md` for the harness and `docs/test-cases.md` for the generated inventory.
-3. **Green gate before every commit.** `lua tests/run.lua` (603 cases, 0 failed) and `luacheck .`
+3. **Green gate before every commit.** `lua tests/run.lua` (684 cases, 0 failed) and `luacheck .`
    (0 warnings / 0 errors). Regenerate `docs/test-cases.md` and update the README `[tests]` badge in
    the *same* change whenever the count moves.
 4. **Flag deviations, never absorb them.** If a change would depart from the standard, stop and
@@ -91,8 +91,10 @@ BankLedger/
     Compat.lua           -- LOAD FIRST: every deprecated/patch-varying API call
     Constants.lua        -- Store/Context/Direction/Kind enums, palettes, container-id groups
     Namespace.lua        -- NS.name, NS.version, NS.SCHEMA_VERSION, NS.PREFIX
+    CoreSetup.lua        -- LibKa0s-Core seam: NS.Print/NS.SafeToString + NS.LIBKA0S_MISSING (the shared cause clause)
+    DebugLogSetup.lua    -- LibKa0s-DebugLog seam: the console and NS.Debug, wearing this addon's own chrome
     State.lua            -- runtime-only state; never persisted
-    Util.lua             -- player key, path split, date/money/byte format, wowhead URL, safe print
+    Util.lua             -- player key, path split, date/money/byte format, wowhead URL
     BankLedger.lua       -- AceAddon registration; NS.bus; NS.NewBusTarget
     Database.lua         -- AceDB + migrations, ledger CRUD, Query/Export/Stats, prune
   defaults/
@@ -109,14 +111,14 @@ BankLedger/
     InsightsWidgets.lua  -- HOW charts are drawn: pooled primitives, palette, label maths
     Insights.lua         -- WHAT is drawn: 14 stat cards, 17 chart sections, Top Of The List
     Export.lua           -- ledger CSV, insights CSV, the export modal
-    DebugLog.lua         -- the on-screen console and the NS.Debug sink
   settings/
     Schema.lua           -- the schema table (single source) + NS.COMMANDS
-    Slash.lua            -- AceConsole registration, dispatch, list/get/set/reset CLI
-    Panel.lua            -- Blizzard Settings landing page + General and Filters subcategories
+    Slash.lua            -- LibKa0s-Slash seam: AceConsole registration, confirm dialogs, full reset
+    OptionsSetup.lua     -- LibKa0s-Options seam: NS.Helpers IS the instance; the schema seams
+    Panel.lua            -- what did not generalise: store grid, Storage, Filters page, landing body, Diagnose
   media/                 -- logos/, screenshots/, fonts/
-  libs/                  -- vendored, committed
-  tests/                 -- run.lua, loader.lua, wow_mock.lua, test_*.lua (16 suites)
+  libs/                  -- vendored, committed (Ace3, LibStub, LibDBIcon, LibSharedMedia, LibKa0s)
+  tests/                 -- run.lua, wow_mock.lua, test_*.lua (18 suites), _kit/ (vendored from LibKa0s)
   docs/                  -- agent-context.md, ARCHITECTURE.md, testing.md, smoke-tests.md,
     audits/<YYYY-MM-DD>/ --   test-cases.md (generated), pending/LEDGER.md
     reviews/<YYYY-MM-DD>/--   retained audit + code-review history (audit-review-history)
@@ -166,6 +168,9 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+# LibKa0s last in the block: every module but Core resolves LibKa0s-Core-1.0 through LibStub before
+# it registers, and Options resolves AceGUI-3.0 at panel-build time rather than at load.
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
@@ -175,6 +180,13 @@ locales\PostLoad.lua
 core\Compat.lua
 core\Constants.lua
 core\Namespace.lua
+# The LibKa0s-Core seam. After Namespace (NS.PREFIX), and before every file that takes NS.Print as a
+# load-time upvalue or reclaims it from NS.Util.print — see the header of core/CoreSetup.lua.
+core\CoreSetup.lua
+# The LibKa0s-DebugLog seam. After Constants (FONT_MONO) and after CoreSetup
+# (NS.LIBKA0S_MISSING). Everything else it touches is reached through a closure, so it no
+# longer has to sit after modules/Browser.lua the way modules/DebugLog.lua did.
+core\DebugLogSetup.lua
 core\State.lua
 core\Util.lua
 core\BankLedger.lua
@@ -192,11 +204,13 @@ modules\SessionWindow.lua
 modules\InsightsWidgets.lua
 modules\Insights.lua
 modules\Export.lua
-modules\DebugLog.lua
 
 # Settings (last — depend on everything else being initialized)
 settings\Schema.lua
 settings\Slash.lua
+# The LibKa0s-Options seam. After the schema and the write seam it reads, and BEFORE
+# settings/Panel.lua, which captures the instance at file scope (options-ui-§1).
+settings\OptionsSetup.lua
 settings\Panel.lua
 ```
 
@@ -333,20 +347,23 @@ panel's top-to-bottom layout. Ten rows in two groups:
 
 | Path | Type | Default | Group |
 |---|---|---|---|
-| `settings.enabled` | boolean | `true` | Master Controls |
-| `minimap.hide` | boolean | `false` | Master Controls |
-| `settings.showSessionWindow` | boolean | `true` | Master Controls |
-| `state.debugConsole` | boolean (**session-only**) | `false` | Master Controls |
+| `settings.enabled` | bool | `true` | Master Controls |
+| `minimap.hide` | bool | `false` | Master Controls |
+| `settings.showSessionWindow` | bool | `true` | Master Controls |
+| `state.debugConsole` | bool (**session-only**) | `false` | Master Controls |
 | `settings.windowScale` | number 0.6–1.6 | `1.0` | Master Controls |
 | `settings.qualityThreshold` | number | `0` | Capture |
 | `settings.retentionDays` | number | `30` | Capture |
-| `settings.trackItems` | boolean | `true` | Capture |
-| `settings.trackMoney` | boolean | `true` | Capture |
+| `settings.trackItems` | bool | `true` | Capture |
+| `settings.trackMoney` | bool | `true` | Capture |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture |
 
 ```lua
 -- settings/Schema.lua — a row. Every write goes through NS.Schema:Set, which is the single seam.
 { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
+  -- `step` is declared, never defaulted: LibKa0s-Options-1.0's makeSlider assumes 1, which would
+  -- snap a 0.6–1.6 slider to its two endpoints and nothing else.
+  step = 0.05,
   group = "Master Controls", label = "Window scale", widget = "Slider",
   onChange = function()
     -- Announce on the bus rather than reaching into the windows: BOTH the ledger window and the
@@ -362,28 +379,35 @@ drift. Fifteen verbs: `show`, `hide`, `toggle`, `config`, `version`, `get`, `set
 `on` / `off` / `scan` / `panel`.
 
 ```lua
--- settings/Slash.lua — dispatch, registered as /bl with the /bankledger alias.
-function NS.addon:OnSlash(input)
-  if input == nil or input == "" then return NS.Slash:PrintHelp() end
-  local verb, rest = input:match("^(%S+)%s*(.-)$")
-  for _, cmd in ipairs(NS.COMMANDS) do
-    if cmd.name == verb then return cmd.fn(rest) end
-  end
-  -- shared secret-safe printer; never global print()/NS.PREFIX ../concat (events-frames-taint-§8)
-  NS.Print("unknown command:", verb); NS.Slash:PrintHelp()
+-- settings/Slash.lua — AceConsole registration stays the host's; the dispatch loop, the help
+-- renderer and the list/get/set/reset CLI are all LibKa0s-Slash-1.0's.
+function Sl:Register()
+  NS.addon:RegisterChatCommand("bl", function(input) Sl:OnSlash(input) end)
+  NS.addon:RegisterChatCommand("bankledger", function(input) Sl:OnSlash(input) end)
+end
+
+local cli = lib:New({ slash = "/bl", slashAliases = { "/bankledger" }, commands = NS.COMMANDS, … })
+function Sl:OnSlash(input) return cli:OnSlash(input) end
+
+-- The library's loop, reproduced at its smallest on the degraded path. NS.COMMANDS rows are
+-- POSITIONAL — { name, description, handler } — never keyed.
+for _, cmd in ipairs(NS.COMMANDS) do
+  if cmd[1] == verb then return cmd[3](rest or "") end
 end
 ```
 
-Every schema read/write echo goes through **two shared formatters** — `Sl.FormatSchemaValue(row, v)`
-for the value and `Sl.FormatKV(path, valueStr)` for the coloured `key = value` line — so `list`,
-`get`, `set` and `reset` can never render differently. All four read the **stored** value back after
-a write, so the echo reflects clamping.
+Every schema read/write echo goes through **two shared formatters** — `lib.FormatValue(row, v)` for
+the value and `lib.FormatKV(path, valueStr)` for the coloured `key = value` line — so `list`, `get`,
+`set` and `reset` can never render differently. Both are **LibKa0s-Slash-1.0's**; the host's own
+`Sl.FormatSchemaValue` and `Sl.FormatKV` are deleted. What stays here is the `format` hook for the
+set-typed `excludedStores` row, which the library has no type for. All four read the **stored** value
+back after a write, so the echo reflects clamping.
 
 `settings/Panel.lua` registers the Blizzard settings **category eagerly** at load (options-ui-§1) and
 builds each panel **body lazily** on first `OnShow`, as it does the header Defaults button. The
-`setDefaultsAction(panel, fn)` helper sets `panel.defaultsOnClick` **and** `panel.OnDefault` from one
-argument, so the framework's footer control and the addon's own header button are literally the same
-closure and cannot diverge.
+`setDefaultsAction(panel, fn)` helper parks `panel.defaultsOnClick`, and `LibKa0s-Options-1.0`'s
+`CreatePanel` stamps an `OnDefault` that **forwards** to it (Options minor 5) — so the framework's
+footer control and the addon's own header button run one implementation and cannot diverge.
 
 **Chat tag & CLI output (slash-commands-§4–§5).** `NS.PREFIX` is the mandatory **cyan** bracketed tag — `|cff00ffff[XY]|r` (initials `XY`; the cyan `00ffff` is required, not just an example) — exposed once and prepended to every chat line. `list`/`get`/`set` follow the canonical output shape in slash-commands-§5: `list` prints `Available settings` then `  [page]` group headers then `    path = value` rows; `get`/`set` print the single-line `path = value` (echoing the *stored* value after a set). Output uses the **mandated colour scheme** — header green (`33ff99`), `[page]` group headers azure (`3399ff`), keys/paths gold (`ffff00`), values white (`ffffff`), the ` = ` separator default, and **no trailing colon** on any line. Values are **type-aware and unit-annotated** through one shared formatter — `<n> px`, `1.00x`, `true`/`false`, `{r, g, b, a}` — and the coloured `key = value` line comes from one shared helper, so `list` and `get`/`set` never diverge.
 
@@ -424,10 +448,10 @@ Headless plain-Lua-5.1 harness. Run `lua tests/run.lua` from the repo root.
 
 ```
 tests/
-  run.lua            -- runner + micro-framework (test/assertEqual/assertTrue/assertFalse); also --list mode
-  loader.lua         -- loadfile each source, setfenv(chunk, makeEnv(mocks)), chunk("BankLedger", NS), TOC order
-  wow_mock.lua       -- WoW API mock builder: self-returning no-op frame; CreateFrame/UIParent/Settings/LibStub fakes
-  test_<module>.lua  -- 16 suites, 603 cases
+  run.lua            -- the load list, the lifecycle kick and the suite list; the framework is _kit/framework.lua's
+  _kit/              -- VENDORED from LibKa0s testkit/: framework.lua (registry+assertions+--list), loader.lua (setfenv, tocFiles), mock_base.lua
+  wow_mock.lua       -- extender over _kit/mock_base.lua: geometry-modelling frame stub, container/guild-bank/item model, Ace fakes
+  test_<module>.lua  -- 18 suites, 684 cases (test_harness.lua guards the suite list and TOC order)
 ```
 
 `run.lua` builds the environment once by loading every source **in TOC order**, then calls
@@ -673,7 +697,7 @@ break**. Re-check any line a change touches.
 - [x] TOC has all required fields incl. single latest-Retail `## Interface:` (`120007`), `X-Standard`, and `X-Curse-Project-ID` (`1629058`). `X-Wago-ID` / `X-WoWI-ID` are absent — the addon is not listed there.
 - [x] `.pkgmeta` present with **no** `externals:` block; all libs vendored and committed under `libs/`.
 - [x] `.luacheckrc` present; `luacheck .` reports **0 warnings / 0 errors**.
-- [x] `tests/` harness present; `lua tests/run.lua` is **green** (603/603); behavior is covered test-first (testing).
+- [x] `tests/` harness present; `lua tests/run.lua` is **green** (684/684); behavior is covered test-first (testing).
 - [x] Generated `docs/test-cases.md` inventory present and in sync (`lua tests/run.lua --list`); README carries a static X/Y `[tests]` badge (testing-§5).
 - [x] `core/Compat.lua` owns every deprecated/patch-varying call; no `WOW_PROJECT_ID` flavor branching.
 - [x] `locales/enUS.lua` exists with the metatable fallback.
@@ -681,7 +705,7 @@ break**. Re-check any line a change touches.
 - [x] `settings/Schema.lua` exposes the Schema (10 rows), the single `Schema:Set` write seam, and slash dispatch from `NS.COMMANDS`.
 - [x] AceConsole `:RegisterChatCommand` registered for `/bl` and `/bankledger`.
 - [x] Options panel uses `Settings.RegisterCanvasLayoutCategory`, **category registered eagerly at load** (entry always visible), **body built lazily** on first `OnShow`.
-- [x] The header **Defaults button** is an AceGUI `Button` **created in the first `OnShow`** (not at registration), with its callback parked on the panel (`panel.defaultsOnClick`) and wired by the builder (options-ui-§5, anti-pattern #42). `setDefaultsAction` sets `panel.OnDefault` from the same closure so the two can never diverge.
+- [x] The header **Defaults button** is an AceGUI `Button` **created in the first `OnShow`** (not at registration), with its callback parked on the panel (`panel.defaultsOnClick`) and wired by the builder (options-ui-§5, anti-pattern #42). `setDefaultsAction` parks that closure and `LibKa0s-Options-1.0`'s `CreatePanel` stamps an `OnDefault` that forwards to it, so the two can never diverge.
 - [x] Combat-lockdown: options-panel open **refuses** under lockdown (grey notice, no defer — options-ui-§2). The addon has no secure writes to defer.
 - [x] Debug **console** (debug-logging) — on-screen, styled like the main window; monospace font (10pt) + tagged colour-coded lines `<ts> | [<Tag>] <content>`; `/bl debug` toggles the window, `/bl debug on|off` set logging (colour-coded `ON` green / `OFF` red chat ack); enabled-state **session-only** (never in SV), decoupled from window visibility; title-bar `Debug: ON/OFF` toggle; on enable emits an `[Init]` session summary. Plus two structured dump verbs, `/bl debug scan` and `/bl debug panel`.
 - [x] Test mode (preview-mode) — `/bl test` drives synthetic data through the real render path, read-only: Delete, Blacklist and Whitelist are inert while it is on.
@@ -719,7 +743,7 @@ named evidence is in `INDUSTRY_RESEARCH.md`.)
 | Eager settings registration + lazy body | Register the Blizzard **category** at load (bootstrap on `ADDON_LOADED(Blizzard_Settings)`/`PLAYER_LOGIN`, or in `OnInitialize`); build the panel body only in the first `OnShow`. |
 | On-screen debug console | A `DIALOG`-strata `700×344` `BackdropTemplate` window; a `ScrollingMessageFrame` in a shipped monospace font (10pt) with tagged, colour-coded lines (`<ts> \| [<Tag>] <content>`), a right-edge scrollbar + bottom `N / MAX lines` counter (debug-logging-§11), Clear/Copy, `UISpecialFrames`, reusing the main window's `SKIN`/`ApplySkin`; a gated `NS.Debug(tag, …)` sink that appends there instead of chat; session-only window-independent enabled-state with a title-bar `Debug: ON/OFF` toggle. |
 | Preview/test mode | Placeholder data fed through the real render path, read-only so it cannot reach real settings or history (`/bl test`, `/bl session`). |
-| Headless test harness | `tests/run.lua` micro-framework + `tests/loader.lua` (`setfenv` over ordered sources) + `tests/wow_mock.lua` (self-returning no-op frame; CreateFrame/Settings/LibStub fakes); per-module `test_*.lua` suites. |
+| Headless test harness | LibKa0s test kit vendored at `tests/_kit/` (registry, assertions, `setfenv` loader, shared mock base) + `tests/run.lua` (TOC-derived load list, lifecycle kick, suite list) + `tests/wow_mock.lua` (the addon-specific extender); per-module `test_*.lua` suites. |
 | Lazy first-OnShow panel build | Latch (`rendered` flag) so the AceGUI body builds once, on first `OnShow`, when the panel width is non-zero. |
 | Lazy header Defaults button | `ensureDefaultsButton(panel)` at the top of every `OnShow` builds the AceGUI `Button` once, after every addon has loaded — so a UI skin's `RegisterAsWidget` hook is already in place and the button isn't left on stock red art (options-ui-§5). |
 | Soft-fallback discipline | Load-safe shims for missing optional libs (AceDB-missing flat table, LSM-missing Blizzard constants) so the addon runs with `OptionalDeps` absent. |

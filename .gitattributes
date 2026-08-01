@@ -1,0 +1,27 @@
+# Force every text file to land on disk with CRLF line endings, regardless
+# of each contributor's `core.autocrlf` / `core.eol` settings. WoW expects
+# CRLF in addon source files, and contributors on Linux/macOS would
+# otherwise check out LF.
+#
+# `text=auto` lets Git auto-detect text vs binary on first add; `eol=crlf`
+# pins the working-tree line ending for everything classified as text.
+* text=auto eol=crlf
+
+# Explicit text — same effect as the default but documents intent for the
+# files we know are source.
+*.lua  text eol=crlf
+*.toc  text eol=crlf
+*.xml  text eol=crlf
+*.md   text eol=crlf
+*.json text eol=crlf
+
+# Binaries — never touch line endings, never try to diff as text.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.tga  binary
+*.blp  binary
+*.ttf  binary
+*.otf  binary
+*.mp3  binary
+*.ogg  binary

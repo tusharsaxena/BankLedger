@@ -122,14 +122,14 @@ test("Constants: every quality option carries a numeric value and a label", func
   assertTrue(#C.QUALITY_OPTIONS > 0)
   for _, opt in ipairs(C.QUALITY_OPTIONS) do
     assertEqual(type(opt.value), "number")
-    assertTrue(opt.label ~= nil and opt.label ~= "")
+    assertTrue(opt.text ~= nil and opt.text ~= "")
   end
 end)
 
 test("Constants: the retention presets offer an 'Always' (0) option", function()
   local found = false
   for _, opt in ipairs(C.RETENTION_OPTIONS) do
-    if opt.value == 0 then found = true; assertEqual(opt.label, "Always") end
+    if opt.value == 0 then found = true; assertEqual(opt.text, "Always") end
   end
   assertTrue(found, "a 0-day 'Always' preset")
 end)

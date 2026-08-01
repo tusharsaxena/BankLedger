@@ -59,7 +59,7 @@ end)
 test("Schema: dropdown rows carry their option list", function()
   for _, row in ipairs(S.Schema) do
     if row.widget == "Dropdown" or row.widget == "MultiCheck" then
-      assertTrue(type(row.options) == "table" and #row.options > 0,
+      assertTrue(type(row.values) == "table" and #row.values > 0,
         row.path .. " has no options")
     end
   end
@@ -140,25 +140,32 @@ end)
 
 -- ── COMMANDS ───────────────────────────────────────────────────────────────────
 
-test("COMMANDS: every entry has a name, a description and a function", function()
-  for _, cmd in ipairs(NS.COMMANDS) do
-    assertTrue(cmd.name ~= nil and cmd.name ~= "", "a command with no name")
-    assertTrue(cmd.desc ~= nil and cmd.desc ~= "", cmd.name .. " has no description")
-    assertEqual(type(cmd.fn), "function", cmd.name .. " has no handler")
+-- The entries are POSITIONAL triples — { name, description, handler } — because that is the shape
+-- LibKa0s-Slash-1.0 reads (entry[1]/entry[2]/entry[3]). They were keyed until the adoption, and the
+-- flip moved every consumer at once: dispatch, the chat help index and the settings landing page.
+test("COMMANDS: every entry is a { name, description, handler } triple", function()
+  for i, cmd in ipairs(NS.COMMANDS) do
+    assertTrue(type(cmd[1]) == "string" and cmd[1] ~= "", "entry " .. i .. " has no name")
+    assertTrue(type(cmd[2]) == "string" and cmd[2] ~= "", cmd[1] .. " has no description")
+    assertEqual(type(cmd[3]), "function", cmd[1] .. " has no handler")
+    -- The keyed shape must not linger alongside the positional one: two truths about one entry is
+    -- how a consumer keeps reading the stale half.
+    assertTrue(cmd.name == nil and cmd.desc == nil and cmd.fn == nil,
+      cmd[1] .. " still carries the old keyed fields")
   end
 end)
 
 test("COMMANDS: names are unique, so dispatch can never be ambiguous", function()
   local seen = {}
   for _, cmd in ipairs(NS.COMMANDS) do
-    assertFalse(seen[cmd.name], "duplicate command: " .. cmd.name)
-    seen[cmd.name] = true
+    assertFalse(seen[cmd[1]], "duplicate command: " .. cmd[1])
+    seen[cmd[1]] = true
   end
 end)
 
 test("COMMANDS: the standard's required verbs are all present", function()
   local names = {}
-  for _, cmd in ipairs(NS.COMMANDS) do names[cmd.name] = true end
+  for _, cmd in ipairs(NS.COMMANDS) do names[cmd[1]] = true end
   for _, required in ipairs({ "get", "set", "list", "reset", "resetall",
                               "config", "version", "debug", "help" }) do
     assertTrue(names[required], "missing the '" .. required .. "' verb")
@@ -167,7 +174,7 @@ end)
 
 test("COMMANDS: a test verb exists (test-mode)", function()
   local names = {}
-  for _, cmd in ipairs(NS.COMMANDS) do names[cmd.name] = true end
+  for _, cmd in ipairs(NS.COMMANDS) do names[cmd[1]] = true end
   assertTrue(names.test)
 end)
 
@@ -196,5 +203,55 @@ test("Schema: every row carries a tooltip", function()
   -- inverted per-store grid is exactly the row that most needed the sentence (F-019).
   for _, row in ipairs(S.Schema) do
     assertTrue((row.tooltip or "") ~= "", row.path .. " has no tooltip")
+  end
+end)
+
+-- ── LibKa0s-Options-1.0 row vocabulary ─────────────────────────────────────────
+--
+-- The flow engine reads a fixed set of row field names. Three of them are easy to get wrong in a
+-- way nothing reports: a missing `step` silently snaps a slider to its endpoints, an unrenderable
+-- type silently drops a row from the page, and the old `soloRow` / `panelSkip` spellings are simply
+-- never read.
+
+test("Schema: settings.windowScale declares its own step", function()
+  -- The library's makeSlider defaults `row.step or 1`. With min 0.6 and max 1.6 that is a slider
+  -- with exactly two positions, and nothing raises.
+  local row = NS.Schema:FindRow("settings.windowScale")
+  assertEqual(row.step, 0.05, "an undeclared step becomes 1 and collapses the slider")
+  assertTrue(row.min < row.max)
+end)
+
+test("Schema: a row the library cannot draw is marked skipRender, not left to vanish", function()
+  -- RenderField dispatches on bool/number/string/color and returns nil for anything else — one row
+  -- silently missing from the page, never an error. `skipRender` makes the host-drawn intent
+  -- explicit and keeps the row visible to the CLI and to every reset.
+  local RENDERABLE = { bool = true, number = true, string = true, color = true }
+  for _, row in ipairs(NS.Schema.Schema) do
+    if not RENDERABLE[row.type] then
+      assertTrue(row.skipRender == true,
+        row.path .. " is type '" .. tostring(row.type) .. "', which no library maker draws — it "
+        .. "must declare skipRender = true or it will silently disappear from its page")
+    end
+  end
+end)
+
+test("Schema: no row uses the pre-library field spellings", function()
+  -- soloRow -> solo, panelSkip -> skipRender. Both old names are simply never read by the library,
+  -- so a row carrying one lays out wrong with nothing to notice it.
+  for _, row in ipairs(NS.Schema.Schema) do
+    assertTrue(row.soloRow == nil, row.path .. " uses soloRow; the library reads solo")
+    assertTrue(row.panelSkip == nil, row.path .. " uses panelSkip; the library reads skipRender")
+  end
+end)
+
+test("Schema: a numeric row carrying values is an enum the panel must draw as a dropdown", function()
+  -- LibKa0s-Options-1.0 minor 5 infers this from `values`. Before it, both of these rendered as
+  -- 0-to-1 sliders because neither declares min/max/step.
+  for _, path in ipairs({ "settings.qualityThreshold", "settings.retentionDays" }) do
+    local row = NS.Schema:FindRow(path)
+    assertEqual(row.type, "number", path)
+    assertTrue(type(row.values) == "table" and #row.values > 0, path .. " has no values list")
+    assertTrue(row.min == nil and row.max == nil,
+      path .. " is an enum; declaring min/max would make it look like a range")
   end
 end)

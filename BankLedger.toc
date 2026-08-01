@@ -24,6 +24,9 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+# LibKa0s last in the block: every module but Core resolves LibKa0s-Core-1.0 through LibStub before
+# it registers, and Options resolves AceGUI-3.0 at panel-build time rather than at load.
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
@@ -33,6 +36,13 @@ locales\PostLoad.lua
 core\Compat.lua
 core\Constants.lua
 core\Namespace.lua
+# The LibKa0s-Core seam. After Namespace (NS.PREFIX), and before every file that takes NS.Print as a
+# load-time upvalue or reclaims it from NS.Util.print — see the header of core/CoreSetup.lua.
+core\CoreSetup.lua
+# The LibKa0s-DebugLog seam. After Constants (FONT_MONO) and after CoreSetup
+# (NS.LIBKA0S_MISSING). Everything else it touches is reached through a closure, so it no
+# longer has to sit after modules/Browser.lua the way modules/DebugLog.lua did.
+core\DebugLogSetup.lua
 core\State.lua
 core\Util.lua
 core\BankLedger.lua
@@ -50,9 +60,11 @@ modules\SessionWindow.lua
 modules\InsightsWidgets.lua
 modules\Insights.lua
 modules\Export.lua
-modules\DebugLog.lua
 
 # Settings (last — depend on everything else being initialized)
 settings\Schema.lua
 settings\Slash.lua
+# The LibKa0s-Options seam. After the schema and the write seam it reads, and BEFORE
+# settings/Panel.lua, which captures the instance at file scope (options-ui-§1).
+settings\OptionsSetup.lua
 settings\Panel.lua

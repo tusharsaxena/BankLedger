@@ -9,26 +9,28 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- surfaces pick it up with no other edit. Paths resolve against NS.db.global (account-wide).
 --
 -- `group` names the panel section header, and row order within a group drives the two-column
--- pairing. `wide` forces a full-width row; `soloRow` puts a row on its own line.
+-- pairing. `wide` forces a full-width row; `solo` puts a row on its own line; `skipRender` keeps a
+-- row in the schema — so the CLI, the defaults and a reset all still see it — while the panel draws
+-- it by hand. Those three names are LibKa0s-Options-1.0's, not ours: the flow engine reads them.
 S.Schema = {
   -- ── Master Controls ──
   -- The master switches and the window controls, ahead of what is actually captured: the same
   -- shape the sibling Ka0s addons use, so General reads the same way across the suite.
-  { path = "settings.enabled", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.enabled", default = true, type = "bool", widget = "CheckBox",
     group = "Master Controls", label = "Enable capture",
     tooltip = "Master switch for recording bank movements.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
     end },
 
-  { path = "minimap.hide", default = false, type = "boolean", widget = "CheckBox",
+  { path = "minimap.hide", default = false, type = "bool", widget = "CheckBox",
     group = "Master Controls", label = "Hide minimap button",
     tooltip = "Hide the Bank Ledger minimap button.",
     onChange = function(v)
       if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
     end },
 
-  { path = "settings.showSessionWindow", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
     group = "Master Controls", label = "Session window",
     tooltip = "Show a small live window listing what you move while a bank is open. "
       .. "Turning this off never stops capture \226\128\148 only the window.",
@@ -39,7 +41,7 @@ S.Schema = {
   -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
   -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
   -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
-  { path = "state.debugConsole", sessionOnly = true, default = false, type = "boolean",
+  { path = "state.debugConsole", sessionOnly = true, default = false, type = "bool",
     widget = "CheckBox", group = "Master Controls", label = "Debug console",
     tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
     get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
@@ -50,6 +52,10 @@ S.Schema = {
 
   -- Paired with the "Reset all" button by the panel's `companions` map (settings/Panel.lua).
   { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
+    -- Declared explicitly because the two renderers disagree about the default: this addon's old
+    -- panel assumed 0.05, LibKa0s-Options-1.0's makeSlider assumes 1. Left undeclared, the library
+    -- would snap a 0.6-1.6 slider to its two endpoints and nothing else.
+    step = 0.05,
     widget = "Slider",
     fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
     group = "Master Controls", label = "Window scale",
@@ -68,27 +74,27 @@ S.Schema = {
   -- What gets recorded: the two scope dropdowns first, then the kind toggles, then the per-store
   -- grid — narrowest-to-widest, as the sibling addons order their collection section.
   { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Minimum quality", options = C.QUALITY_OPTIONS,
+    group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
     tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
     end },
 
   { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Keep history for", options = C.RETENTION_OPTIONS,
+    group = "Capture", label = "Keep history for", values = C.RETENTION_OPTIONS,
     tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
     onChange = function()
       if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end },
 
-  { path = "settings.trackItems", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.trackItems", default = true, type = "bool", widget = "CheckBox",
     group = "Capture", label = "Track items",
     tooltip = "Record items moving between your bags and a bank.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "trackItems") end
     end },
 
-  { path = "settings.trackMoney", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.trackMoney", default = true, type = "bool", widget = "CheckBox",
     group = "Capture", label = "Track gold",
     tooltip = "Record gold deposited to or withdrawn from the guild and warband banks. "
       .. "The character bank has no gold slot, so it is never counted.",
@@ -98,9 +104,13 @@ S.Schema = {
 
   -- Stored as the set of MUTED stores (excludedStores); the panel renders it inverted
   -- (invert = true) as "Record movements to and from", so a ticked box means "record this store".
+  -- `skipRender` because no library maker draws a multi-select set picker, let alone an inverted
+  -- one — RenderField dispatches on bool/number/string/color and answers nil for anything else. The
+  -- row stays in the schema so `/bl list`, `/bl get` and every reset still see it; the panel emits
+  -- the checkbox grid itself, in the library's own flow, between two of its spacers.
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
-    wide = true, invert = true,
-    group = "Capture", label = "Record movements to and from", options = C.STORE_OPTIONS,
+    wide = true, invert = true, skipRender = true,
+    group = "Capture", label = "Record movements to and from", values = C.STORE_OPTIONS,
     -- Spells the inversion out: the stored value is the MUTED set, so a ticked box means "record".
     tooltip = "Tick a store to RECORD movements to and from it. Unticking mutes that store; "
       .. "capture for every other store is unaffected.",
@@ -170,6 +180,15 @@ function S:Set(path, value)
     NS.Debug("Set", "%s = %s", tostring(path), tostring(value))
   end
   if row.onChange then row.onChange(value) end
+  -- An open panel MUST reflect live state after a mutation (options-ui-§11), and the write seam is
+  -- where that belongs: this is "the same function /bl set calls" (options-ui-§41), so a slash
+  -- write, a panel widget and any future caller all repaint by the same route. It used to be
+  -- nowhere, so `/bl set` with the settings window open left every widget showing the old value
+  -- until the window was closed and reopened.
+  --
+  -- Cheap by construction: P:Refresh skips every page that is not on screen, and re-syncing a
+  -- widget's value does not fire its OnValueChanged, so this cannot loop back through here.
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
   return true
 end
 
@@ -205,20 +224,20 @@ end
 -- `/bl help`, the README's command table and the settings landing page can never drift
 -- (slash-commands-§3).
 NS.COMMANDS = {
-  { name = "show",     desc = "Open the ledger window",  fn = function() NS.Browser:Show() end },
-  { name = "hide",     desc = "Close the ledger window", fn = function() NS.Browser:Hide() end },
-  { name = "toggle",   desc = "Toggle the ledger window", fn = function() NS.Browser:Toggle() end },
-  { name = "config",   desc = "Open settings",           fn = function()
+  { "show",     "Open the ledger window",  function() NS.Browser:Show() end },
+  { "hide",     "Close the ledger window", function() NS.Browser:Hide() end },
+  { "toggle",   "Toggle the ledger window", function() NS.Browser:Toggle() end },
+  { "config",   "Open settings",           function()
       if NS.Panel then NS.Panel:Open() end
     end },
-  { name = "version",  desc = "Print addon version",     fn = function() NS.Slash:CliVersion() end },
-  { name = "get",      desc = "Get a setting value",     fn = function(a) NS.Slash:CliGet(a) end },
-  { name = "set",      desc = "Set a setting value",     fn = function(a) NS.Slash:CliSet(a) end },
-  { name = "list",     desc = "List all settings",       fn = function() NS.Slash:CliList() end },
-  { name = "reset",    desc = "Reset one setting",       fn = function(a) NS.Slash:CliReset(a) end },
-  { name = "resetall", desc = "Reset all settings",      fn = function() NS.Slash:CliResetAll() end },
-  { name = "session",  desc = "Toggle the banking-session window (sample data outside a bank)",
-    fn = function()
+  { "version",  "Print addon version",     function() NS.Slash:CliVersion() end },
+  { "get",      "Get a setting value",     function(a) NS.Slash:CliGet(a) end },
+  { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },
+  { "list",     "List all settings",       function() NS.Slash:CliList() end },
+  { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
+  { "resetall", "Reset all settings",      function() NS.Slash:CliResetAll() end },
+  { "session",  "Toggle the banking-session window (sample data outside a bank)",
+    function()
       if not NS.SessionWindow then return end
       local on = NS.SessionWindow:TogglePreview()
       if on == nil then
@@ -227,19 +246,19 @@ NS.COMMANDS = {
         print("session window sample " .. (on and "on" or "off"))
       end
     end },
-  { name = "test",     desc = "Toggle a sample ledger",  fn = function()
+  { "test",     "Toggle a sample ledger",  function()
       local on = NS.LedgerTable and NS.LedgerTable.ToggleTestMode
         and NS.LedgerTable:ToggleTestMode()
       print("test mode " .. (on and "on" or "off"))
     end },
-  { name = "purge",    desc = "Delete ALL ledger history (asks first)", fn = function()
+  { "purge",    "Delete ALL ledger history (asks first)", function()
       if type(StaticPopup_Show) == "function" then
         StaticPopup_Show("KA0S_BANKLEDGER_PURGE")
       elseif NS.Database and NS.Database.Purge then
         NS.Database:Purge()
       end
     end },
-  { name = "debug",    desc = "Toggle the console; 'on'/'off' set logging", fn = function(rest)
+  { "debug",    "Toggle the console; 'on'/'off' set logging", function(rest)
       -- `/bl debug` toggles the WINDOW only (the logging flag is untouched); `/bl debug on|off`
       -- sets the session-only logging flag through the DebugLog seam. Logging runs even with the
       -- console closed, so a bug can be reproduced first and the log read afterwards.
@@ -263,5 +282,5 @@ NS.COMMANDS = {
         for _, line in ipairs(NS.Ledger:Diagnose()) do NS.DebugLog:Add("Scan", line) end
       else NS.DebugLog:Toggle() end
     end },
-  { name = "help",     desc = "Show this help",          fn = function() NS.Slash:PrintHelp() end },
+  { "help",     "Show this help",          function() NS.Slash:PrintHelp() end },
 }
