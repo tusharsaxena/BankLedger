@@ -686,7 +686,7 @@ badge and any count quoted in the docs must agree with it.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_libka0s.lua (55)
+### test_libka0s.lua (56)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
@@ -703,6 +703,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Core degraded: the notice is said exactly ONCE, on the first line printed
 - LibKa0s: the shared cause clause is set on BOTH paths, word for word
 - LibKa0s-Core tripwire: Core ships no STRINGS and reads no descriptor L
+- LibKa0s-Options tripwire: Options reads no descriptor L
 - LibKa0s: no seam file hands a descriptor the addon-wide locale table
 - LibKa0s: the locale-descriptor matcher catches all three spellings
 - LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
@@ -765,5 +766,5 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 33 |
 | test_panel.lua | 23 |
 | test_harness.lua | 7 |
-| test_libka0s.lua | 55 |
-| **Total** | **684** |
+| test_libka0s.lua | 56 |
+| **Total** | **685** |

@@ -217,6 +217,32 @@ test("LibKa0s-Core tripwire: Core ships no STRINGS and reads no descriptor L", f
   assertTrue(src:find("d.L", 1, true) == nil, "Core.lua now reads a descriptor L")
 end)
 
+test("LibKa0s-Options tripwire: Options reads no descriptor L", function()
+  -- The second major this addon adopts that cannot express the trap, and it needs a DIFFERENT
+  -- tripwire from Core's rather than a copy of it. Options.lua ships a STRINGS table of its own, so
+  -- `rawget(lib, "STRINGS") == nil` would fail against a module behaving exactly as designed. What
+  -- transfers is the source half: Options resolves its user-visible strings from `lib.STRINGS` with
+  -- no descriptor override path at all, so there is nothing a host can hand it to break — until
+  -- there is, and then this reddens on the day it becomes possible rather than on the day someone
+  -- thinks to look.
+  --
+  -- `local L = lib.LAYOUT` at the top of that file is GEOMETRY, not a locale table. Asserting the
+  -- layout table exists keeps that distinction pinned, so this case cannot be quietly satisfied by
+  -- renaming the wrong thing.
+  local opts = T.mocks.LibStub("LibKa0s-Options-1.0", true)
+  assertTrue(opts ~= nil, "the vendored Options major must be registered")
+  assertTrue(type(rawget(opts, "STRINGS")) == "table",
+    "Options is expected to own its strings — if that went away, so did the reason for this shape")
+  assertTrue(type(rawget(opts, "LAYOUT")) == "table", "and `L` inside that file is this table")
+
+  for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsScroll.lua" }) do
+    local osrc = Loader.readFile("libs/LibKa0s/" .. rel)
+    assertTrue(osrc:find("d.L", 1, true) == nil,
+      rel .. " now reads a descriptor L — every host descriptor for this major needs a rendered "
+      .. "assertion now, and this tripwire needs replacing")
+  end
+end)
+
 -- The source guard for every seam file. A descriptor field is not observable after `lib:New`
 -- returns, so the only way to pin "no descriptor was handed the addon-wide locale table" is to read
 -- the source.
