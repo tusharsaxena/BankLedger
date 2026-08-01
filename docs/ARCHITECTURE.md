@@ -91,7 +91,7 @@ warband movement, because no event announces one.
 | `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
 | `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. |
-| `settings/Slash.lua` | AceConsole registration, dispatch, and the `list`/`get`/`set`/`reset` CLI. |
+| `settings/Slash.lua` | The **LibKa0s-Slash-1.0 seam**, plus what stays the host's: AceConsole registration, the five confirm dialogs, `Sl:Version`, and the full reset. The dispatcher, the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's. Supplies `groupKey` (this schema groups by `group`, not `page`), a `format` hook for the set-typed `excludedStores` row, and a `parse` override that refuses a chat edit of that row by name. Wraps `CliResetAll` so the two carve-outs with no Schema widget — the filter lists and the saved ledger view — are still reset. |
 | `settings/Panel.lua` | The Blizzard Settings landing page plus the General and Filters subcategories. |
 
 ## Data model

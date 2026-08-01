@@ -603,22 +603,20 @@ badge and any count quoted in the docs must agree with it.
 - Schema: a session-only row never touches SavedVariables
 - Schema: the session-only row reads through its own getter
 - Schema: the debug LOGGING flag is deliberately not a schema row
-- COMMANDS: every entry has a name, a description and a function
+- COMMANDS: every entry is a { name, description, handler } triple
 - COMMANDS: names are unique, so dispatch can never be ambiguous
 - COMMANDS: the standard's required verbs are all present
 - COMMANDS: a test verb exists (test-mode)
 - Schema: the four Master Controls switches pair into two full rows
 - Schema: every row carries a tooltip
 
-### test_slash.lua (35)
+### test_slash.lua (33)
 
-- Slash.FormatSchemaValue renders booleans as true/false
-- Slash.FormatSchemaValue applies a row's number format
-- Slash.FormatSchemaValue renders a set as a sorted brace list
-- Slash.FormatSchemaValue renders an empty set as (none)
-- Slash.FormatSchemaValue renders nil as nil
-- Slash.FormatKV colours the key gold and the value white
-- Slash.FormatKV carries no trailing colon (house style)
+- Slash: a set renders as a sorted brace list, through the format hook
+- Slash: an empty set renders as (none), not as an empty brace pair
+- Slash: a number row keeps its declared fmt
+- Slash: a boolean row still reads true/false
+- Slash: the key = value line carries no trailing colon (house style)
 - Slash:BuildListLines opens with the green 'Available settings' header
 - Slash:BuildListLines has no trailing colon on any line
 - Slash:BuildListLines indents group headers by two and rows by four
@@ -631,7 +629,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliSet writes a number and echoes the STORED value back
 - Slash:CliSet rejects a non-numeric value for a number setting
 - Slash:CliSet reports an unknown path
-- Slash:CliSet prints usage when the value is missing
+- Slash:CliSet refuses a value-less set and says why
 - Slash:CliReset restores one setting to its default
 - Slash:CliReset echoes a table default through the shared formatter
 - Slash:CliReset echoes the coloured key = value shape, like get and set
@@ -640,12 +638,12 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /bl prints the help index
 - Slash: the help index has one row per COMMANDS entry, plus the header
 - Slash: the help header names both the short verb and its alias
-- Slash: help rows are gold command, em-dash, white description
+- Slash: help rows are gold command, em-dash, white description, indented
 - Slash: an unknown verb says so and then prints the help index
 - Slash: dispatch lower-cases only the verb, preserving the argument's case
 - Slash:CliVersion prints a single tagged version line
 - Slash: every chat line carries the cyan [BL] tag
-- Slash: every declared /bl list group actually exists in the schema
+- Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
 ### test_panel.lua (6)
@@ -667,7 +665,7 @@ badge and any count quoted in the docs must agree with it.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_libka0s.lua (37)
+### test_libka0s.lua (55)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
@@ -706,6 +704,24 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
 - LibKa0s-DebugLog: the chat acknowledgement still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
+- LibKa0s-Slash: the vendored major registered and the CLI is running on it
+- LibKa0s-Slash: the module needs the minor that carries the format hook
+- LibKa0s-Slash: every printed line still carries the [BL] tag
+- LibKa0s-Slash: /bl list keeps its section headings
+- LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel
+- LibKa0s-Slash: the format hook defers to the library for every OTHER row type
+- LibKa0s-Slash: booleans are settable, because the schema says 'bool'
+- LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
+- LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
+- LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
+- LibKa0s-Slash: CliResetAll keeps this addon's two carve-outs
+- LibKa0s-Slash: the landing page and the chat help render the SAME rows
+- LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
+- LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
+- LibKa0s-Slash degraded: the verbs that never needed the library still work
+- LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
+- LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
+- LibKa0s-Slash: the seam loads after the schema it reads
 
 ## Totals
 
@@ -725,8 +741,8 @@ badge and any count quoted in the docs must agree with it.
 | test_export.lua | 34 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 22 |
-| test_slash.lua | 35 |
+| test_slash.lua | 33 |
 | test_panel.lua | 6 |
 | test_harness.lua | 7 |
-| test_libka0s.lua | 37 |
-| **Total** | **647** |
+| test_libka0s.lua | 55 |
+| **Total** | **663** |

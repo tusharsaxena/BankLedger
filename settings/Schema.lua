@@ -14,21 +14,21 @@ S.Schema = {
   -- ── Master Controls ──
   -- The master switches and the window controls, ahead of what is actually captured: the same
   -- shape the sibling Ka0s addons use, so General reads the same way across the suite.
-  { path = "settings.enabled", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.enabled", default = true, type = "bool", widget = "CheckBox",
     group = "Master Controls", label = "Enable capture",
     tooltip = "Master switch for recording bank movements.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
     end },
 
-  { path = "minimap.hide", default = false, type = "boolean", widget = "CheckBox",
+  { path = "minimap.hide", default = false, type = "bool", widget = "CheckBox",
     group = "Master Controls", label = "Hide minimap button",
     tooltip = "Hide the Bank Ledger minimap button.",
     onChange = function(v)
       if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
     end },
 
-  { path = "settings.showSessionWindow", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
     group = "Master Controls", label = "Session window",
     tooltip = "Show a small live window listing what you move while a bank is open. "
       .. "Turning this off never stops capture \226\128\148 only the window.",
@@ -39,7 +39,7 @@ S.Schema = {
   -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
   -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
   -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
-  { path = "state.debugConsole", sessionOnly = true, default = false, type = "boolean",
+  { path = "state.debugConsole", sessionOnly = true, default = false, type = "bool",
     widget = "CheckBox", group = "Master Controls", label = "Debug console",
     tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
     get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
@@ -68,27 +68,27 @@ S.Schema = {
   -- What gets recorded: the two scope dropdowns first, then the kind toggles, then the per-store
   -- grid — narrowest-to-widest, as the sibling addons order their collection section.
   { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Minimum quality", options = C.QUALITY_OPTIONS,
+    group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
     tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
     end },
 
   { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Keep history for", options = C.RETENTION_OPTIONS,
+    group = "Capture", label = "Keep history for", values = C.RETENTION_OPTIONS,
     tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
     onChange = function()
       if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end },
 
-  { path = "settings.trackItems", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.trackItems", default = true, type = "bool", widget = "CheckBox",
     group = "Capture", label = "Track items",
     tooltip = "Record items moving between your bags and a bank.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "trackItems") end
     end },
 
-  { path = "settings.trackMoney", default = true, type = "boolean", widget = "CheckBox",
+  { path = "settings.trackMoney", default = true, type = "bool", widget = "CheckBox",
     group = "Capture", label = "Track gold",
     tooltip = "Record gold deposited to or withdrawn from the guild and warband banks. "
       .. "The character bank has no gold slot, so it is never counted.",
@@ -100,7 +100,7 @@ S.Schema = {
   -- (invert = true) as "Record movements to and from", so a ticked box means "record this store".
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
     wide = true, invert = true,
-    group = "Capture", label = "Record movements to and from", options = C.STORE_OPTIONS,
+    group = "Capture", label = "Record movements to and from", values = C.STORE_OPTIONS,
     -- Spells the inversion out: the stored value is the MUTED set, so a ticked box means "record".
     tooltip = "Tick a store to RECORD movements to and from it. Unticking mutes that store; "
       .. "capture for every other store is unaffected.",
@@ -205,20 +205,20 @@ end
 -- `/bl help`, the README's command table and the settings landing page can never drift
 -- (slash-commands-§3).
 NS.COMMANDS = {
-  { name = "show",     desc = "Open the ledger window",  fn = function() NS.Browser:Show() end },
-  { name = "hide",     desc = "Close the ledger window", fn = function() NS.Browser:Hide() end },
-  { name = "toggle",   desc = "Toggle the ledger window", fn = function() NS.Browser:Toggle() end },
-  { name = "config",   desc = "Open settings",           fn = function()
+  { "show",     "Open the ledger window",  function() NS.Browser:Show() end },
+  { "hide",     "Close the ledger window", function() NS.Browser:Hide() end },
+  { "toggle",   "Toggle the ledger window", function() NS.Browser:Toggle() end },
+  { "config",   "Open settings",           function()
       if NS.Panel then NS.Panel:Open() end
     end },
-  { name = "version",  desc = "Print addon version",     fn = function() NS.Slash:CliVersion() end },
-  { name = "get",      desc = "Get a setting value",     fn = function(a) NS.Slash:CliGet(a) end },
-  { name = "set",      desc = "Set a setting value",     fn = function(a) NS.Slash:CliSet(a) end },
-  { name = "list",     desc = "List all settings",       fn = function() NS.Slash:CliList() end },
-  { name = "reset",    desc = "Reset one setting",       fn = function(a) NS.Slash:CliReset(a) end },
-  { name = "resetall", desc = "Reset all settings",      fn = function() NS.Slash:CliResetAll() end },
-  { name = "session",  desc = "Toggle the banking-session window (sample data outside a bank)",
-    fn = function()
+  { "version",  "Print addon version",     function() NS.Slash:CliVersion() end },
+  { "get",      "Get a setting value",     function(a) NS.Slash:CliGet(a) end },
+  { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },
+  { "list",     "List all settings",       function() NS.Slash:CliList() end },
+  { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
+  { "resetall", "Reset all settings",      function() NS.Slash:CliResetAll() end },
+  { "session",  "Toggle the banking-session window (sample data outside a bank)",
+    function()
       if not NS.SessionWindow then return end
       local on = NS.SessionWindow:TogglePreview()
       if on == nil then
@@ -227,19 +227,19 @@ NS.COMMANDS = {
         print("session window sample " .. (on and "on" or "off"))
       end
     end },
-  { name = "test",     desc = "Toggle a sample ledger",  fn = function()
+  { "test",     "Toggle a sample ledger",  function()
       local on = NS.LedgerTable and NS.LedgerTable.ToggleTestMode
         and NS.LedgerTable:ToggleTestMode()
       print("test mode " .. (on and "on" or "off"))
     end },
-  { name = "purge",    desc = "Delete ALL ledger history (asks first)", fn = function()
+  { "purge",    "Delete ALL ledger history (asks first)", function()
       if type(StaticPopup_Show) == "function" then
         StaticPopup_Show("KA0S_BANKLEDGER_PURGE")
       elseif NS.Database and NS.Database.Purge then
         NS.Database:Purge()
       end
     end },
-  { name = "debug",    desc = "Toggle the console; 'on'/'off' set logging", fn = function(rest)
+  { "debug",    "Toggle the console; 'on'/'off' set logging", function(rest)
       -- `/bl debug` toggles the WINDOW only (the logging flag is untouched); `/bl debug on|off`
       -- sets the session-only logging flag through the DebugLog seam. Logging runs even with the
       -- console closed, so a bug can be reproduced first and the log read afterwards.
@@ -263,5 +263,5 @@ NS.COMMANDS = {
         for _, line in ipairs(NS.Ledger:Diagnose()) do NS.DebugLog:Add("Scan", line) end
       else NS.DebugLog:Toggle() end
     end },
-  { name = "help",     desc = "Show this help",          fn = function() NS.Slash:PrintHelp() end },
+  { "help",     "Show this help",          function() NS.Slash:PrintHelp() end },
 }

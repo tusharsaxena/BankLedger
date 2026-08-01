@@ -153,14 +153,14 @@ C.STORE_CONTAINERS = {
 
 -- Retention presets; 0 means "Always" (cleanup disabled).
 C.RETENTION_OPTIONS = {
-  { value = 7,   label = "7 days" },
-  { value = 14,  label = "14 days" },
-  { value = 30,  label = "30 days" },
-  { value = 60,  label = "60 days" },
-  { value = 90,  label = "90 days" },
-  { value = 180, label = "180 days" },
-  { value = 365, label = "365 days" },
-  { value = 0,   label = "Always" },
+  { value = 7,   text  = "7 days" },
+  { value = 14,  text  = "14 days" },
+  { value = 30,  text  = "30 days" },
+  { value = 60,  text  = "60 days" },
+  { value = 90,  text  = "90 days" },
+  { value = 180, text  = "180 days" },
+  { value = 365, text  = "365 days" },
+  { value = 0,   text  = "Always" },
 }
 
 -- Minimum-quality options for the item capture gate (WoW item-quality ids). Monotonic
@@ -178,7 +178,7 @@ C.QUALITY_OPTIONS = {}
 for _, q in ipairs({ 0, 1, 2, 3, 4, 5 }) do
   C.QUALITY_OPTIONS[#C.QUALITY_OPTIONS + 1] = {
     value = q,
-    label = ("|cff%s%s|r and above"):format(qualityHex(q), NS.Compat.QualityLabel(q)),
+    text  = ("|cff%s%s|r and above"):format(qualityHex(q), NS.Compat.QualityLabel(q)),
   }
 end
 
@@ -186,7 +186,7 @@ end
 C.STORE_OPTIONS = {}
 for _, s in ipairs(C.StoreOrder) do
   if s ~= "BAGS" then   -- BAGS is the counterparty of every movement, never a mutable target
-    C.STORE_OPTIONS[#C.STORE_OPTIONS + 1] = { value = s, label = C.StoreLabel[s] }
+    C.STORE_OPTIONS[#C.STORE_OPTIONS + 1] = { value = s, text  = C.StoreLabel[s] }
   end
 end
 

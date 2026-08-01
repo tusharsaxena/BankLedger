@@ -282,7 +282,7 @@ local function makeDropdown(ctx, row, parent, rel)
   local dd = AceGUI:Create("Dropdown")
   dd:SetLabel(row.label); applyWidth(dd, rel)
   local list, order = {}, {}
-  for i, opt in ipairs(row.options) do list[opt.value] = opt.label; order[i] = opt.value end
+  for i, opt in ipairs(row.values) do list[opt.value] = opt.text; order[i] = opt.value end
   dd:SetList(list, order)
   dd:SetCallback("OnValueChanged", function(_, _, key) NS.Schema:Set(row.path, key) end)
   attachTooltip(dd, row.label, row.tooltip)
@@ -314,9 +314,9 @@ local function makeMultiCheck(ctx, row, scroll)
   local group = AceGUI:Create("InlineGroup")
   group:SetTitle(row.label); group:SetFullWidth(true); group:SetLayout("Flow")
   local boxes = {}
-  for _, opt in ipairs(row.options) do
+  for _, opt in ipairs(row.values) do
     local cb = AceGUI:Create("CheckBox")
-    cb:SetLabel(opt.label); cb:SetWidth(170)
+    cb:SetLabel(opt.text); cb:SetWidth(170)
     cb:SetCallback("OnValueChanged", function(_, _, v)
       local cur = NS.Schema:Get(row.path) or {}
       local copy = {}
@@ -628,11 +628,20 @@ local function buildMainContent(ctx)
   scroll:AddChild(heading)
   addSpacer(scroll, 6)
 
-  -- Generated from NS.COMMANDS, so this list stays in lockstep with `/bl help` (options-ui-§5).
-  for _, cmd in ipairs(NS.COMMANDS or {}) do
+  -- Rendered through NS.Slash:LandingRows(), which is LibKa0s-Slash-1.0's ONE command-row
+  -- formatter — the same one `/bl help` uses, un-indented because here each row is its own
+  -- label (options-ui-§5, slash-commands-§4).
+  --
+  -- This page used to carry a SECOND formatter for the same data: doubled spaces around an em
+  -- dash that was explicitly wrapped white, with the description left bare. Two renderers for
+  -- one table in one repo drift the moment either is touched, and this one had already drifted
+  -- from the chat help. Collapsing them is a deliberate, user-visible convergence — the spacing
+  -- tightens, the dash loses its colour span and the description gains one. Recorded in
+  -- docs/pending/LEDGER.md rather than left to look like an accident.
+  for _, row in ipairs((NS.Slash and NS.Slash.LandingRows and NS.Slash:LandingRows()) or {}) do
     local labelRow = AceGUI:Create("Label")
     labelRow:SetFullWidth(true)
-    labelRow:SetText(("|cffffff00/bl %s|r  |cffffffff\226\128\148|r  %s"):format(cmd.name, cmd.desc))
+    labelRow:SetText(row)
     scroll:AddChild(labelRow)
   end
 end

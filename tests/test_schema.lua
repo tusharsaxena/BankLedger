@@ -59,7 +59,7 @@ end)
 test("Schema: dropdown rows carry their option list", function()
   for _, row in ipairs(S.Schema) do
     if row.widget == "Dropdown" or row.widget == "MultiCheck" then
-      assertTrue(type(row.options) == "table" and #row.options > 0,
+      assertTrue(type(row.values) == "table" and #row.values > 0,
         row.path .. " has no options")
     end
   end
@@ -140,25 +140,32 @@ end)
 
 -- ── COMMANDS ───────────────────────────────────────────────────────────────────
 
-test("COMMANDS: every entry has a name, a description and a function", function()
-  for _, cmd in ipairs(NS.COMMANDS) do
-    assertTrue(cmd.name ~= nil and cmd.name ~= "", "a command with no name")
-    assertTrue(cmd.desc ~= nil and cmd.desc ~= "", cmd.name .. " has no description")
-    assertEqual(type(cmd.fn), "function", cmd.name .. " has no handler")
+-- The entries are POSITIONAL triples — { name, description, handler } — because that is the shape
+-- LibKa0s-Slash-1.0 reads (entry[1]/entry[2]/entry[3]). They were keyed until the adoption, and the
+-- flip moved every consumer at once: dispatch, the chat help index and the settings landing page.
+test("COMMANDS: every entry is a { name, description, handler } triple", function()
+  for i, cmd in ipairs(NS.COMMANDS) do
+    assertTrue(type(cmd[1]) == "string" and cmd[1] ~= "", "entry " .. i .. " has no name")
+    assertTrue(type(cmd[2]) == "string" and cmd[2] ~= "", cmd[1] .. " has no description")
+    assertEqual(type(cmd[3]), "function", cmd[1] .. " has no handler")
+    -- The keyed shape must not linger alongside the positional one: two truths about one entry is
+    -- how a consumer keeps reading the stale half.
+    assertTrue(cmd.name == nil and cmd.desc == nil and cmd.fn == nil,
+      cmd[1] .. " still carries the old keyed fields")
   end
 end)
 
 test("COMMANDS: names are unique, so dispatch can never be ambiguous", function()
   local seen = {}
   for _, cmd in ipairs(NS.COMMANDS) do
-    assertFalse(seen[cmd.name], "duplicate command: " .. cmd.name)
-    seen[cmd.name] = true
+    assertFalse(seen[cmd[1]], "duplicate command: " .. cmd[1])
+    seen[cmd[1]] = true
   end
 end)
 
 test("COMMANDS: the standard's required verbs are all present", function()
   local names = {}
-  for _, cmd in ipairs(NS.COMMANDS) do names[cmd.name] = true end
+  for _, cmd in ipairs(NS.COMMANDS) do names[cmd[1]] = true end
   for _, required in ipairs({ "get", "set", "list", "reset", "resetall",
                               "config", "version", "debug", "help" }) do
     assertTrue(names[required], "missing the '" .. required .. "' verb")
@@ -167,7 +174,7 @@ end)
 
 test("COMMANDS: a test verb exists (test-mode)", function()
   local names = {}
-  for _, cmd in ipairs(NS.COMMANDS) do names[cmd.name] = true end
+  for _, cmd in ipairs(NS.COMMANDS) do names[cmd[1]] = true end
   assertTrue(names.test)
 end)
 

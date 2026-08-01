@@ -19,40 +19,43 @@ end
 local function joined(out) return table.concat(out, "\n") end
 
 -- ── Value formatting (slash-commands-§5) ───────────────────────────────────────
+--
+-- Sl.FormatSchemaValue and Sl.FormatKV are gone: both are LibKa0s-Slash-1.0's, lib-level rather
+-- than on the instance. What is still OURS is the `format` descriptor hook, which is the only
+-- reason a set renders as a set — see the LibKa0s-Slash section of tests/test_libka0s.lua for the
+-- rendered-byte assertions, and the cases below for the behaviour those bytes describe.
 
-test("Slash.FormatSchemaValue renders booleans as true/false", function()
-  local row = { type = "boolean" }
-  assertEqual(Sl.FormatSchemaValue(row, true), "true")
-  assertEqual(Sl.FormatSchemaValue(row, false), "false")
+test("Slash: a set renders as a sorted brace list, through the format hook", function()
+  local saved = NS.Schema:Get("settings.excludedStores")
+  NS.Schema:Set("settings.excludedStores", { GUILD_BANK = true, BANK = true })
+  local out = captureChat(function() Sl:CliGet("settings.excludedStores") end)
+  assertTrue(out[1]:find("{BANK, GUILD_BANK}", 1, true) ~= nil,
+    "a table-typed row must not fall through to the library's secret sentinel: " .. out[1])
+  NS.Schema:Set("settings.excludedStores", saved or {})
 end)
 
-test("Slash.FormatSchemaValue applies a row's number format", function()
-  assertEqual(Sl.FormatSchemaValue({ type = "number", fmt = "%.2fx" }, 1), "1.00x")
+test("Slash: an empty set renders as (none), not as an empty brace pair", function()
+  local saved = NS.Schema:Get("settings.excludedStores")
+  NS.Schema:Set("settings.excludedStores", {})
+  local out = captureChat(function() Sl:CliGet("settings.excludedStores") end)
+  assertTrue(out[1]:find("(none)", 1, true) ~= nil, out[1])
+  NS.Schema:Set("settings.excludedStores", saved or {})
 end)
 
-test("Slash.FormatSchemaValue renders a set as a sorted brace list", function()
-  local row = { type = "table" }
-  assertEqual(Sl.FormatSchemaValue(row, { GUILD_BANK = true, BANK = true }),
-    "{BANK, GUILD_BANK}")
+test("Slash: a number row keeps its declared fmt", function()
+  local out = captureChat(function() Sl:CliGet("settings.windowScale") end)
+  assertTrue(out[1]:find("1.00x", 1, true) ~= nil, out[1])
 end)
 
-test("Slash.FormatSchemaValue renders an empty set as (none)", function()
-  assertEqual(Sl.FormatSchemaValue({ type = "table" }, {}), "(none)")
+test("Slash: a boolean row still reads true/false", function()
+  local out = captureChat(function() Sl:CliGet("settings.enabled") end)
+  assertTrue(out[1]:find("true", 1, true) ~= nil or out[1]:find("false", 1, true) ~= nil, out[1])
 end)
 
-test("Slash.FormatSchemaValue renders nil as nil", function()
-  assertEqual(Sl.FormatSchemaValue({ type = "number" }, nil), "nil")
+test("Slash: the key = value line carries no trailing colon (house style)", function()
+  local out = captureChat(function() Sl:CliGet("settings.enabled") end)
+  assertFalse(out[1]:sub(-1) == ":")
 end)
-
-test("Slash.FormatKV colours the key gold and the value white", function()
-  assertEqual(Sl.FormatKV("settings.enabled", "true"),
-    "|cffffff00settings.enabled|r = |cfffffffftrue|r")
-end)
-
-test("Slash.FormatKV carries no trailing colon (house style)", function()
-  assertFalse(Sl.FormatKV("a", "b"):sub(-1) == ":")
-end)
-
 -- ── list ───────────────────────────────────────────────────────────────────────
 
 test("Slash:BuildListLines opens with the green 'Available settings' header", function()
@@ -71,7 +74,7 @@ test("Slash:BuildListLines indents group headers by two and rows by four", funct
   for i, line in ipairs(Sl:BuildListLines()) do
     if i > 1 then
       if line:match("^  |cff3399ff%[") then sawGroup = true end
-      if line:match("^    |cffffff00") then sawRow = true end
+      if line:match("^    |cFFFFFF00") then sawRow = true end
     end
   end
   assertTrue(sawGroup, "an azure [group] header at a two-space indent")
@@ -143,9 +146,18 @@ test("Slash:CliSet reports an unknown path", function()
   assertTrue(joined(out):find("Setting not found", 1, true) ~= nil)
 end)
 
-test("Slash:CliSet prints usage when the value is missing", function()
+test("Slash:CliSet refuses a value-less set and says why", function()
+  -- A deliberate change of wording, not a regression. The old parser matched `^(%S+)%s+(.+)$`, so a
+  -- path with no value failed to match at all and fell through to the usage line. The library
+  -- matches `^(%S+)%s*(.*)$`, so the path IS resolved and the empty value reaches the type-aware
+  -- parser — which answers with what is actually wrong with it. The usage line still fires on a
+  -- bare `/bl set`.
   local out = captureChat(function() Sl:CliSet("settings.windowScale") end)
-  assertTrue(joined(out):find("Usage", 1, true) ~= nil)
+  local all = joined(out)
+  assertTrue(all:find("Invalid value for settings.windowScale", 1, true) ~= nil, all)
+  assertTrue(all:find("expected a number", 1, true) ~= nil, all)
+  local bare = captureChat(function() Sl:CliSet("") end)
+  assertTrue(joined(bare):find("Usage: /bl set <path> <value>", 1, true) ~= nil, joined(bare))
 end)
 
 test("Slash:CliReset restores one setting to its default", function()
@@ -163,9 +175,9 @@ end)
 -- reset echo is byte-identical in shape to the get/set echo two functions away.
 test("Slash:CliReset echoes the coloured key = value shape, like get and set", function()
   local out = captureChat(function() Sl:CliReset("settings.qualityThreshold") end)
-  local want = Sl.FormatKV("settings.qualityThreshold",
-    Sl.FormatSchemaValue(NS.Schema:FindRow("settings.qualityThreshold"), 0))
-  assertTrue(out[#out]:find(want, 1, true) ~= nil, "coloured key = value after the [BL] tag")
+  local want = T.mocks.LibStub("LibKa0s-Slash-1.0", true).FormatKV("settings.qualityThreshold", "0")
+  assertTrue(out[#out]:find(want, 1, true) ~= nil,
+    "coloured key = value after the [BL] tag, got: " .. out[#out])
 end)
 
 -- The echo reads the STORED value back, so it reports what was actually written rather than what
@@ -174,8 +186,8 @@ test("Slash:CliReset echoes the stored value, not the requested one", function()
   captureChat(function() Sl:CliSet("settings.windowScale 1.25") end)
   local out = captureChat(function() Sl:CliReset("settings.windowScale") end)
   local stored = NS.Schema:Get("settings.windowScale")
-  assertTrue(joined(out):find(
-    Sl.FormatSchemaValue(NS.Schema:FindRow("settings.windowScale"), stored), 1, true) ~= nil)
+  assertEqual(stored, 1.0, "reset must restore the default")
+  assertTrue(joined(out):find(("%.2fx"):format(stored), 1, true) ~= nil, joined(out))
 end)
 
 test("Slash:CliResetAll restores the schema AND clears the filter lists", function()
@@ -204,10 +216,13 @@ test("Slash: the help header names both the short verb and its alias", function(
   assertTrue(out[1]:find("/bl", 1, true) ~= nil)
 end)
 
-test("Slash: help rows are gold command, em-dash, white description", function()
+test("Slash: help rows are gold command, em-dash, white description, indented", function()
+  -- The colour codes are UPPERCASE and the row carries a two-space indent: both are
+  -- LibKa0s-Slash-1.0's one command-row formatter, which the settings landing page now shares.
   local out = captureChat(function() Sl:PrintHelp() end)
-  assertTrue(out[2]:find("|cffffff00/bl ", 1, true) ~= nil)
+  assertTrue(out[2]:find("  |cFFFFFF00/bl ", 1, true) ~= nil, out[2])
   assertTrue(out[2]:find("\226\128\148", 1, true) ~= nil, "an em-dash separator")
+  assertTrue(out[2]:find("|cFFFFFFFF", 1, true) ~= nil, "the description is wrapped white")
 end)
 
 test("Slash: an unknown verb says so and then prints the help index", function()
@@ -236,14 +251,27 @@ test("Slash: every chat line carries the cyan [BL] tag", function()
   end
 end)
 
-test("Slash: every declared /bl list group actually exists in the schema", function()
-  -- F-007: the constant named "Window", a group that no longer exists, and omitted "Master
-  -- Controls" — so the "declared order" silently was not the order in force. Ordering by a name
-  -- nothing matches is invisible until someone compares the output to the panel.
-  local groups = {}
-  for _, row in ipairs(NS.Schema.Schema) do groups[row.group or "?"] = true end
-  for _, name in ipairs(NS.Slash.LIST_GROUP_ORDER) do
-    assertTrue(groups[name], ("/bl list orders by %q, which no schema row declares"):format(name))
+test("Slash: /bl list groups in schema declaration order, matching the panel", function()
+  -- The F-007 guard, rebuilt. The old shape was a hand-maintained LIST_GROUP_ORDER constant that
+  -- named "Window" — a group that no longer existed — and omitted "Master Controls", so every name
+  -- in it was inert and the listing silently fell through to first-seen order while the test passed.
+  -- LibKa0s-Slash-1.0 has no such constant: it groups strictly in allRows() order, which IS the
+  -- panel's order. So the invariant is now asserted against the schema itself, and there is no
+  -- second list left to rot.
+  local want = {}
+  local seen = {}
+  for _, row in ipairs(NS.Schema.Schema) do
+    local g = row.group or "?"
+    if not seen[g] then seen[g] = true; want[#want + 1] = g end
+  end
+  local got = {}
+  for _, line in ipairs(Sl:BuildListLines()) do
+    local g = line:match("^  |cff3399ff%\[(.-)%\]")
+    if g then got[#got + 1] = g end
+  end
+  assertEqual(#got, #want, "one heading per declared schema group")
+  for i, g in ipairs(want) do
+    assertEqual(got[i], g, "heading " .. i .. " is out of declaration order")
   end
 end)
 
