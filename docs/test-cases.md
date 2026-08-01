@@ -667,6 +667,31 @@ badge and any count quoted in the docs must agree with it.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last
 
+### test_libka0s.lua (22)
+
+- LibKa0s-Core: the vendored major registered and the addon is running on it
+- LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
+- LibKa0s-Core: the seam publishes ONE object to NS.Print and NS.Util.print
+- LibKa0s-Core: the reclaim in core/BankLedger.lua survives the AceConsole embed
+- LibKa0s-Core: a printed line is byte-identical to the pre-library printer
+- LibKa0s-Core: a bare NS.Print() emits the tag and its separator
+- LibKa0s-Core: the degraded fallback renders the SAME bytes as the library on every input
+- LibKa0s-Core: an unconcatenable argument renders as the sentinel, never raising
+- LibKa0s-Core: nil and booleans are not masked by the secret guard
+- LibKa0s-Core: the prefix is re-read on every call, so a later change lands
+- LibKa0s-Core degraded: the addon loads with no library at all
+- LibKa0s-Core degraded: the fallback printer renders the same bytes
+- LibKa0s-Core degraded: the notice is said exactly ONCE, on the first line printed
+- LibKa0s: the shared cause clause is set on BOTH paths, word for word
+- LibKa0s-Core tripwire: Core ships no STRINGS and reads no descriptor L
+- LibKa0s: no seam file hands a descriptor the addon-wide locale table
+- LibKa0s: the locale-descriptor matcher catches all three spellings
+- LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
+- LibKa0s: the vendored folder carries the licence it ships under
+- LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
+- LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
+- LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+
 ## Totals
 
 | Suite | Cases |
@@ -688,4 +713,5 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 35 |
 | test_panel.lua | 6 |
 | test_harness.lua | 7 |
-| **Total** | **610** |
+| test_libka0s.lua | 22 |
+| **Total** | **632** |

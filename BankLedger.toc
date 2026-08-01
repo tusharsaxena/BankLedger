@@ -24,6 +24,9 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+# LibKa0s last in the block: every module but Core resolves LibKa0s-Core-1.0 through LibStub before
+# it registers, and Options resolves AceGUI-3.0 at panel-build time rather than at load.
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
@@ -33,6 +36,9 @@ locales\PostLoad.lua
 core\Compat.lua
 core\Constants.lua
 core\Namespace.lua
+# The LibKa0s-Core seam. After Namespace (NS.PREFIX), and before every file that takes NS.Print as a
+# load-time upvalue or reclaims it from NS.Util.print — see the header of core/CoreSetup.lua.
+core\CoreSetup.lua
 core\State.lua
 core\Util.lua
 core\BankLedger.lua

@@ -73,8 +73,9 @@ warband movement, because no event announces one.
 | `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
+| `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
-| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder, and the shared secret-safe chat printer. |
+| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
 | `core/Database.lua` | AceDB init, the migration runner, ledger CRUD, `QueryList`, `Export`, `Stats`, retention prune, storage estimate. |
 | `defaults/Global.lua` | The account-wide defaults table — the only place a default value is hardcoded. |

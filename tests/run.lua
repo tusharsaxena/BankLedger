@@ -20,16 +20,35 @@ local SUITES = {
   "test_ledger", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_slash",
-  "test_panel", "test_harness",
+  "test_panel", "test_harness", "test_libka0s",
 }
+
+-- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
+-- Loader.tocFiles deliberately skips `libs\` lines — the TOC pulls these in through an XML it
+-- cannot see inside. All eight load, not just the adopted majors, because that is what the client
+-- does: a load-time error in a module this addon does not yet use is still a broken install.
+-- tests/test_libka0s.lua asserts this list against LibKa0s.xml so the two cannot drift.
+local LIBKA0S_FILES = {
+  "libs/LibKa0s/Core.lua",
+  "libs/LibKa0s/DebugLog.lua",
+  "libs/LibKa0s/Slash.lua",
+  "libs/LibKa0s/Options.lua",
+  "libs/LibKa0s/OptionsWidgets.lua",
+  "libs/LibKa0s/OptionsScroll.lua",
+  "libs/LibKa0s/Perf.lua",
+  "libs/LibKa0s/PerfPanel.lua",
+}
+Loader.loadAll(LIBKA0S_FILES, NS, mocks)
 
 -- The addon's own files come from the SHIPPED TOC rather than from a list maintained here. Two load
 -- lists that have to agree by hand are one list that rots: this one had already drifted from the TOC
--- once. Loader.tocFiles skips the `libs\` lines (it cannot see inside an XML), so vendored libraries
--- are still spelled out below.
+-- once.
 Loader.loadAll(Loader.tocFiles("BankLedger.toc"), NS, mocks)
 
-_G.BL_TEST = Kit.expose{ NS = NS, mocks = mocks, Loader = Loader, suites = SUITES }
+_G.BL_TEST = Kit.expose{
+  NS = NS, mocks = mocks, Loader = Loader, suites = SUITES, libka0sFiles = LIBKA0S_FILES,
+  makeMocks = function() return dofile("tests/wow_mock.lua")() end,
+}
 
 NS:InitDB()
 -- Mirror the in-game lifecycle: OnInitialize registers the schema, OnEnable arms the capture

@@ -30,7 +30,7 @@ references it: <https://github.com/tusharsaxena/WowAddonStandards>.
 
 **This addon at a glance:** `BankLedger` v1.0.0, Interface 120007, SavedVariables `BankLedgerDB`
 (account-wide `global` only), slash `/bl` aliased `/bankledger`, 22 source files across
-`core/ defaults/ locales/ modules/ settings/`, 610 headless test cases.
+`core/ defaults/ locales/ modules/ settings/`, 632 headless test cases.
 
 ---
 
@@ -48,7 +48,7 @@ The working loop for a change here:
    ARCHITECTURE is the *system*.
 2. **Test-first.** Write or extend a failing case under `tests/`, then implement. See
    `docs/testing.md` for the harness and `docs/test-cases.md` for the generated inventory.
-3. **Green gate before every commit.** `lua tests/run.lua` (610 cases, 0 failed) and `luacheck .`
+3. **Green gate before every commit.** `lua tests/run.lua` (632 cases, 0 failed) and `luacheck .`
    (0 warnings / 0 errors). Regenerate `docs/test-cases.md` and update the README `[tests]` badge in
    the *same* change whenever the count moves.
 4. **Flag deviations, never absorb them.** If a change would depart from the standard, stop and
@@ -91,8 +91,9 @@ BankLedger/
     Compat.lua           -- LOAD FIRST: every deprecated/patch-varying API call
     Constants.lua        -- Store/Context/Direction/Kind enums, palettes, container-id groups
     Namespace.lua        -- NS.name, NS.version, NS.SCHEMA_VERSION, NS.PREFIX
+    CoreSetup.lua        -- LibKa0s-Core seam: NS.Print/NS.SafeToString + NS.LIBKA0S_MISSING (the shared cause clause)
     State.lua            -- runtime-only state; never persisted
-    Util.lua             -- player key, path split, date/money/byte format, wowhead URL, safe print
+    Util.lua             -- player key, path split, date/money/byte format, wowhead URL
     BankLedger.lua       -- AceAddon registration; NS.bus; NS.NewBusTarget
     Database.lua         -- AceDB + migrations, ledger CRUD, Query/Export/Stats, prune
   defaults/
@@ -115,8 +116,8 @@ BankLedger/
     Slash.lua            -- AceConsole registration, dispatch, list/get/set/reset CLI
     Panel.lua            -- Blizzard Settings landing page + General and Filters subcategories
   media/                 -- logos/, screenshots/, fonts/
-  libs/                  -- vendored, committed
-  tests/                 -- run.lua, wow_mock.lua, test_*.lua (17 suites), _kit/ (vendored from LibKa0s)
+  libs/                  -- vendored, committed (Ace3, LibStub, LibDBIcon, LibSharedMedia, LibKa0s)
+  tests/                 -- run.lua, wow_mock.lua, test_*.lua (18 suites), _kit/ (vendored from LibKa0s)
   docs/                  -- agent-context.md, ARCHITECTURE.md, testing.md, smoke-tests.md,
     audits/<YYYY-MM-DD>/ --   test-cases.md (generated), pending/LEDGER.md
     reviews/<YYYY-MM-DD>/--   retained audit + code-review history (audit-review-history)
@@ -166,6 +167,9 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+# LibKa0s last in the block: every module but Core resolves LibKa0s-Core-1.0 through LibStub before
+# it registers, and Options resolves AceGUI-3.0 at panel-build time rather than at load.
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
@@ -175,6 +179,9 @@ locales\PostLoad.lua
 core\Compat.lua
 core\Constants.lua
 core\Namespace.lua
+# The LibKa0s-Core seam. After Namespace (NS.PREFIX), and before every file that takes NS.Print as a
+# load-time upvalue or reclaims it from NS.Util.print — see the header of core/CoreSetup.lua.
+core\CoreSetup.lua
 core\State.lua
 core\Util.lua
 core\BankLedger.lua
@@ -427,7 +434,7 @@ tests/
   run.lua            -- runner + micro-framework (test/assertEqual/assertTrue/assertFalse); also --list mode
   _kit/              -- VENDORED from LibKa0s testkit/: framework.lua (registry+assertions+--list), loader.lua (setfenv, tocFiles), mock_base.lua
   wow_mock.lua       -- extender over _kit/mock_base.lua: geometry-modelling frame stub, container/guild-bank/item model, Ace fakes
-  test_<module>.lua  -- 17 suites, 610 cases (test_harness.lua guards the suite list and TOC order)
+  test_<module>.lua  -- 18 suites, 632 cases (test_harness.lua guards the suite list and TOC order)
 ```
 
 `run.lua` builds the environment once by loading every source **in TOC order**, then calls
@@ -673,7 +680,7 @@ break**. Re-check any line a change touches.
 - [x] TOC has all required fields incl. single latest-Retail `## Interface:` (`120007`), `X-Standard`, and `X-Curse-Project-ID` (`1629058`). `X-Wago-ID` / `X-WoWI-ID` are absent — the addon is not listed there.
 - [x] `.pkgmeta` present with **no** `externals:` block; all libs vendored and committed under `libs/`.
 - [x] `.luacheckrc` present; `luacheck .` reports **0 warnings / 0 errors**.
-- [x] `tests/` harness present; `lua tests/run.lua` is **green** (610/610); behavior is covered test-first (testing).
+- [x] `tests/` harness present; `lua tests/run.lua` is **green** (632/632); behavior is covered test-first (testing).
 - [x] Generated `docs/test-cases.md` inventory present and in sync (`lua tests/run.lua --list`); README carries a static X/Y `[tests]` badge (testing-§5).
 - [x] `core/Compat.lua` owns every deprecated/patch-varying call; no `WOW_PROJECT_ID` flavor branching.
 - [x] `locales/enUS.lua` exists with the metatable fallback.

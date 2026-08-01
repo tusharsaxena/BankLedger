@@ -163,40 +163,9 @@ function Util.FormatBytes(bytes)
   end
 end
 
--- ── Secret-safe chat printer (events-frames-taint-§8) ────────────────────────────
--- In combat, retail protects combat-sensitive returns (unit absorb/health totals, threat, some aura
--- amounts) as "secret" values. A secret survives tostring() AND the `..` operator (which silently
--- propagates secretness), but RAISES the instant it reaches table.concat. Because every chat line
--- ends in a table.concat, an unguarded secret both spams a Lua error and — inside a repeating
--- ticker — can freeze the feature until /reload. Detection MUST probe the operation that actually
--- rejects a secret (table.concat), NOT `..`: a `..`-based probe reports a secret as safe.
-local function probeConcat(v) return table.concat({ v }) end
-function NS.IsConcatSafe(v)
-  return (pcall(probeConcat, v))
-end
-
--- Concat-safe stringifier used by every line the addon emits. Ordinary values → tostring(v); an
--- un-concatenable (secret) value → the sentinel "<secret>", so the surrounding table.concat can
--- never raise. nil and booleans are handled up front (table.concat rejects a boolean element too,
--- but booleans are never secret, so they must not be masked).
-function NS.SafeToString(v)
-  if v == nil then return "nil" end
-  if type(v) == "boolean" then return tostring(v) end
-  if NS.IsConcatSafe(v) then return tostring(v) end
-  return "<secret>"
-end
-
--- The single shared chat printer. Prepends the cyan NS.PREFIX tag (slash-commands-§4) and
--- space-joins each SafeToString'd arg, mirroring print(). Every file that emits chat does
--- `local print = NS.Print` so call sites stay `print("message")` — never the global print(), never
--- a hand-written tag, never raw `..`/tostring on an arg. The real name is NS.Util.print; NS.Print is
--- reclaimed from it after the AceConsole embed (core/BankLedger.lua, architecture-§2).
-function NS.Print(...)
-  local n = select("#", ...)
-  local parts = { NS.PREFIX }
-  for i = 1, n do parts[i + 1] = NS.SafeToString((select(i, ...))) end
-  if DEFAULT_CHAT_FRAME then
-    DEFAULT_CHAT_FRAME:AddMessage(table.concat(parts, " "))
-  end
-end
-Util.print = NS.Print
+-- ── Secret-safe chat printer ────────────────────────────────────────────────────
+-- Moved to core/CoreSetup.lua, which builds it from LibKa0s-Core-1.0 (library-stack). The guard
+-- (NS.IsConcatSafe), the stringifier (NS.SafeToString) and the printer (NS.Print / NS.Util.print)
+-- all still answer under exactly those names — every `local print = NS.Print` call site in the addon
+-- is unchanged, and so is every rendered byte. The seam loads BEFORE this file, so nothing here has
+-- to care which implementation is behind them.

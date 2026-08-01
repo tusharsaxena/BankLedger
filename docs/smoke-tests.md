@@ -299,3 +299,46 @@ tolerance.
 16. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
     again to dismiss it. While a real bank session is open, `/bl session` refuses and says so rather
     than replacing your actual data with placeholders.
+
+## S-18 · LibKa0s — the degraded install
+
+The four LibKa0s seams (`core/CoreSetup.lua` today, more as modules are adopted) each degrade
+rather than error when the vendored library is absent. Nothing headless can prove what the client
+actually draws, and an install missing `libs/LibKa0s` is exactly the install those branches exist
+for.
+
+1. Quit the game. Rename `Interface/AddOns/BankLedger/libs/LibKa0s` to `libs/LibKa0s.off`.
+2. Log in. **Zero Lua errors.** Not one — turn error display on (`/console scriptErrors 1`) first.
+3. `/bl version` prints two lines: the notice, then `[BL] v1.0.0`. The notice reads, exactly:
+
+   > `[BL] The LibKa0s library is missing from this installation of Ka0s Bank Ledger (expected in
+   > libs/LibKa0s); running on reduced built-in fallbacks.`
+
+   The cause clause — everything up to and including `(expected in libs/LibKa0s)` — is shared with
+   every other Ka0s addon that bundles LibKa0s. If it does not match theirs word for word, that is
+   the finding.
+4. `/bl version` again. The notice is **not** repeated. It is said once per session, on the first
+   line the addon prints, never stapled to every line.
+5. `/bl list` prints a **complete** listing — every schema row, both group headings, no gaps and no
+   truncation. A degraded printer that drops lines is the failure this step exists to catch.
+6. `/bl show`, `/bl config`, `/bl debug` — the ledger window, the settings panel and the console all
+   open and behave. Nothing about the addon's own function depends on the library.
+7. Quit, rename `libs/LibKa0s.off` back to `libs/LibKa0s`, log in. The notice is gone and `/bl list`
+   is byte-for-byte what it was in step 5.
+
+**Rename the folder back before you finish.** A repo left in the degraded state passes its own gate
+and ships broken.
+
+## S-19 · LibKa0s — no raw locale keys on screen
+
+The library modules resolve their user-visible strings through the descriptor's `L` table first.
+Handing one an addon-wide locale table makes every key resolve to *itself*, so the addon renders
+`DEBUG_ON` and `LIST_HEADER` in place of English — for every string at once, and only in game. The
+headless source guard cannot see what the client draws.
+
+1. Walk **every** settings page: the landing page, General, Filters.
+2. Open the debug console (`/bl debug`) and toggle it on and off.
+3. Run `/bl help`, `/bl list`, `/bl get settings.enabled`, `/bl reset settings.enabled`.
+4. Nothing on screen or in chat is `SCREAMING_SNAKE_CASE`. Every label is prose. One raw key means
+   a descriptor was handed `NS.L`, and it means all of them are wrong, not just the one you spotted.
+
