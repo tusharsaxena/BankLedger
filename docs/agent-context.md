@@ -30,7 +30,7 @@ references it: <https://github.com/tusharsaxena/WowAddonStandards>.
 
 **This addon at a glance:** `BankLedger` v1.0.0, Interface 120007, SavedVariables `BankLedgerDB`
 (account-wide `global` only), slash `/bl` aliased `/bankledger`, 22 source files across
-`core/ defaults/ locales/ modules/ settings/`, 674 headless test cases.
+`core/ defaults/ locales/ modules/ settings/`, 684 headless test cases.
 
 ---
 
@@ -48,7 +48,7 @@ The working loop for a change here:
    ARCHITECTURE is the *system*.
 2. **Test-first.** Write or extend a failing case under `tests/`, then implement. See
    `docs/testing.md` for the harness and `docs/test-cases.md` for the generated inventory.
-3. **Green gate before every commit.** `lua tests/run.lua` (674 cases, 0 failed) and `luacheck .`
+3. **Green gate before every commit.** `lua tests/run.lua` (684 cases, 0 failed) and `luacheck .`
    (0 warnings / 0 errors). Regenerate `docs/test-cases.md` and update the README `[tests]` badge in
    the *same* change whenever the count moves.
 4. **Flag deviations, never absorb them.** If a change would depart from the standard, stop and
@@ -114,7 +114,8 @@ BankLedger/
   settings/
     Schema.lua           -- the schema table (single source) + NS.COMMANDS
     Slash.lua            -- AceConsole registration, dispatch, list/get/set/reset CLI
-    Panel.lua            -- Blizzard Settings landing page + General and Filters subcategories
+    OptionsSetup.lua     -- LibKa0s-Options seam: NS.Helpers IS the instance; the schema seams
+    Panel.lua            -- what did not generalise: store grid, Storage, Filters page, landing body, Diagnose
   media/                 -- logos/, screenshots/, fonts/
   libs/                  -- vendored, committed (Ace3, LibStub, LibDBIcon, LibSharedMedia, LibKa0s)
   tests/                 -- run.lua, wow_mock.lua, test_*.lua (18 suites), _kit/ (vendored from LibKa0s)
@@ -207,6 +208,9 @@ modules\Export.lua
 # Settings (last — depend on everything else being initialized)
 settings\Schema.lua
 settings\Slash.lua
+# The LibKa0s-Options seam. After the schema and the write seam it reads, and BEFORE
+# settings/Panel.lua, which captures the instance at file scope (options-ui-§1).
+settings\OptionsSetup.lua
 settings\Panel.lua
 ```
 
@@ -437,7 +441,7 @@ tests/
   run.lua            -- runner + micro-framework (test/assertEqual/assertTrue/assertFalse); also --list mode
   _kit/              -- VENDORED from LibKa0s testkit/: framework.lua (registry+assertions+--list), loader.lua (setfenv, tocFiles), mock_base.lua
   wow_mock.lua       -- extender over _kit/mock_base.lua: geometry-modelling frame stub, container/guild-bank/item model, Ace fakes
-  test_<module>.lua  -- 18 suites, 674 cases (test_harness.lua guards the suite list and TOC order)
+  test_<module>.lua  -- 18 suites, 684 cases (test_harness.lua guards the suite list and TOC order)
 ```
 
 `run.lua` builds the environment once by loading every source **in TOC order**, then calls
@@ -683,7 +687,7 @@ break**. Re-check any line a change touches.
 - [x] TOC has all required fields incl. single latest-Retail `## Interface:` (`120007`), `X-Standard`, and `X-Curse-Project-ID` (`1629058`). `X-Wago-ID` / `X-WoWI-ID` are absent — the addon is not listed there.
 - [x] `.pkgmeta` present with **no** `externals:` block; all libs vendored and committed under `libs/`.
 - [x] `.luacheckrc` present; `luacheck .` reports **0 warnings / 0 errors**.
-- [x] `tests/` harness present; `lua tests/run.lua` is **green** (674/674); behavior is covered test-first (testing).
+- [x] `tests/` harness present; `lua tests/run.lua` is **green** (684/684); behavior is covered test-first (testing).
 - [x] Generated `docs/test-cases.md` inventory present and in sync (`lua tests/run.lua --list`); README carries a static X/Y `[tests]` badge (testing-§5).
 - [x] `core/Compat.lua` owns every deprecated/patch-varying call; no `WOW_PROJECT_ID` flavor branching.
 - [x] `locales/enUS.lua` exists with the metatable fallback.

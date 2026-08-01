@@ -41,10 +41,11 @@
 --   7. DEFAULT_CHAT_FRAME — a plain table, not a frame stub. The four captureChat helpers save and
 --                         restore `.AddMessage`; against a stub frame the saved value is a
 --                         metatable-generated closure and restoring it rawsets a permanent field.
---   8. AceGUI           — the base ships a full widget factory. Nothing here drives a widget yet
---                         (the panel bodies build lazily on a first OnShow that never fires
---                         headlessly), and taking the factory now would silently start building
---                         page bodies inside unrelated suites. Revisit when Options is adopted.
+--   8. AceGUI           — TAKEN from the base, not overridden. It was an inert `Create -> nil`
+--                         stub until LibKa0s-Options-1.0 was adopted; the base's real widget
+--                         factory is what makes the schema -> widget -> write path drivable at all.
+--                         Confirmed behaviour-neutral before the swap: the addon called
+--                         AceGUI:Create zero times during the suite, so no existing case changed.
 --   9. StaticPopup_Show — the base defines it, which flips settings/Schema.lua's and
 --                         settings/Panel.lua's `if type(StaticPopup_Show) == "function"` guards from
 --                         the direct-call path to the popup path. That IS the in-game path and is
@@ -81,7 +82,7 @@ local function recordPoint(point, ...)
 end
 
 local function stubFrame()
-  local f = { __shown = true, __points = {}, __w = 0, __h = 0 }
+  local f = { __shown = true, __points = {}, __w = 0, __h = 0, __scripts = {} }
   setmetatable(f, { __index = function(_, k)
     if k == "Show" then return function() f.__shown = true; return f end end
     if k == "Hide" then
@@ -99,11 +100,31 @@ local function stubFrame()
       return function(_, v) if v then f:Show() else f:Hide() end; return f end
     end
     if k == "IsShown" or k == "IsVisible" then return function() return f.__shown end end
+    -- Scripts are RECORDED and firable. They were not, until LibKa0s-Options-1.0 was adopted: the
+    -- library declares a page's body through `panel:SetScript("OnShow", ...)`, and a stub that
+    -- discarded the handler left every page body unreachable from the suite — which is exactly how
+    -- a settings panel ships blank and green. __onHide is kept alongside, because Hide() fires it
+    -- on a real shown->hidden transition and several session-window cases depend on that.
+    if k == "SetScript" then
+      return function(_, script, handler) f.__scripts[script] = handler; return f end
+    end
+    if k == "GetScript" then return function(_, script) return f.__scripts[script] end end
+    if k == "__fire" then
+      return function(_, script, ...)
+        local fn = f.__scripts[script]
+        if fn then return fn(f, ...) end
+      end
+    end
     if k == "HookScript" then
       return function(_, script, handler)
         if script == "OnHide" then
           f.__onHide = f.__onHide or {}
           f.__onHide[#f.__onHide + 1] = handler
+        end
+        local prev = f.__scripts[script]
+        f.__scripts[script] = function(...)
+          if prev then prev(...) end
+          return handler(...)
         end
         return f
       end
@@ -402,12 +423,22 @@ return function()
     end,
   }
 
-  -- Override 8. AceGUI is present but hands back nothing: P:Register only needs the library to
-  -- EXIST (the panel bodies are built lazily on first OnShow, which never fires headless), and every
-  -- widget call site already guards on the create returning a usable widget. That is enough to
-  -- exercise registration and the framework callback contract without modelling AceGUI's whole
-  -- widget tree.
-  libs["AceGUI-3.0"] = { Create = function() return nil end }
+  -- Override 11. AceGUI's container widgets carry SetTitle; the kit's widget mock does not model it,
+  -- and its widgets have no metatable, so the call RAISES rather than no-opping. settings/Panel.lua
+  -- titles the store grid's InlineGroup that way. Kept HERE rather than taken upstream because the
+  -- kit's own policy is that an API only one addon calls belongs in that addon's extender — and a
+  -- repo-wide grep says this is the only SetTitle in the collection.
+  --
+  -- Wrapped rather than replaced: the base's factory does the real work, and this adds the one
+  -- member on top, so a widget kind the base grows later still arrives fully formed.
+  local baseCreate = libs["AceGUI-3.0"].Create
+  libs["AceGUI-3.0"].Create = function(self, wtype)
+    local w = baseCreate(self, wtype)
+    if w and not w.SetTitle then
+      function w:SetTitle(v) self.titleText = v; return self end
+    end
+    return w
+  end
 
   -- Message bus modelled on CallbackHandler: callbacks keyed by (message, target). Registering the
   -- same message twice on ONE target overwrites (only the last survives); SendMessage fires to every

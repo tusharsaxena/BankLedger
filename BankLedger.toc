@@ -64,4 +64,7 @@ modules\Export.lua
 # Settings (last — depend on everything else being initialized)
 settings\Schema.lua
 settings\Slash.lua
+# The LibKa0s-Options seam. After the schema and the write seam it reads, and BEFORE
+# settings/Panel.lua, which captures the instance at file scope (options-ui-§1).
+settings\OptionsSetup.lua
 settings\Panel.lua

@@ -650,7 +650,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (13)
+### test_panel.lua (23)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -665,6 +665,16 @@ badge and any count quoted in the docs must agree with it.
 - Panel: Batch unwinds its depth on the error path
 - Panel: /bl resetall repaints, and only once
 - Panel: a refresher that raises does not stop the others
+- Panel: the General page renders without the library reporting a failure
+- Panel: every renderable schema row reaches the page as a labelled widget
+- Panel: a boolean row is a CheckBox and a range row is a Slider
+- Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
+- Panel: a checkbox write goes through the single write seam
+- Panel: the Reset all button is paired into the Window scale row
+- Panel: the store grid renders as an inverted checkbox set, host-drawn
+- Panel: the Storage section renders under the schema rows
+- Panel: the Filters page renders its two id lists
+- Panel: re-rendering a page releases the previous widgets and their refreshers
 
 ### test_harness.lua (7)
 
@@ -753,7 +763,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 26 |
 | test_slash.lua | 33 |
-| test_panel.lua | 13 |
+| test_panel.lua | 23 |
 | test_harness.lua | 7 |
 | test_libka0s.lua | 55 |
-| **Total** | **674** |
+| **Total** | **684** |
