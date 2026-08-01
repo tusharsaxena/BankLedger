@@ -98,8 +98,8 @@ test("Harness: Filters loads before Ledger — the capture gate reads the lists"
   loadsBefore("modules/Filters.lua", "modules/Ledger.lua")
 end)
 
-test("Harness: the settings files load last", function()
-  loadsBefore("modules/DebugLog.lua", "settings/Schema.lua")
+test("Harness: the settings files load last, and in order", function()
+  loadsBefore("modules/Export.lua", "settings/Schema.lua")
   loadsBefore("settings/Schema.lua", "settings/Slash.lua")
   loadsBefore("settings/Slash.lua", "settings/Panel.lua")
 end)

@@ -39,6 +39,10 @@ core\Namespace.lua
 # The LibKa0s-Core seam. After Namespace (NS.PREFIX), and before every file that takes NS.Print as a
 # load-time upvalue or reclaims it from NS.Util.print — see the header of core/CoreSetup.lua.
 core\CoreSetup.lua
+# The LibKa0s-DebugLog seam. After Constants (FONT_MONO) and after CoreSetup
+# (NS.LIBKA0S_MISSING). Everything else it touches is reached through a closure, so it no
+# longer has to sit after modules/Browser.lua the way modules/DebugLog.lua did.
+core\DebugLogSetup.lua
 core\State.lua
 core\Util.lua
 core\BankLedger.lua
@@ -56,7 +60,6 @@ modules\SessionWindow.lua
 modules\InsightsWidgets.lua
 modules\Insights.lua
 modules\Export.lua
-modules\DebugLog.lua
 
 # Settings (last — depend on everything else being initialized)
 settings\Schema.lua

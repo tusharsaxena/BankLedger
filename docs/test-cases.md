@@ -665,9 +665,9 @@ badge and any count quoted in the docs must agree with it.
 - Harness: the TOC is what the headless runner loads, and it is non-empty
 - Harness: Compat loads before everything else in core/
 - Harness: Filters loads before Ledger — the capture gate reads the lists
-- Harness: the settings files load last
+- Harness: the settings files load last, and in order
 
-### test_libka0s.lua (22)
+### test_libka0s.lua (37)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
@@ -691,6 +691,21 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
 - LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
 - LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+- LibKa0s-DebugLog: the vendored major registered and the console is running on it
+- LibKa0s-DebugLog: the module needs the minor that carries the chrome hooks
+- LibKa0s-DebugLog: NS.Debug is bound and still gates on the session-only flag
+- LibKa0s-DebugLog: the enable seam reads and writes NS.State.debug, never SavedVariables
+- LibKa0s-DebugLog: the window title composes to exactly what the old console rendered
+- LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's
+- LibKa0s-DebugLog: a 24-wide host close button does not collide with Clear
+- LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
+- LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
+- LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
+- LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
+- LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
+- LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
+- LibKa0s-DebugLog: the chat acknowledgement still carries the [BL] tag
+- LibKa0s-DebugLog: hiding the console repaints the settings panel
 
 ## Totals
 
@@ -713,5 +728,5 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 35 |
 | test_panel.lua | 6 |
 | test_harness.lua | 7 |
-| test_libka0s.lua | 22 |
-| **Total** | **632** |
+| test_libka0s.lua | 37 |
+| **Total** | **647** |

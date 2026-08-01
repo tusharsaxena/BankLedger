@@ -74,6 +74,7 @@ warband movement, because no event announces one.
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
+| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin` and `makeCloseButton` so the console keeps **this addon's** chrome rather than Core's — both resolved through `NS.Browser` at call time, which is what lets a `core/` file reach a `modules/` member without inverting the load order. Degrades to a stub answering every member `/bl debug` reaches. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
 | `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
@@ -89,7 +90,6 @@ warband movement, because no event announces one.
 | `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
 | `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
-| `modules/DebugLog.lua` | The on-screen debug console and the `NS.Debug` sink. |
 | `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. |
 | `settings/Slash.lua` | AceConsole registration, dispatch, and the `list`/`get`/`set`/`reset` CLI. |
 | `settings/Panel.lua` | The Blizzard Settings landing page plus the General and Filters subcategories. |
