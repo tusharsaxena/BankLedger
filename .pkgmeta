@@ -5,6 +5,7 @@ package-as: BankLedger
 ignore:
   - .luacheckrc
   - .gitignore
+  - .gitattributes
   - docs        # holds docs/audits/ and docs/reviews/ too — all dev-only
   - tests
   - _dev
