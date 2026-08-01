@@ -29,7 +29,7 @@ references it: <https://github.com/tusharsaxena/WowAddonStandards>.
 **Scope:** Retail (Mainline) only.
 
 **This addon at a glance:** `BankLedger` v1.0.0, Interface 120007, SavedVariables `BankLedgerDB`
-(account-wide `global` only), slash `/bl` aliased `/bankledger`, 22 source files across
+(account-wide `global` only), slash `/bl` aliased `/bankledger`, 24 source files across
 `core/ defaults/ locales/ modules/ settings/`, 684 headless test cases.
 
 ---
@@ -113,7 +113,7 @@ BankLedger/
     Export.lua           -- ledger CSV, insights CSV, the export modal
   settings/
     Schema.lua           -- the schema table (single source) + NS.COMMANDS
-    Slash.lua            -- AceConsole registration, dispatch, list/get/set/reset CLI
+    Slash.lua            -- LibKa0s-Slash seam: AceConsole registration, confirm dialogs, full reset
     OptionsSetup.lua     -- LibKa0s-Options seam: NS.Helpers IS the instance; the schema seams
     Panel.lua            -- what did not generalise: store grid, Storage, Filters page, landing body, Diagnose
   media/                 -- logos/, screenshots/, fonts/
@@ -347,20 +347,23 @@ panel's top-to-bottom layout. Ten rows in two groups:
 
 | Path | Type | Default | Group |
 |---|---|---|---|
-| `settings.enabled` | boolean | `true` | Master Controls |
-| `minimap.hide` | boolean | `false` | Master Controls |
-| `settings.showSessionWindow` | boolean | `true` | Master Controls |
-| `state.debugConsole` | boolean (**session-only**) | `false` | Master Controls |
+| `settings.enabled` | bool | `true` | Master Controls |
+| `minimap.hide` | bool | `false` | Master Controls |
+| `settings.showSessionWindow` | bool | `true` | Master Controls |
+| `state.debugConsole` | bool (**session-only**) | `false` | Master Controls |
 | `settings.windowScale` | number 0.6–1.6 | `1.0` | Master Controls |
 | `settings.qualityThreshold` | number | `0` | Capture |
 | `settings.retentionDays` | number | `30` | Capture |
-| `settings.trackItems` | boolean | `true` | Capture |
-| `settings.trackMoney` | boolean | `true` | Capture |
+| `settings.trackItems` | bool | `true` | Capture |
+| `settings.trackMoney` | bool | `true` | Capture |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture |
 
 ```lua
 -- settings/Schema.lua — a row. Every write goes through NS.Schema:Set, which is the single seam.
 { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
+  -- `step` is declared, never defaulted: LibKa0s-Options-1.0's makeSlider assumes 1, which would
+  -- snap a 0.6–1.6 slider to its two endpoints and nothing else.
+  step = 0.05,
   group = "Master Controls", label = "Window scale", widget = "Slider",
   onChange = function()
     -- Announce on the bus rather than reaching into the windows: BOTH the ledger window and the
@@ -376,28 +379,35 @@ drift. Fifteen verbs: `show`, `hide`, `toggle`, `config`, `version`, `get`, `set
 `on` / `off` / `scan` / `panel`.
 
 ```lua
--- settings/Slash.lua — dispatch, registered as /bl with the /bankledger alias.
-function NS.addon:OnSlash(input)
-  if input == nil or input == "" then return NS.Slash:PrintHelp() end
-  local verb, rest = input:match("^(%S+)%s*(.-)$")
-  for _, cmd in ipairs(NS.COMMANDS) do
-    if cmd.name == verb then return cmd.fn(rest) end
-  end
-  -- shared secret-safe printer; never global print()/NS.PREFIX ../concat (events-frames-taint-§8)
-  NS.Print("unknown command:", verb); NS.Slash:PrintHelp()
+-- settings/Slash.lua — AceConsole registration stays the host's; the dispatch loop, the help
+-- renderer and the list/get/set/reset CLI are all LibKa0s-Slash-1.0's.
+function Sl:Register()
+  NS.addon:RegisterChatCommand("bl", function(input) Sl:OnSlash(input) end)
+  NS.addon:RegisterChatCommand("bankledger", function(input) Sl:OnSlash(input) end)
+end
+
+local cli = lib:New({ slash = "/bl", slashAliases = { "/bankledger" }, commands = NS.COMMANDS, … })
+function Sl:OnSlash(input) return cli:OnSlash(input) end
+
+-- The library's loop, reproduced at its smallest on the degraded path. NS.COMMANDS rows are
+-- POSITIONAL — { name, description, handler } — never keyed.
+for _, cmd in ipairs(NS.COMMANDS) do
+  if cmd[1] == verb then return cmd[3](rest or "") end
 end
 ```
 
-Every schema read/write echo goes through **two shared formatters** — `Sl.FormatSchemaValue(row, v)`
-for the value and `Sl.FormatKV(path, valueStr)` for the coloured `key = value` line — so `list`,
-`get`, `set` and `reset` can never render differently. All four read the **stored** value back after
-a write, so the echo reflects clamping.
+Every schema read/write echo goes through **two shared formatters** — `lib.FormatValue(row, v)` for
+the value and `lib.FormatKV(path, valueStr)` for the coloured `key = value` line — so `list`, `get`,
+`set` and `reset` can never render differently. Both are **LibKa0s-Slash-1.0's**; the host's own
+`Sl.FormatSchemaValue` and `Sl.FormatKV` are deleted. What stays here is the `format` hook for the
+set-typed `excludedStores` row, which the library has no type for. All four read the **stored** value
+back after a write, so the echo reflects clamping.
 
 `settings/Panel.lua` registers the Blizzard settings **category eagerly** at load (options-ui-§1) and
 builds each panel **body lazily** on first `OnShow`, as it does the header Defaults button. The
-`setDefaultsAction(panel, fn)` helper sets `panel.defaultsOnClick` **and** `panel.OnDefault` from one
-argument, so the framework's footer control and the addon's own header button are literally the same
-closure and cannot diverge.
+`setDefaultsAction(panel, fn)` helper parks `panel.defaultsOnClick`, and `LibKa0s-Options-1.0`'s
+`CreatePanel` stamps an `OnDefault` that **forwards** to it (Options minor 5) — so the framework's
+footer control and the addon's own header button run one implementation and cannot diverge.
 
 **Chat tag & CLI output (slash-commands-§4–§5).** `NS.PREFIX` is the mandatory **cyan** bracketed tag — `|cff00ffff[XY]|r` (initials `XY`; the cyan `00ffff` is required, not just an example) — exposed once and prepended to every chat line. `list`/`get`/`set` follow the canonical output shape in slash-commands-§5: `list` prints `Available settings` then `  [page]` group headers then `    path = value` rows; `get`/`set` print the single-line `path = value` (echoing the *stored* value after a set). Output uses the **mandated colour scheme** — header green (`33ff99`), `[page]` group headers azure (`3399ff`), keys/paths gold (`ffff00`), values white (`ffffff`), the ` = ` separator default, and **no trailing colon** on any line. Values are **type-aware and unit-annotated** through one shared formatter — `<n> px`, `1.00x`, `true`/`false`, `{r, g, b, a}` — and the coloured `key = value` line comes from one shared helper, so `list` and `get`/`set` never diverge.
 
@@ -438,7 +448,7 @@ Headless plain-Lua-5.1 harness. Run `lua tests/run.lua` from the repo root.
 
 ```
 tests/
-  run.lua            -- runner + micro-framework (test/assertEqual/assertTrue/assertFalse); also --list mode
+  run.lua            -- the load list, the lifecycle kick and the suite list; the framework is _kit/framework.lua's
   _kit/              -- VENDORED from LibKa0s testkit/: framework.lua (registry+assertions+--list), loader.lua (setfenv, tocFiles), mock_base.lua
   wow_mock.lua       -- extender over _kit/mock_base.lua: geometry-modelling frame stub, container/guild-bank/item model, Ace fakes
   test_<module>.lua  -- 18 suites, 684 cases (test_harness.lua guards the suite list and TOC order)
@@ -695,7 +705,7 @@ break**. Re-check any line a change touches.
 - [x] `settings/Schema.lua` exposes the Schema (10 rows), the single `Schema:Set` write seam, and slash dispatch from `NS.COMMANDS`.
 - [x] AceConsole `:RegisterChatCommand` registered for `/bl` and `/bankledger`.
 - [x] Options panel uses `Settings.RegisterCanvasLayoutCategory`, **category registered eagerly at load** (entry always visible), **body built lazily** on first `OnShow`.
-- [x] The header **Defaults button** is an AceGUI `Button` **created in the first `OnShow`** (not at registration), with its callback parked on the panel (`panel.defaultsOnClick`) and wired by the builder (options-ui-§5, anti-pattern #42). `setDefaultsAction` sets `panel.OnDefault` from the same closure so the two can never diverge.
+- [x] The header **Defaults button** is an AceGUI `Button` **created in the first `OnShow`** (not at registration), with its callback parked on the panel (`panel.defaultsOnClick`) and wired by the builder (options-ui-§5, anti-pattern #42). `setDefaultsAction` parks that closure and `LibKa0s-Options-1.0`'s `CreatePanel` stamps an `OnDefault` that forwards to it, so the two can never diverge.
 - [x] Combat-lockdown: options-panel open **refuses** under lockdown (grey notice, no defer — options-ui-§2). The addon has no secure writes to defer.
 - [x] Debug **console** (debug-logging) — on-screen, styled like the main window; monospace font (10pt) + tagged colour-coded lines `<ts> | [<Tag>] <content>`; `/bl debug` toggles the window, `/bl debug on|off` set logging (colour-coded `ON` green / `OFF` red chat ack); enabled-state **session-only** (never in SV), decoupled from window visibility; title-bar `Debug: ON/OFF` toggle; on enable emits an `[Init]` session summary. Plus two structured dump verbs, `/bl debug scan` and `/bl debug panel`.
 - [x] Test mode (preview-mode) — `/bl test` drives synthetic data through the real render path, read-only: Delete, Blacklist and Whitelist are inert while it is on.

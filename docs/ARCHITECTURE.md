@@ -176,15 +176,15 @@ Rows render in schema order, so this table is also the panel's layout, top to bo
 
 | Path | Type | Default | Group |
 |---|---|---|---|
-| `settings.enabled` | boolean | `true` | Master Controls |
-| `minimap.hide` | boolean | `false` | Master Controls |
-| `settings.showSessionWindow` | boolean | `true` | Master Controls |
-| `state.debugConsole` | boolean (session-only) | `false` | Master Controls |
+| `settings.enabled` | bool | `true` | Master Controls |
+| `minimap.hide` | bool | `false` | Master Controls |
+| `settings.showSessionWindow` | bool | `true` | Master Controls |
+| `state.debugConsole` | bool (session-only) | `false` | Master Controls |
 | `settings.windowScale` | number | `1.0` | Master Controls |
 | `settings.qualityThreshold` | number | `0` | Capture |
 | `settings.retentionDays` | number | `30` | Capture |
-| `settings.trackItems` | boolean | `true` | Capture |
-| `settings.trackMoney` | boolean | `true` | Capture |
+| `settings.trackItems` | bool | `true` | Capture |
+| `settings.trackMoney` | bool | `true` | Capture |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture |
 
 **Storage carve-outs** — mutated by their owning module rather than through `Schema:Set`, because
