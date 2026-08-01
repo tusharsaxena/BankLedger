@@ -30,7 +30,7 @@ references it: <https://github.com/tusharsaxena/WowAddonStandards>.
 
 **This addon at a glance:** `BankLedger` v1.0.0, Interface 120007, SavedVariables `BankLedgerDB`
 (account-wide `global` only), slash `/bl` aliased `/bankledger`, 22 source files across
-`core/ defaults/ locales/ modules/ settings/`, 603 headless test cases.
+`core/ defaults/ locales/ modules/ settings/`, 610 headless test cases.
 
 ---
 
@@ -48,7 +48,7 @@ The working loop for a change here:
    ARCHITECTURE is the *system*.
 2. **Test-first.** Write or extend a failing case under `tests/`, then implement. See
    `docs/testing.md` for the harness and `docs/test-cases.md` for the generated inventory.
-3. **Green gate before every commit.** `lua tests/run.lua` (603 cases, 0 failed) and `luacheck .`
+3. **Green gate before every commit.** `lua tests/run.lua` (610 cases, 0 failed) and `luacheck .`
    (0 warnings / 0 errors). Regenerate `docs/test-cases.md` and update the README `[tests]` badge in
    the *same* change whenever the count moves.
 4. **Flag deviations, never absorb them.** If a change would depart from the standard, stop and
@@ -116,7 +116,7 @@ BankLedger/
     Panel.lua            -- Blizzard Settings landing page + General and Filters subcategories
   media/                 -- logos/, screenshots/, fonts/
   libs/                  -- vendored, committed
-  tests/                 -- run.lua, loader.lua, wow_mock.lua, test_*.lua (16 suites)
+  tests/                 -- run.lua, wow_mock.lua, test_*.lua (17 suites), _kit/ (vendored from LibKa0s)
   docs/                  -- agent-context.md, ARCHITECTURE.md, testing.md, smoke-tests.md,
     audits/<YYYY-MM-DD>/ --   test-cases.md (generated), pending/LEDGER.md
     reviews/<YYYY-MM-DD>/--   retained audit + code-review history (audit-review-history)
@@ -425,9 +425,9 @@ Headless plain-Lua-5.1 harness. Run `lua tests/run.lua` from the repo root.
 ```
 tests/
   run.lua            -- runner + micro-framework (test/assertEqual/assertTrue/assertFalse); also --list mode
-  loader.lua         -- loadfile each source, setfenv(chunk, makeEnv(mocks)), chunk("BankLedger", NS), TOC order
-  wow_mock.lua       -- WoW API mock builder: self-returning no-op frame; CreateFrame/UIParent/Settings/LibStub fakes
-  test_<module>.lua  -- 16 suites, 603 cases
+  _kit/              -- VENDORED from LibKa0s testkit/: framework.lua (registry+assertions+--list), loader.lua (setfenv, tocFiles), mock_base.lua
+  wow_mock.lua       -- extender over _kit/mock_base.lua: geometry-modelling frame stub, container/guild-bank/item model, Ace fakes
+  test_<module>.lua  -- 17 suites, 610 cases (test_harness.lua guards the suite list and TOC order)
 ```
 
 `run.lua` builds the environment once by loading every source **in TOC order**, then calls
@@ -673,7 +673,7 @@ break**. Re-check any line a change touches.
 - [x] TOC has all required fields incl. single latest-Retail `## Interface:` (`120007`), `X-Standard`, and `X-Curse-Project-ID` (`1629058`). `X-Wago-ID` / `X-WoWI-ID` are absent — the addon is not listed there.
 - [x] `.pkgmeta` present with **no** `externals:` block; all libs vendored and committed under `libs/`.
 - [x] `.luacheckrc` present; `luacheck .` reports **0 warnings / 0 errors**.
-- [x] `tests/` harness present; `lua tests/run.lua` is **green** (603/603); behavior is covered test-first (testing).
+- [x] `tests/` harness present; `lua tests/run.lua` is **green** (610/610); behavior is covered test-first (testing).
 - [x] Generated `docs/test-cases.md` inventory present and in sync (`lua tests/run.lua --list`); README carries a static X/Y `[tests]` badge (testing-§5).
 - [x] `core/Compat.lua` owns every deprecated/patch-varying call; no `WOW_PROJECT_ID` flavor branching.
 - [x] `locales/enUS.lua` exists with the metatable fallback.
@@ -719,7 +719,7 @@ named evidence is in `INDUSTRY_RESEARCH.md`.)
 | Eager settings registration + lazy body | Register the Blizzard **category** at load (bootstrap on `ADDON_LOADED(Blizzard_Settings)`/`PLAYER_LOGIN`, or in `OnInitialize`); build the panel body only in the first `OnShow`. |
 | On-screen debug console | A `DIALOG`-strata `700×344` `BackdropTemplate` window; a `ScrollingMessageFrame` in a shipped monospace font (10pt) with tagged, colour-coded lines (`<ts> \| [<Tag>] <content>`), a right-edge scrollbar + bottom `N / MAX lines` counter (debug-logging-§11), Clear/Copy, `UISpecialFrames`, reusing the main window's `SKIN`/`ApplySkin`; a gated `NS.Debug(tag, …)` sink that appends there instead of chat; session-only window-independent enabled-state with a title-bar `Debug: ON/OFF` toggle. |
 | Preview/test mode | Placeholder data fed through the real render path, read-only so it cannot reach real settings or history (`/bl test`, `/bl session`). |
-| Headless test harness | `tests/run.lua` micro-framework + `tests/loader.lua` (`setfenv` over ordered sources) + `tests/wow_mock.lua` (self-returning no-op frame; CreateFrame/Settings/LibStub fakes); per-module `test_*.lua` suites. |
+| Headless test harness | LibKa0s test kit vendored at `tests/_kit/` (registry, assertions, `setfenv` loader, shared mock base) + `tests/run.lua` (TOC-derived load list, lifecycle kick, suite list) + `tests/wow_mock.lua` (the addon-specific extender); per-module `test_*.lua` suites. |
 | Lazy first-OnShow panel build | Latch (`rendered` flag) so the AceGUI body builds once, on first `OnShow`, when the panel width is non-zero. |
 | Lazy header Defaults button | `ensureDefaultsButton(panel)` at the top of every `OnShow` builds the AceGUI `Button` once, after every addon has loaded — so a UI skin's `RegisterAsWidget` hook is already in place and the button isn't left on stock red art (options-ui-§5). |
 | Soft-fallback discipline | Load-safe shims for missing optional libs (AceDB-missing flat table, LSM-missing Blizzard constants) so the addon runs with `OptionalDeps` absent. |

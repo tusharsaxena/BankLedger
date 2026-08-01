@@ -1,10 +1,10 @@
 # Test Cases
 
-The full inventory of every headless test case, grouped by suite. This file is the
-**authoritative pass count** for the addon.
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
 
-**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
-whenever the suite changes (see [testing.md](testing.md)).
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
 ### test_util.lua (31)
 
@@ -657,6 +657,16 @@ whenever the suite changes (see [testing.md](testing.md)).
 - Panel: the General defaults action resets settings but never the ledger
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
 
+### test_harness.lua (7)
+
+- Harness: every suite the runner lists exists on disk
+- Harness: every suite on disk is listed in the runner
+- Harness: the runner's suite list has no duplicates
+- Harness: the TOC is what the headless runner loads, and it is non-empty
+- Harness: Compat loads before everything else in core/
+- Harness: Filters loads before Ledger — the capture gate reads the lists
+- Harness: the settings files load last
+
 ## Totals
 
 | Suite | Cases |
@@ -677,4 +687,5 @@ whenever the suite changes (see [testing.md](testing.md)).
 | test_schema.lua | 22 |
 | test_slash.lua | 35 |
 | test_panel.lua | 6 |
-| **Total** | **603** |
+| test_harness.lua | 7 |
+| **Total** | **610** |

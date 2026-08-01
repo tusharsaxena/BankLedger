@@ -1,13 +1,61 @@
--- Minimal WoW-API mock set for the headless unit tests. Returns a builder so each run gets a fresh,
--- isolated environment. Only what the addon touches at load/test time is stubbed.
+-- Ka0s Bank Ledger's half of the WoW-API mock, layered over the shared base in tests/_kit.
+--
+-- The base (tests/_kit/mock_base.lua) owns everything the whole collection touches: LibStub with a
+-- REAL NewLibrary — which is what lets the vendored LibKa0s majors register headlessly exactly as
+-- they do in the client — plus the Ace fakes, the settings-canvas registry, the timer queue and the
+-- generic frame stub. This file owns what is genuinely Bank Ledger's: the bag/bank container model,
+-- the guild bank, the item database, and the handful of base behaviours whose fidelity this addon
+-- needs to be different.
+--
+-- Plain per-key overwrite, per the kit's README: the base builder hands back a fresh table on every
+-- call, so there is no merge machinery to reason about.
+--
+-- ── THE OVERRIDES, AND WHY EACH ONE IS NOT A KIT GAP ──────────────────────────────────────────
+--
+-- Every override below replaces a base behaviour with a STRICTER one that an existing Bank Ledger
+-- suite depends on. None of them is the base being wrong — the base's own header states the policy
+-- (single-consumer fidelity lives in the consumer's extender) — so none is a finding to take
+-- upstream. They are listed here so a future re-vendor can tell an intentional divergence from a
+-- drift:
+--
+--   1. stubFrame        — the base returns 0 from GetWidth/GetHeight and defines no SetPoint at all.
+--                         Window geometry here round-trips through SavedVariables, so the position
+--                         and size have to be real state or the persistence is untestable. The base
+--                         also never fires OnHide, and "the session window closes with the bank
+--                         frame" is exactly an OnHide assertion.
+--   2. __shown = true   — the base starts frames hidden; real frames start shown, and nine IsShown
+--                         assertions in tests/test_sessionwindow.lua read the difference.
+--   3. __fireTimers     — the base's returns nothing and its CancelTimer is a no-op. The capture
+--                         engine's debounce is asserted as "three events, ONE reconcile pass" and
+--                         "the pending timer was cancelled", which needs both a count and honoured
+--                         cancellation.
+--   4. AceAddon         — RegisterEvent must RAISE for a name in __badEvents. Modern retail rejects
+--                         a retired event name outright, and that failure mode once unregistered
+--                         this whole addon; a mock that accepted everything would hide it.
+--   5. AceDB            — the base models profiles because its other consumers switch them. This is
+--                         an account-wide addon created with defaultProfile = true, and its own
+--                         suite asserts against a fixed "Default", so the simpler stub is kept.
+--   6. __settingsPanels — the base splits the canvas registry into __mainPanel and __subcategories.
+--                         tests/test_panel.lua reaches BOTH through one name-keyed table and calls
+--                         GetID() on both returns.
+--   7. DEFAULT_CHAT_FRAME — a plain table, not a frame stub. The four captureChat helpers save and
+--                         restore `.AddMessage`; against a stub frame the saved value is a
+--                         metatable-generated closure and restoring it rawsets a permanent field.
+--   8. AceGUI           — the base ships a full widget factory. Nothing here drives a widget yet
+--                         (the panel bodies build lazily on a first OnShow that never fires
+--                         headlessly), and taking the factory now would silently start building
+--                         page bodies inside unrelated suites. Revisit when Options is adopted.
+--   9. StaticPopup_Show — the base defines it, which flips settings/Schema.lua's and
+--                         settings/Panel.lua's `if type(StaticPopup_Show) == "function"` guards from
+--                         the direct-call path to the popup path. That IS the in-game path and is
+--                         worth taking, but it is a test-semantics change that belongs with the
+--                         Slash/Options work rather than smuggled into a harness swap.
+--  10. GameTooltip      — same argument: the base defines it and seven `if GameTooltip then` guards
+--                         change branch. Left nil here so this swap is behaviour-neutral.
 
-local function deepcopy(t)
-  if type(t) ~= "table" then return t end
-  local r = {}
-  for k, v in pairs(t) do r[k] = deepcopy(v) end
-  return r
-end
+local base = dofile("tests/_kit/mock_base.lua")
 
+-- ── Override 1: the frame stub ────────────────────────────────────────────────────────────────
 -- A universal frame stub: any method call is a no-op that returns the frame itself. WoW frame API
 -- methods are always PascalCase (SetPoint, CreateTexture, HookScript, …), so only those keys get a
 -- no-op function; any other (lowercase/custom) field access misses through to nil, letting addon
@@ -97,10 +145,30 @@ local function stubFrame()
   return f
 end
 
-return function()
-  local M = {}
+local function deepcopy(t)
+  if type(t) ~= "table" then return t end
+  local r = {}
+  for k, v in pairs(t) do r[k] = deepcopy(v) end
+  return r
+end
 
-  -- time / misc
+return function()
+  local M = base()
+
+  -- Overrides 1 and 2. __stubFrame is re-pointed too, so anything the addon's own suites build with
+  -- it gets the geometry-modelling stub rather than the base's.
+  M.__stubFrame = stubFrame
+  M.UIParent    = stubFrame()
+  M.CreateFrame = function() return stubFrame() end
+
+  -- Override 10: left nil so the seven `if GameTooltip then` guards keep taking the headless path.
+  M.GameTooltip = nil
+  -- Override 9: left nil so the five `if type(StaticPopup_Show) == "function"` guards keep taking
+  -- the direct-call path.
+  M.StaticPopup_Show = nil
+
+  -- time / misc. A FIXED clock, not the base's os.time: the ledger suites advance __now by hand and
+  -- assert on exact retention windows, which a wall clock would make flaky.
   M.__now = 1770000000
   M.time = function() return M.__now end
   M.date = os.date
@@ -115,7 +183,6 @@ return function()
   M.GetSubZoneText = function() return "The Vault" end
   M.InCombatLockdown = function() return false end
   M.C_Map = { GetBestMapForUnit = function() return 2657 end }
-  M.C_Timer = { After = function() end }
   M.GetGuildInfo = function() return "Ka0s" end
 
   -- Carried money, in copper. Tests set M.__money directly.
@@ -255,6 +322,8 @@ return function()
   M.ITEM_QUALITY_COLORS = setmetatable({}, {
     __index = function() return { r = 1, g = 1, b = 1, hex = "ffffffff" } end,
   })
+  -- The base declines strsplit/strtrim on the grounds that no consumer calls them. This one does,
+  -- and it is declared in .luacheckrc read_globals.
   M.strtrim = function(s) return (tostring(s):gsub("^%s*(.-)%s*$", "%1")) end
   -- Class-icon sheet slices (left, right, top, bottom as fractions), for Util.ClassIconMarkup. Two
   -- real classes are enough to prove the coordinate maths and the unknown-class fallback.
@@ -264,8 +333,6 @@ return function()
   }
 
   -- UI
-  M.UIParent = stubFrame()
-  M.CreateFrame = function() return stubFrame() end
   M.UISpecialFrames = {}
   -- FauxScrollFrame virtualizer. The pooled tables (History and the session window) call these on
   -- every bind, so a headless build that lacks them cannot render a row at all. Offset 0 = the top
@@ -274,11 +341,12 @@ return function()
   M.FauxScrollFrame_GetOffset = function() return 0 end
   M.FauxScrollFrame_OnVerticalScroll = function() end
   M.IsShiftKeyDown = function() return false end
-  -- Chat sink for NS.Print (core/Util.lua). No-op by default; tests override AddMessage to capture.
+  -- Override 7. Chat sink for NS.Print. No-op by default; tests override AddMessage to capture, and
+  -- a plain table keeps that save/replace/restore idiom exactly idempotent.
   M.DEFAULT_CHAT_FRAME = { AddMessage = function() end }
-  -- Every canvas frame handed to the Settings framework, keyed by the name it was registered under.
-  -- options-ui-§1 makes the frame's OnCommit/OnDefault/OnRefresh a contract with Blizzard, and the
-  -- only way to assert on a contract is to keep what was actually handed over.
+  -- Override 6. Every canvas frame handed to the Settings framework, keyed by the name it was
+  -- registered under. options-ui-§1 makes the frame's OnCommit/OnDefault/OnRefresh a contract with
+  -- Blizzard, and the only way to assert on a contract is to keep what was actually handed over.
   M.__settingsPanels = {}
   M.Settings = {
     RegisterCanvasLayoutCategory = function(panel, name)
@@ -297,8 +365,10 @@ return function()
   -- Event names this fake client rejects, mirroring a build that has retired them.
   M.__badEvents = {}
 
-  -- Pending AceTimer callbacks. __fireTimers runs every timer that is still live and returns how
-  -- many fired, so a test can prove that N rapid events produce exactly one reconcile pass.
+  -- Override 3. Pending AceTimer callbacks. __fireTimers runs every timer that is still live and
+  -- returns how many fired, so a test can prove that N rapid events produce exactly one reconcile
+  -- pass. C_Timer.After is a no-op here: the retention-cleanup deferral must NOT run inside the
+  -- suites, which seed history directly.
   M.__timers = {}
   M.__fireTimers = function()
     local due = M.__timers
@@ -312,25 +382,31 @@ return function()
     end
     return fired
   end
+  M.C_Timer = { After = function() end }
 
-  -- LibStub + Ace library mocks
-  local libs = {}
+  -- ── the Ace fakes ────────────────────────────────────────────────────────────────────────────
+  -- Registered through M.__libs, the seam the base exposes for exactly this, so the base's LibStub
+  -- (with its real NewLibrary and its strict silent flag) is kept intact.
+  local libs = M.__libs
+
+  -- Override 5. Account-wide addon: created in-game with defaultProfile = true, so the profile is
+  -- always the fixed "Default". The base models a full profile surface for hosts that switch
+  -- profiles; this one never does, and its suite asserts against that fixed name.
   libs["AceDB-3.0"] = {
     New = function(_, _name, defaults)
       return {
         global = deepcopy(defaults and defaults.global or {}),
         profile = deepcopy(defaults and defaults.profile or {}),
-        -- Account-wide addon: created in-game with defaultProfile=true, so the profile is always the
-        -- fixed "Default". Mirror that here so the [Init] summary renders a real profile name.
         GetCurrentProfile = function() return "Default" end,
       }
     end,
   }
 
-  -- AceGUI is present but hands back nothing: P:Register only needs the library to EXIST (the panel
-  -- bodies are built lazily on first OnShow, which never fires headless), and every widget call site
-  -- already guards on the create returning a usable widget. That is enough to exercise registration
-  -- and the framework callback contract without modelling AceGUI's whole widget tree.
+  -- Override 8. AceGUI is present but hands back nothing: P:Register only needs the library to
+  -- EXIST (the panel bodies are built lazily on first OnShow, which never fires headless), and every
+  -- widget call site already guards on the create returning a usable widget. That is enough to
+  -- exercise registration and the framework callback contract without modelling AceGUI's whole
+  -- widget tree.
   libs["AceGUI-3.0"] = { Create = function() return nil end }
 
   -- Message bus modelled on CallbackHandler: callbacks keyed by (message, target). Registering the
@@ -355,6 +431,7 @@ return function()
     return obj
   end
 
+  -- Override 4.
   libs["AceAddon-3.0"] = {
     NewAddon = function(_, target)
       target = target or {}
@@ -394,10 +471,6 @@ return function()
       return embedBus(obj)
     end,
   }
-  M.LibStub = setmetatable(
-    { GetLibrary = function(_, n) return libs[n] end },
-    { __call = function(_, n) return libs[n] end }
-  )
 
   return M
 end
