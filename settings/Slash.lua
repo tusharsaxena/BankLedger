@@ -128,7 +128,12 @@ if not lib then
   -- settings panel's Defaults button and the confirm-gated `/bl resetall` both share, and a reset
   -- that silently did nothing is worse than a missing help index.
   function Sl:CliResetAll()
-    for _, row in ipairs(NS.Schema.Schema) do NS.Schema:Set(row.path, NS.Schema:Default(row.path)) end
+    local function walk()
+      for _, row in ipairs(NS.Schema.Schema) do
+        NS.Schema:Set(row.path, NS.Schema:Default(row.path))
+      end
+    end
+    if NS.Panel and NS.Panel.Batch then NS.Panel:Batch(walk) else walk() end
     if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
     if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
     print("All settings reset to defaults")
@@ -234,5 +239,11 @@ function Sl:LandingRows() return cli:LandingRows() end
 function Sl:CliResetAll()
   if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
   if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
+  -- Batched: the library's CliResetAll walks every schema row and each one goes through the write
+  -- seam, which now repaints. Ten rows would otherwise be ten refreshes, and one of General's
+  -- refreshers walks the whole ledger.
+  if NS.Panel and NS.Panel.Batch then
+    return NS.Panel:Batch(function() cli:CliResetAll() end)
+  end
   return cli:CliResetAll()
 end

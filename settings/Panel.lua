@@ -119,6 +119,16 @@ local function setDefaultsAction(panel, fn)
 end
 
 -- ── createPanel — a Frame for RegisterCanvasLayout(Sub)category, plus its render context ──
+-- Every page context createPanel has built, in registration order: the landing page, General and
+-- Filters. P:Refresh walks this rather than one named field.
+local pages = {}
+
+-- Depth counter for P:Batch. A bulk write (a full reset walks every schema row) would otherwise pay
+-- one refresh PER ROW, and one of General's refreshers walks the whole ledger to estimate the
+-- SavedVariables size. Coalesced into one refresh at the end, which is also what options-ui-§190
+-- describes for a global reset: the hook first, the refresh once, after.
+local bulkDepth = 0
+
 local function createPanel(title, opts)
   opts = opts or {}
   local panel = CreateFrame("Frame", nil)
@@ -145,8 +155,13 @@ local function createPanel(title, opts)
   -- tear down and recreate list rows (structural, expensive). Per options-ui-§11 a structural
   -- rebuild runs only on first paint, on an on-screen edit, or when `dirty` marks an off-screen
   -- change — never on every OnShow.
-  return { panel = panel, body = body, scroll = nil,
-           refreshers = {}, rebuilders = {}, dirty = false, lastGroup = nil }
+  local ctx = { panel = panel, body = body, scroll = nil,
+                refreshers = {}, rebuilders = {}, dirty = false, lastGroup = nil }
+  -- Registered rather than reached through a named field. P:Refresh used to walk P.general alone,
+  -- so a slash write left every OTHER page stale — and the next page added would have inherited
+  -- that silently. A registry makes "every page refreshes" true by construction (options-ui-§11).
+  pages[#pages + 1] = ctx
+  return ctx
 end
 
 -- Keep the settings-panel scrollbar ALWAYS visible — and inert when the page fits — so the reserved
@@ -735,19 +750,46 @@ end
 
 -- Scalar re-sync only: run each rendered widget's updater closure. Structural rebuilds are the
 -- rebuilders' job and are gated separately (options-ui-§11).
+-- Test seam over the private registry. The page bodies are lazy and never build headless, so a
+-- suite otherwise has no handle on a live ctx — and a refresh path that no case could reach is
+-- exactly how this one shipped walking a single page for so long.
+function P.__pagesForTest() return pages end
+
 function P:Refresh()
-  local ctx = P.general
-  -- A hidden panel is not worth refreshing: its widget values are re-synced by its own OnShow, and
-  -- one of the refreshers walks the WHOLE ledger to estimate the SavedVariables size. Off-screen
-  -- that is pure cost — and it was being paid on every settings change and every /bl debug toggle
-  -- (F-018). This is options-ui-§11's "scope work to the on-screen subcategory" applied to the
-  -- scalar-refresh path, matching the guard the bus path already uses.
-  if not (ctx and ctx.refreshers and ctx.panel and ctx.panel:IsShown()) then return end
-  for i, fn in ipairs(ctx.refreshers) do safeRun(fn, "General refresher " .. i) end
+  if bulkDepth > 0 then return end
+  for _, ctx in ipairs(pages) do
+    -- A hidden panel is not worth refreshing: its widget values are re-synced by its own OnShow,
+    -- and one of General's refreshers walks the WHOLE ledger to estimate the SavedVariables size.
+    -- Off-screen that is pure cost — and it was being paid on every settings change and every
+    -- /bl debug toggle (F-018). This is options-ui-§11's "scope work to the on-screen
+    -- subcategory" applied to the scalar-refresh path, matching the guard the bus path uses. The
+    -- Blizzard Settings window shows one subcategory at a time, so in practice this runs one page.
+    if ctx.refreshers and ctx.panel and ctx.panel:IsShown() then
+      for i, fn in ipairs(ctx.refreshers) do
+        safeRun(fn, (ctx.panel.name or "?") .. " refresher " .. i)
+      end
+    end
+  end
+end
+
+--- Run `fn` with panel refreshes coalesced into exactly ONE, at the end.
+---
+--- For a bulk write — a full reset walks every schema row, and every one of those goes through the
+--- write seam. Without this the ledger gets walked once per row while the General page is open.
+--- Re-entrant, and the depth is unwound on the error path too: latched above zero, the panel would
+--- silently stop refreshing for the rest of the session.
+function P:Batch(fn)
+  bulkDepth = bulkDepth + 1
+  local ok, err = pcall(fn)
+  bulkDepth = bulkDepth - 1
+  if bulkDepth == 0 then P:Refresh() end
+  if not ok then error(err, 0) end
 end
 
 function P:RestoreDefaults()
   if NS.Slash and NS.Slash.CliResetAll then NS.Slash:CliResetAll() end
+  -- CliResetAll already batches its own row walk; this call is what repaints after the two window
+  -- resets below, which are not schema writes and so never reach the write seam.
   -- Defaults also recentres both windows (position is part of the stock state); the ledger is left alone.
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end

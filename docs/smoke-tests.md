@@ -342,3 +342,25 @@ headless source guard cannot see what the client draws.
 4. Nothing on screen or in chat is `SCREAMING_SNAKE_CASE`. Every label is prose. One raw key means
    a descriptor was handed `NS.L`, and it means all of them are wrong, not just the one you spotted.
 
+## S-20 · A slash write repaints the open settings window
+
+options-ui-§11: an open panel must reflect live state after a mutation, including a slash `set`. It
+did not, from v1.0.0 until this was fixed — the value was written correctly and the widget kept
+showing the old one until the window was closed and reopened. Nothing headless can see a widget
+redraw, so this is the only place the fix is actually observable.
+
+1. `/bl config`, then open **General**. Leave the window on screen for every step below.
+2. `/bl set settings.enabled false` — the **Enable capture** checkbox unticks **immediately**, with
+   the settings window still open and still on the General page. Set it back to `true`.
+3. `/bl set settings.windowScale 1.25` — the **Window scale** slider moves at once.
+4. `/bl set settings.windowScale 9` — the slider lands on its maximum (1.60), because the CLI now
+   clamps. The chat echo says `1.60x`, and the slider agrees with it.
+5. `/bl reset settings.windowScale` — the slider returns to 1.00.
+6. `/bl resetall` — every General widget repaints, and the **Database size** line under it updates.
+   It should repaint **once**, not flicker per row.
+7. Switch to the **Filters** page, add an item id, then `/bl resetall` — the id list empties while
+   you watch. (This path was already correct: the lists are structural and ride `LedgerChanged`.)
+8. Move to the **Filters** page and run `/bl set settings.enabled false` there. Nothing on Filters
+   should flicker — only the page you are looking at does work.
+9. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
+   the reset values.

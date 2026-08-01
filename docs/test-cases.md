@@ -646,7 +646,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (6)
+### test_panel.lua (13)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -654,6 +654,13 @@ badge and any count quoted in the docs must agree with it.
 - Panel: OnDefault is the same closure as the header Defaults button
 - Panel: the General defaults action resets settings but never the ledger
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
+- Panel: a schema write refreshes an open page
+- Panel: a schema write does NOT refresh a hidden page
+- Panel: Refresh walks EVERY registered page, not just General
+- Panel: a bulk reset coalesces into exactly ONE refresh
+- Panel: Batch unwinds its depth on the error path
+- Panel: /bl resetall repaints, and only once
+- Panel: a refresher that raises does not stop the others
 
 ### test_harness.lua (7)
 
@@ -742,7 +749,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 22 |
 | test_slash.lua | 33 |
-| test_panel.lua | 6 |
+| test_panel.lua | 13 |
 | test_harness.lua | 7 |
 | test_libka0s.lua | 55 |
-| **Total** | **663** |
+| **Total** | **670** |

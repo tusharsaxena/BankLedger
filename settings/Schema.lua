@@ -170,6 +170,15 @@ function S:Set(path, value)
     NS.Debug("Set", "%s = %s", tostring(path), tostring(value))
   end
   if row.onChange then row.onChange(value) end
+  -- An open panel MUST reflect live state after a mutation (options-ui-§11), and the write seam is
+  -- where that belongs: this is "the same function /bl set calls" (options-ui-§41), so a slash
+  -- write, a panel widget and any future caller all repaint by the same route. It used to be
+  -- nowhere, so `/bl set` with the settings window open left every widget showing the old value
+  -- until the window was closed and reopened.
+  --
+  -- Cheap by construction: P:Refresh skips every page that is not on screen, and re-syncing a
+  -- widget's value does not fire its OnValueChanged, so this cannot loop back through here.
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
   return true
 end
 
