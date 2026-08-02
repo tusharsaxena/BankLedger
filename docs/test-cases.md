@@ -717,7 +717,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: the enable seam reads and writes NS.State.debug, never SavedVariables
 - LibKa0s-DebugLog: the window title composes to exactly what the old console rendered
 - LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's
-- LibKa0s-DebugLog: a 24-wide host close button does not collide with Clear
+- LibKa0s-DebugLog: the console closes with the library's x, not this addon's
 - LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
 - LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
 - LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause

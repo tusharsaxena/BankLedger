@@ -93,20 +93,16 @@ NS.DebugLog = lib:New({
 
   -- ── the chrome ─────────────────────────────────────────────────────────────────────────────
   --
-  -- Both of these exist because this addon DECLINES Core's window chrome (docs/pending/LEDGER.md,
-  -- LIBKA0S-05): Core.SKIN is a 12px UI-Tooltip-Border where every Bank Ledger window wears a flat
-  -- 1px WHITE8X8 double border with a synthesised inner border, a gold title and a grey divider, and
-  -- Core.MakeCloseButton is an 18×18 fixed-red × where ours is 24×24 and takes the player's CLASS
-  -- COLOUR on hover. Taking either would leave the console as the one window in the addon that looks
-  -- like a different addon.
+  -- `applySkin` ONLY, and the reason is no longer that Core's chrome is different. As of Core minor
+  -- 3, Core.SKIN IS this addon's edge — the flat 1px black border, the 1px grey inner highlight, the
+  -- gold title and the grey divider — because standalone-windows-§2 adopted it normatively. So this
+  -- hook no longer rescues the console from a default that does not match; it keeps the console
+  -- tracking modules/Browser.lua's own re-skin seam, which is one of the two purposes the standard
+  -- still sanctions the hook for. LIBKA0S-05's decline is superseded — see LIBKA0S-27 and -28.
   --
-  -- `skin` — a table — reaches only the backdrop, its colour and its border colour. The inner-border
-  -- child frame, the title tint and the divider tint are calls, so they need a function. Both fields
-  -- were added upstream at DebugLog minor 4 for exactly this; they are not local workarounds.
-  --
-  -- Resolved through NS.Browser at CALL time. Both fire during the console's lazy first build, long
+  -- Resolved through NS.Browser at CALL time. It fires during the console's lazy first build, long
   -- after every file has loaded, which is the only reason a core/ file may reach a modules/ member —
-  -- hoisting either lookup to a load-time local would reintroduce the ordering hazard and silently
+  -- hoisting the lookup to a load-time local would reintroduce the ordering hazard and silently
   -- leave the console unskinned.
   applySkin = function(frame)
     if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame) end

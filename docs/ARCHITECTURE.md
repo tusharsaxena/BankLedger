@@ -74,7 +74,7 @@ warband movement, because no event announces one.
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
-| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin` and `makeCloseButton` so the console keeps **this addon's** chrome rather than Core's — both resolved through `NS.Browser` at call time, which is what lets a `core/` file reach a `modules/` member without inverting the load order. Degrades to a stub answering every member `/bl debug` reaches. |
+| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin`, resolved through `NS.Browser` at call time — which is what lets a `core/` file reach a `modules/` member without inverting the load order — so the console keeps tracking `modules/Browser.lua`'s own re-skin seam. It passes **no** `makeCloseButton`: the window **edge** is shared across every Ka0s window now (`Core.SKIN` carries it, and this addon's `SKIN` agrees with it value for value), but the **close control on a library-drawn window is the library's**, so the console and the copy window wear Core's thin 18×18 × while the ledger window keeps its own 24×24 class-coloured glyph (standalone-windows-§2). Degrades to a stub answering every member `/bl debug` reaches. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
 | `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
@@ -321,6 +321,18 @@ change.
 
 Two standalone windows, both plain non-secure frames sharing one `SKIN` / `ApplySkin` seam and one
 close-glyph factory (`modules/Browser.lua`), each with its own persisted geometry carve-out.
+
+The debug console and its copy box are a third and a fourth standalone frame, but they are the
+**library's** — `LibKa0s-DebugLog-1.0` draws them. They wear the same edge, because that edge is no
+longer this addon's alone: `Core.SKIN` carries the flat 1px black border, the 1px light-grey line
+synthesised just inside it, the gold title and the grey divider, and the `SKIN` table above agrees
+with it value for value. The descriptor still passes `applySkin`, so the console follows
+`modules/Browser.lua` if that skin is ever retuned. What it does **not** pass is a close-button
+factory: those two windows close with Core's thin 18×18 ×, not the 24×24 class-coloured glyph the
+ledger and session windows use. `standalone-windows-§2` draws the line there — the edge is shared
+across every Ka0s window, the close control on a library-drawn window belongs to the library — and
+the point of it is that a user comparing two Ka0s consoles side by side sees one collection's
+diagnostics surface, not five different ones.
 
 **When geometry is written matters as much as what is written**, and the obvious answer is wrong. The
 natural call sites — the end of a drag, the end of a resize — fire at the end of an *interaction*,

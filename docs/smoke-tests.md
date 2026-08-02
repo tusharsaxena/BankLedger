@@ -239,6 +239,15 @@ tolerance.
    resets the counter to `0 / 500`.
 6. `/bl debug off` → a red OFF ack and a `[Debug] logging disabled` line.
 7. `/reload` → logging is off again, because the flag is session-only.
+8. **Chrome.** The console and the **Copy** box wear the same edge as the ledger window — a flat 1px
+   black border with a 1px light-grey line just inside it, a gold title, a grey divider — but they
+   close with a **thin ×**, not the big class-coloured one. That is correct, not drift: the edge is
+   shared across every Ka0s window, the close control on a library-drawn window is the library's
+   (standalone-windows-§2). The ledger window's own 24×24 glyph is unchanged — check it too.
+9. Open another Ka0s addon's debug console alongside this one. Apart from their titles the two must
+   be **indistinguishable**: same border, same inner highlight, same gold title, same divider, same
+   close ×. Any difference means the shared edge has drifted in one of them, and the fix belongs in
+   `../LibKa0s`, never in `libs/`.
 
 ## S-15 · Test mode
 

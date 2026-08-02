@@ -86,7 +86,10 @@ function B:ApplySkin(f)
 end
 
 -- Thin × close glyph, light grey by default and the player's class colour on hover. Shared by the
--- ledger window, the debug console and the export popups.
+-- ledger window (Browser.lua), the session window (SessionWindow.lua) and both export popups
+-- (Export.lua). NOT by the debug console: that is the LIBRARY's window and wears Core's thin
+-- 18x18 × — the edge is shared across every Ka0s window, the close control on a library-drawn
+-- window is the library's (standalone-windows-§2).
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
