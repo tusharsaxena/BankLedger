@@ -112,14 +112,12 @@ NS.DebugLog = lib:New({
     if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame) end
   end,
 
-  makeCloseButton = function(parent, onClick)
-    if NS.Browser and NS.Browser.MakeCloseButton then
-      return NS.Browser:MakeCloseButton(parent, onClick)
-    end
-    -- Nil is a legitimate answer — Core's own factory returns it where CreateFrame is unavailable,
-    -- and the library builds the title bar without an × rather than failing.
-    return nil
-  end,
+  -- NO `makeCloseButton`. The console and the copy window are the LIBRARY's windows, so they wear
+  -- the library's close glyph — Core's thin 18x18 x — and this addon's own 24x24 class-coloured one
+  -- stays on the windows it belongs to (`modules/Browser.lua`). Passing it here is what shipped two
+  -- adopters' diagnostic windows looking unlike the other three's, and standalone-windows-§2 now
+  -- makes the split explicit: the window EDGE is shared across every Ka0s window, the CLOSE CONTROL
+  -- on a library-drawn window is the library's. `applySkin` above is the opposite case and stays.
 
   -- No `L`. This addon translates none of the console's strings, and handing a descriptor an
   -- addon-wide locale table is the one mistake that renders every label as its own key at once.

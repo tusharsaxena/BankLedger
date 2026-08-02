@@ -429,20 +429,22 @@ test("LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's", func
     "the console frame has no innerBorder — it was skinned by Core, not by NS.Browser:ApplySkin")
   D:Hide()
 end)
-test("LibKa0s-DebugLog: a 24-wide host close button does not collide with Clear", function()
-  -- The defect the derived offsets exist to prevent. Minor 3's hard-coded -30 is exactly the left
-  -- edge of a 24-wide button anchored at -6, so Copy | Clear | Close would have lost their gap.
+test("LibKa0s-DebugLog: the console closes with the library's x, not this addon's", function()
+  -- The console and the copy window are the library's windows, so they wear Core's thin 18x18 x.
+  -- This addon's own 24x24 class-coloured glyph stays on the windows it belongs to; passing it
+  -- through the `makeCloseButton` hook is what made these two windows look unlike every other
+  -- Ka0s addon's (docs/pending/LEDGER.md, LIBKA0S-19).
   --
   -- This addon's mock models SetSize/GetWidth as real state (tests/wow_mock.lua, override 1), so
-  -- NS.Browser:MakeCloseButton's `SetSize(24, 24)` is genuinely measurable here and the REAL
-  -- arithmetic is exercised rather than the library's 18-wide fallback. That is the one thing
-  -- LibKa0s's own suite cannot do — its mock answers 0 from GetWidth.
+  -- Core's `SetSize(18, 18)` is genuinely MEASURED here and the real arithmetic runs, rather than
+  -- the library's 18-wide fallback standing in for it. That is the one thing LibKa0s's own suite
+  -- cannot do — its mock answers 0 from GetWidth, so both paths give it the same number.
   D:Show()
   local off = D._frameForTest.titleBarOffsets
   assertTrue(off ~= nil, "the library records the computed offsets")
   assertEqual(off.close, -6)
-  assertEqual(off.clear, -36, "-6 - 24 - 6, clearing this addon's wider x")
-  assertEqual(off.copy, -84, "-36 - 42 - 6")
+  assertEqual(off.clear, -30, "-6 - 18 - 6 — a 24-wide button would give -36")
+  assertEqual(off.copy, -78, "-30 - 42 - 6")
   D:Hide()
 end)
 

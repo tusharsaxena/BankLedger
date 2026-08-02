@@ -8,7 +8,7 @@
 
 ![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.3.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.3.1 (MIT).
 
 Ka0s Bank Ledger is a passbook for your banks. Every time you put something in or take something
 out — your own bank, the warband bank, the guild bank — it writes a
