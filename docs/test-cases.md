@@ -745,6 +745,11 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
 - LibKa0s-Slash: the seam loads after the schema it reads
 
+### test_vendor_sync.lua (2)
+
+- libs/LibKa0s is the LibKa0s release the README says this addon bundles
+- tests/_kit is the test kit that shipped with that release
+
 ## Totals
 
 | Suite | Cases |
@@ -767,4 +772,5 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 23 |
 | test_harness.lua | 7 |
 | test_libka0s.lua | 56 |
-| **Total** | **685** |
+| test_vendor_sync.lua | 2 |
+| **Total** | **687** |
