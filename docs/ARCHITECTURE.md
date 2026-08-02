@@ -1,7 +1,20 @@
 # Architecture — Ka0s Bank Ledger
 
-Engineer context for the addon. Player-facing docs live in the root `README.md`; the full standards
-brief is `docs/agent-context.md`.
+Engineer context for the addon. Player-facing docs live in the root `README.md`; how to verify it is
+`docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstream repo linked from `CLAUDE.md` —
+it is read there, never copied in here.
+
+## At a glance
+
+| | |
+|---|---|
+| Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
+| Scope | Retail (Mainline) only — a single `## Interface:` line, currently `120007` |
+| SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
+| Slash | `/bl`, aliased `/bankledger` |
+| Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 24 source files |
+| Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
 
@@ -95,6 +108,49 @@ warband movement, because no event announces one.
 | `settings/OptionsSetup.lua` | The **LibKa0s-Options-1.0 seam**. `NS.Helpers` IS the library instance (options-ui-§1), not a wrapper — `settings/Panel.lua` decorates it in place. Supplies the schema seams through `NS.Schema:Set`, so a panel widget takes exactly the path `/bl set` takes. Degrades LOAD-COMPLETING rather than member-answering, with a measured load-time member set of zero. |
 | `settings/Panel.lua` | What did **not** generalise: the inverted store grid, the Storage section, the whole Filters page, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer. Registers three pages with the library and lets it own the shell, the makers, the flow engine and the render timing. |
 
+### Load order is load-bearing
+
+The TOC's file order is not cosmetic in four places, and the comments in `BankLedger.toc` say so at
+each one:
+
+- **`core/Compat.lua` loads first**, so every later file can shim through it.
+- **`core/CoreSetup.lua` sits after `core/Namespace.lua`** (it needs `NS.PREFIX`) and **before every
+  file that takes `NS.Print` as a load-time upvalue** — otherwise a module captures the built-in
+  printer and never sees the library's.
+- **`modules/Filters.lua` precedes `modules/Ledger.lua`**, because the capture gate reads the
+  id-lists.
+- **`settings/` loads last**, and `settings/OptionsSetup.lua` before `settings/Panel.lua`, which
+  captures the library instance at file scope (options-ui-§1).
+
+`tests/test_harness.lua` guards the order the harness derives from that same TOC, so a reshuffle that
+breaks one of these is red rather than silent.
+
+### The `Compat` surface
+
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 20 exports
+in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
+`WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
+
+| Group | Exports |
+|---|---|
+| Metadata / player | `GetAddOnMetadata`, `GetPlayerMapID`, `GetZone`, `GetGuildName` |
+| Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
+| Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
+| Items | `ItemIDFromLink`, `QualityFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |
+
+### Locale seam
+
+`locales/enUS.lua` publishes `NS.L` with the metatable fallback that returns the key itself, so a
+missing key never errors. v1.0.0 ships **English-only and unwrapped**: no user-facing string routes
+through `NS.L` yet — every label, tooltip and message is hardcoded English, an accepted scope
+decision rather than an oversight. The seam is kept so a later pass can wrap strings without touching
+call sites, and there is deliberately no `local L` alias until the first string is wrapped, so the
+file stays luacheck-clean.
+
+Input side: the addon matches game data on **stable ids and tokens** — `itemID`, `classFile`,
+`Enum.*` — never on a localized name. That is why every entry stores `classFile` rather than a class
+name.
+
 ## Data model
 
 One ledger entry per movement, appended to `db.global.ledger` (oldest first):
@@ -173,6 +229,10 @@ what the stable-column-set promise allows.
 `list`/`reset` dispatch, and the defaults reset. Every write goes through `NS.Schema:Set`.
 
 Rows render in schema order, so this table is also the panel's layout, top to bottom.
+
+A slider row **must declare its `step`**: `LibKa0s-Options-1.0`'s `makeSlider` assumes 1 when the row
+omits it, which would snap `settings.windowScale`'s 0.6–1.6 range to its two endpoints and nothing
+in between. It is declared at `0.05`, never defaulted.
 
 | Path | Type | Default | Group |
 |---|---|---|---|
@@ -511,20 +571,6 @@ Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://githu
   **Why not an empty `Profile.lua`:** a defaults file nothing reads would satisfy the filename while
   weakening `savedvariables-§2`'s real invariant — that there is exactly *one* place a default value
   is hardcoded — by standing up a second candidate home for it.
-
-- **`docs/agent-context.md` is specialized to this addon, not a verbatim copy of the upstream pack.**
-  `documentation-§3`/`§5` treat the file as the standard's context pack dropped in unchanged, so it
-  can be re-dropped wholesale whenever the standard moves. Bank Ledger's copy has instead been filled
-  in with the addon's real TOC, file tree, `Compat` surface, schema rows, `NS.COMMANDS` verbs, bus
-  messages and test seams, and its new-addon scaffolding steps rewritten as the shipped state.
-  **Rationale:** the brief loads into every agent session, and a generic pack made an agent read
-  `<Addon>DB`, `Locale.lua`, `Settings.lua` and `_G.MYADDON_TEST` — none of which exist here — before
-  finding the real names in `ARCHITECTURE.md`. Concrete beats canonical for a file whose whole job is
-  orienting someone fast.
-  **The cost, accepted knowingly:** the file can no longer be re-dropped. When the standard ships a
-  new pack, its changes must be **diffed and ported by hand**, leaving the Bank Ledger specifics in
-  place — recorded in the release checklist in `docs/testing.md` and in the file's own header
-  comment. The rules content still tracks the standard; only the examples are local.
 
 ## Mono font outside the debug console
 

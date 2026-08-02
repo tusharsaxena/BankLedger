@@ -48,13 +48,11 @@ Run through this before a version bump, on top of the green gate:
 - [ ] `lua tests/run.lua` green and `luacheck .` at 0/0.
 - [ ] `docs/test-cases.md` regenerated (`lua tests/run.lua --list > docs/test-cases.md`) and the
       README `[tests]` badge updated in the **same** change.
-- [ ] **Reconcile `docs/agent-context.md` whenever the Ka0s WoW Addon Standard's minor version
-      moves.** The file started as the standard's context pack but is now **specialized to Bank
-      Ledger** (a recorded deviation — see ARCHITECTURE ▸ *Documented deviations*), so it must
-      **not** be re-dropped wholesale: that would erase the specialization. Instead `curl` the
-      current `standards/NEW_ADDON_CONTEXT.md`, diff it against this file, and port the **changed
-      rules** by hand, leaving the Bank Ledger specifics in place. This is the recurrence guard for
-      audit deviation BL-08.
+- [ ] **Re-read the Ka0s WoW Addon Standard whenever its minor version moves**, straight from
+      [the upstream repo](https://github.com/tusharsaxena/WowAddonStandards), and fold any changed
+      rule into the code and `docs/`. The standard is never copied into this repo — a stored copy
+      goes stale silently and is then followed as working context (documentation-§3,
+      anti-pattern #49).
 
 ## Local toolchain
 

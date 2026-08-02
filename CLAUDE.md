@@ -24,10 +24,9 @@ When in doubt, treat standard conformance as a hard requirement and ask.
 
 Start here, then read the docs:
 
-- **`docs/agent-context.md`** — the full agent brief (stack, layout, hard rules, invariants,
-  the `NS` bus, working environment, response style).
-- **`docs/ARCHITECTURE.md`** — module map, settings schema, message bus, slash surface, event
-  wiring, taint notes, known limitations.
+- **`docs/ARCHITECTURE.md`** — what this addon is: the at-a-glance facts, module map, load order,
+  data model, settings schema, message bus, slash surface, event wiring, windows, taint notes,
+  documented deviations, known limitations.
 - **`docs/testing.md`** — how to verify: the headless harness, lint, and the green commit gate.
 - Topic detail in `docs/` as needed (`smoke-tests.md`, `test-cases.md`, …).
 
