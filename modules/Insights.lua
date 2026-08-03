@@ -185,7 +185,7 @@ function I:Attach(pane)
   -- Ranked-list panels are POOLED, not fixed: the per-store lists vary in count and every panel
   -- takes its title per pass.
   self.panelPool = W.NewPool()
-  self.ratioBar = W.MakeRatioBar(content)
+  self.splitBar = W.MakeSplitBar(content)
 
   self.pools = {}
   for _, key in ipairs(POOL_KEYS) do self.pools[key] = W.NewPool() end
@@ -493,7 +493,7 @@ function I:HideAllSections()
   for _, h in pairs(self.headers) do h:Hide() end
   for _, s in pairs(self.strips) do s:Hide() end
   for _, d in pairs(self.dividers) do d:Hide() end
-  self.ratioBar:Hide()
+  self.splitBar:Hide()
 end
 
 function I:Layout()
@@ -597,8 +597,11 @@ function I:LayoutSections(y, w, stats, totals)
 
   y = placeDivider(self.dividers.items, content, y)
 
-  -- 1 ── Deposits vs withdrawals, as one proportional bar. The question here is "what share", not
-  -- "which is bigger", so a ratio bar answers it directly where two bars would not.
+  -- 1 ── Deposits vs withdrawals, as one back-to-back bar about a centre axis: withdrawals left,
+  -- deposits right, both scaled against the larger. Same form, same side-to-direction mapping and
+  -- same shared-peak scale as every "× Deposits/Withdrawals" chart below it, so the headline split
+  -- and its breakdowns read as one chart family rather than two ways of saying the same thing. The
+  -- captions carry the shares, which is what a peak-scaled pair cannot show in its lengths.
   local inCount = (stats.byDirection or {})[C.Direction.DEPOSIT] or 0
   local outCount = (stats.byDirection or {})[C.Direction.WITHDRAW] or 0
   if inCount + outCount > 0 then
@@ -607,19 +610,19 @@ function I:LayoutSections(y, w, stats, totals)
     header:SetPoint("TOPLEFT", content, "TOPLEFT", PAD, y)
     header:Show()
     y = y - 20
-    local inFrac, outFrac = W.RatioShares(inCount, outCount)
-    W.PlaceRatioBar(self.ratioBar, content, PAD, y, innerW,
-      { frac = inFrac, color = directionColor(C.Direction.DEPOSIT),
-        text = ("Deposits %d \194\183 %d%%"):format(inCount, W.Percent(inCount, total)),
-        tip = ("Deposits: %d of %d movements"):format(inCount, total) },
+    local inFrac, outFrac = W.PeakShares(inCount, outCount)
+    W.PlaceSplitBar(self.splitBar, content, PAD, y, innerW,
       { frac = outFrac, color = directionColor(C.Direction.WITHDRAW),
         text = ("Withdrawals %d \194\183 %d%%"):format(outCount, W.Percent(outCount, total)),
-        tip = ("Withdrawals: %d of %d movements"):format(outCount, total) })
-    self.ratioBar:Show()
-    y = y - W.RATIO_H - W.RATIO_CAPTION_H - W.SECTION_GAP
+        tip = ("Withdrawals: %d of %d movements"):format(outCount, total) },
+      { frac = inFrac, color = directionColor(C.Direction.DEPOSIT),
+        text = ("Deposits %d \194\183 %d%%"):format(inCount, W.Percent(inCount, total)),
+        tip = ("Deposits: %d of %d movements"):format(inCount, total) })
+    self.splitBar:Show()
+    y = y - W.SPLIT_H - W.SPLIT_CAPTION_H - W.SECTION_GAP
   else
     self.headers.split:Hide()
-    self.ratioBar:Hide()
+    self.splitBar:Hide()
   end
 
   -- 2 ── Movements by store, in the shared store colours.

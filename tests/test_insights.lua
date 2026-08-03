@@ -115,23 +115,28 @@ test("InsightsWidgets.Money renders nothing as a plain zero, not an empty cell",
   assertEqual(W.Money(10000), "1g")
 end)
 
--- ── Ratio geometry ────────────────────────────────────────────────────────────
+-- ── Split geometry ────────────────────────────────────────────────────────────
 
-test("InsightsWidgets.RatioShares splits proportionally and sums to one", function()
-  local a, b = W.RatioShares(75, 25)
-  assertEqual(a, 0.75)
-  assertEqual(b, 0.25)
-  assertEqual(a + b, 1)
+test("InsightsWidgets.PeakShares fills the larger side and scales the smaller against it", function()
+  local a, b = W.PeakShares(75, 25)
+  assertEqual(a, 1)
+  assertEqual(b, 25 / 75)
 end)
 
-test("InsightsWidgets.RatioShares reads an empty split as balanced", function()
-  local a, b = W.RatioShares(0, 0)
-  assertEqual(a, 0.5)
-  assertEqual(b, 0.5)
+test("InsightsWidgets.PeakShares fills the larger side whichever side it is on", function()
+  local a, b = W.PeakShares(25, 100)
+  assertEqual(a, 0.25)
+  assertEqual(b, 1)
 end)
 
-test("InsightsWidgets.RatioShares treats a negative side as zero", function()
-  local a, b = W.RatioShares(-5, 10)
+test("InsightsWidgets.PeakShares gives an empty split two zero-width halves", function()
+  local a, b = W.PeakShares(0, 0)
+  assertEqual(a, 0)
+  assertEqual(b, 0)
+end)
+
+test("InsightsWidgets.PeakShares treats a negative side as zero", function()
+  local a, b = W.PeakShares(-5, 10)
   assertEqual(a, 0)
   assertEqual(b, 1)
 end)
@@ -571,9 +576,9 @@ test("Insights: character bars carry the icon out of band", function()
   assertTrue(out:find("|t", 1, true) ~= nil, "the escape is still closed")
 end)
 
-test("InsightsWidgets exports the ratio bar's two-part height", function()
-  assertEqual(W.RATIO_H, 22)
-  assertEqual(W.RATIO_CAPTION_H, 14)
+test("InsightsWidgets exports the split bar's two-part height", function()
+  assertEqual(W.SPLIT_H, 22)
+  assertEqual(W.SPLIT_CAPTION_H, 14)
 end)
 
 test("InsightsWidgets pools list panels, each carrying its own row pool", function()
@@ -668,6 +673,36 @@ test("Insights: a bar's tip carries its untruncated label AND its value", functi
   local tip = I.ElementTip(captured[1].fullLabel or captured[1].label, captured[1].value)
   assertTrue(tip:find("Character Bank", 1, true) ~= nil, "the tip names the store")
   assertTrue(tip:find("1", 1, true) ~= nil, "and carries its count")
+  NS.db.global.ledger = {}
+end)
+
+-- The headline split must obey the same side-to-direction rule as every companion chart below it:
+-- withdrawals LEFT of the centre axis, deposits RIGHT, both scaled so the larger side fills its
+-- half. This is the whole point of the form — a chart family that flips sides teaches nothing.
+test("Insights: the headline split puts withdrawals left, deposits right, peak-scaled", function()
+  local left, right
+  local original = W.PlaceSplitBar
+  W.PlaceSplitBar = function(bar, host, x, y, barW, l, r)
+    left, right = l, r
+    return original(bar, host, x, y, barW, l, r)
+  end
+  unfiltered()
+  -- Three deposits, one withdrawal: deposits fill their half, withdrawals show as a third of it.
+  local ledger = {}
+  for i = 1, 4 do
+    ledger[i] = { ts = NOW - i, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+      direction = (i == 4) and "WITHDRAW" or "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 1, zone = "Valdrakken" }
+  end
+  NS.db.global.ledger = ledger
+  I:Refresh()
+  W.PlaceSplitBar = original
+  assertTrue(left ~= nil, "the headline split rendered")
+  assertTrue(left.text:find("Withdrawals", 1, true) == 1, "the left half is the withdrawal side")
+  assertTrue(right.text:find("Deposits", 1, true) == 1, "the right half is the deposit side")
+  assertEqual(right.frac, 1)
+  assertEqual(left.frac, 1 / 3)
   NS.db.global.ledger = {}
 end)
 

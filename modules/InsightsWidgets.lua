@@ -3,7 +3,7 @@ NS.InsightsWidgets = NS.InsightsWidgets or {}
 local W = NS.InsightsWidgets
 
 -- The Insights tab's visual vocabulary: KPI cards, horizontal bars, stacked bars, diverging bars,
--- ratio bars, per-bucket vertical strips, ranked list panels, legends and section dividers — plus
+-- split bars, per-bucket vertical strips, ranked list panels, legends and section dividers — plus
 -- the colour and label helpers they share.
 --
 -- Peeled out of modules/Insights.lua so that file stays about WHAT is shown (which breakdown, from
@@ -24,7 +24,7 @@ W.POSITIVE = { 0.35, 0.80, 0.45 }   -- net in — the same green as a DEPOSIT
 W.NEGATIVE = { 1.00, 0.33, 0.33 }   -- net out — the same red as a WITHDRAW
 
 W.BAR_H, W.BAR_GAP = 16, 3
-W.RATIO_H, W.RATIO_CAPTION_H = 22, 14   -- the split bar, and the caption row beneath it
+W.SPLIT_H, W.SPLIT_CAPTION_H = 22, 14   -- the headline split bar, and the caption row beneath it
 W.SECTION_GAP = 16
 W.STRIP_H = 46
 W.STRIP_LABEL_H = 40        -- room under a strip for its rotated x-axis labels
@@ -135,13 +135,15 @@ function W.SignedCount(n)
   return "|cffff4040" .. n .. "|r"
 end
 
--- Two shares of one full-width bar, as fractions summing to 1 (0.5/0.5 when both sides are zero, so
--- an empty ratio bar reads as balanced rather than collapsing to nothing).
-function W.RatioShares(a, b)
+-- Two magnitudes as fractions of the LARGER of the two, so the bigger side is always 1.0 and the
+-- smaller reads as its proportion of it. This is the scale a centre-axis split bar wants: the same
+-- shared-peak rule W.BuildBackToBackRows applies down a column of rows, applied to a single pair.
+-- Both sides zero gives 0/0 — two zero-width halves, not a division by zero.
+function W.PeakShares(a, b)
   a, b = math.max(0, a or 0), math.max(0, b or 0)
-  local total = a + b
-  if total <= 0 then return 0.5, 0.5 end
-  return a / total, b / total
+  local peak = math.max(a, b)
+  if peak <= 0 then return 0, 0 end
+  return a / peak, b / peak
 end
 
 -- A whole-number percentage of a total (0 when the total is 0, never a division by zero).
@@ -473,14 +475,22 @@ function W.PlaceBar(bar, host, x, y, barW, frac)
   return trackW
 end
 
--- ── Ratio bar ──────────────────────────────────────────────────────────────────
--- One full-width bar split into two labelled shares, for the in-vs-out split. A pair of ordinary
--- bars would answer "which is bigger"; a ratio bar answers "what proportion", which is the actual
--- question about deposits and withdrawals.
+-- ── Split bar ──────────────────────────────────────────────────────────────────
+-- The headline two-way split, drawn as ONE back-to-back row: both halves grow out from a fixed
+-- centre axis, scaled against the larger of the two, so the bigger side fills its half and the
+-- smaller is its visible proportion. Same form and same reading as the "× Deposits/Withdrawals"
+-- companions further down the panel — a 100%-stacked ratio bar here would have answered the same
+-- question in a different visual language, and the eye pays for that inconsistency.
 
-function W.MakeRatioBar(parent)
+function W.MakeSplitBar(parent)
   local bar = CreateFrame("Frame", nil, parent)
-  bar:SetHeight(W.RATIO_H)
+  bar:SetHeight(W.SPLIT_H)
+  local track = bar:CreateTexture(nil, "BACKGROUND")
+  track:SetColorTexture(1, 1, 1, 0.06)
+  bar.track = track
+  local baseline = bar:CreateTexture(nil, "OVERLAY")
+  baseline:SetColorTexture(0.55, 0.55, 0.60, 0.9)
+  bar.baseline = baseline
   bar.left = CreateFrame("Frame", nil, bar)
   bar.right = CreateFrame("Frame", nil, bar)
   for _, side in ipairs({ bar.left, bar.right }) do
@@ -506,25 +516,34 @@ function W.MakeRatioBar(parent)
   return bar
 end
 
--- `left`/`right` are { frac, color, text, tip }. The two texts are painted in the caption row under
--- the bar, each in its own direction colour, so both stay readable at any split -- including 97/3,
--- where the old in-bar text vanished. The per-side hover tips are unchanged.
-function W.PlaceRatioBar(bar, host, x, y, barW, left, right)
+-- `left`/`right` are { frac, color, text, tip }, each `frac` a share of ONE HALF of the bar (1.0
+-- fills its side exactly) — feed them from W.PeakShares. The two texts are painted in the caption
+-- row under the bar, each in its own direction colour, so both stay readable at any split --
+-- including 97/3, where in-bar text vanishes. The per-side hover tips carry the exact numbers.
+function W.PlaceSplitBar(bar, host, x, y, barW, left, right)
   bar:ClearAllPoints()
   bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
   bar:SetWidth(barW)
-  local leftW = math.max(0, math.floor(barW * (left.frac or 0)))
-  local rightW = math.max(0, barW - leftW)
-  local function place(side, w, anchor, spec)
+  bar.track:ClearAllPoints()
+  bar.track:SetPoint("LEFT", 0, 0)
+  bar.track:SetSize(barW, W.SPLIT_H)
+  bar.baseline:ClearAllPoints()
+  bar.baseline:SetPoint("CENTER", bar.track, "CENTER", 0, 0)
+  bar.baseline:SetSize(1, W.SPLIT_H + 2)
+  local halfW = barW / 2
+  -- Anchored to the bar's CENTRE, not to its edges: that is what pins the split to one line and
+  -- lets each half's LENGTH — rather than its share of a fixed width — carry the magnitude.
+  local function place(side, anchor, spec)
+    local w = halfW * math.min(1, math.max(0, spec.frac or 0))
     side:ClearAllPoints()
-    side:SetPoint(anchor, bar, anchor, 0, 0)
-    side:SetSize(math.max(1, w), W.RATIO_H)
+    side:SetPoint(anchor, bar, "CENTER", 0, 0)
+    side:SetSize(math.max(1, w), W.SPLIT_H)
     side.tex:SetColorTexture(spec.color[1], spec.color[2], spec.color[3], 0.9)
     side._tip = spec.tip
     side:SetShown(w > 0)
   end
-  place(bar.left, leftW, "LEFT", left)
-  place(bar.right, rightW, "RIGHT", right)
+  place(bar.left, "RIGHT", left)
+  place(bar.right, "LEFT", right)
   bar.leftText:SetText(left.text or "")
   bar.leftText:SetTextColor(left.color[1], left.color[2], left.color[3])
   bar.rightText:SetText(right.text or "")

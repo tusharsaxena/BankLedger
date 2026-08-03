@@ -452,7 +452,7 @@ badge and any count quoted in the docs must agree with it.
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
-### test_insights.lua (72)
+### test_insights.lua (74)
 
 - InsightsWidgets.PaletteColor returns an rgb triple for rank 1
 - InsightsWidgets.PaletteColor gives adjacent ranks different colours
@@ -471,9 +471,10 @@ badge and any count quoted in the docs must agree with it.
 - InsightsWidgets.SignedMoney renders zero as a neutral dash
 - InsightsWidgets.SignedCount signs a count the same way
 - InsightsWidgets.Money renders nothing as a plain zero, not an empty cell
-- InsightsWidgets.RatioShares splits proportionally and sums to one
-- InsightsWidgets.RatioShares reads an empty split as balanced
-- InsightsWidgets.RatioShares treats a negative side as zero
+- InsightsWidgets.PeakShares fills the larger side and scales the smaller against it
+- InsightsWidgets.PeakShares fills the larger side whichever side it is on
+- InsightsWidgets.PeakShares gives an empty split two zero-width halves
+- InsightsWidgets.PeakShares treats a negative side as zero
 - InsightsWidgets.Percent rounds to a whole percentage
 - InsightsWidgets.Percent is zero for an empty total, never a divide by zero
 - InsightsWidgets.StripMetrics widens the bars when there are few buckets
@@ -518,13 +519,14 @@ badge and any count quoted in the docs must agree with it.
 - Insights.BarLabel truncates the name and leaves the icon escape intact
 - Insights.BarLabel is a plain truncation when there is no icon
 - Insights: character bars carry the icon out of band
-- InsightsWidgets exports the ratio bar's two-part height
+- InsightsWidgets exports the split bar's two-part height
 - InsightsWidgets pools list panels, each carrying its own row pool
 - InsightsWidgets.MakeCard builds every headline on one base font template
 - Insights: the reorganized list section renders every group
 - Insights.ElementTip pairs the full label with the figure the element shows
 - Insights.ElementTip falls back to the bare label when there is no value
 - Insights: a bar's tip carries its untruncated label AND its value
+- Insights: the headline split puts withdrawals left, deposits right, peak-scaled
 - Insights: a back-to-back half's tip carries its count and its share of the row
 
 ### test_export.lua (34)
@@ -764,7 +766,7 @@ badge and any count quoted in the docs must agree with it.
 | test_ledgertable.lua | 49 |
 | test_browser.lua | 33 |
 | test_sessionwindow.lua | 32 |
-| test_insights.lua | 72 |
+| test_insights.lua | 74 |
 | test_export.lua | 34 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 26 |
@@ -773,4 +775,4 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 7 |
 | test_libka0s.lua | 56 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **687** |
+| **Total** | **689** |

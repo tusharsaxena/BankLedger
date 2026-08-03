@@ -438,7 +438,7 @@ One `Database:Stats(filter)` pass per refresh, against the Browser's shared filt
 panel — so the charts and the History table always describe the same slice. The panel is split in two:
 
 * `modules/InsightsWidgets.lua` — **how** things are drawn. Pooled primitives (KPI card, horizontal
-  bar, back-to-back bar, ratio bar, stacked bar, vertical strip, ranked list panel, legend, section
+  bar, back-to-back bar, split bar, stacked bar, vertical strip, ranked list panel, legend, section
   divider) plus the categorical palette, label truncation, colour helpers and the geometry maths.
   It never touches a ledger entry, which is what makes that maths unit-testable headlessly.
 * `modules/Insights.lua` — **what** is drawn: fourteen stat cards and seventeen chart sections, each
@@ -472,7 +472,9 @@ label/the store key so a tie can never reorder run to run.
 
 ### Section order
 
-In render order: Deposits vs Withdrawals (caption labels **below** the bar, not inside it), Movements
+In render order: Deposits vs Withdrawals (one back-to-back bar about a centre axis — withdrawals
+left, deposits right, `W.PeakShares` → `W.PlaceSplitBar`, both sides scaled against the larger so
+the bigger direction fills its half; caption labels **below** the bar, not inside it), Movements
 By Store + its companion, Movements By Character, Movements By
 Character × Store, Movements By Character × Deposits/Withdrawals, Movements By Quality + its companion, Movements
 By Item Type + its companion, Movements By Sub-type + its companion, Movements Over Time (per day),
@@ -515,10 +517,15 @@ shared across panels.
 
 Three choices worth stating, because they are the ones a future change is most likely to undo:
 
-* **The direction companions are back to back, not stacked.** Withdrawals grow left of a fixed
-  centre axis and deposits grow right, both sides on one shared scale. A left-aligned stacked bar
-  puts the in/out boundary in a different place on every row, so "which way does this lean" takes
-  arithmetic; pinning the split to one vertical line makes it readable straight down the column.
+* **Every deposit/withdrawal chart is back to back, not stacked** — the headline `Deposits vs
+  Withdrawals` included. Withdrawals grow left of a fixed centre axis and deposits grow right, on
+  one shared scale: the largest single-direction magnitude in the list for a companion, the larger
+  of the two for the headline pair. A left-aligned stacked bar puts the in/out boundary in a
+  different place on every row, so "which way does this lean" takes arithmetic; pinning the split
+  to one vertical line makes it readable straight down the column. The headline chart was a
+  100%-stacked ratio bar until it was converted to this form — it answered the same question in a
+  second visual language, directly above the five companions speaking the first one, and the shares
+  it showed in its lengths are carried by its captions instead.
 * **Colour is never decorative.** Store, direction, quality and class bars take their colour from the
   shared palettes in `core/Constants.lua`, so a bar matches the table column it summarises. Only the
   breakdowns with no palette of their own (item type, sub-type, weekday) fall back to

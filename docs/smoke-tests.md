@@ -119,11 +119,16 @@ tolerance.
    stay on one line inside their card rather than clipping or wrapping.
 3. Net items and Net gold read green with a `+` when positive, red with a `-` when negative, and a
    grey dash at exactly zero.
-4. **Deposits vs Withdrawals** is one bar split into two coloured shares. The counts and percentages
-   sit in a **caption row below the bar** — `In <n> · <pct>%` left-aligned in deposit green, `Out <n>
-   · <pct>%` right-aligned in withdraw red — and stay fully readable even at a lopsided split (try
-   filtering to a slice that is almost all one direction; the label never vanishes the way in-bar text
-   used to). Hovering either half of the bar still names it.
+4. **Deposits vs Withdrawals** is one back-to-back bar about a centre axis, drawn the same way as
+   every `× Deposits/Withdrawals` companion below it: **withdrawals grow left** in red,
+   **deposits grow right** in green, and the two are scaled against the larger — the bigger
+   direction fills its half exactly and the smaller is a visible proportion of it. The centre line
+   sits on the same vertical as the companions' axis. The counts and percentages sit in a
+   **caption row below the bar** — `Withdrawals <n> · <pct>%` left-aligned in withdraw red,
+   `Deposits <n> · <pct>%` right-aligned in deposit green — and stay readable even at a lopsided
+   split (try filtering to a slice that is almost all one direction; the label never vanishes the
+   way in-bar text used to, and the near-empty side still shows a sliver). Hovering either half
+   names it and gives its exact count.
 5. **Movements By Character** is class-coloured and carries each class icon rendered as an actual
    icon — never a raw `|TInterface\...|t` texture path as literal text. **Movements By Character ×
    Store** below it stacks one segment per store, left-aligned, each segment hover-tipped with its
