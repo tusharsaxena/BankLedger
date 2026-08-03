@@ -45,7 +45,7 @@ C.Context = {
 C.Direction = { DEPOSIT = "DEPOSIT", WITHDRAW = "WITHDRAW" }
 C.DirectionOrder = { "DEPOSIT", "WITHDRAW" }
 C.DirectionLabel = { DEPOSIT = "Deposit", WITHDRAW = "Withdraw" }
--- Sign the direction applies to a magnitude when totalling a store's net flow.
+-- Sign the direction applies to a magnitude when totaling a store's net flow.
 C.DirectionSign = { DEPOSIT = 1, WITHDRAW = -1 }
 
 -- ── Entry kind ──────────────────────────────────────────────────────────────────
