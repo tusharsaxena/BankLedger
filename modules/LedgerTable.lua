@@ -13,21 +13,21 @@ local HEADER_H = 20
 local ITEM_MIN = 150   -- minimum width of the flex (Item) column
 local COL_GAP = 8      -- horizontal space between columns
 
--- Direction and store colours + the ▲/▼ direction glyphs live in Constants (C.DirectionRGB,
+-- Direction and store colors + the ▲/▼ direction glyphs live in Constants (C.DirectionRGB,
 -- C.DirectionGlyph, C.StoreRGB): the filter dropdowns paint their options from the same tables, so
--- a store or a direction can never read one colour in the table and another in the menu.
+-- a store or a direction can never read one color in the table and another in the menu.
 --
 -- The glyph is drawn as a real text glyph rather than a texture, because a glyph sits on the
--- label's own baseline — centred against the text by construction, where Blizzard's arrow textures
+-- label's own baseline — centered against the text by construction, where Blizzard's arrow textures
 -- carry uneven padding (the up arrow's art sits low in its canvas, the down arrow's high) and
--- visibly misalign. It also takes the direction's colour from the same SetTextColor the label uses.
+-- visibly misalign. It also takes the direction's color from the same SetTextColor the label uses.
 -- It needs the VENDORED font: the default WoW font has no ▲/▼ and renders a box, while the shipped
 -- JetBrains Mono carries both. That is an accepted, documented deviation — the mono font is a
 -- sanctioned styling exception scoped to the debug console (debug-logging-§2) and this extends it
 -- to one glyph. See docs/ARCHITECTURE.md ▸ Documented deviations.
 local ARROW_SIZE, ARROW_GAP = 12, 2
 
--- Gold movements name themselves "Gold" in the Item column. A quality colour would be a lie (gold
+-- Gold movements name themselves "Gold" in the Item column. A quality color would be a lie (gold
 -- has no quality), so they take a pale gold — deliberately LIGHTER than the 1/0.82/0 the column
 -- headers and window title use, so a gold row reads as data and never as a heading.
 local MONEY_RGB = { 1.00, 0.91, 0.55 }
@@ -86,7 +86,7 @@ LT.COLUMNS = {
     sortFn = function(e) return NS.Util.EntrySubType(e):lower() end },
   -- Character is always the last column (see the order note above).
   { key = "char", label = "Character", width = 144, align = "LEFT",
-    desc = "Who moved it — full Name-Realm, class-coloured, behind its class icon.",
+    desc = "Who moved it — full Name-Realm, class-colored, behind its class icon.",
     valueFn = function(e) return NS.Util.ClassIconMarkup(e.classFile) .. (e.char or "") end,
     sortFn = function(e) return (e.char or ""):lower() end },
 }
@@ -106,7 +106,7 @@ end
 -- Public because the session window (modules/SessionWindow.lua) renders a SUBSET of these same
 -- columns in its own slim table. Sharing the spec — rather than restating widths and valueFns there
 -- — is what guarantees the Item column shows the same text and measures the same width in both
--- windows. See also LT:PaintCell for the matching colour seam.
+-- windows. See also LT:PaintCell for the matching color seam.
 function LT:Column(key)
   return COLUMN_BY_KEY[key]
 end
@@ -232,7 +232,7 @@ end
 
 -- Turn an (already-sorted) entry array into the flat display list. With no grouping every entry is
 -- a { kind = "row" } item; with grouping, entries are partitioned under { kind = "header" } items
--- labelled "<Column>: <Value>" with a count. A collapsed group emits only its header. The active
+-- labeled "<Column>: <Value>" with a count. A collapsed group emits only its header. The active
 -- row sort still holds within each group.
 function LT:GroupEntries(entries)
   local list = {}
@@ -495,9 +495,9 @@ local function qualityColor(q)
   return 1, 1, 1
 end
 
--- Paint ONE cell: set its text from the column's valueFn and its colour from the shared palette.
+-- Paint ONE cell: set its text from the column's valueFn and its color from the shared palette.
 --
--- The single definition of "what colour is this cell", so the History table and the session window's
+-- The single definition of "what color is this cell", so the History table and the session window's
 -- slim table can never disagree. `glyphFS` is the row's direction glyph FontString; pass it only for
 -- the "direction" column (any other column ignores it).
 function LT:PaintCell(fs, colKey, entry, glyphFS)
@@ -562,7 +562,7 @@ function LT:AcquireRow()
     row.cells[col.key] = fs
   end
 
-  -- The direction glyph, drawn to the left of the Direction text and coloured with it.
+  -- The direction glyph, drawn to the left of the Direction text and colored with it.
   local glyph = row:CreateFontString(nil, "OVERLAY")
   glyph:SetFont(C.FONT_MONO, ARROW_SIZE, "")
   glyph:SetJustifyH("CENTER")

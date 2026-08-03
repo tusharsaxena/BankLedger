@@ -21,7 +21,7 @@ badge and any count quoted in the docs must agree with it.
 - Util.EntryType is Gold for a gold movement, which stores no type
 - Util.EntryType is blank for an uncached item and for nothing at all
 - Util.ClassIconMarkup carries the class's slice of the icon sheet
-- Util.ClassIconMarkup honours a requested size
+- Util.ClassIconMarkup honors a requested size
 - Util.ClassIconMarkup is empty for an unknown or missing class
 - Util.FormatBytes steps through B, kB and MB
 - Util.RangeFrom returns nil for the no-bound 'all' range
@@ -83,8 +83,8 @@ badge and any count quoted in the docs must agree with it.
 - Constants: the store mute options exclude BAGS
 - Constants: every quality option carries a numeric value and a label
 - Constants: the retention presets offer an 'Always' (0) option
-- Constants: every store has a display colour
-- Constants: every direction has a colour and a glyph
+- Constants: every store has a display color
+- Constants: every direction has a color and a glyph
 - Constants: every open-frame context has a Ledger store list
 - Constants: C.Context is its own axis, not a subset of C.Store
 
@@ -303,7 +303,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the two top-item rankings share one record per item
 - Stats: topItems still ranks by movement count, unchanged
 - Stats: every new breakdown is empty rather than nil on an empty ledger
-- Stats: the new breakdowns honour the filter like every other key
+- Stats: the new breakdowns honor the filter like every other key
 - Stats no longer reports any value figure
 - Stats: netByStore counts movements, deposits positive
 - Stats: itemsMoved totals every stack unit that crossed the line
@@ -312,7 +312,7 @@ badge and any count quoted in the docs must agree with it.
 - Insights.RankRows sorts by count descending
 - Insights.RankRows breaks count ties on the label, so the order is stable
 - Insights.RankRows applies the label mapper and the value map
-- Insights.RankRows honours the row limit
+- Insights.RankRows honors the row limit
 - Insights.RankRows returns an empty array for an empty map
 - Insights.BarFraction scales each bar against the largest count
 - Insights.BarFraction is zero for an empty list or a missing row
@@ -346,7 +346,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable:CellText types a gold row as Gold on both type columns
 - LedgerTable:CellText returns empty for an unknown column key
 - LedgerTable:SortEntries orders by the active column
-- LedgerTable:SortEntries honours the ascending direction
+- LedgerTable:SortEntries honors the ascending direction
 - LedgerTable:SortEntries is stable across equal keys
 - LedgerTable:SortEntries never mutates the array it is given
 - LedgerTable:SortEntries sorts the Qty column on what the cell shows
@@ -455,9 +455,9 @@ badge and any count quoted in the docs must agree with it.
 ### test_insights.lua (74)
 
 - InsightsWidgets.PaletteColor returns an rgb triple for rank 1
-- InsightsWidgets.PaletteColor gives adjacent ranks different colours
+- InsightsWidgets.PaletteColor gives adjacent ranks different colors
 - InsightsWidgets.PaletteColor cycles past the end of the palette
-- InsightsWidgets.PaletteMap assigns colours by list position
+- InsightsWidgets.PaletteMap assigns colors by list position
 - InsightsWidgets.PaletteMap of an empty list is empty
 - InsightsWidgets.Truncate leaves a short label alone
 - InsightsWidgets.Truncate cuts a long label to an ellipsis at the limit
@@ -467,7 +467,7 @@ badge and any count quoted in the docs must agree with it.
 - InsightsWidgets.FitFontSize shrinks proportionally when it overflows
 - InsightsWidgets.FitFontSize never shrinks below the floor
 - InsightsWidgets.FitFontSize treats a missing measurement as fitting
-- InsightsWidgets.SignedMoney colours a gain green and a loss red
+- InsightsWidgets.SignedMoney colors a gain green and a loss red
 - InsightsWidgets.SignedMoney renders zero as a neutral dash
 - InsightsWidgets.SignedCount signs a count the same way
 - InsightsWidgets.Money renders nothing as a plain zero, not an empty cell
@@ -568,18 +568,18 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_debuglog.lua (18)
 
-- DebugLog.FormatPlain renders '<ts> | [<tag>] <msg>' with no colour codes
+- DebugLog.FormatPlain renders '<ts> | [<tag>] <msg>' with no color codes
 - DebugLog.FormatPlain tolerates a missing tag
-- DebugLog.FormatColored uses the mandated timestamp and tag colours
+- DebugLog.FormatColored uses the mandated timestamp and tag colors
 - DebugLog.FormatColored escapes the separator pipe so it renders literally
-- DebugLog: the plain and coloured lines carry the same tag and message
+- DebugLog: the plain and colored lines carry the same tag and message
 - NS.Debug writes nothing while logging is off
 - NS.Debug appends a line while logging is on
 - NS.Debug formats its arguments into the message
 - NS.Debug never raises on a value table.concat would reject
 - DebugLog:Clear empties the copy buffer
 - DebugLog:SetEnabled flips the session-only flag
-- DebugLog:SetEnabled acks in chat with a colour-coded state word
+- DebugLog:SetEnabled acks in chat with a color-coded state word
 - DebugLog:SetEnabled brackets BOTH transitions in the console
 - DebugLog:SetEnabled emits an [Init] session summary on enable
 - DebugLog:SetEnabled emits no [Init] summary on disable
@@ -638,7 +638,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliSet refuses a value-less set and says why
 - Slash:CliReset restores one setting to its default
 - Slash:CliReset echoes a table default through the shared formatter
-- Slash:CliReset echoes the coloured key = value shape, like get and set
+- Slash:CliReset echoes the colored key = value shape, like get and set
 - Slash:CliReset echoes the stored value, not the requested one
 - Slash:CliResetAll restores the schema AND clears the filter lists
 - Slash: a bare /bl prints the help index
@@ -668,7 +668,7 @@ badge and any count quoted in the docs must agree with it.
 - Panel: /bl resetall repaints, and only once
 - Panel: a refresher that raises does not stop the others
 - Panel: the General page renders without the library reporting a failure
-- Panel: every renderable schema row reaches the page as a labelled widget
+- Panel: every renderable schema row reaches the page as a labeled widget
 - Panel: a boolean row is a CheckBox and a range row is a Slider
 - Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
 - Panel: a checkbox write goes through the single write seam
@@ -709,7 +709,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: no seam file hands a descriptor the addon-wide locale table
 - LibKa0s: the locale-descriptor matcher catches all three spellings
 - LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
-- LibKa0s: the vendored folder carries the licence it ships under
+- LibKa0s: the vendored folder carries the license it ships under
 - LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
 - LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
 - LibKa0s-Core: the seam loads before every file that captures NS.Print at load
@@ -726,7 +726,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
 - LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
 - LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
-- LibKa0s-DebugLog: the chat acknowledgement still carries the [BL] tag
+- LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
 - LibKa0s-Slash: the vendored major registered and the CLI is running on it
 - LibKa0s-Slash: the module needs the minor that carries the format hook

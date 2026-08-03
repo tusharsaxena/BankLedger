@@ -98,7 +98,7 @@ iconned strings but never truncate them — so this is the only site.
 
 ## 3 — Deposits vs Withdrawals labels move outside the bar
 
-The ratio bar keeps its two colour blocks and loses its in-bar text, along with the `w >= 56`
+The ratio bar keeps its two color blocks and loses its in-bar text, along with the `w >= 56`
 suppression rule that dropped a label when its share got narrow.
 
 A caption line sits **below** the bar: `In 412 · 62%` left-aligned in deposit green at the bar's
@@ -179,8 +179,8 @@ deposit-green / withdraw-red with a legend:
 
 They render through the existing `I:RenderStacked` + `I:RenderLegend` path with
 `catOrder = C.DirectionOrder`, exactly as *Character × In/Out* already does. Each row's label keeps
-its parent chart's colour (store colour, quality colour, palette colour by rank) so a category is
-recognisable across the pair.
+its parent chart's color (store color, quality color, palette color by rank) so a category is
+recognizable across the pair.
 
 The three new maps are plain extra accumulators in the same single `Stats` pass — the panel gets
 richer without the aggregation getting slower, and no existing key changes name or meaning.

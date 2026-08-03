@@ -209,7 +209,7 @@ local frame, copyFrame
 local config = {}
 local dataset = "allData"
 
--- Centre a popup on the ledger window (falling back to the screen when it isn't built/shown).
+-- Center a popup on the ledger window (falling back to the screen when it isn't built/shown).
 local function centerOnBrowser(f)
   f:ClearAllPoints()
   local win = NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow()
@@ -357,7 +357,7 @@ end
 
 -- Build (once) and show the export modal for the given config. `cfg.title` is the header the
 -- invoking tab supplies; `cfg.providers` feeds the Data Set dropdown; `cfg.csv` serializes the
--- selected dataset. Always re-centres on the ledger window.
+-- selected dataset. Always re-centers on the ledger window.
 function E:Open(cfg)
   config = cfg or {}
   local f = EnsureFrame()

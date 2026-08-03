@@ -8,7 +8,7 @@ local addonName, NS = ...
 -- are exactly the names that file hardcoded, so no saved layout and no /framestack habit moves.
 --
 -- WHAT IS OURS, and it is only ever the CONTENT: which flag says logging is on, what the [Init]
--- summary says, where the chat acknowledgement goes, what the window looks like, and what happens
+-- summary says, where the chat acknowledgment goes, what the window looks like, and what happens
 -- when the library is not installed.
 --
 -- WHERE THIS FILE SITS: after core/Constants.lua (FONT_MONO is read at :New time) and after
@@ -43,7 +43,7 @@ if not lib then
   function D:IsEnabled() return not not (NS.State and NS.State.debug) end
 
   -- The flag still flips. It gates more than the console — settings/Schema.lua's write seam checks
-  -- it before tracing — so silently refusing to set it would be a second, invisible behaviour change
+  -- it before tracing — so silently refusing to set it would be a second, invisible behavior change
   -- on top of a missing window.
   function D:SetEnabled(on)
     on = not not on
@@ -94,8 +94,8 @@ NS.DebugLog = lib:New({
   -- ── the chrome ─────────────────────────────────────────────────────────────────────────────
   --
   -- `applySkin` ONLY, and the reason is no longer that Core's chrome is different. As of Core minor
-  -- 3, Core.SKIN IS this addon's edge — the flat 1px black border, the 1px grey inner highlight, the
-  -- gold title and the grey divider — because standalone-windows-§2 adopted it normatively. So this
+  -- 3, Core.SKIN IS this addon's edge — the flat 1px black border, the 1px gray inner highlight, the
+  -- gold title and the gray divider — because standalone-windows-§2 adopted it normatively. So this
   -- hook no longer rescues the console from a default that does not match; it keeps the console
   -- tracking modules/Browser.lua's own re-skin seam, which is one of the two purposes the standard
   -- still sanctions the hook for. LIBKA0S-05's decline is superseded — see LIBKA0S-27 and -28.
@@ -109,7 +109,7 @@ NS.DebugLog = lib:New({
   end,
 
   -- NO `makeCloseButton`. The console and the copy window are the LIBRARY's windows, so they wear
-  -- the library's close glyph — Core's thin 18x18 x — and this addon's own 24x24 class-coloured one
+  -- the library's close glyph — Core's thin 18x18 x — and this addon's own 24x24 class-colored one
   -- stays on the windows it belongs to (`modules/Browser.lua`). Passing it here is what shipped two
   -- adopters' diagnostic windows looking unlike the other three's, and standalone-windows-§2 now
   -- makes the split explicit: the window EDGE is shared across every Ka0s window, the CLOSE CONTROL

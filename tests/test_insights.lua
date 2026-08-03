@@ -18,8 +18,8 @@ test("InsightsWidgets.PaletteColor returns an rgb triple for rank 1", function()
   end
 end)
 
-test("InsightsWidgets.PaletteColor gives adjacent ranks different colours", function()
-  -- The whole point of the rank-ordered palette: two neighbouring bars must never look alike.
+test("InsightsWidgets.PaletteColor gives adjacent ranks different colors", function()
+  -- The whole point of the rank-ordered palette: two neighboring bars must never look alike.
   for rank = 1, W.PALETTE_SIZE - 1 do
     local a, b = W.PaletteColor(rank), W.PaletteColor(rank + 1)
     assertFalse(a[1] == b[1] and a[2] == b[2] and a[3] == b[3],
@@ -34,7 +34,7 @@ test("InsightsWidgets.PaletteColor cycles past the end of the palette", function
   assertEqual(wrapped[3], first[3])
 end)
 
-test("InsightsWidgets.PaletteMap assigns colours by list position", function()
+test("InsightsWidgets.PaletteMap assigns colors by list position", function()
   local m = W.PaletteMap({ "Tradegoods", "Consumable", "Weapon" })
   assertEqual(m.Tradegoods[1], W.PaletteColor(1)[1])
   assertEqual(m.Weapon[1], W.PaletteColor(3)[1])
@@ -92,7 +92,7 @@ end)
 
 -- ── Signed formatting ──────────────────────────────────────────────────────────
 
-test("InsightsWidgets.SignedMoney colours a gain green and a loss red", function()
+test("InsightsWidgets.SignedMoney colors a gain green and a loss red", function()
   assertTrue(W.SignedMoney(100):find("40ff40", 1, true) ~= nil, "green for a gain")
   assertTrue(W.SignedMoney(100):find("+", 1, true) ~= nil, "and carries the sign")
   assertTrue(W.SignedMoney(-100):find("ff4040", 1, true) ~= nil, "red for a loss")
@@ -385,7 +385,7 @@ test("Insights.CardValues renders every declared card", function()
   assertEqual(v.goldIn, "2g")
   assertEqual(v.goldOut, "50s")
   assertTrue(v.netItems:find("+22", 1, true) ~= nil, "net items is signed")
-  assertTrue(v.netGold:find("40ff40", 1, true) ~= nil, "net gold is signed and coloured")
+  assertTrue(v.netGold:find("40ff40", 1, true) ~= nil, "net gold is signed and colored")
   assertTrue(v.busiest:find("2026-02-01", 1, true) ~= nil)
   assertTrue(v.busiest:find("(9)", 1, true) ~= nil, "the busiest day carries its count")
   assertTrue(v.span:find("\226\128\147", 1, true) ~= nil, "the range uses an en-dash")
@@ -446,7 +446,7 @@ end)
 local function unfiltered()
   NS.Browser.activeFilter = {}
 end
--- Attach the real panel to a stub pane and drive a full layout pass. The maths above is unit-tested
+-- Attach the real panel to a stub pane and drive a full layout pass. The math above is unit-tested
 -- in isolation; this proves the ~16 sections actually bind against a Stats result without raising,
 -- which is the failure mode that would otherwise only show up in-game.
 
@@ -677,7 +677,7 @@ test("Insights: a bar's tip carries its untruncated label AND its value", functi
 end)
 
 -- The headline split must obey the same side-to-direction rule as every companion chart below it:
--- withdrawals LEFT of the centre axis, deposits RIGHT, both scaled so the larger side fills its
+-- withdrawals LEFT of the center axis, deposits RIGHT, both scaled so the larger side fills its
 -- half. This is the whole point of the form — a chart family that flips sides teaches nothing.
 test("Insights: the headline split puts withdrawals left, deposits right, peak-scaled", function()
   local left, right

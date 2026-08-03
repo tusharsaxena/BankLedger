@@ -36,7 +36,7 @@ test("LedgerTable:Column exposes the spec behind a key, and nil for an unknown o
 end)
 
 test("LedgerTable:PaintCell writes the column's text into the cell", function()
-  -- A minimal FontString stand-in: PaintCell is the ONE place both windows set text and colour, so
+  -- A minimal FontString stand-in: PaintCell is the ONE place both windows set text and color, so
   -- it must be callable against any FontString, not just a pooled History row's.
   local calls = {}
   local fs = {
@@ -131,7 +131,7 @@ test("LedgerTable:SortEntries orders by the active column", function()
   end)
 end)
 
-test("LedgerTable:SortEntries honours the ascending direction", function()
+test("LedgerTable:SortEntries honors the ascending direction", function()
   local list = { e({ ts = NOW }), e({ ts = NOW - 100 }) }
   withSort("date", true, function()
     assertEqual(LT:SortEntries(list)[1].ts, NOW - 100)
@@ -419,7 +419,7 @@ local function menuByLabel(entry, testMode)
   if not ok then error(items, 0) end
   local out = {}
   for _, item in ipairs(items) do
-    -- Labels carry colour escapes; key on the visible text.
+    -- Labels carry color escapes; key on the visible text.
     out[(item.label:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))] = item
   end
   return out

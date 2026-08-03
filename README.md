@@ -102,7 +102,7 @@ so you can run one without turning logging on first. `scan` is the one to paste 
 it reports which container ids and which money-balance readers this build actually exposes.
 
 While the sample ledger (`/bl test`) is on screen the History table's right-click menu offers
-**Link to chat** only — Delete, Blacklist and Whitelist are greyed out, because the sample rows are
+**Link to chat** only — Delete, Blacklist and Whitelist are grayed out, because the sample rows are
 synthetic and those actions would otherwise reach your real settings and history.
 
 ### Settings panel
@@ -162,7 +162,7 @@ questing — never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ Filters. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recentres both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all** button in the body also recentres them, but it deletes your history too — export first if you want to keep it.) |
+| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all** button in the body also recenters them, but it deletes your history too — export first if you want to keep it.) |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. |
 

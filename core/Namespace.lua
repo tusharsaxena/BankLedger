@@ -12,9 +12,9 @@ NS.version = "1.0.0"
 -- runner immediately migrated off.
 NS.SCHEMA_VERSION = 2
 
--- Shared chat tag. Cyan (00ffff) is the Ka0s Standard house colour (slash-commands-§4) — every Ka0s
--- addon prints the same cyan bracketed tag so a user running several recognises them at a glance.
--- MUST NOT be substituted with another colour.
+-- Shared chat tag. Cyan (00ffff) is the Ka0s Standard house color (slash-commands-§4) — every Ka0s
+-- addon prints the same cyan bracketed tag so a user running several recognizes them at a glance.
+-- MUST NOT be substituted with another color.
 NS.PREFIX = "|cff00ffff[BL]|r"
 
 -- Modules publish themselves idempotently (`NS.X = NS.X or {}`); nothing to wire here yet.

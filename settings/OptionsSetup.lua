@@ -9,7 +9,7 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 -- global reset has to clear that no schema row owns.
 --
 -- `NS.Helpers` IS the library instance, not a wrapper around it (options-ui-§1). settings/Panel.lua
--- decorates it in place with the pieces that did not generalise — the store grid, the Storage
+-- decorates it in place with the pieces that did not generalize — the store grid, the Storage
 -- section, the whole Filters page — so a host page helper can call `O.RenderRows` like any other
 -- page does, and a suite that swaps a member out to spy on it is swapping the one the library's own
 -- callers see. A copy-across would hand the test a member nobody calls.
@@ -73,14 +73,14 @@ local descriptor = {
 
   -- AceTimer through the addon object (Ka0s standard §3.1). The library takes it as a descriptor
   -- field rather than embedding AceTimer, which would be its second dependency-budget breach.
-  -- Nothing in this addon's schema is a colour row today, so this backs nothing yet — it is wired
+  -- Nothing in this addon's schema is a color row today, so this backs nothing yet — it is wired
   -- because the alternative is discovering it is missing from inside a drag.
   scheduleTimer = function(fn, delay)
     if NS.addon and NS.addon.ScheduleTimer then return NS.addon:ScheduleTimer(fn, delay) end
   end,
 
   -- No `colorDecode`/`colorEncode`: no schema row is `type = "color"`. Adding one means adding
-  -- these, because this addon has no stored colour shape for the library to default to.
+  -- these, because this addon has no stored color shape for the library to default to.
   --
   -- No `skipRestoreAll`: every row here is a plain setting and a global reset should touch all of
   -- them. This addon has no profiles page whose rows are user data.

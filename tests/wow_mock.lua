@@ -4,7 +4,7 @@
 -- REAL NewLibrary — which is what lets the vendored LibKa0s majors register headlessly exactly as
 -- they do in the client — plus the Ace fakes, the settings-canvas registry, the timer queue and the
 -- generic frame stub. This file owns what is genuinely Bank Ledger's: the bag/bank container model,
--- the guild bank, the item database, and the handful of base behaviours whose fidelity this addon
+-- the guild bank, the item database, and the handful of base behaviors whose fidelity this addon
 -- needs to be different.
 --
 -- Plain per-key overwrite, per the kit's README: the base builder hands back a fresh table on every
@@ -12,7 +12,7 @@
 --
 -- ── THE OVERRIDES, AND WHY EACH ONE IS NOT A KIT GAP ──────────────────────────────────────────
 --
--- Every override below replaces a base behaviour with a STRICTER one that an existing Bank Ledger
+-- Every override below replaces a base behavior with a STRICTER one that an existing Bank Ledger
 -- suite depends on. None of them is the base being wrong — the base's own header states the policy
 -- (single-consumer fidelity lives in the consumer's extender) — so none is a finding to take
 -- upstream. They are listed here so a future re-vendor can tell an intentional divergence from a
@@ -27,7 +27,7 @@
 --                         assertions in tests/test_sessionwindow.lua read the difference.
 --   3. __fireTimers     — the base's returns nothing and its CancelTimer is a no-op. The capture
 --                         engine's debounce is asserted as "three events, ONE reconcile pass" and
---                         "the pending timer was cancelled", which needs both a count and honoured
+--                         "the pending timer was canceled", which needs both a count and honored
 --                         cancellation.
 --   4. AceAddon         — RegisterEvent must RAISE for a name in __badEvents. Modern retail rejects
 --                         a retired event name outright, and that failure mode once unregistered
@@ -44,7 +44,7 @@
 --   8. AceGUI           — TAKEN from the base, not overridden. It was an inert `Create -> nil`
 --                         stub until LibKa0s-Options-1.0 was adopted; the base's real widget
 --                         factory is what makes the schema -> widget -> write path drivable at all.
---                         Confirmed behaviour-neutral before the swap: the addon called
+--                         Confirmed behavior-neutral before the swap: the addon called
 --                         AceGUI:Create zero times during the suite, so no existing case changed.
 --   9. StaticPopup_Show — the base defines it, which flips settings/Schema.lua's and
 --                         settings/Panel.lua's `if type(StaticPopup_Show) == "function"` guards from
@@ -52,7 +52,7 @@
 --                         worth taking, but it is a test-semantics change that belongs with the
 --                         Slash/Options work rather than smuggled into a harness swap.
 --  10. GameTooltip      — same argument: the base defines it and seven `if GameTooltip then` guards
---                         change branch. Left nil here so this swap is behaviour-neutral.
+--                         change branch. Left nil here so this swap is behavior-neutral.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -69,7 +69,7 @@ local base = dofile("tests/_kit/mock_base.lua")
 -- GEOMETRY is the other piece of real state. Window position and size are persisted to
 -- SavedVariables and restored on the next login, and a blanket no-op makes that round trip
 -- untestable: GetPoint() would hand back the frame itself, so "we saved the position" and "we saved
--- a garbage table" look identical. SetPoint's overloads are modelled because addon code uses both
+-- a garbage table" look identical. SetPoint's overloads are modeled because addon code uses both
 -- the (point, x, y) and (point, relativeTo, relativePoint, x, y) forms.
 local function recordPoint(point, ...)
   local a, b, c, d = ...
@@ -177,7 +177,7 @@ return function()
   local M = base()
 
   -- Overrides 1 and 2. __stubFrame is re-pointed too, so anything the addon's own suites build with
-  -- it gets the geometry-modelling stub rather than the base's.
+  -- it gets the geometry-modeling stub rather than the base's.
   M.__stubFrame = stubFrame
   M.UIParent    = stubFrame()
   M.CreateFrame = function() return stubFrame() end
@@ -212,7 +212,7 @@ return function()
 
   -- Bag index enum, reproduced VERBATIM from a live 12.0.7 client (all 20 members, exact ids).
   -- Mock fidelity is load-bearing here: the container groups are derived from these names, and an
-  -- idealised enum would have hidden the real defect — that `AccountBankTab_1` is 12, one past the
+  -- idealized enum would have hidden the real defect — that `AccountBankTab_1` is 12, one past the
   -- character-bank range, so a numeric guess put warband tab 1 inside the character bank.
   --
   -- Note `Characterbanktab` / `Accountbanktab`: those are *type* constants sharing the enum with
@@ -347,7 +347,7 @@ return function()
   -- and it is declared in .luacheckrc read_globals.
   M.strtrim = function(s) return (tostring(s):gsub("^%s*(.-)%s*$", "%1")) end
   -- Class-icon sheet slices (left, right, top, bottom as fractions), for Util.ClassIconMarkup. Two
-  -- real classes are enough to prove the coordinate maths and the unknown-class fallback.
+  -- real classes are enough to prove the coordinate math and the unknown-class fallback.
   M.CLASS_ICON_TCOORDS = {
     MAGE  = { 0.25, 0.49609375, 0.25, 0.5 },
     ROGUE = { 0.49609375, 0.7421875, 0, 0.25 },
@@ -396,7 +396,7 @@ return function()
     M.__timers = {}
     local fired = 0
     for _, handle in ipairs(due) do
-      if not handle.cancelled then
+      if not handle.canceled then
         fired = fired + 1
         handle.callback()
       end
@@ -440,7 +440,7 @@ return function()
     return w
   end
 
-  -- Message bus modelled on CallbackHandler: callbacks keyed by (message, target). Registering the
+  -- Message bus modeled on CallbackHandler: callbacks keyed by (message, target). Registering the
   -- same message twice on ONE target overwrites (only the last survives); SendMessage fires to every
   -- distinct target. Mirroring the real semantics is what lets a test catch same-target clobbering
   -- (architecture-§4) — a bare no-op mock hides that whole bug class.
@@ -480,12 +480,12 @@ return function()
       -- A fireable timer queue. A no-op stub would have hidden the debounce entirely; tests fire
       -- M.__fireTimers() to advance time and assert that several events coalesce into ONE pass.
       target.ScheduleTimer = function(_, callback, delay)
-        local handle = { callback = callback, delay = delay, cancelled = false }
+        local handle = { callback = callback, delay = delay, canceled = false }
         M.__timers[#M.__timers + 1] = handle
         return handle
       end
       target.CancelTimer = function(_, handle)
-        if type(handle) == "table" then handle.cancelled = true end
+        if type(handle) == "table" then handle.canceled = true end
       end
       -- AceConsole's :Print mixin, reproduced faithfully: embedding it CLOBBERS a same-named custom
       -- NS.Print, and renders "|cff33ff99<msg>|r:" (green, trailing colon, no cyan tag). The addon

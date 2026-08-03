@@ -87,7 +87,7 @@ warband movement, because no event announces one.
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
-| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin`, resolved through `NS.Browser` at call time — which is what lets a `core/` file reach a `modules/` member without inverting the load order — so the console keeps tracking `modules/Browser.lua`'s own re-skin seam. It passes **no** `makeCloseButton`: the window **edge** is shared across every Ka0s window now (`Core.SKIN` carries it, and this addon's `SKIN` agrees with it value for value), but the **close control on a library-drawn window is the library's**, so the console and the copy window wear Core's thin 18×18 × while the ledger window keeps its own 24×24 class-coloured glyph (standalone-windows-§2). Degrades to a stub answering every member `/bl debug` reaches. |
+| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin`, resolved through `NS.Browser` at call time — which is what lets a `core/` file reach a `modules/` member without inverting the load order — so the console keeps tracking `modules/Browser.lua`'s own re-skin seam. It passes **no** `makeCloseButton`: the window **edge** is shared across every Ka0s window now (`Core.SKIN` carries it, and this addon's `SKIN` agrees with it value for value), but the **close control on a library-drawn window is the library's**, so the console and the copy window wear Core's thin 18×18 × while the ledger window keeps its own 24×24 class-colored glyph (standalone-windows-§2). Degrades to a stub answering every member `/bl debug` reaches. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
 | `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
@@ -100,13 +100,13 @@ warband movement, because no event announces one.
 | `modules/Browser.lua` | The standalone window: skin, tabs, the shared filter bar, footer, minimap launcher. |
 | `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, the test dataset (`/bl test`), and the shared `Column` / `PaintCell` column seams. |
 | `modules/SessionWindow.lua` | The live "Current Banking Session" window: its own slim pooled table over the movements of one bank visit. |
-| `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label maths. Knows nothing about ledger entries. |
-| `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which colour and order. |
+| `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label math. Knows nothing about ledger entries. |
+| `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which color and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
 | `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. `S:Set` is the **single write seam**: it validates, writes, emits the one debug trace, runs the row's `onChange`, and repaints an open settings panel (options-ui-§41) — so a slash write and a panel widget take exactly the same path. |
 | `settings/Slash.lua` | The **LibKa0s-Slash-1.0 seam**, plus what stays the host's: AceConsole registration, the five confirm dialogs, `Sl:Version`, and the full reset. The dispatcher, the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's. Supplies `groupKey` (this schema groups by `group`, not `page`), a `format` hook for the set-typed `excludedStores` row, and a `parse` override that refuses a chat edit of that row by name. Wraps `CliResetAll` so the two carve-outs with no Schema widget — the filter lists and the saved ledger view — are still reset. |
 | `settings/OptionsSetup.lua` | The **LibKa0s-Options-1.0 seam**. `NS.Helpers` IS the library instance (options-ui-§1), not a wrapper — `settings/Panel.lua` decorates it in place. Supplies the schema seams through `NS.Schema:Set`, so a panel widget takes exactly the path `/bl set` takes. Degrades LOAD-COMPLETING rather than member-answering, with a measured load-time member set of zero. |
-| `settings/Panel.lua` | What did **not** generalise: the inverted store grid, the Storage section, the whole Filters page, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer. Registers three pages with the library and lets it own the shell, the makers, the flow engine and the render timing. |
+| `settings/Panel.lua` | What did **not** generalize: the inverted store grid, the Storage section, the whole Filters page, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer. Registers three pages with the library and lets it own the shell, the makers, the flow engine and the render timing. |
 
 ### Load order is load-bearing
 
@@ -384,11 +384,11 @@ close-glyph factory (`modules/Browser.lua`), each with its own persisted geometr
 
 The debug console and its copy box are a third and a fourth standalone frame, but they are the
 **library's** — `LibKa0s-DebugLog-1.0` draws them. They wear the same edge, because that edge is no
-longer this addon's alone: `Core.SKIN` carries the flat 1px black border, the 1px light-grey line
-synthesised just inside it, the gold title and the grey divider, and the `SKIN` table above agrees
+longer this addon's alone: `Core.SKIN` carries the flat 1px black border, the 1px light-gray line
+synthesized just inside it, the gold title and the gray divider, and the `SKIN` table above agrees
 with it value for value. The descriptor still passes `applySkin`, so the console follows
 `modules/Browser.lua` if that skin is ever retuned. What it does **not** pass is a close-button
-factory: those two windows close with Core's thin 18×18 ×, not the 24×24 class-coloured glyph the
+factory: those two windows close with Core's thin 18×18 ×, not the 24×24 class-colored glyph the
 ledger and session windows use. `standalone-windows-§2` draws the line there — the edge is shared
 across every Ka0s window, the close control on a library-drawn window belongs to the library — and
 the point of it is that a user comparing two Ka0s consoles side by side sees one collection's
@@ -423,10 +423,10 @@ hand-edited SavedVariables) cannot reopen a window too small to read.
 
 The session window is **not** a second `NS.LedgerTable` instance. That module is a stateful singleton
 — one row pool, one display list, one sort/group/filter/collapse state — and the session table has
-none of those, so a slim renderer is smaller than the refactor generalising it would take. What the
+none of those, so a slim renderer is smaller than the refactor generalizing it would take. What the
 two **do** share is the definition of a column: `LedgerTable:Column(key)` hands out the spec (label,
 width, align, tooltip, `valueFn`) and `LedgerTable:PaintCell(fs, key, entry, glyph)` sets a cell's
-text and colour, so a column cannot read one way in one window and another way in the other.
+text and color, so a column cannot read one way in one window and another way in the other.
 
 Its column set is the History table's minus `date`, `time` and `char`: every row happened moments
 ago, and capture only ever records the logged-in character's own movements, so all three columns
@@ -439,8 +439,8 @@ panel — so the charts and the History table always describe the same slice. Th
 
 * `modules/InsightsWidgets.lua` — **how** things are drawn. Pooled primitives (KPI card, horizontal
   bar, back-to-back bar, split bar, stacked bar, vertical strip, ranked list panel, legend, section
-  divider) plus the categorical palette, label truncation, colour helpers and the geometry maths.
-  It never touches a ledger entry, which is what makes that maths unit-testable headlessly.
+  divider) plus the categorical palette, label truncation, color helpers and the geometry math.
+  It never touches a ledger entry, which is what makes that math unit-testable headlessly.
 * `modules/Insights.lua` — **what** is drawn: fourteen stat cards and seventeen chart sections, each
   mapping one `Stats` key to rows, plus the reorganized "Top Of The List" ranked-panel grid below them.
 
@@ -472,7 +472,7 @@ label/the store key so a tie can never reorder run to run.
 
 ### Section order
 
-In render order: Deposits vs Withdrawals (one back-to-back bar about a centre axis — withdrawals
+In render order: Deposits vs Withdrawals (one back-to-back bar about a center axis — withdrawals
 left, deposits right, `W.PeakShares` → `W.PlaceSplitBar`, both sides scaled against the larger so
 the bigger direction fills its half; caption labels **below** the bar, not inside it), Movements
 By Store + its companion, Movements By Character, Movements By
@@ -487,12 +487,12 @@ to.
 
 Each `× Deposits/Withdrawals` companion sits **immediately after its parent chart** and is drawn **back to back**
 (`W.BuildBackToBackRows` → `I:RenderBackToBack` → `W.PlaceBackToBackBar`): withdrawals grow LEFT of a
-fixed centre axis, deposits grow RIGHT. Both sides share **one** scale — the largest single-direction
+fixed center axis, deposits grow RIGHT. Both sides share **one** scale — the largest single-direction
 magnitude in the list — so the split sits on the same vertical line in every row and the lean of the
 whole chart reads straight down that line. A left-aligned stacked bar puts that boundary somewhere
 different on every row and answers the question only after arithmetic, which is why the form changed.
-Each row keeps its parent chart's label colour (store colour, quality colour, class colour, palette
-colour by rank) so a category stays recognisable across the pair, and each half carries its own
+Each row keeps its parent chart's label color (store color, quality color, class color, palette
+color by rank) so a category stays recognizable across the pair, and each half carries its own
 hover tip with the exact count. The legend is ordered **withdraw, deposit** to match the chart's
 left-to-right reading rather than `C.DirectionOrder`.
 
@@ -518,7 +518,7 @@ shared across panels.
 Three choices worth stating, because they are the ones a future change is most likely to undo:
 
 * **Every deposit/withdrawal chart is back to back, not stacked** — the headline `Deposits vs
-  Withdrawals` included. Withdrawals grow left of a fixed centre axis and deposits grow right, on
+  Withdrawals` included. Withdrawals grow left of a fixed center axis and deposits grow right, on
   one shared scale: the largest single-direction magnitude in the list for a companion, the larger
   of the two for the headline pair. A left-aligned stacked bar puts the in/out boundary in a
   different place on every row, so "which way does this lean" takes arithmetic; pinning the split
@@ -526,8 +526,8 @@ Three choices worth stating, because they are the ones a future change is most l
   100%-stacked ratio bar until it was converted to this form — it answered the same question in a
   second visual language, directly above the five companions speaking the first one, and the shares
   it showed in its lengths are carried by its captions instead.
-* **Colour is never decorative.** Store, direction, quality and class bars take their colour from the
-  shared palettes in `core/Constants.lua`, so a bar matches the table column it summarises. Only the
+* **Color is never decorative.** Store, direction, quality and class bars take their color from the
+  shared palettes in `core/Constants.lua`, so a bar matches the table column it summarizes. Only the
   breakdowns with no palette of their own (item type, sub-type, weekday) fall back to
   `InsightsWidgets.PaletteColor`, assigned by *rank* so adjacent bars are never lookalikes.
 * **Empty is drawn, missing is not.** A quiet day keeps a ghost bar in a strip (a gap cannot be told
@@ -557,7 +557,7 @@ visible hitch.
   that have to be kept in step. On General that action is `P:RestoreDefaults()`, which is
   non-destructive — settings and window geometry only; wiping the ledger stays behind the
   confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
-- Opening the settings panel **refuses** under combat lockdown with a grey notice and never defers:
+- Opening the settings panel **refuses** under combat lockdown with a gray notice and never defers:
   `Settings.OpenToCategory` is protected, and calling it under lockdown taints the panel for the
   rest of the session.
 - Every chat and debug line funnels through one secret-safe printer, whose detector probes
@@ -593,7 +593,7 @@ that an audit must not flag it.
 The reason the standard settled there is the reason this addon needs it: the alternative is a
 texture, and Blizzard's arrow art carries uneven padding — the up arrow sits low in its canvas, the
 down arrow high — so a texture pair visibly misaligns against the row text. A text glyph sits on the
-label's own baseline, so it is centred by construction and takes the direction's colour from the same
+label's own baseline, so it is centered by construction and takes the direction's color from the same
 `SetTextColor` call as the label. The font is already shipped, so this costs no new asset. Scope is
 two glyphs; no body text anywhere uses the mono font outside the console.
 

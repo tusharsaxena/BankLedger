@@ -30,7 +30,7 @@ end)
 -- stays the host's job (docs/pending/LEDGER.md, LIBKA0S-19).
 --
 -- RAWGET, not `type(p.OnCommit)`, and that is the whole point of this case. The mock's frame stub
--- synthesises a no-op function for ANY PascalCase key, so `type(p.OnCommit) == "function"` is true
+-- synthesizes a no-op function for ANY PascalCase key, so `type(p.OnCommit) == "function"` is true
 -- whether or not a single line of this addon ever set it — which is what this test asserted from
 -- the day it was written until a mutation proved it could not fail. rawget asks the only question
 -- that matters: did the addon actually put something here?
@@ -52,7 +52,7 @@ end)
 -- The header Defaults button and Blizzard's own footer control must be ONE implementation, not two
 -- that can drift.
 --
--- Asserted as BEHAVIOUR, not identity. It used to compare the two function objects, which worked
+-- Asserted as BEHAVIOR, not identity. It used to compare the two function objects, which worked
 -- while the host set both from a single closure. LibKa0s-Options-1.0 minor 5 stamps an `OnDefault`
 -- that FORWARDS to whatever the page parked as `defaultsOnClick` — so they are deliberately no
 -- longer the same object, and identity was only ever a proxy for the thing that matters: calling
@@ -246,7 +246,7 @@ local function renderPage(name)
   return made, chat
 end
 
-local function widgetLabelled(made, label)
+local function widgetLabeled(made, label)
   for _, w in ipairs(made) do
     if w.labelText == label then return w end
   end
@@ -264,11 +264,11 @@ test("Panel: the General page renders without the library reporting a failure", 
   assertTrue(#made > 20, "expected a full page of widgets; got " .. #made)
 end)
 
-test("Panel: every renderable schema row reaches the page as a labelled widget", function()
+test("Panel: every renderable schema row reaches the page as a labeled widget", function()
   local made = renderPage("General")
   for _, row in ipairs(NS.Schema.Schema) do
     if not row.skipRender then
-      assertTrue(widgetLabelled(made, row.label) ~= nil,
+      assertTrue(widgetLabeled(made, row.label) ~= nil,
         row.path .. " (" .. tostring(row.label) .. ") never reached the page")
     end
   end
@@ -276,8 +276,8 @@ end)
 
 test("Panel: a boolean row is a CheckBox and a range row is a Slider", function()
   local made = renderPage("General")
-  assertEqual(widgetLabelled(made, "Enable capture").type, "CheckBox")
-  assertEqual(widgetLabelled(made, "Window scale").type, "Slider")
+  assertEqual(widgetLabeled(made, "Enable capture").type, "CheckBox")
+  assertEqual(widgetLabeled(made, "Window scale").type, "Slider")
 end)
 
 test("Panel: a numeric ENUM row is a Dropdown, not a slider over its indices", function()
@@ -285,8 +285,8 @@ test("Panel: a numeric ENUM row is a Dropdown, not a slider over its indices", f
   -- declares min/max/step, so under minor 4 they rendered as 0-to-1 sliders — a control that could
   -- not express any of their values, with nothing raising.
   local made = renderPage("General")
-  local q = widgetLabelled(made, "Minimum quality")
-  local r = widgetLabelled(made, "Keep history for")
+  local q = widgetLabeled(made, "Minimum quality")
+  local r = widgetLabeled(made, "Keep history for")
   assertEqual(q.type, "Dropdown")
   assertEqual(r.type, "Dropdown")
   assertEqual(r.list[30], "30 days", "the entries carry their own labels, not stringified values")
@@ -295,7 +295,7 @@ end)
 
 test("Panel: a checkbox write goes through the single write seam", function()
   local made = renderPage("General")
-  local cb = widgetLabelled(made, "Track gold")
+  local cb = widgetLabeled(made, "Track gold")
   local saved = NS.Schema:Get("settings.trackMoney")
   cb:__fire("OnValueChanged", false)
   assertEqual(NS.Schema:Get("settings.trackMoney"), false, "the widget wrote through NS.Schema:Set")

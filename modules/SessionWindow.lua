@@ -19,8 +19,8 @@ local C = NS.Constants
 -- It is deliberately NOT a second instance of NS.LedgerTable. That module is a stateful singleton
 -- (one row pool, one display list, one sort/group/filter/collapse state) and this table has no
 -- sorting, no grouping, no filtering and no collapsing — so a slim renderer is smaller than the
--- refactor that would generalise it. What is NOT duplicated is the definition of a column: the
--- widths, labels, tooltips, cell text and cell colours all come from LedgerTable's public
+-- refactor that would generalize it. What is NOT duplicated is the definition of a column: the
+-- widths, labels, tooltips, cell text and cell colors all come from LedgerTable's public
 -- `Column` / `PaintCell` seams, so a column reads identically in both windows.
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
@@ -272,7 +272,7 @@ function SW:ApplyGeometry()
       frame:SetSize(math.max(self._minW or 0, g.w), math.max(MIN_H, g.h))
     end
   else
-    -- Default: right of centre, clear of the bank frame rather than on top of it.
+    -- Default: right of center, clear of the bank frame rather than on top of it.
     frame:SetPoint("CENTER", UIParent, "CENTER", 420, 0)
   end
 end
@@ -596,7 +596,7 @@ end
 function SW:BindRow(row, entry, absIndex)
   row.entry = entry
   row.stripe:SetShown(absIndex % 2 == 0)
-  -- Text AND colour come from LedgerTable's shared seam, so a cell can never read one way in the
+  -- Text AND color come from LedgerTable's shared seam, so a cell can never read one way in the
   -- History window and another here.
   for _, col in ipairs(self:Columns()) do
     NS.LedgerTable:PaintCell(row.cells[col.key], col.key,
@@ -632,7 +632,7 @@ function SW:SetScale(v)
   if frame then frame:SetScale(v) end
 end
 
--- A setting changed: honour the scale, and close immediately if the window was just switched off.
+-- A setting changed: honor the scale, and close immediately if the window was just switched off.
 function SW:OnSettingsChanged()
   if not frame then return end
   frame:SetScale((NS.db and NS.db.global.settings.windowScale) or 1.0)

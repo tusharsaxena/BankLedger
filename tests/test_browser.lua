@@ -100,7 +100,7 @@ end)
 -- ── The saved view ─────────────────────────────────────────────────────────────
 
 -- CaptureView and ApplyView both read and write the filter bar's widgets, which only exist once the
--- window has been built. Stand in a minimal fake bar that honours the same tiny contract the real
+-- window has been built. Stand in a minimal fake bar that honors the same tiny contract the real
 -- dropdowns expose (_selected / _value / SetSelected / SelectValue) so the view logic itself is
 -- exercised headlessly, rather than skipped.
 local function fakeDropdown()

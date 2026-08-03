@@ -8,10 +8,10 @@ local W = NS.InsightsWidgets
 -- computed off ONE Database:Stats pass over the SAME filter the ledger table uses, so the two views
 -- can never disagree about which slice of the ledger they describe.
 --
--- This file is about WHAT is shown: which breakdown, out of which Stats key, in which colour and in
+-- This file is about WHAT is shown: which breakdown, out of which Stats key, in which color and in
 -- which order. HOW it is drawn lives in modules/InsightsWidgets.lua.
 --
--- A bank ledger measures FLOW, so the panel is organised around direction and store rather than
+-- A bank ledger measures FLOW, so the panel is organized around direction and store rather than
 -- around a flat "count by category" list: the in/out split leads, and every breakdown that can be
 -- split by direction carries a back-to-back companion answering "which way does this lean" — for a
 -- store, a quality, an item type, a character.
@@ -279,7 +279,7 @@ function I:RenderBars(poolKey, headerKey, rows, y, w, legendPool)
     bar.fill:SetColorTexture(color[1], color[2], color[3], 0.95)
     bar._tip = I.ElementTip(row.fullLabel or row.label, row.value)
     bar.label:SetText(I.BarLabel(row))
-    -- The label defaults to its bar's colour, which makes a single bar self-legending.
+    -- The label defaults to its bar's color, which makes a single bar self-legending.
     local lc = row.labelColor or color
     bar.label:SetTextColor(lc[1], lc[2], lc[3])
     bar.value:SetText(row.value or "")
@@ -321,7 +321,7 @@ function I:RenderStacked(poolKey, headerKey, rows, y, w)
   return y - W.SECTION_GAP
 end
 
--- A back-to-back section: withdrawals grow left of a fixed centre axis, deposits grow right.
+-- A back-to-back section: withdrawals grow left of a fixed center axis, deposits grow right.
 -- `rows` comes from W.BuildBackToBackRows, already scaled and sorted.
 function I:RenderBackToBack(poolKey, headerKey, rows, y, w)
   local header = self.headers[headerKey]
@@ -348,7 +348,7 @@ function I:RenderBackToBack(poolKey, headerKey, rows, y, w)
   return y - W.SECTION_GAP
 end
 
--- A wrapped legend of colour-swatch chips, aligned under where the bars begin (not under the text
+-- A wrapped legend of color-swatch chips, aligned under where the bars begin (not under the text
 -- labels), so it reads as belonging to the track.
 function I:RenderLegend(poolKey, rows, y, w)
   local x0 = PAD + W.LABEL_W + 6
@@ -554,14 +554,14 @@ end
 
 
 -- A "<segment> x Deposits/Withdrawals" companion, drawn back to back, in the
--- direction colours, with a legend. `labelOf`/`labelColorOf` keep each row recognisable against
+-- direction colors, with a legend. `labelOf`/`labelColorOf` keep each row recognizable against
 -- the parent chart it sits under.
 function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, w)
   if not next(matrix or {}) then
     self.headers[headerKey]:Hide()
     return y
   end
-  -- Deposits right of the centre axis, withdrawals left of it. Both sides share one scale, so the
+  -- Deposits right of the center axis, withdrawals left of it. Both sides share one scale, so the
   -- split sits on the same vertical line in every row and the lean of the whole chart reads at a
   -- glance rather than row by row.
   local rows = W.BuildBackToBackRows(matrix, C.Direction.DEPOSIT, C.Direction.WITHDRAW, {
@@ -597,7 +597,7 @@ function I:LayoutSections(y, w, stats, totals)
 
   y = placeDivider(self.dividers.items, content, y)
 
-  -- 1 ── Deposits vs withdrawals, as one back-to-back bar about a centre axis: withdrawals left,
+  -- 1 ── Deposits vs withdrawals, as one back-to-back bar about a center axis: withdrawals left,
   -- deposits right, both scaled against the larger. Same form, same side-to-direction mapping and
   -- same shared-peak scale as every "× Deposits/Withdrawals" chart below it, so the headline split
   -- and its breakdowns read as one chart family rather than two ways of saying the same thing. The
@@ -625,7 +625,7 @@ function I:LayoutSections(y, w, stats, totals)
     self.splitBar:Hide()
   end
 
-  -- 2 ── Movements by store, in the shared store colours.
+  -- 2 ── Movements by store, in the shared store colors.
   local storeRows = {}
   for _, e in ipairs(W.SortedByCount(stats.byStore)) do
     storeRows[#storeRows + 1] = {
@@ -637,7 +637,7 @@ function I:LayoutSections(y, w, stats, totals)
   y = self:RenderDirectionSplit("storeDir", "storeDir", "storeDirLeg", stats.storeByDirection,
     { labelOf = storeLabel, labelColorOf = storeColor }, y, w)
 
-  -- 3 ── Movements by character, class-coloured and behind the class icon.
+  -- 3 ── Movements by character, class-colored and behind the class icon.
   local charRows = {}
   for _, ce in pairs(stats.byChar or {}) do
     if (ce.count or 0) > 0 then charRows[#charRows + 1] = ce end
@@ -681,13 +681,13 @@ function I:LayoutSections(y, w, stats, totals)
 
   -- 5 ── Movements By Character × Deposits/Withdrawals: who fills the bank and who empties it.
   -- Rendered through the same back-to-back path as every other direction companion, so all of
-  -- them share one centre axis and one reading.
+  -- them share one center axis and one reading.
   y = self:RenderDirectionSplit("charDir", "charDir", "charDirLeg", stats.charByDirection,
     { labelOf = W.ShortChar,
       labelColorOf = function(ch) return W.ClassColor(classOf[ch]) end }, y, w)
 
   -- 7 ── Quality, in ASCENDING quality order (Poor→Legendary is meaningful; count-desc is not) and
-  -- in the game's own quality colours, so the bars are self-legending.
+  -- in the game's own quality colors, so the bars are self-legending.
   local qualityIDs = {}
   for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
   table.sort(qualityIDs)
@@ -749,7 +749,7 @@ function I:LayoutSections(y, w, stats, totals)
   end
   y = self:RenderStrip("hour", "hour", self.strips.hour, hourBuckets, y, w)
 
-  -- 12 ── Weekday, Sunday first (calendar order, not count order), each day its own palette colour.
+  -- 12 ── Weekday, Sunday first (calendar order, not count order), each day its own palette color.
   local weekdayRows = {}
   for d = 0, 6 do
     local count = (stats.byWeekday or {})[d]

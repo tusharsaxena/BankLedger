@@ -299,7 +299,7 @@ test("LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order",
   end
 end)
 
-test("LibKa0s: the vendored folder carries the licence it ships under", function()
+test("LibKa0s: the vendored folder carries the license it ships under", function()
   -- LICENSE lives INSIDE the payload as of v1.1.1, so a whole-folder copy carries it. Its absence
   -- means someone vendored file-by-file, which is the thing whole-folder vendoring exists to stop.
   local f = io.open("libs/LibKa0s/LICENSE", "r")
@@ -350,7 +350,7 @@ end)
 
 -- ── LibKa0s-DebugLog-1.0 ─────────────────────────────────────────────────────────────────────
 --
--- The console. tests/test_debuglog.lua already asserts the behaviour — its 18 cases were written
+-- The console. tests/test_debuglog.lua already asserts the behavior — its 18 cases were written
 -- against modules/DebugLog.lua and pass unchanged against the library instance, which is the
 -- strongest single piece of evidence that this swap is byte-neutral. What lives HERE is what those
 -- cases cannot see: that the seam is on the library at all rather than silently on its stub, that
@@ -431,7 +431,7 @@ test("LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's", func
 end)
 test("LibKa0s-DebugLog: the console closes with the library's x, not this addon's", function()
   -- The console and the copy window are the library's windows, so they wear Core's thin 18x18 x.
-  -- This addon's own 24x24 class-coloured glyph stays on the windows it belongs to; passing it
+  -- This addon's own 24x24 class-colored glyph stays on the windows it belongs to; passing it
   -- through the `makeCloseButton` hook is what made these two windows look unlike every other
   -- Ka0s addon's (docs/pending/LEDGER.md, LIBKA0S-19).
   --
@@ -521,9 +521,9 @@ test("LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk"
   if f then f:close() end
 end)
 
-test("LibKa0s-DebugLog: the chat acknowledgement still carries the [BL] tag", function()
+test("LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag", function()
   -- The descriptor's `print` is what keeps it. Omit it and the library's own default sink writes
-  -- straight to DEFAULT_CHAT_FRAME UNTAGGED — the colour-coded state word survives, so a case that
+  -- straight to DEFAULT_CHAT_FRAME UNTAGGED — the color-coded state word survives, so a case that
   -- only looked for |cff40ff40ON|r would pass while every user watched the tag disappear from the
   -- two lines `/bl debug on|off` prints.
   local saved = NS.State.debug
@@ -650,7 +650,7 @@ end)
 
 test("LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed",
   function()
-    -- A behaviour change, and an improvement: NS.Schema:Set validates nothing, so the old CLI wrote
+    -- A behavior change, and an improvement: NS.Schema:Set validates nothing, so the old CLI wrote
     -- 9 into a 0.6-1.6 row and the panel drew a slider pinned to its end with a value it could not
     -- represent.
     chat(function() Sl:CliSet("settings.windowScale 9") end)
@@ -675,7 +675,7 @@ test("LibKa0s-Slash: CliResetAll keeps this addon's two carve-outs", function()
   -- The library's CliResetAll walks the schema and acknowledges; it cannot know about state that
   -- has no Schema row. Both are user-configured settings despite having no widget, so the host
   -- wraps the library call rather than forking it — and the wrap runs BEFORE it, because that call
-  -- is what prints the single acknowledgement.
+  -- is what prints the single acknowledgment.
   NS.Filters:AddBlacklist(2589)
   NS.db.global.savedView = { tab = "insights" }
   local out = chat(function() Sl:CliResetAll() end)
@@ -720,7 +720,7 @@ test("LibKa0s-Slash: every user-visible string resolves to prose, not to its own
   -- largest string surface — the help header, the list header, every usage line and seven error
   -- messages. All reached through real output rather than through a guard that could pass vacuously.
   --
-  -- Colour escapes and the [BL] tag are stripped first: `|cFFFFFF00` and `BL` are both
+  -- Color escapes and the [BL] tag are stripped first: `|cFFFFFF00` and `BL` are both
   -- SCREAMING_SNAKE-shaped and neither is prose the user reads as a word.
   --
   -- Two shapes are flagged, because the library's keys come in two. A WHOLE rendered value equal to

@@ -1,6 +1,6 @@
 # Smoke tests — Ka0s Bank Ledger
 
-In-game checks for the behaviour the headless suites cannot reach: real frames, real bank UIs, real
+In-game checks for the behavior the headless suites cannot reach: real frames, real bank UIs, real
 taint. Run these before a release, on a character with a bank, a warband bank and a guild bank.
 
 Each test lists what to do and what must happen. Anything that does not match is a bug, not a
@@ -67,7 +67,7 @@ tolerance.
 5. Close the window, then move something in your bags. No further guild-bank scanning should
    happen — it disarms once the window is gone.
 
-## S-7 · Window behaviour
+## S-7 · Window behavior
 
 1. `/bl toggle` opens and closes the window; **Esc** closes it.
 2. Drag the title bar, then resize from the bottom-right grip. `/reload` — the position and size
@@ -85,15 +85,15 @@ tolerance.
 3. Click a column header to sort; click it again to reverse. Date starts newest-first.
 4. Group by Store — collapsible headers appear with per-group counts. Click one to collapse it.
 5. The **Sub-type** and **Quality** dropdowns list only values your data contains; Quality is
-   ordered Poor→Legendary (not alphabetically) and each option carries its quality colour.
+   ordered Poor→Legendary (not alphabetically) and each option carries its quality color.
 6. **Type ▸ Gold** and **Sub-type ▸ Gold** appear once a gold movement is recorded, and filter to
    gold rows. Both mix freely with real item types in one multi-select.
 7. The **Direction** menu shows a red ▲ Withdraw and a green ▼ Deposit; the **Store** menu shows each
-   store in its column colour. Both match the table exactly.
+   store in its column color. Both match the table exactly.
 8. The window opens with **Character: Current** already applied — a fresh install, a `/reload` and
    **Clear** all land there, not on "All". `/bl test` is the exception: synthetic data opens
    unscoped.
-9. Every character row and dropdown option shows its class icon and class colour; "Character:
+9. Every character row and dropdown option shows its class icon and class color; "Character:
    Current" carries no icon.
 10. Group by **Type**, **Sub-type** and **Quality**. Quality groups run Poor→Legendary and gold sits
     in its own "None" group.
@@ -118,34 +118,34 @@ tolerance.
 2. Every card shares one headline font size; the long date-range and busiest-day strings shrink to
    stay on one line inside their card rather than clipping or wrapping.
 3. Net items and Net gold read green with a `+` when positive, red with a `-` when negative, and a
-   grey dash at exactly zero.
-4. **Deposits vs Withdrawals** is one back-to-back bar about a centre axis, drawn the same way as
+   gray dash at exactly zero.
+4. **Deposits vs Withdrawals** is one back-to-back bar about a center axis, drawn the same way as
    every `× Deposits/Withdrawals` companion below it: **withdrawals grow left** in red,
    **deposits grow right** in green, and the two are scaled against the larger — the bigger
-   direction fills its half exactly and the smaller is a visible proportion of it. The centre line
+   direction fills its half exactly and the smaller is a visible proportion of it. The center line
    sits on the same vertical as the companions' axis. The counts and percentages sit in a
    **caption row below the bar** — `Withdrawals <n> · <pct>%` left-aligned in withdraw red,
    `Deposits <n> · <pct>%` right-aligned in deposit green — and stay readable even at a lopsided
    split (try filtering to a slice that is almost all one direction; the label never vanishes the
    way in-bar text used to, and the near-empty side still shows a sliver). Hovering either half
    names it and gives its exact count.
-5. **Movements By Character** is class-coloured and carries each class icon rendered as an actual
+5. **Movements By Character** is class-colored and carries each class icon rendered as an actual
    icon — never a raw `|TInterface\...|t` texture path as literal text. **Movements By Character ×
    Store** below it stacks one segment per store, left-aligned, each segment hover-tipped with its
    own value and a legend beneath.
-6. **Every `× Deposits/Withdrawals` companion is drawn back to back**: withdraw-red grows LEFT of a centre line,
-   deposit-green grows RIGHT. Check the centre line falls in the **same horizontal position on every
+6. **Every `× Deposits/Withdrawals` companion is drawn back to back**: withdraw-red grows LEFT of a center line,
+   deposit-green grows RIGHT. Check the center line falls in the **same horizontal position on every
    row** of a chart — that is the whole point of the form. A row that is mostly withdrawals visibly
    leans left; mostly deposits leans right. Hovering either half names the direction and its exact
    count. The legend reads **Withdraw then Deposit**, matching the chart left to right.
 7. **Companion titles mirror their parent in full** — the companion under *Movements By Item Type*
    reads **Movements By Item Type × Deposits/Withdrawals**, not *Item Type × Deposits/Withdrawals*. Same for Store, Quality,
    Sub-type and Character.
-8. **Movements By Quality** runs Poor → Legendary (not by count) in the game's own quality colours,
+8. **Movements By Quality** runs Poor → Legendary (not by count) in the game's own quality colors,
    immediately followed by its back-to-back companion.
-9. **Item Type** and **Sub-type** bars are all visibly different colours — no two adjacent bars look
+9. **Item Type** and **Sub-type** bars are all visibly different colors — no two adjacent bars look
     alike — each with a legend, and each immediately followed by its own back-to-back `× Deposits/Withdrawals`
-    companion whose row labels keep the parent chart's colours. A parent capped at 12 bars has a
+    companion whose row labels keep the parent chart's colors. A parent capped at 12 bars has a
     companion capped at 12 too.
 10. The per-day strip (movements, and gold if any) shares its x-axis with the hour and weekday charts.
     Quiet days show a faint ghost bar rather than a gap; the rotated date labels thin out as the bars
@@ -165,7 +165,7 @@ tolerance.
       Withdrawals), not a single combined panel. A coin-only store has no item list and does not
       appear at all.
     A slice with no withdrawals simply has no Withdrawals column in a row — the row is not padded
-    with an empty panel. Item names carry their quality colour; a truncated name shows in full on
+    with an empty panel. Item names carry their quality color; a truncated name shows in full on
     hover. There is no Top Items By Value panel.
 14. Move some gold, refresh — the **GOLD** divider and its two charts appear. With a filter that
     excludes every gold movement, that whole block disappears rather than rendering empty.
@@ -174,7 +174,7 @@ tolerance.
 16. Resize the window: the cards re-flow to the new width, the bars and strips re-stretch, and the
     Top Of The List columns stay side by side.
 17. With the tab open, move something at a bank — the panel updates live.
-18. Purge the ledger: the cards read 0 and one centred "no movements" line replaces every section.
+18. Purge the ledger: the cards read 0 and one centered "no movements" line replaces every section.
 
 ## S-10 · Export
 
@@ -218,7 +218,7 @@ tolerance.
    ragged single-column gap between them.
 4. Toggle a checkbox, then run `/bl list` — the value matches.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
-6. The scrollbar is visible on both pages and greyed out on the one that fits, so the body width
+6. The scrollbar is visible on both pages and grayed out on the one that fits, so the body width
    does not jump between them.
 7. **Blizzard's own defaults control** (the Settings window's footer, not the addon's header button)
    reaches the addon: on General, change a setting, then use it — the settings return to stock and
@@ -229,7 +229,7 @@ tolerance.
 ## S-13 · Combat
 
 1. Pull a training dummy.
-2. `/bl config` prints a grey "cannot open settings during combat" notice and does **not** open.
+2. `/bl config` prints a gray "cannot open settings during combat" notice and does **not** open.
 3. Leave combat. The panel does **not** pop itself open — you re-run `/bl config` when you choose.
 4. The ledger window still opens, refreshes and filters in combat (it is a non-secure frame).
 
@@ -240,13 +240,13 @@ tolerance.
    naming the build, schema and profile.
 3. Move something to your bank → one `[Move]` summary line per pass, not one per item.
 4. The scrollbar tracks the wheel both ways, and the counter reads `N / 500 lines`.
-5. **Copy** opens a monospace box with the plain, colour-code-free log. **Clear** empties both and
+5. **Copy** opens a monospace box with the plain, color-code-free log. **Clear** empties both and
    resets the counter to `0 / 500`.
 6. `/bl debug off` → a red OFF ack and a `[Debug] logging disabled` line.
 7. `/reload` → logging is off again, because the flag is session-only.
 8. **Chrome.** The console and the **Copy** box wear the same edge as the ledger window — a flat 1px
-   black border with a 1px light-grey line just inside it, a gold title, a grey divider — but they
-   close with a **thin ×**, not the big class-coloured one. That is correct, not drift: the edge is
+   black border with a 1px light-gray line just inside it, a gold title, a gray divider — but they
+   close with a **thin ×**, not the big class-colored one. That is correct, not drift: the edge is
    shared across every Ka0s window, the close control on a library-drawn window is the library's
    (standalone-windows-§2). The ledger window's own 24×24 glyph is unchanged — check it too.
 9. Open another Ka0s addon's debug console alongside this one. Apart from their titles the two must
@@ -265,7 +265,7 @@ tolerance.
    curve; every store, both directions and every quality 0–5 appear at least once; the date range
    spans more than 14 days.
 4. Right-click a sample row. **Link to chat** is available; **Blacklist item**, **Whitelist item**
-   and **Delete** are greyed out and click-inert. The sample rows carry synthetic item ids, so those
+   and **Delete** are grayed out and click-inert. The sample rows carry synthetic item ids, so those
    three would otherwise reach the real filter lists and the real ledger.
 5. `/bl config` ▸ **Filters** — both lists are unchanged by anything done in step 4.
 6. `/bl test` again returns to the real data and the badge disappears. Right-click a real row: all
@@ -275,7 +275,7 @@ tolerance.
 
 1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
 2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **Reset all** asks to confirm and restores everything, recentring both
+3. Settings ▸ General ▸ **Reset all** asks to confirm and restores everything, recentering both
    windows.
 
 ## S-17 · Current Banking Session window
@@ -285,7 +285,7 @@ tolerance.
 2. It has no tabs, no filter bar, no search, no Clear, no Export and no footer. Its columns are
    Direction, Store, Item, Qty, Quality, Type and Sub-type — no Date, no Time, no Character.
 3. Clicking a column header does nothing. Hovering one still shows that column's explanation.
-4. Deposit something. A row appears **immediately**, coloured exactly as the same movement reads in
+4. Deposit something. A row appears **immediately**, colored exactly as the same movement reads in
    the History window, newest at the top.
 5. Withdraw something. A second row appears above the first, with the red ▲ glyph.
 6. Move gold at the warband bank — the row shows "Gold" and the amount as coins.

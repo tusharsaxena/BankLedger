@@ -169,7 +169,7 @@ function Compat.ItemIDFromLink(link)
   return tonumber(link:match("|?H?item:(%d+)"))
 end
 
--- Reverse map of item-quality colour hex (rrggbb) → quality id, for the uncached fallback.
+-- Reverse map of item-quality color hex (rrggbb) → quality id, for the uncached fallback.
 local qualityByHex
 local function buildQualityByHex()
   qualityByHex = {}

@@ -4,11 +4,11 @@ local W = NS.InsightsWidgets
 
 -- The Insights tab's visual vocabulary: KPI cards, horizontal bars, stacked bars, diverging bars,
 -- split bars, per-bucket vertical strips, ranked list panels, legends and section dividers — plus
--- the colour and label helpers they share.
+-- the color and label helpers they share.
 --
 -- Peeled out of modules/Insights.lua so that file stays about WHAT is shown (which breakdown, from
 -- which Stats key) and this one about HOW. Nothing here knows what a ledger entry is: every
--- primitive takes plain numbers, strings and {r,g,b} triples, which is also what makes the maths
+-- primitive takes plain numbers, strings and {r,g,b} triples, which is also what makes the math
 -- below unit-testable without a client.
 --
 -- Everything is POOLED. The Blizzard UI runs a super-linear pass over a frame tree on some
@@ -43,10 +43,10 @@ W.COIN_H = 10
 
 -- ── Pure helpers (unit-tested) ─────────────────────────────────────────────────
 
--- A categorical palette for the breakdowns with no predefined colour of their own (item type,
+-- A categorical palette for the breakdowns with no predefined color of their own (item type,
 -- sub-type, weekday). Sequence is inverse-VIBGYOR — R→O→Y→G→B→I→V — then the same rainbow in a
 -- lighter and a darker band, so adjacent ranks are always rainbow-distinct and two lookalikes never
--- end up side by side. Colours are assigned by a category's RANK in its chart's sort order, so
+-- end up side by side. Colors are assigned by a category's RANK in its chart's sort order, so
 -- consecutive bars always draw from dissimilar hues.
 local PALETTE = {
   { 0.90, 0.25, 0.25 }, { 0.95, 0.55, 0.15 }, { 0.88, 0.82, 0.22 }, { 0.35, 0.75, 0.38 },
@@ -58,13 +58,13 @@ local PALETTE = {
 }
 W.PALETTE_SIZE = #PALETTE
 
--- 1-based rank → palette colour (cycles past the end).
+-- 1-based rank → palette color (cycles past the end).
 function W.PaletteColor(rank)
   rank = tonumber(rank) or 1
   return PALETTE[((math.floor(rank) - 1) % #PALETTE) + 1]
 end
 
--- { key → colour } from an ordered key list, so one category keeps ONE colour across every chart
+-- { key → color } from an ordered key list, so one category keeps ONE color across every chart
 -- that shares that order (item type in its own bar list and in the per-character companion).
 function W.PaletteMap(orderedKeys)
   local m = {}
@@ -91,7 +91,7 @@ function W.FitFontSize(stringWidth, maxWidth, baseSize, minSize)
   return math.max(minSize or W.MIN_HEADLINE_SIZE, baseSize * maxWidth / stringWidth)
 end
 
--- Item-quality colour as {r,g,b}, with a neutral fallback for an unknown id or a headless build.
+-- Item-quality color as {r,g,b}, with a neutral fallback for an unknown id or a headless build.
 function W.QualityColor(q)
   local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q or 1]
   if c then return { c.r, c.g, c.b } end
@@ -117,7 +117,7 @@ function W.Money(copper)
   return NS.Util.FormatMoney(copper, W.COIN_H)
 end
 
--- A SIGNED copper amount, coloured: green for a net gain, red for a net loss, a grey em-dash for
+-- A SIGNED copper amount, colored: green for a net gain, red for a net loss, a gray em-dash for
 -- exactly nothing (which is a real answer, not a missing one).
 function W.SignedMoney(copper)
   copper = copper or 0
@@ -127,7 +127,7 @@ function W.SignedMoney(copper)
   return "|cffff4040-" .. body .. "|r"
 end
 
--- A signed COUNT, coloured the same way.
+-- A signed COUNT, colored the same way.
 function W.SignedCount(n)
   n = n or 0
   if n == 0 then return "|cff808080\226\128\148|r" end
@@ -136,7 +136,7 @@ function W.SignedCount(n)
 end
 
 -- Two magnitudes as fractions of the LARGER of the two, so the bigger side is always 1.0 and the
--- smaller reads as its proportion of it. This is the scale a centre-axis split bar wants: the same
+-- smaller reads as its proportion of it. This is the scale a center-axis split bar wants: the same
 -- shared-peak rule W.BuildBackToBackRows applies down a column of rows, applied to a single pair.
 -- Both sides zero gives 0/0 — two zero-width halves, not a division by zero.
 function W.PeakShares(a, b)
@@ -241,7 +241,7 @@ end
 -- Build stacked-bar rows from a { rowKey → { category → magnitude } } matrix. Row width is the row's
 -- share of the biggest row's total, so the rows are comparable to each other; each segment is that
 -- category's share of the same scale. Rows sort total-desc then label-asc.
---   labelOf(rowKey)   → the row's display label      colorOf(catKey) → the segment colour
+--   labelOf(rowKey)   → the row's display label      colorOf(catKey) → the segment color
 --   catLabelOf(catKey)→ the segment's tooltip name   valueFmt(mag)   → the value string
 function W.BuildStackRows(matrix, catOrder, opts)
   opts = opts or {}
@@ -283,11 +283,11 @@ function W.BuildStackRows(matrix, catOrder, opts)
 end
 
 -- Back-to-back ("butterfly") rows from a two-category matrix: one category grows LEFT of a fixed
--- centre axis, the other grows RIGHT. Returns the rows and the shared scale.
+-- center axis, the other grows RIGHT. Returns the rows and the shared scale.
 --
 -- Both sides share ONE scale — the largest single-category magnitude anywhere in the list — which
 -- is what makes the form worth having: the split sits on the same vertical line in every row, so
--- "which way does this lean" reads straight down the centre without comparing bar lengths. A
+-- "which way does this lean" reads straight down the center without comparing bar lengths. A
 -- left-aligned stacked bar puts that boundary in a different place on every row and answers the
 -- question only after arithmetic.
 --
@@ -370,7 +370,7 @@ end
 local function hideTooltip() if GameTooltip then GameTooltip:Hide() end end
 
 -- ── KPI card ───────────────────────────────────────────────────────────────────
--- A bordered panel: gold headline over a grey caption. Every card shares one base headline font;
+-- A bordered panel: gold headline over a gray caption. Every card shares one base headline font;
 -- a long value (money, a date range) shrinks to fit via SetCard rather than clipping.
 
 function W.MakeCard(parent)
@@ -477,7 +477,7 @@ end
 
 -- ── Split bar ──────────────────────────────────────────────────────────────────
 -- The headline two-way split, drawn as ONE back-to-back row: both halves grow out from a fixed
--- centre axis, scaled against the larger of the two, so the bigger side fills its half and the
+-- center axis, scaled against the larger of the two, so the bigger side fills its half and the
 -- smaller is its visible proportion. Same form and same reading as the "× Deposits/Withdrawals"
 -- companions further down the panel — a 100%-stacked ratio bar here would have answered the same
 -- question in a different visual language, and the eye pays for that inconsistency.
@@ -518,7 +518,7 @@ end
 
 -- `left`/`right` are { frac, color, text, tip }, each `frac` a share of ONE HALF of the bar (1.0
 -- fills its side exactly) — feed them from W.PeakShares. The two texts are painted in the caption
--- row under the bar, each in its own direction colour, so both stay readable at any split --
+-- row under the bar, each in its own direction color, so both stay readable at any split --
 -- including 97/3, where in-bar text vanishes. The per-side hover tips carry the exact numbers.
 function W.PlaceSplitBar(bar, host, x, y, barW, left, right)
   bar:ClearAllPoints()
@@ -531,7 +531,7 @@ function W.PlaceSplitBar(bar, host, x, y, barW, left, right)
   bar.baseline:SetPoint("CENTER", bar.track, "CENTER", 0, 0)
   bar.baseline:SetSize(1, W.SPLIT_H + 2)
   local halfW = barW / 2
-  -- Anchored to the bar's CENTRE, not to its edges: that is what pins the split to one line and
+  -- Anchored to the bar's CENTER, not to its edges: that is what pins the split to one line and
   -- lets each half's LENGTH — rather than its share of a fixed width — carry the magnitude.
   local function place(side, anchor, spec)
     local w = halfW * math.min(1, math.max(0, spec.frac or 0))
@@ -619,7 +619,7 @@ function W.PlaceStackedBar(bar, host, x, y, barW, segments)
 end
 
 -- ── Back-to-back bar ───────────────────────────────────────────────────────────
--- Two magnitudes meeting at a fixed centre axis: one grows left, the other right. The honest form
+-- Two magnitudes meeting at a fixed center axis: one grows left, the other right. The honest form
 -- for a two-way split across many rows — the boundary never moves, so the lean of every row is
 -- readable down one line instead of one bar at a time.
 
@@ -679,7 +679,7 @@ function W.PlaceBackToBackBar(bar, host, x, y, barW, row, leftColor, rightColor)
   bar.baseline:SetPoint("CENTER", bar.track, "CENTER", 0, 0)
   bar.baseline:SetSize(1, W.BAR_H - 2)
 
-  -- Anchored to the track's CENTRE, not to its edges: that is what pins the split to one line.
+  -- Anchored to the track's CENTER, not to its edges: that is what pins the split to one line.
   local function place(side, frac, anchor, color, tip)
     local w = halfW * math.min(1, math.max(0, frac or 0))
     side:ClearAllPoints()
@@ -806,7 +806,7 @@ function W.MakeSectionHeader(parent, text)
   return fs
 end
 
--- A full-width band: a large centred gold title flanked by rules — the same separator look the
+-- A full-width band: a large centered gold title flanked by rules — the same separator look the
 -- settings panel's section headings use, so the two surfaces read as one addon.
 function W.MakeSectionDivider(parent, text)
   local f = CreateFrame("Frame", nil, parent)

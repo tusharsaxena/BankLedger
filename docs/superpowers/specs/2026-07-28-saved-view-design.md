@@ -23,7 +23,7 @@ The reference implementation is the sibling addon **LootHistory**, whose History
 this exact Save · Reset · Clear cluster (`modules/Browser.lua:456-520, 741-839, 1160`). Parity is
 the goal: two Ka0s addons whose windows behave identically should read identically.
 
-## Behaviour
+## Behavior
 
 1. **Stock defaults** — Group = None, Character = Current, every other filter = All, sort = date
    descending, search empty.
@@ -41,7 +41,7 @@ the goal: two Ka0s addons whose windows behave identically should read identical
 | Where does the saved view live? | **Account-wide**, `NS.db.global.savedView`. Consistent with the ledger itself being cross-character by design. |
 | Do the "Reset All" paths drop it? | **Yes** — `Slash:CliResetAll` and therefore the Panel Defaults button and the confirm-gated `Sl:ResetEverything`. The saved view is a user setting, exactly like the blacklist/whitelist those paths already clear. |
 | Test mode? | Entering applies **stock + Character:All**; leaving applies **saved view + Current**. Test data is synthetic alts, so scoping to the real player would open on an empty table — `defaultCharSelection()` already special-cases this. |
-| Close/reopen mid-session? | **Keeps working filters.** The view is applied once, at frame build. Only login and `/reload` revert. This is today's observed behaviour, preserved deliberately: losing filters every time the window is closed to check something would be a regression. |
+| Close/reopen mid-session? | **Keeps working filters.** The view is applied once, at frame build. Only login and `/reload` revert. This is today's observed behavior, preserved deliberately: losing filters every time the window is closed to check something would be a regression. |
 | Feedback? | Both Save and Reset print a confirmation line. A Save leaves the bar looking identical, so the chat line is the only evidence the click landed. |
 
 ## Design
@@ -87,7 +87,7 @@ group/sort, paints each dropdown and the search box, rebuilds `activeFilter` fro
 funnels through the existing apply path, making it the single repaint that paints every field set
 above it. `view` defaults to `STOCK_VIEW` when nil.
 
-Tolerating older/foreign shapes: each set field is normalised through a small `asSet` helper that
+Tolerating older/foreign shapes: each set field is normalized through a small `asSet` helper that
 accepts a set, a bare scalar, or the `"all"` sentinel. Cheap insurance for a table that lives in
 SavedVariables, and it keeps parity with LootHistory's loader.
 

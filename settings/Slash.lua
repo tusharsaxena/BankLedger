@@ -222,7 +222,7 @@ function Sl:CliReset(rest) return cli:CliReset(rest) end
 function Sl:CliVersion() return cli:CliVersion() end
 
 -- The settings landing page renders the same verbs, through the same one row formatter, in the help
--- colours — un-indented, because there each row is its own label. This is the convergence: the panel
+-- colors — un-indented, because there each row is its own label. This is the convergence: the panel
 -- used to carry a SECOND formatter for the same data, with doubled spaces around a white-wrapped em
 -- dash and a bare description, and the two drifted apart the moment either was touched.
 function Sl:LandingRows() return cli:LandingRows() end
@@ -233,7 +233,7 @@ function Sl:LandingRows() return cli:LandingRows() end
 -- SILENTLY so this path still emits exactly ONE confirmation line.
 --
 -- Order matters: the carve-outs run BEFORE the library's call, because that call is what prints the
--- acknowledgement and a line claiming everything was reset must not precede half the reset.
+-- acknowledgment and a line claiming everything was reset must not precede half the reset.
 -- Non-destructive: the ledger and the window geometry are left alone (the confirm-gated
 -- Sl:ResetEverything handles those).
 function Sl:CliResetAll()

@@ -34,20 +34,20 @@ correct by construction.
 ### Module — `modules/SessionWindow.lua`
 
 A second standalone window (standalone-windows): non-secure `CreateFrame`, `UISpecialFrames` for
-ESC, geometry persisted, window scale honoured, built on the Browser's existing `SKIN` /
+ESC, geometry persisted, window scale honored, built on the Browser's existing `SKIN` /
 `ApplySkin` / `MakeCloseButton` seams so it is visually the same object as the main window.
 
 It has its own slim pooled-row table rather than a second instance of `NS.LedgerTable`.
 `LedgerTable` is a stateful singleton (one `rowPool`, one `displayList`, one sort/group/filter/
-collapse state) and generalising it into a class is a larger, riskier change than the ~180 lines a
+collapse state) and generalizing it into a class is a larger, riskier change than the ~180 lines a
 table with no sorting, no grouping, no filtering and no collapse actually needs. What is **not**
 duplicated is the definition of a column: `LedgerTable` gains two public seams the session table
-consumes, so a column's text and its colour have exactly one definition addon-wide.
+consumes, so a column's text and its color have exactly one definition addon-wide.
 
 | New `LedgerTable` seam | Purpose |
 |---|---|
 | `LT:Column(key)` | The column spec (label, width, align, desc, `valueFn`) for a key. |
-| `LT:PaintCell(fs, colKey, entry, glyphFS)` | Set a cell's text + colour (quality / direction / store / money), optionally driving the direction glyph. |
+| `LT:PaintCell(fs, colKey, entry, glyphFS)` | Set a cell's text + color (quality / direction / store / money), optionally driving the direction glyph. |
 
 ### Deviations from the History window
 
@@ -116,7 +116,7 @@ are never recorded.
 The current tab is four flat blue bar lists and eight bare numbers. The sibling addon
 LootHistory's `modules/Analytics.lua` is the reference implementation for a Ka0s insights panel:
 backdrop KPI cards with shrink-to-fit headlines, section dividers, horizontal bar sections that
-colour-code by category and carry legends, per-character stacked companions, per-bucket vertical
+color-code by category and carry legends, per-character stacked companions, per-bucket vertical
 strips with rotated axis labels, and ranked list panels in two columns. This feature brings the same
 vocabulary to Bank Ledger, applied to what a bank ledger actually measures: **flow** — direction,
 store, and net.
@@ -131,26 +131,26 @@ into its own module (hard rule 15's spirit — peel before it hurts):
 
 | File | Role |
 |---|---|
-| `modules/InsightsWidgets.lua` | Pooled visual primitives + the categorical palette, label truncation, class/quality colour helpers, cursor tooltips. No knowledge of the ledger. |
+| `modules/InsightsWidgets.lua` | Pooled visual primitives + the categorical palette, label truncation, class/quality color helpers, cursor tooltips. No knowledge of the ledger. |
 | `modules/Insights.lua` | The section list, the `Stats` → rows mapping, layout, refresh, and the bus subscription. |
 
 `InsightsWidgets` loads before `Insights` in the TOC.
 
 ### Primitives (`InsightsWidgets`)
 
-* **KPI card** — backdrop panel, gold headline (shrink-to-fit for long money strings), grey caption,
+* **KPI card** — backdrop panel, gold headline (shrink-to-fit for long money strings), gray caption,
   optional tooltip; `wide` cards span two columns.
-* **Horizontal bar** — fixed label column, track + coloured fill, fixed value column; hover shows the
+* **Horizontal bar** — fixed label column, track + colored fill, fixed value column; hover shows the
   untruncated label.
-* **Stacked bar** — one row split into up to 9 coloured segments, each with its own hover tip.
-* **Diverging bar** — a centre baseline with the fill growing right (green, net in) or left (red, net
+* **Stacked bar** — one row split into up to 9 colored segments, each with its own hover tip.
+* **Diverging bar** — a center baseline with the fill growing right (green, net in) or left (red, net
   out). New here, and the honest form for net flow.
-* **Ratio bar** — one full-width bar split into two labelled shares, for deposits vs withdrawals.
+* **Ratio bar** — one full-width bar split into two labeled shares, for deposits vs withdrawals.
 * **Vertical strip** — per-bucket columns with a baseline axis and rotated x-axis labels, thinned out
   when the bars get narrow.
 * **Ranked list panel** — a bordered panel of `name … value` rows, capped at 10.
-* **Legend** — wrapped colour-swatch chips.
-* **Section divider** — centred gold title flanked by rules.
+* **Legend** — wrapped color-swatch chips.
+* **Section divider** — centered gold title flanked by rules.
 
 All pooled (acquire/release, created once, repainted in place) — the existing frame-light discipline.
 
@@ -165,13 +165,13 @@ Cards (4 across, `wide` spans 2):
 Then, under an **ITEMS & FLOW** divider:
 
 1. Deposits vs withdrawals — ratio bar, counts + percentages.
-2. Movements by store — bars in store colours.
+2. Movements by store — bars in store colors.
 3. Net flow by store — diverging bars, signed copper.
-4. Value moved by store — bars in store colours.
-5. Movements by character — bars in class colours, class icon on the label.
+4. Value moved by store — bars in store colors.
+5. Movements by character — bars in class colors, class icon on the label.
 6. Character × Store — stacked companion + legend.
 7. Character × In/Out — stacked companion + legend.
-8. Movements by quality — bars in quality colours, ascending quality.
+8. Movements by quality — bars in quality colors, ascending quality.
 9. Movements by item type — bars from the categorical palette.
 10. Movements by sub-type — bars from the same palette.
 11. Movements over time — per-day strip.
@@ -191,7 +191,7 @@ Then two columns of ranked lists:
 | Top items by value | Top items by moves |
 | Top banking spots (zone) | Top items by quantity |
 
-Empty slice → every section hides and one centred "No movements match your filters." line shows.
+Empty slice → every section hides and one centered "No movements match your filters." line shows.
 
 ### `Database:Stats` additions
 
@@ -237,7 +237,7 @@ New suites:
   excludes `date`/`time`/`char` and includes the seven kept keys; a deleted entry is pruned; the
   computed minimum width matches the column model.
 * `tests/test_insights.lua` — palette cycling, label truncation, the diverging-bar fraction/side
-  maths, ratio-bar shares, day-key list generation (gaps included, capped), card value formatting,
+  math, ratio-bar shares, day-key list generation (gaps included, capped), card value formatting,
   shrink-to-fit font sizing, and each section's rows-from-stats mapping.
 
 Extended suites:

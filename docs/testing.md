@@ -33,7 +33,7 @@ diff -r ../LibKa0s/testkit tests/_kit                          # bytes  — SHOU
 - **Content differs** — a copy has genuinely forked. That is the forbidden state. The fix is to
   re-vendor whole-folder (`cp -r ../LibKa0s/LibKa0s/. libs/LibKa0s/`), never to edit `libs/`.
 - **Content identical, bytes differ** — nothing has forked; the two checkouts merely disagree about
-  line endings. Renormalise whichever side drifted. It is **never** an edit to `libs/`, and
+  line endings. Renormalize whichever side drifted. It is **never** an edit to `libs/`, and
   re-vendoring will not converge it either — that just moves the wrong endings downstream.
 - **Both empty** — the vendored copies are current.
 
@@ -96,7 +96,7 @@ tests/
   `tests/test_*.lua` agree in both directions, so a typo is red rather than a green run with fewer
   cases.
 - `wow_mock.lua` layers Bank Ledger's own container, guild-bank, item and money model over
-  `_kit/mock_base.lua`, and **overrides ten of the base's behaviours** — each one documented in the
+  `_kit/mock_base.lua`, and **overrides ten of the base's behaviors** — each one documented in the
   file's header with the suite that depends on it. Those overrides are deliberate divergence, not
   drift: read the header before "simplifying" one away. The base contributes the piece that matters
   most here, a real `LibStub` with `NewLibrary`, so the vendored LibKa0s majors register headlessly
@@ -123,10 +123,10 @@ end)
 
 ## Writing tests
 
-Test-first: write or extend a **failing** test that pins the intended behaviour, then implement
+Test-first: write or extend a **failing** test that pins the intended behavior, then implement
 until it passes. Pure, testable logic — the snapshot diff, the capture gate, schema read/write,
 filters, queries and aggregation, CSV serialization, the debug formatters and the slash output
-shape — is exercised headlessly. Genuinely in-client behaviour (frame rendering, taint, drag and
+shape — is exercised headlessly. Genuinely in-client behavior (frame rendering, taint, drag and
 resize) belongs in [`smoke-tests.md`](smoke-tests.md), which complements rather than replaces the
 unit suites.
 

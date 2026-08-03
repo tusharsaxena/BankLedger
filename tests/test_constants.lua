@@ -134,18 +134,18 @@ test("Constants: the retention presets offer an 'Always' (0) option", function()
   assertTrue(found, "a 0-day 'Always' preset")
 end)
 
-test("Constants: every store has a display colour", function()
+test("Constants: every store has a display color", function()
   -- The table and the Store dropdown both paint from this one table; a store missing from it would
-  -- silently fall back to grey in both.
+  -- silently fall back to gray in both.
   for _, key in ipairs(C.StoreOrder) do
     local rgb = C.StoreRGB[key]
-    assertTrue(type(rgb) == "table" and #rgb == 3, "no colour for store " .. key)
+    assertTrue(type(rgb) == "table" and #rgb == 3, "no color for store " .. key)
   end
 end)
 
-test("Constants: every direction has a colour and a glyph", function()
+test("Constants: every direction has a color and a glyph", function()
   for _, key in ipairs(C.DirectionOrder) do
-    assertTrue(type(C.DirectionRGB[key]) == "table", "no colour for direction " .. key)
+    assertTrue(type(C.DirectionRGB[key]) == "table", "no color for direction " .. key)
     assertTrue((C.DirectionGlyph[key] or "") ~= "", "no glyph for direction " .. key)
   end
   -- ▲ leaves the store, ▼ enters it. Swapping them would invert the table's whole visual language.

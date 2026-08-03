@@ -9,7 +9,7 @@ local Util = NS.Util
 -- them, so they now live in libs/LibKa0s/Core.lua and this file is only the part that is OURS: which
 -- tag the lines carry, and what happens when the library is not there.
 --
--- WHERE THIS FILE SITS, and why each neighbour pins it (architecture-§2):
+-- WHERE THIS FILE SITS, and why each neighbor pins it (architecture-§2):
 --   * AFTER core/Namespace.lua — that is where NS.PREFIX is defined. The `prefix` descriptor field
 --     is passed as a FUNCTION anyway, so this constraint is belt-and-braces rather than load-bearing.
 --   * BEFORE core/Util.lua — Util.lua's own body no longer defines a printer, but keeping the seam

@@ -23,7 +23,7 @@ local function joined(out) return table.concat(out, "\n") end
 -- Sl.FormatSchemaValue and Sl.FormatKV are gone: both are LibKa0s-Slash-1.0's, lib-level rather
 -- than on the instance. What is still OURS is the `format` descriptor hook, which is the only
 -- reason a set renders as a set — see the LibKa0s-Slash section of tests/test_libka0s.lua for the
--- rendered-byte assertions, and the cases below for the behaviour those bytes describe.
+-- rendered-byte assertions, and the cases below for the behavior those bytes describe.
 
 test("Slash: a set renders as a sorted brace list, through the format hook", function()
   local saved = NS.Schema:Get("settings.excludedStores")
@@ -171,13 +171,13 @@ test("Slash:CliReset echoes a table default through the shared formatter", funct
   assertTrue(joined(out):find("(none)", 1, true) ~= nil, "not a raw table pointer")
 end)
 
--- slash-commands-§5: ONE coloured `key = value` renderer across the whole read/write surface, so a
+-- slash-commands-§5: ONE colored `key = value` renderer across the whole read/write surface, so a
 -- reset echo is byte-identical in shape to the get/set echo two functions away.
-test("Slash:CliReset echoes the coloured key = value shape, like get and set", function()
+test("Slash:CliReset echoes the colored key = value shape, like get and set", function()
   local out = captureChat(function() Sl:CliReset("settings.qualityThreshold") end)
   local want = T.mocks.LibStub("LibKa0s-Slash-1.0", true).FormatKV("settings.qualityThreshold", "0")
   assertTrue(out[#out]:find(want, 1, true) ~= nil,
-    "coloured key = value after the [BL] tag, got: " .. out[#out])
+    "colored key = value after the [BL] tag, got: " .. out[#out])
 end)
 
 -- The echo reads the STORED value back, so it reports what was actually written rather than what
@@ -217,7 +217,7 @@ test("Slash: the help header names both the short verb and its alias", function(
 end)
 
 test("Slash: help rows are gold command, em-dash, white description, indented", function()
-  -- The colour codes are UPPERCASE and the row carries a two-space indent: both are
+  -- The color codes are UPPERCASE and the row carries a two-space indent: both are
   -- LibKa0s-Slash-1.0's one command-row formatter, which the settings landing page now shares.
   local out = captureChat(function() Sl:PrintHelp() end)
   assertTrue(out[2]:find("  |cFFFFFF00/bl ", 1, true) ~= nil, out[2])

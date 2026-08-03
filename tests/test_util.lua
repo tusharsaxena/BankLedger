@@ -72,7 +72,7 @@ test("Util.ClassIconMarkup carries the class's slice of the icon sheet", functio
     "|TInterface\\TargetingFrame\\UI-Classes-Circles:12:12:0:0:256:256:64:127:64:128|t ")
 end)
 
-test("Util.ClassIconMarkup honours a requested size", function()
+test("Util.ClassIconMarkup honors a requested size", function()
   assertTrue(NS.Util.ClassIconMarkup("ROGUE", 16):find(":16:16:", 1, true) ~= nil)
 end)
 

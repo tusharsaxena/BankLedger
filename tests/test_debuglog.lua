@@ -16,9 +16,9 @@ local function captureChat(fn)
   return out
 end
 
--- ── Line formatters (pure, so the coloured view can never drift from the copy buffer) ──
+-- ── Line formatters (pure, so the colored view can never drift from the copy buffer) ──
 
-test("DebugLog.FormatPlain renders '<ts> | [<tag>] <msg>' with no colour codes", function()
+test("DebugLog.FormatPlain renders '<ts> | [<tag>] <msg>' with no color codes", function()
   assertEqual(D.FormatPlain("12:34:56", "Move", "hello"), "12:34:56 | [Move] hello")
 end)
 
@@ -26,7 +26,7 @@ test("DebugLog.FormatPlain tolerates a missing tag", function()
   assertEqual(D.FormatPlain("12:34:56", nil, "hello"), "12:34:56 | [] hello")
 end)
 
-test("DebugLog.FormatColored uses the mandated timestamp and tag colours", function()
+test("DebugLog.FormatColored uses the mandated timestamp and tag colors", function()
   local s = D.FormatColored("12:34:56", "Move", "hello")
   assertTrue(s:find("|cff6f8faf12:34:56|r", 1, true) ~= nil, "steel-blue timestamp")
   assertTrue(s:find("|cffc9a66b[Move]|r", 1, true) ~= nil, "tan/gold tag")
@@ -36,7 +36,7 @@ test("DebugLog.FormatColored escapes the separator pipe so it renders literally"
   assertTrue(D.FormatColored("12:34:56", "Move", "hello"):find("||", 1, true) ~= nil)
 end)
 
-test("DebugLog: the plain and coloured lines carry the same tag and message", function()
+test("DebugLog: the plain and colored lines carry the same tag and message", function()
   local plain = D.FormatPlain("12:34:56", "Prune", "removed 4")
   local colored = D.FormatColored("12:34:56", "Prune", "removed 4")
   assertTrue(plain:find("[Prune] removed 4", 1, true) ~= nil)
@@ -96,7 +96,7 @@ test("DebugLog:SetEnabled flips the session-only flag", function()
   assertFalse(NS.State.debug)
 end)
 
-test("DebugLog:SetEnabled acks in chat with a colour-coded state word", function()
+test("DebugLog:SetEnabled acks in chat with a color-coded state word", function()
   local on = captureChat(function() D:SetEnabled(true) end)
   local off = captureChat(function() D:SetEnabled(false) end)
   assertTrue(on[1]:find("|cff40ff40ON|r", 1, true) ~= nil, "ON is green")

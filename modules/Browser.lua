@@ -13,7 +13,7 @@ local DBIcon                          -- LibDBIcon-1.0, resolved lazily in Setup
 -- and the Insights charts — over ONE shared filter bar, so both views always describe the same
 -- slice of the ledger.
 
--- Flat skin, built from stock Blizzard textures only. Centralised here as one SKIN table + one
+-- Flat skin, built from stock Blizzard textures only. Centralized here as one SKIN table + one
 -- ApplySkin seam so a future settings-driven re-skin has a single touch point; the debug console
 -- reuses the same seam.
 local WHITE = "Interface\\Buttons\\WHITE8X8"
@@ -85,7 +85,7 @@ function B:ApplySkin(f)
   if f.divider then f.divider:SetColorTexture(unpack(SKIN.divider)) end
 end
 
--- Thin × close glyph, light grey by default and the player's class colour on hover. Shared by the
+-- Thin × close glyph, light gray by default and the player's class color on hover. Shared by the
 -- ledger window (Browser.lua), the session window (SessionWindow.lua) and both export popups
 -- (Export.lua). NOT by the debug console: that is the LIBRARY's window and wears Core's thin
 -- 18x18 × — the edge is shared across every Ka0s window, the close control on a library-drawn
@@ -156,7 +156,7 @@ function B:OnLogout()
   self:SaveGeometry()
 end
 
--- Reset the persisted geometry and recentre the live frame. Used only by the destructive
+-- Reset the persisted geometry and recenter the live frame. Used only by the destructive
 -- "Reset all", since position is runtime state the ordinary settings resets leave alone.
 function B:ResetWindow()
   if NS.db and NS.db.global and NS.db.global.settings then
@@ -324,9 +324,9 @@ local function EnsureMenu()
       b.fs:SetPoint("RIGHT", -8, 0)
       b.glyph:SetText(opt.glyph or "")
       b.glyph:SetShown(opt.glyph ~= nil)
-      -- The selected row goes gold to mark the selection; otherwise the value keeps its own colour
+      -- The selected row goes gold to mark the selection; otherwise the value keeps its own color
       -- (store / direction / class), so the menu reads like the column it filters. The glyph always
-      -- keeps the direction's colour — it IS the value, not a selection state.
+      -- keeps the direction's color — it IS the value, not a selection state.
       if selected then
         b.fs:SetTextColor(1, 0.82, 0)
       elseif opt.color then
@@ -507,7 +507,7 @@ end
 
 -- Data-driven option lists: only the values the dataset actually contains are offered, so an empty
 -- ledger doesn't show five stores you've never used.
--- Direction and Store options carry the same colours (and, for a direction, the same ▲/▼ glyph) the
+-- Direction and Store options carry the same colors (and, for a direction, the same ▲/▼ glyph) the
 -- table paints those values with, straight out of the shared palette in Constants — so the menu
 -- reads as the column it filters.
 local function directionOptions()
@@ -558,7 +558,7 @@ local function subTypeOptions()
   return withAll("Sub-type: All", items)
 end
 -- Quality is the one data-driven list NOT sorted by label: Poor→Legendary is a meaningful order, so
--- the options stay in ascending quality id and carry the quality colour. Gold rows have no quality
+-- the options stay in ascending quality id and carry the quality color. Gold rows have no quality
 -- and so contribute no option — filtering on quality is, by definition, an item question.
 local function qualityOptions()
   local present = {}
@@ -1224,7 +1224,7 @@ end
 -- ── Minimap button (LibDataBroker + LibDBIcon) ────────────────────────────────
 -- A launcher data object: left-click toggles the window, right-click opens Settings, and the
 -- tooltip shows the live entry count. Visibility lives in db.global.minimap — the same table the
--- "Hide minimap button" setting writes and LibDBIcon owns — so registration alone honours the
+-- "Hide minimap button" setting writes and LibDBIcon owns — so registration alone honors the
 -- persisted hide state across a reload.
 
 function B:SetupMinimap()

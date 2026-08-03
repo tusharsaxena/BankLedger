@@ -351,7 +351,7 @@ local function buildMainContent(ctx)
   -- dash that was explicitly wrapped white, with the description left bare. Two renderers for
   -- one table in one repo drift the moment either is touched, and this one had already drifted
   -- from the chat help. Collapsing them is a deliberate, user-visible convergence — the spacing
-  -- tightens, the dash loses its colour span and the description gains one. Recorded in
+  -- tightens, the dash loses its color span and the description gains one. Recorded in
   -- docs/pending/LEDGER.md rather than left to look like an accident.
   for _, row in ipairs((NS.Slash and NS.Slash.LandingRows and NS.Slash:LandingRows()) or {}) do
     local labelRow = O.AceGUI:Create("Label")
@@ -422,7 +422,7 @@ function P:Diagnose()
   describe(f.GetPushedTexture and f:GetPushedTexture(), "pushed")
 
   -- A modern UIPanelButtonTemplate draws its face from CHILD REGIONS (a 3-slice or a NineSlice),
-  -- not from a NormalTexture — so "normal: none" means the colour is in one of these.
+  -- not from a NormalTexture — so "normal: none" means the color is in one of these.
   local function dumpRegions(frame, tag)
     if not frame.GetRegions then return end
     local n = select("#", frame:GetRegions())
@@ -441,7 +441,7 @@ function P:Diagnose()
   local fs = f.GetFontString and f:GetFontString()
   if fs then
     local r, g, b = fs:GetTextColor()
-    add("label=%q colour=%.2f/%.2f/%.2f", tostring(fs:GetText()), r or 0, g or 0, b or 0)
+    add("label=%q color=%.2f/%.2f/%.2f", tostring(fs:GetText()), r or 0, g or 0, b or 0)
   end
   return out
 end
@@ -489,7 +489,7 @@ function P:RestoreDefaults()
   if NS.Slash and NS.Slash.CliResetAll then NS.Slash:CliResetAll() end
   -- CliResetAll already batches its own row walk; this call is what repaints after the two window
   -- resets below, which are not schema writes and so never reach the write seam.
-  -- Defaults also recentres both windows (position is part of the stock state); the ledger is left alone.
+  -- Defaults also recenters both windows (position is part of the stock state); the ledger is left alone.
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   P:Refresh()

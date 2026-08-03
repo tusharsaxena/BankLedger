@@ -270,7 +270,7 @@ test("Stats: every new breakdown is empty rather than nil on an empty ledger", f
   assertEqual(s.totals.moneyMoved, 0)
 end)
 
-test("Stats: the new breakdowns honour the filter like every other key", function()
+test("Stats: the new breakdowns honor the filter like every other key", function()
   local s = stats({ store = "GUILD_BANK" })
   assertEqual(s.totals.entries, 2)
   assertEqual(next(s.byItemSubType), nil, "the guild-bank slice holds no item rows")
@@ -337,7 +337,7 @@ test("Insights.RankRows applies the label mapper and the value map", function()
   assertEqual(rows[1].value, 500)
 end)
 
-test("Insights.RankRows honours the row limit", function()
+test("Insights.RankRows honors the row limit", function()
   local rows = NS.Insights.RankRows({ a = 1, b = 2, c = 3, d = 4 }, nil, nil, 2)
   assertEqual(#rows, 2)
 end)

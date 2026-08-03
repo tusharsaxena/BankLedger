@@ -137,7 +137,7 @@ end
 -- Inline texture markup for a class's round icon, for prefixing a character name. The class icons
 -- all live in one 256×256 sheet, so the markup carries the class's slice from CLASS_ICON_TCOORDS
 -- (fractions of the sheet, converted to the pixel coordinates |T…|t wants). Markup rather than a
--- real Texture because — unlike the direction arrow — the icon is full-colour art that must NOT be
+-- real Texture because — unlike the direction arrow — the icon is full-color art that must NOT be
 -- tinted with the surrounding text, and this way any FontString can carry one.
 -- Returns "" for an unknown class or a build without the table (headless), so callers can always
 -- concatenate the result unconditionally.

@@ -877,11 +877,11 @@ function W.MakeRatioBar(parent)
 end
 ```
 
-and `W.PlaceRatioBar` loses the `w >= 56` suppression rule, painting both captions unconditionally in their direction colour:
+and `W.PlaceRatioBar` loses the `w >= 56` suppression rule, painting both captions unconditionally in their direction color:
 
 ```lua
 -- `left`/`right` are { frac, color, text, tip }. The two texts are painted in the caption row under
--- the bar, each in its own direction colour, so both stay readable at any split -- including 97/3,
+-- the bar, each in its own direction color, so both stay readable at any split -- including 97/3,
 -- where the old in-bar text vanished. The per-side hover tips are unchanged.
 function W.PlaceRatioBar(bar, host, x, y, barW, left, right)
   bar:ClearAllPoints()
@@ -936,10 +936,10 @@ Expected: `0 failed`, luacheck clean.
 git add modules/Insights.lua modules/InsightsWidgets.lua tests/test_insights.lua
 git commit -m "fix(insights): move the split labels below the bar, unify the card font
 
-The Deposits vs Withdrawals captions were centred inside their own share
+The Deposits vs Withdrawals captions were centered inside their own share
 and dropped entirely when a share fell under 56px, so a lopsided split
 lost its numbers. They now sit in a caption row beneath the bar, pinned
-to its two ends and coloured by direction, readable at any split.
+to its two ends and colored by direction, readable at any split.
 
 Cards lose the smallValue option: date range and busiest day were the
 only two on a smaller template, which made them read as a different kind
@@ -1053,7 +1053,7 @@ Add a helper beside the other render helpers in `LayoutSections`' file scope (af
 
 ```lua
 -- A "<segment> x In/Out" companion: the same stacked-bar form as Character x In/Out, in the
--- direction colours, with a legend. `labelOf`/`labelColorOf` keep each row recognisable against
+-- direction colors, with a legend. `labelOf`/`labelColorOf` keep each row recognizable against
 -- the parent chart it sits under.
 function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, w)
   if not next(matrix or {}) then
@@ -1090,7 +1090,7 @@ After `y = self:RenderBars("quality", "quality", qualityRows, y, w)`:
     { labelOf = NS.Compat.QualityLabel, labelColorOf = W.QualityColor }, y, w)
 ```
 
-The item-type and sub-type companions need the same rank-ordered palette their parent charts use, so capture the colour map. Change the `paletteRows` local function to return both the cursor and its colour map, and call the companion between the two:
+The item-type and sub-type companions need the same rank-ordered palette their parent charts use, so capture the color map. Change the `paletteRows` local function to return both the cursor and its color map, and call the companion between the two:
 
 ```lua
   local function paletteRows(map, poolKey, headerKey, legendKey, yy)
@@ -1153,13 +1153,13 @@ git add core/Database.lua modules/Insights.lua tests/
 git commit -m "feat(insights): add Store/Quality/Type/Sub-type x In/Out companions
 
 Four stacked-bar companions, each sitting immediately under its parent
-chart in the direction colours. Store x In/Out finally consumes
+chart in the direction colors. Store x In/Out finally consumes
 storeByDirection, which Stats has computed and nothing has read; the
 other three matrices are new accumulators in the same single pass, so
 the panel got richer without the aggregation getting slower.
 
-Each row keeps its parent chart's colour -- store colour, quality
-colour, palette colour by rank -- so a category stays recognisable
+Each row keeps its parent chart's color -- store color, quality
+color, palette color by rank -- so a category stays recognizable
 across the pair."
 ```
 

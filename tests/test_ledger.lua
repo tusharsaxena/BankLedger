@@ -819,7 +819,7 @@ test("Ledger:CloseContext runs the pending pass instead of waiting out the debou
     NS.Ledger:ScheduleReconcile()
     NS.Ledger:CloseContext()   -- the frame closes before the timer would have fired
     assertEqual(NS.Database:Count(), before + 1, "the in-flight movement was not lost")
-    assertEqual(mocks.__fireTimers(), 0, "and the pending timer was cancelled, not left to double-fire")
+    assertEqual(mocks.__fireTimers(), 0, "and the pending timer was canceled, not left to double-fire")
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
 end)

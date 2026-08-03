@@ -57,7 +57,7 @@ C.KindOrder = { "ITEM", "MONEY" }
 C.KindLabel = { ITEM = "Item", MONEY = "Gold" }
 
 -- ── Display palette ─────────────────────────────────────────────────────────────
--- Colours and glyphs shared by the History table and the filter dropdowns, so a store or a
+-- Colors and glyphs shared by the History table and the filter dropdowns, so a store or a
 -- direction looks the same everywhere it appears. Cosmetic only — never stored, never exported.
 
 -- A deposit is money/goods going IN (green); a withdrawal comes OUT (red — the same ff5555 the
@@ -97,7 +97,7 @@ C.NEUTRAL_RGB = { 0.90, 0.90, 0.90 }
 -- client (where they are 12 and 6) that put warband tab 1 inside the *character bank* group and
 -- listed ids 6–11 twice, double-counting every character-bank stack. Matching on the name means a
 -- member that moves is followed automatically, and a member that does not exist contributes
--- nothing instead of colliding with its neighbour.
+-- nothing instead of colliding with its neighbor.
 --
 -- The patterns are anchored and case-sensitive on purpose. `Enum.BagIndex` also carries *type*
 -- constants that look deceptively similar to container ids — on 12.0.7, `Characterbanktab = -2` and
@@ -164,8 +164,8 @@ C.RETENTION_OPTIONS = {
 }
 
 -- Minimum-quality options for the item capture gate (WoW item-quality ids). Monotonic
--- "quality >= threshold". Only the quality name is quality-coloured; " and above" stays default.
--- rrggbb fallback for headless builds where ITEM_QUALITY_COLORS is absent (colour is cosmetic there).
+-- "quality >= threshold". Only the quality name is quality-colored; " and above" stays default.
+-- rrggbb fallback for headless builds where ITEM_QUALITY_COLORS is absent (color is cosmetic there).
 local QUALITY_HEX_FALLBACK = {
   [0] = "9d9d9d", [1] = "ffffff", [2] = "1eff00", [3] = "0070dd", [4] = "a335ee", [5] = "ff8000",
 }
