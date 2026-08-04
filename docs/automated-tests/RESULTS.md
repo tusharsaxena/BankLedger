@@ -30,7 +30,7 @@ This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip`
 
 ## Complexity watch list
 
-Current state as of [`20260804-214843`](20260804-214843/) — not that run's diff.
+Current state as of [`20260804-233144`](20260804-233144/) — not that run's diff.
 Every function `lizard` warned on, and every file at or above `layout-§1`'s 1000-LOC
 on-notice threshold, each with a one-line disposition.
 
@@ -47,10 +47,18 @@ watch list from `20260804-182039` — `Database:QueryList`, `P:Diagnose`, `I:Ren
 that no longer has a warning attached to it is just noise on a future reader's desk. The frozen
 `20260804-182039` bundle keeps them if the reasoning is ever wanted.
 
-The highest CCN measured anywhere in the tree is now **15**, in `accumulateItemTaxonomy`
-(`core/Database.lua:234`) — at the cap, not under it by a comfortable margin, so it is the function
-to watch. `lizard`'s footer reports `Max CCN` only across *warned* functions, which is why the run
-row above records `0`; that column means "no warnings", not "no branches".
+The highest CCN measured anywhere in the tree is now **15** — at the cap, not under it by a
+comfortable margin — and **four** functions sit there, so all four are the ones to watch:
+`ensureFrame` (`modules/SessionWindow.lua:437`), `I:Layout` (`modules/Insights.lua:536`),
+`accumulateItemTaxonomy` (`core/Database.lua:234`) and `LT:UpdateHeaderArrows`
+(`modules/LedgerTable.lua:827`).
+
+The `Max CCN` column disagrees between the last two rows for a tooling reason, not a code one: the
+tree is byte-identical in both runs, but `20260804-214843` read that number out of `lizard`'s
+footer, which reports a maximum across *warned* functions only and therefore printed `0` once the
+warnings were gone. Testkit rev 6 measures it over **every** function instead, which is why
+`20260804-233144` records the real `15`. Read the older rows' `Max CCN` as "the worst **warned**
+function", and rows from `20260804-233144` on as "the worst function".
 
 ### Files by `layout-§1` band
 
