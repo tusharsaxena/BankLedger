@@ -25,3 +25,10 @@
 *.otf  binary
 *.mp3  binary
 *.ogg  binary
+
+# Shell scripts are LF, ALWAYS — even here, where everything else is CRLF.
+# `#!/usr/bin/env bash` followed by CRLF makes the kernel look for an interpreter
+# literally named "bash\r", and every `case`/`in` line becomes a syntax error.
+# The vendored tests/_kit/run-automated-tests.sh is the file this protects
+# (automated-tests-§2); without it the runner is broken on every checkout.
+*.sh   text eol=lf

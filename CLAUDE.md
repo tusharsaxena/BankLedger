@@ -31,7 +31,7 @@ Start here, then read the docs:
   release-time complexity checkpoint.
 - **`DEPENDENCIES.md`** (root) — what to install to build, run, test or release this addon, with
   WSL2/Ubuntu commands and a verification line per tool (documentation-§7).
-- Topic detail in `docs/` as needed (`smoke-tests.md`, `test-cases.md`, `complexity.md`, …).
+- Topic detail in `docs/` as needed (`smoke-tests.md`, `test-cases.md`, `automated-tests/`, …).
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0). Never auto-stage/commit/
 push and never bump the version without an explicit instruction.

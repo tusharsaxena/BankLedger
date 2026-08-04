@@ -48,40 +48,49 @@ Run through this before a version bump, on top of the green gate:
 - [ ] `lua tests/run.lua` green and `luacheck .` at 0/0.
 - [ ] `docs/test-cases.md` regenerated (`lua tests/run.lua --list > docs/test-cases.md`) and the
       README `[tests]` badge updated in the **same** change.
-- [ ] **[`complexity.md`](complexity.md) regenerated and its diff read** — see below.
+- [ ] **A full automated-test bundle produced and its diff read** — see below.
 - [ ] **Re-read the Ka0s WoW Addon Standard whenever its minor version moves**, straight from
       [the upstream repo](https://github.com/tusharsaxena/WowAddonStandards), and fold any changed
       rule into the code and `docs/`. The standard is never copied into this repo — a stored copy
       goes stale silently and is then followed as working context (documentation-§3,
       anti-pattern #49).
 
-## The complexity report — a release checkpoint, not a commit gate
+## Automated test records — the consolidated run
 
-Regenerate [`complexity.md`](complexity.md) as part of every release, in the same change that bumps
-the version, and **read the diff** before the tag:
+All four out-of-game suites go through one vendored runner, and every run is recorded
+(`automated-tests`):
 
 ```sh
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+tests/_kit/run-automated-tests.sh                            # all four, writes a bundle
+tests/_kit/run-automated-tests.sh --suite complexity          # a subset
+tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the green gate; writes nothing
 ```
 
-Run it from the repo root and pass exactly those arguments — no extra flags, no narrowed path, no
-retuned thresholds. Two reports produced by different invocations cannot be compared, and the
-comparison is the entire point: one report is a page of numbers, but a function that moved from CCN
-9 to CCN 24 since the last tag is a finding with a name on it. The file is overwritten in place, so
-its git history is the trend line.
+| Suite | Command | Gates? |
+|---|---|---|
+| `lint` | `luacheck .` | **yes** |
+| `tests` | `lua tests/run.lua` | **yes** |
+| `perf` | `lua tests/perf.lua` | no — recorded only |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
 
-Anything that **newly** crossed a threshold, or a file that **newly** entered the 1000–1500 LOC
-band, goes in that release's `## Watch list` with a one-line disposition — accepted and why, peel
-next, or already tracked as a deviation ID.
+**`perf` and `complexity` never fail a run.** They are measured, recorded and diffed — a threshold
+that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects nothing
+and the habit remains. They contribute `amber`, which is a signal rather than a stop. **A missing
+tool is a skip recorded with its reason**, never a pass.
 
-**This is a release checkpoint and is deliberately NOT part of the green gate above.** Nothing here
-gates a commit: it is a report you read when deciding where to refactor, not a threshold that fails
-a build. The full rule, including why a pre-commit complexity gate is a bad idea, is
-`performance-§10` in the standard — this page does not restate it.
+The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
+upstream and is re-vendored.
 
-`lizard` is an optional local tool. If it is not installed the report is **stale**, not broken:
-leave the previous `complexity.md` committed with its original header (which dates itself) and say
-so in the release notes. Never hand-edit it — a hand-edited report reads as measured.
+**At release, not at commit.** A full bundle is produced as part of every version bump, before the
+tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only.
+
+Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
+four suites plus the current complexity watch list — **one file, overwritten in place**, so its git
+history is the trend line — and each `<YYYY-MM-DD-HHMMSS>/` is a frozen bundle of that run's raw
+output. Bundles are never edited and never pruned.
+
+`docs/complexity.md` was this addon's standalone complexity report through standard v2.18.0; it is
+**retired** — its raw output is each bundle's `complexity.txt` and its trend line is `RESULTS.md`.
 
 ## Local toolchain
 

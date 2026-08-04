@@ -1,0 +1,697 @@
+  PASS  Util.PlayerKey joins name and realm with spaces stripped
+  PASS  Util.SplitPath splits a dotted settings path
+  PASS  Util.SplitPath returns a single component for a bare key
+  PASS  Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
+  PASS  Util.FormatClock renders HH:MM
+  PASS  Util.PlainMoney always renders gold, silver and copper parts
+  PASS  Util.PlainMoney renders zero rather than an empty string
+  PASS  Util.PlainMoney renders nil as empty
+  PASS  Util.FormatMoney is blank for nothing and compact for a real amount
+  PASS  Util.EntryType is the stored item type for an item movement
+  PASS  Util.EntryType is Gold for a gold movement, which stores no type
+  PASS  Util.EntryType is blank for an uncached item and for nothing at all
+  PASS  Util.ClassIconMarkup carries the class's slice of the icon sheet
+  PASS  Util.ClassIconMarkup honors a requested size
+  PASS  Util.ClassIconMarkup is empty for an unknown or missing class
+  PASS  Util.FormatBytes steps through B, kB and MB
+  PASS  Util.RangeFrom returns nil for the no-bound 'all' range
+  PASS  Util.RangeFrom windows are ordered today > 7d > 30d
+  PASS  NS.IsConcatSafe accepts an ordinary value
+  PASS  NS.IsConcatSafe rejects a value table.concat would refuse
+  PASS  NS.SafeToString substitutes a sentinel for an unconcatenable value
+  PASS  NS.SafeToString passes nil and booleans through unmasked
+  PASS  NS.Print prefixes the cyan [BL] tag and space-joins its arguments
+  PASS  NS.Print never raises on a value that would break table.concat
+  PASS  NS.Print survives the AceConsole embed (architecture-§2)
+  PASS  Util.WowheadURL carries every bonus id from the item link
+  PASS  Util.WowheadURL stops at the declared bonus count
+  PASS  Util.WowheadURL omits the bonus query for an item that has none
+  PASS  Util.WowheadURL falls back to the stored item id when there is no link
+  PASS  Util.WowheadURL accepts a bare item string as well as a full hyperlink
+  PASS  Util.WowheadURL returns nothing for a row with no item at all
+  PASS  Compat.ItemIDFromLink pulls the id out of a full item link
+  PASS  Compat.ItemIDFromLink accepts a bare itemString
+  PASS  Compat.ItemIDFromLink returns nil for anything that is not a link
+  PASS  Compat.QualityLabel maps a quality id to its English name
+  PASS  Compat.QualityLabel defaults to Poor when given nothing
+  PASS  Compat.GetItemDetails returns name, quality, type, subtype and vendor price
+  PASS  Compat.GetItemDetails returns nil for an item the client has not cached
+  PASS  Compat.ItemNameQuality resolves an id the client knows
+  PASS  Compat.GetContainerNumSlots reports zero for an unreachable container
+  PASS  Compat.GetContainerSlot returns a normalized triple for a filled slot
+  PASS  Compat.GetContainerSlot returns nil for an empty slot
+  PASS  Compat.GetZone returns the zone and subzone
+  PASS  Compat.GetGuildName returns the player's guild
+  PASS  Compat.GetMoney reads the carried balance
+  PASS  Compat.GetStoreMoney reads the guild bank's own balance while the frame is open
+  PASS  Compat.GetStoreMoney returns nil for the guild bank when the frame is closed
+  PASS  Compat.GetStoreMoney reads the warband balance by BankType name, not by number
+  PASS  Compat.GetStoreMoney returns nil for a store that holds no coin of its own
+  PASS  Compat.GetStoreMoney returns nil when the build exposes no reader
+  PASS  Compat.GetPlayerMapID returns the current map id
+  PASS  Compat.GetAddOnMetadata degrades to nil when neither getter exists
+  PASS  Constants: every Store enum member appears in the display order
+  PASS  Constants: every Store enum member has a display label
+  PASS  Constants: every Store enum value equals its key (the stable stored form)
+  PASS  Constants: every Direction enum member has a label and a sign
+  PASS  Constants: a deposit signs positive and a withdrawal negative
+  PASS  Constants: every Kind has a label
+  PASS  Constants: the bag id group covers the backpack, four bags and the reagent bag
+  PASS  Constants: the bank group is exactly the six character-bank tabs
+  PASS  Constants: the warband bank spans its five account tabs
+  PASS  Constants: no container id belongs to two stores
+  PASS  Constants: no group lists the same id twice
+  PASS  Constants: the enum's type constants are never mistaken for containers
+  PASS  Constants: every container-backed store resolves to a non-empty group
+  PASS  Constants: the guild bank is NOT container-id scanned
+  PASS  Constants: the store mute options exclude BAGS
+  PASS  Constants: every quality option carries a numeric value and a label
+  PASS  Constants: the retention presets offer an 'Always' (0) option
+  PASS  Constants: every store has a display color
+  PASS  Constants: every direction has a color and a glyph
+  PASS  Constants: every open-frame context has a Ledger store list
+  PASS  Constants: C.Context is its own axis, not a subset of C.Store
+  PASS  Filters: an added id reads back as blacklisted
+  PASS  Filters: adding the same id twice is a no-op the second time
+  PASS  Filters: adding to one list removes the id from the other
+  PASS  Filters: removing an id that is not on the list reports no change
+  PASS  Filters: a removed id is no longer blacklisted
+  PASS  Filters: a non-numeric id is rejected rather than stored
+  PASS  Filters: an item link is accepted as an id
+  PASS  Filters.ParseItemID accepts a bare number and rejects plain text
+  PASS  Filters: a write never mutates the previously stored table in place
+  PASS  Filters.SortedIDs returns the ids in ascending order
+  PASS  Filters.ClearList empties one list and reports how many went
+  PASS  Filters.ClearList on an empty list reports zero
+  PASS  Filters.ClearList ignores an unknown list name
+  PASS  Filters.ClearAll empties both lists in one go
+  PASS  Filters: a list change re-caches the capture gate's upvalues
+  PASS  Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
+  PASS  Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
+  PASS  Ledger.Diff: a partial stack move records only the quantity that actually moved
+  PASS  Ledger.Diff: quantity is the smaller of the two sides when they disagree
+  PASS  Ledger.Diff: an item that only appears in bags is not a bank movement
+  PASS  Ledger.Diff: an item that only appears in the store is not a movement
+  PASS  Ledger.Diff: identical snapshots produce nothing
+  PASS  Ledger.Diff: several items in one pass each get their own movement
+  PASS  Ledger.Diff: movements come back in ascending itemID order (deterministic)
+  PASS  Ledger.Diff: the store name is carried on every movement
+  PASS  Ledger.Diff: money leaving the player and arriving at the store is a DEPOSIT
+  PASS  Ledger.Diff: money leaving the store and arriving at the player is a WITHDRAW
+  PASS  Ledger.Diff: a purse drop the store's balance does not mirror is NOT a deposit
+  PASS  Ledger.Diff: a store balance change the purse does not mirror is not a movement
+  PASS  Ledger.Diff: both balances falling together is not a movement
+  PASS  Ledger.Diff: the recorded amount is the smaller of the two deltas
+  PASS  Ledger.Diff: an unreadable store balance produces no money movement
+  PASS  Ledger.Diff: a balance readable on only one side produces no money movement
+  PASS  Ledger.Diff: money is ignored at a store that holds no gold
+  PASS  Ledger.Diff: an unchanged balance produces no money movement
+  PASS  Ledger.Diff: the money movement sorts after the item movements
+  PASS  Ledger:ScanStore sums stacks across every container id of a store
+  PASS  Ledger:ScanStore returns an empty map for a store with no reachable containers
+  PASS  Ledger:Snapshot captures bags, every reachable store and the money balance
+  PASS  Ledger:Snapshot carries each money-holding store's own balance
+  PASS  Ledger:Snapshot omits a store balance this build cannot read
+  PASS  Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs
+  PASS  Ledger:StoresFor drops a store this build has no container for
+  PASS  Ledger:StoresFor: the guild bank frame reaches only itself
+  PASS  Ledger:StoresFor: an unknown context reaches nothing
+  PASS  Ledger:Reconcile records a bags-to-character-bank deposit
+  PASS  Ledger:Reconcile records a warband move with no warband open event at all
+  PASS  Ledger:Reconcile writes ONE row, not one per store the frame reaches
+  PASS  Ledger:Reconcile records a withdrawal back out of the bank
+  PASS  Ledger:Reconcile writes nothing when no frame is open
+  PASS  Ledger:CloseContext reconciles once more, then disarms
+  PASS  Ledger:GateReason allows an ordinary item move
+  PASS  Ledger:GateReason blocks everything while capture is disabled
+  PASS  Ledger:GateReason blocks an item below the minimum quality
+  PASS  Ledger:GateReason lets a whitelisted item through the quality gate
+  PASS  Ledger:GateReason skips an uncached item when a minimum quality is set
+  PASS  Ledger:GateReason records an uncached item at the default threshold
+  PASS  Ledger:GateReason lets a whitelisted uncached item through
+  PASS  Ledger:GateReason asks the client to cache an item it had to skip
+  PASS  Ledger:GateReason blocks a blacklisted item even when it would otherwise pass
+  PASS  Ledger:GateReason blocks a muted store
+  PASS  Ledger:GateReason blocks item moves when item tracking is off
+  PASS  Ledger:GateReason blocks money moves when gold tracking is off
+  PASS  Ledger:GateReason ignores the quality gate for a money move
+  PASS  Ledger:BuildEntry stamps who, where and when onto an item movement
+  PASS  Ledger:BuildEntry enriches an item movement from the item cache
+  PASS  Ledger:BuildEntry names a money movement and leaves the item fields empty
+  PASS  Ledger:BuildEntry stamps the guild name on a guild-bank movement only
+  PASS  Ledger:Record appends a gated-in movement to the ledger
+  PASS  Ledger:Record drops a gated-out movement and writes nothing
+  PASS  Ledger.MoveSummary renders one line per pass, not one per item (debug-logging-§9)
+  PASS  Ledger.DiffSummary reports both sides and the move count
+  PASS  Ledger.CountKinds counts distinct ids, not stack sizes
+  PASS  Ledger:Diagnose reports the open store and the resolved id groups
+  PASS  Ledger:Diagnose lists the BagIndex members the client exposes
+  PASS  Ledger:Diagnose probes containers and reports only the ones with slots
+  PASS  Ledger:Diagnose never raises when no container is reachable
+  PASS  Ledger:Enable registers every event on a build that has them all
+  PASS  Ledger:Enable survives a retired event and still binds the rest
+  PASS  Ledger:Enable binds the capture events even when several are retired
+  PASS  Ledger:Enable never lets a rejected open event silence the others
+  PASS  Ledger:RegisterEventSafely reports whether the binding took
+  PASS  Ledger:Diagnose names the events this build rejected
+  PASS  Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
+  PASS  Ledger: a movement whose halves arrive in separate events is still recorded
+  PASS  Ledger: a withdrawal whose halves arrive separately is also recorded
+  PASS  Ledger: two separate actions stay two separate rows
+  PASS  Ledger:ScheduleReconcile does nothing when no frame is open
+  PASS  Ledger:CloseContext runs the pending pass instead of waiting out the debounce
+  PASS  Ledger.SnapshotsDiffer spots a change on any side
+  PASS  Ledger: a movement whose halves are SECONDS apart is still recorded
+  PASS  Ledger: gold spent at the bank window is not recorded as a warband deposit
+  PASS  Ledger: a real gold deposit still records when the store balance lands a pass later
+  PASS  Ledger: a one-sided change that never completes re-anchors after the timeout
+  PASS  Ledger: a re-anchored loot does not pair with a later unrelated deposit
+  PASS  Ledger: an unchanged world advances the baseline without waiting
+  PASS  Ledger: a completed movement clears the settle wait
+  PASS  Ledger: a deletion writes no row and arms ONE deadline, not a poll
+  PASS  Ledger: the deadline is armed for the REMAINING window, not a fixed retry
+  PASS  Ledger: the deadline never schedules a near-zero timer
+  PASS  Ledger: firing the deadline re-anchors and stops waiting
+  PASS  Ledger:ScanGuildBank sees nothing from a tab that was never queried
+  PASS  Ledger:QueryGuildBankTabs asks for every tab
+  PASS  Ledger:ScanGuildBank reads a tab once it has been queried
+  PASS  Ledger:OpenContext queries the guild bank tabs on open
+  PASS  Ledger:OpenContext does NOT query guild tabs for the bank frame
+  PASS  Ledger: a guild-bank deposit is recorded
+  PASS  Ledger:Diagnose reports the guild-bank API and per-tab contents
+  PASS  Compat.GetGuildBankSlot survives a build with no guild-bank API
+  PASS  Ledger:OnGuildBankData arms the guild bank when nothing else is open
+  PASS  Ledger:OnGuildBankData queries the tabs when it arms
+  PASS  Ledger:OnGuildBankData never steals the context from an open bank frame
+  PASS  Ledger:OnGuildBankData re-arms without churning the baseline once armed
+  PASS  Ledger: a guild-bank deposit is recorded with no open event at all
+  PASS  Ledger: the guild bank disarms once its window has gone
+  PASS  Ledger: hiding the guild-bank frame disarms it there and then, with no event
+  PASS  Ledger: the guild-bank OnHide hook is installed once, not once per data event
+  PASS  Ledger:Diagnose reports whether the guild-bank close hook is installed
+  PASS  Ledger: hiding the guild-bank frame leaves an open BANK frame alone
+  PASS  Ledger: an unknown window state does NOT disarm the guild bank
+  PASS  Compat.IsGuildBankVisible is three-valued
+  PASS  Ledger:ScanStore hands back the first hyperlink seen for each item
+  PASS  Ledger:Snapshot carries a links table beside the counts
+  PASS  Ledger.Diff attaches the observed link to a deposit
+  PASS  Ledger.Diff attaches the observed link to a withdrawal
+  PASS  Ledger.Diff leaves the link nil when neither snapshot observed one
+  PASS  Ledger:BuildEntry keeps the scanned link over the one derived from the id
+  PASS  Ledger:BuildEntry falls back to the item cache's link when the move carries none
+  PASS  Database:Add appends and returns the new index
+  PASS  Database:Add fires EntryAdded on the bus
+  PASS  Database: two consumers of one message both receive it
+  PASS  Database:QueryList with no filter returns everything
+  PASS  Database:QueryList filters on a scalar store
+  PASS  Database:QueryList filters on a store SET (multi-select)
+  PASS  Database:QueryList filters on direction
+  PASS  Database:QueryList filters on kind
+  PASS  Database:QueryList filters on character
+  PASS  Database:QueryList filters on item sub-type
+  PASS  Database:QueryList filters on an item sub-type SET (multi-select)
+  PASS  Database:QueryList filters gold movements under the type 'Gold'
+  PASS  Database:QueryList mixes Gold with real item types in one set
+  PASS  Database:QueryList filters on an exact quality
+  PASS  Database:QueryList filters on a quality SET
+  PASS  Database:QueryList filters on a from/to timestamp window, inclusive
+  PASS  Database:QueryList text search is a case-insensitive substring on the item name
+  PASS  Database:QueryList combines filters with AND
+  PASS  Database:QueryList returns nothing when the filters exclude everything
+  PASS  Database:Export returns plain copies, not the stored tables
+  PASS  Database:DeleteAt removes one entry and compacts the array
+  PASS  Database:DeleteAt rejects an out-of-range index
+  PASS  Database:Delete removes every entry matching the predicate
+  PASS  Database:Purge empties the ledger and reports the count
+  PASS  Database:PruneOld drops entries past the retention window
+  PASS  Database:PruneOld keeps everything when retention is Always (0)
+  PASS  Database:StorageStats reports count, span and an estimated size
+  PASS  Database:StorageStats reports a zero span for an empty ledger
+  PASS  Database:ActiveLedger prefers the test dataset when one is published
+  PASS  RunMigrations stamps a schema version onto a fresh database
+  PASS  RunMigrations is idempotent — running it twice changes nothing
+  PASS  NS.MigrationSummary renders a readable one-liner
+  PASS  NS.InitSummary identifies the build, schema, profile and size
+  PASS  RunMigrations strips vendorPrice from every stored entry and bumps to v2
+  PASS  RunMigrations is idempotent on an already-migrated database
+  PASS  RunMigrations treats a database with no schemaVersion key at all as v1
+  PASS  RunMigrations survives a database with no ledger at all
+  PASS  RunMigrations never downgrades a future schema version
+  PASS  Database:Export never emits a vendorPrice field
+  PASS  Database: the shipped default matches the migration runner's target
+  PASS  Database: a fresh database needs no migration
+  PASS  Database: an older database is migrated up to the current version
+  PASS  Stats: the entry total counts every movement in scope
+  PASS  Stats: item quantities split by direction
+  PASS  Stats: gold in, gold out and the net between them
+  PASS  Stats: distinct items counts item ids, not movements
+  PASS  Stats: distinct characters counts the players involved
+  PASS  Stats: the first and last timestamps bracket the data
+  PASS  Stats: active days counts distinct calendar days
+  PASS  Stats: byStore counts movements per store
+  PASS  Stats: byDirection counts deposits and withdrawals
+  PASS  Stats: byKind separates item movements from gold movements
+  PASS  Stats: byChar carries a per-character count
+  PASS  Stats: charByStore is a per-character by-store matrix
+  PASS  Stats: byItemType counts item movements only
+  PASS  Stats: topItems ranks by number of moves, most first
+  PASS  Stats: the busiest day is the one with the most movements
+  PASS  Stats: a filter narrows every total, not just the count
+  PASS  Stats: an empty result set produces zeroed totals rather than nil
+  PASS  Stats: byItemSubType counts item rows by sub-type
+  PASS  Stats: byQuality counts item rows by quality id
+  PASS  Stats: byQuality ignores gold, which has no quality
+  PASS  Stats: byZone counts movements by where they happened
+  PASS  Stats: topZones ranks the banking spots, count-desc
+  PASS  Stats: byHour and byWeekday bucket every movement exactly once
+  PASS  Stats: byWeekday is keyed 0..6 with Sunday as 0
+  PASS  Stats: moneyByStore totals gross coin per store
+  PASS  Stats: moneyByDay totals coin per calendar day, items excluded
+  PASS  Stats: totals.moneyMoved is gross coin, not net
+  PASS  Stats: totals.netItems signs the item flow like netMoney signs gold
+  PASS  Stats: charByDirection splits each character's movements in and out
+  PASS  Stats: storeByDirection splits each store's movements in and out
+  PASS  Stats: topItemsByQuantity ranks the item index by stack count
+  PASS  Stats: the two top-item rankings share one record per item
+  PASS  Stats: topItems still ranks by movement count, unchanged
+  PASS  Stats: every new breakdown is empty rather than nil on an empty ledger
+  PASS  Stats: the new breakdowns honor the filter like every other key
+  PASS  Stats no longer reports any value figure
+  PASS  Stats: netByStore counts movements, deposits positive
+  PASS  Stats: itemsMoved totals every stack unit that crossed the line
+  PASS  Stats: topStore names the store with the most movements
+  PASS  Stats: topStore is nil on an empty slice
+  PASS  Insights.RankRows sorts by count descending
+  PASS  Insights.RankRows breaks count ties on the label, so the order is stable
+  PASS  Insights.RankRows applies the label mapper and the value map
+  PASS  Insights.RankRows honors the row limit
+  PASS  Insights.RankRows returns an empty array for an empty map
+  PASS  Insights.BarFraction scales each bar against the largest count
+  PASS  Insights.BarFraction is zero for an empty list or a missing row
+  PASS  Stats: qualityByDirection is keyed on the numeric quality id
+  PASS  Stats: itemTypeByDirection and itemSubTypeByDirection split by direction
+  PASS  Stats: the direction split always sums back to its parent breakdown
+  PASS  Stats: item records split their moves and quantities by direction
+  PASS  Stats: the In and Out item rankings sum back to the combined ranking
+  PASS  Stats: byZone keeps its plain count-map shape for the CSV
+  PASS  Stats: topZones records carry the in/out split
+  PASS  Stats: topTypeSub ranks type and sub-type pairs with a display label
+  PASS  Stats: topItemsByStore ranks each store's items independently
+  PASS  Stats: per-store item records split moves by direction
+  PASS  Stats: the per-store In and Out lists rank independently
+  PASS  Stats: a store with no withdrawals has an empty per-store Out list
+  PASS  LedgerTable:CellText renders the direction as a human label
+  PASS  LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
+  PASS  LedgerTable:PaintCell writes the column's text into the cell
+  PASS  LedgerTable:PaintCell drives the direction glyph only for the Direction column
+  PASS  LedgerTable:PaintCell is a safe no-op for a missing cell or column
+  PASS  LedgerTable:CellText renders the store as a human label
+  PASS  LedgerTable:CellText falls back to 'Item <id>' for an uncached item
+  PASS  LedgerTable:CellText shows a gold row's amount as money in the Qty column
+  PASS  LedgerTable:CellText shows the stack size for an item row
+  PASS  LedgerTable:CellText renders the quality label, and blank when unknown
+  PASS  LedgerTable:CellText shows a dash for a gold row's quality
+  PASS  LedgerTable:CellText renders the item type and sub-type, and blank when unknown
+  PASS  LedgerTable:CellText types a gold row as Gold on both type columns
+  PASS  LedgerTable:CellText returns empty for an unknown column key
+  PASS  LedgerTable:SortEntries orders by the active column
+  PASS  LedgerTable:SortEntries honors the ascending direction
+  PASS  LedgerTable:SortEntries is stable across equal keys
+  PASS  LedgerTable:SortEntries never mutates the array it is given
+  PASS  LedgerTable:SortEntries sorts the Qty column on what the cell shows
+  PASS  LedgerTable:GroupEntries with no grouping emits one row item each
+  PASS  LedgerTable:GroupEntries inserts a header per group, with a count
+  PASS  LedgerTable:GroupEntries labels a header with its column prefix and value
+  PASS  LedgerTable:GroupEntries emits only the header for a collapsed group
+  PASS  LedgerTable:GroupEntries namespaces group keys by mode, so they cannot collide
+  PASS  LedgerTable:GroupEntries groups gold and items apart under 'kind'
+  PASS  LedgerTable:GroupEntries groups by item type and sub-type
+  PASS  LedgerTable:GroupEntries gathers gold under Gold when grouping by type
+  PASS  LedgerTable:GroupEntries labels an untyped item group Unknown
+  PASS  LedgerTable:GroupEntries orders quality groups Poor to Legendary
+  PASS  LedgerTable:GroupEntries puts gold in its own quality group
+  PASS  LedgerTable:BuildTestData produces a non-trivial sample ledger
+  PASS  LedgerTable:BuildTestData is deterministic across runs
+  PASS  LedgerTable:BuildTestData covers every store
+  PASS  LedgerTable:BuildTestData covers both directions and both kinds
+  PASS  LedgerTable:BuildTestData only puts gold where gold can live
+  PASS  LedgerTable:BuildTestData stamps the guild name only on guild-bank rows
+  PASS  LedgerTable.RenderSummary is one line carrying the render's shape
+  PASS  LedgerTable:MinFrameWidth is wide enough for every column
+  PASS  BuildTestData is byte-identical across two builds
+  PASS  BuildTestData covers every store and both directions
+  PASS  BuildTestData covers every item quality 0-5
+  PASS  BuildTestData spans more than 14 days
+  PASS  BuildTestData spreads across many characters and zones
+  PASS  BuildTestData never carries vendor value
+  PASS  LedgerTable:ToggleTestMode publishes and clears the dataset
+  PASS  LedgerTable:IsTestMode is derived from the published dataset, not a second flag
+  PASS  LedgerTable row menu offers the mutating actions on a real row
+  PASS  LedgerTable row menu disables every mutating action in test mode
+  PASS  LedgerTable row menu still disables item actions on a money row
+  PASS  Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
+  PASS  Browser.ResolveCharFilter passes ordinary character keys through
+  PASS  Browser.ResolveCharFilter mixes the sentinel with explicit names
+  PASS  Browser.ResolveCharFilter collapses the sentinel onto the same name once
+  PASS  Browser.ResolveCharFilter returns nil for an empty selection (no filter)
+  PASS  Browser.ResolveCharFilter falls back to the live player key
+  PASS  Browser.ResolveCharFilter copies the set rather than aliasing it
+  PASS  Browser:ClearFilters defaults the Character filter to the current character
+  PASS  Browser:ClearFilters leaves every other filter empty
+  PASS  Browser:ClearFilters does not scope test data to the real player
+  PASS  Browser: with nothing saved, the baseline IS the stock view
+  PASS  Browser: a corrupt saved view degrades to stock rather than erroring
+view saved as your default.
+  PASS  Browser:SaveView then ClearFilters returns to the SAVED view, not stock
+view saved as your default.
+  PASS  Browser:ResetView drops the saved view, and Clear then lands on stock
+  PASS  Browser:CaptureView never captures the character scope
+view saved as your default.
+  PASS  Browser:ApplyView always scopes to the current character
+  PASS  Browser:ApplyView with the 'all' scope drops the character filter entirely
+view saved as your default.
+  PASS  Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
+view saved as your default.
+  PASS  Browser: a saved date range is stored as the OPTION, not a resolved timestamp
+  PASS  Browser:ApplyView tolerates a scalar filter value in a stored view
+view saved as your default.
+  PASS  Slash:CliResetAll also discards the saved view
+  PASS  Browser:MinWidth fits every table column and the whole toolbar
+  PASS  Browser:SaveGeometry writes the live position and size
+  PASS  Browser:ApplyGeometry restores a saved position and size
+  PASS  Browser:ApplyGeometry never restores a size below the window floor
+  PASS  Browser:SaveGeometry refuses to write a point-less table
+  PASS  the ledger window saves its geometry when it hides
+  PASS  the ledger window saves its geometry at logout
+  PASS  Browser:ExportWidth leaves the Export button a usable width
+  PASS  Browser: a burst of search keystrokes costs ONE filter application
+  PASS  Browser: the debounced filter still applies when there is no timer library
+  PASS  Browser: a 20-stack deposit repaints the window once, not twenty times
+  PASS  Browser hands the table a filter COPY, not its own mutable one
+  PASS  SessionWindow drops the Date, Time and Character columns
+  PASS  SessionWindow keeps the seven data columns, in table order
+  PASS  SessionWindow resolves every column key against the shared LedgerTable spec
+  PASS  SessionWindow:MinFrameWidth covers every column plus the gutter and margins
+  PASS  SessionWindow:ColumnLayout lays columns left to right with the Item column flexing
+  PASS  SessionWindow:StartSession arms the session and clears the previous visit
+  PASS  SessionWindow:EndSession disarms and drops the rows
+  PASS  SessionWindow collects movements only while a session is open
+  PASS  SessionWindow shows newest movement first
+  PASS  SessionWindow:DisplayList never reorders the session list in place
+  PASS  SessionChanged from the Ledger opens and closes a session
+  PASS  Ledger:OpenContext and CloseContext drive the session window
+  PASS  closing the guild bank closes the session window
+  PASS  a recorded movement reaches the session window through EntryAdded
+  PASS  the disable setting suppresses the window without suppressing collection
+  PASS  the window stays shut while capture itself is off
+  PASS  settings.showSessionWindow defaults to enabled
+  PASS  turning the setting off closes an open session window
+  PASS  SessionWindow:PruneMissing drops rows deleted from the ledger
+  PASS  a purge empties the session view
+  PASS  SessionWindow:TogglePreview shows placeholder rows through the real render path
+  PASS  SessionWindow:TogglePreview refuses to overwrite a real session
+  PASS  a preview session is never pruned against the live ledger
+  PASS  a real session replaces a preview session's rows
+  PASS  SessionWindow:SaveGeometry writes the live position and size
+  PASS  SessionWindow:ApplyGeometry restores a saved position and size
+  PASS  SessionWindow:ApplyGeometry never restores a size below the column minimum
+  PASS  the session window saves its geometry when it hides
+  PASS  the session window saves its geometry at logout
+  PASS  a full save/reload round trip lands the window back where it was
+  PASS  SessionWindow:ResetWindow clears the persisted geometry carve-out
+  PASS  the session window's geometry is a separate carve-out from the main window's
+  PASS  InsightsWidgets.PaletteColor returns an rgb triple for rank 1
+  PASS  InsightsWidgets.PaletteColor gives adjacent ranks different colors
+  PASS  InsightsWidgets.PaletteColor cycles past the end of the palette
+  PASS  InsightsWidgets.PaletteMap assigns colors by list position
+  PASS  InsightsWidgets.PaletteMap of an empty list is empty
+  PASS  InsightsWidgets.Truncate leaves a short label alone
+  PASS  InsightsWidgets.Truncate cuts a long label to an ellipsis at the limit
+  PASS  InsightsWidgets.Truncate handles nil as an empty label
+  PASS  InsightsWidgets.ShortChar drops the realm from a Name-Realm key
+  PASS  InsightsWidgets.FitFontSize keeps the base size when the string fits
+  PASS  InsightsWidgets.FitFontSize shrinks proportionally when it overflows
+  PASS  InsightsWidgets.FitFontSize never shrinks below the floor
+  PASS  InsightsWidgets.FitFontSize treats a missing measurement as fitting
+  PASS  InsightsWidgets.SignedMoney colors a gain green and a loss red
+  PASS  InsightsWidgets.SignedMoney renders zero as a neutral dash
+  PASS  InsightsWidgets.SignedCount signs a count the same way
+  PASS  InsightsWidgets.Money renders nothing as a plain zero, not an empty cell
+  PASS  InsightsWidgets.PeakShares fills the larger side and scales the smaller against it
+  PASS  InsightsWidgets.PeakShares fills the larger side whichever side it is on
+  PASS  InsightsWidgets.PeakShares gives an empty split two zero-width halves
+  PASS  InsightsWidgets.PeakShares treats a negative side as zero
+  PASS  InsightsWidgets.Percent rounds to a whole percentage
+  PASS  InsightsWidgets.Percent is zero for an empty total, never a divide by zero
+  PASS  InsightsWidgets.StripMetrics widens the bars when there are few buckets
+  PASS  InsightsWidgets.StripMetrics keeps a minimum bar width when buckets are dense
+  PASS  InsightsWidgets.StripMetrics thins the axis labels as the bars tighten
+  PASS  InsightsWidgets.StripMetrics survives zero buckets
+  PASS  InsightsWidgets.DayKeys covers every day inclusive of both ends
+  PASS  InsightsWidgets.DayKeys includes the quiet days in between
+  PASS  InsightsWidgets.DayKeys caps a long span to the most recent bars
+  PASS  InsightsWidgets.DayKeys is empty without both ends, or when they are inverted
+  PASS  InsightsWidgets.ShortDay compacts an ISO day key for the axis
+  PASS  InsightsWidgets.SortedByCount ranks count-desc then key-asc
+  PASS  InsightsWidgets.NormalizeFractions makes the largest bar fill its track
+  PASS  InsightsWidgets.NormalizeFractions leaves an all-zero list alone
+  PASS  InsightsWidgets.StackSegments orders segments by their global rank
+  PASS  InsightsWidgets.StackSegments returns the row's total
+  PASS  InsightsWidgets.StackSegments lumps the overflow into one Other segment, last
+  PASS  InsightsWidgets.StackSegments drops zero and negative magnitudes
+  PASS  InsightsWidgets.BuildStackRows scales every row against the biggest row
+  PASS  InsightsWidgets.BuildStackRows breaks total ties on the label
+  PASS  InsightsWidgets.BuildBackToBackRows scales both sides against one shared maximum
+  PASS  InsightsWidgets.BuildBackToBackRows reports each side's raw magnitude and the total
+  PASS  InsightsWidgets.BuildBackToBackRows gives a one-sided row a zero-width other half
+  PASS  InsightsWidgets.BuildBackToBackRows breaks total ties on the label
+  PASS  InsightsWidgets.BuildBackToBackRows survives an all-zero matrix
+  PASS  InsightsWidgets.BuildBackToBackRows of an empty matrix is empty
+  PASS  InsightsWidgets.BuildStackRows tips each segment with its category and value
+  PASS  InsightsWidgets.BuildStackRows of an empty matrix is empty
+  PASS  InsightsWidgets pools reuse a released widget instead of building another
+  PASS  Insights.CardValues renders every declared card
+  PASS  Insights.CardValues shows a dash where there is genuinely nothing
+  PASS  Insights.CardValues survives being handed nothing at all
+  PASS  Insights.CardValues covers every card the panel declares
+  PASS  Insights.CardValues no longer produces value or biggest-move cards
+  PASS  Insights.CardValues reports items moved and the top store
+  PASS  Insights.CardValues em-dashes the top store on an empty slice
+  PASS  Insights.SummaryLine names the scope and the count
+  PASS  Insights:Attach and Refresh survive an empty ledger
+  PASS  Insights:Refresh lays out every section against a populated ledger
+  PASS  Insights:Refresh renders a slice with no gold at all
+  PASS  Insights: the four direction-split companions render without raising
+  PASS  Insights.BarLabel truncates the name and leaves the icon escape intact
+  PASS  Insights.BarLabel is a plain truncation when there is no icon
+  PASS  Insights: character bars carry the icon out of band
+  PASS  InsightsWidgets exports the split bar's two-part height
+  PASS  InsightsWidgets pools list panels, each carrying its own row pool
+  PASS  InsightsWidgets.MakeCard builds every headline on one base font template
+  PASS  Insights: the reorganized list section renders every group
+  PASS  Insights.ElementTip pairs the full label with the figure the element shows
+  PASS  Insights.ElementTip falls back to the bare label when there is no value
+  PASS  Insights: a bar's tip carries its untruncated label AND its value
+  PASS  Insights: the headline split puts withdrawals left, deposits right, peak-scaled
+  PASS  Insights: a back-to-back half's tip carries its count and its share of the row
+  PASS  Export:CSV emits a header row even with no data
+  PASS  Export:CSV emits one row per entry
+  PASS  Export:CSV uses CRLF line endings (RFC 4180)
+  PASS  Export:CSV writes the human direction and store labels
+  PASS  Export:CSV keeps the raw store token beside its label
+  PASS  Export:CSV pairs each human column with its raw sibling
+  PASS  Export:CSV renders a gold row's kind label
+  PASS  Export:CSV quotes a field containing a comma and doubles embedded quotes
+  PASS  Export:CSV leaves an absent field empty rather than writing nil
+  PASS  Export:CSV never emits the item link (a raw link is unusable in a spreadsheet)
+  PASS  Export:InsightsCSV starts with the four-column header
+  PASS  Export:InsightsCSV carries the summary card values
+  PASS  Export:InsightsCSV includes a per-store breakdown
+  PASS  Export:InsightsCSV includes the signed net-by-store rows
+  PASS  Export:InsightsCSV includes the direction and kind breakdowns
+  PASS  Export:InsightsCSV includes the top-items ranking
+  PASS  Export:InsightsCSV carries the two new summary figures
+  PASS  Export:InsightsCSV includes the sub-type breakdown
+  PASS  Export:InsightsCSV includes the quality breakdown, in quality order
+  PASS  Export:InsightsCSV includes the zone breakdown
+  PASS  Export:InsightsCSV includes the gross coin per store
+  PASS  Export:InsightsCSV includes the extra top-item ranking
+  PASS  Export:InsightsCSV includes a per-day coin section
+  PASS  Export:InsightsCSV emits a full 24-hour and 7-day grid
+  PASS  Export:InsightsCSV keeps the original section headers unchanged
+  PASS  Export:InsightsCSV survives an empty stats result
+  PASS  Export:InsightsCSV survives being handed nothing at all
+  PASS  Export: the ledger CSV carries no value columns
+  PASS  Export: the insights CSV drops the value summary and the value ranking
+  PASS  Export: net by store is written as a count, not a coin string
+  PASS  Export:CSV ends with the wowhead column
+  PASS  Export:CSV writes a wowhead URL carrying the item's bonus ids
+  PASS  Export:CSV writes a bare item URL when the row has no link
+  PASS  Export:CSV leaves the wowhead cell empty for a gold row
+  PASS  DebugLog.FormatPlain renders '<ts> | [<tag>] <msg>' with no color codes
+  PASS  DebugLog.FormatPlain tolerates a missing tag
+  PASS  DebugLog.FormatColored uses the mandated timestamp and tag colors
+  PASS  DebugLog.FormatColored escapes the separator pipe so it renders literally
+  PASS  DebugLog: the plain and colored lines carry the same tag and message
+  PASS  NS.Debug writes nothing while logging is off
+  PASS  NS.Debug appends a line while logging is on
+  PASS  NS.Debug formats its arguments into the message
+  PASS  NS.Debug never raises on a value table.concat would reject
+  PASS  DebugLog:Clear empties the copy buffer
+  PASS  DebugLog:SetEnabled flips the session-only flag
+  PASS  DebugLog:SetEnabled acks in chat with a color-coded state word
+  PASS  DebugLog:SetEnabled brackets BOTH transitions in the console
+  PASS  DebugLog:SetEnabled emits an [Init] session summary on enable
+  PASS  DebugLog:SetEnabled emits no [Init] summary on disable
+  PASS  DebugLog: the enabled state is never written to SavedVariables
+  PASS  DebugLog: the header toggle flips the same flag as the slash verb
+  PASS  DebugLog:UpdateScrollBar is a clean no-op under a stub frame
+  PASS  Schema: every row's path resolves against the defaults table
+  PASS  Schema: every row declares a label, a widget and a group
+  PASS  Schema: changing the window scale broadcasts it so every window rescales
+  PASS  Schema: every row declares a default
+  PASS  Schema: dropdown rows carry their option list
+  PASS  Schema:FindRow finds a declared path and rejects an unknown one
+  PASS  Schema:Get reads the stored value
+  PASS  Schema:Set writes through the single seam and reads back
+  PASS  Schema:Set rejects an unknown path with a reason
+  PASS  Schema:Set writes a nested path, creating intermediate tables
+  PASS  Schema:Set fires the row's onChange
+  PASS  Schema:Set deep-copies a table value so the default can't be aliased
+  PASS  Schema:Default returns a fresh copy each time
+  PASS  Schema: a session-only row never touches SavedVariables
+  PASS  Schema: the session-only row reads through its own getter
+  PASS  Schema: the debug LOGGING flag is deliberately not a schema row
+  PASS  COMMANDS: every entry is a { name, description, handler } triple
+  PASS  COMMANDS: names are unique, so dispatch can never be ambiguous
+  PASS  COMMANDS: the standard's required verbs are all present
+  PASS  COMMANDS: a test verb exists (test-mode)
+  PASS  Schema: the four Master Controls switches pair into two full rows
+  PASS  Schema: every row carries a tooltip
+  PASS  Schema: settings.windowScale declares its own step
+  PASS  Schema: a row the library cannot draw is marked skipRender, not left to vanish
+  PASS  Schema: no row uses the pre-library field spellings
+  PASS  Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
+  PASS  Slash: a set renders as a sorted brace list, through the format hook
+  PASS  Slash: an empty set renders as (none), not as an empty brace pair
+  PASS  Slash: a number row keeps its declared fmt
+  PASS  Slash: a boolean row still reads true/false
+  PASS  Slash: the key = value line carries no trailing colon (house style)
+  PASS  Slash:BuildListLines opens with the green 'Available settings' header
+  PASS  Slash:BuildListLines has no trailing colon on any line
+  PASS  Slash:BuildListLines indents group headers by two and rows by four
+  PASS  Slash:BuildListLines emits one row for every schema row
+  PASS  Slash:BuildListLines groups the rows under their declared page order
+  PASS  Slash:CliGet prints the single-line path = value form
+  PASS  Slash:CliGet reports an unknown path rather than printing nil
+  PASS  Slash:CliGet prints a usage line when given nothing
+  PASS  Slash:CliSet writes a boolean from a human word
+  PASS  Slash:CliSet writes a number and echoes the STORED value back
+  PASS  Slash:CliSet rejects a non-numeric value for a number setting
+  PASS  Slash:CliSet reports an unknown path
+  PASS  Slash:CliSet refuses a value-less set and says why
+  PASS  Slash:CliReset restores one setting to its default
+  PASS  Slash:CliReset echoes a table default through the shared formatter
+  PASS  Slash:CliReset echoes the colored key = value shape, like get and set
+  PASS  Slash:CliReset echoes the stored value, not the requested one
+  PASS  Slash:CliResetAll restores the schema AND clears the filter lists
+  PASS  Slash: a bare /bl prints the help index
+  PASS  Slash: the help index has one row per COMMANDS entry, plus the header
+  PASS  Slash: the help header names both the short verb and its alias
+  PASS  Slash: help rows are gold command, em-dash, white description, indented
+  PASS  Slash: an unknown verb says so and then prints the help index
+  PASS  Slash: dispatch lower-cases only the verb, preserving the argument's case
+  PASS  Slash:CliVersion prints a single tagged version line
+  PASS  Slash: every chat line carries the cyan [BL] tag
+  PASS  Slash: /bl list groups in schema declaration order, matching the panel
+  PASS  Slash: /bl version and the help header report the same version
+  PASS  Panel: every registered canvas frame is handed to the Settings framework
+  PASS  Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
+  PASS  Panel: the landing page's OnDefault is inert — it manages no settings
+  PASS  Panel: OnDefault runs the same action as the header Defaults button
+  PASS  Panel: the General defaults action resets settings but never the ledger
+  PASS  Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
+  PASS  Panel: a schema write refreshes an open page
+  PASS  Panel: a schema write does NOT refresh a hidden page
+  PASS  Panel: Refresh walks EVERY registered page, not just General
+  PASS  Panel: a bulk reset coalesces into exactly ONE refresh
+  PASS  Panel: Batch unwinds its depth on the error path
+  PASS  Panel: /bl resetall repaints, and only once
+  PASS  Panel: a refresher that raises does not stop the others
+  PASS  Panel: the General page renders without the library reporting a failure
+  PASS  Panel: every renderable schema row reaches the page as a labeled widget
+  PASS  Panel: a boolean row is a CheckBox and a range row is a Slider
+  PASS  Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
+  PASS  Panel: a checkbox write goes through the single write seam
+  PASS  Panel: the Reset all button is paired into the Window scale row
+  PASS  Panel: the store grid renders as an inverted checkbox set, host-drawn
+  PASS  Panel: the Storage section renders under the schema rows
+  PASS  Panel: the Filters page renders its two id lists
+  PASS  Panel: re-rendering a page releases the previous widgets and their refreshers
+  PASS  Harness: every suite the runner lists exists on disk
+  PASS  Harness: every suite on disk is listed in the runner
+  PASS  Harness: the runner's suite list has no duplicates
+  PASS  Harness: the TOC is what the headless runner loads, and it is non-empty
+  PASS  Harness: Compat loads before everything else in core/
+  PASS  Harness: Filters loads before Ledger — the capture gate reads the lists
+  PASS  Harness: the settings files load last, and in order
+  PASS  LibKa0s-Core: the vendored major registered and the addon is running on it
+  PASS  LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
+  PASS  LibKa0s-Core: the seam publishes ONE object to NS.Print and NS.Util.print
+  PASS  LibKa0s-Core: the reclaim in core/BankLedger.lua survives the AceConsole embed
+  PASS  LibKa0s-Core: a printed line is byte-identical to the pre-library printer
+  PASS  LibKa0s-Core: a bare NS.Print() emits the tag and its separator
+  PASS  LibKa0s-Core: the degraded fallback renders the SAME bytes as the library on every input
+  PASS  LibKa0s-Core: an unconcatenable argument renders as the sentinel, never raising
+  PASS  LibKa0s-Core: nil and booleans are not masked by the secret guard
+  PASS  LibKa0s-Core: the prefix is re-read on every call, so a later change lands
+  PASS  LibKa0s-Core degraded: the addon loads with no library at all
+  PASS  LibKa0s-Core degraded: the fallback printer renders the same bytes
+  PASS  LibKa0s-Core degraded: the notice is said exactly ONCE, on the first line printed
+  PASS  LibKa0s: the shared cause clause is set on BOTH paths, word for word
+  PASS  LibKa0s-Core tripwire: Core ships no STRINGS and reads no descriptor L
+  PASS  LibKa0s-Options tripwire: Options reads no descriptor L
+  PASS  LibKa0s: no seam file hands a descriptor the addon-wide locale table
+  PASS  LibKa0s: the locale-descriptor matcher catches all three spellings
+  PASS  LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
+  PASS  LibKa0s: the vendored folder carries the license it ships under
+  PASS  LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
+  PASS  LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
+  PASS  LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+  PASS  LibKa0s-DebugLog: the vendored major registered and the console is running on it
+  PASS  LibKa0s-DebugLog: the module needs the minor that carries the chrome hooks
+  PASS  LibKa0s-DebugLog: NS.Debug is bound and still gates on the session-only flag
+  PASS  LibKa0s-DebugLog: the enable seam reads and writes NS.State.debug, never SavedVariables
+  PASS  LibKa0s-DebugLog: the window title composes to exactly what the old console rendered
+  PASS  LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's
+  PASS  LibKa0s-DebugLog: the console closes with the library's x, not this addon's
+  PASS  LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
+  PASS  LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
+  PASS  LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
+  PASS  LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
+  PASS  LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
+  PASS  LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
+  PASS  LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
+  PASS  LibKa0s-DebugLog: hiding the console repaints the settings panel
+  PASS  LibKa0s-Slash: the vendored major registered and the CLI is running on it
+  PASS  LibKa0s-Slash: the module needs the minor that carries the format hook
+  PASS  LibKa0s-Slash: every printed line still carries the [BL] tag
+  PASS  LibKa0s-Slash: /bl list keeps its section headings
+  PASS  LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel
+  PASS  LibKa0s-Slash: the format hook defers to the library for every OTHER row type
+  PASS  LibKa0s-Slash: booleans are settable, because the schema says 'bool'
+  PASS  LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
+  PASS  LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
+  PASS  LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
+  PASS  LibKa0s-Slash: CliResetAll keeps this addon's two carve-outs
+  PASS  LibKa0s-Slash: the landing page and the chat help render the SAME rows
+  PASS  LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
+  PASS  LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
+  PASS  LibKa0s-Slash degraded: the verbs that never needed the library still work
+  PASS  LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
+  PASS  LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
+  PASS  LibKa0s-Slash: the seam loads after the schema it reads
+  PASS  libs/LibKa0s is the LibKa0s release the README says this addon bundles
+  PASS  tests/_kit is the test kit that shipped with that release
+
+689 passed, 0 failed, 689 total

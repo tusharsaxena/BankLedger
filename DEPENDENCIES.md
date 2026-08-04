@@ -65,7 +65,7 @@ pinned and nothing here depends on one).
 
 ### lizard — the complexity report
 
-Generates `docs/complexity.md`, regenerated and reviewed **at every release** (performance-§10). It
+Drives the `complexity` suite of `tests/_kit/run-automated-tests.sh`, recorded in every run bundle and reviewed **at every release** (automated-tests). It
 is a report, not a gate: a missing `lizard` means the committed report is stale, not that the addon
 is broken.
 

@@ -1,69 +1,3 @@
-# Complexity report
-
-<!-- GENERATED — do not hand-edit. Regenerate per performance-§10. -->
-
-- **Generated:** 2026-08-04
-- **Tool:** lizard 1.23.0
-- **Command:** `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .`
-- **Standard:** v2.18.0
-
-`libs/` and `tests/_kit/` are excluded because both are vendored whole out of the sibling
-[LibKa0s](https://github.com/tusharsaxena/LibKa0s) repo and are never edited here (see
-[testing.md](testing.md), "The vendor gate"). Bank Ledger's **own** `tests/` are measured on
-purpose — a test file as tangled as the module it covers is exactly the signal this report is for.
-
-**This is the first report for this addon, so there is nothing to diff against.** Every entry below
-is therefore recorded as a baseline, not as a regression: no function here "newly crossed" anything,
-because there was no previous reading. The next release's report is the first one that can say
-something moved, and this file's git history is the trend line (performance-§10).
-
-## Watch list
-
-`lizard` warned on **15** functions (its defaults: CCN > 15, length > 1000, parameters > 100) out of
-1763 counted, and **two** files sit in `layout-§1`'s 1000–1500 LOC on-notice band. Nothing exceeds
-the 1500 LOC cap, so no MUST is broken.
-
-**Read the ranges with one caveat.** `lizard`'s Lua parser does not always close a colon-method body
-where the source does: five of the fifteen entries span past their own `end` and swallow the
-functions that follow, so their CCN is a sum over several siblings rather than one function's score.
-Those are flagged **(over-spans)** below and their real cost is lower than the number printed. This
-is a property of the tool, not of the code, and it is left uncorrected deliberately — the invocation
-is fixed by the standard precisely so two reports stay comparable, and tuning it here would break
-the diff the report exists to make.
-
-### Functions `lizard` warned on
-
-| CCN | Location | What it actually is | Disposition |
-|-----|----------|---------------------|-------------|
-| 33 | `core/Database.lua:90-149` | `Database:QueryList` **(over-spans)** — the range also swallows the nested `matches` helper, `Database:Query` and `Database:Export` | **Accepted.** The genuine score is `QueryList` plus its `matches` closure: one filter predicate per supported facet (quality set/exact, store, direction, character, class, date window, text). It is a flat `if`-chain over a documented filter contract, covered by `tests/test_database.lua`, and splitting it would scatter one filter definition across several files. Re-measure once the parser range is trustworthy. |
-| 31 | `settings/Panel.lua:371-447` | `P:Diagnose` and its three nested reporters | **Accepted — diagnostic code, not a hot path.** It exists to tell stock Blizzard art from skinned art by counting frame regions (`settings/Panel.lua:368-370`), which is inherently a long branch table over cases that only exist at runtime. Cheap to read top to bottom, never called except by the user. |
-| 28 | `modules/Insights.lua:559-749` | `I:RenderDirectionSplit` **(over-spans)** — the range runs on into `I:LayoutSections` and the palette-row helpers | **Peel next, if it grows.** The honest unit is `RenderDirectionSplit` (559-593); the CCN belongs mostly to `I:LayoutSections`, which is the one place every Insights section is ordered. `modules/Insights.lua` is 916 LOC and not yet in the on-notice band, so no action now — but `LayoutSections` is the seam to watch. |
-| 26 | `modules/Browser.lua:266-353` | `menu:Populate` — the dropdown menu factory | **Already tracked as BL-24** (`docs/audits/2026-08-04/02_DEVIATIONS.md:386`), whose named peel seam is exactly this skin/widget-factory block at the top of the file. Accepted until that peel happens. |
-| 25 | `modules/LedgerTable.lua:138-168` | `groupOf` — the group-key derivation | **Accepted and deliberate.** One `if`-chain, one branch per group mode, producing both the collision-proof raw key and its display label in the same pass. The comment above it (`modules/LedgerTable.lua:136-137`) is why they must be derived together; splitting the modes into a dispatch table would trade a readable chain for a table nobody can read end to end. |
-| 24 | `modules/Ledger.lua:532-602` | `L:Reconcile` — the snapshot reconciliation pass | **Accepted, with a warning attached.** This is the addon's core mechanic and its branches are the ones the header comment (`modules/Ledger.lua:525-531`) documents as having each been a bug once — including the "don't advance the baseline on a half-seen move" case that lost every warband movement. Covered heavily by `tests/test_ledger.lua`. Refactor it only test-first. |
-| 22 | `modules/Ledger.lua:78-111` | `L.Diff` — the snapshot differ | **Accepted.** Pure, deterministic, and the single most-tested function in the addon (its ordering guarantee is what lets the suites assert by index — `modules/Ledger.lua:76-77`). Complexity here is the item/money/store case matrix, and it is where it belongs. |
-| 21 | `modules/Insights.lua:226-250` | `I.CardValues` — the display value for every summary card | **Accepted.** Deliberately split out of the layout code so the formatting rules are testable (`modules/Insights.lua:224-225`); the branches are "what counts as nothing" and "which figures are signed", one per card. Pure and pinned by `tests/test_insights.lua`. |
-| 21 | `tests/wow_mock.lua:86-165` | the stub-frame `__index` metamethod | **Accepted — mock fidelity.** Each branch is one WoW frame method the suites actually exercise; a dispatch table here would be the same count with a level of indirection between a test failure and the behavior that caused it. Test-only, never shipped. |
-| 20 | `modules/Browser.lua:777-791` | `B:CaptureView` | **Already tracked as BL-24.** Fifteen lines and one branch per persisted view field; the CCN is `and`/`or` fallbacks, not control flow. No peel warranted on its own. |
-| 19 | `modules/InsightsWidgets.lua:246-276` | `W.BuildStackRows` | **Accepted.** Pure row builder with a documented options contract (`modules/InsightsWidgets.lua:243-245`); every branch is an `opts` default. Testable and tested. |
-| 18 | `modules/LedgerTable.lua:304-468` | `LT:OrderedFilteredEntries` **(over-spans)** — the range runs on through `LT:BuildTestData` and its RNG helpers | **Accepted.** The named function is six lines. The score belongs to the test-data generator that follows it, which is developer-only scaffolding. Re-measure when the parser range is trustworthy. |
-| 17 | `modules/LedgerTable.lua:503-531` | `LT:PaintCell` | **Accepted.** It is the single definition of "what color is this cell" so the History table and the session window can never disagree (`modules/LedgerTable.lua:500-502`). One branch per column; centralizing it is the point. |
-| 16 | `modules/Browser.lua:797-840` | `B:ApplyView` | **Already tracked as BL-24.** The branch count is the ordered write sequence documented at `modules/Browser.lua:793-796`, which exists so a view swap costs one query rather than nine. Order is load-bearing — do not "simplify" it. |
-| 16 | `modules/Insights.lua:373-760` | `I:RenderStrip` **(over-spans badly)** — the range swallows the whole remaining render block | **Not a real finding.** `RenderStrip` itself ends at 432. Recorded here only because the raw table below prints it; ignore the number until the range is trustworthy. |
-
-### Files in `layout-§1`'s 1000–1500 LOC on-notice band
-
-| LOC | File | Disposition |
-|-----|------|-------------|
-| 1361 | `tests/test_ledger.lua` | **Accepted.** A suite grows with the cases it pins, and this one covers the addon's core mechanic. `layout-§1`'s band is about a file getting hard to change; a flat list of independent `test(...)` blocks does not get hard to change the way a module does. Split it by concern (diff / reconcile / capture gate) if it passes 1500. |
-| 1306 | `modules/Browser.lua` | **Already tracked as BL-24** (`docs/audits/2026-08-04/02_DEVIATIONS.md:386`), status advisory, with the peel seam already named: the skin/close-button factory and the geometry persistence at `:20-107` and `:110-180` lift cleanly into a sibling file in the same folder. No action this release. |
-
-Nothing else is within 300 lines of the band. Next largest: `modules/LedgerTable.lua` 972,
-`modules/Insights.lua` 916, `modules/InsightsWidgets.lua` 832.
-
-## Raw output
-
-```text
 ================================================
   NLOC    CCN   token  PARAM  length  location  
 ------------------------------------------------
@@ -112,19 +46,29 @@ Nothing else is within 300 lines of the band. Next largest: `modules/LedgerTable
        3      1     20      0       3 Database@131-133@./core/Database.lua
       11      3    136      0      11 Database@137-147@./core/Database.lua
       34     33    300      0      60 Database@90-149@./core/Database.lua
-       5      5     61      4       5 bump@178-182@./core/Database.lua
-       4      4     45      2       4 (anonymous)@320-323@./core/Database.lua
-       3      1      8      1       6 byField@319-324@./core/Database.lua
-       5      5     60      2       5 (anonymous)@325-329@./core/Database.lua
-       4      2     37      2       4 (anonymous)@347-350@./core/Database.lua
-       3      1      8      1       6 byZoneField@346-351@./core/Database.lua
-       4      2     37      2       4 (anonymous)@364-367@./core/Database.lua
-       3      1      8      1       6 byTSField@363-368@./core/Database.lua
-       4      4     45      2       4 (anonymous)@391-394@./core/Database.lua
-       3      1      8      1       6 byStoreField@390-395@./core/Database.lua
-       3      2     18      0       3 fireLedgerChanged@452-454@./core/Database.lua
-       3      1      9      0       3 Database@459-461@./core/Database.lua
-       9      3     50      0       9 Database@490-498@./core/Database.lua
+       5      5     61      4       5 bump@152-156@./core/Database.lua
+      17      1    159      0      21 newAccumulator@161-181@./core/Database.lua
+      11     11    166      4      14 accumulateCore@184-197@./core/Database.lua
+       4      3     55      4       4 accumulateMoney@199-202@./core/Database.lua
+      28     15    264      3      32 accumulateItemTaxonomy@205-236@./core/Database.lua
+      29      7    260      5      31 accumulateItemIndex@239-269@./core/Database.lua
+       6      2     58      5       6 accumulateItem@271-276@./core/Database.lua
+      14     13    187      3      16 accumulateTime@279-294@./core/Database.lua
+      13      3    104      4      13 accumulateChar@296-308@./core/Database.lua
+       4      4     45      2       4 (anonymous)@312-315@./core/Database.lua
+       3      1      8      1       6 byField@311-316@./core/Database.lua
+       5      5     60      2       5 (anonymous)@337-341@./core/Database.lua
+      25      4    158      1      29 deriveTopItems@321-349@./core/Database.lua
+       4      2     37      2       4 (anonymous)@363-366@./core/Database.lua
+       3      1      8      1       6 byZoneField@362-367@./core/Database.lua
+       4      2     37      2       4 (anonymous)@383-386@./core/Database.lua
+       3      1      8      1       6 byTSField@382-387@./core/Database.lua
+       8      4     57      1       8 deriveDays@422-429@./core/Database.lua
+      10      6     58      1      10 deriveTopStore@433-442@./core/Database.lua
+      52      7    466      0      57 Database@452-508@./core/Database.lua
+       3      2     18      0       3 fireLedgerChanged@510-512@./core/Database.lua
+       3      1      9      0       3 Database@517-519@./core/Database.lua
+       9      3     50      0       9 Database@548-556@./core/Database.lua
        1      1     10      0       1 unavailable@30-30@./core/DebugLogSetup.lua
        1      1      8      0       1 D@33-33@./core/DebugLogSetup.lua
        1      1      9      0       1 D@34-34@./core/DebugLogSetup.lua
@@ -1838,7 +1782,7 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
     142       6.4     4.4       43.2        21     ./core/Compat.lua
     113      12.0     6.0       66.5         2     ./core/Constants.lua
      39       4.4     2.2       36.8         5     ./core/CoreSetup.lua
-    432       6.2     4.0       50.9        25     ./core/Database.lua
+    473      10.4     4.9       91.8        35     ./core/Database.lua
      43       1.4     1.4       11.6        20     ./core/DebugLogSetup.lua
       5       0.0     0.0        0.0         0     ./core/Namespace.lua
      10       0.0     0.0        0.0         0     ./core/State.lua
@@ -1903,5 +1847,4 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
 ==========================================================================================
 Total nloc   Avg.NLOC  AvgCCN  Avg.token   Fun Cnt  Warning cnt   Fun Rt   nloc Rt
 ------------------------------------------------------------------------------------------
-     12044       6.2     2.2       49.4     1763           15      0.01    0.06
-```
+     12085       6.2     2.2       50.2     1773           15      0.01    0.06
