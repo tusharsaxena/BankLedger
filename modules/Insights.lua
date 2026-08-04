@@ -838,7 +838,10 @@ end
 -- Shown only when the slice actually holds a coin movement: two empty charts under a big GOLD
 -- banner would say "this addon is broken", not "you moved no gold".
 local function sectionGold(self, y, w, stats, totals, dayKeys)
-  if (totals.moneyMoved or 0) == 0 then
+  -- `<= 0`, the exact inversion of the `> 0` guard this was lifted out of. `== 0` would draw the
+  -- banner and both charts for a negative total; moneyMoved happens to be a sum of two gross
+  -- non-negative accumulators today, but this guard does not lean on that invariant.
+  if (totals.moneyMoved or 0) <= 0 then
     -- Hide the chrome as well as the charts, or a previous slice's banner and headers stay on screen.
     self.dividers.gold:Hide()
     self.headers.goldDay:Hide()

@@ -243,24 +243,12 @@ end
 -- category's share of the same scale. Rows sort total-desc then label-asc.
 --   labelOf(rowKey)   → the row's display label      colorOf(catKey) → the segment color
 --   catLabelOf(catKey)→ the segment's tooltip name   valueFmt(mag)   → the value string
--- The formatters BuildStackRows falls back to. Module-level, so the default color function is not
--- re-allocated on every call. `labelColorOf` is deliberately absent: it has no default, and a nil
--- labelColor means "use the widget default", not white.
-local STACK_DEFAULTS = {
-  labelOf = tostring,
-  colorOf = function() return W.NEUTRAL end,
-  catLabelOf = tostring,
-  valueFmt = tostring,
-}
-
--- A copy of `opts` with every missing key filled from `defaults`. Falsy overrides fall back to the
--- default, matching the `opts.x or <default>` lines this replaces.
-local function withDefaults(opts, defaults)
-  local o = {}
-  for k, v in pairs(opts) do o[k] = v end
-  for k, v in pairs(defaults) do if not o[k] then o[k] = v end end
-  return o
-end
+-- The default segment color, as a function so it can slot straight into `opts.colorOf or ...`.
+-- Module-level purely to keep it off the allocation path: the inline `function() return W.NEUTRAL end`
+-- this replaces minted a fresh closure on every BuildStackRows call. The other three defaults are
+-- `tostring`, which is already a single shared global — no per-call cost to remove.
+-- `labelColorOf` deliberately has no default: a nil labelColor means "use the widget default", not white.
+local function neutralColor() return W.NEUTRAL end
 
 -- First pass over the matrix: each row's untruncated total, and the scale every row shares.
 -- `rowMax` starts at 1, not 0 — that is the divide-by-zero guard, and the reason an all-empty
@@ -277,14 +265,16 @@ end
 
 -- One row's segments. The "__OTHER__" sentinel forces both the neutral color and the literal
 -- tooltip name, bypassing the caller's colorOf/catLabelOf.
-local function buildSegments(segs, rowMax, o)
+-- The three formatters arrive as arguments rather than in an options bag: they are read once per
+-- segment, and locals are upvalue reads where a bag would be a hash lookup each time.
+local function buildSegments(segs, rowMax, colorOf, catLabelOf, valueFmt)
   local segments = {}
   for _, s in ipairs(segs) do
     local isOther = s.key == "__OTHER__"
     segments[#segments + 1] = {
       frac = s.mag / rowMax,
-      color = isOther and W.NEUTRAL or (o.colorOf(s.key) or W.NEUTRAL),
-      tip = (isOther and "Other" or o.catLabelOf(s.key)) .. ": " .. o.valueFmt(s.mag),
+      color = isOther and W.NEUTRAL or (colorOf(s.key) or W.NEUTRAL),
+      tip = (isOther and "Other" or catLabelOf(s.key)) .. ": " .. valueFmt(s.mag),
     }
   end
   return segments
@@ -298,8 +288,12 @@ local function byTotalThenLabel(a, b)
 end
 
 function W.BuildStackRows(matrix, catOrder, opts)
-  local o = withDefaults(opts or {}, STACK_DEFAULTS)
-  local colorOfLabel = o.labelColorOf
+  opts = opts or {}
+  local labelOf = opts.labelOf or tostring
+  local colorOf = opts.colorOf or neutralColor
+  local catLabelOf = opts.catLabelOf or tostring
+  local valueFmt = opts.valueFmt or tostring
+  local colorOfLabel = opts.labelColorOf
   matrix = matrix or {}
 
   local totals, rowMax = stackTotals(matrix, catOrder)
@@ -308,10 +302,10 @@ function W.BuildStackRows(matrix, catOrder, opts)
   for key, mags in pairs(matrix) do
     -- Segments are recomputed rather than cached from the totals pass: StackSegments' __OTHER__
     -- bucketing depends on catOrder, so both passes must ask it the same question.
-    local segments = buildSegments(W.StackSegments(mags, catOrder), rowMax, o)
+    local segments = buildSegments(W.StackSegments(mags, catOrder), rowMax, colorOf, catLabelOf, valueFmt)
     rows[#rows + 1] = {
-      label = o.labelOf(key), labelColor = colorOfLabel and colorOfLabel(key) or nil,
-      value = o.valueFmt(totals[key]), segments = segments, total = totals[key],
+      label = labelOf(key), labelColor = colorOfLabel and colorOfLabel(key) or nil,
+      value = valueFmt(totals[key]), segments = segments, total = totals[key],
     }
   end
   table.sort(rows, byTotalThenLabel)

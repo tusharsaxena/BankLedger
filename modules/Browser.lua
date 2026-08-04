@@ -811,8 +811,13 @@ local VIEW_SETS = {
 
 -- The table's own share of a view — group and sort — defaulted for the build where the table module
 -- is not loaded. `sortAsc` is a strict `== true`, not a truthiness pass-through.
+--
+-- With no table module the third return is nil, NOT false. It feeds a table constructor whose result
+-- is written verbatim to SavedVariables, and a nil in a constructor leaves the KEY ABSENT from the
+-- stored view — which is what master's `sortAsc = LT and LT.sortAsc == true` did. An absent key and
+-- a stored `false` are different facts on disk, so the nil is load-bearing; do not tidy it to false.
 local function tableViewState(LT)
-  if not LT then return "none", "date", false end
+  if not LT then return "none", "date", nil end
   return LT.groupBy or "none", LT.sortKey or "date", LT.sortAsc == true
 end
 

@@ -201,6 +201,31 @@ test("Browser:ResetView drops the saved view, and Clear then lands on stock", fu
   end)
 end)
 
+-- Regression: CaptureView's return is written verbatim to NS.db.global.savedView, so its SHAPE is a
+-- SavedVariables shape. With no table module the sort direction must be a nil in the constructor,
+-- which leaves the `sortAsc` KEY ABSENT from the stored view — a refactor that defaulted it to
+-- `false` instead would start writing a key that was never on disk before, and an absent key and a
+-- stored false are different facts to everything that reads the file back.
+test("Browser:CaptureView omits sortAsc entirely when the table module is not loaded", function()
+  withFakeBar(function()
+    local LT = NS.LedgerTable
+    local ok, v = pcall(function()
+      NS.LedgerTable = nil
+      return B:CaptureView()
+    end)
+    NS.LedgerTable = LT
+    assertTrue(ok, "CaptureView must survive a build with no table module")
+
+    local present = false
+    for k in pairs(v) do if k == "sortAsc" then present = true end end
+    assertFalse(present, "the sortAsc key must be absent, not stored as false")
+    assertEqual(v.sortAsc, nil)
+    -- The other two table-state defaults still land, exactly as before.
+    assertEqual(v.groupBy, "none")
+    assertEqual(v.sortKey, "date")
+  end)
+end)
+
 test("Browser:CaptureView never captures the character scope", function()
   -- Character is a per-session default of Current, not something a stale save can pin to one alt.
   withFakeBar(function(dd)
