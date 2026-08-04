@@ -376,3 +376,113 @@ test("Panel: re-rendering a page releases the previous widgets and their refresh
   renderPage("General")
   assertEqual(#ctx.refreshers, first, "the refresher list must be replaced, not appended to")
 end)
+
+-- ── Diagnostics (`/bl debug panel`) ────────────────────────────────────────────
+-- P:Diagnose's OUTPUT LINES ARE THE PRODUCT: a human reads them while debugging the load-order
+-- skinning race, so their order, wording and format specifiers are the contract. These cases pin
+-- them against a hand-built button, because the real defaults button only exists once the library
+-- has laid out a page against a live canvas.
+
+local function withDefaultsBtn(btn, fn)
+  local saved = P.general
+  P.general = { panel = { defaultsBtn = btn } }
+  local ok, err = pcall(fn)
+  P.general = saved
+  if not ok then error(err, 0) end
+end
+
+-- A texture stand-in. Passing nil for atlas/path exercises the tostring() the dump wraps them in.
+local function fakeTexture(atlas, path, r, g, b, a, layer)
+  return {
+    GetAtlas = function() return atlas end,
+    GetTexture = function() return path end,
+    GetVertexColor = function() return r, g, b, a end,
+    GetObjectType = function() return "Texture" end,
+    GetDrawLayer = function() return layer end,
+  }
+end
+
+test("Panel:Diagnose says so and stops when no defaults button was ever built", function()
+  withDefaultsBtn(nil, function()
+    local out = P:Diagnose()
+    assertTrue(#out > 0, "the AceGUI preamble is always emitted")
+    assertEqual(out[#out],
+      "defaultsBtn=NIL \226\128\148 no button was built; anything on screen is not ours",
+      "the NIL line is the LAST line — a missing button terminates the dump")
+  end)
+end)
+
+test("Panel:Diagnose stops at a button with no frame", function()
+  withDefaultsBtn({ type = "Button" }, function()
+    local out = P:Diagnose()
+    assertEqual(out[#out], "defaultsBtn.frame=NIL")
+    assertEqual(out[#out - 1], "defaultsBtn type=table aceType=Button",
+      "the type line is emitted before the frame is resolved")
+  end)
+end)
+
+test("Panel:Diagnose dumps the frame, its parent chain and every scrap of its art", function()
+  local nineSlice = {
+    GetRegions = function()
+      return fakeTexture("nineslice-border", nil, 0.2, 0.3, 0.4, 1, "BORDER")
+    end,
+  }
+  local f = {
+    NineSlice = nineSlice,
+    GetObjectType = function() return "Button" end,
+    IsShown = function() return true end,
+    GetWidth = function() return 120 end,
+    GetHeight = function() return 22.4 end,
+    GetParent = function()
+      return { GetName = function() return "BankLedgerGeneralPanel" end,
+               GetParent = function()
+                 return { GetObjectType = function() return "Frame" end }
+               end }
+    end,
+    GetNormalTexture = function() return nil end,
+    GetHighlightTexture = function()
+      return fakeTexture(nil, "Interface\\Buttons\\UI-Panel-Button-Highlight", 1, 0.5, 0.25, 1)
+    end,
+    GetPushedTexture = function() return nil end,
+    -- Region 2 is a FontString: the dump must skip it, because only textures carry the art.
+    GetRegions = function()
+      return fakeTexture(nil, "Interface\\Buttons\\UI-Panel-Button-Up", 1, 1, 1, 1, "BACKGROUND"),
+             { GetObjectType = function() return "FontString" end }
+    end,
+    GetFontString = function()
+      return { GetText = function() return "Defaults" end,
+               GetTextColor = function() return 1, 0.82, 0 end }
+    end,
+  }
+
+  withDefaultsBtn({ type = "Button", frame = f }, function()
+    local out = P:Diagnose()
+    -- The AceGUI preamble depends on which copy of the library actually loaded, so it is matched by
+    -- shape; everything from the button down is asserted verbatim.
+    assertTrue(out[1]:find("^AceGUI=") ~= nil, "line 1 names the serving AceGUI: " .. out[1])
+    local tail = {}
+    for i = 1, #out do
+      if out[i]:find("^defaultsBtn ") then
+        for j = i, #out do tail[#tail + 1] = out[j] end
+        break
+      end
+    end
+    local want = {
+      "defaultsBtn type=table aceType=Button",
+      "frame objectType=Button shown=true size=120x22",
+      "parent chain: BankLedgerGeneralPanel < Frame(anon)",
+      "normal: none",
+      "highlight: atlas=nil texture=Interface\\Buttons\\UI-Panel-Button-Highlight "
+        .. "vertex=1.00/0.50/0.25/1.00",
+      "pushed: none",
+      "btn: 2 regions",
+      "  btn[1] BACKGROUND: atlas=nil texture=Interface\\Buttons\\UI-Panel-Button-Up "
+        .. "vertex=1.00/1.00/1.00/1.00",
+      "btn.NineSlice: 1 regions",
+      "  btn.NineSlice[1] BORDER: atlas=nineslice-border texture=nil vertex=0.20/0.30/0.40/1.00",
+      "label=\"Defaults\" color=1.00/0.82/0.00",
+    }
+    assertEqual(#tail, #want, "line count from the button down")
+    for i = 1, #want do assertEqual(tail[i], want[i], "line " .. i) end
+  end)
+end)

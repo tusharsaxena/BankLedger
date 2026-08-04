@@ -81,83 +81,114 @@ local function recordPoint(point, ...)
   return { point = point, relativeTo = a, relativePoint = b or point, x = c or 0, y = d or 0 }
 end
 
+-- Method name → a FACTORY that binds the method to one frame. Module-level, built once at load, so
+-- the resolver is a single hash lookup rather than a chain of fourteen string comparisons. The
+-- allocation is unchanged from the chain it replaces: one closure per property access.
+--
+-- Deliberately NOT memoized onto the frame: a suite that replaces a method on an instance would
+-- otherwise see different behavior from one that does not, and several of them poke at these stubs
+-- directly.
+local FRAME_METHODS = {}
+
+FRAME_METHODS.Show = function(f) return function() f.__shown = true; return f end end
+
+FRAME_METHODS.Hide = function(f)
+  return function()
+    local was = f.__shown
+    f.__shown = false
+    -- Real frames run their OnHide when they actually go from shown to hidden.
+    if was and f.__onHide then
+      for _, fn in ipairs(f.__onHide) do fn(f) end
+    end
+    return f
+  end
+end
+
+FRAME_METHODS.SetShown = function(f)
+  return function(_, v) if v then f:Show() else f:Hide() end; return f end
+end
+
+-- IsShown and IsVisible share ONE factory, exactly as they shared one arm.
+local isShownFactory = function(f) return function() return f.__shown end end
+FRAME_METHODS.IsShown = isShownFactory
+FRAME_METHODS.IsVisible = isShownFactory
+
+-- Scripts are RECORDED and firable. They were not, until LibKa0s-Options-1.0 was adopted: the
+-- library declares a page's body through `panel:SetScript("OnShow", ...)`, and a stub that
+-- discarded the handler left every page body unreachable from the suite — which is exactly how
+-- a settings panel ships blank and green. __onHide is kept alongside, because Hide() fires it
+-- on a real shown->hidden transition and several session-window cases depend on that.
+FRAME_METHODS.SetScript = function(f)
+  return function(_, script, handler) f.__scripts[script] = handler; return f end
+end
+
+FRAME_METHODS.GetScript = function(f)
+  return function(_, script) return f.__scripts[script] end
+end
+
+FRAME_METHODS.__fire = function(f)
+  return function(_, script, ...)
+    local fn = f.__scripts[script]
+    if fn then return fn(f, ...) end
+  end
+end
+
+FRAME_METHODS.HookScript = function(f)
+  return function(_, script, handler)
+    if script == "OnHide" then
+      f.__onHide = f.__onHide or {}
+      f.__onHide[#f.__onHide + 1] = handler
+    end
+    local prev = f.__scripts[script]
+    f.__scripts[script] = function(...)
+      if prev then prev(...) end
+      return handler(...)
+    end
+    return f
+  end
+end
+
+FRAME_METHODS.SetPoint = function(f)
+  return function(_, point, ...) f.__points[#f.__points + 1] = recordPoint(point, ...); return f end
+end
+
+FRAME_METHODS.ClearAllPoints = function(f)
+  return function() f.__points = {}; return f end
+end
+
+FRAME_METHODS.GetPoint = function(f)
+  return function(_, i)
+    local p = f.__points[i or 1]
+    if not p then return nil end
+    return p.point, p.relativeTo, p.relativePoint, p.x, p.y
+  end
+end
+
+FRAME_METHODS.SetSize = function(f) return function(_, w, h) f.__w, f.__h = w, h; return f end end
+FRAME_METHODS.SetWidth = function(f) return function(_, w) f.__w = w; return f end end
+FRAME_METHODS.SetHeight = function(f) return function(_, h) f.__h = h; return f end end
+FRAME_METHODS.GetWidth = function(f) return function() return f.__w end end
+FRAME_METHODS.GetHeight = function(f) return function() return f.__h end end
+
+-- Font strings resolve to the frame itself (the catch-all below), which is fine for the
+-- geometry the tests exercise. What is NOT recoverable that way is which FONT TEMPLATE a
+-- widget asked for, and "every card shares one headline template" is a real invariant, so
+-- record the templates in creation order.
+FRAME_METHODS.CreateFontString = function(f)
+  return function(_, _, _, template)
+    f.__fontTemplates = f.__fontTemplates or {}
+    f.__fontTemplates[#f.__fontTemplates + 1] = template
+    return f
+  end
+end
+
 local function stubFrame()
   local f = { __shown = true, __points = {}, __w = 0, __h = 0, __scripts = {} }
   setmetatable(f, { __index = function(_, k)
-    if k == "Show" then return function() f.__shown = true; return f end end
-    if k == "Hide" then
-      return function()
-        local was = f.__shown
-        f.__shown = false
-        -- Real frames run their OnHide when they actually go from shown to hidden.
-        if was and f.__onHide then
-          for _, fn in ipairs(f.__onHide) do fn(f) end
-        end
-        return f
-      end
-    end
-    if k == "SetShown" then
-      return function(_, v) if v then f:Show() else f:Hide() end; return f end
-    end
-    if k == "IsShown" or k == "IsVisible" then return function() return f.__shown end end
-    -- Scripts are RECORDED and firable. They were not, until LibKa0s-Options-1.0 was adopted: the
-    -- library declares a page's body through `panel:SetScript("OnShow", ...)`, and a stub that
-    -- discarded the handler left every page body unreachable from the suite — which is exactly how
-    -- a settings panel ships blank and green. __onHide is kept alongside, because Hide() fires it
-    -- on a real shown->hidden transition and several session-window cases depend on that.
-    if k == "SetScript" then
-      return function(_, script, handler) f.__scripts[script] = handler; return f end
-    end
-    if k == "GetScript" then return function(_, script) return f.__scripts[script] end end
-    if k == "__fire" then
-      return function(_, script, ...)
-        local fn = f.__scripts[script]
-        if fn then return fn(f, ...) end
-      end
-    end
-    if k == "HookScript" then
-      return function(_, script, handler)
-        if script == "OnHide" then
-          f.__onHide = f.__onHide or {}
-          f.__onHide[#f.__onHide + 1] = handler
-        end
-        local prev = f.__scripts[script]
-        f.__scripts[script] = function(...)
-          if prev then prev(...) end
-          return handler(...)
-        end
-        return f
-      end
-    end
-    if k == "SetPoint" then
-      return function(_, point, ...) f.__points[#f.__points + 1] = recordPoint(point, ...); return f end
-    end
-    if k == "ClearAllPoints" then
-      return function() f.__points = {}; return f end
-    end
-    if k == "GetPoint" then
-      return function(_, i)
-        local p = f.__points[i or 1]
-        if not p then return nil end
-        return p.point, p.relativeTo, p.relativePoint, p.x, p.y
-      end
-    end
-    if k == "SetSize" then return function(_, w, h) f.__w, f.__h = w, h; return f end end
-    if k == "SetWidth" then return function(_, w) f.__w = w; return f end end
-    if k == "SetHeight" then return function(_, h) f.__h = h; return f end end
-    if k == "GetWidth" then return function() return f.__w end end
-    if k == "GetHeight" then return function() return f.__h end end
-    -- Font strings resolve to the frame itself (the catch-all below), which is fine for the
-    -- geometry the tests exercise. What is NOT recoverable that way is which FONT TEMPLATE a
-    -- widget asked for, and "every card shares one headline template" is a real invariant, so
-    -- record the templates in creation order.
-    if k == "CreateFontString" then
-      return function(_, _, _, template)
-        f.__fontTemplates = f.__fontTemplates or {}
-        f.__fontTemplates[#f.__fontTemplates + 1] = template
-        return f
-      end
-    end
+    -- The table lookup comes FIRST: a named method always wins over the catch-all, or IsShown would
+    -- resolve to the no-op and be permanently truthy.
+    local factory = FRAME_METHODS[k]
+    if factory then return factory(f) end
     if type(k) == "string" and k:match("^%u") then
       return function() return f end
     end

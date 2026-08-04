@@ -132,38 +132,54 @@ LT.groupAsc = true
 local ARROW_ASC  = " |TInterface\\Buttons\\Arrow-Up-Up:0|t"
 local ARROW_DESC = " |TInterface\\Buttons\\Arrow-Down-Up:0|t"
 
+-- Shared by "type" and "subtype": both key on the EFFECTIVE type, so gold movements gather under
+-- "Gold" exactly as the column shows them, and an untyped item reads "Unknown" rather than blank.
+local function typeGroup(v)
+  if v == "" then v = "Unknown" end
+  return v, v
+end
+
+-- One arm per group-by mode, each returning `label, raw` — the label the header shows and the raw
+-- value the namespaced key is built from.
+--
+-- MODULE-LEVEL, built once at file load: groupOf runs once per entry inside BuildDisplayList, over
+-- a ledger that can be thousands of rows, so the dispatch must allocate nothing per call. It also
+-- replaces up to eight string comparisons with one hash lookup.
+local GROUP_OF = {
+  store = function(e)
+    return C.StoreLabel[e.store] or e.store or "Unknown", e.store or "?"
+  end,
+  direction = function(e)
+    return C.DirectionLabel[e.direction] or e.direction or "?", e.direction or "?"
+  end,
+  kind = function(e)
+    return C.KindLabel[e.kind] or e.kind or "?", e.kind or "?"
+  end,
+  type = function(e) return typeGroup(NS.Util.EntryType(e)) end,
+  subtype = function(e) return typeGroup(NS.Util.EntrySubType(e)) end,
+  -- Keyed on the quality id, so the group sorts Poor→Legendary rather than alphabetically. Gold
+  -- has no quality; it gathers under its own group instead of vanishing into "Poor".
+  quality = function(e)
+    if e.quality == nil then return "None", "none" end
+    return NS.Compat.QualityLabel(e.quality), tostring(e.quality)
+  end,
+  char = function(e)
+    local c = e.char or "Unknown"
+    return c, c
+  end,
+  -- The key stays ISO (stable, unique per calendar day); the label matches the Date column.
+  day = function(e)
+    return NS.Util.FormatDate(e.ts or 0), date("%Y-%m-%d", e.ts or 0)
+  end,
+}
+
 -- Group identity + display label for an entry under the active group-by. The key is namespaced by
 -- group mode, so the collapsed-state map can never collide across modes. \001 is an unprintable
--- separator.
+-- separator. An unknown mode answers "?" on both halves, never nil.
 local function groupOf(groupBy, e)
-  local raw, label
-  if groupBy == "store" then
-    label = C.StoreLabel[e.store] or e.store or "Unknown"; raw = e.store or "?"
-  elseif groupBy == "direction" then
-    label = C.DirectionLabel[e.direction] or e.direction or "?"; raw = e.direction or "?"
-  elseif groupBy == "kind" then
-    label = C.KindLabel[e.kind] or e.kind or "?"; raw = e.kind or "?"
-  elseif groupBy == "type" or groupBy == "subtype" then
-    -- The effective type, so gold movements gather under "Gold" exactly as the column shows them.
-    label = (groupBy == "type") and NS.Util.EntryType(e) or NS.Util.EntrySubType(e)
-    if label == "" then label = "Unknown" end
-    raw = label
-  elseif groupBy == "quality" then
-    -- Keyed on the quality id, so the group sorts Poor→Legendary rather than alphabetically. Gold
-    -- has no quality; it gathers under its own group instead of vanishing into "Poor".
-    if e.quality == nil then
-      label = "None"; raw = "none"
-    else
-      label = NS.Compat.QualityLabel(e.quality); raw = tostring(e.quality)
-    end
-  elseif groupBy == "char" then
-    raw = e.char or "Unknown"; label = raw
-  elseif groupBy == "day" then
-    -- The key stays ISO (stable, unique per calendar day); the label matches the Date column.
-    raw = date("%Y-%m-%d", e.ts or 0); label = NS.Util.FormatDate(e.ts or 0)
-  else
-    label = "?"; raw = "?"
-  end
+  local arm = GROUP_OF[groupBy]
+  local label, raw = "?", "?"
+  if arm then label, raw = arm(e) end
   return groupBy .. "\001" .. raw, label
 end
 
@@ -398,72 +414,114 @@ local function testPick(rng, weighted)
   return weighted[#weighted][1]
 end
 
-function LT:BuildTestData()
-  local now = time()
-  local rng = testRng(0x0BA17ED9)   -- fixed seed -> an identical dataset every run
-  local out = {}
+-- THE RNG CALL SEQUENCE IS THE CONTRACT for everything below: the dataset is asserted byte-identical
+-- run to run, so every helper here consumes the stream at exactly the point the one body it was cut
+-- out of did. A helper that draws must therefore stay at its old position in the statement order —
+-- never hoisted above a neighbor that also draws, and never sequenced by argument-evaluation order.
 
-  -- Build one entry from the pivot values; everything else is derived and jittered.
-  local function make(store, dir, quality, cls, dayOffset)
-    local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
-    local ty = testPick(rng, TEST_TYPE_W)
-    local isGear = (ty == "Armor" or ty == "Weapon")
-    -- ~45% of movements land on a hot item, the rest on the long tail.
-    local idBase = (rng(100) <= 45) and rng(TEST_HOT_ITEMS)
-                   or (TEST_HOT_ITEMS + rng(#TEST_ITEM_NAMES - TEST_HOT_ITEMS))
-    local subs = TEST_SUBTYPES[ty]
-    local secInto = testPick(rng, TEST_HOUR_W) * 3600 + (rng(60) - 1) * 60 + (rng(60) - 1)
-    out[#out + 1] = {
-      ts = now - dayOffset * TEST_DAY - secInto,
-      char = cls:sub(1, 1) .. cls:sub(2):lower() .. "-Ravencrest", classFile = cls,
-      kind = C.Kind.ITEM, direction = dir, store = store,
-      guild = (store == "GUILD_BANK") and "Ka0s" or nil,
-      itemID = 190000 + idBase, itemName = TEST_ITEM_NAMES[idBase], quality = quality,
-      itemType = ty, itemSubType = subs[(idBase % #subs) + 1],
-      quantity = isGear and 1 or ((quality <= 1) and (1 + rng(60)) or (1 + rng(8))),
-      zone = zone.name, mapID = zone.mapID,
-    }
-  end
+-- "MAGE" -> "Mage-Ravencrest". Draws nothing.
+local function testCharName(cls)
+  return cls:sub(1, 1) .. cls:sub(2):lower() .. "-Ravencrest"
+end
 
-  -- 1) Coverage seed: every store, both directions, every quality 0-5 and every class appear at
-  --    least once, and the timestamps walk the full window.
+-- Only guild-bank rows carry a guild. Draws nothing.
+local function testGuild(store)
+  return (store == "GUILD_BANK") and "Ka0s" or nil
+end
+
+-- ~45% of movements land on a hot item, the rest on the long tail. Draws once or twice.
+local function testItemID(rng)
+  return (rng(100) <= 45) and rng(TEST_HOT_ITEMS)
+         or (TEST_HOT_ITEMS + rng(#TEST_ITEM_NAMES - TEST_HOT_ITEMS))
+end
+
+-- Gear moves one at a time; junk moves in big stacks and good stuff in small ones. Draws at most
+-- once, and only on the non-gear paths — which is exactly what the original expression did.
+local function testQuantity(rng, isGear, quality)
+  if isGear then return 1 end
+  if quality <= 1 then return 1 + rng(60) end
+  return 1 + rng(8)
+end
+
+-- Build one entry from the pivot values; everything else is derived and jittered.
+-- Draw order: zone -> type -> item id -> second-of-day -> quantity.
+local function makeTestEntry(out, rng, now, store, dir, quality, cls, dayOffset)
+  local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
+  local ty = testPick(rng, TEST_TYPE_W)
+  local isGear = (ty == "Armor" or ty == "Weapon")
+  local idBase = testItemID(rng)
+  local subs = TEST_SUBTYPES[ty]
+  local secInto = testPick(rng, TEST_HOUR_W) * 3600 + (rng(60) - 1) * 60 + (rng(60) - 1)
+  local quantity = testQuantity(rng, isGear, quality)
+  out[#out + 1] = {
+    ts = now - dayOffset * TEST_DAY - secInto,
+    char = testCharName(cls), classFile = cls,
+    kind = C.Kind.ITEM, direction = dir, store = store,
+    guild = testGuild(store),
+    itemID = 190000 + idBase, itemName = TEST_ITEM_NAMES[idBase], quality = quality,
+    itemType = ty, itemSubType = subs[(idBase % #subs) + 1],
+    quantity = quantity,
+    zone = zone.name, mapID = zone.mapID,
+  }
+end
+
+-- 1) Coverage seed: every store, both directions, every quality 0-5 and every class appear at least
+--    once, and the timestamps walk the full window. seedN is what guarantees all four invariants
+--    regardless of how the dice fall.
+local function seedCoverage(out, rng, now)
   local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
   local seedN = math.max(#stores, #TEST_CLASSES, 6, TEST_SPAN_DAYS)
   for i = 1, seedN do
-    make(stores[((i - 1) % #stores) + 1],
-         (i % 2 == 0) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
-         (i - 1) % 6,
-         TEST_CLASSES[((i - 1) % #TEST_CLASSES) + 1],
-         (i - 1) % TEST_SPAN_DAYS)
+    makeTestEntry(out, rng, now,
+      stores[((i - 1) % #stores) + 1],
+      (i % 2 == 0) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
+      (i - 1) % 6,
+      TEST_CLASSES[((i - 1) % #TEST_CLASSES) + 1],
+      (i - 1) % TEST_SPAN_DAYS)
   end
+end
 
-  -- 2) Weighted bulk: deposits outnumber withdrawals, as a real bank does, and a third of the
-  --    movements cluster onto the last few days.
+-- 2) Weighted bulk: deposits outnumber withdrawals, as a real bank does, and a third of the
+--    movements cluster onto the last few days.
+local function bulkMovements(out, rng, now)
   for _ = 1, 220 do
     local dayOffset = rng(TEST_SPAN_DAYS) - 1
     if rng(3) == 1 then dayOffset = rng(5) - 1 end
-    make(testPick(rng, TEST_STORE_W),
-         (rng(10) <= 6) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
-         testPick(rng, TEST_QUALITY_W), testPick(rng, TEST_CLASS_W), dayOffset)
+    makeTestEntry(out, rng, now,
+      testPick(rng, TEST_STORE_W),
+      (rng(10) <= 6) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
+      testPick(rng, TEST_QUALITY_W), testPick(rng, TEST_CLASS_W), dayOffset)
   end
+end
 
-  -- 3) Gold movements, at the two stores that hold coin.
+-- 3) Gold movements, at the two stores that hold coin.
+-- Draw order: class -> zone -> ts day -> ts seconds -> direction -> amount. The store comes from
+-- the loop index, not the dice.
+local function goldMovements(out, rng, now)
   for i = 1, 30 do
     local store = (i % 2 == 0) and "WARBAND_BANK" or "GUILD_BANK"
     local cls = testPick(rng, TEST_CLASS_W)
     local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
     out[#out + 1] = {
       ts = now - (rng(TEST_SPAN_DAYS) - 1) * TEST_DAY - rng(80000),
-      char = cls:sub(1, 1) .. cls:sub(2):lower() .. "-Ravencrest", classFile = cls,
+      char = testCharName(cls), classFile = cls,
       kind = C.Kind.MONEY,
       direction = (rng(10) <= 7) and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
       store = store,
-      guild = (store == "GUILD_BANK") and "Ka0s" or nil,
+      guild = testGuild(store),
       itemName = "Gold", quantity = rng(500) * 10000,
       zone = zone.name, mapID = zone.mapID,
     }
   end
+end
 
+function LT:BuildTestData()
+  local now = time()
+  local rng = testRng(0x0BA17ED9)   -- fixed seed -> an identical dataset every run
+  local out = {}
+  seedCoverage(out, rng, now)
+  bulkMovements(out, rng, now)
+  goldMovements(out, rng, now)
   return out
 end
 
@@ -495,6 +553,49 @@ local function qualityColor(q)
   return 1, 1, 1
 end
 
+-- The Item and Quality columns share ONE painter, because they are the same rule: a gold movement
+-- has no quality, so in either column it takes the pale gold rather than a quality color.
+local function paintQualityCell(fs, entry)
+  if entry.kind == C.Kind.MONEY then
+    fs:SetTextColor(MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
+  else
+    fs:SetTextColor(qualityColor(entry.quality))
+  end
+end
+
+-- The only painter that touches the row's glyph FontString, and it sets text, color AND shown-state:
+-- rows are pooled, so a glyph left over from the entry that last used this row is the failure mode.
+local function paintDirectionCell(fs, entry, glyphFS)
+  local rgb = C.DirectionRGB[entry.direction] or C.NEUTRAL_RGB
+  fs:SetTextColor(rgb[1], rgb[2], rgb[3])
+  if glyphFS then
+    local glyph = C.DirectionGlyph[entry.direction]
+    glyphFS:SetText(glyph or "")
+    glyphFS:SetTextColor(rgb[1], rgb[2], rgb[3])
+    glyphFS:SetShown(glyph ~= nil)
+  end
+end
+
+local function paintStoreCell(fs, entry)
+  local rgb = C.StoreRGB[entry.store] or C.NEUTRAL_RGB
+  fs:SetTextColor(rgb[1], rgb[2], rgb[3])
+end
+
+-- RAID_CLASS_COLORS stays guarded: it does not exist under the headless mock, and an unknown class
+-- falls back to the same flat gray every other column uses.
+local function paintCharCell(fs, entry)
+  local cc = RAID_CLASS_COLORS and entry.classFile and RAID_CLASS_COLORS[entry.classFile]
+  if cc then fs:SetTextColor(cc.r, cc.g, cc.b) else fs:SetTextColor(0.9, 0.9, 0.9) end
+end
+
+-- Column key → the painter that colors it. MODULE-LEVEL, built once at file load: PaintCell runs
+-- once per visible cell per repaint (roughly 7 columns x ~30 rows, on every scroll tick and every
+-- filter change), so this must allocate nothing per call.
+local CELL_PAINT = {
+  item = paintQualityCell, quality = paintQualityCell, direction = paintDirectionCell,
+  store = paintStoreCell, char = paintCharCell,
+}
+
 -- Paint ONE cell: set its text from the column's valueFn and its color from the shared palette.
 --
 -- The single definition of "what color is this cell", so the History table and the session window's
@@ -504,30 +605,9 @@ function LT:PaintCell(fs, colKey, entry, glyphFS)
   local col = COLUMN_BY_KEY[colKey]
   if not (fs and col and entry) then return end
   fs:SetText(col.valueFn(entry))
-  if colKey == "item" or colKey == "quality" then
-    if entry.kind == C.Kind.MONEY then
-      fs:SetTextColor(MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
-    else
-      fs:SetTextColor(qualityColor(entry.quality))
-    end
-  elseif colKey == "direction" then
-    local rgb = C.DirectionRGB[entry.direction] or C.NEUTRAL_RGB
-    fs:SetTextColor(rgb[1], rgb[2], rgb[3])
-    if glyphFS then
-      local glyph = C.DirectionGlyph[entry.direction]
-      glyphFS:SetText(glyph or "")
-      glyphFS:SetTextColor(rgb[1], rgb[2], rgb[3])
-      glyphFS:SetShown(glyph ~= nil)
-    end
-  elseif colKey == "store" then
-    local rgb = C.StoreRGB[entry.store] or C.NEUTRAL_RGB
-    fs:SetTextColor(rgb[1], rgb[2], rgb[3])
-  elseif colKey == "char" then
-    local cc = RAID_CLASS_COLORS and entry.classFile and RAID_CLASS_COLORS[entry.classFile]
-    if cc then fs:SetTextColor(cc.r, cc.g, cc.b) else fs:SetTextColor(0.9, 0.9, 0.9) end
-  else
-    fs:SetTextColor(0.9, 0.9, 0.9)
-  end
+  local paint = CELL_PAINT[colKey]
+  -- Every column without a painter of its own gets the flat gray.
+  if paint then paint(fs, entry, glyphFS) else fs:SetTextColor(0.9, 0.9, 0.9) end
 end
 
 function LT:AcquireRow()

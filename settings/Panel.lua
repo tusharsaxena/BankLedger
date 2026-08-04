@@ -368,14 +368,40 @@ end
 -- distinguishes "stock Blizzard art" from "restyled by a UI skin", and that is invisible in code.
 -- A skinned button carries extra BORDER/BACKGROUND regions; an unskinned one is the bare 5-region
 -- UI-Panel-Button-Up (fileID 130828 — the red stone button).
-function P:Diagnose()
-  local out = {}
-  local function add(fmt, ...)
-    out[#out + 1] = select("#", ...) > 0 and fmt:format(...) or fmt
-  end
+-- Every reporter below takes the `add` sink as its first argument, because the sink is the one thing
+-- that genuinely has to be built per call (it captures the `out` array). Everything else is a
+-- file-local, and every accessor stays guarded — this runs precisely when the widget is broken.
 
-  -- Which O.AceGUI actually served the widget: with several addons loaded, the FIRST copy to load
-  -- wins for all of them, so this may not be the copy this addon vendors.
+-- One texture's art — an atlas name or a texture path is the direct answer to "why is it red".
+local function describeTexture(add, tex, label)
+  if not tex then add("%s: none", label); return end
+  local atlas = tex.GetAtlas and tex:GetAtlas()
+  local path = tex.GetTexture and tex:GetTexture()
+  local r, g, b, a = 1, 1, 1, 1
+  if tex.GetVertexColor then r, g, b, a = tex:GetVertexColor() end
+  add("%s: atlas=%s texture=%s vertex=%.2f/%.2f/%.2f/%.2f",
+    label, tostring(atlas), tostring(path), r or 1, g or 1, b or 1, a or 1)
+end
+
+-- A modern UIPanelButtonTemplate draws its face from CHILD REGIONS (a 3-slice or a NineSlice),
+-- not from a NormalTexture — so "normal: none" means the color is in one of these.
+local function dumpRegions(add, frame, tag)
+  if not frame.GetRegions then return end
+  local n = select("#", frame:GetRegions())
+  add("%s: %d regions", tag, n)
+  for i = 1, n do
+    local reg = select(i, frame:GetRegions())
+    if reg and reg.GetObjectType and reg:GetObjectType() == "Texture" then
+      describeTexture(add, reg, ("  %s[%d] %s"):format(tag, i, tostring(reg:GetDrawLayer())))
+    end
+  end
+  -- The NineSlice is a child FRAME, so it is not in GetRegions.
+  if frame.NineSlice then dumpRegions(add, frame.NineSlice, tag .. ".NineSlice") end
+end
+
+-- Which O.AceGUI actually served the widget: with several addons loaded, the FIRST copy to load
+-- wins for all of them, so this may not be the copy this addon vendors.
+local function reportAceGUI(add)
   local minor = LibStub and LibStub.minors and LibStub.minors["O.AceGUI-3.0"]
   add("AceGUI=%s minor=%s", O.AceGUI and "yes" or "NO", tostring(minor))
   if O.AceGUI then
@@ -383,6 +409,46 @@ function P:Diagnose()
     add("Button widget registered=%s version=%s",
       (O.AceGUI.WidgetRegistry and O.AceGUI.WidgetRegistry["Button"]) and "yes" or "NO", tostring(wv))
   end
+end
+
+-- What the frame is, and the parent chain — which proves whether it really ended up on our canvas
+-- panel. The chain stays capped at depth 6.
+local function reportFrame(add, f)
+  add("frame objectType=%s shown=%s size=%.0fx%.0f",
+    f.GetObjectType and f:GetObjectType() or "?", tostring(f:IsShown()),
+    f:GetWidth() or 0, f:GetHeight() or 0)
+
+  local chain, node, depth = {}, f:GetParent(), 0
+  while node and depth < 6 do
+    chain[#chain + 1] = (node.GetName and node:GetName()) or
+      ((node.GetObjectType and node:GetObjectType() or "?") .. "(anon)")
+    node = node.GetParent and node:GetParent()
+    depth = depth + 1
+  end
+  add("parent chain: %s", table.concat(chain, " < "))
+end
+
+-- The button's whole art: the three state textures, the full region tree, and the label.
+local function reportArt(add, f)
+  describeTexture(add, f.GetNormalTexture and f:GetNormalTexture(), "normal")
+  describeTexture(add, f.GetHighlightTexture and f:GetHighlightTexture(), "highlight")
+  describeTexture(add, f.GetPushedTexture and f:GetPushedTexture(), "pushed")
+  dumpRegions(add, f, "btn")
+
+  local fs = f.GetFontString and f:GetFontString()
+  if fs then
+    local r, g, b = fs:GetTextColor()
+    add("label=%q color=%.2f/%.2f/%.2f", tostring(fs:GetText()), r or 0, g or 0, b or 0)
+  end
+end
+
+function P:Diagnose()
+  local out = {}
+  local function add(fmt, ...)
+    out[#out + 1] = select("#", ...) > 0 and fmt:format(...) or fmt
+  end
+
+  reportAceGUI(add)
 
   local btn = P.general and P.general.panel and P.general.panel.defaultsBtn
   if not btn then
@@ -393,56 +459,8 @@ function P:Diagnose()
 
   local f = btn.frame
   if not f then add("defaultsBtn.frame=NIL"); return out end
-  add("frame objectType=%s shown=%s size=%.0fx%.0f",
-    f.GetObjectType and f:GetObjectType() or "?", tostring(f:IsShown()),
-    f:GetWidth() or 0, f:GetHeight() or 0)
-
-  -- The parent chain: proves whether the frame really ended up on our canvas panel.
-  local chain, node, depth = {}, f:GetParent(), 0
-  while node and depth < 6 do
-    chain[#chain + 1] = (node.GetName and node:GetName()) or
-      ((node.GetObjectType and node:GetObjectType() or "?") .. "(anon)")
-    node = node.GetParent and node:GetParent()
-    depth = depth + 1
-  end
-  add("parent chain: %s", table.concat(chain, " < "))
-
-  -- The art itself — an atlas name or a texture path is the direct answer to "why is it red".
-  local function describe(tex, label)
-    if not tex then add("%s: none", label); return end
-    local atlas = tex.GetAtlas and tex:GetAtlas()
-    local path = tex.GetTexture and tex:GetTexture()
-    local r, g, b, a = 1, 1, 1, 1
-    if tex.GetVertexColor then r, g, b, a = tex:GetVertexColor() end
-    add("%s: atlas=%s texture=%s vertex=%.2f/%.2f/%.2f/%.2f",
-      label, tostring(atlas), tostring(path), r or 1, g or 1, b or 1, a or 1)
-  end
-  describe(f.GetNormalTexture and f:GetNormalTexture(), "normal")
-  describe(f.GetHighlightTexture and f:GetHighlightTexture(), "highlight")
-  describe(f.GetPushedTexture and f:GetPushedTexture(), "pushed")
-
-  -- A modern UIPanelButtonTemplate draws its face from CHILD REGIONS (a 3-slice or a NineSlice),
-  -- not from a NormalTexture — so "normal: none" means the color is in one of these.
-  local function dumpRegions(frame, tag)
-    if not frame.GetRegions then return end
-    local n = select("#", frame:GetRegions())
-    add("%s: %d regions", tag, n)
-    for i = 1, n do
-      local reg = select(i, frame:GetRegions())
-      if reg and reg.GetObjectType and reg:GetObjectType() == "Texture" then
-        describe(reg, ("  %s[%d] %s"):format(tag, i, tostring(reg:GetDrawLayer())))
-      end
-    end
-    -- The NineSlice is a child FRAME, so it is not in GetRegions.
-    if frame.NineSlice then dumpRegions(frame.NineSlice, tag .. ".NineSlice") end
-  end
-  dumpRegions(f, "btn")
-
-  local fs = f.GetFontString and f:GetFontString()
-  if fs then
-    local r, g, b = fs:GetTextColor()
-    add("label=%q color=%.2f/%.2f/%.2f", tostring(fs:GetText()), r or 0, g or 0, b or 0)
-  end
+  reportFrame(add, f)
+  reportArt(add, f)
   return out
 end
 
