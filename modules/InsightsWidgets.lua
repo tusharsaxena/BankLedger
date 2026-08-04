@@ -238,15 +238,11 @@ function W.StackSegments(catMags, catOrder, maxSegs)
   return kept, total
 end
 
--- Build stacked-bar rows from a { rowKey → { category → magnitude } } matrix. Row width is the row's
--- share of the biggest row's total, so the rows are comparable to each other; each segment is that
--- category's share of the same scale. Rows sort total-desc then label-asc.
---   labelOf(rowKey)   → the row's display label      colorOf(catKey) → the segment color
---   catLabelOf(catKey)→ the segment's tooltip name   valueFmt(mag)   → the value string
--- The default segment color, as a function so it can slot straight into `opts.colorOf or ...`.
--- Module-level purely to keep it off the allocation path: the inline `function() return W.NEUTRAL end`
--- this replaces minted a fresh closure on every BuildStackRows call. The other three defaults are
--- `tostring`, which is already a single shared global — no per-call cost to remove.
+-- The default segment color, shaped as a function so it slots straight into `opts.colorOf or ...`.
+-- Module-level for readability, not for speed: the inline `function() return W.NEUTRAL end` it
+-- replaces sat on the `or` fallback, so it was only ever allocated when a caller omitted `colorOf` —
+-- and the one production call site (modules/Insights.lua, sectionCharStore) always passes `colorOf`.
+-- In the shipping addon that closure was minted zero times. Do not claim a per-call saving here.
 -- `labelColorOf` deliberately has no default: a nil labelColor means "use the widget default", not white.
 local function neutralColor() return W.NEUTRAL end
 
@@ -287,6 +283,11 @@ local function byTotalThenLabel(a, b)
   return tostring(a.label) < tostring(b.label)
 end
 
+-- Build stacked-bar rows from a { rowKey → { category → magnitude } } matrix. Row width is the row's
+-- share of the biggest row's total, so the rows are comparable to each other; each segment is that
+-- category's share of the same scale. Rows sort total-desc then label-asc.
+--   labelOf(rowKey)   → the row's display label      colorOf(catKey) → the segment color
+--   catLabelOf(catKey)→ the segment's tooltip name   valueFmt(mag)   → the value string
 function W.BuildStackRows(matrix, catOrder, opts)
   opts = opts or {}
   local labelOf = opts.labelOf or tostring

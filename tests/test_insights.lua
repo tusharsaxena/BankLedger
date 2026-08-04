@@ -345,9 +345,16 @@ test("InsightsWidgets.BuildStackRows of an empty matrix is empty", function()
   assertEqual(#W.BuildStackRows(nil, { "BANK" }), 0)
 end)
 
--- The four formatter defaults, pinned. The default colorOf lives at module level so it is not
--- re-allocated per call; that hoist is only safe if it still answers NEUTRAL for every category, and
--- if a falsy override (not just a missing one) still falls back the way `opts.x or <default>` does.
+-- The four formatter defaults, pinned: an omitted formatter falls back, a FALSY one falls back the
+-- same way (that is `opts.x or <default>` semantics, and it is what a reader would get wrong first),
+-- and labelColorOf alone has no default so labelColor stays nil. Breaking any one default read —
+-- dropping the `or`, or answering something other than W.NEUTRAL — fails this test.
+--
+-- What this test does NOT pin, and no behavioral test can: how those defaults are applied. The
+-- reverted `withDefaults` options bag produced identical output for every input; it was reverted for
+-- allocation and lookup cost, not behavior. The guard against it coming back is the rationale in
+-- modules/InsightsWidgets.lua and in docs/superpowers/plans/2026-08-04-ccn-elimination.md, not a case
+-- here. Do not add a case that claims otherwise.
 test("InsightsWidgets.BuildStackRows falls back to tostring and the neutral color", function()
   local rows = W.BuildStackRows({ [7] = { BANK = 4 } }, { "BANK" })
   assertEqual(rows[1].label, "7", "labelOf defaults to tostring")

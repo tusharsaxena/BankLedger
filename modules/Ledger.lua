@@ -680,7 +680,8 @@ end
 --
 -- Every other frame announces its own close and `CloseContext` runs off that event. The guild bank
 -- announces nothing: `GUILDBANKFRAME_CLOSED` registers without complaint and never fires on 12.0.7,
--- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check inside `Reconcile` is not a
+-- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check in `disarmGuildBankIfGone`,
+-- which `Reconcile` calls on every pass, is not a
 -- substitute, because closing the window changes no container and moves no money — so no event
 -- fires, no reconcile pass runs, and the context stays armed until some unrelated bag update happens
 -- along. That check is the backstop for a frame that vanished without hiding; this is the close.
