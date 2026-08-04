@@ -1,8 +1,9 @@
-# Analysis — 20260804-122506
+# Analysis — 20260804-182039
 
 - **Addon:** BankLedger 1.0.0
 - **Verdict:** green
-- **Commit:** 9854b89933c0 (master), dirty
+- **Commit:** d5b372649a11 (master), dirty
+- **Started:** 2026-08-04T18:20:39+05:30
 - **Previous run:** none — this is the first recorded run
 
 ## Headline
@@ -51,7 +52,7 @@ the first one that can say something moved, and this record is what it will be r
 
 ## Complexity watch list
 
-Fifteen functions over CCN 15. Five are **parser over-spans** — lizard's Lua front end does not always close a colon-method body, so those ranges swallow their siblings and read high; they are marked as such in `complexity.txt` and their real cost is lower. The genuine entries are `L:Reconcile` (24), `L.Diff` (22), `groupOf` (25) and `P:Diagnose` (31), all **accepted** with reasons recorded at 2026-08-04.
+Fifteen functions over CCN 15. Five are **parser over-spans** — lizard's Lua front end does not always close a colon-method body, so those ranges swallow their siblings and read high; they are marked as such in `complexity.txt`. The genuine entries are `L:Reconcile` (24), `L.Diff` (22), `groupOf` (25) and `P:Diagnose` (31), all **accepted** with reasons recorded 2026-08-04.
 
 **Files in the 1000–1500 band:** `tests/test_ledger.lua` (1361) — accepted, case count not tangle; `modules/Browser.lua` (1306) — **already tracked as BL-24**.
 
