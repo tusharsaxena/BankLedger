@@ -243,42 +243,78 @@ end
 -- category's share of the same scale. Rows sort total-desc then label-asc.
 --   labelOf(rowKey)   → the row's display label      colorOf(catKey) → the segment color
 --   catLabelOf(catKey)→ the segment's tooltip name   valueFmt(mag)   → the value string
-function W.BuildStackRows(matrix, catOrder, opts)
-  opts = opts or {}
-  local labelOf = opts.labelOf or tostring
-  local colorOf = opts.colorOf or function() return W.NEUTRAL end
-  local catLabelOf = opts.catLabelOf or tostring
-  local valueFmt = opts.valueFmt or tostring
-  local colorOfLabel = opts.labelColorOf
+-- The formatters BuildStackRows falls back to. Module-level, so the default color function is not
+-- re-allocated on every call. `labelColorOf` is deliberately absent: it has no default, and a nil
+-- labelColor means "use the widget default", not white.
+local STACK_DEFAULTS = {
+  labelOf = tostring,
+  colorOf = function() return W.NEUTRAL end,
+  catLabelOf = tostring,
+  valueFmt = tostring,
+}
 
+-- A copy of `opts` with every missing key filled from `defaults`. Falsy overrides fall back to the
+-- default, matching the `opts.x or <default>` lines this replaces.
+local function withDefaults(opts, defaults)
+  local o = {}
+  for k, v in pairs(opts) do o[k] = v end
+  for k, v in pairs(defaults) do if not o[k] then o[k] = v end end
+  return o
+end
+
+-- First pass over the matrix: each row's untruncated total, and the scale every row shares.
+-- `rowMax` starts at 1, not 0 — that is the divide-by-zero guard, and the reason an all-empty
+-- matrix yields zero-width segments rather than NaN ones.
+local function stackTotals(matrix, catOrder)
   local rowMax, totals = 1, {}
-  for key, mags in pairs(matrix or {}) do
+  for key, mags in pairs(matrix) do
     local _, total = W.StackSegments(mags, catOrder)
     totals[key] = total
     if total > rowMax then rowMax = total end
   end
+  return totals, rowMax
+end
 
-  local rows = {}
-  for key, mags in pairs(matrix or {}) do
-    local segs = W.StackSegments(mags, catOrder)
-    local segments = {}
-    for _, s in ipairs(segs) do
-      local isOther = s.key == "__OTHER__"
-      segments[#segments + 1] = {
-        frac = s.mag / rowMax,
-        color = isOther and W.NEUTRAL or (colorOf(s.key) or W.NEUTRAL),
-        tip = (isOther and "Other" or catLabelOf(s.key)) .. ": " .. valueFmt(s.mag),
-      }
-    end
-    rows[#rows + 1] = {
-      label = labelOf(key), labelColor = colorOfLabel and colorOfLabel(key) or nil,
-      value = valueFmt(totals[key]), segments = segments, total = totals[key],
+-- One row's segments. The "__OTHER__" sentinel forces both the neutral color and the literal
+-- tooltip name, bypassing the caller's colorOf/catLabelOf.
+local function buildSegments(segs, rowMax, o)
+  local segments = {}
+  for _, s in ipairs(segs) do
+    local isOther = s.key == "__OTHER__"
+    segments[#segments + 1] = {
+      frac = s.mag / rowMax,
+      color = isOther and W.NEUTRAL or (o.colorOf(s.key) or W.NEUTRAL),
+      tip = (isOther and "Other" or o.catLabelOf(s.key)) .. ": " .. o.valueFmt(s.mag),
     }
   end
-  table.sort(rows, function(a, b)
-    if a.total ~= b.total then return a.total > b.total end
-    return tostring(a.label) < tostring(b.label)
-  end)
+  return segments
+end
+
+-- Total-desc then label-asc. The tostring() is what keeps mixed-type keys (numeric quality ids
+-- against strings) from raising.
+local function byTotalThenLabel(a, b)
+  if a.total ~= b.total then return a.total > b.total end
+  return tostring(a.label) < tostring(b.label)
+end
+
+function W.BuildStackRows(matrix, catOrder, opts)
+  local o = withDefaults(opts or {}, STACK_DEFAULTS)
+  local colorOfLabel = o.labelColorOf
+  matrix = matrix or {}
+
+  local totals, rowMax = stackTotals(matrix, catOrder)
+
+  local rows = {}
+  for key, mags in pairs(matrix) do
+    -- Segments are recomputed rather than cached from the totals pass: StackSegments' __OTHER__
+    -- bucketing depends on catOrder, so both passes must ask it the same question.
+    local segments = buildSegments(W.StackSegments(mags, catOrder), rowMax, o)
+    rows[#rows + 1] = {
+      label = o.labelOf(key), labelColor = colorOfLabel and colorOfLabel(key) or nil,
+      value = o.valueFmt(totals[key]), segments = segments, total = totals[key],
+    }
+  end
+  table.sort(rows, byTotalThenLabel)
   return rows
 end
 

@@ -221,32 +221,55 @@ end
 
 -- ── Card values ────────────────────────────────────────────────────────────────
 
--- The display value for every card, out of a totals table. Pure and separated from the layout so the
--- formatting rules (what counts as "nothing", which figures are signed) are testable.
-function I.CardValues(totals)
-  local t = totals or {}
-  local span = EM_DASH
+-- The cards that are a plain count of one totals field, and the ones that are a money figure.
+-- card key → totals field. Module-level, so the mapping is walked, not re-listed, per call.
+local COUNT_CARDS = {
+  movements     = "entries",
+  itemsIn       = "itemsDeposited",
+  itemsOut      = "itemsWithdrawn",
+  distinctItems = "distinctItems",
+  chars         = "distinctChars",
+  activeDays    = "activeDays",
+}
+local MONEY_CARDS = {
+  goldIn  = "moneyIn",
+  goldOut = "moneyOut",
+}
+
+-- The date range the slice covers. The em-dash is reserved for "this fact does not exist" — an
+-- empty slice has no first or last movement to name.
+local function spanText(t)
   if t.firstTs and t.lastTs then
     -- \226\128\147 = en-dash, the range dash.
-    span = NS.Util.FormatDate(t.firstTs) .. " \226\128\147 " .. NS.Util.FormatDate(t.lastTs)
+    return NS.Util.FormatDate(t.firstTs) .. " \226\128\147 " .. NS.Util.FormatDate(t.lastTs)
   end
-  return {
-    movements     = tostring(t.entries or 0),
-    itemsIn       = tostring(t.itemsDeposited or 0),
-    itemsOut      = tostring(t.itemsWithdrawn or 0),
-    netItems      = W.SignedCount(t.netItems or 0),
-    distinctItems = tostring(t.distinctItems or 0),
-    chars         = tostring(t.distinctChars or 0),
-    activeDays    = tostring(t.activeDays or 0),
-    topStore      = t.topStore and (C.StoreLabel[t.topStore.store] or t.topStore.store) or EM_DASH,
-    itemsMoved    = tostring((t.itemsDeposited or 0) + (t.itemsWithdrawn or 0)),
-    goldIn        = W.Money(t.moneyIn or 0),
-    goldOut       = W.Money(t.moneyOut or 0),
-    netGold       = W.SignedMoney(t.netMoney or 0),
-    span          = span,
-    busiest       = t.busiestDay
-      and (t.busiestDay.day .. "  (" .. t.busiestDay.count .. ")") or EM_DASH,
-  }
+  return EM_DASH
+end
+
+local function topStoreText(t)
+  return t.topStore and (C.StoreLabel[t.topStore.store] or t.topStore.store) or EM_DASH
+end
+
+local function busiestText(t)
+  return t.busiestDay and (t.busiestDay.day .. "  (" .. t.busiestDay.count .. ")") or EM_DASH
+end
+
+-- The display value for every card, out of a totals table. Pure and separated from the layout so the
+-- formatting rules (what counts as "nothing", which figures are signed) are testable.
+--
+-- Every count card is a STRING: the card widget sets text, and a missing figure renders as "0".
+function I.CardValues(totals)
+  local t = totals or {}
+  local v = {}
+  for card, field in pairs(COUNT_CARDS) do v[card] = tostring(t[field] or 0) end
+  for card, field in pairs(MONEY_CARDS) do v[card] = W.Money(t[field] or 0) end
+  v.netItems   = W.SignedCount(t.netItems or 0)
+  v.netGold    = W.SignedMoney(t.netMoney or 0)
+  v.itemsMoved = tostring((t.itemsDeposited or 0) + (t.itemsWithdrawn or 0))
+  v.topStore   = topStoreText(t)
+  v.span       = spanText(t)
+  v.busiest    = busiestText(t)
+  return v
 end
 
 -- ── Shared key → display lookups ───────────────────────────────────────────────
@@ -369,6 +392,39 @@ function I:RenderLegend(poolKey, rows, y, w)
   return rowY - 16 - W.SECTION_GAP
 end
 
+-- The tallest bucket in a strip, floored at 1 so an all-empty strip scales rather than dividing
+-- by zero.
+local function stripPeak(buckets)
+  local peak = 1
+  for _, b in ipairs(buckets) do
+    if (b.magnitude or 0) > peak then peak = b.magnitude end
+  end
+  return peak
+end
+
+-- One axis line under the whole strip, separating the bars from their labels.
+local function stripAxisLine(strip)
+  strip.axisLine = strip.axisLine or strip:CreateTexture(nil, "ARTWORK")
+  strip.axisLine:SetColorTexture(0.45, 0.45, 0.5, 0.8)
+  strip.axisLine:ClearAllPoints()
+  strip.axisLine:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", 0, -W.STRIP_AXIS_GAP)
+  strip.axisLine:SetPoint("BOTTOMRIGHT", strip, "BOTTOMRIGHT", 0, -W.STRIP_AXIS_GAP)
+  strip.axisLine:SetHeight(1)
+  strip.axisLine:Show()
+end
+
+-- Right-align the rotated label so labels of different lengths all start at the axis line and
+-- hang straight down from it.
+local function placeStripLabel(f, label, barW)
+  f.axis:SetText(label)
+  local tw = f.axis:GetStringWidth()
+  if type(tw) ~= "number" then tw = 0 end
+  f.axis:ClearAllPoints()
+  f.axis:SetPoint("CENTER", f, "BOTTOMLEFT", barW / 2 - 2,
+    -(tw / 2) - W.STRIP_AXIS_GAP - W.STRIP_LABEL_GAP)
+  f.axis:Show()
+end
+
 -- A per-bucket vertical strip. `buckets` is ordered { magnitude, label, tip }.
 function I:RenderStrip(poolKey, headerKey, strip, buckets, y, w)
   local header = self.headers[headerKey]
@@ -384,19 +440,8 @@ function I:RenderStrip(poolKey, headerKey, strip, buckets, y, w)
   strip:Show()
 
   local slot, barW, stride = W.StripMetrics(#buckets, innerW)
-  local peak = 1
-  for _, b in ipairs(buckets) do
-    if (b.magnitude or 0) > peak then peak = b.magnitude end
-  end
-
-  -- One axis line under the whole strip, separating the bars from their labels.
-  strip.axisLine = strip.axisLine or strip:CreateTexture(nil, "ARTWORK")
-  strip.axisLine:SetColorTexture(0.45, 0.45, 0.5, 0.8)
-  strip.axisLine:ClearAllPoints()
-  strip.axisLine:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", 0, -W.STRIP_AXIS_GAP)
-  strip.axisLine:SetPoint("BOTTOMRIGHT", strip, "BOTTOMRIGHT", 0, -W.STRIP_AXIS_GAP)
-  strip.axisLine:SetHeight(1)
-  strip.axisLine:Show()
+  local peak = stripPeak(buckets)
+  stripAxisLine(strip)
 
   for i, b in ipairs(buckets) do
     local f = W.Acquire(self.pools[poolKey], function() return W.MakeStripBar(strip) end)
@@ -410,15 +455,7 @@ function I:RenderStrip(poolKey, headerKey, strip, buckets, y, w)
     f.fill:SetAlpha(mag == 0 and 0.12 or 0.9)
     f._tip = b.tip
     if b.label and ((i - 1) % stride == 0) then
-      f.axis:SetText(b.label)
-      -- Right-align the rotated label so labels of different lengths all start at the axis line and
-      -- hang straight down from it.
-      local tw = f.axis:GetStringWidth()
-      if type(tw) ~= "number" then tw = 0 end
-      f.axis:ClearAllPoints()
-      f.axis:SetPoint("CENTER", f, "BOTTOMLEFT", barW / 2 - 2,
-        -(tw / 2) - W.STRIP_AXIS_GAP - W.STRIP_LABEL_GAP)
-      f.axis:Show()
+      placeStripLabel(f, b.label, barW)
     else
       f.axis:SetText("")
       f.axis:Hide()
@@ -591,17 +628,19 @@ function I:RenderDirectionSplit(poolKey, headerKey, legendKey, matrix, opts, y, 
   return self:RenderLegend(legendKey, legend, y, w)
 end
 
-function I:LayoutSections(y, w, stats, totals)
-  local content, innerW = self.content, w - PAD * 2
-  local total = totals.entries or 0
+-- ── Sections ───────────────────────────────────────────────────────────────────
+-- One file-local builder per section of the pane, in the order they are drawn. Each takes `self`
+-- explicitly (the module's public surface stays as it was), takes and returns the running `y`, and
+-- owns exactly the widgets its own comment describes. This is pure geometry: a builder that returns
+-- a `y` off by a pixel shifts every section below it.
 
-  y = placeDivider(self.dividers.items, content, y)
-
-  -- 1 ── Deposits vs withdrawals, as one back-to-back bar about a center axis: withdrawals left,
-  -- deposits right, both scaled against the larger. Same form, same side-to-direction mapping and
-  -- same shared-peak scale as every "× Deposits/Withdrawals" chart below it, so the headline split
-  -- and its breakdowns read as one chart family rather than two ways of saying the same thing. The
-  -- captions carry the shares, which is what a peak-scaled pair cannot show in its lengths.
+-- 1 ── Deposits vs withdrawals, as one back-to-back bar about a center axis: withdrawals left,
+-- deposits right, both scaled against the larger. Same form, same side-to-direction mapping and
+-- same shared-peak scale as every "× Deposits/Withdrawals" chart below it, so the headline split
+-- and its breakdowns read as one chart family rather than two ways of saying the same thing. The
+-- captions carry the shares, which is what a peak-scaled pair cannot show in its lengths.
+local function sectionSplit(self, y, innerW, stats, total)
+  local content = self.content
   local inCount = (stats.byDirection or {})[C.Direction.DEPOSIT] or 0
   local outCount = (stats.byDirection or {})[C.Direction.WITHDRAW] or 0
   if inCount + outCount > 0 then
@@ -624,8 +663,11 @@ function I:LayoutSections(y, w, stats, totals)
     self.headers.split:Hide()
     self.splitBar:Hide()
   end
+  return y
+end
 
-  -- 2 ── Movements by store, in the shared store colors.
+-- 2 ── Movements by store, in the shared store colors.
+local function sectionStores(self, y, w, stats, total)
   local storeRows = {}
   for _, e in ipairs(W.SortedByCount(stats.byStore)) do
     storeRows[#storeRows + 1] = {
@@ -634,18 +676,23 @@ function I:LayoutSections(y, w, stats, totals)
     }
   end
   y = self:RenderBars("store", "store", storeRows, y, w)
-  y = self:RenderDirectionSplit("storeDir", "storeDir", "storeDirLeg", stats.storeByDirection,
+  return self:RenderDirectionSplit("storeDir", "storeDir", "storeDirLeg", stats.storeByDirection,
     { labelOf = storeLabel, labelColorOf = storeColor }, y, w)
+end
 
-  -- 3 ── Movements by character, class-colored and behind the class icon.
+-- Count-desc, then character name ascending so the order is stable between refreshes.
+local function byCountThenChar(a, b)
+  if a.count ~= b.count then return a.count > b.count end
+  return a.char < b.char
+end
+
+-- 3 ── Movements by character, class-colored and behind the class icon.
+local function sectionChars(self, y, w, stats)
   local charRows = {}
   for _, ce in pairs(stats.byChar or {}) do
     if (ce.count or 0) > 0 then charRows[#charRows + 1] = ce end
   end
-  table.sort(charRows, function(a, b)
-    if a.count ~= b.count then return a.count > b.count end
-    return a.char < b.char
-  end)
+  table.sort(charRows, byCountThenChar)
   local barCharRows = {}
   for i, ce in ipairs(charRows) do
     if i > BAR_ROWS then break end
@@ -657,14 +704,23 @@ function I:LayoutSections(y, w, stats, totals)
       frac = ce.count, value = tostring(ce.count),
     }
   end
-  y = self:RenderBars("char", "char", barCharRows, y, w)
+  return self:RenderBars("char", "char", barCharRows, y, w)
+end
 
-  -- 5 ── Character × Store. Segment order follows the parent chart's order, so a store keeps the
-  -- same position in every character's bar.
-  local storeOrder = {}
-  for _, e in ipairs(W.SortedByCount(stats.byStore)) do storeOrder[#storeOrder + 1] = e.key end
+-- character → classFile, built once and threaded through both character charts below: the stack's
+-- label color and the direction split's label color are the same fact.
+local function classMap(stats)
   local classOf = {}
   for ch, ce in pairs(stats.byChar or {}) do classOf[ch] = ce.classFile end
+  return classOf
+end
+
+-- 5 ── Character × Store, then Character × Deposits/Withdrawals.
+local function sectionCharStore(self, y, w, stats, classOf)
+  -- Segment order follows the parent chart's order, so a store keeps the same position in every
+  -- character's bar.
+  local storeOrder = {}
+  for _, e in ipairs(W.SortedByCount(stats.byStore)) do storeOrder[#storeOrder + 1] = e.key end
   y = self:RenderStacked("charStore", "charStore",
     W.BuildStackRows(stats.charByStore, storeOrder, {
       labelOf = W.ShortChar, colorOf = storeColor, catLabelOf = storeLabel,
@@ -682,12 +738,14 @@ function I:LayoutSections(y, w, stats, totals)
   -- 5 ── Movements By Character × Deposits/Withdrawals: who fills the bank and who empties it.
   -- Rendered through the same back-to-back path as every other direction companion, so all of
   -- them share one center axis and one reading.
-  y = self:RenderDirectionSplit("charDir", "charDir", "charDirLeg", stats.charByDirection,
+  return self:RenderDirectionSplit("charDir", "charDir", "charDirLeg", stats.charByDirection,
     { labelOf = W.ShortChar,
       labelColorOf = function(ch) return W.ClassColor(classOf[ch]) end }, y, w)
+end
 
-  -- 7 ── Quality, in ASCENDING quality order (Poor→Legendary is meaningful; count-desc is not) and
-  -- in the game's own quality colors, so the bars are self-legending.
+-- 7 ── Quality, in ASCENDING quality order (Poor→Legendary is meaningful; count-desc is not) and
+-- in the game's own quality colors, so the bars are self-legending.
+local function sectionQuality(self, y, w, stats)
   local qualityIDs = {}
   for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
   table.sort(qualityIDs)
@@ -700,37 +758,46 @@ function I:LayoutSections(y, w, stats, totals)
       labelColor = color, frac = stats.byQuality[q], value = tostring(stats.byQuality[q]) }
   end
   y = self:RenderBars("quality", "quality", qualityRows, y, w)
-  y = self:RenderDirectionSplit("qualityDir", "qualityDir", "qualityDirLeg",
+  return self:RenderDirectionSplit("qualityDir", "qualityDir", "qualityDirLeg",
     stats.qualityByDirection,
     { labelOf = NS.Compat.QualityLabel, labelColorOf = W.QualityColor }, y, w)
+end
 
-  -- 8/9 ── Item type and sub-type, from the categorical palette by rank, so adjacent bars are
-  -- always dissimilar hues.
-  local function paletteRows(map, poolKey, headerKey, legendKey, yy)
-    local ranked = W.SortedByCount(map)
-    local keys = {}
-    for _, e in ipairs(ranked) do keys[#keys + 1] = e.key end
-    local colors = W.PaletteMap(keys)
-    local rows = {}
-    for i, e in ipairs(ranked) do
-      if i > BAR_ROWS then break end
-      rows[#rows + 1] = { label = tostring(e.key), color = colors[e.key],
-        frac = e.count, value = ("%d  %d%%"):format(e.count, W.Percent(e.count, total)) }
-    end
-    return self:RenderBars(poolKey, headerKey, rows, yy, w, legendKey), colors
+-- A ranked bar chart drawn from the categorical palette by rank, so adjacent bars are always
+-- dissimilar hues. Returns the new y and the key → color map, which the direction-split companion
+-- reuses so both charts color a category the same way.
+local function paletteRows(self, map, poolKey, headerKey, legendKey, y, w, total)
+  local ranked = W.SortedByCount(map)
+  local keys = {}
+  for _, e in ipairs(ranked) do keys[#keys + 1] = e.key end
+  local colors = W.PaletteMap(keys)
+  local rows = {}
+  for i, e in ipairs(ranked) do
+    if i > BAR_ROWS then break end
+    rows[#rows + 1] = { label = tostring(e.key), color = colors[e.key],
+      frac = e.count, value = ("%d  %d%%"):format(e.count, W.Percent(e.count, total)) }
   end
+  return self:RenderBars(poolKey, headerKey, rows, y, w, legendKey), colors
+end
+
+-- 8/9 ── Item type and sub-type.
+local function sectionTypes(self, y, w, stats, total)
   local typeColors, subColors
-  y, typeColors = paletteRows(stats.byItemType, "itemType", "itemType", "itemTypeLeg", y)
+  y, typeColors = paletteRows(self, stats.byItemType, "itemType", "itemType", "itemTypeLeg",
+    y, w, total)
   y = self:RenderDirectionSplit("itemTypeDir", "itemTypeDir", "itemTypeDirLeg",
     stats.itemTypeByDirection,
     { labelOf = tostring, labelColorOf = function(k) return typeColors[k] end }, y, w)
-  y, subColors = paletteRows(stats.byItemSubType, "subType", "subType", "subTypeLeg", y)
-  y = self:RenderDirectionSplit("subTypeDir", "subTypeDir", "subTypeDirLeg",
+  y, subColors = paletteRows(self, stats.byItemSubType, "subType", "subType", "subTypeLeg",
+    y, w, total)
+  return self:RenderDirectionSplit("subTypeDir", "subTypeDir", "subTypeDirLeg",
     stats.itemSubTypeByDirection,
     { labelOf = tostring, labelColorOf = function(k) return subColors[k] end }, y, w)
+end
 
+-- 10/11/12 ── Movements over time: per day, per hour of day, per weekday.
+local function sectionTime(self, y, w, stats, dayKeys)
   -- 10 ── Movements over time. One day-key list drives the strip.
-  local dayKeys = W.DayKeys(totals.firstTs, totals.lastTs)
   local perDay = {}
   for _, key in ipairs(dayKeys) do
     local count = (stats.byDay or {})[key] or 0
@@ -758,70 +825,108 @@ function I:LayoutSections(y, w, stats, totals)
         frac = count, value = tostring(count) }
     end
   end
-  y = self:RenderBars("weekday", "weekday", weekdayRows, y, w)
+  return self:RenderBars("weekday", "weekday", weekdayRows, y, w)
+end
 
-  -- ── GOLD ──────────────────────────────────────────────────────────────────────
-  -- Shown only when the slice actually holds a coin movement: two empty charts under a big GOLD
-  -- banner would say "this addon is broken", not "you moved no gold".
-  if (totals.moneyMoved or 0) > 0 then
-    y = placeDivider(self.dividers.gold, content, y)
+-- Amount-desc, then store label ascending.
+local function byAmountThenLabel(a, b)
+  if a.count ~= b.count then return a.count > b.count end
+  return a.label < b.label
+end
 
-    local goldDay = {}
-    for _, key in ipairs(dayKeys) do
-      local amount = (stats.moneyByDay or {})[key] or 0
-      goldDay[#goldDay + 1] = { magnitude = amount, label = W.ShortDay(key),
-        tip = ("%s:  %s"):format(key, W.Money(amount)) }
-    end
-    y = self:RenderStrip("goldDay", "goldDay", self.strips.goldDay, goldDay, y, w)
-
-    local goldRows = {}
-    for key, amount in pairs(stats.moneyByStore or {}) do
-      if amount > 0 then
-        goldRows[#goldRows + 1] = { label = storeLabel(key), color = storeColor(key),
-          frac = amount, value = W.Money(amount), count = amount }
-      end
-    end
-    table.sort(goldRows, function(a, b)
-      if a.count ~= b.count then return a.count > b.count end
-      return a.label < b.label
-    end)
-    y = self:RenderBars("goldStore", "goldStore", goldRows, y, w)
-  else
+-- ── GOLD ──────────────────────────────────────────────────────────────────────
+-- Shown only when the slice actually holds a coin movement: two empty charts under a big GOLD
+-- banner would say "this addon is broken", not "you moved no gold".
+local function sectionGold(self, y, w, stats, totals, dayKeys)
+  if (totals.moneyMoved or 0) == 0 then
+    -- Hide the chrome as well as the charts, or a previous slice's banner and headers stay on screen.
     self.dividers.gold:Hide()
     self.headers.goldDay:Hide()
     self.headers.goldStore:Hide()
     self.strips.goldDay:Hide()
+    return y
   end
+  y = placeDivider(self.dividers.gold, self.content, y)
 
-  -- ── Ranked lists: grouped, three columns of All / Deposits / Withdrawals ───────
-  -- The triptych IS the organization: a metric's combined ranking and its two direction-split
-  -- rankings sit side by side, so "what moves most" and "what moves most INTO the bank" are one
-  -- glance apart rather than one scroll apart.
-  y = placeDivider(self.dividers.top, content, y)
+  local goldDay = {}
+  for _, key in ipairs(dayKeys) do
+    local amount = (stats.moneyByDay or {})[key] or 0
+    goldDay[#goldDay + 1] = { magnitude = amount, label = W.ShortDay(key),
+      tip = ("%s:  %s"):format(key, W.Money(amount)) }
+  end
+  y = self:RenderStrip("goldDay", "goldDay", self.strips.goldDay, goldDay, y, w)
 
-  local function itemRows(list, rightOf)
-    local rows = {}
-    for i = 1, math.min(LIST_ROWS, #(list or {})) do
-      local it = list[i]
-      local right = rightOf(it)
-      if right then
-        rows[#rows + 1] = {
-          name = it.itemName or ("Item " .. tostring(it.itemID)),
-          nameColor = W.QualityColor(it.quality or 1), right = right,
-        }
+  local goldRows = {}
+  for key, amount in pairs(stats.moneyByStore or {}) do
+    if amount > 0 then
+      goldRows[#goldRows + 1] = { label = storeLabel(key), color = storeColor(key),
+        frac = amount, value = W.Money(amount), count = amount }
+    end
+  end
+  table.sort(goldRows, byAmountThenLabel)
+  return self:RenderBars("goldStore", "goldStore", goldRows, y, w)
+end
+
+-- The ranked-list row builders, shared by every triptych below.
+local function itemRows(list, rightOf)
+  local rows = {}
+  for i = 1, math.min(LIST_ROWS, #(list or {})) do
+    local it = list[i]
+    local right = rightOf(it)
+    if right then
+      rows[#rows + 1] = {
+        name = it.itemName or ("Item " .. tostring(it.itemID)),
+        nameColor = W.QualityColor(it.quality or 1), right = right,
+      }
+    end
+  end
+  return rows
+end
+
+local function countRows(list, field)
+  local rows = {}
+  for i = 1, math.min(LIST_ROWS, #(list or {})) do
+    local r = list[i]
+    rows[#rows + 1] = { name = r.label or r.zone, right = tostring(r[field]) }
+  end
+  return rows
+end
+
+local function moves(field) return function(it) return tostring(it[field]) end end
+
+-- Per-store lists, each store its OWN sub-section with the same All / Deposits / Withdrawals
+-- triptych every other metric gets — so "what moves through the guild bank, and which way" is
+-- answered in one place instead of by cross-referencing a single combined panel against the
+-- charts above. Stores run in display order so a store keeps its position between refreshes; a
+-- coin-only store has no item list and simply does not appear.
+local function storeLists(self, y, innerW, stats)
+  local anyStore = false
+  for _, key in ipairs(C.StoreOrder) do
+    local all = (stats.topItemsByStore or {})[key]
+    if all and #all > 0 then
+      if not anyStore then
+        y = self:RenderSubHead("BY STORE", y)
+        anyStore = true
       end
+      y = self:RenderSubHead(storeLabel(key), y, 10)
+      y = self:RenderListRow({
+        { title = "All", rows = itemRows(all, moves("moves")) },
+        { title = "Deposits",
+          rows = itemRows((stats.topItemsByStoreIn or {})[key], moves("movesIn")) },
+        { title = "Withdrawals",
+          rows = itemRows((stats.topItemsByStoreOut or {})[key], moves("movesOut")) },
+      }, y, innerW)
     end
-    return rows
   end
-  local function countRows(list, field)
-    local rows = {}
-    for i = 1, math.min(LIST_ROWS, #(list or {})) do
-      local r = list[i]
-      rows[#rows + 1] = { name = r.label or r.zone, right = tostring(r[field]) }
-    end
-    return rows
-  end
-  local moves = function(field) return function(it) return tostring(it[field]) end end
+  return y
+end
+
+-- ── Ranked lists: grouped, three columns of All / Deposits / Withdrawals ───────
+-- The triptych IS the organization: a metric's combined ranking and its two direction-split
+-- rankings sit side by side, so "what moves most" and "what moves most INTO the bank" are one
+-- glance apart rather than one scroll apart.
+local function sectionTopLists(self, y, innerW, stats)
+  y = placeDivider(self.dividers.top, self.content, y)
 
   y = self:RenderSubHead("ITEMS", y)
   y = self:RenderSubHead("Top Items By Movements", y, 10)
@@ -853,29 +958,28 @@ function I:LayoutSections(y, w, stats, totals)
     { title = "Withdrawals", rows = countRows(stats.topZonesOut, "outCount") },
   }, y, innerW)
 
-  -- Per-store lists, each store its OWN sub-section with the same All / Deposits / Withdrawals
-  -- triptych every other metric gets — so "what moves through the guild bank, and which way" is
-  -- answered in one place instead of by cross-referencing a single combined panel against the
-  -- charts above. Stores run in display order so a store keeps its position between refreshes; a
-  -- coin-only store has no item list and simply does not appear.
-  local anyStore = false
-  for _, key in ipairs(C.StoreOrder) do
-    local all = (stats.topItemsByStore or {})[key]
-    if all and #all > 0 then
-      if not anyStore then
-        y = self:RenderSubHead("BY STORE", y)
-        anyStore = true
-      end
-      y = self:RenderSubHead(storeLabel(key), y, 10)
-      y = self:RenderListRow({
-        { title = "All", rows = itemRows(all, moves("moves")) },
-        { title = "Deposits",
-          rows = itemRows((stats.topItemsByStoreIn or {})[key], moves("movesIn")) },
-        { title = "Withdrawals",
-          rows = itemRows((stats.topItemsByStoreOut or {})[key], moves("movesOut")) },
-      }, y, innerW)
-    end
-  end
+  return storeLists(self, y, innerW, stats)
+end
+
+-- The pane below the cards, section by section, in drawing order. Section ORDER is the product:
+-- each chart sits directly under the thing it breaks down.
+function I:LayoutSections(y, w, stats, totals)
+  local innerW = w - PAD * 2
+  local total = totals.entries or 0
+  -- One day-key list serves both the per-day strip and the gold-per-day strip.
+  local dayKeys = W.DayKeys(totals.firstTs, totals.lastTs)
+  local classOf = classMap(stats)
+
+  y = placeDivider(self.dividers.items, self.content, y)
+  y = sectionSplit(self, y, innerW, stats, total)
+  y = sectionStores(self, y, w, stats, total)
+  y = sectionChars(self, y, w, stats)
+  y = sectionCharStore(self, y, w, stats, classOf)
+  y = sectionQuality(self, y, w, stats)
+  y = sectionTypes(self, y, w, stats, total)
+  y = sectionTime(self, y, w, stats, dayKeys)
+  y = sectionGold(self, y, w, stats, totals, dayKeys)
+  y = sectionTopLists(self, y, innerW, stats)
 
   return y - W.SECTION_GAP
 end
