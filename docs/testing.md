@@ -48,15 +48,45 @@ Run through this before a version bump, on top of the green gate:
 - [ ] `lua tests/run.lua` green and `luacheck .` at 0/0.
 - [ ] `docs/test-cases.md` regenerated (`lua tests/run.lua --list > docs/test-cases.md`) and the
       README `[tests]` badge updated in the **same** change.
+- [ ] **[`complexity.md`](complexity.md) regenerated and its diff read** — see below.
 - [ ] **Re-read the Ka0s WoW Addon Standard whenever its minor version moves**, straight from
       [the upstream repo](https://github.com/tusharsaxena/WowAddonStandards), and fold any changed
       rule into the code and `docs/`. The standard is never copied into this repo — a stored copy
       goes stale silently and is then followed as working context (documentation-§3,
       anti-pattern #49).
 
+## The complexity report — a release checkpoint, not a commit gate
+
+Regenerate [`complexity.md`](complexity.md) as part of every release, in the same change that bumps
+the version, and **read the diff** before the tag:
+
+```sh
+lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+```
+
+Run it from the repo root and pass exactly those arguments — no extra flags, no narrowed path, no
+retuned thresholds. Two reports produced by different invocations cannot be compared, and the
+comparison is the entire point: one report is a page of numbers, but a function that moved from CCN
+9 to CCN 24 since the last tag is a finding with a name on it. The file is overwritten in place, so
+its git history is the trend line.
+
+Anything that **newly** crossed a threshold, or a file that **newly** entered the 1000–1500 LOC
+band, goes in that release's `## Watch list` with a one-line disposition — accepted and why, peel
+next, or already tracked as a deviation ID.
+
+**This is a release checkpoint and is deliberately NOT part of the green gate above.** Nothing here
+gates a commit: it is a report you read when deciding where to refactor, not a threshold that fails
+a build. The full rule, including why a pre-commit complexity gate is a bad idea, is
+`performance-§10` in the standard — this page does not restate it.
+
+`lizard` is an optional local tool. If it is not installed the report is **stale**, not broken:
+leave the previous `complexity.md` committed with its original header (which dates itself) and say
+so in the release notes. Never hand-edit it — a hand-edited report reads as measured.
+
 ## Local toolchain
 
-WoW runs Lua 5.1, so the harness targets 5.1.
+WoW runs Lua 5.1, so the harness targets 5.1 — `tests/_kit/loader.lua` swaps each chunk's
+environment with `setfenv`, which Lua 5.2 removed, so a newer interpreter cannot run this suite.
 
 ```sh
 sudo apt-get update && sudo apt-get install -y lua5.1 luarocks
@@ -64,6 +94,11 @@ sudo luarocks install luacheck
 ```
 
 Syntax-check a single file with `luac -p path/to/file.lua`.
+
+The full toolchain — `lizard` (which does **not** install with `pip` on Ubuntu 24.04), `git` and the
+POSIX `ls` two suites shell out to, and the Python/Pillow the logo art needs — is listed with
+install and verification commands in the root [`DEPENDENCIES.md`](../DEPENDENCIES.md)
+(documentation-§7).
 
 ## How the harness works
 
