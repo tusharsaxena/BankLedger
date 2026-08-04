@@ -28,8 +28,33 @@ This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip`
 
 ## Complexity watch list
 
-Current state as of [`20260804-182039`](20260804-182039/) — not that run's diff. Every function `lizard` warned on and every file in `layout-§1`'s 1000–1500 on-notice band, each with a one-line disposition.
+Current state as of [`20260804-182039`](20260804-182039/) — not that run's diff.
+Every function `lizard` warned on, and every file at or above `layout-§1`'s 1000-LOC
+on-notice threshold, each with a one-line disposition.
 
-Fifteen functions over CCN 15. Five are **parser over-spans** — lizard's Lua front end does not always close a colon-method body, so those ranges swallow their siblings and read high; they are marked as such in `complexity.txt`. The genuine entries are `L:Reconcile` (24), `L.Diff` (22), `groupOf` (25) and `P:Diagnose` (31), all **accepted** with reasons recorded 2026-08-04.
+### Functions `lizard` warned on
 
-**Files in the 1000–1500 band:** `tests/test_ledger.lua` (1361) — accepted, case count not tangle; `modules/Browser.lua` (1306) — **already tracked as BL-24**.
+| Function | CCN | Location | Disposition |
+|---|---|---|---|
+| `Database:QueryList` | 33 | `core/Database.lua` | **Accepted** — *parser over-span*: the range swallows `matches`, `Query` and `Export`, so the real cost is lower. One filter predicate per supported facet. |
+| `P:Diagnose` | 31 | `settings/Panel.lua` | **Accepted — diagnostic, not a hot path.** Counts frame regions to tell stock art from skinned; never called except by the user. |
+| `I:RenderDirectionSplit` | 28 | `modules/Insights.lua` | **Peel next, if it grows** — *over-spans* into `I:LayoutSections`, which is the real seam to watch. |
+| `menu:Populate` | 26 | `modules/Browser.lua` | **Already tracked as `BL-24`**, whose named peel seam is exactly this widget-factory block. |
+| `groupOf` | 25 | `modules/LedgerTable.lua` | **Accepted and deliberate.** One branch per group mode, producing the collision-proof key and its label in one pass. |
+| `L:Reconcile` | 24 | `modules/Ledger.lua` | **Accepted, with a warning attached.** The core mechanic; its header records each branch as having been a bug once. Refactor test-first only. |
+| `L.Diff` | 22 | `modules/Ledger.lua` | **Accepted.** Pure, deterministic, the most-tested function in the addon; its ordering guarantee is what lets suites assert by index. |
+| `I.CardValues` | 21 | `modules/Insights.lua` | **Accepted.** Split out of layout so the formatting rules are testable; one branch per card. |
+| `__index` | 21 | `tests/wow_mock.lua` | **Accepted — mock fidelity.** One branch per frame method the suites exercise. Test-only, never shipped. |
+| `B:CaptureView` | 20 | `modules/Browser.lua` | **Already tracked as `BL-24`.** Fifteen lines; the CCN is `and`/`or` fallbacks, not control flow. |
+| `W.BuildStackRows` | 19 | `modules/InsightsWidgets.lua` | **Accepted.** Pure row builder with a documented options contract; every branch is an `opts` default. |
+| `LT:OrderedFilteredEntries` | 18 | `modules/LedgerTable.lua` | **Accepted** — *over-spans* into the test-data generator that follows it. The named function is six lines. |
+| `LT:PaintCell` | 17 | `modules/LedgerTable.lua` | **Accepted.** The single definition of "what colour is this cell", so two views can never disagree. |
+| `B:ApplyView` | 16 | `modules/Browser.lua` | **Already tracked as `BL-24`.** The branch count is a documented ordered write sequence — order is load-bearing. |
+| `I:RenderStrip` | 16 | `modules/Insights.lua` | **Not a real finding** — *over-spans badly*; `RenderStrip` itself ends at :432. Ignore until the parser range is trustworthy. |
+
+### Files by `layout-§1` band
+
+| Band | File | LOC | Disposition |
+|---|---|---|---|
+| 1000–1500 (on notice) | `tests/test_ledger.lua` | 1361 | **Accepted.** A suite grows with the cases it pins, and this one covers the addon's core mechanic. Split by concern if it passes 1500. |
+| 1000–1500 (on notice) | `modules/Browser.lua` | 1306 | **Already tracked as `BL-24`**, with the peel seam named: the skin/close-button factory and the geometry persistence lift into a sibling file. |
