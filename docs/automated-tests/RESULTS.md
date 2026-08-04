@@ -40,7 +40,7 @@ Clean over 24 files: 0 warnings, 0 errors. `luacheck .` runs over the addon's ow
 
 ## Perf
 
-This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather than a transient tooling gap. Two things follow, and both are standing facts rather than this run's news: the record says **nothing** about the addon's runtime cost, and `performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is off — does not exist for it. There is no `docs/perf-runs/` store either, for the same reason. The gap is tracked as `BL-15` in `docs/audits/2026-08-04/02_DEVIATIONS.md`; adding `tests/perf.lua` scenarios is the only thing that changes any of it. A `skip` is never a pass — this column records that the suite did not run, not that it ran clean.
+This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather than a transient tooling gap. Two things follow, and both are standing facts rather than this run's news: the record says **nothing** about the addon's runtime cost, and `performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is off — does not exist for it. There is no `docs/perf-runs/` store either, for the same reason. The missing runner is tracked as `BL-16` in `docs/audits/2026-08-04/02_DEVIATIONS.md`; the missing `docs/performance.md` and `docs/perf-runs/README.md` are `BL-15` in the same file. Adding `tests/perf.lua` scenarios is the only thing that changes this column. A `skip` is never a pass — this column records that the suite did not run, not that it ran clean.
 
 ## Complexity watch list
 

@@ -44,5 +44,7 @@ Offline perf records live in the bundle with the run that produced them. **In-ga
 be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
 they keep their own standing store at `docs/perf-runs/`. **BankLedger has neither yet**: no
 `tests/perf.lua`, no `perf` verb, and no `docs/perf-runs/` directory, which is why every `perf` cell
-in `RESULTS.md` reads `skip`. That gap is tracked as `BL-15` in
-[`../audits/2026-08-04/02_DEVIATIONS.md`](../audits/2026-08-04/02_DEVIATIONS.md).
+in `RESULTS.md` reads `skip`. Those three absences are three separate deviations in
+[`../audits/2026-08-04/02_DEVIATIONS.md`](../audits/2026-08-04/02_DEVIATIONS.md): `BL-16` (no
+`tests/perf.lua`), `BL-13` (no `perf` verb) and `BL-15` (no `docs/performance.md`, no
+`docs/perf-runs/README.md`). Only `BL-16` is what makes the `perf` cell a `skip`.

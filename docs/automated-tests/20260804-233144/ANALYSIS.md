@@ -93,7 +93,7 @@ The functions that sit **at** the cap are the ones to watch, and there are exact
 | Function | CCN | Location | Disposition |
 |---|---|---|---|
 | `ensureFrame` | 15 | `modules/SessionWindow.lua:437` | **Watch.** At the cap, and the largest of the four at 89 NLOC. Next peel if anything touches it. |
-| `I:Layout` | 15 | `modules/Insights.lua:536` | **Watch.** At the cap. Section dispatch across seventeen chart sections; one more section puts it over. |
+| `I:Layout` | 15 | `modules/Insights.lua:536` | **Watch.** At the cap, at 39 NLOC. Not section dispatch: [`complexity.txt`](complexity.txt) scopes it to `Insights.lua:536-582`, which is the card-grid wrap loop plus the empty-slice early return and a run of `or`-defaults, and it hands the chart sections to `I:LayoutSections` (`modules/Insights.lua:969`, CCN 2) over nine `section*` helpers — `sectionSplit`, `sectionStores`, `sectionChars`, `sectionCharStore`, `sectionQuality`, `sectionTypes`, `sectionTime`, `sectionGold`, `sectionTopLists`. A new chart section therefore does **not** move this number; another card variant or empty-state branch does. The card grid is the peel seam. |
 | `accumulateItemTaxonomy` | 15 | `core/Database.lua:234` | **Watch.** At the cap. One more taxonomy facet puts it over. |
 | `LT:UpdateHeaderArrows` | 15 | `modules/LedgerTable.lua:827` | **Watch.** At the cap, and the smallest of the four at 17 NLOC — mostly `and`/`or` guards rather than tangle. |
 
@@ -122,5 +122,6 @@ nothing is over the 1500 cap.
 2. **Keep the `Max CCN` annotation in `docs/automated-tests/RESULTS.md`** for as long as the
    `20260804-214843` and `20260804-182039` rows are in the table, so a reader crossing `33 → 0 → 15`
    reaches the explanation in one step. The rows themselves stay exactly as measured.
-3. **The `perf` skip stands.** Nothing changes it until the addon ships `tests/perf.lua`; the absence
-   is tracked as `BL-15` in `docs/audits/2026-08-04/02_DEVIATIONS.md`.
+3. **The `perf` skip stands.** Nothing changes it until the addon ships `tests/perf.lua`; that
+   absence is tracked as `BL-16` in `docs/audits/2026-08-04/02_DEVIATIONS.md` (`BL-15` in the same
+   file is the neighboring doc gap — no `docs/performance.md`, no `docs/perf-runs/README.md`).
