@@ -36,9 +36,13 @@ run that measured nothing cannot be mistaken for a green run that measured every
 
 - **`RESULTS.md`** — one row per run across all four suites, plus the current complexity watch list.
   **One file, overwritten in place**: the git history of that single path is the trend line.
-- **`<YYYYMMDD-HHMMSS>/`** — one frozen bundle per run: `manifest.json`, one file per suite, and
-  `ANALYSIS.md` (the write-up). Bundles are **never edited** once written and **never pruned**.
+- **`<YYYYMMDD-HHMMSS>/`** — one frozen bundle per run: `manifest.json`, one file per suite that
+  actually ran, and `ANALYSIS.md` (the write-up). A skipped suite leaves no artifact, so today's
+  bundles carry no `perf.txt`. Bundles are **never edited** once written and **never pruned**.
 
 Offline perf records live in the bundle with the run that produced them. **In-game** captures cannot
 be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
-they keep their own standing store at [`../perf-runs/`](../perf-runs/).
+they keep their own standing store at `docs/perf-runs/`. **BankLedger has neither yet**: no
+`tests/perf.lua`, no `perf` verb, and no `docs/perf-runs/` directory, which is why every `perf` cell
+in `RESULTS.md` reads `skip`. That gap is tracked as `BL-15` in
+[`../audits/2026-08-04/02_DEVIATIONS.md`](../audits/2026-08-04/02_DEVIATIONS.md).
