@@ -201,6 +201,31 @@ test("Browser:ResetView drops the saved view, and Clear then lands on stock", fu
   end)
 end)
 
+-- Regression: CaptureView's return is written verbatim to NS.db.global.savedView, so its SHAPE is a
+-- SavedVariables shape. With no table module the sort direction must be a nil in the constructor,
+-- which leaves the `sortAsc` KEY ABSENT from the stored view — a refactor that defaulted it to
+-- `false` instead would start writing a key that was never on disk before, and an absent key and a
+-- stored false are different facts to everything that reads the file back.
+test("Browser:CaptureView omits sortAsc entirely when the table module is not loaded", function()
+  withFakeBar(function()
+    local LT = NS.LedgerTable
+    local ok, v = pcall(function()
+      NS.LedgerTable = nil
+      return B:CaptureView()
+    end)
+    NS.LedgerTable = LT
+    assertTrue(ok, "CaptureView must survive a build with no table module")
+
+    local present = false
+    for k in pairs(v) do if k == "sortAsc" then present = true end end
+    assertFalse(present, "the sortAsc key must be absent, not stored as false")
+    assertEqual(v.sortAsc, nil)
+    -- The other two table-state defaults still land, exactly as before.
+    assertEqual(v.groupBy, "none")
+    assertEqual(v.sortKey, "date")
+  end)
+end)
+
 test("Browser:CaptureView never captures the character scope", function()
   -- Character is a per-session default of Current, not something a stale save can pin to one alt.
   withFakeBar(function(dd)
@@ -439,4 +464,197 @@ test("Browser hands the table a filter COPY, not its own mutable one", function(
     B.activeFilter.text = "typed after applying"
     assertEqual(captured.text, nil, "a later edit cannot reach an already-applied filter")
   end)
+end)
+
+-- ── The shared dropdown menu ───────────────────────────────────────────────────
+--
+-- The popup every dropdown drops is one shared frame behind two file-locals (the singleton and
+-- EnsureMenu), so the only way in is the way the game takes: build a real dropdown and fire its
+-- OnClick. The menu is the first frame that call creates, and the kit collects every suite before
+-- it runs any case, so nothing else can have opened a dropdown first — the assert in the first
+-- case below is what fails if that ever stops being true.
+local MENU
+do
+  local dd = B:MakeDropdown(mocks.UIParent, 110)
+  dd:SetMulti(true)
+  dd:SetOptions({})   -- empty: the width loop is what needs the measuring stub installed below
+  local made, realCreateFrame = {}, mocks.CreateFrame
+  mocks.CreateFrame = function(...)
+    local f = realCreateFrame(...)
+    made[#made + 1] = f
+    return f
+  end
+  dd:__fire("OnClick")
+  mocks.CreateFrame = realCreateFrame
+  MENU = made[1]
+  -- The mock's CreateFontString hands back the frame itself, so the real measuring FontString
+  -- reports a table rather than a width and the width loop would raise on the first option. Stand
+  -- in a stub that measures 6px per character: the widths asserted below are that stub's
+  -- arithmetic, and what is being pinned is the +pad / cap / floor rules around it.
+  if MENU then
+    MENU.measure = {
+      SetText = function(self, t) self._t = t or "" end,
+      GetStringWidth = function(self) return #(self._t or "") * 6 end,
+      Hide = function() end,
+    }
+  end
+end
+
+-- The tick markup Populate prefixes to a selected multi-select row, as Browser.lua spells it.
+-- Duplicated here on purpose, like the Character sentinel above: if the markup changes shape this
+-- suite must fail rather than follow it silently.
+local CHECK = "|TInterface\\Buttons\\UI-CheckBox-Check:0|t "
+
+-- A recording stand-in for a row's FontString. The mock resolves every FontString to its own frame,
+-- which conflates a row's label, its glyph and the button itself; these keep the three apart so the
+-- paint rules are observable at all.
+local function fakeFS()
+  local r = { points = {} }
+  function r:SetText(t) self.text = t end
+  function r:SetTextColor(a, b, c) self.color = { a, b, c } end
+  function r:SetShown(v) self.shown = v and true or false end
+  function r:ClearAllPoints() self.points = {} end
+  function r:SetPoint(p, x, y) self.points[#self.points + 1] = { p, x, y } end
+  return r
+end
+
+-- A recording stand-in for a pooled row button.
+local function fakeRow()
+  local b = { fs = fakeFS(), glyph = fakeFS(), points = {}, scripts = {} }
+  function b:SetWidth(w) self.width = w end
+  function b:ClearAllPoints() self.points = {} end
+  function b:SetPoint(p, x, y) self.points[#self.points + 1] = { p, x, y } end
+  function b:SetScript(k, fn) self.scripts[k] = fn end
+  function b:Show() self.shown = true end
+  function b:Hide() self.shown = false end
+  return b
+end
+
+-- Seed `n` recording rows into the shared pool, then populate it. Seeding is not a shortcut: rows
+-- are pooled on the menu and reused across dropdowns, so this IS the path every dropdown after the
+-- first one takes, and it is the one that can leak a stale glyph or color.
+local function populate(dd, opts, n)
+  dd:SetOptions(opts)
+  MENU.buttons = {}
+  for i = 1, (n or #opts) do MENU.buttons[i] = fakeRow() end
+  MENU:Populate(dd)
+  return MENU.buttons
+end
+
+-- The mock resolves CreateTexture to the frame itself, so the dropdown's 12x12 arrow overwrites the
+-- button's own size on the way out of MakeDropdown. Re-assert the width after building, or every
+-- dropdown reports 12px wide and the "never narrower than its own button" rule is unobservable.
+local function menuDropdown(multi, width)
+  local dd = B:MakeDropdown(mocks.UIParent, width or 110)
+  dd:SetWidth(width or 110)
+  dd:SetMulti(multi)
+  return dd
+end
+
+local MENU_OPTS = {
+  { value = "all", label = "All" },
+  { value = "BANK", label = "Bank", color = { 0.4, 0.6, 1 } },
+  { value = "GUILD_BANK", label = "Guild", glyph = "\226\150\178" },
+}
+
+test("Browser menu: Populate shows one row per option and sizes the menu to them", function()
+  assertTrue(MENU ~= nil and MENU.buttons ~= nil, "the shared menu was captured on its first open")
+  local dd = menuDropdown(true)
+  local rows = populate(dd, MENU_OPTS)
+  assertEqual(#MENU.buttons, 3)
+  for i = 1, 3 do
+    assertEqual(rows[i].shown, true, "row " .. i .. " is shown")
+    assertEqual(rows[i].width, MENU.__w, "every row spans the menu")
+    assertEqual(rows[i].points[1][1], "TOPLEFT")
+    assertEqual(rows[i].points[1][3], -4 - (i - 1) * 16, "rows stack on a 16px pitch")
+  end
+  assertEqual(MENU.__h, 3 * 16 + 8, "height is the rows plus the 4px inset top and bottom")
+end)
+
+test("Browser menu: a freak label is capped at 320px", function()
+  local dd = menuDropdown(false)
+  populate(dd, { { value = "x", label = string.rep("W", 200) } })
+  assertEqual(MENU.__w, 320)
+end)
+
+test("Browser menu: the menu is never narrower than 90px, nor than its own dropdown", function()
+  local narrow = menuDropdown(false, 40)
+  populate(narrow, { { value = "x", label = "A" } })
+  assertEqual(MENU.__w, 90, "the floor holds even under a 40px dropdown")
+
+  local wide = menuDropdown(false, 200)
+  populate(wide, { { value = "x", label = "A" } })
+  assertEqual(MENU.__w, 200, "and it never undercuts the button it drops from")
+end)
+
+test("Browser menu: rows are POOLED — a shorter dropdown hides the spares, never rebuilds", function()
+  local dd = menuDropdown(true)
+  local rows = populate(dd, { MENU_OPTS[1], MENU_OPTS[2] }, 3)
+  assertEqual(#MENU.buttons, 3, "the third row is kept for the next dropdown")
+  assertEqual(rows[3].shown, false, "and it is hidden rather than left on screen")
+end)
+
+test("Browser menu: multi-select ticks 'all' exactly when nothing is selected", function()
+  local dd = menuDropdown(true)
+  local rows = populate(dd, MENU_OPTS)
+  assertEqual(rows[1].fs.text, CHECK .. "All", "an empty set IS 'All'")
+  assertEqual(rows[2].fs.text, "Bank")
+
+  dd:SetSelected({ BANK = true })
+  rows = populate(dd, MENU_OPTS)
+  assertEqual(rows[1].fs.text, "All", "'all' loses its tick once a real value is picked")
+  assertEqual(rows[2].fs.text, CHECK .. "Bank")
+end)
+
+test("Browser menu: single-select marks the active value and never draws a tick", function()
+  local dd = menuDropdown(false)
+  dd._value = "BANK"
+  local rows = populate(dd, MENU_OPTS)
+  assertEqual(rows[2].fs.text, "Bank", "no tick markup on a single-select menu")
+  assertEqual(rows[2].fs.color[1], 1, "the active value still goes gold")
+  assertEqual(rows[2].fs.color[2], 0.82)
+end)
+
+test("Browser menu: selected rows go gold, the rest keep the value's own color", function()
+  local dd = menuDropdown(true)
+  local rows = populate(dd, MENU_OPTS)
+  assertEqual(rows[1].fs.color[1], 1, "the selected row is gold")
+  assertEqual(rows[1].fs.color[2], 0.82)
+  assertEqual(rows[2].fs.color[1], 0.4, "an unselected row keeps its store/direction/class color")
+  assertEqual(rows[3].fs.color[1], 0.9, "and a colorless one falls back to gray")
+end)
+
+test("Browser menu: a glyphed row shows its glyph and indents its text past it", function()
+  local dd = menuDropdown(true)
+  local rows = populate(dd, MENU_OPTS)
+  assertEqual(rows[3].glyph.text, "\226\150\178")
+  assertEqual(rows[3].glyph.shown, true)
+  assertEqual(rows[3].fs.points[1][2], 22, "the label clears the glyph")
+  assertEqual(rows[2].glyph.text, "", "a glyphless row is repainted blank, not left stale")
+  assertEqual(rows[2].glyph.shown, false)
+  assertEqual(rows[2].fs.points[1][2], 8, "and starts at the margin")
+end)
+
+test("Browser menu: clicking a multi-select row toggles it and leaves the menu open", function()
+  local dd = menuDropdown(true)
+  local reported
+  dd.onMultiSelect = function(set) reported = set end
+  local rows = populate(dd, MENU_OPTS)
+  MENU:Show()
+  rows[2].scripts.OnClick()
+  assertEqual(dd._selected.BANK, true)
+  assertEqual(MENU:IsShown(), true, "several values can be picked in one visit")
+  assertEqual((reported or {}).BANK, true, "the owner is told about the new set")
+end)
+
+test("Browser menu: clicking a single-select row sets the value and closes the menu", function()
+  local dd = menuDropdown(false)
+  local reported
+  dd.onSelect = function(v) reported = v end
+  local rows = populate(dd, MENU_OPTS)
+  MENU:Show()
+  rows[2].scripts.OnClick()
+  assertEqual(dd._value, "BANK")
+  assertEqual(MENU:IsShown(), false)
+  assertEqual(reported, "BANK")
 end)

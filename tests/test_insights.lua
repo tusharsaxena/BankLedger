@@ -345,6 +345,30 @@ test("InsightsWidgets.BuildStackRows of an empty matrix is empty", function()
   assertEqual(#W.BuildStackRows(nil, { "BANK" }), 0)
 end)
 
+-- The four formatter defaults, pinned: an omitted formatter falls back, a FALSY one falls back the
+-- same way (that is `opts.x or <default>` semantics, and it is what a reader would get wrong first),
+-- and labelColorOf alone has no default so labelColor stays nil. Breaking any one default read —
+-- dropping the `or`, or answering something other than W.NEUTRAL — fails this test.
+--
+-- What this test does NOT pin, and no behavioral test can: how those defaults are applied. The
+-- reverted `withDefaults` options bag produced identical output for every input; it was reverted for
+-- allocation and lookup cost, not behavior. The guard against it coming back is the rationale in
+-- modules/InsightsWidgets.lua and in docs/superpowers/plans/2026-08-04-ccn-elimination.md, not a case
+-- here. Do not add a case that claims otherwise.
+test("InsightsWidgets.BuildStackRows falls back to tostring and the neutral color", function()
+  local rows = W.BuildStackRows({ [7] = { BANK = 4 } }, { "BANK" })
+  assertEqual(rows[1].label, "7", "labelOf defaults to tostring")
+  assertEqual(rows[1].value, "4", "valueFmt defaults to tostring")
+  assertEqual(rows[1].segments[1].tip, "BANK: 4", "catLabelOf defaults to tostring")
+  assertEqual(rows[1].segments[1].color, W.NEUTRAL, "colorOf defaults to the neutral color")
+  assertEqual(rows[1].labelColor, nil, "labelColorOf has no default")
+
+  local falsy = W.BuildStackRows({ [7] = { BANK = 4 } }, { "BANK" },
+    { labelOf = false, colorOf = false, catLabelOf = false, valueFmt = false })
+  assertEqual(falsy[1].label, "7", "a false override falls back, same as `or`")
+  assertEqual(falsy[1].segments[1].color, W.NEUTRAL)
+end)
+
 -- ── Pools ──────────────────────────────────────────────────────────────────────
 
 test("InsightsWidgets pools reuse a released widget instead of building another", function()
@@ -503,6 +527,42 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   I:Refresh()
   assertEqual(I.stats.totals.moneyMoved, 0)
   assertEqual(I.stats.totals.entries, 1)
+  NS.db.global.ledger = {}
+end)
+
+-- Regression: the GOLD guard is `<= 0`, the exact inversion of the `> 0` it was written as. An
+-- `== 0` spelling agrees on the zero and positive cases but draws a GOLD banner and two charts for a
+-- NEGATIVE total, which is the "this addon is broken" screen the guard exists to prevent. Stats
+-- happens to sum two gross non-negative accumulators today, so this is driven through LayoutSections
+-- directly — the guard must not depend on an invariant that lives in another file.
+test("Insights: a negative moneyMoved hides the GOLD section rather than drawing it", function()
+  unfiltered()
+  NS.db.global.ledger = {
+    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+      store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
+  }
+  I:Refresh()
+
+  local totals = {}
+  for k, v in pairs(I.stats.totals) do totals[k] = v end
+
+  -- The zero case, as the baseline: no gold chrome, and a known end-of-pane y.
+  totals.moneyMoved = 0
+  local yZero = I:LayoutSections(0, 400, I.stats, totals)
+
+  -- Show the gold chrome first, so the assertions below can only pass if LayoutSections hid it
+  -- again. (The two gold HEADERS are FontStrings, whose shown state the headless stub does not
+  -- track — the divider and the strip are real frames, and the y equality covers the rest.)
+  I.dividers.gold:Show()
+  I.strips.goldDay:Show()
+
+  totals.moneyMoved = -1
+  local yNeg = I:LayoutSections(0, 400, I.stats, totals)
+
+  assertFalse(I.dividers.gold:IsShown(), "the GOLD divider stays hidden")
+  assertFalse(I.strips.goldDay:IsShown(), "the gold-per-day strip stays hidden")
+  assertEqual(yNeg, yZero, "a negative total consumes no vertical space, same as a zero one")
   NS.db.global.ledger = {}
 end)
 

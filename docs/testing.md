@@ -140,8 +140,10 @@ tests/
   `tests/test_*.lua` agree in both directions, so a typo is red rather than a green run with fewer
   cases.
 - `wow_mock.lua` layers Bank Ledger's own container, guild-bank, item and money model over
-  `_kit/mock_base.lua`, and **overrides ten of the base's behaviors** — each one documented in the
-  file's header with the suite that depends on it. Those overrides are deliberate divergence, not
+  `_kit/mock_base.lua`, and **overrides ten of the base's behaviors** — the first ten decisions are numbered in the
+  file's header with the suite that depends on each — number 8, AceGUI, being a deliberate
+  *non*-override, taken from the base as it stands — and the eleventh, the AceGUI `SetTitle`
+  wrapper, is documented at its own site. Those overrides are deliberate divergence, not
   drift: read the header before "simplifying" one away. The base contributes the piece that matters
   most here, a real `LibStub` with `NewLibrary`, so the vendored LibKa0s majors register headlessly
   exactly as they do in the client. Pieces of mock **fidelity** that are load-bearing:

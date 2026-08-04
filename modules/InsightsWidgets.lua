@@ -238,6 +238,51 @@ function W.StackSegments(catMags, catOrder, maxSegs)
   return kept, total
 end
 
+-- The default segment color, shaped as a function so it slots straight into `opts.colorOf or ...`.
+-- Module-level for readability, not for speed: the inline `function() return W.NEUTRAL end` it
+-- replaces sat on the `or` fallback, so it was only ever allocated when a caller omitted `colorOf` —
+-- and the one production call site (modules/Insights.lua, sectionCharStore) always passes `colorOf`.
+-- In the shipping addon that closure was minted zero times. Do not claim a per-call saving here.
+-- `labelColorOf` deliberately has no default: a nil labelColor means "use the widget default", not white.
+local function neutralColor() return W.NEUTRAL end
+
+-- First pass over the matrix: each row's untruncated total, and the scale every row shares.
+-- `rowMax` starts at 1, not 0 — that is the divide-by-zero guard, and the reason an all-empty
+-- matrix yields zero-width segments rather than NaN ones.
+local function stackTotals(matrix, catOrder)
+  local rowMax, totals = 1, {}
+  for key, mags in pairs(matrix) do
+    local _, total = W.StackSegments(mags, catOrder)
+    totals[key] = total
+    if total > rowMax then rowMax = total end
+  end
+  return totals, rowMax
+end
+
+-- One row's segments. The "__OTHER__" sentinel forces both the neutral color and the literal
+-- tooltip name, bypassing the caller's colorOf/catLabelOf.
+-- The three formatters arrive as arguments rather than in an options bag: they are read once per
+-- segment, and locals are upvalue reads where a bag would be a hash lookup each time.
+local function buildSegments(segs, rowMax, colorOf, catLabelOf, valueFmt)
+  local segments = {}
+  for _, s in ipairs(segs) do
+    local isOther = s.key == "__OTHER__"
+    segments[#segments + 1] = {
+      frac = s.mag / rowMax,
+      color = isOther and W.NEUTRAL or (colorOf(s.key) or W.NEUTRAL),
+      tip = (isOther and "Other" or catLabelOf(s.key)) .. ": " .. valueFmt(s.mag),
+    }
+  end
+  return segments
+end
+
+-- Total-desc then label-asc. The tostring() is what keeps mixed-type keys (numeric quality ids
+-- against strings) from raising.
+local function byTotalThenLabel(a, b)
+  if a.total ~= b.total then return a.total > b.total end
+  return tostring(a.label) < tostring(b.label)
+end
+
 -- Build stacked-bar rows from a { rowKey → { category → magnitude } } matrix. Row width is the row's
 -- share of the biggest row's total, so the rows are comparable to each other; each segment is that
 -- category's share of the same scale. Rows sort total-desc then label-asc.
@@ -246,39 +291,25 @@ end
 function W.BuildStackRows(matrix, catOrder, opts)
   opts = opts or {}
   local labelOf = opts.labelOf or tostring
-  local colorOf = opts.colorOf or function() return W.NEUTRAL end
+  local colorOf = opts.colorOf or neutralColor
   local catLabelOf = opts.catLabelOf or tostring
   local valueFmt = opts.valueFmt or tostring
   local colorOfLabel = opts.labelColorOf
+  matrix = matrix or {}
 
-  local rowMax, totals = 1, {}
-  for key, mags in pairs(matrix or {}) do
-    local _, total = W.StackSegments(mags, catOrder)
-    totals[key] = total
-    if total > rowMax then rowMax = total end
-  end
+  local totals, rowMax = stackTotals(matrix, catOrder)
 
   local rows = {}
-  for key, mags in pairs(matrix or {}) do
-    local segs = W.StackSegments(mags, catOrder)
-    local segments = {}
-    for _, s in ipairs(segs) do
-      local isOther = s.key == "__OTHER__"
-      segments[#segments + 1] = {
-        frac = s.mag / rowMax,
-        color = isOther and W.NEUTRAL or (colorOf(s.key) or W.NEUTRAL),
-        tip = (isOther and "Other" or catLabelOf(s.key)) .. ": " .. valueFmt(s.mag),
-      }
-    end
+  for key, mags in pairs(matrix) do
+    -- Segments are recomputed rather than cached from the totals pass: StackSegments' __OTHER__
+    -- bucketing depends on catOrder, so both passes must ask it the same question.
+    local segments = buildSegments(W.StackSegments(mags, catOrder), rowMax, colorOf, catLabelOf, valueFmt)
     rows[#rows + 1] = {
       label = labelOf(key), labelColor = colorOfLabel and colorOfLabel(key) or nil,
       value = valueFmt(totals[key]), segments = segments, total = totals[key],
     }
   end
-  table.sort(rows, function(a, b)
-    if a.total ~= b.total then return a.total > b.total end
-    return tostring(a.label) < tostring(b.label)
-  end)
+  table.sort(rows, byTotalThenLabel)
   return rows
 end
 

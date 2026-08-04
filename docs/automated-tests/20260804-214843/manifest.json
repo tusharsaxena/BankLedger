@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "addon": "BankLedger",
+  "addonVersion": "1.0.0",
+  "run": "20260804-214843",
+  "startedAt": "2026-08-04T21:48:43+05:30",
+  "durationMs": 5000,
+  "label": null,
+  "release": null,
+  "git": { "sha": "fb54d66950b16d13dad573403f6345aeb05e9108", "branch": "feat/fix-ccn", "dirty": true },
+  "host": { "lua": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio", "luacheck": "Luacheck: 1.2.0", "lizard": "1.23.0" },
+  "suites": {
+    "lint": { "status": "pass", "durationMs": 2000, "warnings": 0, "errors": 0, "files": 24, "gating": true },
+    "tests": { "status": "pass", "durationMs": 2000, "passed": 726, "failed": 0, "total": 726, "gating": true },
+    "perf": { "status": "skip", "durationMs": 0, "skipReason": "no tests/perf.lua — this addon ships no offline scenarios", "scenarios": 0, "gating": false },
+    "complexity": { "status": "pass", "durationMs": 1000, "warnings": 0, "maxCcn": 0, "nloc": 12788, "functions": 1946, "avgCcn": 2.1, "avgNloc": 6.0, "avgToken": 48.0, "warnFunRatio": 0.00, "warnNlocRatio": 0.00, "bandFiles": 4, "overCapFiles": 0, "gating": false }
+  },
+  "verdict": "green"
+}

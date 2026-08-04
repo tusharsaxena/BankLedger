@@ -277,6 +277,67 @@ test("LedgerTable:GroupEntries puts gold in its own quality group", function()
   end)
 end)
 
+-- The group KEY is what the collapsed-state map in SavedVariables is keyed on, so it is a storage
+-- contract: change its shape and every user's collapsed groups silently reset. This case pins the
+-- exact (key, label) pair every mode produces, including the unknown-mode fallback — the header item
+-- is the only place both halves surface together.
+test("LedgerTable:GroupEntries emits the exact key and label for every group mode", function()
+  local cases = {
+    { mode = "store",      entry = {},                       key = "store\001BANK",
+      label = "Store: Character Bank" },
+    { mode = "direction",  entry = {},                       key = "direction\001DEPOSIT",
+      label = "Direction: Deposit" },
+    { mode = "kind",       entry = {},                       key = "kind\001ITEM",
+      label = "Item/Gold: Item" },
+    { mode = "type",       entry = {},                       key = "type\001Tradegoods",
+      label = "Type: Tradegoods" },
+    { mode = "subtype",    entry = { itemSubType = "Cloth" }, key = "subtype\001Cloth",
+      label = "Sub-type: Cloth" },
+    { mode = "quality",    entry = {},                       key = "quality\0011",
+      label = "Quality: Common" },
+    { mode = "char",       entry = {},                       key = "char\001Mock-Realm",
+      label = "Character: Mock-Realm" },
+    -- The key stays ISO so it is stable and unique per calendar day; the label matches the Date column.
+    -- os.date, because the mock's `date` global is injected into the ADDON's environment, not this one.
+    { mode = "day",        entry = {},                       key = "day\001" .. os.date("%Y-%m-%d", NOW),
+      label = "Day: " .. NS.Util.FormatDate(NOW) },
+    -- An unrecognized mode falls back to "?" on both halves rather than to nil.
+    { mode = "nosuchmode", entry = {},                       key = "nosuchmode\001?",
+      label = "?: ?" },
+  }
+  for _, c in ipairs(cases) do
+    withGroup(c.mode, function()
+      local header = LT:GroupEntries({ e(c.entry) })[1]
+      assertEqual(header.key, c.key, c.mode .. " key")
+      assertEqual(header.label, c.label, c.mode .. " label")
+    end)
+  end
+end)
+
+test("LedgerTable:GroupEntries defaults a missing group value rather than dropping the entry",
+function()
+  local cases = {
+    { mode = "store",   entry = { store = NIL },    key = "store\001?",
+      label = "Store: Unknown" },
+    { mode = "char",    entry = { char = NIL },     key = "char\001Unknown",
+      label = "Character: Unknown" },
+    -- Gold has no quality, and gets its own group rather than falling into Poor.
+    { mode = "quality", entry = { quality = NIL },  key = "quality\001none",
+      label = "Quality: None" },
+    { mode = "type",    entry = { itemType = NIL }, key = "type\001Unknown",
+      label = "Type: Unknown" },
+    { mode = "subtype", entry = {},                 key = "subtype\001Unknown",
+      label = "Sub-type: Unknown" },
+  }
+  for _, c in ipairs(cases) do
+    withGroup(c.mode, function()
+      local header = LT:GroupEntries({ e(c.entry) })[1]
+      assertEqual(header.key, c.key, c.mode .. " key")
+      assertEqual(header.label, c.label, c.mode .. " label")
+    end)
+  end
+end)
+
 -- ── Test dataset (test-mode) ───────────────────────────────────────────────────
 
 test("LedgerTable:BuildTestData produces a non-trivial sample ledger", function()

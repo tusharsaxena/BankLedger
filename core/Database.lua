@@ -79,6 +79,58 @@ function Database:Add(entry)
   return index
 end
 
+-- Scalar-or-set membership test shared by every set-capable filter field.
+local function matchesSpec(spec, value)
+  if spec == nil then return true end
+  if type(spec) == "table" then return spec[value] == true end
+  return spec == value
+end
+
+-- The set-capable filter fields and how to read each one off an entry, in the order they were tested
+-- when this was one `and` chain. Module-level, so neither the table nor its readers is rebuilt per
+-- query — and the `get` calls are pure, so stopping at the first miss only skips work.
+-- itemType/itemSubType read the EFFECTIVE type (NS.Util.EntryType), so "Gold" filters gold
+-- movements — the same value the Type column shows for them. Item rows are unaffected.
+local SET_FIELDS = {
+  { key = "kind",        get = function(e) return e.kind end },
+  { key = "direction",   get = function(e) return e.direction end },
+  { key = "store",       get = function(e) return e.store end },
+  { key = "char",        get = function(e) return e.char end },
+  { key = "itemType",    get = function(e) return NS.Util.EntryType(e) end },
+  { key = "itemSubType", get = function(e) return NS.Util.EntrySubType(e) end },
+}
+
+local function matchesSetFields(filter, e)
+  for _, f in ipairs(SET_FIELDS) do
+    local spec = filter[f.key]
+    if spec ~= nil and not matchesSpec(spec, f.get(e)) then return false end
+  end
+  return true
+end
+
+-- Quality is a set (membership) or a number (exact, against a missing quality read as 0); anything
+-- else is no filter at all.
+local function qualityOK(e, qSet, qExact)
+  if qSet then return qSet[e.quality] and true or false end
+  if qExact then return (e.quality or 0) == qExact end
+  return true
+end
+
+-- Timestamp range, inclusive on both ends, against a missing timestamp read as 0.
+local function rangeOK(e, from, to)
+  local ts = e.ts or 0
+  if from and ts < from then return false end
+  if to and ts > to then return false end
+  return true
+end
+
+-- Case-insensitive substring on the item name; `text` arrives already lowered.
+local function textOK(e, text)
+  if not text then return true end
+  local name = e.itemName and e.itemName:lower() or ""
+  return name:find(text, 1, true) ~= nil
+end
+
 -- Filter an arbitrary entry array by the filter spec. Every field is optional and AND-combined.
 -- kind/direction/store/char/itemType/itemSubType each accept a scalar (equality) OR a set table
 -- (membership, for the browser's multi-select filters); quality accepts a number (exact) or a set.
@@ -89,40 +141,17 @@ end
 -- can filter its test dataset through exactly the same code.
 function Database:QueryList(entries, filter)
   filter = filter or {}
-  local qIsSet = type(filter.quality) == "table"
+  local qSet = type(filter.quality) == "table" and filter.quality or nil
   local qExact = type(filter.quality) == "number" and filter.quality or nil
   local from, to = filter.from, filter.to
   local text = filter.text and filter.text:lower() or nil
 
-  -- Scalar-or-set membership test shared by every set-capable field.
-  local function matches(spec, value)
-    if spec == nil then return true end
-    if type(spec) == "table" then return spec[value] == true end
-    return spec == value
-  end
-
   local out = {}
   for _, e in ipairs(entries) do
-    local ok = matches(filter.kind, e.kind)
-      and matches(filter.direction, e.direction)
-      and matches(filter.store, e.store)
-      and matches(filter.char, e.char)
-      -- Matched on the EFFECTIVE type (NS.Util.EntryType), so "Gold" filters gold movements — the
-      -- same value the Type column shows for them. Item rows are unaffected.
-      and matches(filter.itemType, NS.Util.EntryType(e))
-      and matches(filter.itemSubType, NS.Util.EntrySubType(e))
-    if ok and qIsSet then
-      if not filter.quality[e.quality] then ok = false end
-    elseif ok and qExact and (e.quality or 0) ~= qExact then
-      ok = false
+    if matchesSetFields(filter, e) and qualityOK(e, qSet, qExact)
+      and rangeOK(e, from, to) and textOK(e, text) then
+      out[#out + 1] = e
     end
-    if ok and from and (e.ts or 0) < from then ok = false end
-    if ok and to and (e.ts or 0) > to then ok = false end
-    if ok and text then
-      local name = e.itemName and e.itemName:lower() or ""
-      if not name:find(text, 1, true) then ok = false end
-    end
-    if ok then out[#out + 1] = e end
   end
   return out
 end

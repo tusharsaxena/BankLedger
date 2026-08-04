@@ -75,61 +75,82 @@ end
 --
 -- Item movements come back in ascending itemID order and the money movement (if any) last, so the
 -- output is deterministic run to run — which is what lets the tests assert on it by index.
-function L.Diff(before, after, store)
-  local moves = {}
-  before = before or {}
-  after = after or {}
-  local bagsBefore, bagsAfter = before.bags or {}, after.bags or {}
-  local storeBefore, storeAfter = before.store or {}, after.store or {}
 
-  -- Every id that appears on either side of either snapshot.
+-- The three per-store maps a snapshot view carries, each defaulted so a missing (or entirely
+-- absent) snapshot reads as "nothing on this side" rather than raising.
+local function snapMaps(s)
+  s = s or {}
+  return s.bags or {}, s.store or {}, s.links or {}
+end
+
+-- Every id that appears in any of the given maps, sorted ascending — the sort is what makes Diff's
+-- output deterministic run to run.
+local function unionIDs(maps)
   local ids, seen = {}, {}
-  for _, map in ipairs({ bagsBefore, bagsAfter, storeBefore, storeAfter }) do
+  for _, map in ipairs(maps) do
     for id in pairs(map) do
       if not seen[id] then seen[id] = true; ids[#ids + 1] = id end
     end
   end
   table.sort(ids)
+  return ids
+end
 
+-- A movement needs BOTH sides to have changed, in opposite directions. The quantity is the
+-- smaller of the two: if 5 left the bags but only 3 landed, only 3 actually moved.
+local function itemMove(id, bagDelta, storeDelta, store, link)
+  if storeDelta > 0 and bagDelta < 0 then
+    return { kind = C.Kind.ITEM, direction = C.Direction.DEPOSIT, store = store,
+             itemID = id, quantity = math.min(storeDelta, -bagDelta), link = link }
+  elseif storeDelta < 0 and bagDelta > 0 then
+    return { kind = C.Kind.ITEM, direction = C.Direction.WITHDRAW, store = store,
+             itemID = id, quantity = math.min(-storeDelta, bagDelta), link = link }
+  end
+end
+
+-- Gold, at the stores that hold it — under the SAME rule as items: both sides must change, in
+-- opposite directions, and the amount is the smaller of the two.
+--
+-- The purse alone proves nothing. The retail bank frame reaches the warband bank, so a bank-tab
+-- purchase, a repair or a mail COD landing mid-visit all look identical to a deposit if you only
+-- watch the player's balance — and each one used to be written to permanent history as a warband
+-- deposit (F-001). Requiring the store's own balance to mirror the change makes a money row as
+-- evidence-backed as an item row. A store whose balance cannot be read on BOTH snapshots
+-- contributes nothing: half an observation is not an observation.
+local function moneyMove(before, after, store)
+  if not (L.MONEY_STORES[store] and before.storeMoney and after.storeMoney) then return nil end
+  local purseDelta = (after.money or 0) - (before.money or 0)
+  local storeDelta = after.storeMoney - before.storeMoney
+  if purseDelta ~= 0 and storeDelta ~= 0 and (purseDelta < 0) ~= (storeDelta < 0) then
+    local amount = math.min(math.abs(purseDelta), math.abs(storeDelta))
+    return {
+      kind = C.Kind.MONEY, store = store, quantity = amount,
+      direction = purseDelta < 0 and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
+    }
+  end
+end
+
+function L.Diff(before, after, store)
+  local moves = {}
+  before = before or {}
+  after = after or {}
   -- Either snapshot's link for an id will do: a deposit is only in the "before" bags, a withdrawal
   -- only in the "before" store, and both are gone from one side by the time we look.
-  local linksBefore, linksAfter = before.links or {}, after.links or {}
+  local bagsBefore, storeBefore, linksBefore = snapMaps(before)
+  local bagsAfter, storeAfter, linksAfter = snapMaps(after)
 
+  local ids = unionIDs({ bagsBefore, bagsAfter, storeBefore, storeAfter })
   for _, id in ipairs(ids) do
     local bagDelta   = (bagsAfter[id] or 0) - (bagsBefore[id] or 0)
     local storeDelta = (storeAfter[id] or 0) - (storeBefore[id] or 0)
     local link       = linksAfter[id] or linksBefore[id]
-    -- A movement needs BOTH sides to have changed, in opposite directions. The quantity is the
-    -- smaller of the two: if 5 left the bags but only 3 landed, only 3 actually moved.
-    if storeDelta > 0 and bagDelta < 0 then
-      moves[#moves + 1] = { kind = C.Kind.ITEM, direction = C.Direction.DEPOSIT, store = store,
-                            itemID = id, quantity = math.min(storeDelta, -bagDelta), link = link }
-    elseif storeDelta < 0 and bagDelta > 0 then
-      moves[#moves + 1] = { kind = C.Kind.ITEM, direction = C.Direction.WITHDRAW, store = store,
-                            itemID = id, quantity = math.min(-storeDelta, bagDelta), link = link }
-    end
+    local m = itemMove(id, bagDelta, storeDelta, store, link)
+    if m then moves[#moves + 1] = m end
   end
 
-  -- Gold, at the stores that hold it — under the SAME rule as items: both sides must change, in
-  -- opposite directions, and the amount is the smaller of the two.
-  --
-  -- The purse alone proves nothing. The retail bank frame reaches the warband bank, so a bank-tab
-  -- purchase, a repair or a mail COD landing mid-visit all look identical to a deposit if you only
-  -- watch the player's balance — and each one used to be written to permanent history as a warband
-  -- deposit (F-001). Requiring the store's own balance to mirror the change makes a money row as
-  -- evidence-backed as an item row. A store whose balance cannot be read on BOTH snapshots
-  -- contributes nothing: half an observation is not an observation.
-  if L.MONEY_STORES[store] and before.storeMoney and after.storeMoney then
-    local purseDelta = (after.money or 0) - (before.money or 0)
-    local storeDelta = after.storeMoney - before.storeMoney
-    if purseDelta ~= 0 and storeDelta ~= 0 and (purseDelta < 0) ~= (storeDelta < 0) then
-      local amount = math.min(math.abs(purseDelta), math.abs(storeDelta))
-      moves[#moves + 1] = {
-        kind = C.Kind.MONEY, store = store, quantity = amount,
-        direction = purseDelta < 0 and C.Direction.DEPOSIT or C.Direction.WITHDRAW,
-      }
-    end
-  end
+  -- The money movement is appended last, so it is always the final index.
+  local mm = moneyMove(before, after, store)
+  if mm then moves[#moves + 1] = mm end
 
   return moves
 end
@@ -529,6 +550,76 @@ L.SETTLE_MIN_RECHECK_SECONDS = 0.5
 -- so it keeps the old baseline and looks again shortly. Advancing there was the bug that lost every
 -- warband movement — the pass that saw "bags −1, warband unchanged" moved the goalposts, so the
 -- pass a second later saw "warband +1, bags unchanged" and rejected that half too.
+
+-- Write every movement of one pass through the capture gate, counting what stuck and what the gate
+-- rejected (the [Move] trace reports both).
+local function recordMoves(self, moves)
+  local recorded, skipped = 0, 0
+  for _, move in ipairs(moves) do
+    if self:Record(move) then recorded = recorded + 1 else skipped = skipped + 1 end
+  end
+  return recorded, skipped
+end
+
+-- Diff one store between the two snapshots and record what moved. Returns the entries written.
+local function reconcileStore(self, before, after, store)
+  local moves = L.Diff(storeView(before, store), storeView(after, store), store)
+  -- Emitted before the skip, so a store that found nothing still says what it saw. Silence is not
+  -- a diagnosis: it cannot distinguish "this store scanned empty" from "nothing moved".
+  if NS.State.debug and NS.Debug then
+    NS.Debug("Diff", "%s", L.DiffSummary(store, countKinds(after.bags),
+      countKinds((after.stores or {})[store]), #moves))
+  end
+  if #moves == 0 then return 0 end
+  local recorded, skipped = recordMoves(self, moves)
+  if NS.State.debug and NS.Debug then
+    NS.Debug("Move", "%s", L.MoveSummary(store, recorded, skipped))
+  end
+  return recorded
+end
+
+-- Advance the baseline, or hold it because a transaction is still in flight.
+local function settleBaseline(self, before, after, totalRecorded, now)
+  if totalRecorded > 0 or not L.SnapshotsDiffer(before, after) then
+    -- Settled: either the movement completed, or nothing is in flight.
+    NS.State.lastSnapshot = after
+    L._settleSince = nil
+    return
+  end
+  -- A one-sided change: the other half may still be on its way from the server. HOLD the baseline
+  -- so the next pass can still see this half, and look again shortly.
+  L._settleSince = L._settleSince or now
+  if now - L._settleSince >= L.SETTLE_TIMEOUT_SECONDS then
+    -- It never balanced, so it was never a movement (an item looted into the bags while the bank
+    -- happened to be open, say). Accept the new state as the baseline and stop waiting, otherwise
+    -- a stale delta would sit there and eventually pair with something unrelated.
+    NS.State.lastSnapshot = after
+    L._settleSince = nil
+    if NS.State.debug and NS.Debug then
+      NS.Debug("Diff", "one-sided change never settled; baseline re-anchored")
+    end
+  else
+    -- Arm the deadline for whatever is LEFT of the window, not a fixed retry interval: events
+    -- drive the real re-checks, so with nothing in flight this fires exactly once. Re-arming on
+    -- the remainder each time keeps the deadline alive across event-driven rescheduling, which
+    -- cancels the pending timer.
+    self:ScheduleReconcile(math.max(L.SETTLE_MIN_RECHECK_SECONDS,
+      L.SETTLE_TIMEOUT_SECONDS - (now - L._settleSince)))
+  end
+end
+
+-- Armed by data rather than by an open event, the guild bank has to disarm itself too, or it
+-- would keep rescanning six 98-slot tabs on every bag update for the rest of the session. Only an
+-- explicit false counts: nil means this build cannot tell, and a false negative must not disarm.
+local function disarmGuildBankIfGone(context)
+  if not (context == C.Context.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false) then return end
+  NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
+  if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK disarmed (window gone)") end
+  -- Disarming here ends the session as surely as CloseContext does; the guild bank never gets a
+  -- close event, so without this the session window would sit open after the frame vanished.
+  fireSessionChanged(false, context)
+end
+
 function L:Reconcile()
   local context = NS.State.openContext
   if not context then return 0 end
@@ -541,63 +632,12 @@ function L:Reconcile()
 
   local totalRecorded = 0
   for _, store in ipairs(self:StoresFor(context)) do
-    local moves = L.Diff(storeView(before, store), storeView(after, store), store)
-    -- Emitted before the skip, so a store that found nothing still says what it saw. Silence is not
-    -- a diagnosis: it cannot distinguish "this store scanned empty" from "nothing moved".
-    if NS.State.debug and NS.Debug then
-      NS.Debug("Diff", "%s", L.DiffSummary(store, countKinds(after.bags),
-        countKinds((after.stores or {})[store]), #moves))
-    end
-    if #moves > 0 then
-      local recorded, skipped = 0, 0
-      for _, move in ipairs(moves) do
-        if self:Record(move) then recorded = recorded + 1 else skipped = skipped + 1 end
-      end
-      totalRecorded = totalRecorded + recorded
-      if NS.State.debug and NS.Debug then
-        NS.Debug("Move", "%s", L.MoveSummary(store, recorded, skipped))
-      end
-    end
+    totalRecorded = totalRecorded + reconcileStore(self, before, after, store)
   end
 
-  local now = (GetTime and GetTime()) or 0
-  if totalRecorded > 0 or not L.SnapshotsDiffer(before, after) then
-    -- Settled: either the movement completed, or nothing is in flight.
-    NS.State.lastSnapshot = after
-    L._settleSince = nil
-  else
-    -- A one-sided change: the other half may still be on its way from the server. HOLD the baseline
-    -- so the next pass can still see this half, and look again shortly.
-    L._settleSince = L._settleSince or now
-    if now - L._settleSince >= L.SETTLE_TIMEOUT_SECONDS then
-      -- It never balanced, so it was never a movement (an item looted into the bags while the bank
-      -- happened to be open, say). Accept the new state as the baseline and stop waiting, otherwise
-      -- a stale delta would sit there and eventually pair with something unrelated.
-      NS.State.lastSnapshot = after
-      L._settleSince = nil
-      if NS.State.debug and NS.Debug then
-        NS.Debug("Diff", "one-sided change never settled; baseline re-anchored")
-      end
-    else
-      -- Arm the deadline for whatever is LEFT of the window, not a fixed retry interval: events
-      -- drive the real re-checks, so with nothing in flight this fires exactly once. Re-arming on
-      -- the remainder each time keeps the deadline alive across event-driven rescheduling, which
-      -- cancels the pending timer.
-      self:ScheduleReconcile(math.max(L.SETTLE_MIN_RECHECK_SECONDS,
-        L.SETTLE_TIMEOUT_SECONDS - (now - L._settleSince)))
-    end
-  end
-
-  -- Armed by data rather than by an open event, the guild bank has to disarm itself too, or it
-  -- would keep rescanning six 98-slot tabs on every bag update for the rest of the session. Only an
-  -- explicit false counts: nil means this build cannot tell, and a false negative must not disarm.
-  if context == C.Context.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false then
-    NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
-    if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK disarmed (window gone)") end
-    -- Disarming here ends the session as surely as CloseContext does; the guild bank never gets a
-    -- close event, so without this the session window would sit open after the frame vanished.
-    fireSessionChanged(false, context)
-  end
+  settleBaseline(self, before, after, totalRecorded, (GetTime and GetTime()) or 0)
+  -- After the settle logic: the disarm clears the baseline the settle just wrote.
+  disarmGuildBankIfGone(context)
   return totalRecorded
 end
 
@@ -640,7 +680,8 @@ end
 --
 -- Every other frame announces its own close and `CloseContext` runs off that event. The guild bank
 -- announces nothing: `GUILDBANKFRAME_CLOSED` registers without complaint and never fires on 12.0.7,
--- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check inside `Reconcile` is not a
+-- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check in `disarmGuildBankIfGone`,
+-- which `Reconcile` calls on every pass, is not a
 -- substitute, because closing the window changes no container and moves no money — so no event
 -- fires, no reconcile pass runs, and the context stays armed until some unrelated bag update happens
 -- along. That check is the backstop for a frame that vanished without hiding; this is the close.

@@ -244,6 +244,101 @@ B.activeFilter = {}
 
 -- One shared popup menu, reused by every dropdown, with a full-screen catcher that closes it on an
 -- outside click. The menu sits above the HIGH-strata window; the catcher one strata below it.
+local MENU_ROW_H = 16
+
+-- Never narrower than the button it drops from, but grown to the widest label it must show:
+-- a class icon plus a Name-Realm outruns the 140px Character button. Measured with a spare
+-- FontString in the row font (inline icon markup counts toward GetStringWidth), + the 8px
+-- insets, the tick markup and a little slack; capped so one freak label can't fill the screen.
+local function menuWidth(menu, dd, opts)
+  local w = math.max(dd:GetWidth(), 90)
+  if not menu.measure then
+    menu.measure = menu:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    menu.measure:Hide()
+  end
+  for _, opt in ipairs(opts) do
+    menu.measure:SetText((dd.multi and CHECK_MARKUP or "") .. (opt.label or ""))
+    local pad = opt.glyph and 38 or 24   -- a glyphed row indents its text by a further 14px
+    w = math.max(w, math.min(320, (menu.measure:GetStringWidth() or 0) + pad))
+  end
+  return w
+end
+
+-- One pooled row button. Only ever built for an index that has none: every dropdown after the first
+-- reuses these, which is why paintMenuRow repaints every last field of one.
+local function makeMenuRow(menu)
+  local b = CreateFrame("Button", nil, menu)
+  b:SetHeight(MENU_ROW_H)
+  local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  fs:SetPoint("RIGHT", -8, 0)
+  fs:SetJustifyH("LEFT")
+  fs:SetWordWrap(false)   -- a long label truncates on its row; it never wraps into the next
+  b.fs = fs
+  -- Optional leading glyph (the direction ▲/▼). A separate FontString in the vendored mono font,
+  -- because the row font has no such glyph — the same reason, and the same documented
+  -- deviation, as the Direction column in the table.
+  local gl = b:CreateFontString(nil, "OVERLAY")
+  gl:SetFont(C.FONT_MONO, 11, "")
+  gl:SetPoint("LEFT", 8, 0)
+  gl:SetWidth(12)
+  gl:SetJustifyH("CENTER")
+  b.glyph = gl
+  local hl = b:CreateTexture(nil, "HIGHLIGHT")
+  hl:SetAllPoints()
+  hl:SetColorTexture(1, 0.82, 0, 0.15)
+  return b
+end
+
+-- Selection state: single-select highlights the one active value; multi-select highlights
+-- every value in the set (and highlights "all" when the set is empty = no filter).
+local function rowSelected(dd, opt)
+  if dd.multi then
+    return (opt.value == "all") and (not next(dd._selected)) or (dd._selected[opt.value] or false)
+  end
+  return (opt.value == dd._value)
+end
+
+-- Repaint one row from its option. EVERY field is written on every pass, including the blank ones:
+-- the rows are pooled across dropdowns, so a field left alone leaks the previous menu's glyph or
+-- color onto this one.
+local function paintMenuRow(b, dd, opt, selected)
+  local check = (dd.multi and selected) and CHECK_MARKUP or ""
+  b.fs:SetText(check .. opt.label)
+  -- A glyphed row indents its text to clear the glyph; every other row starts at the margin.
+  b.fs:ClearAllPoints()
+  b.fs:SetPoint("LEFT", opt.glyph and 22 or 8, 0)
+  b.fs:SetPoint("RIGHT", -8, 0)
+  b.glyph:SetText(opt.glyph or "")
+  b.glyph:SetShown(opt.glyph ~= nil)
+  -- The selected row goes gold to mark the selection; otherwise the value keeps its own color
+  -- (store / direction / class), so the menu reads like the column it filters. The glyph always
+  -- keeps the direction's color — it IS the value, not a selection state.
+  if selected then
+    b.fs:SetTextColor(1, 0.82, 0)
+  elseif opt.color then
+    b.fs:SetTextColor(opt.color[1], opt.color[2], opt.color[3])
+  else
+    b.fs:SetTextColor(0.9, 0.9, 0.9)
+  end
+  if opt.color then b.glyph:SetTextColor(opt.color[1], opt.color[2], opt.color[3]) end
+end
+
+-- One row's click handler.
+local function rowOnClick(menu, dd, opt)
+  return function()
+    if dd.multi then
+      -- Toggle in place and keep the menu open, so several can be picked in one visit.
+      dd:ToggleSelected(opt.value)
+      menu:Populate(dd)
+      if dd.onMultiSelect then dd.onMultiSelect(dd._selected) end
+    else
+      dd:SetValue(opt.value, opt.label)
+      menu:Hide()
+      if dd.onSelect then dd.onSelect(opt.value) end
+    end
+  end
+end
+
 local menu
 local function EnsureMenu()
   if menu then return menu end
@@ -264,92 +359,23 @@ local function EnsureMenu()
   menu:SetScript("OnHide", function() catcher:Hide() end)
 
   function menu:Populate(dd)
-    local ROW_H = 16
     for _, b in ipairs(self.buttons) do b:Hide() end
     local opts = dd._options or {}
-    -- Never narrower than the button it drops from, but grown to the widest label it must show:
-    -- a class icon plus a Name-Realm outruns the 140px Character button. Measured with a spare
-    -- FontString in the row font (inline icon markup counts toward GetStringWidth), + the 8px
-    -- insets, the tick markup and a little slack; capped so one freak label can't fill the screen.
-    local w = math.max(dd:GetWidth(), 90)
-    if not self.measure then
-      self.measure = self:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-      self.measure:Hide()
-    end
-    for _, opt in ipairs(opts) do
-      self.measure:SetText((dd.multi and CHECK_MARKUP or "") .. (opt.label or ""))
-      local pad = opt.glyph and 38 or 24   -- a glyphed row indents its text by a further 14px
-      w = math.max(w, math.min(320, (self.measure:GetStringWidth() or 0) + pad))
-    end
+    local w = menuWidth(self, dd, opts)
     for i, opt in ipairs(opts) do
       local b = self.buttons[i]
       if not b then
-        b = CreateFrame("Button", nil, self)
-        b:SetHeight(ROW_H)
-        local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        fs:SetPoint("RIGHT", -8, 0)
-        fs:SetJustifyH("LEFT")
-        fs:SetWordWrap(false)   -- a long label truncates on its row; it never wraps into the next
-        b.fs = fs
-        -- Optional leading glyph (the direction ▲/▼). A separate FontString in the vendored mono font,
-        -- because the row font has no such glyph — the same reason, and the same documented
-        -- deviation, as the Direction column in the table.
-        local gl = b:CreateFontString(nil, "OVERLAY")
-        gl:SetFont(C.FONT_MONO, 11, "")
-        gl:SetPoint("LEFT", 8, 0)
-        gl:SetWidth(12)
-        gl:SetJustifyH("CENTER")
-        b.glyph = gl
-        local hl = b:CreateTexture(nil, "HIGHLIGHT")
-        hl:SetAllPoints()
-        hl:SetColorTexture(1, 0.82, 0, 0.15)
+        b = makeMenuRow(self)
         self.buttons[i] = b
       end
       b:SetWidth(w)
       b:ClearAllPoints()
-      b:SetPoint("TOPLEFT", 0, -4 - (i - 1) * ROW_H)
-      -- Selection state: single-select highlights the one active value; multi-select highlights
-      -- every value in the set (and highlights "all" when the set is empty = no filter).
-      local selected
-      if dd.multi then
-        selected = (opt.value == "all") and (not next(dd._selected)) or (dd._selected[opt.value] or false)
-      else
-        selected = (opt.value == dd._value)
-      end
-      local check = (dd.multi and selected) and CHECK_MARKUP or ""
-      b.fs:SetText(check .. opt.label)
-      -- A glyphed row indents its text to clear the glyph; every other row starts at the margin.
-      b.fs:ClearAllPoints()
-      b.fs:SetPoint("LEFT", opt.glyph and 22 or 8, 0)
-      b.fs:SetPoint("RIGHT", -8, 0)
-      b.glyph:SetText(opt.glyph or "")
-      b.glyph:SetShown(opt.glyph ~= nil)
-      -- The selected row goes gold to mark the selection; otherwise the value keeps its own color
-      -- (store / direction / class), so the menu reads like the column it filters. The glyph always
-      -- keeps the direction's color — it IS the value, not a selection state.
-      if selected then
-        b.fs:SetTextColor(1, 0.82, 0)
-      elseif opt.color then
-        b.fs:SetTextColor(opt.color[1], opt.color[2], opt.color[3])
-      else
-        b.fs:SetTextColor(0.9, 0.9, 0.9)
-      end
-      if opt.color then b.glyph:SetTextColor(opt.color[1], opt.color[2], opt.color[3]) end
-      b:SetScript("OnClick", function()
-        if dd.multi then
-          -- Toggle in place and keep the menu open, so several can be picked in one visit.
-          dd:ToggleSelected(opt.value)
-          menu:Populate(dd)
-          if dd.onMultiSelect then dd.onMultiSelect(dd._selected) end
-        else
-          dd:SetValue(opt.value, opt.label)
-          menu:Hide()
-          if dd.onSelect then dd.onSelect(opt.value) end
-        end
-      end)
+      b:SetPoint("TOPLEFT", 0, -4 - (i - 1) * MENU_ROW_H)
+      paintMenuRow(b, dd, opt, rowSelected(dd, opt))
+      b:SetScript("OnClick", rowOnClick(self, dd, opt))
       b:Show()
     end
-    self:SetSize(w, #opts * ROW_H + 8)
+    self:SetSize(w, #opts * MENU_ROW_H + 8)
   end
   return menu
 end
@@ -771,22 +797,85 @@ local function asSet(v)
   return s
 end
 
+-- The five multi-select column filters, as the pair of names each one goes by: the field in a view,
+-- and the dropdown on the bar that holds it. ONE ordered array, read by both CaptureView and
+-- ApplyView, so the two halves of the round trip can never disagree about which sets a view carries
+-- — or in what order the bar is painted.
+local VIEW_SETS = {
+  { view = "direction",   dd = "direction" },
+  { view = "store",       dd = "store" },
+  { view = "quality",     dd = "quality" },
+  { view = "itemType",    dd = "type" },
+  { view = "itemSubType", dd = "subtype" },
+}
+
+-- The table's own share of a view — group and sort — defaulted for the build where the table module
+-- is not loaded. `sortAsc` is a strict `== true`, not a truthiness pass-through.
+--
+-- With no table module the third return is nil, NOT false. It feeds a table constructor whose result
+-- is written verbatim to SavedVariables, and a nil in a constructor leaves the KEY ABSENT from the
+-- stored view — which is what master's `sortAsc = LT and LT.sortAsc == true` did. An absent key and
+-- a stored `false` are different facts on disk, so the nil is load-bearing; do not tidy it to false.
+local function tableViewState(LT)
+  if not LT then return "none", "date", nil end
+  return LT.groupBy or "none", LT.sortKey or "date", LT.sortAsc == true
+end
+
 -- Capture what is on screen as a view table. Every set is a COPY (setToFilter's fresh table), never
 -- an alias of a live dropdown's set — otherwise the next toggle would silently rewrite the view the
 -- user just saved, the same aliasing hazard ApplyFilter guards against (F-013).
 function B:CaptureView()
   local dd, LT = self._dd, NS.LedgerTable
-  return {
-    groupBy = LT and LT.groupBy or "none",
-    sortKey = LT and LT.sortKey or "date",
-    sortAsc = LT and LT.sortAsc == true,
-    direction   = setToFilter(dd and dd.direction._selected) or {},
-    store       = setToFilter(dd and dd.store._selected) or {},
-    quality     = setToFilter(dd and dd.quality._selected) or {},
-    itemType    = setToFilter(dd and dd.type._selected) or {},
-    itemSubType = setToFilter(dd and dd.subtype._selected) or {},
+  local groupBy, sortKey, sortAsc = tableViewState(LT)
+  local v = {
+    groupBy = groupBy,
+    sortKey = sortKey,
+    sortAsc = sortAsc,
     date   = (dd and dd.date._value) or "all",
     search = (self._search and self._search:GetText()) or "",
+  }
+  for _, f in ipairs(VIEW_SETS) do
+    v[f.view] = setToFilter(dd and dd[f.dd]._selected) or {}
+  end
+  return v
+end
+
+-- Push a view's group/sort onto the table. Guarded: a partial build can reach here without it.
+local function applyTableState(view)
+  if not NS.LedgerTable then return end
+  NS.LedgerTable.groupBy = view.groupBy or "none"
+  NS.LedgerTable.sortKey = view.sortKey or "date"
+  NS.LedgerTable.sortAsc = view.sortAsc == true
+end
+
+-- Normalize a view's five column filters into selection sets, still keyed the way the view is.
+local function viewSets(view)
+  local s = {}
+  for _, f in ipairs(VIEW_SETS) do s[f.view] = asSet(view[f.view]) end
+  return s
+end
+
+-- Paint the bar itself. The character dropdown takes the session scope, not anything from the view.
+local function paintDropdowns(dd, view, sets, date, chars)
+  if not dd then return end
+  dd.group:SelectValue(view.groupBy or "none")
+  dd.date:SelectValue(date)
+  for _, f in ipairs(VIEW_SETS) do dd[f.dd]:SetSelected(sets[f.view]) end
+  dd.char:SetSelected(chars)
+end
+
+-- The resolved filter the table and Insights actually query with. `date == "all"` means no lower
+-- bound at all (nil, never 0), and an empty search means no text clause.
+local function buildActiveFilter(chars, sets, date, search)
+  return {
+    char        = B.ResolveCharFilter(chars),
+    direction   = setToFilter(sets.direction),
+    store       = setToFilter(sets.store),
+    quality     = setToFilter(sets.quality),
+    itemType    = setToFilter(sets.itemType),
+    itemSubType = setToFilter(sets.itemSubType),
+    from = (date ~= "all") and NS.Util.RangeFrom(date) or nil,
+    text = (search ~= "") and search or nil,
   }
 end
 
@@ -796,46 +885,19 @@ end
 -- everything set above it, so a view swap costs one query, not nine.
 function B:ApplyView(view, scope)
   view = view or STOCK_VIEW
-  local dd = self._dd
   local chars = (scope == "all") and {} or defaultCharSelection()
-
-  if NS.LedgerTable then
-    NS.LedgerTable.groupBy = view.groupBy or "none"
-    NS.LedgerTable.sortKey = view.sortKey or "date"
-    NS.LedgerTable.sortAsc = view.sortAsc == true
-  end
-
-  local direction, store = asSet(view.direction), asSet(view.store)
-  local quality, itemType = asSet(view.quality), asSet(view.itemType)
-  local itemSubType = asSet(view.itemSubType)
   local date   = view.date or "all"
   local search = view.search or ""
 
-  if dd then
-    dd.group:SelectValue(view.groupBy or "none")
-    dd.date:SelectValue(date)
-    dd.direction:SetSelected(direction)
-    dd.store:SetSelected(store)
-    dd.quality:SetSelected(quality)
-    dd.type:SetSelected(itemType)
-    dd.subtype:SetSelected(itemSubType)
-    dd.char:SetSelected(chars)
-  end
+  applyTableState(view)
+  local sets = viewSets(view)
+  paintDropdowns(self._dd, view, sets, date, chars)
   -- Set the box before rebuilding activeFilter: OnTextChanged fires on SetText and writes
   -- activeFilter.text itself, so doing it the other way round would let the widget clobber the
   -- value we just resolved.
   if self._search then self._search:SetText(search) end
 
-  self.activeFilter = {
-    char        = B.ResolveCharFilter(chars),
-    direction   = setToFilter(direction),
-    store       = setToFilter(store),
-    quality     = setToFilter(quality),
-    itemType    = setToFilter(itemType),
-    itemSubType = setToFilter(itemSubType),
-    from = (date ~= "all") and NS.Util.RangeFrom(date) or nil,
-    text = (search ~= "") and search or nil,
-  }
+  self.activeFilter = buildActiveFilter(chars, sets, date, search)
   B:ApplyFilterNow()
 end
 

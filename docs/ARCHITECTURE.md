@@ -365,7 +365,8 @@ taking. It never steals the context from an already-open bank frame.
   pass runs. The hook only ends the guild bank's *own* context (the frame also hides whenever it is
   simply not the panel on screen). `GuildBankFrame` lives in `Blizzard_GuildBankUI`, loaded on
   demand, so the hook is installed the first time the guild bank is in play, and once only.
-- **`Compat.IsGuildBankVisible() == false`, checked in `Reconcile`**, is the backstop for a frame
+- **`Compat.IsGuildBankVisible() == false`, checked in `disarmGuildBankIfGone`** (a file-local in
+  `modules/Ledger.lua` that `Reconcile` calls on every pass), is the backstop for a frame
   that went away without hiding, and stops the addon rescanning six 98-slot tabs on every bag update.
   That check is three-valued: `nil` means "this build cannot tell" and deliberately does not disarm.
 
