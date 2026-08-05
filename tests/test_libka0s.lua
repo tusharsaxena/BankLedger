@@ -168,6 +168,24 @@ test("LibKa0s-Core degraded: the addon loads with no library at all", function()
   assertTrue(ns.Print == ns.Util.print, "the fallback must publish under both names too")
 end)
 
+test("LibKa0s-Core degraded: the fallback carries the whole live seam surface", function()
+  -- The stub-surface parity case for the Core seam (testing-§8). BOTH arms come out of the loader
+  -- from a PARTIAL FILE LIST — the TOC's files up to and including core/CoreSetup.lua, once with
+  -- libs/LibKa0s/*.lua in front of them and once without — so neither side is hand-stubbed and the
+  -- comparison is against the branch that actually runs in a degraded install.
+  --
+  -- Compared at the NAMESPACE, because that is this seam's surface: core/CoreSetup.lua publishes
+  -- onto NS rather than returning an object.
+  --   Members from: grep -nE "^ *function NS\.|^ *NS\.[A-Za-z_]+ *=|^ *Util\.[a-z]" core/CoreSetup.lua
+  -- Nothing is ignored: every member the live branch publishes, the fallback branch owes the caller,
+  -- because six files capture NS.Print at load and a nil member there takes the UI down.
+  local live = loadUpTo("core/CoreSetup.lua", true)
+  local degraded, dm = loadUpTo("core/CoreSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-Core-1.0", true) == nil,
+    "the degraded arm still has the library — this case would prove nothing")
+  T.assertSurfaceParity(live, degraded, "the Core seam's namespace")
+end)
+
 test("LibKa0s-Core degraded: the fallback printer renders the same bytes", function()
   local ns, m = loadDegraded()
   local out = captureChat(function() ns.Print("hello", 42) end, m)
@@ -490,6 +508,32 @@ test("LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an 
   ns.Debug("Move", "swallowed")   -- must not raise
 end)
 
+test("LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches", function()
+  -- The stub-surface parity case for the DebugLog seam (testing-§8). Both arms are loaded from a
+  -- partial file list — the TOC up to and including core/DebugLogSetup.lua, with and without the
+  -- vendored library — so the degraded arm is the real fallback branch, never a hand-written table.
+  --
+  -- `ignore` is the live-only surface, as DATA rather than as a shortened comparison. Every name in
+  -- it was checked against the addon's own call sites:
+  --   grep -rnE "DebugLog[.:][A-Za-z_]+|NS\.Debug\b" core modules settings
+  -- returns IsShown/Show/Hide/Toggle/Add/Clear/SetEnabled/IsEnabled and the `NS.Debug` publication —
+  -- and nothing else. The ten below are the library's own console internals and its widget makers,
+  -- which no BankLedger file calls; a stub re-implementing them would be anti-pattern #47.
+  --
+  -- `Debug` is the one that needs saying out loud: the live seam publishes NS.Debug FROM the
+  -- instance (core/DebugLogSetup.lua), while the degraded branch publishes its own no-op onto NS
+  -- directly. NS.Debug therefore exists on both paths — the case above asserts exactly that — and
+  -- only the instance member is live-only.
+  local IGNORE = {
+    "BufferSize", "ConsoleCheckbox", "CopyText", "Debug", "FindLine",
+    "FormatColored", "FormatPlain", "LastLine", "MakeCloseButton", "Text",
+  }
+  local live = loadUpTo("core/DebugLogSetup.lua", true)
+  local degraded, dm = loadUpTo("core/DebugLogSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-DebugLog-1.0", true) == nil, "the degraded arm still has the library")
+  T.assertSurfaceParity(live.DebugLog, degraded.DebugLog, "the DebugLog stub", IGNORE)
+end)
+
 test("LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause", function()
   local ns, m = loadDegraded()
   local out = captureChat(function() ns.DebugLog:Show() end, m)
@@ -761,6 +805,19 @@ test("LibKa0s-Slash degraded: the verbs that never needed the library still work
   ns.COMMANDS[#ns.COMMANDS] = nil
 end)
 
+test("LibKa0s-Slash degraded: the stub carries the whole live surface", function()
+  -- The stub-surface parity case for the Slash seam (testing-§8). The degraded arm is the whole
+  -- addon loaded from the TOC with libs/LibKa0s/*.lua left OUT of the file list, so `Sl` there is
+  -- the table the `if not lib` branch actually built.
+  --   Members from: grep -nE "^function Sl[.:][A-Za-z_]+" settings/Slash.lua
+  -- Nothing is ignored, and nothing may be: `/bl` is how a user reaches anything without the
+  -- settings panel, so every verb the live seam answers the degraded one must answer too — with
+  -- work where it can (CliResetAll) and with one honest line where it cannot.
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Slash-1.0", true) == nil, "the degraded arm still has the library")
+  T.assertSurfaceParity(Sl, degraded.Slash, "the Slash stub")
+end)
+
 test("LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause", function()
   local ns, m = loadDegraded()
   local out = captureChat(function() ns.Slash:CliList() end, m)
@@ -782,4 +839,34 @@ end)
 
 test("LibKa0s-Slash: the seam loads after the schema it reads", function()
   loadsBefore("settings/Schema.lua", "settings/Slash.lua")
+end)
+
+-- ── LibKa0s-Options-1.0 ──────────────────────────────────────────────────────────────────────
+--
+-- The settings panel. tests/test_panel.lua asserts what the panel renders; what lives HERE is the
+-- one thing it cannot see — that the degraded stub in settings/OptionsSetup.lua still answers every
+-- member the live instance offers this addon, so a page file that grows a call does not meet a nil.
+
+test("LibKa0s-Options degraded: the stub carries the live surface the addon reaches", function()
+  -- The stub-surface parity case for the Options seam (testing-§8). The degraded arm is the whole
+  -- addon loaded from the TOC with libs/LibKa0s/*.lua left out of the file list, so `NS.Helpers`
+  -- there is the table the `if not lib` branch actually built.
+  --
+  -- `ignore` is the live-only surface, as DATA. Checked against this addon's call sites:
+  --   grep -rnE "O[.:]|Helpers[.:]" settings core modules
+  -- reaches O.AceGUI and the page/panel/render members the stub already carries; PADDING_X,
+  -- LSMValues, TextRow, BuildLandingPage and PatchAlwaysShowScrollbar have NO call site here, and
+  -- carrying the library's constants into a stub is anti-pattern #47.
+  --
+  -- AceGUI is the deliberate one, and the stub names it: `AceGUI = nil`. Every O.AceGUI:Create in
+  -- settings/Panel.lua sits inside a body that only runs once a panel has been built, and on this
+  -- path CreateOptionsPanel refuses with one honest line instead. A stub handing back a fake AceGUI
+  -- would be a widget factory this addon then has to keep working.
+  local IGNORE = {
+    "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar", "TextRow",
+  }
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")
+  assertTrue(degraded.Helpers.__degraded == true, "the degraded arm is not the fallback branch")
+  T.assertSurfaceParity(NS.Helpers, degraded.Helpers, "the Options stub", IGNORE)
 end)

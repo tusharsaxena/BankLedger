@@ -728,7 +728,7 @@ badge and any count quoted in the docs must agree with it.
 - Mock frame: a named method always beats the catch-all
 - Mock frame: lowercase and non-string keys miss through to nil
 
-### test_libka0s.lua (56)
+### test_libka0s.lua (60)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
@@ -741,6 +741,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Core: nil and booleans are not masked by the secret guard
 - LibKa0s-Core: the prefix is re-read on every call, so a later change lands
 - LibKa0s-Core degraded: the addon loads with no library at all
+- LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - LibKa0s-Core degraded: the fallback printer renders the same bytes
 - LibKa0s-Core degraded: the notice is said exactly ONCE, on the first line printed
 - LibKa0s: the shared cause clause is set on BOTH paths, word for word
@@ -762,6 +763,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: the console closes with the library's x, not this addon's
 - LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
 - LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
+- LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
 - LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
 - LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
@@ -783,9 +785,11 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
+- LibKa0s-Slash degraded: the stub carries the whole live surface
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
 - LibKa0s-Slash: the seam loads after the schema it reads
+- LibKa0s-Options degraded: the stub carries the live surface the addon reaches
 
 ### test_vendor_sync.lua (2)
 
@@ -814,6 +818,6 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 26 |
 | test_harness.lua | 7 |
 | test_mock.lua | 19 |
-| test_libka0s.lua | 56 |
+| test_libka0s.lua | 60 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **726** |
+| **Total** | **730** |
