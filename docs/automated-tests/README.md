@@ -51,9 +51,16 @@ run that measured nothing cannot be mistaken for a green run that measured every
 
 Offline perf records live in the bundle with the run that produced them. **In-game** captures cannot
 be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
-they keep their own standing store at `docs/perf-runs/`. **BankLedger has neither yet**: no
-`tests/perf.lua`, no `perf` verb, and no `docs/perf-runs/` directory, which is why every `perf` cell
-in `RESULTS.md` reads `skip`. Those three absences are three separate deviations in
-[`../audits/2026-08-04/02_DEVIATIONS.md`](../audits/2026-08-04/02_DEVIATIONS.md): `BL-16` (no
-`tests/perf.lua`), `BL-13` (no `perf` verb) and `BL-15` (no `docs/performance.md`, no
-`docs/perf-runs/README.md`). Only `BL-16` is what makes the `perf` cell a `skip`.
+they keep their own standing store at `docs/perf-runs/`. **BankLedger ships neither, and that is a
+ratified state rather than a gap**: it holds a recorded `performance-§12` no-combat-path exemption
+(the register row is in [`../ARCHITECTURE.md`](../ARCHITECTURE.md#documented-deviations), the sweep
+that earns it is [`../performance.md`](../performance.md)), so there is no `tests/perf.lua`, no
+`perf` verb registration and no `docs/perf-runs/` — which is why every `perf` cell in `RESULTS.md`
+reads `skip`. The skip is still said out loud, in the release notes as well as here: a skip is never
+a pass, and the reason to name is the exemption, not the bare absence of the file.
+
+**A known limit of the vendored runner, recorded rather than patched:** it writes the first of
+`automated-tests-§3`'s two sanctioned `perf` skip reasons — "no `tests/perf.lua`" — and has no way to
+write the second, the `performance-§12` exemption, which is the more informative one and the one that
+applies here. `tests/_kit/` is vendored and is never edited in an addon repo; the fix belongs
+upstream in LibKa0s's `testkit/`.

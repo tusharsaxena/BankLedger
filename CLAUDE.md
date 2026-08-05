@@ -31,6 +31,8 @@ Start here, then read the docs:
   release-time complexity checkpoint.
 - **`DEPENDENCIES.md`** (root) — what to install to build, run, test or release this addon, with
   WSL2/Ubuntu commands and a verification line per tool (documentation-§7).
+- **`docs/performance.md`** — what this addon costs, and why it wires no performance harness: the
+  committed sweep behind its ratified `performance-§12` no-combat-path exemption.
 - Topic detail in `docs/` as needed (`smoke-tests.md`, `test-cases.md`, `automated-tests/`, …).
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0). Never auto-stage/commit/
