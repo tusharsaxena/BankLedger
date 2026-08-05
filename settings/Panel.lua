@@ -8,9 +8,9 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- registration or render time, which is what lets the degraded stub be load-completing with an
 -- empty member set (options-ui-§1).
 --
--- O.AceGUI is reached through `O.AceGUI` rather than a second LibStub call (library-stack-§4). It
--- is read at CALL time, not hoisted: the library re-resolves it at CreateOptionsPanel, by which
--- point an O.AceGUI absent at load may be present.
+-- AceGUI is reached through the instance's `O.AceGUI` field rather than a second LibStub call
+-- (library-stack-§4). It is read at CALL time, not hoisted: the library re-resolves it at
+-- CreateOptionsPanel, by which point an AceGUI absent at load may be present.
 local O = NS.Helpers
 
 -- The Ka0s settings-panel pattern (options-ui):
@@ -37,9 +37,6 @@ local LOGO_SIZE = 300
 
 local registered
 
-
-
-
 -- One defaults action per page, reachable from BOTH routes — the header Defaults button and
 -- Blizzard's own Settings-window footer control — and parked rather than wired, because the button
 -- does not exist yet: the library builds it on the panel's first OnShow.
@@ -59,12 +56,6 @@ end
 -- describes for a global reset: the hook first, the refresh once, after.
 local bulkDepth = 0
 
-
-
-
-
-
-
 -- The single seam for a paired action button's width — insets to O.BUTTON_PAIR_REL so the right
 -- border isn't shaved by the ScrollFrame clip. Never hand-set 0.5 on a paired button.
 local function makePairButton(text, onClick)
@@ -74,9 +65,6 @@ local function makePairButton(text, onClick)
   if onClick then btn:SetCallback("OnClick", onClick) end
   return btn
 end
-
-
-
 
 -- A set-map rendered full-width as a wrapping checkbox grid. With row.invert, a CHECKED box means
 -- the store is recorded (i.e. NOT in the muted set), so the stored value is the logical inverse of
@@ -116,7 +104,6 @@ local function makeMultiCheck(ctx, row, scroll)
   ctx.refreshers[#ctx.refreshers + 1] = refresh
   refresh()
 end
-
 
 -- ── Storage section: live DB stats + purge ─────────────────────────────────────
 local function renderStorage(ctx)
@@ -168,8 +155,6 @@ local function renderStorage(ctx)
     end
   end
 end
-
-
 
 -- ── Filters sub-page: blacklist / whitelist item-id management ─────────────────
 
@@ -466,16 +451,13 @@ end
 
 -- ── Refresh / Defaults ─────────────────────────────────────────────────────────
 
--- Scalar re-sync only: run each rendered widget's updater closure. Structural rebuilds are the
--- rebuilders' job and are gated separately (options-ui-§11).
--- Test seam over the private registry. The page bodies are lazy and never build headless, so a
--- suite otherwise has no handle on a live ctx — and a refresh path that no case could reach is
--- exactly how this one shipped walking a single page for so long.
 -- Test seam over the library's page registry. The page bodies are lazy, so a suite otherwise has no
 -- handle on a live ctx — and a refresh path no case could reach is how this one shipped walking a
 -- single page for so long.
 function P.__pagesForTest() return O.__panels and O.__panels() or {} end
 
+-- Scalar re-sync only: run each rendered widget's updater closure. Structural rebuilds are the
+-- rebuilders' job and are gated separately (options-ui-§11).
 function P:Refresh()
   if bulkDepth > 0 then return end
   -- Delegated. The library keeps the registry now, and its refreshCtx already does the two things
