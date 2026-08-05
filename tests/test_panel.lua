@@ -172,7 +172,7 @@ end)
 
 test("Panel: Batch unwinds its depth on the error path", function()
   -- Latched above zero, the panel silently stops refreshing for the rest of the session and only
-  -- /reload recovers it (options-ui-§189 makes the same point about a re-entrancy guard).
+  -- /reload recovers it (options-ui-§11 makes the same point about a re-entrancy guard).
   local page = fakePage(true)
   local ok = pcall(function() P:Batch(function() error("boom") end) end)
   assertTrue(not ok, "Batch must re-raise")

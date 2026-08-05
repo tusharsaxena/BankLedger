@@ -40,7 +40,7 @@ local descriptor = {
   print = function(line) print(line) end,
   debug = function(tag, fmt, ...) if NS.Debug then NS.Debug(tag, fmt, ...) end end,
 
-  -- The schema seams. NS.Schema:Set is this addon's SINGLE write seam (options-ui-§41), so a panel
+  -- The schema seams. NS.Schema:Set is this addon's SINGLE write seam (options-ui-§1), so a panel
   -- widget takes exactly the path `/bl set` takes: the same validation, the same [Set] debug line,
   -- the same row onChange, and the same panel repaint.
   get          = function(path) return NS.Schema:Get(path) end,
@@ -62,7 +62,7 @@ local descriptor = {
     if buildMainBody then return buildMainBody(ctx) end
   end,
 
-  -- Ka0s standard §3.4: AceGUI is resolved once, by the library, and handed over rather than
+  -- library-stack-§4: AceGUI is resolved once, by the library, and handed over rather than
   -- re-resolved per file. settings/Panel.lua's bespoke widgets read NS.AceGUI.
   onAceGUI = function(AceGUI) NS.AceGUI = AceGUI end,
 
@@ -71,7 +71,7 @@ local descriptor = {
   -- OnInitialize costs one walk and means a panel build can never draw a row whose path is a typo.
   validate = function() if NS.Schema.Register then NS.Schema:Register() end end,
 
-  -- AceTimer through the addon object (Ka0s standard §3.1). The library takes it as a descriptor
+  -- AceTimer through the addon object (library-stack-§1). The library takes it as a descriptor
   -- field rather than embedding AceTimer, which would be its second dependency-budget breach.
   -- Nothing in this addon's schema is a color row today, so this backs nothing yet — it is wired
   -- because the alternative is discovering it is missing from inside a drag.

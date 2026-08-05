@@ -181,7 +181,7 @@ function S:Set(path, value)
   end
   if row.onChange then row.onChange(value) end
   -- An open panel MUST reflect live state after a mutation (options-ui-§11), and the write seam is
-  -- where that belongs: this is "the same function /bl set calls" (options-ui-§41), so a slash
+  -- where that belongs: this is "the same function /bl set calls" (options-ui-§1), so a slash
   -- write, a panel widget and any future caller all repaint by the same route. It used to be
   -- nowhere, so `/bl set` with the settings window open left every widget showing the old value
   -- until the window was closed and reopened.

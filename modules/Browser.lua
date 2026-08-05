@@ -90,7 +90,7 @@ end
 -- ledger window (Browser.lua), the session window (SessionWindow.lua) and both export popups
 -- (Export.lua). NOT by the debug console: that is the LIBRARY's window and wears Core's thin
 -- 18x18 × — the edge is shared across every Ka0s window, the close control on a library-drawn
--- window is the library's (standalone-windows-§2).
+-- window is the library's (standalone-windows).
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)

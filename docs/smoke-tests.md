@@ -248,7 +248,7 @@ tolerance.
    black border with a 1px light-gray line just inside it, a gold title, a gray divider — but they
    close with a **thin ×**, not the big class-colored one. That is correct, not drift: the edge is
    shared across every Ka0s window, the close control on a library-drawn window is the library's
-   (standalone-windows-§2). The ledger window's own 24×24 glyph is unchanged — check it too.
+   (standalone-windows). The ledger window's own 24×24 glyph is unchanged — check it too.
 9. Open another Ka0s addon's debug console alongside this one. Apart from their titles the two must
    be **indistinguishable**: same border, same inner highlight, same gold title, same divider, same
    close ×. Any difference means the shared edge has drifted in one of them, and the fix belongs in

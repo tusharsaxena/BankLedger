@@ -8,7 +8,7 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- registration or render time, which is what lets the degraded stub be load-completing with an
 -- empty member set (options-ui-§1).
 --
--- O.AceGUI is reached through `O.AceGUI` rather than a second LibStub call (Ka0s standard §3.4). It
+-- O.AceGUI is reached through `O.AceGUI` rather than a second LibStub call (library-stack-§4). It
 -- is read at CALL time, not hoisted: the library re-resolves it at CreateOptionsPanel, by which
 -- point an O.AceGUI absent at load may be present.
 local O = NS.Helpers
@@ -55,7 +55,7 @@ end
 -- ── createPanel — a Frame for RegisterCanvasLayout(Sub)category, plus its render context ──
 -- Depth counter for P:Batch. A bulk write (a full reset walks every schema row) would otherwise pay
 -- one refresh PER ROW, and one of General's refreshers walks the whole ledger to estimate the
--- SavedVariables size. Coalesced into one refresh at the end, which is also what options-ui-§190
+-- SavedVariables size. Coalesced into one refresh at the end, which is also what options-ui-§11
 -- describes for a global reset: the hook first, the refresh once, after.
 local bulkDepth = 0
 

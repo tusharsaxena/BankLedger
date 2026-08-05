@@ -95,7 +95,7 @@ NS.DebugLog = lib:New({
   --
   -- `applySkin` ONLY, and the reason is no longer that Core's chrome is different. As of Core minor
   -- 3, Core.SKIN IS this addon's edge — the flat 1px black border, the 1px gray inner highlight, the
-  -- gold title and the gray divider — because standalone-windows-§2 adopted it normatively. So this
+  -- gold title and the gray divider — because standalone-windows adopted it normatively. So this
   -- hook no longer rescues the console from a default that does not match; it keeps the console
   -- tracking modules/Browser.lua's own re-skin seam, which is one of the two purposes the standard
   -- still sanctions the hook for. LIBKA0S-05's decline is superseded — see LIBKA0S-27 and -28.
@@ -111,7 +111,7 @@ NS.DebugLog = lib:New({
   -- NO `makeCloseButton`. The console and the copy window are the LIBRARY's windows, so they wear
   -- the library's close glyph — Core's thin 18x18 x — and this addon's own 24x24 class-colored one
   -- stays on the windows it belongs to (`modules/Browser.lua`). Passing it here is what shipped two
-  -- adopters' diagnostic windows looking unlike the other three's, and standalone-windows-§2 now
+  -- adopters' diagnostic windows looking unlike the other three's, and standalone-windows now
   -- makes the split explicit: the window EDGE is shared across every Ka0s window, the CLOSE CONTROL
   -- on a library-drawn window is the library's. `applySkin` above is the opposite case and stays.
 
