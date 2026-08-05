@@ -222,7 +222,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry keeps the scanned link over the one derived from the id
 - Ledger:BuildEntry falls back to the item cache's link when the move carries none
 
-### test_database.lua (42)
+### test_database.lua (43)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -250,6 +250,7 @@ badge and any count quoted in the docs must agree with it.
 - Database:Purge empties the ledger and reports the count
 - Database:PruneOld drops entries past the retention window
 - Database:PruneOld keeps everything when retention is Always (0)
+- Database:PruneOld broadcasts LedgerChanged only when a row actually went
 - Database:StorageStats reports count, span and an estimated size
 - Database:StorageStats reports a zero span for an empty ledger
 - Database:ActiveLedger prefers the test dataset when one is published
@@ -798,7 +799,7 @@ badge and any count quoted in the docs must agree with it.
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 113 |
-| test_database.lua | 42 |
+| test_database.lua | 43 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 51 |
 | test_browser.lua | 44 |
@@ -813,4 +814,4 @@ badge and any count quoted in the docs must agree with it.
 | test_mock.lua | 19 |
 | test_libka0s.lua | 60 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **723** |
+| **Total** | **724** |

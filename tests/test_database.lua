@@ -220,6 +220,29 @@ test("Database:PruneOld keeps everything when retention is Always (0)", function
   NS.db.global.settings.retentionDays = saved
 end)
 
+-- The message is the expensive part: every LedgerChanged repaints the ledger window, the session
+-- window and the Insights charts. PruneOld runs on every login, so a pass that aged nothing out
+-- used to pay for three full repaints to report that nothing had happened.
+test("Database:PruneOld broadcasts LedgerChanged only when a row actually went", function()
+  local saved = NS.db.global.settings.retentionDays
+  NS.db.global.settings.retentionDays = 30
+  local sent, savedSend = 0, NS.bus.SendMessage
+  NS.bus.SendMessage = function(self, msg, ...)
+    if msg == "Ka0s_BankLedger_LedgerChanged" then sent = sent + 1 end
+    return savedSend(self, msg, ...)
+  end
+  withLedger({ entry({ ts = MOCK_NOW }) }, function()
+    assertEqual(NS.Database:PruneOld(), 0, "nothing is old enough to drop")
+    assertEqual(sent, 0, "a prune that removed nothing must not repaint every view")
+  end)
+  withLedger({ entry({ ts = MOCK_NOW - 60 * 86400 }) }, function()
+    assertEqual(NS.Database:PruneOld(), 1)
+    assertEqual(sent, 1, "a prune that removed a row still broadcasts, exactly once")
+  end)
+  NS.bus.SendMessage = savedSend
+  NS.db.global.settings.retentionDays = saved
+end)
+
 test("Database:StorageStats reports count, span and an estimated size", function()
   local now = MOCK_NOW
   withLedger({ entry({ ts = now - 3 * 86400 }), entry({ ts = now }) }, function()

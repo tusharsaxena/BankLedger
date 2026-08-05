@@ -710,7 +710,7 @@ function L:OpenContext(context)
   L._settleSince = nil
   -- The guild bank only holds data for tabs that have been queried, so ask for all of them up
   -- front. The replies arrive asynchronously on GUILDBANKBAGSLOTS_CHANGED and reconcile normally.
-  if context == C.Store.GUILD_BANK then
+  if context == C.Context.GUILD_BANK then
     self:QueryGuildBankTabs()
     self:HookGuildBankFrame()
   end
@@ -740,7 +740,7 @@ end
 function L:OnGuildBankData()
   -- Never steal the context from a bank frame that is already open; that one has its own events.
   if not NS.State.openContext then
-    self:OpenContext(C.Store.GUILD_BANK)
+    self:OpenContext(C.Context.GUILD_BANK)
   end
   self:ScheduleReconcile()
 end

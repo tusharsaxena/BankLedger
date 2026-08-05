@@ -387,7 +387,10 @@ end
 -- Which O.AceGUI actually served the widget: with several addons loaded, the FIRST copy to load
 -- wins for all of them, so this may not be the copy this addon vendors.
 local function reportAceGUI(add)
-  local minor = LibStub and LibStub.minors and LibStub.minors["O.AceGUI-3.0"]
+  -- The registered major is `AceGUI-3.0`. The key is NOT reached through the O.AceGUI instance:
+  -- LibStub.minors is keyed by the MAJOR STRING, and a v2.17.1 dialect sweep had rewritten this
+  -- one to "O.AceGUI-3.0", a name nothing has ever registered, so the line always printed nil.
+  local minor = LibStub and LibStub.minors and LibStub.minors["AceGUI-3.0"]
   add("AceGUI=%s minor=%s", O.AceGUI and "yes" or "NO", tostring(minor))
   if O.AceGUI then
     local wv = O.AceGUI.WidgetVersions and O.AceGUI.WidgetVersions["Button"]
@@ -526,8 +529,12 @@ function P:Register()
     local ctx = O.CreatePanel("BankLedgerGeneralPanel", "General", {
       pageKey = "general",
       defaultsButton = true,
-      defaultsTooltip = "Restore every Bank Ledger setting to its default. Your recorded history "
-        .. "is never touched.",
+      -- Names the window resets too: P:RestoreDefaults calls BOTH ResetWindow()s, which clear the
+      -- stored geometry of the ledger and session windows (a storage carve-out, not a schema row)
+      -- and recenter them. A tooltip that promised only "every setting" understated the button.
+      defaultsTooltip = "Restore every Bank Ledger setting to its default, and recentre the "
+        .. "ledger and session windows at their default size. Your recorded history is never "
+        .. "touched.",
     })
     P.general = ctx
     -- Non-destructive on both routes, so it is safe behind Blizzard's own un-gated footer control.

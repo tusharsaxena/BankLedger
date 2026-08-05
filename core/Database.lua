@@ -630,7 +630,10 @@ function Database:PruneOld()
   end
   local removed = #ledger - #kept
   NS.db.global.ledger = kept
-  fireLedgerChanged()
+  -- Only when a row actually went. A retention pass runs on every login and on every retention
+  -- change, and a LedgerChanged with nothing changed repaints both windows and the Insights
+  -- charts for no reason. The `days == 0` early return above is the other half of the same rule.
+  if removed > 0 then fireLedgerChanged() end
   if NS.State.debug and NS.Debug then
     NS.Debug("Prune", "retention %sd: removed %s entries", tostring(days), tostring(removed))
   end

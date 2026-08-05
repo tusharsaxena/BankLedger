@@ -462,6 +462,23 @@ return function()
   --
   -- Wrapped rather than replaced: the base's factory does the real work, and this adds the one
   -- member on top, so a widget kind the base grows later still arrives fully formed.
+  -- Override 12. `LibStub.minors`, the PUBLIC major -> minor map the real LibStub keeps.
+  -- settings/Panel.lua's `/bl debug panel` dump reads it to name which copy of AceGUI actually
+  -- served the widgets. The kit's LibStub keeps its minors in a LOCAL and hands them back from
+  -- GetLibrary, so the field itself does not exist there and the dump could only ever print nil
+  -- headlessly — which is why that case could assert the line's SHAPE and never its value.
+  -- Seeded with the fake AceGUI's minor, because the kit installs AceGUI into __libs directly
+  -- rather than through NewLibrary, and kept current for every major that DOES register, so the
+  -- field means here what it means in the client.
+  M.ACEGUI_MINOR = 41
+  M.LibStub.minors = { ["AceGUI-3.0"] = M.ACEGUI_MINOR }
+  local baseNewLibrary = M.LibStub.NewLibrary
+  M.LibStub.NewLibrary = function(self, major, minor)
+    local lib, registered = baseNewLibrary(self, major, minor)
+    if registered then M.LibStub.minors[major] = registered end
+    return lib, registered
+  end
+
   local baseCreate = libs["AceGUI-3.0"].Create
   libs["AceGUI-3.0"].Create = function(self, wtype)
     local w = baseCreate(self, wtype)
