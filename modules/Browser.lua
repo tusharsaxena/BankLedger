@@ -14,17 +14,15 @@ local DBIcon                          -- LibDBIcon-1.0, resolved lazily in Setup
 -- and the Insights charts — over ONE shared filter bar, so both views always describe the same
 -- slice of the ledger.
 
--- Flat skin, built from stock Blizzard textures only. Centralized here as one SKIN table + one
--- ApplySkin seam so a future settings-driven re-skin has a single touch point; the debug console
--- reuses the same seam.
+-- The window CHROME this addon owns: the tab strip's two label colors and every height the
+-- layout is measured from. The window EDGE is NOT here — background, 1px black border, 1px gray
+-- inner highlight, gold title tint and gray divider are the normative Ka0s edge, and they live in
+-- Core.SKIN (standalone-windows). B:ApplySkin below delegates to Core.ApplySkin rather than
+-- restating them, so the ledger window, the session window, both export popups and the debug
+-- console cannot drift apart. The seam stays because those four reach the edge through it.
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local CHECK_MARKUP = "|TInterface\\Buttons\\UI-CheckBox-Check:0|t "
 local SKIN = {
-  bg          = { 0.06, 0.06, 0.08, 0.92 },
-  border      = { 0, 0, 0, 1 },
-  innerBorder = { 0.24, 0.24, 0.27, 0.85 },
-  divider     = { 0.24, 0.24, 0.27, 0.85 },
-  title       = { 1.0, 0.82, 0.0 },
   tabActive   = { 1.0, 0.82, 0.0 },
   tabIdle     = { 0.7, 0.7, 0.72 },
   titleBarH   = 30,
@@ -64,26 +62,17 @@ function B:ExportWidth()
   return math.max(EXPORT_MIN, (self:MinWidth() - 12) - (DROPDOWNS_W + DD_GAP))
 end
 
--- Apply the flat skin. Kept separate so a future settings panel can re-skin live.
+-- Wear the shared Ka0s window edge. Every value this used to spell out — the WHITE8x8 backdrop at
+-- edgeSize 1, the {0.06,0.06,0.08,0.92} fill, the black border, the {0.24,0.24,0.27,0.85} inner
+-- highlight and divider, the {1,0.82,0} title — is Core.SKIN, byte for byte, and Core.ApplySkin
+-- makes the same six calls in the same order, including building the inner-border child once.
+-- Delegated rather than restated so a re-skin lands on all five Ka0s windows at once.
+--
+-- NS.ApplySkin is core/CoreSetup.lua's seam: the library's on a working install, and that file's
+-- own pre-library copy when libs/LibKa0s is missing, so the window wears the same edge either
+-- way. Guarded anyway, because this is the only file that skins a frame this addon owns.
 function B:ApplySkin(f)
-  f:SetBackdrop({
-    bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-    insets = { left = 1, right = 1, top = 1, bottom = 1 },
-  })
-  f:SetBackdropColor(unpack(SKIN.bg))
-  f:SetBackdropBorderColor(unpack(SKIN.border))
-
-  if not f.innerBorder then
-    local inner = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    inner:SetPoint("TOPLEFT", 1, -1)
-    inner:SetPoint("BOTTOMRIGHT", -1, 1)
-    inner:SetBackdrop({ edgeFile = WHITE, edgeSize = 1 })
-    f.innerBorder = inner
-  end
-  f.innerBorder:SetBackdropBorderColor(unpack(SKIN.innerBorder))
-
-  if f.title then f.title:SetTextColor(unpack(SKIN.title)) end
-  if f.divider then f.divider:SetColorTexture(unpack(SKIN.divider)) end
+  if NS.ApplySkin then NS.ApplySkin(f) end
 end
 
 -- Thin × close glyph, light gray by default and the player's class color on hover. Shared by the

@@ -125,11 +125,11 @@ S.Schema = {
 -- (architecture-§5). None is a schema row, so none has a widget, a default or an onChange; check
 -- this list before writing a key under db.global directly. All four are:
 --   1. `settings.window` — the ledger window's geometry. Written by B:SaveGeometry
---      (modules/Browser.lua:132), cleared by B:ResetWindow (:164).
+--      (modules/Browser.lua:121), cleared by B:ResetWindow (:153).
 --   2. `settings.sessionWindow` — the session window's geometry. Written by SW:SaveGeometry
 --      (modules/SessionWindow.lua:256), cleared by SW:ResetWindow (:287).
 --   3. `savedView` — the account-wide column/sort baseline. Written by B:SaveView
---      (modules/Browser.lua:917), cleared by B:ResetView (:925).
+--      (modules/Browser.lua:906), cleared by B:ResetView (:914).
 --   4. `blacklist` / `whitelist` — the filter id-sets, copy-on-write in modules/Filters.lua:81,
 --      :83, :95, :112, :122-123, which then calls Database:FireLedgerChanged itself.
 
