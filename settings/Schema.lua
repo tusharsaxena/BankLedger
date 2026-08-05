@@ -121,8 +121,17 @@ S.Schema = {
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
 -- console WINDOW's visibility IS the `state.debugConsole` row above.
--- NOTE: `settings.window` (geometry) and the blacklist/whitelist id-sets are storage carve-outs,
--- mutated by their owning modules rather than through Schema:Set (architecture-§5).
+-- NOTE: four storage carve-outs are mutated by their owning module rather than through Schema:Set
+-- (architecture-§5). None is a schema row, so none has a widget, a default or an onChange; check
+-- this list before writing a key under db.global directly. All four are:
+--   1. `settings.window` — the ledger window's geometry. Written by B:SaveGeometry
+--      (modules/Browser.lua:132), cleared by B:ResetWindow (:164).
+--   2. `settings.sessionWindow` — the session window's geometry. Written by SW:SaveGeometry
+--      (modules/SessionWindow.lua:256), cleared by SW:ResetWindow (:287).
+--   3. `savedView` — the account-wide column/sort baseline. Written by B:SaveView
+--      (modules/Browser.lua:917), cleared by B:ResetView (:925).
+--   4. `blacklist` / `whitelist` — the filter id-sets, copy-on-write in modules/Filters.lua:81,
+--      :83, :95, :112, :122-123, which then calls Database:FireLedgerChanged itself.
 
 function S:FindRow(path)
   for _, row in ipairs(S.Schema) do
