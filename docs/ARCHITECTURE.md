@@ -569,16 +569,19 @@ visible hitch.
 
 Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
 
-- **All defaults live in `defaults/Global.lua`; there is no `defaults/Profile.lua`.**
-  `savedvariables-§2` names `defaults/Profile.lua` as the required home for defaults, and
-  `layout-§1` lists it in the tree. Bank Ledger is **account-wide by design** — you deposit on one
-  character and withdraw on another, so a per-character profile would split the very history the
-  addon exists to join up. `NS.defaults` therefore carries a `global` table only, and every schema
-  path resolves against `NS.db.global`. AceDB still creates the profile namespace (the addon calls
-  `AceDB:New("BankLedgerDB", NS.defaults, true)`); it is simply unused.
-  **Why not an empty `Profile.lua`:** a defaults file nothing reads would satisfy the filename while
-  weakening `savedvariables-§2`'s real invariant — that there is exactly *one* place a default value
-  is hardcoded — by standing up a second candidate home for it.
+**This table is the register, and it is the only place a deviation is ratified.** A departure that
+is argued for somewhere else — a code comment, a `docs/pending/LEDGER.md` row — but has no row here
+is *not* ratified, and an audit is right to file it. Every row names the rule it departs from as a
+`filename-§N` reference, the date it was decided, and the **condition that ends it**: a deviation
+with no re-check trigger is a permanent exemption granted by accident.
+
+| Rule | What differs | Why | Decided | Re-check trigger |
+|---|---|---|---|---|
+| `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. |
+
+Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
+namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — it is simply unused, so
+the switch to a per-profile setting is a defaults-file addition rather than a database migration.
 
 ## Mono font outside the debug console
 
