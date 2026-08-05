@@ -122,15 +122,19 @@ install and verification commands in the root [`DEPENDENCIES.md`](../DEPENDENCIE
 
 ```
 tests/
-  _kit/              -- VENDORED from LibKa0s (testkit/). Never edited here — see The vendor gate.
-    framework.lua    --   the registry, the assertions, the runner and the --list renderer
-    loader.lua       --   loadfile + setfenv over the mock env, and Loader.tocFiles
-    mock_base.lua    --   the universal half of the WoW-API mock, shared across the collection
+  _kit/                    -- VENDORED from LibKa0s (testkit/). Never edited here — see The vendor gate.
+    framework.lua          --   the registry, the assertions, the runner and the --list renderer
+    loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
+    mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
+    vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
+    run-automated-tests.sh --   the consolidated four-suite runner and bundle writer
     README.md
-  run.lua            -- the load list, the lifecycle kick and the suite list — nothing else
-  wow_mock.lua       -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
-  test_<module>.lua  -- one suite per module
-  test_harness.lua   -- the harness's own guard rail (suite list, TOC order)
+  run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
+  wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
+  test_<module>.lua        -- one suite per module
+  test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
+  test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
+                           --   unchanged, so docs/test-cases.md counts the same two cases
 ```
 
 - `run.lua` builds the addon environment once by loading every source **in TOC order** — derived
