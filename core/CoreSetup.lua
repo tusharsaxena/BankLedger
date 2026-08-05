@@ -16,9 +16,9 @@ local Util = NS.Util
 --     above it keeps "the printer exists before anything else in core/ runs" true by position.
 --   * BEFORE core/BankLedger.lua — the AceConsole embed there clobbers NS.Print and reclaims it from
 --     NS.Util.print, so NS.Util.print must already hold the real printer by then.
---   * BEFORE modules/LedgerTable.lua, modules/DebugLog.lua, settings/Schema.lua, settings/Slash.lua
---     and settings/Panel.lua — all five take the printer as a `local print = NS.Print` FILE-SCOPE
---     UPVALUE. A seam that landed after any of them would swap the printer for a copy nobody reads,
+--   * BEFORE modules/Browser.lua, modules/LedgerTable.lua, modules/DebugLog.lua, settings/Schema.lua,
+--     settings/Slash.lua and settings/Panel.lua — all six take the printer as a
+--     `local print = NS.Print` FILE-SCOPE UPVALUE. A seam that landed after any of them would swap the printer for a copy nobody reads,
 --     and the change would appear to work while doing nothing.
 -- tests/test_toc.lua pins every one of those orderings against the shipped TOC.
 
@@ -35,7 +35,7 @@ local lib = LibStub and LibStub("LibKa0s-Core-1.0", true)
 
 if not lib then
   -- A missing vendored lib must degrade, not error at load. Silence is not an option the way it is
-  -- for a diagnostics harness: five files do `local print = NS.Print` at load, so a nil printer
+  -- for a diagnostics harness: six files do `local print = NS.Print` at load, so a nil printer
   -- takes the settings UI and the ledger window down with it, and a no-op one makes `/bl` answer
   -- nothing at all. So the fallbacks WORK — they are the pre-library implementations, kept short —
   -- and the honest "it is not installed" line is said ONCE, on the first line the addon prints,

@@ -2,6 +2,7 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 NS.Browser = NS.Browser or {}
 local B = NS.Browser
 local C = NS.Constants
+local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 local frame
 
 local LDB_NAME = "Ka0s Bank Ledger"   -- LibDataBroker object + LibDBIcon registration key
