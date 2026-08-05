@@ -169,26 +169,6 @@ function Compat.ItemIDFromLink(link)
   return tonumber(link:match("|?H?item:(%d+)"))
 end
 
--- Reverse map of item-quality color hex (rrggbb) → quality id, for the uncached fallback.
-local qualityByHex
-local function buildQualityByHex()
-  qualityByHex = {}
-  if type(ITEM_QUALITY_COLORS) == "table" then
-    for q = 0, 8 do
-      local c = ITEM_QUALITY_COLORS[q]
-      if c and c.hex then qualityByHex[c.hex:sub(-6)] = q end
-    end
-  end
-end
-
-function Compat.QualityFromLink(link)
-  if type(link) ~= "string" then return nil end
-  local hex = link:match("|c%x%x(%x%x%x%x%x%x)")
-  if not hex then return nil end
-  if not qualityByHex then buildQualityByHex() end
-  return qualityByHex[hex]
-end
-
 -- Localized quality label (Poor/Common/…). Falls back to a static English map headlessly and for
 -- unknown ids. Matches on the *id*, never a localized string (localization-§4).
 local QUALITY_LABEL_EN = {

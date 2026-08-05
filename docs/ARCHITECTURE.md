@@ -127,7 +127,7 @@ breaks one of these is red rather than silent.
 
 ### The `Compat` surface
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 20 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 19 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
@@ -136,7 +136,7 @@ in four groups. It shims **cross-patch** differences, never game flavors (Retail
 | Metadata / player | `GetAddOnMetadata`, `GetPlayerMapID`, `GetZone`, `GetGuildName` |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
-| Items | `ItemIDFromLink`, `QualityFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |
+| Items | `ItemIDFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |
 
 ### Locale seam
 

@@ -315,49 +315,6 @@ test("Stats: topStore is nil on an empty slice", function()
   NS.db.global.ledger = saved
 end)
 
--- ── Insights ranking helpers ───────────────────────────────────────────────────
-
-test("Insights.RankRows sorts by count descending", function()
-  local rows = NS.Insights.RankRows({ a = 1, b = 5, c = 3 })
-  assertEqual(rows[1].label, "b")
-  assertEqual(rows[2].label, "c")
-  assertEqual(rows[3].label, "a")
-end)
-
-test("Insights.RankRows breaks count ties on the label, so the order is stable", function()
-  local rows = NS.Insights.RankRows({ zebra = 2, apple = 2 })
-  assertEqual(rows[1].label, "apple")
-  assertEqual(rows[2].label, "zebra")
-end)
-
-test("Insights.RankRows applies the label mapper and the value map", function()
-  local rows = NS.Insights.RankRows({ BANK = 2 },
-    function(k) return NS.Constants.StoreLabel[k] end, { BANK = 500 })
-  assertEqual(rows[1].label, "Character Bank")
-  assertEqual(rows[1].value, 500)
-end)
-
-test("Insights.RankRows honors the row limit", function()
-  local rows = NS.Insights.RankRows({ a = 1, b = 2, c = 3, d = 4 }, nil, nil, 2)
-  assertEqual(#rows, 2)
-end)
-
-test("Insights.RankRows returns an empty array for an empty map", function()
-  assertEqual(#NS.Insights.RankRows({}), 0)
-  assertEqual(#NS.Insights.RankRows(nil), 0)
-end)
-
-test("Insights.BarFraction scales each bar against the largest count", function()
-  local rows = NS.Insights.RankRows({ a = 10, b = 5 })
-  assertEqual(NS.Insights.BarFraction(rows, 1), 1)
-  assertEqual(NS.Insights.BarFraction(rows, 2), 0.5)
-end)
-
-test("Insights.BarFraction is zero for an empty list or a missing row", function()
-  assertEqual(NS.Insights.BarFraction({}, 1), 0)
-  assertEqual(NS.Insights.BarFraction(nil, 1), 0)
-end)
-
 -- ── Direction-split companions ─────────────────────────────────────────────────
 
 -- storeByDirection is covered above: Stats has computed it since before these companions

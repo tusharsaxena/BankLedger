@@ -267,7 +267,7 @@ badge and any count quoted in the docs must agree with it.
 - Database: a fresh database needs no migration
 - Database: an older database is migrated up to the current version
 
-### test_stats.lua (59)
+### test_stats.lua (52)
 
 - Stats: the entry total counts every movement in scope
 - Stats: item quantities split by direction
@@ -309,13 +309,6 @@ badge and any count quoted in the docs must agree with it.
 - Stats: itemsMoved totals every stack unit that crossed the line
 - Stats: topStore names the store with the most movements
 - Stats: topStore is nil on an empty slice
-- Insights.RankRows sorts by count descending
-- Insights.RankRows breaks count ties on the label, so the order is stable
-- Insights.RankRows applies the label mapper and the value map
-- Insights.RankRows honors the row limit
-- Insights.RankRows returns an empty array for an empty map
-- Insights.BarFraction scales each bar against the largest count
-- Insights.BarFraction is zero for an empty list or a missing row
 - Stats: qualityByDirection is keyed on the numeric quality id
 - Stats: itemTypeByDirection and itemSubTypeByDirection split by direction
 - Stats: the direction split always sums back to its parent breakdown
@@ -806,7 +799,7 @@ badge and any count quoted in the docs must agree with it.
 | test_filters.lua | 15 |
 | test_ledger.lua | 113 |
 | test_database.lua | 42 |
-| test_stats.lua | 59 |
+| test_stats.lua | 52 |
 | test_ledgertable.lua | 51 |
 | test_browser.lua | 44 |
 | test_sessionwindow.lua | 32 |
@@ -820,4 +813,4 @@ badge and any count quoted in the docs must agree with it.
 | test_mock.lua | 19 |
 | test_libka0s.lua | 60 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **730** |
+| **Total** | **723** |
