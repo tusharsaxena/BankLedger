@@ -22,7 +22,7 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   `.pkgmeta:3`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
   player happens to have one; it never means the player must install anything.
 - LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:29`),
-  v1.7.0 per `README.md:11`.
+  v1.8.0 per `README.md:11`.
 - The bundled JetBrains Mono font (`media/fonts/JetBrainsMono-Regular.ttf`) and the logo art under
   `media/logos/` are **assets, not dependencies**: they ship in the package and need no tooling to
   use.
