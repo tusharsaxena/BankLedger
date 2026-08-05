@@ -157,6 +157,10 @@ end
 -- prune). Drop any session row that no longer exists, so this view can never outlive its data.
 function SW:PruneMissing()
   if SW.previewSession then return 0 end
+  -- Nothing on the session list means nothing to prune, and the presence set below walks the
+  -- WHOLE stored ledger to build it. Checked first, so the common case (no session open, or an
+  -- open one that has recorded nothing yet) costs one length test instead of a full walk.
+  if #self:Entries() == 0 then return 0 end
   local present = {}
   for _, e in ipairs((NS.Database and NS.Database:Ledger()) or {}) do present[e] = true end
   local kept, dropped = {}, 0

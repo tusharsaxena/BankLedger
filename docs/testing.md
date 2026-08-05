@@ -66,23 +66,32 @@ tests/_kit/run-automated-tests.sh --suite complexity          # a subset
 tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the green gate; writes nothing
 ```
 
-| Suite | Command | Gates? |
-|---|---|---|
-| `lint` | `luacheck .` | **yes** |
-| `tests` | `lua tests/run.lua` | **yes** |
-| `perf` | `lua tests/perf.lua` | no — recorded only |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
+| Suite | Command | Gates the run and the commit? | Gates the tag? |
+|---|---|---|---|
+| `lint` | `luacheck .` | **yes** (`testing-§4`) | **yes** |
+| `tests` | `lua tests/run.lua` | **yes** (`testing-§4`) | **yes** |
+| `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
-**`perf` and `complexity` never fail a run.** They are measured, recorded and diffed — a threshold
-that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects nothing
-and the habit remains. They contribute `amber`, which is a signal rather than a stop. **A missing
-tool is a skip recorded with its reason**, never a pass.
+**There are two checkpoints, and a suite's answer differs between them** — a verdict quoted without
+its checkpoint is the half-truth this table exists to end (`automated-tests-§3`, *The release gate*;
+`testing-§6`).
+
+**`perf` and `complexity` never fail a run and never block a commit.** They are measured, recorded
+and diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which
+the gate protects nothing and the habit remains. They contribute `amber`, which is a signal rather
+than a stop. **A missing tool is a skip recorded with its reason**, never a pass.
+
+**The tag is gated on all four suites at `pass`, plus zero functions above CCN 15**, evaluated by
+`/wow-addon:bump-version` from the release run's `manifest.json` — not by the runner, whose exit code
+is unchanged. A `skip` there is **not evaluated** rather than passed: install the tool and re-run.
 
 The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
 upstream and is re-vendored.
 
 **At release, not at commit.** A full bundle is produced as part of every version bump, before the
-tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only.
+tag, with an `ANALYSIS.md` write-up. **Commits** are gated on lint + tests only; the **tag** is
+gated on all four, which is the whole reason the release run produces a bundle.
 
 Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
 four suites plus the current complexity watch list — **one file, overwritten in place**, so its git
@@ -113,15 +122,19 @@ install and verification commands in the root [`DEPENDENCIES.md`](../DEPENDENCIE
 
 ```
 tests/
-  _kit/              -- VENDORED from LibKa0s (testkit/). Never edited here — see The vendor gate.
-    framework.lua    --   the registry, the assertions, the runner and the --list renderer
-    loader.lua       --   loadfile + setfenv over the mock env, and Loader.tocFiles
-    mock_base.lua    --   the universal half of the WoW-API mock, shared across the collection
+  _kit/                    -- VENDORED from LibKa0s (testkit/). Never edited here — see The vendor gate.
+    framework.lua          --   the registry, the assertions, the runner and the --list renderer
+    loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
+    mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
+    vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
+    run-automated-tests.sh --   the consolidated four-suite runner and bundle writer
     README.md
-  run.lua            -- the load list, the lifecycle kick and the suite list — nothing else
-  wow_mock.lua       -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
-  test_<module>.lua  -- one suite per module
-  test_harness.lua   -- the harness's own guard rail (suite list, TOC order)
+  run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
+  wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
+  test_<module>.lua        -- one suite per module
+  test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
+  test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
+                           --   unchanged, so docs/test-cases.md counts the same two cases
 ```
 
 - `run.lua` builds the addon environment once by loading every source **in TOC order** — derived

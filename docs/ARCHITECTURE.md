@@ -87,7 +87,7 @@ warband movement, because no event announces one.
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
 | `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
-| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin`, resolved through `NS.Browser` at call time — which is what lets a `core/` file reach a `modules/` member without inverting the load order — so the console keeps tracking `modules/Browser.lua`'s own re-skin seam. It passes **no** `makeCloseButton`: the window **edge** is shared across every Ka0s window now (`Core.SKIN` carries it, and this addon's `SKIN` agrees with it value for value), but the **close control on a library-drawn window is the library's**, so the console and the copy window wear Core's thin 18×18 × while the ledger window keeps its own 24×24 class-colored glyph (standalone-windows-§2). Degrades to a stub answering every member `/bl debug` reaches. |
+| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin`, resolved through `NS.Browser` at call time — which is what lets a `core/` file reach a `modules/` member without inverting the load order — so the console keeps tracking `modules/Browser.lua`'s own re-skin seam. It passes **no** `makeCloseButton`: the window **edge** is shared across every Ka0s window now (`Core.SKIN` carries it, and this addon's `SKIN` agrees with it value for value), but the **close control on a library-drawn window is the library's**, so the console and the copy window wear Core's thin 18×18 × while the ledger window keeps its own 24×24 class-colored glyph (standalone-windows). Degrades to a stub answering every member `/bl debug` reaches. |
 | `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
 | `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
 | `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
@@ -103,7 +103,7 @@ warband movement, because no event announces one.
 | `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label math. Knows nothing about ledger entries. |
 | `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which color and order. |
 | `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
-| `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. `S:Set` is the **single write seam**: it validates, writes, emits the one debug trace, runs the row's `onChange`, and repaints an open settings panel (options-ui-§41) — so a slash write and a panel widget take exactly the same path. |
+| `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. `S:Set` is the **single write seam**: it validates, writes, emits the one debug trace, runs the row's `onChange`, and repaints an open settings panel (options-ui-§1, options-ui-§11) — so a slash write and a panel widget take exactly the same path. |
 | `settings/Slash.lua` | The **LibKa0s-Slash-1.0 seam**, plus what stays the host's: AceConsole registration, the five confirm dialogs, `Sl:Version`, and the full reset. The dispatcher, the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's. Supplies `groupKey` (this schema groups by `group`, not `page`), a `format` hook for the set-typed `excludedStores` row, and a `parse` override that refuses a chat edit of that row by name. Wraps `CliResetAll` so the two carve-outs with no Schema widget — the filter lists and the saved ledger view — are still reset. |
 | `settings/OptionsSetup.lua` | The **LibKa0s-Options-1.0 seam**. `NS.Helpers` IS the library instance (options-ui-§1), not a wrapper — `settings/Panel.lua` decorates it in place. Supplies the schema seams through `NS.Schema:Set`, so a panel widget takes exactly the path `/bl set` takes. Degrades LOAD-COMPLETING rather than member-answering, with a measured load-time member set of zero. |
 | `settings/Panel.lua` | What did **not** generalize: the inverted store grid, the Storage section, the whole Filters page, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer. Registers three pages with the library and lets it own the shell, the makers, the flow engine and the render timing. |
@@ -127,7 +127,7 @@ breaks one of these is red rather than silent.
 
 ### The `Compat` surface
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 20 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 19 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
@@ -136,7 +136,7 @@ in four groups. It shims **cross-patch** differences, never game flavors (Retail
 | Metadata / player | `GetAddOnMetadata`, `GetPlayerMapID`, `GetZone`, `GetGuildName` |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
-| Items | `ItemIDFromLink`, `QualityFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |
+| Items | `ItemIDFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |
 
 ### Locale seam
 
@@ -390,7 +390,7 @@ synthesized just inside it, the gold title and the gray divider, and the `SKIN` 
 with it value for value. The descriptor still passes `applySkin`, so the console follows
 `modules/Browser.lua` if that skin is ever retuned. What it does **not** pass is a close-button
 factory: those two windows close with Core's thin 18×18 ×, not the 24×24 class-colored glyph the
-ledger and session windows use. `standalone-windows-§2` draws the line there — the edge is shared
+ledger and session windows use. `standalone-windows` draws the line there — the edge is shared
 across every Ka0s window, the close control on a library-drawn window belongs to the library — and
 the point of it is that a user comparing two Ka0s consoles side by side sees one collection's
 diagnostics surface, not five different ones.
@@ -569,16 +569,20 @@ visible hitch.
 
 Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
 
-- **All defaults live in `defaults/Global.lua`; there is no `defaults/Profile.lua`.**
-  `savedvariables-§2` names `defaults/Profile.lua` as the required home for defaults, and
-  `layout-§1` lists it in the tree. Bank Ledger is **account-wide by design** — you deposit on one
-  character and withdraw on another, so a per-character profile would split the very history the
-  addon exists to join up. `NS.defaults` therefore carries a `global` table only, and every schema
-  path resolves against `NS.db.global`. AceDB still creates the profile namespace (the addon calls
-  `AceDB:New("BankLedgerDB", NS.defaults, true)`); it is simply unused.
-  **Why not an empty `Profile.lua`:** a defaults file nothing reads would satisfy the filename while
-  weakening `savedvariables-§2`'s real invariant — that there is exactly *one* place a default value
-  is hardcoded — by standing up a second candidate home for it.
+**This table is the register, and it is the only place a deviation is ratified.** A departure that
+is argued for somewhere else — a code comment, a `docs/pending/LEDGER.md` row — but has no row here
+is *not* ratified, and an audit is right to file it. Every row names the rule it departs from as a
+`filename-§N` reference, the date it was decided, and the **condition that ends it**: a deviation
+with no re-check trigger is a permanent exemption granted by accident.
+
+| Rule | What differs | Why | Decided | Re-check trigger |
+|---|---|---|---|---|
+| `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-runs/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and the three events that *can* fire in combat do a single `NS.State.openContext` nil check and return. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length as `LIBKA0S-17` in `docs/pending/LEDGER.md`; ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. |
+| `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. |
+
+Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
+namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — it is simply unused, so
+the switch to a per-profile setting is a defaults-file addition rather than a database migration.
 
 ## Mono font outside the debug console
 

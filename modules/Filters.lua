@@ -37,11 +37,15 @@ end
 function F:Blacklist() return currentSet("blacklist") end
 function F:Whitelist() return currentSet("whitelist") end
 
+-- Membership predicates. No production caller — the capture path reads the cached list upvalues in
+-- modules/Ledger.lua rather than querying per id. Exported as the tested seam for a list's meaning
+-- (tests/test_filters.lua:14, :29, :30, :44), and the read half of the Add*/Remove* API.
 function F:IsBlacklisted(id)
   id = tonumber(id)
   return id ~= nil and currentSet("blacklist")[id] == true
 end
 
+-- No production caller; see F:IsBlacklisted above (tests/test_filters.lua:29).
 function F:IsWhitelisted(id)
   id = tonumber(id)
   return id ~= nil and currentSet("whitelist")[id] == true

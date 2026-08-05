@@ -16,9 +16,9 @@ local Util = NS.Util
 --     above it keeps "the printer exists before anything else in core/ runs" true by position.
 --   * BEFORE core/BankLedger.lua — the AceConsole embed there clobbers NS.Print and reclaims it from
 --     NS.Util.print, so NS.Util.print must already hold the real printer by then.
---   * BEFORE modules/LedgerTable.lua, modules/DebugLog.lua, settings/Schema.lua, settings/Slash.lua
---     and settings/Panel.lua — all five take the printer as a `local print = NS.Print` FILE-SCOPE
---     UPVALUE. A seam that landed after any of them would swap the printer for a copy nobody reads,
+--   * BEFORE modules/Browser.lua, modules/LedgerTable.lua, modules/DebugLog.lua, settings/Schema.lua,
+--     settings/Slash.lua and settings/Panel.lua — all six take the printer as a
+--     `local print = NS.Print` FILE-SCOPE UPVALUE. A seam that landed after any of them would swap the printer for a copy nobody reads,
 --     and the change would appear to work while doing nothing.
 -- tests/test_toc.lua pins every one of those orderings against the shipped TOC.
 
@@ -35,7 +35,7 @@ local lib = LibStub and LibStub("LibKa0s-Core-1.0", true)
 
 if not lib then
   -- A missing vendored lib must degrade, not error at load. Silence is not an option the way it is
-  -- for a diagnostics harness: five files do `local print = NS.Print` at load, so a nil printer
+  -- for a diagnostics harness: six files do `local print = NS.Print` at load, so a nil printer
   -- takes the settings UI and the ledger window down with it, and a no-op one makes `/bl` answer
   -- nothing at all. So the fallbacks WORK — they are the pre-library implementations, kept short —
   -- and the honest "it is not installed" line is said ONCE, on the first line the addon prints,
@@ -69,9 +69,44 @@ if not lib then
     end
     DEFAULT_CHAT_FRAME:AddMessage(NS.PREFIX .. " " .. table.concat(parts, " "))
   end
+  -- The pre-library window edge, kept in THIS branch rather than in modules/Browser.lua. The live
+  -- definition is Core.SKIN applied by Core.ApplySkin, and a host copy on the path where the
+  -- library IS present is exactly the copy that drifts (standalone-windows). This one runs only
+  -- when the library is absent, and it is byte-for-byte the skin modules/Browser.lua applied
+  -- before the seam existed, so a degraded install's windows look like a working one's.
+  local WHITE = "Interface\\Buttons\\WHITE8X8"
+  function NS.ApplySkin(f)
+    if not (f and f.SetBackdrop) then return end
+    f:SetBackdrop({
+      bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
+      insets = { left = 1, right = 1, top = 1, bottom = 1 },
+    })
+    f:SetBackdropColor(0.06, 0.06, 0.08, 0.92)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
+    if type(f.innerBorder) ~= "table" and type(CreateFrame) == "function" then
+      local inner = CreateFrame("Frame", nil, f, "BackdropTemplate")
+      inner:SetPoint("TOPLEFT", 1, -1)
+      inner:SetPoint("BOTTOMRIGHT", -1, 1)
+      inner:SetBackdrop({ edgeFile = WHITE, edgeSize = 1 })
+      f.innerBorder = inner
+    end
+    if type(f.innerBorder) == "table" then
+      f.innerBorder:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.85)
+    end
+    if f.title then f.title:SetTextColor(1.0, 0.82, 0.0) end
+    if f.divider then f.divider:SetColorTexture(0.24, 0.24, 0.27, 0.85) end
+  end
+
   Util.print = NS.Print
   return
 end
+
+-- The shared Ka0s window edge (standalone-windows). modules/Browser.lua's ApplySkin seam — the
+-- one every window in this addon reaches the edge through — delegates here rather than
+-- restating Core.SKIN's values, so a re-skin lands on all five Ka0s windows at once. Published
+-- as a flat NS member for the same reason NS.SafeToString is: the fallback branch owes the
+-- caller the same name.
+NS.ApplySkin = lib.ApplySkin
 
 NS.IsConcatSafe = lib.IsConcatSafe
 NS.SafeToString = lib.SafeToString

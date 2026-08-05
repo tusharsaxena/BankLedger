@@ -121,8 +121,17 @@ S.Schema = {
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
 -- console WINDOW's visibility IS the `state.debugConsole` row above.
--- NOTE: `settings.window` (geometry) and the blacklist/whitelist id-sets are storage carve-outs,
--- mutated by their owning modules rather than through Schema:Set (architecture-§5).
+-- NOTE: four storage carve-outs are mutated by their owning module rather than through Schema:Set
+-- (architecture-§5). None is a schema row, so none has a widget, a default or an onChange; check
+-- this list before writing a key under db.global directly. All four are:
+--   1. `settings.window` — the ledger window's geometry. Written by B:SaveGeometry
+--      (modules/Browser.lua:121), cleared by B:ResetWindow (:153).
+--   2. `settings.sessionWindow` — the session window's geometry. Written by SW:SaveGeometry
+--      (modules/SessionWindow.lua:256), cleared by SW:ResetWindow (:287).
+--   3. `savedView` — the account-wide column/sort baseline. Written by B:SaveView
+--      (modules/Browser.lua:906), cleared by B:ResetView (:914).
+--   4. `blacklist` / `whitelist` — the filter id-sets, copy-on-write in modules/Filters.lua:81,
+--      :83, :95, :112, :122-123, which then calls Database:FireLedgerChanged itself.
 
 function S:FindRow(path)
   for _, row in ipairs(S.Schema) do
@@ -181,7 +190,7 @@ function S:Set(path, value)
   end
   if row.onChange then row.onChange(value) end
   -- An open panel MUST reflect live state after a mutation (options-ui-§11), and the write seam is
-  -- where that belongs: this is "the same function /bl set calls" (options-ui-§41), so a slash
+  -- where that belongs: this is "the same function /bl set calls" (options-ui-§1), so a slash
   -- write, a panel widget and any future caller all repaint by the same route. It used to be
   -- nowhere, so `/bl set` with the settings window open left every widget showing the old value
   -- until the window was closed and reopened.

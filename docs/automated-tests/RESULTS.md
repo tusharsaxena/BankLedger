@@ -6,9 +6,17 @@
 One row per run. The frozen evidence for each is in the dated folder beside this file;
 the analysis of a given run is its `ANALYSIS.md`.
 
-**`lint` and `tests` gate. `perf` and `complexity` are recorded and never fail a run** —
-they are read and compared, not thresholded. A `skip` is a suite that did not run at all,
-which is never the same as a pass.
+**`lint` and `tests` gate the run and gate the commit** (`testing-§4`).
+**`perf` and `complexity` never fail a run and never block a commit** — they are recorded,
+read and compared, not thresholded (`performance-§9`, `performance-§10`).
+
+**The tag is gated on all four suites at `pass`, plus zero functions above CCN 15**
+(`automated-tests-§3`, *The release gate*), evaluated by `/wow-addon:bump-version` from the
+`manifest.json` the release run writes — not by this script, whose exit code is unchanged.
+
+A `skip` is a suite that did not run at all. It is never a pass, and at the release gate it is
+**NOT EVALUATED** rather than passed: install the tool and re-run. A `—` is a suite that was
+not selected, which is a different fact again.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -40,7 +48,7 @@ Clean over 24 files: 0 warnings, 0 errors. `luacheck .` runs over the addon's ow
 
 ## Perf
 
-This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather than a transient tooling gap. Two things follow, and both are standing facts rather than this run's news: the record says **nothing** about the addon's runtime cost, and `performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is off — does not exist for it. There is no `docs/perf-runs/` store either, for the same reason. The missing runner is tracked as `BL-16` in `docs/audits/2026-08-04/02_DEVIATIONS.md`; the missing `docs/performance.md` and `docs/perf-runs/README.md` are `BL-15` in the same file. Adding `tests/perf.lua` scenarios is the only thing that changes this column. A `skip` is never a pass — this column records that the suite did not run, not that it ran clean.
+This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather than a transient tooling gap — and that absence is now a **ratified state, not a gap**. BankLedger holds a recorded `performance-§12` no-combat-path exemption: the register row is in [`../ARCHITECTURE.md`](../ARCHITECTURE.md#documented-deviations) and the whole-repo sweep that earns it is [`../performance.md`](../performance.md), which is why there is no `tests/perf.lua`, no `perf` verb registration and no `docs/perf-runs/` store. Two things still follow, and both are standing facts rather than this run's news: the record says **nothing** about the addon's in-combat runtime cost, and `performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is off — does not exist for it. (The older framing of these as gaps, `BL-15` and `BL-16` in `docs/audits/2026-08-04/02_DEVIATIONS.md`, is superseded by the exemption; that bundle stands as frozen evidence of what was true when it was written.) The reason to name for this column is now the exemption, not the bare absence of the file. A `skip` is never a pass — this column records that the suite did not run, not that it ran clean.
 
 ## Complexity watch list
 

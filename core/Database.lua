@@ -547,7 +547,9 @@ function Database:FireLedgerChanged()
   fireLedgerChanged()
 end
 
--- Delete a single entry by index (from the table's right-click menu). Compacts the array.
+-- Delete a single entry by index. Compacts the array. No production caller: the table's row menu
+-- deletes by identity through Database:Delete (modules/LedgerTable.lua:1005). Exported as the
+-- index-delete seam the tests use to undo a recorded row (tests/test_ledger.lua:572).
 function Database:DeleteAt(index)
   local ledger = NS.db.global.ledger
   if type(index) ~= "number" or index < 1 or index > #ledger then return false end
@@ -628,7 +630,10 @@ function Database:PruneOld()
   end
   local removed = #ledger - #kept
   NS.db.global.ledger = kept
-  fireLedgerChanged()
+  -- Only when a row actually went. A retention pass runs on every login and on every retention
+  -- change, and a LedgerChanged with nothing changed repaints both windows and the Insights
+  -- charts for no reason. The `days == 0` early return above is the other half of the same rule.
+  if removed > 0 then fireLedgerChanged() end
   if NS.State.debug and NS.Debug then
     NS.Debug("Prune", "retention %sd: removed %s entries", tostring(days), tostring(removed))
   end

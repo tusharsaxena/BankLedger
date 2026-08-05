@@ -172,7 +172,7 @@ end)
 
 test("Panel: Batch unwinds its depth on the error path", function()
   -- Latched above zero, the panel silently stops refreshing for the rest of the session and only
-  -- /reload recovers it (options-ui-§189 makes the same point about a re-entrancy guard).
+  -- /reload recovers it (options-ui-§11 makes the same point about a re-entrancy guard).
   local page = fakePage(true)
   local ok = pcall(function() P:Batch(function() error("boom") end) end)
   assertTrue(not ok, "Batch must re-raise")
@@ -457,9 +457,14 @@ test("Panel:Diagnose dumps the frame, its parent chain and every scrap of its ar
 
   withDefaultsBtn({ type = "Button", frame = f }, function()
     local out = P:Diagnose()
-    -- The AceGUI preamble depends on which copy of the library actually loaded, so it is matched by
-    -- shape; everything from the button down is asserted verbatim.
-    assertTrue(out[1]:find("^AceGUI=") ~= nil, "line 1 names the serving AceGUI: " .. out[1])
+    -- The AceGUI preamble is asserted by VALUE, not by shape. Read as `LibStub.minors[<major>]`,
+    -- it printed `minor=nil` for as long as the key was misspelled, and a `^AceGUI=` match was
+    -- happy with that. The mock publishes the minor it registered (tests/wow_mock.lua,
+    -- override 12), so the line has one correct rendering and this compares against it.
+    local minor = mocks.LibStub.minors["AceGUI-3.0"]
+    assertTrue(minor ~= nil, "the mock records no AceGUI minor — this case would assert nil")
+    assertEqual(out[1], ("AceGUI=yes minor=%s"):format(tostring(minor)),
+      "line 1 names the serving AceGUI and its minor")
     local tail = {}
     for i = 1, #out do
       if out[i]:find("^defaultsBtn ") then

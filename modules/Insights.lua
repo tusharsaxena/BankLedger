@@ -23,38 +23,7 @@ local CARD_COLS = 4
 local CARD_GAP, PAD = 8, 8
 local EM_DASH = "\226\128\148"
 
--- ── Pure ranking helpers (unit-tested) ─────────────────────────────────────────
-
--- A count map → an array of { key, label, count, value } sorted count-desc, then label-asc so the
--- order is deterministic when counts tie. `limit` truncates (nil = keep everything).
-function I.RankRows(map, labelOf, valueMap, limit)
-  local rows = {}
-  for key, count in pairs(map or {}) do
-    rows[#rows + 1] = {
-      key = key,
-      label = labelOf and labelOf(key) or tostring(key),
-      count = count,
-      value = valueMap and valueMap[key] or nil,
-    }
-  end
-  table.sort(rows, function(a, b)
-    if a.count ~= b.count then return a.count > b.count end
-    return tostring(a.label) < tostring(b.label)
-  end)
-  if limit and #rows > limit then
-    for i = #rows, limit + 1, -1 do rows[i] = nil end
-  end
-  return rows
-end
-
--- The fraction (0..1) a row's count is of the largest count in the list — the bar fill. An empty
--- list, or one whose top count is 0, yields 0 rather than dividing by zero.
-function I.BarFraction(rows, index)
-  local top = rows and rows[1] and rows[1].count or 0
-  local row = rows and rows[index]
-  if not row or top <= 0 then return 0 end
-  return row.count / top
-end
+-- ── Pure label / tooltip helpers (unit-tested) ────────────────────────────────
 
 -- A bar's final label string. `icon` is markup (a |T...|t texture escape) and is emitted WHOLE:
 -- W.Truncate cuts on BYTES, so a cut that lands inside the escape breaks it and WoW renders the
