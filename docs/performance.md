@@ -46,9 +46,9 @@ nothing — and **no repeating ticker**: no `C_Timer.NewTicker`, no `ScheduleRep
 timer above is a one-shot.
 
 The whole capture engine hangs off one gate: `NS.State.openContext`, set only by a bank or
-guild-bank frame opening. The reasoning was first written up in `docs/pending/LEDGER.md`,
-**LIBKA0S-17**, when `LibKa0s-Perf-1.0` was declined; that row is the argument, and the register row
-is the ratification.
+guild-bank frame opening. The reasoning was first written up in closed issue
+[**LIBKA0S-17**](https://github.com/tusharsaxena/BankLedger/issues/9), when `LibKa0s-Perf-1.0`
+was declined; that issue is the argument, and the register row is the ratification.
 
 ## What ends this
 

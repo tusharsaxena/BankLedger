@@ -27,7 +27,7 @@ end)
 
 -- Blizzard's Settings window calls all three on the registered canvas — OnCommit on apply, OnDefault
 -- from its own footer defaults control, OnRefresh on re-show. LibKa0s sets none of them, so this
--- stays the host's job (docs/pending/LEDGER.md, LIBKA0S-19).
+-- stays the host's job (LIBKA0S-19, issue #11).
 --
 -- RAWGET, not `type(p.OnCommit)`, and that is the whole point of this case. The mock's frame stub
 -- synthesizes a no-op function for ANY PascalCase key, so `type(p.OnCommit) == "function"` is true

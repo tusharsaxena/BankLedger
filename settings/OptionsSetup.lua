@@ -86,7 +86,7 @@ local descriptor = {
   -- them. This addon has no profiles page whose rows are user data.
   --
   -- No `afterRestoreAll` and no use of the library's RestoreAllDefaults — see settings/Panel.lua's
-  -- P:RestoreDefaults, and LIBKA0S-22 in docs/pending/LEDGER.md, for why the reset stays one
+  -- P:RestoreDefaults, and LIBKA0S-22 (closed issue #10), for why the reset stays one
   -- host-owned implementation shared with `/bl resetall`.
   --
   -- No `getLSM`: no row is LSM-backed. The vendored console font is a Constants path, not a media

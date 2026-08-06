@@ -337,7 +337,7 @@ local function buildMainContent(ctx)
   -- one table in one repo drift the moment either is touched, and this one had already drifted
   -- from the chat help. Collapsing them is a deliberate, user-visible convergence — the spacing
   -- tightens, the dash loses its color span and the description gains one. Recorded in
-  -- docs/pending/LEDGER.md rather than left to look like an accident.
+  -- this repo's GitHub issues rather than left to look like an accident.
   for _, row in ipairs((NS.Slash and NS.Slash.LandingRows and NS.Slash:LandingRows()) or {}) do
     local labelRow = O.AceGUI:Create("Label")
     labelRow:SetFullWidth(true)

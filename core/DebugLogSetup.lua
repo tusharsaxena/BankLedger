@@ -98,7 +98,7 @@ NS.DebugLog = lib:New({
   -- gold title and the gray divider — because standalone-windows adopted it normatively. So this
   -- hook no longer rescues the console from a default that does not match; it keeps the console
   -- tracking modules/Browser.lua's own re-skin seam, which is one of the two purposes the standard
-  -- still sanctions the hook for. LIBKA0S-05's decline is superseded — see LIBKA0S-27 and -28.
+  -- still sanctions the hook for. LIBKA0S-05's (issue #5) decline is superseded — see LIBKA0S-27 and -28.
   --
   -- Resolved through NS.Browser at CALL time. It fires during the console's lazy first build, long
   -- after every file has loaded, which is the only reason a core/ file may reach a modules/ member —

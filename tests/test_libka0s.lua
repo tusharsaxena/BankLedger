@@ -451,7 +451,7 @@ test("LibKa0s-DebugLog: the console closes with the library's x, not this addon'
   -- The console and the copy window are the library's windows, so they wear Core's thin 18x18 x.
   -- This addon's own 24x24 class-colored glyph stays on the windows it belongs to; passing it
   -- through the `makeCloseButton` hook is what made these two windows look unlike every other
-  -- Ka0s addon's (docs/pending/LEDGER.md, LIBKA0S-19).
+  -- Ka0s addon's (LIBKA0S-19, issue #11).
   --
   -- This addon's mock models SetSize/GetWidth as real state (tests/wow_mock.lua, override 1), so
   -- Core's `SetSize(18, 18)` is genuinely MEASURED here and the real arithmetic runs, rather than

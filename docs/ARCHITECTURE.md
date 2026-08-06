@@ -77,8 +77,8 @@ no close event at all.
 ## Slash Commands
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help`, the settings landing page
-and the README all read one table. Twelve verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0 seam.
-Verb table and the host/library split in **[slash-dispatch.md](slash-dispatch.md)**.
+and the README all read one table. Fifteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispatch.md)**.
 
 ## Event Subscriptions
 
@@ -139,12 +139,13 @@ Each of these is a decision with its reasoning; see **[scope.md](scope.md)**.
 
 Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
 generated directories are named once each and never enumerated per run: `docs/audits/`,
-`docs/reviews/`, `docs/automated-tests/`, `docs/pending/`, `docs/superpowers/`.
+`docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`.
 
 ### Required (documentation-§3, Tier 1)
 
 | Doc | Covers |
 |---|---|
+| `ARCHITECTURE.md` | This file — the hub: at-a-glance facts, module map, schema, bus, slash, events, deviations |
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, carve-outs, migrations |
@@ -156,7 +157,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 12 verbs in `NS.COMMANDS` (threshold is 8) |
+| `slash-dispatch.md` | Present | 15 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 19 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
@@ -188,14 +189,14 @@ generated directories are named once each and never enumerated per run: `docs/au
 Accepted, deliberate departures from the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
 
 **This table is the register, and it is the only place a deviation is ratified.** A departure that
-is argued for somewhere else — a code comment, a `docs/pending/LEDGER.md` row — but has no row here
-is *not* ratified, and an audit is right to file it. Every row names the rule it departs from as a
+is argued for somewhere else — a code comment, a GitHub issue on this repo — but has no row here is
+*not* ratified, and an audit is right to file it. Every row names the rule it departs from as a
 `filename-§N` reference, the date it was decided, and the **condition that ends it**: a deviation
 with no re-check trigger is a permanent exemption granted by accident.
 
 | Rule | What differs | Why | Decided | Re-check trigger |
 |---|---|---|---|---|
-| `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-runs/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and the three events that *can* fire in combat do a single `NS.State.openContext` nil check and return. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length as `LIBKA0S-17` in `docs/pending/LEDGER.md`; ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. |
+| `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-runs/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and the three events that *can* fire in combat do a single `NS.State.openContext` nil check and return. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. |
 | `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. |
 
 Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
