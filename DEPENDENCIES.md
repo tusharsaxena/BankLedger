@@ -22,7 +22,7 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   `.pkgmeta:3`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
   player happens to have one; it never means the player must install anything.
 - LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:29`),
-  v1.8.0 per `README.md:11`.
+  v1.8.1 per the provenance line in the root `CLAUDE.md`.
 - The bundled JetBrains Mono font (`media/fonts/JetBrainsMono-Regular.ttf`) and the logo art under
   `media/logos/` are **assets, not dependencies**: they ship in the package and need no tooling to
   use.
@@ -96,7 +96,7 @@ Two suites run external commands, so they are dependencies of `lua tests/run.lua
 Lua code `require`s them:
 
 - **`git`** — `tests/_kit/vendor_sync.lua:140` runs `git -C <path> …` against the **sibling LibKa0s
-  checkout** to compare the vendored payload against the tag the README names. `tests/test_vendor_sync.lua`
+  checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
   is one line of adoption over that shared gate; the implementation is vendored, not local.
 - **`ls`** — `tests/test_harness.lua:24` runs `ls tests/test_*.lua` to prove the suite list and the
   files on disk agree in both directions, and `tests/_kit/vendor_sync.lua:106` runs `ls -A` to list a

@@ -38,6 +38,19 @@ Start here, then read the docs:
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0). Never auto-stage/commit/
 push and never bump the version without an explicit instruction.
 
+## Vendored LibKa0s — the provenance line
+
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.1 (MIT).
+
+That line is the single answer to "which LibKa0s does this build carry?", and it is machine-read:
+`tests/test_vendor_sync.lua` greps it out of **this file** (kit revision 9 moved it here from
+`README.md`, which is player-facing and no longer carries a library inventory) and compares both
+vendored payloads — `libs/LibKa0s/` and `tests/_kit/` — against that tag in the sibling LibKa0s
+checkout. There is no fallback to `README.md`.
+
+So the tag named above **moves in the same commit as the vendored bytes**, never before and never
+after. Re-vendor, edit this line, regenerate `docs/test-cases.md`, then run the green gate.
+
 ## The `docs/` set — there is no `agent-context.md`
 
 The canonical `docs/` set is exactly three files: **`ARCHITECTURE.md`** (what this addon is),
