@@ -33,7 +33,7 @@ Start here, then read the docs:
   WSL2/Ubuntu commands and a verification line per tool (documentation-§7).
 - **`docs/performance.md`** — what this addon costs, and why it wires no performance harness: the
   committed sweep behind its ratified `performance-§12` no-combat-path exemption.
-- Topic detail in `docs/` as needed (`smoke-tests.md`, `test-cases.md`, `automated-tests/`, …).
+- Topic detail in `docs/` — **Tier 1 is always present**: `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`. Conditional and addon-specific docs vary; `docs/ARCHITECTURE.md` → `## Documentation map` lists every page under `docs/` and says which conditional ones do not apply here (`documentation-§3`).
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0). Never auto-stage/commit/
 push and never bump the version without an explicit instruction.

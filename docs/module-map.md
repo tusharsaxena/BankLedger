@@ -1,0 +1,74 @@
+# Module map
+
+Every non-vendored file, what it is responsible for, and the load order the TOC encodes. Vendored
+libraries under `libs/` are not listed — they are consumed, not maintained here.
+
+| File | Role |
+|---|---|
+| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
+| `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, media paths. |
+| `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
+| `core/CoreSetup.lua` | The **LibKa0s-Core-1.0 seam**: builds the prefixed chat printer and republishes it as `NS.Print` / `NS.Util.print`, plus `NS.SafeToString` and `NS.IsConcatSafe`. Also publishes **`NS.LIBKA0S_MISSING`**, the one cause clause every other LibKa0s seam appends its own consequence to — a cross-file contract, not an implementation detail of this file, and set on both the present and absent paths because the later seams read it either way. Degrades to equivalent built-in fallbacks, announcing the absence once. |
+| `core/DebugLogSetup.lua` | The **LibKa0s-DebugLog-1.0 seam**: the on-screen console and the `NS.Debug` sink, published under the names `modules/DebugLog.lua` used before it was deleted. Supplies the descriptor's `applySkin`, resolved through `NS.Browser` at call time — which is what lets a `core/` file reach a `modules/` member without inverting the load order — so the console keeps tracking `modules/Browser.lua`'s own re-skin seam. It passes **no** `makeCloseButton`: the window **edge** is shared across every Ka0s window now (`Core.SKIN` carries it, and this addon's `SKIN` agrees with it value for value), but the **close control on a library-drawn window is the library's**, so the console and the copy window wear Core's thin 18×18 × while the ledger window keeps its own 24×24 class-colored glyph (standalone-windows). Degrades to a stub answering every member `/bl debug` reaches. |
+| `core/State.lua` | Runtime-only state: the open frame, the last snapshot, the session debug flag, the test dataset. Never persisted. |
+| `core/Util.lua` | Player key, path splitting, date/money/byte formatting, the wowhead URL builder. The secret-safe chat printer moved to `core/CoreSetup.lua` when LibKa0s was adopted; every name it published is unchanged. |
+| `core/BankLedger.lua` | AceAddon registration, the message bus, `NS.NewBusTarget`, `OnInitialize` / `OnEnable`. |
+| `core/Database.lua` | AceDB init, the migration runner, ledger CRUD, `QueryList`, `Export`, `Stats`, retention prune, storage estimate. |
+| `defaults/Global.lua` | The account-wide defaults table — the only place a default value is hardcoded. |
+| `locales/enUS.lua` | The `NS.L` metatable-fallback locale seam. |
+| `locales/PostLoad.lua` | Derived-key aliases (empty in v1.0.0). |
+| `modules/Filters.lua` | The item blacklist / whitelist id-sets and their copy-on-write mutations. |
+| `modules/Ledger.lua` | The capture engine: snapshot, diff, gate, build, record, plus the event shell. |
+| `modules/Browser.lua` | The standalone window: skin, tabs, the shared filter bar, footer, minimap launcher. |
+| `modules/LedgerTable.lua` | The virtualized pooled-row History table, its grouping/sorting, the test dataset (`/bl test`), and the shared `Column` / `PaintCell` column seams. |
+| `modules/SessionWindow.lua` | The live "Current Banking Session" window: its own slim pooled table over the movements of one bank visit. |
+| `modules/InsightsWidgets.lua` | The Insights visual vocabulary — pooled cards, bars, back-to-back/ratio/stacked bars, strips, list panels, legends, dividers — plus the categorical palette and label math. Knows nothing about ledger entries. |
+| `modules/Insights.lua` | The Insights tab: which breakdown is drawn, out of which `Database:Stats` key, in which color and order. |
+| `modules/Export.lua` | Ledger CSV, Insights CSV, and the export modal. |
+| `settings/Schema.lua` | The schema table (the single source for panel, slash and defaults) and `NS.COMMANDS`. `S:Set` is the **single write seam**: it validates, writes, emits the one debug trace, runs the row's `onChange`, and repaints an open settings panel (options-ui-§1, options-ui-§11) — so a slash write and a panel widget take exactly the same path. |
+| `settings/Slash.lua` | The **LibKa0s-Slash-1.0 seam**, plus what stays the host's: AceConsole registration, the five confirm dialogs, `Sl:Version`, and the full reset. The dispatcher, the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's. Supplies `groupKey` (this schema groups by `group`, not `page`), a `format` hook for the set-typed `excludedStores` row, and a `parse` override that refuses a chat edit of that row by name. Wraps `CliResetAll` so the two carve-outs with no Schema widget — the filter lists and the saved ledger view — are still reset. |
+| `settings/OptionsSetup.lua` | The **LibKa0s-Options-1.0 seam**. `NS.Helpers` IS the library instance (options-ui-§1), not a wrapper — `settings/Panel.lua` decorates it in place. Supplies the schema seams through `NS.Schema:Set`, so a panel widget takes exactly the path `/bl set` takes. Degrades LOAD-COMPLETING rather than member-answering, with a measured load-time member set of zero. |
+| `settings/Panel.lua` | What did **not** generalize: the inverted store grid, the Storage section, the whole Filters page, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer. Registers three pages with the library and lets it own the shell, the makers, the flow engine and the render timing. |
+
+#### Load order is load-bearing
+
+The TOC's file order is not cosmetic in four places, and the comments in `BankLedger.toc` say so at
+each one:
+
+- **`core/Compat.lua` loads first**, so every later file can shim through it.
+- **`core/CoreSetup.lua` sits after `core/Namespace.lua`** (it needs `NS.PREFIX`) and **before every
+  file that takes `NS.Print` as a load-time upvalue** — otherwise a module captures the built-in
+  printer and never sees the library's.
+- **`modules/Filters.lua` precedes `modules/Ledger.lua`**, because the capture gate reads the
+  id-lists.
+- **`settings/` loads last**, and `settings/OptionsSetup.lua` before `settings/Panel.lua`, which
+  captures the library instance at file scope (options-ui-§1).
+
+`tests/test_harness.lua` guards the order the harness derives from that same TOC, so a reshuffle that
+breaks one of these is red rather than silent.
+
+#### The `Compat` surface
+
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 19 exports
+in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
+`WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
+
+| Group | Exports |
+|---|---|
+| Metadata / player | `GetAddOnMetadata`, `GetPlayerMapID`, `GetZone`, `GetGuildName` |
+| Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
+| Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
+| Items | `ItemIDFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |
+
+#### Locale seam
+
+`locales/enUS.lua` publishes `NS.L` with the metatable fallback that returns the key itself, so a
+missing key never errors. v1.0.0 ships **English-only and unwrapped**: no user-facing string routes
+through `NS.L` yet — every label, tooltip and message is hardcoded English, an accepted scope
+decision rather than an oversight. The seam is kept so a later pass can wrap strings without touching
+call sites, and there is deliberately no `local L` alias until the first string is wrapped, so the
+file stays luacheck-clean.
+
+Input side: the addon matches game data on **stable ids and tokens** — `itemID`, `classFile`,
+`Enum.*` — never on a localized name. That is why every entry stores `classFile` rather than a class
+name.
