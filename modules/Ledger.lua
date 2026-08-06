@@ -417,7 +417,10 @@ function L:GateReason(move)
     -- "uncached", rather than the row silently appearing under a threshold that should have
     -- excluded it. At the default threshold of 0 this branch is unreachable (every quality clears
     -- 0), so nothing changes for a user who never set one.
-    local _, quality = NS.Compat.ItemNameQuality(id)
+    -- The observed link first, exactly as BuildEntry enriches: the id alone answers with the BASE
+    -- item, so a drop whose bonus IDs upgraded it to Epic would be judged as the Rare it started
+    -- as — and silently dropped by an Epic threshold that should have kept it.
+    local _, quality = NS.Compat.ItemNameQuality(move.link or id)
     if quality == nil then
       if DB_QUALITY > 0 then
         NS.Compat.LoadItem(id)
@@ -465,7 +468,13 @@ function L:BuildEntry(move)
   end
 
   entry.itemID = move.itemID
-  local name, quality, itemType, itemSubType, link = NS.Compat.GetItemDetails(move.itemID)
+  -- Enrich from the OBSERVED LINK where the scan captured one, falling back to the id otherwise.
+  -- GetItemInfo(itemID) can only answer with the base item, and quality is the field that hurts:
+  -- an upgraded drop whose bonus IDs made it Epic reads back as the Rare its base id is, and that
+  -- verdict is permanent — the stored row is what the table colors, the filters match and the
+  -- stats count, and nothing re-resolves it later.
+  local name, quality, itemType, itemSubType, link =
+    NS.Compat.GetItemDetails(move.link or move.itemID)
   entry.itemName = name
   entry.quality = quality
   entry.itemType = itemType

@@ -191,12 +191,17 @@ function Compat.GetItemDetails(idOrLink)
   return name, quality, itemType, itemSubType, link
 end
 
--- Resolve an item id to a display name + quality for the filter-management UI. Returns
--- (name, quality); name is nil when the item is not yet cached (the caller shows a placeholder).
-function Compat.ItemNameQuality(id)
-  if not id then return nil end
+-- Resolve an item to a display name + quality. Returns (name, quality); name is nil when the item
+-- is not yet cached (the caller shows a placeholder).
+--
+-- Pass a LINK whenever one was observed. An id alone can only ever answer with the base item, so a
+-- drop upgraded by its bonus IDs reads back at its base quality — the filter-management UI has no
+-- link to offer (the user typed an id), but the capture gate does, and there it decides whether a
+-- row is kept at all.
+function Compat.ItemNameQuality(idOrLink)
+  if not idOrLink then return nil end
   if C_Item and C_Item.GetItemInfo then
-    local name, _, quality = C_Item.GetItemInfo(id)
+    local name, _, quality = C_Item.GetItemInfo(idOrLink)
     return name, quality
   end
   return nil

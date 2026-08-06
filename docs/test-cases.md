@@ -106,7 +106,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (113)
+### test_ledger.lua (116)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -221,6 +221,9 @@ badge and any count quoted in the docs must agree with it.
 - Ledger.Diff leaves the link nil when neither snapshot observed one
 - Ledger:BuildEntry keeps the scanned link over the one derived from the id
 - Ledger:BuildEntry falls back to the item cache's link when the move carries none
+- Ledger:BuildEntry takes the quality from the moved link, not the base item
+- Ledger:BuildEntry still enriches from the id when the move carries no link
+- Ledger:GateReason judges the quality gate on the moved link
 
 ### test_database.lua (43)
 
@@ -798,7 +801,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 21 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 113 |
+| test_ledger.lua | 116 |
 | test_database.lua | 43 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 51 |
@@ -814,4 +817,4 @@ badge and any count quoted in the docs must agree with it.
 | test_mock.lua | 19 |
 | test_libka0s.lua | 60 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **724** |
+| **Total** | **727** |

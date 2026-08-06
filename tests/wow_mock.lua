@@ -352,13 +352,22 @@ return function()
     [4306]  = { "Silk Cloth",       1, "Tradegoods", "Cloth",  60 },
     [19019] = { "Thunderfury",      5, "Weapon",     "Swords", 250000 },
   }
+  -- Bonus-ID variants: M.__itemVariants[<full link>] = { name, quality, itemType, itemSubType,
+  -- vendorPrice }, in the same shape as __items. This is what makes the mock able to tell a LINK
+  -- from the id inside it — the live client answers GetItemInfo(itemID) with the base item and
+  -- GetItemInfo(link) with the variant the bonus IDs describe, so a mock that resolves both to the
+  -- same row cannot fail a caller that re-derives from the id.
+  M.__itemVariants = {}
   M.C_Item = {
     GetItemInfo = function(idOrLink)
+      local variant = type(idOrLink) == "string" and M.__itemVariants[idOrLink]
       local id = tonumber(idOrLink) or tonumber(tostring(idOrLink):match("|?H?item:(%d+)") or "")
-      local it = id and M.__items[id]
+      local it = variant or (id and M.__items[id])
       if not it then return nil end
-      return it[1], "|cffffffff|Hitem:" .. id .. "::::::::::|h[" .. it[1] .. "]|h|r",
-        it[2], 1, 1, it[3], it[4], 1, "", 0, it[5]
+      -- A variant answers with the link it was asked about; a bare id can only build the base link.
+      local link = variant and idOrLink
+        or ("|cffffffff|Hitem:" .. id .. "::::::::::|h[" .. it[1] .. "]|h|r")
+      return it[1], link, it[2], 1, 1, it[3], it[4], 1, "", 0, it[5]
     end,
     GetItemInfoInstant = function(idOrLink)
       local id = tonumber(idOrLink) or tonumber(tostring(idOrLink):match("|?H?item:(%d+)") or "")

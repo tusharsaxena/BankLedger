@@ -126,6 +126,12 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
 - **Pre-corroboration gold rows cannot be cleaned up retroactively** — nothing in a stored row
   distinguishes them.
 - **An uncached item is skipped when a minimum quality is set**, and there is no name backfill.
+- **Rows recorded before the link-enrichment fix keep their base-item quality** — they were written
+  from the itemID, so a bonus-upgraded drop was stored at the quality its base item has. Nothing
+  re-resolves a stored row, so those rows stay as recorded.
+- **Two variants of one itemID in a single snapshot resolve to the same link** — the scan keeps the
+  first hyperlink it sees per id and the counts map is keyed by id alone, so it cannot tell an
+  upgraded copy from a base one when both are present.
 
 Each of these is a decision with its reasoning; see **[scope.md](scope.md)**.
 

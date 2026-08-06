@@ -1359,3 +1359,44 @@ test("Ledger:BuildEntry falls back to the item cache's link when the move carrie
   assertTrue(type(e.itemLink) == "string" and e.itemLink:find("19019", 1, true) ~= nil,
     "still a usable link, just without bonuses")
 end)
+
+-- An upgraded drop: base item 171276 is Rare (3), and THIS one's bonus IDs make it Epic (4). The
+-- id is the same either way, so an enrichment that asks the client about the id gets Rare and
+-- writes Rare — permanently, because nothing re-resolves quality at display time (F-00x).
+local UPGRADED_LINK = "|cffa335ee|Hitem:171276::::::::80:250::11:1:6652|h[Spectral Flask]|h|r"
+local function withUpgradedVariant(fn)
+  mocks.__itemVariants[UPGRADED_LINK] = { "Spectral Flask", 4, "Consumable", "Flask", 5000 }
+  local ok, err = pcall(fn)
+  mocks.__itemVariants[UPGRADED_LINK] = nil
+  if not ok then error(err, 0) end
+end
+
+test("Ledger:BuildEntry takes the quality from the moved link, not the base item", function()
+  withUpgradedVariant(function()
+    local move = itemMove(171276, 1)
+    move.link = UPGRADED_LINK
+    local e = NS.Ledger:BuildEntry(move)
+    assertEqual(e.quality, 4, "the deposited item was Epic; its base id is only Rare")
+    assertEqual(e.itemLink, UPGRADED_LINK, "and the row still carries the link it was judged from")
+  end)
+end)
+
+test("Ledger:BuildEntry still enriches from the id when the move carries no link", function()
+  withUpgradedVariant(function()
+    assertEqual(NS.Ledger:BuildEntry(itemMove(171276, 1)).quality, 3,
+      "no observation to read, so the base item is the honest answer")
+  end)
+end)
+
+test("Ledger:GateReason judges the quality gate on the moved link", function()
+  withUpgradedVariant(function()
+    withSettings({ qualityThreshold = 4 }, function()
+      local move = itemMove(171276, 1)
+      move.link = UPGRADED_LINK
+      assertEqual(NS.Ledger:GateReason(move), nil,
+        "an Epic-upgraded drop clears an Epic threshold its base id would fail")
+      assertEqual(NS.Ledger:GateReason(itemMove(171276, 1)), "quality",
+        "and an unobserved move of the same id is still judged as the base item")
+    end)
+  end)
+end)
