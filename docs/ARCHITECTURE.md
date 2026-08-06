@@ -82,7 +82,7 @@ seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispa
 
 ## Event Subscriptions
 
-Six registrations, all through `Ledger:RegisterEventSafely` — modern retail **raises** on an unknown
+Eight registrations, all through `Ledger:RegisterEventSafely` — modern retail **raises** on an unknown
 event name, so a bare loop turns one retired event into a silently deaf addon. Change events are
 debounced into one reconcile pass per user action, and the baseline is held whenever a pass sees a
 one-sided change.

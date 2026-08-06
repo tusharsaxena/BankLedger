@@ -95,13 +95,13 @@ trying to stop.
 Two suites run external commands, so they are dependencies of `lua tests/run.lua` even though no
 Lua code `require`s them:
 
-- **`git`** — `tests/_kit/vendor_sync.lua:140` runs `git -C <path> …` against the **sibling LibKa0s
+- **`git`** — `tests/_kit/vendor_sync.lua:154` runs `git -C <path> …` against the **sibling LibKa0s
   checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
   is one line of adoption over that shared gate; the implementation is vendored, not local.
 - **`ls`** — `tests/test_harness.lua:24` runs `ls tests/test_*.lua` to prove the suite list and the
-  files on disk agree in both directions, and `tests/_kit/vendor_sync.lua:106` runs `ls -A` to list a
+  files on disk agree in both directions, and `tests/_kit/vendor_sync.lua:115` runs `ls -A` to list a
   vendored directory (Lua 5.1 has no directory API and this repo deliberately does not depend on
-  LuaFileSystem — `tests/_kit/vendor_sync.lua:91-93`).
+  LuaFileSystem — `tests/_kit/vendor_sync.lua:100-102`).
 
 Both are present on any Ubuntu install; `git` is the only one that might not be.
 
@@ -113,7 +113,7 @@ sudo apt install -y git
 
 ### The sibling LibKa0s checkout — optional, but the vendor gate is blind without it
 
-`tests/_kit/vendor_sync.lua:62-63` resolves the library repo as `<repo root>/../LibKa0s`. Clone it
+`tests/_kit/vendor_sync.lua:68-69` resolves the library repo as `<repo root>/../LibKa0s`. Clone it
 beside this repo if you want the vendor gate to actually compare anything:
 
 ```sh
@@ -121,7 +121,7 @@ git clone https://github.com/tusharsaxena/LibKa0s.git ../LibKa0s
 ```
 
 Without it the suite still runs — the pair reports a **skip carrying its reason**
-(`tests/_kit/vendor_sync.lua:179`, `"<path> checkout absent — the vendored payload was NOT
+(`tests/_kit/vendor_sync.lua:193`, `"<path> checkout absent — the vendored payload was NOT
 compared"`) rather than failing, and deliberately not a pass — so this is a **capability**, not a
 blocker. Watch the runner's skip count: a `0 skipped` line is what proves the comparison actually
 ran. `docs/testing.md`'s "The vendor gate" section needs it too: its `diff -r ../LibKa0s/…`
@@ -136,7 +136,7 @@ item exists for one job that is done rarely and by hand.
 
 `media/logos/bankledger.logo.png` is the 1254×1254 master. The `.tga` the client actually loads and
 the two `.jpg` renders for the project page are produced from it by a short Pillow script recorded
-verbatim in **`docs/ARCHITECTURE.md:633-643`** (`from PIL import Image, ImageFilter`, `LANCZOS`
+verbatim in **`docs/media.md:51-61`** (`from PIL import Image, ImageFilter`, `LANCZOS`
 downscales, an unsharp mask on the 256). The derivatives are **committed**, so this is needed only
 when the artwork changes.
 
@@ -152,7 +152,7 @@ Or, if you want a newer Pillow than Ubuntu ships, a throwaway virtualenv:
 
 ```sh
 python3 -m venv /tmp/pillow && /tmp/pillow/bin/pip install pillow
-# then run the ARCHITECTURE.md script with /tmp/pillow/bin/python
+# then run the media.md script with /tmp/pillow/bin/python
 ```
 
 **Verify:** `python3 -c "import PIL; print(PIL.__version__)"`.
