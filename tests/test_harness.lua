@@ -2,7 +2,7 @@
 --
 -- Everything here exists because adopting the shared kit (tests/_kit) traded one failure mode for
 -- another. The old runner `dofile`d each suite unconditionally, so a typo in the suite list RAISED.
--- The kit skips a listed suite whose file is missing (testkit/framework.lua documents that as
+-- The kit skips a listed suite whose file is missing (tests/_kit/framework.lua documents that as
 -- deliberate — a suite can be listed while it is being written). That is a silently green run with
 -- fewer cases, and nothing else in the gate can see it.
 --
