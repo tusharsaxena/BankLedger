@@ -51,11 +51,11 @@ run that measured nothing cannot be mistaken for a green run that measured every
 
 Offline perf records live in the bundle with the run that produced them. **In-game** captures cannot
 be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
-they keep their own standing store at `docs/perf-runs/`. **BankLedger ships neither, and that is a
+they keep their own standing store at `docs/perf-analysis/`. **BankLedger ships neither, and that is a
 ratified state rather than a gap**: it holds a recorded `performance-§12` no-combat-path exemption
 (the register row is in [`../ARCHITECTURE.md`](../ARCHITECTURE.md#documented-deviations), the sweep
 that earns it is [`../performance.md`](../performance.md)), so there is no `tests/perf.lua`, no
-`perf` verb registration and no `docs/perf-runs/` — which is why every `perf` cell in `RESULTS.md`
+`perf` verb registration and no `docs/perf-analysis/` — which is why every `perf` cell in `RESULTS.md`
 reads `skip`. The skip is still said out loud, in the release notes as well as here: a skip is never
 a pass, and the reason to name is the exemption, not the bare absence of the file.
 

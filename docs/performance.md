@@ -10,7 +10,7 @@ and the rest of this page is why we know that rather than assume it.
 ## What the exemption means here
 
 `performance`'s wiring — `core/PerfSetup.lua`, a `BankLedgerPerfDB` SavedVariables global, a `perf`
-verb, the suspend/resume contract, `tests/perf.lua` and `docs/perf-runs/` — is **not** shipped.
+verb, the suspend/resume contract, `tests/perf.lua` and `docs/perf-analysis/` — is **not** shipped.
 The capture protocol opens its measurement windows on the player's **combat state**
 (`performance-§7`), and this addon runs no code in that window: every declared bucket would read
 `0.000` by construction, which `performance-§3` itself calls *a lie in every report*. That is

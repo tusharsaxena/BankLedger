@@ -77,7 +77,7 @@ transient tooling gap — and that absence is a **ratified state, not a gap**. B
 recorded `performance-§12` no-combat-path exemption: the register row is in
 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) and the whole-repo sweep that earns it is
 [`../performance.md`](../performance.md), which is why there is no `tests/perf.lua`, no `perf` verb
-registration and no `docs/perf-runs/` store. Two things still follow, and both are standing facts
+registration and no `docs/perf-analysis/` store. Two things still follow, and both are standing facts
 rather than any run's news: the record says **nothing** about the addon's in-combat runtime cost, and
 `performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is
 off — does not exist for it. (The older framing of these as gaps, `BL-15` and `BL-16` in
