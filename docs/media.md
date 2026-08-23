@@ -12,7 +12,7 @@ boxes, but the History table's Direction column and the Direction filter dropdow
 **THIS ADDON NO LONGER SHIPS THE FILE.** It used to, under `media/fonts/`, with its own `OFL.txt` and
 its own `LSM:Register("font", "JetBrains Mono", …)` call in `core/BankLedger.lua`. Both are gone. The
 bytes arrive inside the LibKa0s payload (`libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf`,
-v1.10.2), `core/MediaSetup.lua` publishes the `NS.MediaFont` seam that resolves the path, and
+v1.11.1), `core/MediaSetup.lua` publishes the `NS.MediaFont` seam that resolves the path, and
 `C.FONT_MONO` is that resolution rather than a literal — falling back to the client's own
 `STANDARD_TEXT_FONT` when the library is absent, because `SetFont` given a path to a missing file
 draws nothing at all. The library makes the LibSharedMedia registration, once, so two Ka0s addons
