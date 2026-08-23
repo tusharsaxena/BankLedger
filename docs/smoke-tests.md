@@ -426,8 +426,9 @@ is about the path and the argument; this is where somebody actually looks at the
    **Data set** dropdown makes nine — it is the same factory.
    Open any MULTI-select one (Store, Type, Quality, Character) and pick two values. Each chosen row
    is prefixed by a **flat white tick**, the same weight as the chevron on the button above it — not
-   Blizzard's beveled `UI-CheckBox-Check`. A beveled tick means `CHECK_MARKUP` stopped resolving
-   `confirm` and fell to its rung, which is the same art the menu used before the marks landed.
+   Blizzard's beveled `UI-CheckBox-Check`. A beveled tick means the `confirm` path this addon hands
+   `LibKa0s-Widgets-1.0` through `B:MakeDropdown` stopped resolving and fell to its rung, which is
+   the same art the menu used before the marks landed.
    **The tick is FULL WHITE and that is correct** — it is the one inline mark left untinted, because
    the menu row beside it is plain white text with no colour for it to match. It reads a shade
    brighter than that label. Recorded in [media.md](media.md); not a regression to file.
@@ -460,10 +461,12 @@ is about the path and the argument; this is where somebody actually looks at the
    still show *their* tooltips, which is not the same thing.
 8. **The settings panel has no marks at all** — `/bl config`, every page. Its widgets belong to
    `LibKa0s-Options-1.0`; a mark that has appeared there came from the wrong side of the seam.
-9. **The degraded pass.** Rename `libs/LibKa0s` aside and `/reload`. Every surface above must still
-   draw *something*: the font-character ×, Blizzard's ▼, its `Arrow-Up-Up` sort arrows, its boxed
-   `+`/`-` group expanders, its beveled `UI-CheckBox-Check` tick, and **Export to CSV** with its
-   words and no art. **The four header marks are GOLD on this rung too** — the tint rides on the
-   escape rather than on the art, so a gold `Arrow-Up-Up` and a gold boxed `+` are correct here; a
-   near-white one means the fallback path lost the tail the resolved path keeps. Nothing blank,
-   nothing off-centre, no error. Put the folder back.
+9. **The degraded pass.** Rename `libs/LibKa0s` aside and `/reload`. **The filter bar refuses to
+   build entirely** — none of its eight dropdowns appear, and the chat line reads "Filters need
+   LibKa0s. The ledger itself is unaffected." The History table underneath still works and is still
+   usable with no filters. Every surface not on that bar must still draw *something*: the
+   font-character ×, its `Arrow-Up-Up` sort arrows, its boxed `+`/`-` group expanders, and
+   **Export to CSV** with its words and no art. **The four header marks are GOLD on this rung too** —
+   the tint rides on the escape rather than on the art, so a gold `Arrow-Up-Up` and a gold boxed `+`
+   are correct here; a near-white one means the fallback path lost the tail the resolved path keeps.
+   Nothing blank, nothing off-centre, no error. Put the folder back.

@@ -77,10 +77,11 @@ uncropped, and `255:209:0` is the gold. One `HEADER_RGB` constant feeds the tint
 `SetTextColor` calls, so a mark cannot drift off the word beside it. The tint rides on the escape
 rather than on the art, so it survives the fall to the Blizzard rung.
 
-**The multi-select tick in `modules/Browser.lua` is the one inline mark still at full white, and
-that is the intended look.** It sits on a menu row drawn in plain white text, not in gold, so it has
-nothing to match; it is marginally brighter than the label beside it. **This is a recorded decision,
-not a regression** — S-21 step 3 says so too, so the next reviewer does not file it.
+**The multi-select tick, drawn by `LibKa0s-Widgets-1.0`'s shared menu from the `confirm` path this
+addon's `B:MakeDropdown` hands it, is the one inline mark still at full white, and that is the
+intended look.** It sits on a menu row drawn in plain white text, not in gold, so it has nothing to
+match; it is marginally brighter than the label beside it. **This is a recorded decision, not a
+regression** — S-21 step 3 says so too, so the next reviewer does not file it.
 
 **The debug console's three marks are not in that table, and they are not this addon's to draw.**
 The console and its **Copy** box are LibKa0s-DebugLog-1.0's windows, so the library builds its own

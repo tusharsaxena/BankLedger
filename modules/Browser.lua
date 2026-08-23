@@ -305,7 +305,7 @@ local function makeBarButton(parent, text, width, onClick, tooltip)
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   fs:SetPoint("CENTER")
   fs:SetText(text)
-  -- Exposed the same way makeMenuRow exposes its own, and for the same kind of reason: the WORDS are
+  -- Exposed the same way LibKa0s-Widgets-1.0's own row builder exposes its own, and for the same kind of reason: the WORDS are
   -- the half of a BESIDE button that no other assertion can reach. Without this the mark suite can
   -- see the art and the anchors but not the label, so a call site that passed "" would ship a
   -- wordless glyph button — and an install without LibKa0s an entirely empty one — while every
