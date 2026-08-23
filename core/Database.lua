@@ -162,7 +162,7 @@ function Database:Query(filter)
 end
 
 -- Plain, metatable-free copy of the (optionally filtered) ledger — the forward-compatible export
--- contract (see docs/data-model.md). The field shape is stable except across schema bumps.
+-- contract (see docs/schema.md). The field shape is stable except across schema bumps.
 function Database:Export(filter)
   local out = {}
   for _, e in ipairs(self:Query(filter or {})) do
@@ -548,7 +548,7 @@ function Database:FireLedgerChanged()
 end
 
 -- Delete a single entry by index. Compacts the array. No production caller: the table's row menu
--- deletes by identity through Database:Delete (modules/LedgerTable.lua:1005). Exported as the
+-- deletes by identity through Database:Delete (modules/LedgerTable.lua:1050). Exported as the
 -- index-delete seam the tests use to undo a recorded row (tests/test_ledger.lua:572).
 function Database:DeleteAt(index)
   local ledger = NS.db.global.ledger

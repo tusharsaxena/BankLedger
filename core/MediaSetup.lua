@@ -89,8 +89,7 @@ end
 ---   chevron-right  modules/LedgerTable.lua  the collapsed group header
 ---   sort-up        modules/LedgerTable.lua  the ascending column-header arrow
 ---   sort-down      modules/LedgerTable.lua  the descending column-header arrow
----   export         modules/Browser.lua  the filter bar's Export button
----                  modules/Export.lua   the modal's "Export to CSV" button
+---   export         modules/Export.lua   the modal's "Export to CSV" button
 ---   search         modules/Browser.lua  the item-name search box
 NS.ICON_NAMES = {
   "close", "chevron-down", "chevron-right", "sort-up", "sort-down", "export", "search", "confirm",

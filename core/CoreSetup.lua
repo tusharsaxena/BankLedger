@@ -16,11 +16,14 @@ local Util = NS.Util
 --     above it keeps "the printer exists before anything else in core/ runs" true by position.
 --   * BEFORE core/BankLedger.lua — the AceConsole embed there clobbers NS.Print and reclaims it from
 --     NS.Util.print, so NS.Util.print must already hold the real printer by then.
---   * BEFORE modules/Browser.lua, modules/LedgerTable.lua, modules/DebugLog.lua, settings/Schema.lua,
---     settings/Slash.lua and settings/Panel.lua — all six take the printer as a
---     `local print = NS.Print` FILE-SCOPE UPVALUE. A seam that landed after any of them would swap the printer for a copy nobody reads,
---     and the change would appear to work while doing nothing.
--- tests/test_toc.lua pins every one of those orderings against the shipped TOC.
+--   * BEFORE every file that takes the printer as a `local print = NS.Print` FILE-SCOPE UPVALUE —
+--     core/BankLedger.lua, core/Util.lua, modules/Browser.lua, modules/LedgerTable.lua,
+--     settings/Schema.lua, settings/Slash.lua, settings/Panel.lua and settings/OptionsSetup.lua
+--     (this file is the ninth). A seam that landed after any of them would swap the printer for a
+--     copy nobody reads, and the change would appear to work while doing nothing.
+-- tests/test_libka0s.lua pins those orderings against the shipped TOC (§ vendoring and load order),
+-- deriving the upvalue list from the source rather than restating it, so a new capture in a file
+-- that loads too early is caught the moment it is written.
 
 -- The one cause clause, shared by every seam that has to explain the same absence: this file,
 -- core/DebugLogSetup.lua, settings/Slash.lua and settings/OptionsSetup.lua. Each appends its own

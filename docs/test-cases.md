@@ -741,7 +741,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
 - LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
 
-### test_marks.lua (21)
+### test_marks.lua (22)
 
 - marks: the close control on every window this addon draws is the collection's close
 - marks: the close path is EXTENSIONLESS, which is the half that fails silently
@@ -751,9 +751,10 @@ badge and any count quoted in the docs must agree with it.
 - marks degraded: the dropdown keeps Blizzard's arrow, never a ▼ character
 - marks: a chosen row of a multi-select menu wears the collection's tick
 - marks: the column-header sort arrow is the collection's, at the site that draws it
+- marks: every inline header mark is TINTED to the gold of the word it sits beside
 - marks: the group header's expander is a chevron, at the site that draws it
 - marks degraded: every inline mark falls back to the exact art it used to be
-- marks: the filter bar's Export button carries its mark BESIDE the word
+- marks: the filter bar is WORDS ONLY — its Export button carries no mark
 - marks: the export modal's action button carries its mark BESIDE the words
 - marks: BESIDE means beside — the modal's button keeps the width its mark was sized for
 - marks: both button factories still draw the label unconditionally
@@ -859,7 +860,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 7 |
 | test_mock.lua | 19 |
 | test_mediasetup.lua | 13 |
-| test_marks.lua | 21 |
+| test_marks.lua | 22 |
 | test_libka0s.lua | 63 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **764** |
+| **Total** | **765** |

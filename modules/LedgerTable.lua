@@ -144,15 +144,38 @@ LT.groupAsc = true
 -- ":0" sizes the texture to the surrounding line height. The library's paths are EXTENSIONLESS by
 -- contract and that is exactly what |T…|t wants; a path carrying ".tga" here draws nothing and
 -- raises nothing, which in a column header reads as "this column does not sort".
-local function markup(name, blizzard, lead)
+local function markup(name, blizzard, lead, tint)
   local path = NS.Icon and NS.Icon(name)
-  return (lead or "") .. "|T" .. (path or blizzard) .. ":0|t"
+  return (lead or "") .. "|T" .. (path or blizzard) .. ":" .. (tint or "0") .. "|t"
 end
 
-local ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",     " ")
-local ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",   " ")
-local GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up")
-local GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up")
+-- The gold every column header and every group header is drawn in, and the ONE place it is written
+-- down: HEADER_RGB feeds the FontString calls below (SetTextColor takes 0-1) AND the tint on all
+-- four marks (the escape takes 0-255), so a mark cannot drift away from the word beside it.
+--
+-- ALL FOUR ARE TINTED, because all four sit inside gold text — the two sort arrows in the column
+-- header's label, the two expanders in the group header's. The art ships near-white by contract,
+-- and near-white beside gold reads as a second colour inside one string rather than as one control.
+--
+-- The tint is why they carry the LONG form of the escape. ":0" alone is "size to the line and draw
+-- the art as it is". Vertex colour is the LAST three arguments of the full sequence, so all eleven
+-- in front of them have to be spelled: height and width 0 keep the auto-size that ":0" gave, and
+-- 64:64 with 0:64:0:64 is the whole texture uncropped (the numbers are a ratio, so they hold
+-- whatever the file's real dimensions are).
+--
+-- The tint rides on the ESCAPE, not on the art, so it survives the fall to the Blizzard rung: a
+-- degraded install draws the same boxed +/- and Arrow-Up-Up it always did, in the header's gold.
+local HEADER_RGB = { 1, 0.82, 0 }
+local function tint255(rgb)
+  local function b(v) return math.floor(v * 255 + 0.5) end
+  return ("0:0:0:0:64:64:0:64:0:64:%d:%d:%d"):format(b(rgb[1]), b(rgb[2]), b(rgb[3]))
+end
+local HEADER_TINT = tint255(HEADER_RGB)
+
+local ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",       " ", HEADER_TINT)
+local ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",     " ", HEADER_TINT)
+local GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up",  nil, HEADER_TINT)
+local GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up", nil, HEADER_TINT)
 
 -- Shared by "type" and "subtype": both key on the EFFECTIVE type, so gold movements gather under
 -- "Gold" exactly as the column shows them, and an untyped item reads "Unknown" rather than blank.
@@ -676,7 +699,7 @@ function LT:AcquireRow()
   -- Group-header styling; hidden for data rows.
   local header = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   header:SetPoint("LEFT", 4, 0)
-  header:SetTextColor(1, 0.82, 0)
+  header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])
   header:Hide()
   row.header = header
 
@@ -830,7 +853,7 @@ function LT:MakeHeaderButton(col)
   fs:SetPoint("LEFT", 0, 0)
   fs:SetJustifyH(col.align)
   fs:SetText(col.label)
-  fs:SetTextColor(1, 0.82, 0)
+  fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])
   btn.fs = fs
   btn:SetScript("OnEnter", function(self2)
     if not GameTooltip then return end

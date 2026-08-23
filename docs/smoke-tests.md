@@ -428,32 +428,42 @@ is about the path and the argument; this is where somebody actually looks at the
    is prefixed by a **flat white tick**, the same weight as the chevron on the button above it — not
    Blizzard's beveled `UI-CheckBox-Check`. A beveled tick means `CHECK_MARKUP` stopped resolving
    `confirm` and fell to its rung, which is the same art the menu used before the marks landed.
+   **The tick is FULL WHITE and that is correct** — it is the one inline mark left untinted, because
+   the menu row beside it is plain white text with no colour for it to match. It reads a shade
+   brighter than that label. Recorded in [media.md](media.md); not a regression to file.
 4. Click a **column header** in History. The sort arrow beside the label is a chevron-weight
    **sort-up / sort-down** mark, and it flips when you click again. Group by **Day**: each group
-   header now opens with a **chevron**, right when collapsed and down when expanded, where it used to
-   be Blizzard's boxed `+` / `-`. Click one; the chevron turns.
-   **These four, and the tick in step 3, sit at FULL WHITE, and that is correct.** They are inline
-   `|T…|t` markup, which carries no vertex colour, so they read a shade brighter than the game-font
-   label beside them and than the gray `(count)` on the same line. Every mark drawn on a *widget* —
-   close, the dropdown chevron, the magnifier, both export marks — is toned to 0.7–0.85 gray instead.
-   The difference is recorded in [media.md](media.md) and is **not** a regression to file.
-5. The **Export** button on the filter bar has a small mark on its LEFT and the word **Export** still
-   **centred** — not shifted. Same for **Export to CSV** in the modal. If either word has moved off
-   centre, the label was anchored to the art instead of to the button.
+   header now opens with a **chevron**, right when collapsed and down when expanded, where it used
+   to be Blizzard's boxed `+` / `-`. Click one; the chevron turns.
+   **All four are the SAME GOLD as the words they sit beside** — the arrows against the column
+   label, the chevrons against the group label, both of which are drawn in 1/0.82/0. Hold your eye
+   on each pair: a near-white mark against a gold word means the vertex-colour tail came off the
+   inline escape, and it is the one failure in this section that still draws, still sizes and still
+   points the right way. Check the group chevron as carefully as the arrow — it is drawn in a
+   different function and is the half that gets forgotten. The gray `(count)` on the same line is
+   *not* gold and is not part of this check. Every mark drawn on a *widget* — close, the dropdown
+   chevron, the magnifier, the modal's export mark — is toned to 0.7–0.85 gray instead.
+5. **The filter bar carries no marks at all** — **Export**, **Save**, **Reset** and **Clear** are
+   four plain centred words. Export used to wear one and does not any more: one marked button in a
+   row of four read as an odd one out. A mark that has come back on any of them is a regression.
+   **Export to CSV** in the modal is the one action button that keeps its mark: a small mark on its
+   LEFT with the words still **centred** — not shifted. If the words have moved off centre, the
+   label was anchored to the art instead of to the button.
    **Measure the modal's button against the Data set dropdown directly above it.** It must be about
    *two-fifths* as wide and centred under it, with the mark and the words close enough to read as one
    control. If it spans the modal edge to edge like the dropdown does, its 150px width was overridden
    by a left-and-right anchor pair — the mark is then pinned at the far-left edge with the label
    floating ~150px away, which reads as an unrelated decoration rather than as a mark BESIDE a label.
-6. **Save · Reset · Clear** carry **no** mark. That is deliberate: at 51px there is no room beside a
-   centred word, and the word is what tells you which is which.
-7. The search box shows a **magnifier** on its left, with "Search items…" starting just past it. Type
+6. The search box shows a **magnifier** on its left, with "Search items…" starting just past it. Type
    into it — your text starts in the same place, not under the magnifier.
-8. **Hover every mark in turn.** None of them shows a tooltip of its own. The four filter-bar buttons
+7. **Hover every mark in turn.** None of them shows a tooltip of its own. The four filter-bar buttons
    still show *their* tooltips, which is not the same thing.
-9. **The settings panel has no marks at all** — `/bl config`, every page. Its widgets belong to
+8. **The settings panel has no marks at all** — `/bl config`, every page. Its widgets belong to
    `LibKa0s-Options-1.0`; a mark that has appeared there came from the wrong side of the seam.
-10. **The degraded pass.** Rename `libs/LibKa0s` aside and `/reload`. Every surface above must still
-    draw *something*: the font-character ×, Blizzard's ▼, its `Arrow-Up-Up` sort arrows, its boxed
-    `+`/`-`, its beveled `UI-CheckBox-Check` tick, and the two action buttons with their words and no
-    art. Nothing blank, nothing off-centre, no error. Put the folder back.
+9. **The degraded pass.** Rename `libs/LibKa0s` aside and `/reload`. Every surface above must still
+   draw *something*: the font-character ×, Blizzard's ▼, its `Arrow-Up-Up` sort arrows, its boxed
+   `+`/`-` group expanders, its beveled `UI-CheckBox-Check` tick, and **Export to CSV** with its
+   words and no art. **The four header marks are GOLD on this rung too** — the tint rides on the
+   escape rather than on the art, so a gold `Arrow-Up-Up` and a gold boxed `+` are correct here; a
+   near-white one means the fallback path lost the tail the resolved path keeps. Nothing blank,
+   nothing off-centre, no error. Put the folder back.

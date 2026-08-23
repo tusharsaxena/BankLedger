@@ -196,21 +196,61 @@ local function groupHeaderText(LT, collapsed)
   return header:GetText()
 end
 
+-- The vertex-colour tail EVERY inline mark in the header carries — both sort arrows and both group
+-- expanders: the header gold (1/0.82/0) in the 0-255 the escape sequence takes, behind the eleven
+-- positional arguments that have to be spelled to reach it. Written out in full HERE rather than
+-- composed from the same helper the source uses, because a mirror built by the code under test
+-- agrees with itself no matter what it says.
+local HEADER_TINT = ":0:0:0:0:64:64:0:64:0:64:255:209:0|t"
+
 test("marks: the column-header sort arrow is the collection's, at the site that draws it", function()
   -- Read back off the header button's own FontString after UpdateHeaderArrows composed it, so a
   -- draw site that went back to Blizzard's Arrow-Up-Up is red here rather than green against a
   -- mirror of the right answer. Extensionless inside |T…|t for the same reason as SetTexture.
-  assertEqual(headerLabel(NS.LedgerTable, "date", true), "Date |T" .. ICONS .. "sort-up:0|t")
-  assertEqual(headerLabel(NS.LedgerTable, "date", false), "Date |T" .. ICONS .. "sort-down:0|t")
+  assertEqual(headerLabel(NS.LedgerTable, "date", true), "Date |T" .. ICONS .. "sort-up" .. HEADER_TINT)
+  assertEqual(headerLabel(NS.LedgerTable, "date", false),
+    "Date |T" .. ICONS .. "sort-down" .. HEADER_TINT)
+end)
+
+test("marks: every inline header mark is TINTED to the gold of the word it sits beside", function()
+  -- The arrow art is near-white, and drawn untinted beside a gold column label it read as a second
+  -- colour inside one string. The tail is the whole fix and it is invisible to every other case
+  -- here: an arrow that lost it still resolves the right path, still sizes to the line, and still
+  -- draws — just in the wrong colour, which is the failure mode no headless instrument catches
+  -- unless it is spelled out.
+  --
+  -- 255/209/0 is 1/0.82/0 rounded, and 1/0.82/0 is what LT:MakeHeaderButton sets on the label and
+  -- BindRow sets on the group header. Both now read it off the same HEADER_RGB the tint is built
+  -- from, so the pair cannot drift; this asserts the NUMBER that reaches the escape.
+  local src = readSource("modules/LedgerTable.lua")
+  assertTrue(src:find("local HEADER_RGB = { 1, 0.82, 0 }", 1, true) ~= nil,
+    "the one place the header gold is written down is gone")
+  assertTrue(src:find("fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true) ~= nil,
+    "the column header stopped taking its colour from HEADER_RGB, so the arrow can drift off it")
+  assertTrue(src:find("header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true)
+    ~= nil, "the group header stopped taking its colour from HEADER_RGB")
+  for _, dir in ipairs({ "up", "down" }) do
+    assertTrue(headerLabel(NS.LedgerTable, "date", dir == "up"):find(HEADER_TINT, 1, true) ~= nil,
+      "the sort-" .. dir .. " arrow lost its tint and draws near-white beside gold text")
+  end
+  -- The group expander is the other half and it is the half that gets forgotten: it lives in
+  -- BindRow rather than UpdateHeaderArrows, and its row is drawn in the same 1/0.82/0.
+  for _, collapsed in ipairs({ true, false }) do
+    assertTrue(groupHeaderText(NS.LedgerTable, collapsed):find(HEADER_TINT, 1, true) ~= nil,
+      "the " .. (collapsed and "collapsed" or "expanded")
+      .. " group expander lost its tint and draws near-white beside gold text")
+  end
 end)
 
 test("marks: the group header's expander is a chevron, at the site that draws it", function()
   -- Collapsed points right, expanded points down, and the two-space gap and the gray `(count)` the
-  -- header has always carried are untouched: the mark changed and the layout did not.
+  -- header has always carried are untouched: the mark changed and the layout did not. The tint is
+  -- the header's own gold, the same as the sort arrows' — this row is drawn in 1/0.82/0 too, and a
+  -- near-white chevron in front of a gold label reads as two colours in one string.
   assertEqual(groupHeaderText(NS.LedgerTable, true),
-    "|T" .. ICONS .. "chevron-right:0|t  Character Bank  |cff808080(3)|r")
+    "|T" .. ICONS .. "chevron-right" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
   assertEqual(groupHeaderText(NS.LedgerTable, false),
-    "|T" .. ICONS .. "chevron-down:0|t  Character Bank  |cff808080(3)|r")
+    "|T" .. ICONS .. "chevron-down" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
 end)
 
 test("marks degraded: every inline mark falls back to the exact art it used to be", function()
@@ -218,30 +258,34 @@ test("marks degraded: every inline mark falls back to the exact art it used to b
   -- player without LibKa0s sees, and it is the one that rots unwatched: nothing else looks at it.
   local ns = loadDegraded("modules/LedgerTable.lua")
   local LT = ns.LedgerTable
-  assertEqual(headerLabel(LT, "date", true), "Date |TInterface\\Buttons\\Arrow-Up-Up:0|t")
-  assertEqual(headerLabel(LT, "date", false), "Date |TInterface\\Buttons\\Arrow-Down-Up:0|t")
+  assertEqual(headerLabel(LT, "date", true), "Date |TInterface\\Buttons\\Arrow-Up-Up" .. HEADER_TINT)
+  assertEqual(headerLabel(LT, "date", false),
+    "Date |TInterface\\Buttons\\Arrow-Down-Up" .. HEADER_TINT)
   assertEqual(groupHeaderText(LT, true),
-    "|TInterface\\Buttons\\UI-PlusButton-Up:0|t  Character Bank  |cff808080(3)|r")
+    "|TInterface\\Buttons\\UI-PlusButton-Up" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
   assertEqual(groupHeaderText(LT, false),
-    "|TInterface\\Buttons\\UI-MinusButton-Up:0|t  Character Bank  |cff808080(3)|r")
+    "|TInterface\\Buttons\\UI-MinusButton-Up" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
 end)
 
 -- ── marks BESIDE a label, never instead of one ───────────────────────────────────────────────
 
-test("marks: the filter bar's Export button carries its mark BESIDE the word", function()
+test("marks: the filter bar is WORDS ONLY — its Export button carries no mark", function()
+  -- Export did wear one, as the only button on the bar wide enough for art beside a centred label.
+  -- Four buttons sit in that row and one marked among four unmarked read as an odd one out, so the
+  -- mark came off. This is the case that keeps it off: a mark added back to one of these belongs on
+  -- all four or none, and the bare `if mark then` branch it used to hang from is gone from the
+  -- factory entirely rather than left dangling with no caller.
   B:Show()
   local btn = B._exportBtn
   assertTrue(btn ~= nil, "the filter bar was never built")
-  assertEqual(btn.icon.__texture, ICONS .. "export")
-  -- LEFT with an inset, so the centred label is where it always was and a nil icon leaves the
-  -- button identical rather than off-centre.
-  assertEqual((btn.icon:GetPoint(1)), "LEFT")
-  -- AND THE WORD IS STILL THERE, read back off the built button rather than grepped for in the
-  -- factory. BESIDE is a property of the CALL SITE: the factory can draw a label perfectly and the
-  -- caller still hand it "", which ships a wordless 166px glyph button — and an empty one on an
-  -- install with no LibKa0s to answer NS.Icon.
+  assertNil(btn.icon, "the filter bar's Export button grew a mark back on its own")
+  -- The word is what this button HAS, read back off the built button rather than grepped for in the
+  -- factory, because a call site can always hand a perfectly good factory "".
   assertEqual(btn.fs:GetText(), "Export",
-    "the filter bar's Export button lost its word; a mark never replaces a wide action label")
+    "the filter bar's Export button lost its word, and it has nothing else to say what it does")
+  local src = readSource("modules/Browser.lua")
+  assertTrue(src:find("makeBarButton(parent, text, width, onClick, tooltip)", 1, true) ~= nil,
+    "makeBarButton takes a mark argument again; every button on the bar or none of them")
 end)
 
 test("marks: the export modal's action button carries its mark BESIDE the words", function()
@@ -414,7 +458,6 @@ test("marks: no mark carries a tooltip of its own", function()
   local arts = {
     ["the close control"]      = B:MakeCloseButton(mocks.__stubFrame(), function() end).icon,
     ["the dropdown chevron"]   = B:MakeDropdown(mocks.__stubFrame(), 100).arrow,
-    ["the filter bar's Export"] = B._exportBtn and B._exportBtn.icon,
     ["the search magnifier"]   = B._search and B._search.icon,
     ["the modal's Export to CSV"] = f and f.csvBtn and f.csvBtn.icon,
   }
@@ -424,7 +467,7 @@ test("marks: no mark carries a tooltip of its own", function()
     assertTrue(art ~= nil, what .. " went missing before its tooltip was checked")
     assertNil(art:GetScript("OnEnter"), what .. "'s mark grew an OnEnter of its own")
   end
-  assertEqual(n, 5, "a mark dropped out of the list this case walks")
+  assertEqual(n, 4, "a mark dropped out of the list this case walks")
 end)
 
 test("marks: nothing under settings/ resolves a mark — that panel is the Options library's",

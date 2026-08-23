@@ -98,11 +98,12 @@ audit must not flag it.
 
 **This is the one arrow pair that stayed a character.** The History column-header sort arrows and the
 group-header expanders are textures now — the collection's `sort-up` / `sort-down` and
-`chevron-right` / `chevron-down` marks. The direction glyph does **not** follow them, and the reason
-is COLOR: it sits inline in the cell and takes the direction's red or green from the same
-`SetTextColor` that paints the label beside it, and a texture would need its own tint kept in step by
-hand. Alignment is not part of the argument — the Blizzard arrow art on the lower rung of those two
-marks is what a degraded install draws and what S-21 step 10 tells a tester is CORRECT there, so a
+`chevron-right` / `chevron-down` marks, each carrying a vertex-colour tail that paints it the
+header's fixed gold. The direction glyph does **not** follow them, and the reason is COLOR: those
+four are ONE colour written down in one place, while the direction glyph takes the direction's red
+or green per row from the same `SetTextColor` that paints the label beside it — a mark there would
+need a second tail rebuilt per row and kept in step with it by hand. Alignment is not part of the argument — the Blizzard arrow art on the lower rung of those two
+marks is what a degraded install draws and what S-21 step 9 tells a tester is CORRECT there, so a
 claim here that it sits visibly off-baseline would wave a real degraded-install regression through as
 a known quirk. See [media.md](media.md).
 

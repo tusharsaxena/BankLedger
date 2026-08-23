@@ -508,35 +508,23 @@ function B:MakeDropdown(parent, width) return MakeDropdown(parent, width) end
 
 -- A small flat-skin text button for the filter bar.
 --
--- `mark` is OPTIONAL and is a RESOLVED PATH — `NS.Icon("export")` — for a LibKa0s-Media mark drawn
--- BESIDE the label, never instead of it. The word says what the button does; the mark says where
--- the action lands. The label stays centred whether or not the art resolves, so a nil mark leaves
--- the button exactly as it was rather than shunted off-centre — which is also why the caller passes
--- one only for a button WIDE ENOUGH to hold both. At the filter bar's own geometry that is Export
--- alone (see the note in BuildFilterBar). No tooltip is attached to the mark: the button's existing
--- tooltip explains the action, and a second one anchored to the art would cover the row beneath it.
+-- WORDS ONLY, and that is a decision rather than an omission. This factory did take an optional
+-- RESOLVED PATH for a mark drawn BESIDE the label, and the filter bar's Export button was the one
+-- caller wide enough to pass one. It does not any more: four buttons sit in a row here, three of
+-- them too narrow for art beside a centred label (see the note in BuildFilterBar), and one marked
+-- button among four unmarked ones read as an odd one out rather than as an affordance. The MODAL's
+-- "Export to CSV" keeps its mark — that button is alone in its window, where the mark is the only
+-- art on the surface and has nothing to be inconsistent with.
 --
--- THE PATH IS RESOLVED AT THE CALL SITE, NOT HERE, and that is the point: it keeps every icon NAME
--- in this addon spelled inside a literal `NS.Icon("…")`, which is the one shape the catalog
--- tripwire in tests/test_marks.lua can see. A factory that took the bare name instead would hide
--- it in an argument list, and a button asking for a mark nobody ever added to NS.ICON_NAMES —
--- or to the library's catalog — would draw no art, raise nothing and pass every suite.
-local function makeBarButton(parent, text, width, onClick, tooltip, mark)
+-- So a mark added back here belongs on ALL of these or none of them, and the tripwire in
+-- tests/test_marks.lua pins the current answer: nothing under this factory resolves NS.Icon.
+local function makeBarButton(parent, text, width, onClick, tooltip)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width, 20)
   b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
                   insets = { left = 1, right = 1, top = 1, bottom = 1 } })
   b:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
   b:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
-
-  if mark then
-    local art = b:CreateTexture(nil, "OVERLAY")
-    art:SetPoint("LEFT", b, "LEFT", 8, 0)
-    art:SetSize(12, 12)
-    art:SetTexture(mark)
-    art:SetVertexColor(0.85, 0.85, 0.85)
-    b.icon = art
-  end
 
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   fs:SetPoint("CENTER")
@@ -1065,17 +1053,17 @@ function B:BuildFilterBar(bar)
   -- it; SetPoint only needs the frame to exist, not to be positioned yet. Its own anchor (to the
   -- Character dropdown) is set at the end of the Row 2 block below.
   --
-  -- It is the ONE button on this bar that carries a mark, and the reason is arithmetic rather than
-  -- taste. Export is exportW wide (166 at the window's floor); the Save · Reset · Clear cluster
-  -- below splits exportW - 12 three ways, which is 51px a button. "Clear" in
-  -- GameFontHighlightSmall is most of thirty of those pixels and it is CENTRED, so a 12px mark at
-  -- an 8px inset would sit under its first letter — and the rule is that the label keeps its
-  -- position and its text, not that every button gets art. So those three stay words.
+  -- It carries NO mark, and neither does anything else on this bar. Export briefly did, on the
+  -- arithmetic that it was the only button wide enough: it is exportW wide (166 at the window's
+  -- floor) while the Save · Reset · Clear cluster below splits exportW - 12 three ways, 51px a
+  -- button, and "Clear" in GameFontHighlightSmall is most of thirty of those CENTRED pixels — a
+  -- 12px mark at an 8px inset would sit under its first letter. But "the only one that fits" is not
+  -- the same as "the one that should have it", and a single marked button in a row of four read as
+  -- an inconsistency rather than an affordance. Words for all four.
   local exportW = B:ExportWidth()
   local exportBtn = makeBarButton(bar, "Export", exportW, function() B:OpenExport() end,
-    "Export the current tab — ledger rows (History) or the summary (Insights).",
-    NS.Icon and NS.Icon("export"))
-  self._exportBtn = exportBtn   -- the one marked button on this bar; the mark suite reads it back
+    "Export the current tab — ledger rows (History) or the summary (Insights).")
+  self._exportBtn = exportBtn   -- the mark suite reads it back to prove it stayed words-only
 
   -- Right cluster: Save · Reset · Clear, spanning exactly exportW so its right edge sits flush above
   -- Export's and both stay static as the window widens. Three buttons + two 6px gaps = exportW:
