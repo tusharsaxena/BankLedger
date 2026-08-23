@@ -84,8 +84,8 @@ end
 --- list is exactly the drift the list exists to catch.
 ---
 ---   close          modules/Browser.lua  B:MakeCloseButton — all four title bars
----   chevron-down   modules/Browser.lua  MakeDropdown's ▼, and the expanded group header
----   confirm        modules/Browser.lua  the tick on a chosen row of a multi-select menu
+---   chevron-down   modules/Browser.lua  B:MakeDropdown's injected ▼, and the expanded group header
+---   confirm        modules/Browser.lua  B:MakeDropdown's injected tick, for a multi-select menu's row
 ---   chevron-right  modules/LedgerTable.lua  the collapsed group header
 ---   sort-up        modules/LedgerTable.lua  the ascending column-header arrow
 ---   sort-down      modules/LedgerTable.lua  the descending column-header arrow
