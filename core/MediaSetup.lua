@@ -8,7 +8,7 @@ local addonName, NS = ...
 --
 -- This addon shipped its own copy of JetBrains Mono under `media/fonts/`, beside its own OFL.txt,
 -- and registered the face with LibSharedMedia itself from core/BankLedger.lua's OnInitialize. Both
--- are gone. The bytes now arrive inside the LibKa0s payload (v1.10.1, `LibKa0s-Media-1.0`) with the
+-- are gone. The bytes now arrive inside the LibKa0s payload (v1.10.2, `LibKa0s-Media-1.0`) with the
 -- library, because the second Ka0s addon to want a monospace column would otherwise have carried a
 -- second copy — two licenses to track, two provenance stories, and two LibSharedMedia registrations
 -- of the name "JetBrains Mono" against two different paths, which is precisely the collision the

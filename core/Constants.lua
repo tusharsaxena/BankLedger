@@ -194,7 +194,7 @@ end
 -- sanctioned styling exception — WoW ships no monospace font object (debug-logging-§2).
 --
 -- IT USED TO BE OURS. This addon shipped its own JetBrains Mono under media/fonts/ and named it
--- here as a bare string literal. The bytes live inside the LibKa0s payload now (v1.10.1,
+-- here as a bare string literal. The bytes live inside the LibKa0s payload now (v1.10.2,
 -- `LibKa0s-Media-1.0`), so every Ka0s addon prints its columns in one face rather than in one copy
 -- of it each — see core/MediaSetup.lua, which publishes this seam and registers the face with
 -- LibSharedMedia. That is also why core/MediaSetup.lua must load BEFORE this file.
