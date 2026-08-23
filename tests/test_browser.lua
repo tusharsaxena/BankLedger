@@ -369,6 +369,46 @@ test("the ledger window saves its geometry when it hides", function()
   assertEqual(saved.w, 980)
 end)
 
+-- The regression this addon shipped once: the popup menu is LibKa0s-Widgets-1.0's process-wide
+-- singleton, parented to UIParent rather than to this window, so this window's own Hide/OnHide
+-- cannot reach it on its own. modules/Browser.lua must call W.CloseMenu() from every place it
+-- closes the window by a route other than a click on the dropdown itself, or a menu left open by
+-- Escape or a slash command orphans over the game. Caught here by opening the real shared menu
+-- (a genuine click, not a stand-in) and watching W.CloseMenu() actually reach it through B:Hide().
+test("the ledger window closes an open dropdown menu when it hides", function()
+  NS.Browser:Show()
+  local dd = B._dd and B._dd.group
+  assertTrue(dd ~= nil, "the group dropdown exists once the filter bar is built")
+  local onClick = dd:GetScript("OnClick")
+  assertTrue(onClick ~= nil, "the dropdown wires an OnClick that opens the shared menu")
+
+  -- The shared menu is a file-local inside Widgets.lua with no handle exposed to a host; capture
+  -- the frame the click builds by spying on CreateFrame for the duration of the click, the same
+  -- way the library's own suite captures it. This addon's shared mock has no dedicated stub for
+  -- GetStringWidth, so its catch-all resolves it to a function returning the frame itself, and
+  -- the popup's row-width math then tries to add a number to that frame -- so GetStringWidth is
+  -- forced sane on every frame minted during the click, for the duration of this one test, the
+  -- same way ../LibKa0s's own Widgets suite installs a geometry-aware frame rather than widen the
+  -- mock every other suite here inherits.
+  local realCreateFrame = mocks.CreateFrame
+  local capturedMenu
+  mocks.CreateFrame = function(...)
+    local f = realCreateFrame(...)
+    f.GetStringWidth = function() return 50 end
+    if not capturedMenu then capturedMenu = f end
+    return f
+  end
+  local ok, err = pcall(onClick, dd)
+  mocks.CreateFrame = realCreateFrame
+  if not ok then error(err, 0) end
+
+  assertTrue(capturedMenu ~= nil, "the click built (or reused) the shared popup menu")
+  assertTrue(capturedMenu:IsShown(), "opening the dropdown showed the shared menu")
+
+  NS.Browser:Hide()
+  assertFalse(capturedMenu:IsShown(), "hiding the window closed the menu via W.CloseMenu()")
+end)
+
 test("the ledger window saves its geometry at logout", function()
   NS.db.global.settings.window = {}
   NS.Browser:Show()
@@ -474,23 +514,53 @@ end)
 -- builds a path from an addon name it does not have. Getting one of them wrong draws nothing and
 -- raises nothing, which is the failure this addon's mark suite exists for.
 
+-- A spy on W.Dropdown, not a read of dropdown internals: the library's own docs (see
+-- ../LibKa0s/docs/api/Widgets/version-2-docs.md, "`__`-prefixed instance fields are INTERNAL")
+-- say a host may not read `dd.__check` / `dd.__glyphFont` — that is the suite exercising the
+-- library from the inside, not a precedent this host gets to borrow. Wrapping the constructor and
+-- capturing the `opts` table MakeDropdown hands it tests exactly what the forwarder exists to do —
+-- which host-resolved paths it injects — without reaching past the published surface to check it.
+local function spyOnDropdown(fn)
+  local Widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  local realDropdown = Widgets.Dropdown
+  local capturedOpts
+  Widgets.Dropdown = function(parent, width, opts)
+    capturedOpts = opts
+    return realDropdown(parent, width, opts)
+  end
+  local ok, err = pcall(fn)
+  Widgets.Dropdown = realDropdown
+  if not ok then error(err, 0) end
+  return capturedOpts
+end
+
 test("Browser: MakeDropdown injects this addon's chevron, tick and mono face", function()
-  local dd = B:MakeDropdown(mocks.UIParent, 110)
-  assertEqual(dd.arrow.__texture, NS.Icon("chevron-down"),
-    "the collapsed button wears the collection's chevron")
-  assertEqual(dd.__check, "|T" .. NS.Icon("confirm") .. ":0|t ",
-    "and a multi-select row's tick is the collection's check glyph")
-  assertEqual(dd.__glyphFont, NS.Constants.FONT_MONO,
-    "the direction glyph gets the face that actually has the character")
+  local dd
+  local capturedOpts = spyOnDropdown(function()
+    dd = B:MakeDropdown(mocks.UIParent, 110)
+  end)
+  assertTrue(dd ~= nil, "MakeDropdown built a dropdown")
+  assertTrue(capturedOpts ~= nil, "MakeDropdown called W.Dropdown")
+  assertEqual(capturedOpts.chevron, NS.Icon("chevron-down"),
+    "the collapsed button is handed the collection's chevron")
+  assertEqual(capturedOpts.check, NS.Icon("confirm"),
+    "and a multi-select row's tick is handed the collection's check glyph")
+  assertEqual(capturedOpts.glyphFont, NS.Constants.FONT_MONO,
+    "the direction glyph is handed the face that actually has the character")
 end)
 
 test("Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art", function()
   -- The rung below. Red under: a forwarder that concatenates a nil into a path.
   local realIcon = NS.Icon
   NS.Icon = function() return nil end
-  local dd = B:MakeDropdown(mocks.UIParent, 110)
-  assertEqual(dd.arrow.__texture, "Interface\\Buttons\\Arrow-Down-Up")
+  local dd
+  local capturedOpts = spyOnDropdown(function()
+    dd = B:MakeDropdown(mocks.UIParent, 110)
+  end)
   NS.Icon = realIcon
+  assertEqual(capturedOpts.chevron, nil, "no chevron path is handed over when this addon has no art")
+  assertEqual(dd.arrow.__texture, "Interface\\Buttons\\Arrow-Down-Up",
+    "the library falls back to Blizzard's own arrow — dd.arrow is a documented, host-readable field")
 end)
 
 -- ── Degraded: LibKa0s-Widgets-1.0 absent ────────────────────────────────

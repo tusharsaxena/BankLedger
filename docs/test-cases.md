@@ -380,7 +380,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable row menu disables every mutating action in test mode
 - LedgerTable row menu still disables item actions on a money row
 
-### test_browser.lua (44)
+### test_browser.lua (38)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -410,22 +410,16 @@ badge and any count quoted in the docs must agree with it.
 - Browser:ApplyGeometry never restores a size below the window floor
 - Browser:SaveGeometry refuses to write a point-less table
 - the ledger window saves its geometry when it hides
+- the ledger window closes an open dropdown menu when it hides
 - the ledger window saves its geometry at logout
 - Browser:ExportWidth leaves the Export button a usable width
 - Browser: a burst of search keystrokes costs ONE filter application
 - Browser: the debounced filter still applies when there is no timer library
 - Browser: a 20-stack deposit repaints the window once, not twenty times
 - Browser hands the table a filter COPY, not its own mutable one
-- Browser menu: Populate shows one row per option and sizes the menu to them
-- Browser menu: a freak label is capped at 320px
-- Browser menu: the menu is never narrower than 90px, nor than its own dropdown
-- Browser menu: rows are POOLED — a shorter dropdown hides the spares, never rebuilds
-- Browser menu: multi-select ticks 'all' exactly when nothing is selected
-- Browser menu: single-select marks the active value and never draws a tick
-- Browser menu: selected rows go gold, the rest keep the value's own color
-- Browser menu: a glyphed row shows its glyph and indents its text past it
-- Browser menu: clicking a multi-select row toggles it and leaves the menu open
-- Browser menu: clicking a single-select row sets the value and closes the menu
+- Browser: MakeDropdown injects this addon's chevron, tick and mono face
+- Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art
+- Browser: the window still opens and the ledger table still populates with no Widgets library
 
 ### test_sessionwindow.lua (32)
 
@@ -748,7 +742,7 @@ badge and any count quoted in the docs must agree with it.
 - marks degraded: with no library the close button is still the × it always was
 - marks: the × is DRAWN in exactly one place, so one edit reached all four title bars
 - marks: every filter dropdown wears chevron-down, through the shared factory
-- marks degraded: the dropdown keeps Blizzard's arrow, never a ▼ character
+- marks degraded: MakeDropdown answers nil rather than a half-built widget, with no library
 - marks: a chosen row of a multi-select menu wears the collection's tick
 - marks: the column-header sort arrow is the collection's, at the site that draws it
 - marks: every inline header mark is TINTED to the gold of the word it sits beside
@@ -766,7 +760,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (63)
+### test_libka0s.lua (64)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -789,6 +783,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Options tripwire: Options reads no descriptor L
 - LibKa0s: no seam file hands a descriptor the addon-wide locale table
 - LibKa0s: the locale-descriptor matcher catches all three spellings
+- LibKa0s-Widgets: the vendored major registered
 - LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
 - LibKa0s: the vendored folder carries the license it ships under
 - LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
@@ -849,7 +844,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 43 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 51 |
-| test_browser.lua | 44 |
+| test_browser.lua | 38 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 34 |
@@ -861,6 +856,6 @@ badge and any count quoted in the docs must agree with it.
 | test_mock.lua | 19 |
 | test_mediasetup.lua | 13 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 63 |
+| test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **765** |
+| **Total** | **760** |

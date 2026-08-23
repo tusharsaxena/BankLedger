@@ -33,7 +33,7 @@ local core = LibStub and LibStub("LibKa0s-Core-1.0", true)
 local NEEDS_CORE = 1
 if not core or (core.MINOR or 0) < NEEDS_CORE then return end   -- no NewLibrary; module absent
 
-local MAJOR, MINOR = "LibKa0s-Widgets-1.0", 1
+local MAJOR, MINOR = "LibKa0s-Widgets-1.0", 2
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -311,4 +311,25 @@ end
 --- @return table  the dropdown
 function lib.Dropdown(parent, width, opts)
   return MakeDropdown(parent, width, opts)
+end
+
+--- Close the shared popup menu, if it is open. Safe to call when no dropdown has ever opened the
+--- menu (menu is still nil) and safe to call when the menu is already hidden — both are plain
+--- no-ops.
+---
+--- A HOST CANNOT DO THIS ITSELF: the popup is a process-wide singleton, built lazily on the first
+--- click of any dropdown in the process and parented to `UIParent` at `FULLSCREEN_DIALOG` (see
+--- EnsureMenu above), not to any one host's frame. It outlives every window that ever opened it,
+--- so no host holds a reference to it and no host's own Hide/OnHide reaches it — the widget kept
+--- that shape on purpose (see the header comment on `dd.__check`) precisely so that two addons'
+--- dropdowns can share one pool. `menu:Hide()` is enough on this end: the menu's own `OnHide`
+--- script (set in EnsureMenu) already hides `menu.catcher`, so this function does not touch the
+--- catcher directly.
+---
+--- Without this, a host that closes its own window by any route that is not a click on the
+--- dropdown — Escape, a slash command, anything that is not the click-catcher's own OnClick —
+--- leaves the menu ORPHANED: still shown, still at FULLSCREEN_DIALOG, floating over the game with
+--- no owner left to hide it. A host must call this from every non-click close path it has.
+function lib.CloseMenu()
+  if menu and menu:IsShown() then menu:Hide() end
 end

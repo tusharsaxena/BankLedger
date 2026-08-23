@@ -1102,12 +1102,14 @@ local function EnsureFrame()
   frame.resizeGrip = grip
 
   -- The single seam for the [UI] show/hide trace, so it fires once per visibility change whatever
-  -- the call path. The dropdown popup itself is no longer this file's to close on hide — it is
-  -- LibKa0s-Widgets-1.0's process-wide singleton now, and the library owns its own lifecycle.
+  -- the call path. The dropdown popup is LibKa0s-Widgets-1.0's process-wide singleton, parented to
+  -- UIParent rather than to this frame, so this frame's own OnHide does not reach it -- CloseMenu()
+  -- is the library's seam for exactly that, and it is a safe no-op when no menu is open.
   frame:HookScript("OnShow", function()
     if NS.State.debug and NS.Debug then NS.Debug("UI", "window shown") end
   end)
   frame:HookScript("OnHide", function()
+    if W then W.CloseMenu() end
     -- The save that actually carries geometry across a game session: closing the window is
     -- guaranteed to happen, where the drag/resize handlers may never have fired.
     B:SaveGeometry()
@@ -1137,6 +1139,7 @@ function B:Show()
 end
 
 function B:Hide()
+  if W then W.CloseMenu() end
   if frame then frame:Hide() end
 end
 
