@@ -92,10 +92,19 @@ crashes there. The shared secret-safe printer probes `table.concat` instead
 ## WoW's default font has no ▲ or ▼
 
 It renders a box for both. The History table's Direction column and the Direction filter dropdown draw
-those glyphs in the vendored JetBrains Mono — sanctioned by `debug-logging-§2`, which names direction
-markers in a table cell as its example and states that an audit must not flag it. The alternative is a
-texture, and Blizzard's arrow art carries uneven padding (up sits low in its canvas, down sits high),
-so a texture pair visibly misaligns against the row text. See [media.md](media.md).
+those glyphs in JetBrains Mono, which arrives with the LibKa0s payload — sanctioned by
+`debug-logging-§2`, which names direction markers in a table cell as its example and states that an
+audit must not flag it.
+
+**This is the one arrow pair that stayed a character.** The History column-header sort arrows and the
+group-header expanders are textures now — the collection's `sort-up` / `sort-down` and
+`chevron-right` / `chevron-down` marks. The direction glyph does **not** follow them, and the reason
+is COLOR: it sits inline in the cell and takes the direction's red or green from the same
+`SetTextColor` that paints the label beside it, and a texture would need its own tint kept in step by
+hand. Alignment is not part of the argument — the Blizzard arrow art on the lower rung of those two
+marks is what a degraded install draws and what S-21 step 10 tells a tester is CORRECT there, so a
+claim here that it sits visibly off-baseline would wave a real degraded-install regression through as
+a known quirk. See [media.md](media.md).
 
 ## Void storage and the reagent bank are gone
 

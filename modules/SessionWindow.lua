@@ -329,8 +329,9 @@ function SW:AcquireRow()
     row.cells[col.key] = fs
   end
 
-  -- The ▲/▼ direction glyph, in the vendored mono font for the same reason (and under the same
-  -- documented deviation) as the History table's: WoW's default font renders both as a box.
+  -- The ▲/▼ direction glyph, in the MONO face (C.FONT_MONO, which now arrives with the LibKa0s
+  -- payload rather than this addon's own media/) for the same reason, and under the same documented
+  -- deviation, as the History table's: WoW's default font renders both as a box.
   local glyph = row:CreateFontString(nil, "OVERLAY")
   glyph:SetFont(C.FONT_MONO, ARROW_SIZE, "")
   glyph:SetJustifyH("CENTER")

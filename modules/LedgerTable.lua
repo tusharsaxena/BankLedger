@@ -17,14 +17,17 @@ local COL_GAP = 8      -- horizontal space between columns
 -- C.DirectionGlyph, C.StoreRGB): the filter dropdowns paint their options from the same tables, so
 -- a store or a direction can never read one color in the table and another in the menu.
 --
--- The glyph is drawn as a real text glyph rather than a texture, because a glyph sits on the
--- label's own baseline — centered against the text by construction, where Blizzard's arrow textures
--- carry uneven padding (the up arrow's art sits low in its canvas, the down arrow's high) and
--- visibly misalign. It also takes the direction's color from the same SetTextColor the label uses.
--- It needs the VENDORED font: the default WoW font has no ▲/▼ and renders a box, while the shipped
--- JetBrains Mono carries both. That is an accepted, documented deviation — the mono font is a
--- sanctioned styling exception scoped to the debug console (debug-logging-§2) and this extends it
--- to one glyph. See docs/ARCHITECTURE.md ▸ Documented deviations.
+-- The glyph is drawn as a real text glyph rather than a texture, and the reason is COLOR rather
+-- than alignment: it takes the direction's red or green from the same SetTextColor call that paints
+-- the label beside it, where a texture would need its own tint kept in step by hand. It is the one
+-- arrow pair in this addon that stayed a character — the column-header sort arrows and the group
+-- expanders further down this file are the collection's marks, and they are textures.
+-- It needs the MONO face: the default WoW font has no ▲/▼ and renders a box, while JetBrains Mono
+-- carries both. The face is no longer this addon's own — it arrives with the LibKa0s payload and
+-- C.FONT_MONO resolves to it through core/MediaSetup.lua, falling back to the client font (and so
+-- to a box) only where the library is missing. That is an accepted, documented deviation: the mono
+-- face is a sanctioned styling exception scoped to the debug console (debug-logging-§2), and this
+-- extends it to one glyph. See docs/ARCHITECTURE.md ▸ Documented deviations.
 local ARROW_SIZE, ARROW_GAP = 12, 2
 
 -- Gold movements name themselves "Gold" in the Item column. A quality color would be a lie (gold
@@ -127,10 +130,29 @@ LT.groupBy = "none"
 LT.collapsed = {}
 LT.groupAsc = true
 
--- The default WoW font has no ▲/▼ glyphs, so the arrows use inline texture markup. ":0" sizes the
--- texture to the surrounding line height.
-local ARROW_ASC  = " |TInterface\\Buttons\\Arrow-Up-Up:0|t"
-local ARROW_DESC = " |TInterface\\Buttons\\Arrow-Down-Up:0|t"
+-- The header sort arrows and the group-header expander, as INLINE TEXTURE MARKUP appended to a
+-- FontString. Markup rather than characters because the default WoW font has no ▲/▼ and no boxed
+-- +/-, and the header labels are drawn in the GAME font — only the MONO face (C.FONT_MONO, which
+-- the LibKa0s payload supplies through core/MediaSetup.lua) carries the direction glyphs, and it is
+-- not this font.
+--
+-- The marks are the collection's now, with the Blizzard textures kept as the rung below. Both
+-- spellings are built HERE, as named locals, so the choice is made once at load and every draw site
+-- appends a string that is already correct. Concatenating a path into an escape sequence at the
+-- point of use is what turns "no LibKa0s" into a header whose label ends in a rectangle.
+--
+-- ":0" sizes the texture to the surrounding line height. The library's paths are EXTENSIONLESS by
+-- contract and that is exactly what |T…|t wants; a path carrying ".tga" here draws nothing and
+-- raises nothing, which in a column header reads as "this column does not sort".
+local function markup(name, blizzard, lead)
+  local path = NS.Icon and NS.Icon(name)
+  return (lead or "") .. "|T" .. (path or blizzard) .. ":0|t"
+end
+
+local ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",     " ")
+local ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",   " ")
+local GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up")
+local GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up")
 
 -- Shared by "type" and "subtype": both key on the EFFECTIVE type, so gold movements gather under
 -- "Gold" exactly as the column shows them, and an untyped item reads "Unknown" rather than blank.
@@ -933,10 +955,10 @@ function LT:BindRow(row, item, absIndex)
     for _, col in ipairs(self.COLUMNS) do row.cells[col.key]:SetText("") end
     row.dirGlyph:Hide()
     row.header:Show()
-    -- +/- box marks collapsed/expanded. Texture markup, not a glyph: this is inline in the header's
-    -- own label, which uses the GAME font (no ▲/▼ there — only the vendored mono font has them).
-    local arrow = item.collapsed and "|TInterface\\Buttons\\UI-PlusButton-Up:0|t"
-      or "|TInterface\\Buttons\\UI-MinusButton-Up:0|t"
+    -- The expander marks collapsed/expanded, and both spellings were resolved once at load (see
+    -- GROUP_SHUT / GROUP_OPEN at the top of this file) — a chevron on a working install, Blizzard's
+    -- own +/- box on one without the shared art.
+    local arrow = item.collapsed and GROUP_SHUT or GROUP_OPEN
     row.header:SetText(arrow .. "  " .. (item.label or "")
       .. "  |cff808080(" .. (item.count or 0) .. ")|r")
     return

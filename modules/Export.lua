@@ -280,16 +280,38 @@ local function selectedData()
   return (fn and fn()) or {}
 end
 
--- Flat-skin button matching the Browser bar buttons.
-local function makeButton(parent, text, width, onClick)
+-- A flat-skin action button for the export modal, matching the Browser bar buttons.
+--
+-- `mark` is OPTIONAL and is a RESOLVED PATH — `NS.Icon("export")` — for a LibKa0s-Media mark drawn
+-- BESIDE the label. THE MARK IS BESIDE THE LABEL, NEVER INSTEAD OF IT: this button opens a copy
+-- window full of CSV, and a modal whose only control is a wordless glyph is a modal you have to
+-- click to understand. The label stays centred whether or not the art resolves, so a nil mark — no
+-- LibKa0s, or a catalog without that name — leaves the button exactly as it was rather than
+-- off-centre. No tooltip on the mark.
+--
+-- Resolved at the CALL SITE for the same reason modules/Browser.lua's makeBarButton is: it keeps
+-- every icon name in this addon spelled inside a literal `NS.Icon("…")`, the one shape the catalog
+-- tripwire in tests/test_marks.lua can see.
+local function makeButton(parent, text, width, onClick, mark)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width, 24)
   b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
                   insets = { left = 1, right = 1, top = 1, bottom = 1 } })
   b:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
   b:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
+
+  if mark then
+    local art = b:CreateTexture(nil, "OVERLAY")
+    art:SetPoint("LEFT", b, "LEFT", 10, 0)
+    art:SetSize(14, 14)
+    art:SetTexture(mark)
+    art:SetVertexColor(0.85, 0.85, 0.85)
+    b.icon = art
+  end
+
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   fs:SetPoint("CENTER"); fs:SetText(text)
+  b.fs = fs   -- the words, where the mark suite can read them back off the built button
   b:SetScript("OnEnter", function() fs:SetTextColor(1, 0.82, 0) end)
   b:SetScript("OnLeave", function() fs:SetTextColor(1, 1, 1) end)
   b:SetScript("OnClick", onClick)
@@ -340,12 +362,19 @@ local function EnsureFrame()
     ds:SetValue(v, "Data set: " .. datasetLabel(v))
   end
 
+  -- 150px, so the mark and the words sit side by side with room to spare — and the words stay,
+  -- because "Export to CSV" is what this button promises and a bare arrow is not.
+  --
+  -- ANCHORED BY ITS TOP EDGE ALONE, deliberately. A TOPLEFT/TOPRIGHT pair here would override the
+  -- 150 against a 372-wide modal and stretch the button to 340 — leaving the mark pinned at LEFT+10
+  -- and the centred label a clear 150px away from it, which reads as an unrelated decoration rather
+  -- than as a mark BESIDE a label. The mark suite asserts the anchor set for exactly that reason.
   local csvBtn = makeButton(frame, "Export to CSV", 150, function()
     local serialize = config.csv or function(d) return E:CSV(d) end
     ShowCopy(serialize(selectedData()))
-  end)
-  csvBtn:SetPoint("TOPLEFT", 16, -80)
-  csvBtn:SetPoint("TOPRIGHT", -16, -80)
+  end, NS.Icon and NS.Icon("export"))
+  frame.csvBtn = csvBtn   -- the one marked button in this modal; the mark suite reads it back
+  csvBtn:SetPoint("TOP", frame, "TOP", 0, -80)
 
   if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame) end
   frame:Hide()
@@ -357,11 +386,14 @@ end
 
 -- Build (once) and show the export modal for the given config. `cfg.title` is the header the
 -- invoking tab supplies; `cfg.providers` feeds the Data Set dropdown; `cfg.csv` serializes the
--- selected dataset. Always re-centers on the ledger window.
+-- selected dataset. Always re-centers on the ledger window. Answers the frame, which nothing in
+-- game reads back — the modal is a singleton reached only through here, so the out-of-game mark
+-- suite has no other handle on the button inside it.
 function E:Open(cfg)
   config = cfg or {}
   local f = EnsureFrame()
   if f.titleFS then f.titleFS:SetText(config.title or "Export") end
   centerOnBrowser(f)
   f:Show()
+  return f
 end

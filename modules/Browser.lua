@@ -21,7 +21,17 @@ local DBIcon                          -- LibDBIcon-1.0, resolved lazily in Setup
 -- restating them, so the ledger window, the session window, both export popups and the debug
 -- console cannot drift apart. The seam stays because those four reach the edge through it.
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local CHECK_MARKUP = "|TInterface\\Buttons\\UI-CheckBox-Check:0|t "
+-- The tick a multi-select dropdown puts in front of every chosen row. INLINE |T…|t markup, resolved
+-- ONCE at load into this local exactly the way modules/LedgerTable.lua's four are, so a degraded
+-- install appends the Blizzard string it always did rather than concatenating a nil into an escape.
+--
+-- It is a MARK, and it has to be: the button this menu drops from wears the collection's flat
+-- `chevron-down`, and Blizzard's beveled tick on the rows below it was the one place in this addon
+-- where two eras of art met inside a single widget. `confirm` is the catalog's check glyph. The
+-- trailing space is the gap to the label and predates the mark; the path stays EXTENSIONLESS.
+local CHECK_MARKUP = "|T"
+  .. ((NS.Icon and NS.Icon("confirm")) or "Interface\\Buttons\\UI-CheckBox-Check")
+  .. ":0|t "
 local SKIN = {
   tabActive   = { 1.0, 0.82, 0.0 },
   tabIdle     = { 0.7, 0.7, 0.72 },
@@ -75,23 +85,57 @@ function B:ApplySkin(f)
   if NS.ApplySkin then NS.ApplySkin(f) end
 end
 
--- Thin × close glyph, light gray by default and the player's class color on hover. Shared by the
--- ledger window (Browser.lua), the session window (SessionWindow.lua) and both export popups
--- (Export.lua). NOT by the debug console: that is the LIBRARY's window and wears Core's thin
--- 18x18 × — the edge is shared across every Ka0s window, the close control on a library-drawn
--- window is the library's (standalone-windows).
+-- The close control every window this addon draws wears: the collection's `close` mark where the
+-- shared art is there, and the thin × glyph it has always drawn where it is not. Light gray at
+-- rest, the player's class color on hover, either way. Shared by the ledger window (Browser.lua),
+-- the session window (SessionWindow.lua) and both export popups (Export.lua). NOT by the debug
+-- console: that is the LIBRARY's window and wears Core's own 18x18 close — the edge is shared
+-- across every Ka0s window, but the close control on a library-drawn window is the library's
+-- (standalone-windows). The library draws that one for itself, once core/DebugLogSetup.lua hands it
+-- `addonName`; this addon publishes NO wrapper onto `lib.MakeCloseButton`, and the paragraph headed
+-- "IS DELIBERATELY NOT REPUBLISHED" in core/CoreSetup.lua says why it must not grow one.
+--
+-- TWO RUNGS, AND THE LOWER ONE STAYS. NS.Icon answers nil twice over — no LibKa0s at all, or a
+-- catalog that no longer carries "close" — and both mean the same thing here: draw the ×. A
+-- degraded install keeps a close button that works and looks exactly as it did before the mark
+-- existed. Nothing below builds a path by concatenation to route around the nil, because a
+-- plausible path to art that is not there is a title bar with no visible way out of it.
+--
+-- The art ships WHITE so a multiply lands wherever the caller asks; the two colors below are the
+-- ones the glyph has always used, so the mark obeys this addon's own skin rather than replacing it.
+local CLOSE_REST = { 0.85, 0.85, 0.85 }
+
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
-  local x = close:CreateFontString(nil, "OVERLAY")
-  x:SetFont(STANDARD_TEXT_FONT, 24, "")
-  x:SetPoint("CENTER", close, "CENTER", 0, 2)   -- the × sits low in its font box; nudge it up
-  x:SetText("\195\151")
-  x:SetTextColor(0.85, 0.85, 0.85)
   local _, class = UnitClass("player")
   local cc = (class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]) or { r = 1, g = 0.82, b = 0 }
-  close:SetScript("OnEnter", function() x:SetTextColor(cc.r, cc.g, cc.b) end)
-  close:SetScript("OnLeave", function() x:SetTextColor(0.85, 0.85, 0.85) end)
+
+  local path = NS.Icon and NS.Icon("close")
+  if path then
+    local art = close:CreateTexture(nil, "OVERLAY")
+    art:SetPoint("CENTER")
+    art:SetSize(12, 12)
+    art:SetTexture(path)
+    art:SetVertexColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
+    close:SetScript("OnEnter", function() art:SetVertexColor(cc.r, cc.g, cc.b) end)
+    close:SetScript("OnLeave", function()
+      art:SetVertexColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
+    end)
+    close.icon = art
+  else
+    local x = close:CreateFontString(nil, "OVERLAY")
+    x:SetFont(STANDARD_TEXT_FONT, 24, "")
+    x:SetPoint("CENTER", close, "CENTER", 0, 2)   -- the × sits low in its font box; nudge it up
+    x:SetText("\195\151")
+    x:SetTextColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
+    close:SetScript("OnEnter", function() x:SetTextColor(cc.r, cc.g, cc.b) end)
+    close:SetScript("OnLeave", function()
+      x:SetTextColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
+    end)
+    close.glyph = x
+  end
+
   close:SetScript("OnClick", onClick)
   return close
 end
@@ -264,9 +308,11 @@ local function makeMenuRow(menu)
   fs:SetJustifyH("LEFT")
   fs:SetWordWrap(false)   -- a long label truncates on its row; it never wraps into the next
   b.fs = fs
-  -- Optional leading glyph (the direction ▲/▼). A separate FontString in the vendored mono font,
-  -- because the row font has no such glyph — the same reason, and the same documented
-  -- deviation, as the Direction column in the table.
+  -- Optional leading glyph (the direction ▲/▼). A separate FontString in the MONO face —
+  -- C.FONT_MONO, which the LibKa0s payload supplies through core/MediaSetup.lua rather than this
+  -- addon's own media/ — because the row font has no such glyph. Same reason, and the same
+  -- documented deviation, as the Direction column in the table. It stays a CHARACTER and does not
+  -- become a mark: it takes its color from the same SetTextColor the label uses.
   local gl = b:CreateFontString(nil, "OVERLAY")
   gl:SetFont(C.FONT_MONO, 11, "")
   gl:SetPoint("LEFT", 8, 0)
@@ -385,12 +431,16 @@ local function MakeDropdown(parent, width)
   fs:SetJustifyH("LEFT")
   dd.text = fs
 
-  -- The ▼ glyph is not in the default WoW font (it renders as a box), so use the arrow texture.
+  -- The ▼ affordance. It is a texture rather than a character because the ▼ glyph is not in the
+  -- default WoW font and renders as a box — and now it is the collection's `chevron-down` mark,
+  -- with Blizzard's own arrow kept as the rung below it. The vertex color is unchanged, which is
+  -- what makes the shared white art wear this filter bar's gray instead of its own.
   local arrow = dd:CreateTexture(nil, "OVERLAY")
   arrow:SetSize(12, 12)
   arrow:SetPoint("RIGHT", -4, 0)
-  arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+  arrow:SetTexture((NS.Icon and NS.Icon("chevron-down")) or "Interface\\Buttons\\Arrow-Down-Up")
   arrow:SetVertexColor(0.7, 0.7, 0.72)
+  dd.arrow = arrow   -- kept for the out-of-game mark suite; nothing at runtime reads it back
 
   dd._selected = {}   -- multi-select value set (empty = "All"); only used when dd.multi is true
   function dd:SetOptions(opts)
@@ -457,16 +507,46 @@ end
 function B:MakeDropdown(parent, width) return MakeDropdown(parent, width) end
 
 -- A small flat-skin text button for the filter bar.
-local function makeBarButton(parent, text, width, onClick, tooltip)
+--
+-- `mark` is OPTIONAL and is a RESOLVED PATH — `NS.Icon("export")` — for a LibKa0s-Media mark drawn
+-- BESIDE the label, never instead of it. The word says what the button does; the mark says where
+-- the action lands. The label stays centred whether or not the art resolves, so a nil mark leaves
+-- the button exactly as it was rather than shunted off-centre — which is also why the caller passes
+-- one only for a button WIDE ENOUGH to hold both. At the filter bar's own geometry that is Export
+-- alone (see the note in BuildFilterBar). No tooltip is attached to the mark: the button's existing
+-- tooltip explains the action, and a second one anchored to the art would cover the row beneath it.
+--
+-- THE PATH IS RESOLVED AT THE CALL SITE, NOT HERE, and that is the point: it keeps every icon NAME
+-- in this addon spelled inside a literal `NS.Icon("…")`, which is the one shape the catalog
+-- tripwire in tests/test_marks.lua can see. A factory that took the bare name instead would hide
+-- it in an argument list, and a button asking for a mark nobody ever added to NS.ICON_NAMES —
+-- or to the library's catalog — would draw no art, raise nothing and pass every suite.
+local function makeBarButton(parent, text, width, onClick, tooltip, mark)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width, 20)
   b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
                   insets = { left = 1, right = 1, top = 1, bottom = 1 } })
   b:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
   b:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
+
+  if mark then
+    local art = b:CreateTexture(nil, "OVERLAY")
+    art:SetPoint("LEFT", b, "LEFT", 8, 0)
+    art:SetSize(12, 12)
+    art:SetTexture(mark)
+    art:SetVertexColor(0.85, 0.85, 0.85)
+    b.icon = art
+  end
+
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   fs:SetPoint("CENTER")
   fs:SetText(text)
+  -- Exposed the same way makeMenuRow exposes its own, and for the same kind of reason: the WORDS are
+  -- the half of a BESIDE button that no other assertion can reach. Without this the mark suite can
+  -- see the art and the anchors but not the label, so a call site that passed "" would ship a
+  -- wordless glyph button — and an install without LibKa0s an entirely empty one — while every
+  -- headless instrument in the repo stayed green.
+  b.fs = fs
   b:SetScript("OnEnter", function(self2)
     fs:SetTextColor(1, 0.82, 0)
     if tooltip and GameTooltip then
@@ -943,6 +1023,29 @@ function B:UpdateTestBadge()
   frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable:IsTestMode() or false)
 end
 
+-- Draw the collection's `search` mark inside the item-name box and answer the LEFT inset the box's
+-- text and placeholder should then use.
+--
+-- The inset is RETURNED rather than written at the call site because a nil icon has to leave the
+-- box laid out exactly as it always was, and the only way that stays true is for the one decision —
+-- is there a mark? — to own both numbers. Two independent spellings of "6 or 21" is how a degraded
+-- install ends up with its placeholder indented around art that is not there.
+--
+-- Gray, matching the dropdown arrows on the same bar rather than the white the art ships as; the
+-- mark is an affordance on this row, not a highlight.
+local SEARCH_INSET, SEARCH_INSET_MARKED = 6, 21
+local function MakeSearchMark(box)
+  local path = NS.Icon and NS.Icon("search")
+  if not path then return SEARCH_INSET end
+  local art = box:CreateTexture(nil, "OVERLAY")
+  art:SetPoint("LEFT", box, "LEFT", 5, 0)
+  art:SetSize(11, 11)
+  art:SetTexture(path)
+  art:SetVertexColor(0.7, 0.7, 0.72)
+  box.icon = art
+  return SEARCH_INSET_MARKED
+end
+
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
 -- EnsureFrame, above both tab panes, so one filter drives the table AND the charts.
 --   Row 1: Group by · [search…] · Clear
@@ -961,9 +1064,18 @@ function B:BuildFilterBar(bar)
   -- Export is created here (ahead of its row-2 position) so the row-1 Clear button can anchor to
   -- it; SetPoint only needs the frame to exist, not to be positioned yet. Its own anchor (to the
   -- Character dropdown) is set at the end of the Row 2 block below.
+  --
+  -- It is the ONE button on this bar that carries a mark, and the reason is arithmetic rather than
+  -- taste. Export is exportW wide (166 at the window's floor); the Save · Reset · Clear cluster
+  -- below splits exportW - 12 three ways, which is 51px a button. "Clear" in
+  -- GameFontHighlightSmall is most of thirty of those pixels and it is CENTRED, so a 12px mark at
+  -- an 8px inset would sit under its first letter — and the rule is that the label keeps its
+  -- position and its text, not that every button gets art. So those three stay words.
   local exportW = B:ExportWidth()
   local exportBtn = makeBarButton(bar, "Export", exportW, function() B:OpenExport() end,
-    "Export the current tab — ledger rows (History) or the summary (Insights).")
+    "Export the current tab — ledger rows (History) or the summary (Insights).",
+    NS.Icon and NS.Icon("export"))
+  self._exportBtn = exportBtn   -- the one marked button on this bar; the mark suite reads it back
 
   -- Right cluster: Save · Reset · Clear, spanning exactly exportW so its right edge sits flush above
   -- Export's and both stay static as the window widens. Three buttons + two 6px gaps = exportW:
@@ -992,13 +1104,16 @@ function B:BuildFilterBar(bar)
   search:SetPoint("TOPLEFT", dd.group, "TOPRIGHT", 8, 0)
   search:SetAutoFocus(false)
   search:SetFontObject("GameFontHighlightSmall")
-  search:SetTextInsets(6, 6, 0, 0)
   search:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
                        insets = { left = 1, right = 1, top = 1, bottom = 1 } })
   search:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
   search:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
+  -- The mark goes in first because it decides where the words start. "Search items…" is unchanged
+  -- and stays a sentence: the magnifier says what the box is, it does not replace what it says.
+  local searchInset = MakeSearchMark(search)
+  search:SetTextInsets(searchInset, 6, 0, 0)
   local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  ph:SetPoint("LEFT", 6, 0)
+  ph:SetPoint("LEFT", searchInset, 0)
   ph:SetText("Search items…")
   search:SetScript("OnTextChanged", function(self2)
     local t = self2:GetText()

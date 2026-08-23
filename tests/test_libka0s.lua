@@ -47,6 +47,48 @@ test("LibKa0s-Core: the vendored major registered and the addon is running on it
   assertTrue(NS.IsConcatSafe == lib.IsConcatSafe, "NS.IsConcatSafe is not the library's")
 end)
 
+test("LibKa0s-Core: this addon does NOT republish the library's close factory", function()
+    -- A DELIBERATE ABSENCE, pinned so it cannot drift back. `lib.MakeCloseButton` takes a third
+    -- argument — the addon FOLDER the library builds its texture path from — and a wrapper that
+    -- forwarded only two would draw a multiplication sign, green in every suite and visible only in
+    -- a screenshot (anti-pattern #64). This addon avoids that class entirely by not consuming the
+    -- factory: all four of its title bars go through modules/Browser.lua's own B:MakeCloseButton,
+    -- which resolves the same shared `close` mark through NS.Icon. A wrapper published here would
+    -- have had exactly one caller — a spy test — and would read as coverage of those four bars while
+    -- covering nothing on screen.
+    --
+    -- The "tell the library which folder is asking" argument still ships, on the windows that ARE
+    -- the library's: core/DebugLogSetup.lua's descriptor passes `addonName`, and the case further
+    -- down this file asserts it there.
+    assertTrue(NS.MakeCloseButton == nil,
+      "core/CoreSetup.lua publishes a close-button seam again; nothing in this addon calls one")
+    assertTrue(type(NS.Browser.MakeCloseButton) == "function",
+      "this addon's own close factory is gone, and the library's is not republished")
+    local f = assert(io.open("core/CoreSetup.lua", "r"))
+    local src = f:read("*a"); f:close()
+    assertTrue(src:match("[^%-]NS%.MakeCloseButton%s*=") == nil,
+      "core/CoreSetup.lua assigns NS.MakeCloseButton")
+  end)
+
+test("LibKa0s-Media: the folder name the seam passes is the FIRST VARARG, not a hand-typed literal",
+  function()
+    -- Three strings in this repo read almost alike and only one of them is the addon FOLDER:
+    -- "BankLedger" (the folder, and the first vararg every TOC-loaded file gets), the frame-name
+    -- prefix that happens to match it, and the TOC's `## Title`, "Ka0s Bank Ledger". A texture path
+    -- built from the wrong one draws nothing and raises nothing, so this pins the seam to the one
+    -- the loader supplies rather than to any spelling written down in the source.
+    --
+    -- core/MediaSetup.lua is where that answer lives for this addon's own marks: NS.Icon and
+    -- NS.MediaFont both hand it straight to the library.
+    assertEqual(NS.name, Loader.addonName)
+    local f = assert(io.open("core/MediaSetup.lua", "r"))
+    local src = f:read("*a"); f:close()
+    assertTrue(src:match("^local addonName, NS = %.%.%.") ~= nil,
+      "core/MediaSetup.lua does not take the addon name as its first vararg")
+    assertTrue(src:match('Media%.Icon%(%s*"') == nil and src:match('Media%.Font%(%s*"') == nil,
+      "core/MediaSetup.lua hands the library a hand-typed folder literal")
+  end)
+
 test("LibKa0s-Core: the sentinel is the library's, not a hand-copied literal", function()
   assertEqual(lib.SECRET, "<secret>")
   assertEqual(NS.SafeToString({}), lib.SECRET)
@@ -447,24 +489,31 @@ test("LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's", func
     "the console frame has no innerBorder — it was skinned by Core, not by NS.Browser:ApplySkin")
   D:Hide()
 end)
-test("LibKa0s-DebugLog: the console closes with the library's x, not this addon's", function()
-  -- The console and the copy window are the library's windows, so they wear Core's thin 18x18 x.
-  -- This addon's own 24x24 class-colored glyph stays on the windows it belongs to; passing it
-  -- through the `makeCloseButton` hook is what made these two windows look unlike every other
-  -- Ka0s addon's (LIBKA0S-19, issue #11).
-  --
-  -- This addon's mock models SetSize/GetWidth as real state (tests/wow_mock.lua, override 1), so
-  -- Core's `SetSize(18, 18)` is genuinely MEASURED here and the real arithmetic runs, rather than
-  -- the library's 18-wide fallback standing in for it. That is the one thing LibKa0s's own suite
-  -- cannot do — its mock answers 0 from GetWidth, so both paths give it the same number.
-  D:Show()
-  local off = D._frameForTest.titleBarOffsets
-  assertTrue(off ~= nil, "the library records the computed offsets")
-  assertEqual(off.close, -6)
-  assertEqual(off.clear, -30, "-6 - 18 - 6 — a 24-wide button would give -36")
-  assertEqual(off.copy, -78, "-30 - 42 - 6")
-  D:Hide()
-end)
+test("LibKa0s-DebugLog: the console's title bar is the library's, at the pitch the ART gives it",
+  function()
+    -- The console and the copy window are the library's windows, so they wear Core's thin 18x18
+    -- close. This addon's own 24x24 class-colored glyph stays on the windows it belongs to; passing
+    -- it through the `makeCloseButton` hook is what made these two windows look unlike every other
+    -- Ka0s addon's (LIBKA0S-19, issue #11). That half has not moved.
+    --
+    -- WHAT MOVED IS COPY. The descriptor now passes `addonName`, so the library can build a texture
+    -- path and Clear becomes an 18-wide MARK where it used to be the 42-wide word "Clear" — icons
+    -- are narrower than words, and the library derives the pitch from what it actually built rather
+    -- than from a constant. So Copy lands at -54 rather than -78, and -78 coming back would mean
+    -- the folder name never arrived and the library fell back to two words.
+    --
+    -- This addon's mock models SetSize/GetWidth as real state, textures included
+    -- (tests/wow_mock.lua, override 1), so Core's `SetSize(18, 18)` is genuinely MEASURED here and
+    -- the real arithmetic runs. That is the one thing LibKa0s's own suite cannot do — its mock
+    -- answers 0 from GetWidth, so every path gives it the same number.
+    D:Show()
+    local off = D._frameForTest.titleBarOffsets
+    assertTrue(off ~= nil, "the library records the computed offsets")
+    assertEqual(off.close, -6)
+    assertEqual(off.clear, -30, "-6 - 18 - 6 — a 24-wide close button would give -36")
+    assertEqual(off.copy, -54, "-30 - 18 - 6 — the 42-wide word would give -78")
+    D:Hide()
+  end)
 
 test("LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key", function()
   -- The L trap, and DebugLog is one of the three majors that can actually express it. A rendered
@@ -551,6 +600,26 @@ test("LibKa0s-DebugLog degraded: the session flag still flips, because it gates 
     ns.DebugLog:SetEnabled(false)
     assertTrue(ns.State.debug == false)
   end)
+
+test("LibKa0s-DebugLog: the library is told the FOLDER name, not just the frame name", function()
+  -- `name` and `addonName` are TWO DIFFERENT QUESTIONS that this addon answers with the same
+  -- string, which is exactly why the second one is easy to leave out and impossible to notice:
+  -- `name` seeds BankLedgerDebugWindow and friends, `addonName` is what the library builds its
+  -- texture paths from. Without it the console's own copy and clear controls fall back to two
+  -- words, silently, on a window that otherwise works perfectly.
+  --
+  -- Source-level, and non-comment lines only: the descriptor field cannot be read back off the
+  -- instance, and the surrounding note names the field while explaining it.
+  local found, n = false, 0
+  for line in io.lines("core/DebugLogSetup.lua") do
+    n = n + 1
+    if not line:match("^%s*%-%-") and line:match("^%s*addonName%s*=%s*addonName%s*,") then
+      found = true
+    end
+  end
+  assertTrue(n > 0, "core/DebugLogSetup.lua could not be read")
+  assertTrue(found, "the descriptor never passes `addonName = addonName`")
+end)
 
 test("LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam",
   function()

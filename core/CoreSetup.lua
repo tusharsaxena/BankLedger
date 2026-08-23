@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...   -- the addon FOLDER is not needed here; see the close-control note below
 NS.Util = NS.Util or {}
 local Util = NS.Util
 
@@ -110,6 +110,21 @@ NS.ApplySkin = lib.ApplySkin
 
 NS.IsConcatSafe = lib.IsConcatSafe
 NS.SafeToString = lib.SafeToString
+
+-- `lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED, and this paragraph is here so the next
+-- reader does not add it back. This addon draws its own close control — modules/Browser.lua's
+-- `B:MakeCloseButton`, 24x24, class-coloured on hover — and all four of its title bars (ledger,
+-- session, export modal, export copy) go through that one factory. It resolves the SAME shared
+-- `close` mark, through `NS.Icon`, which knows the folder because core/MediaSetup.lua was handed
+-- the first vararg; so the two implementations agree on the art and differ only in size and hover
+-- tint, which is the line standalone-windows draws.
+--
+-- A wrapper here would have had exactly one consumer — its own spy test — and a published, tested
+-- seam that no window reaches reads as coverage of those four title bars while covering nothing a
+-- player can see. The library's factory is still used, on the windows that are the LIBRARY's: the
+-- debug console and its Copy box, whose controls it draws for itself once core/DebugLogSetup.lua
+-- passes `addonName`. That is where the "tell the library which folder is asking" argument actually
+-- ships, and tests/test_libka0s.lua asserts it on the descriptor rather than on a wrapper.
 
 -- The prefix is passed as a FUNCTION rather than as the value of NS.PREFIX. It reads the same here,
 -- where core/Namespace.lua has already run — but the printer is built ONCE at load, and the function

@@ -73,6 +73,11 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
 | `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
+**This addon has no `tests/perf.lua`**, and that is ratified, not missing: the `performance-§12`
+no-combat-path exemption in [ARCHITECTURE.md ▸ Documented deviations](ARCHITECTURE.md#documented-deviations).
+The runner records the suite as a **skip with its reason**, which is not a pass — see the paragraph
+below.
+
 **There are two checkpoints, and a suite's answer differs between them** — a verdict quoted without
 its checkpoint is the half-truth this table exists to end (`automated-tests-§3`, *The release gate*;
 `testing-§6`).
@@ -133,6 +138,10 @@ tests/
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
   test_<module>.lua        -- one suite per module
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
+  test_marks.lua           -- the shared LibKa0s-Media marks on this addon's own windows: the PATH
+                           --   and the ARGUMENT, never the appearance, and BOTH rungs of every
+                           --   fallback ladder — a texture that does not load draws nothing and
+                           --   raises nothing, so no other suite would notice
   test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
                            --   unchanged, so docs/test-cases.md counts the same two cases
 ```

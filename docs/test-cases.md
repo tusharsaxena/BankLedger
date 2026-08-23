@@ -725,9 +725,51 @@ badge and any count quoted in the docs must agree with it.
 - Mock frame: a named method always beats the catch-all
 - Mock frame: lowercase and non-string keys miss through to nil
 
-### test_libka0s.lua (60)
+### test_mediasetup.lua (13)
+
+- LibKa0s-Media: the vendored major registered and the seam is published
+- LibKa0s-Media: NS.Icon answers the vendored path, EXTENSIONLESS
+- LibKa0s-Media: an icon the library does not ship answers nil
+- LibKa0s-Media: NS.MediaFont answers the vendored face, and an unknown face answers nil
+- LibKa0s-Media: C.FONT_MONO resolves through the seam, not to a literal under media/fonts/
+- LibKa0s-Media: the addon's own media/fonts/ is gone from disk
+- LibKa0s-Media: the font name this addon stores is a key of the library's FONTS
+- LibKa0s-Media: this addon no longer registers the face with LibSharedMedia itself
+- LibKa0s-Media: every name the library ships has a file in the vendored copy
+- LibKa0s-Media: every icon name this addon asks for is one the library ships
+- LibKa0s-Media: the seam loads BEFORE core/Constants.lua, which resolves the font from it
+- LibKa0s-Media degraded: with no library there is no art, and that is not an error
+- LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
+
+### test_marks.lua (21)
+
+- marks: the close control on every window this addon draws is the collection's close
+- marks: the close path is EXTENSIONLESS, which is the half that fails silently
+- marks degraded: with no library the close button is still the × it always was
+- marks: the × is DRAWN in exactly one place, so one edit reached all four title bars
+- marks: every filter dropdown wears chevron-down, through the shared factory
+- marks degraded: the dropdown keeps Blizzard's arrow, never a ▼ character
+- marks: a chosen row of a multi-select menu wears the collection's tick
+- marks: the column-header sort arrow is the collection's, at the site that draws it
+- marks: the group header's expander is a chevron, at the site that draws it
+- marks degraded: every inline mark falls back to the exact art it used to be
+- marks: the filter bar's Export button carries its mark BESIDE the word
+- marks: the export modal's action button carries its mark BESIDE the words
+- marks: BESIDE means beside — the modal's button keeps the width its mark was sized for
+- marks: both button factories still draw the label unconditionally
+- marks: the search box wears a magnifier, and its words step aside for it
+- marks degraded: with no magnifier the search box's inset does not move
+- marks: every name this addon draws is spelled in NS.ICON_NAMES
+- marks: every icon name reaches NS.Icon as a LITERAL, where the scan above can read it
+- marks: no mark carries a tooltip of its own
+- marks: nothing under settings/ resolves a mark — that panel is the Options library's
+- marks: the art that is NOT a mark was left alone
+
+### test_libka0s.lua (63)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
+- LibKa0s-Core: this addon does NOT republish the library's close factory
+- LibKa0s-Media: the folder name the seam passes is the FIRST VARARG, not a hand-typed literal
 - LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
 - LibKa0s-Core: the seam publishes ONE object to NS.Print and NS.Util.print
 - LibKa0s-Core: the reclaim in core/BankLedger.lua survives the AceConsole embed
@@ -757,12 +799,13 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: the enable seam reads and writes NS.State.debug, never SavedVariables
 - LibKa0s-DebugLog: the window title composes to exactly what the old console rendered
 - LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's
-- LibKa0s-DebugLog: the console closes with the library's x, not this addon's
+- LibKa0s-DebugLog: the console's title bar is the library's, at the pitch the ART gives it
 - LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
 - LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
 - LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
+- LibKa0s-DebugLog: the library is told the FOLDER name, not just the frame name
 - LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
 - LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
@@ -815,6 +858,8 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 26 |
 | test_harness.lua | 7 |
 | test_mock.lua | 19 |
-| test_libka0s.lua | 60 |
+| test_mediasetup.lua | 13 |
+| test_marks.lua | 21 |
+| test_libka0s.lua | 63 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **727** |
+| **Total** | **764** |

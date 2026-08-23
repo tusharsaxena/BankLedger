@@ -1,7 +1,7 @@
 # Windows
 
 Two standalone windows, both plain non-secure frames sharing one `SKIN` / `ApplySkin` seam and one
-close-glyph factory (`modules/Browser.lua`), each with its own persisted geometry carve-out.
+close-button factory (`modules/Browser.lua`), each with its own persisted geometry carve-out.
 
 The debug console and its copy box are a third and a fourth standalone frame, but they are the
 **library's** — `LibKa0s-DebugLog-1.0` draws them. They wear the same edge, because that edge is no
@@ -9,11 +9,19 @@ longer this addon's alone: `Core.SKIN` carries the flat 1px black border, the 1p
 synthesized just inside it, the gold title and the gray divider, and the `SKIN` table above agrees
 with it value for value. The descriptor still passes `applySkin`, so the console follows
 `modules/Browser.lua` if that skin is ever retuned. What it does **not** pass is a close-button
-factory: those two windows close with Core's thin 18×18 ×, not the 24×24 class-colored glyph the
-ledger and session windows use. `standalone-windows` draws the line there — the edge is shared
+factory: those two windows close with the library's own 18×18 control, not the 24×24 one
+`B:MakeCloseButton` builds for the ledger and session windows. `standalone-windows` draws the line there — the edge is shared
 across every Ka0s window, the close control on a library-drawn window belongs to the library — and
 the point of it is that a user comparing two Ka0s consoles side by side sees one collection's
 diagnostics surface, not five different ones.
+
+Both factories now draw the **same mark**, from opposite directions. `LibKa0s-Media-1.0` ships the
+collection's `close` icon; the library resolves it for its own windows once the descriptor passes
+`addonName`, and `B:MakeCloseButton` resolves it through `NS.Icon` for these two. Neither deleted
+what it drew before: without LibKa0s the library falls back to a multiplication sign and this addon
+falls back to its own 24pt ×, and both windows still close. The sizes still differ on purpose — an
+18×18 control on a 26px library title bar, 24×24 on this addon's 30px one — and the hover tint stays
+this addon's class color on its own windows. See [media.md](media.md).
 
 **When geometry is written matters as much as what is written**, and the obvious answer is wrong. The
 natural call sites — the end of a drag, the end of a resize — fire at the end of an *interaction*,

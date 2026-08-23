@@ -502,8 +502,10 @@ end
 
 -- The tick markup Populate prefixes to a selected multi-select row, as Browser.lua spells it.
 -- Duplicated here on purpose, like the Character sentinel above: if the markup changes shape this
--- suite must fail rather than follow it silently.
-local CHECK = "|TInterface\\Buttons\\UI-CheckBox-Check:0|t "
+-- suite must fail rather than follow it silently. It is the collection's `confirm` mark now, with
+-- Blizzard's beveled tick as the rung below it — tests/test_marks.lua owns BOTH rungs; this suite
+-- only needs whichever one a healthy install draws, so it is spelt out here byte for byte.
+local CHECK = "|TInterface\\AddOns\\BankLedger\\libs\\LibKa0s\\media\\icons\\confirm:0|t "
 
 -- A recording stand-in for a row's FontString. The mock resolves every FontString to its own frame,
 -- which conflates a row's label, its glyph and the button itself; these keep the three apart so the

@@ -34,12 +34,16 @@ locales\PostLoad.lua
 
 # Core (Compat loads first)
 core\Compat.lua
+# The LibKa0s-Media seam. BEFORE Constants, deliberately and load-bearingly: C.FONT_MONO is
+# RESOLVED from NS.MediaFont at load, so a Constants that ran first would resolve the console's
+# face to the client default forever. tests/test_libka0s.lua pins this ordering.
+core\MediaSetup.lua
 core\Constants.lua
 core\Namespace.lua
 # The LibKa0s-Core seam. After Namespace (NS.PREFIX), and before every file that takes NS.Print as a
 # load-time upvalue or reclaims it from NS.Util.print — see the header of core/CoreSetup.lua.
 core\CoreSetup.lua
-# The LibKa0s-DebugLog seam. After Constants (FONT_MONO) and after CoreSetup
+# The LibKa0s-DebugLog seam. After Constants (FONT_MONO, resolved from the Media seam) and after CoreSetup
 # (NS.LIBKA0S_MISSING). Everything else it touches is reached through a closure, so it no
 # longer has to sit after modules/Browser.lua the way modules/DebugLog.lua did.
 core\DebugLogSetup.lua

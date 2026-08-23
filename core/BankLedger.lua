@@ -25,9 +25,14 @@ function NS.NewBusTarget()
   return t
 end
 
+-- NO LibSharedMedia REGISTRATION HERE ANY MORE. This used to open with
+--   `LSM:Register("font", "JetBrains Mono", NS.Constants.FONT_MONO)`
+-- against this addon's own copy of the face. LibKa0s-Media-1.0 owns that registration now and
+-- makes it once, at file load, from core/MediaSetup.lua — see the note there. Two registrations
+-- of ONE name against TWO paths is exactly the collision the library exists to end, and doing it
+-- here as well would also be doing it LATER: OnInitialize runs after every file that names a
+-- face at load time.
 function addon:OnInitialize()
-  local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-  if LSM then LSM:Register("font", "JetBrains Mono", NS.Constants.FONT_MONO) end
   NS:InitDB()
   if NS.Schema and NS.Schema.Register then NS.Schema:Register() end
   if NS.Slash and NS.Slash.Register then NS.Slash:Register() end

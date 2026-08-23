@@ -11,7 +11,8 @@ local addonName, NS = ...
 -- summary says, where the chat acknowledgment goes, what the window looks like, and what happens
 -- when the library is not installed.
 --
--- WHERE THIS FILE SITS: after core/Constants.lua (FONT_MONO is read at :New time) and after
+-- WHERE THIS FILE SITS: after core/Constants.lua (FONT_MONO is read at :New time, and is itself
+-- resolved from the core/MediaSetup.lua seam that loads before Constants) and after
 -- core/CoreSetup.lua (NS.LIBKA0S_MISSING). Everything else it touches — NS.Browser's skin and close
 -- button, NS.InitSummary, NS.State, NS.Panel — is reached through a CLOSURE and therefore resolved
 -- at call time, which is what lets the console move out of modules/ without inverting the dependency
@@ -58,6 +59,19 @@ end
 
 NS.DebugLog = lib:New({
   name  = addonName,          -- seeds BankLedgerDebugWindow / …CopyWindow / …CopyScroll
+
+  -- THE FOLDER NAME, which is a DIFFERENT QUESTION from the one above even though this addon
+  -- answers both with the same string — and it is passed explicitly rather than left to the
+  -- library to infer from `name` for exactly that reason. `name` seeds the frame globals;
+  -- `addonName` is what the library builds a texture path from, so its own copy and clear
+  -- controls draw this collection's marks instead of two words. A vendored library cannot work
+  -- this out for itself (there is no one path to it), and a host where the two strings diverge
+  -- would hand it a path into nowhere — which draws nothing and raises nothing.
+  --
+  -- This does NOT conflict with the deliberate `makeCloseButton` omission below: that decides
+  -- WHOSE close control the console wears, this decides whose ART the library's own controls
+  -- can reach.
+  addonName = addonName,
   title = "Bank Ledger",      -- the library appends its own " — Debug"
   font  = NS.Constants.FONT_MONO,
 

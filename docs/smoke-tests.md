@@ -245,14 +245,32 @@ tolerance.
 6. `/bl debug off` → a red OFF ack and a `[Debug] logging disabled` line.
 7. `/reload` → logging is off again, because the flag is session-only.
 8. **Chrome.** The console and the **Copy** box wear the same edge as the ledger window — a flat 1px
-   black border with a 1px light-gray line just inside it, a gold title, a gray divider — but they
-   close with a **thin ×**, not the big class-colored one. That is correct, not drift: the edge is
-   shared across every Ka0s window, the close control on a library-drawn window is the library's
-   (standalone-windows). The ledger window's own 24×24 glyph is unchanged — check it too.
-9. Open another Ka0s addon's debug console alongside this one. Apart from their titles the two must
-   be **indistinguishable**: same border, same inner highlight, same gold title, same divider, same
-   close ×. Any difference means the shared edge has drifted in one of them, and the fix belongs in
-   `../LibKa0s`, never in `libs/`.
+   black border with a 1px light-gray line just inside it, a gold title, a gray divider — but their
+   close control is **smaller** (18×18 on a 26px title bar) than the ledger window's 24×24. That is
+   correct, not drift: the edge is shared across every Ka0s window, the close control on a
+   library-drawn window is the library's (standalone-windows). Both should now show the same
+   **×-in-outline mark** rather than a font character — see S-21.
+9. **The title bar draws three marks, right to left: close, clear, copy** — one size (18×18), one
+   pitch, gray at rest and brighter under the pointer, and the same art every other Ka0s window
+   uses. **Words there (`Copy`, `Clear`), or a thin multiplication sign where the close mark should
+   be, mean `core/DebugLogSetup.lua` stopped passing `addonName`** — or the art is missing from the
+   vendored payload. The library falls back to the words and the console keeps working, which is
+   exactly why nothing errors to tell you. The measurement gives it away too: with the marks, clear
+   is 18 wide and copy sits at `-54`; with the word, clear is 42 wide and copy slides out to `-78`.
+10. **Hover copy and clear: each brightens, and NOTHING pops up.** They carried a tooltip for one
+    release; anchored under the control, it covered the first line of the log, and it was removed
+    rather than repositioned. A tooltip reappearing on either of them is a **regression**, not a
+    nicety. The same goes for the close mark, here and on the **Copy** box.
+11. **The log body is still monospace.** Timestamps and the `[Tag]` prefixes line up in a straight
+    column down the left edge, and so do the numbers in a `[Move]` summary. **Proportional text
+    there means the font seam fell through** — `NS.MediaFont("JetBrains Mono")` answered nil and
+    `C.FONT_MONO` took `STANDARD_TEXT_FONT` instead. Either `LibKa0s-Media-1.0` is not loaded, or
+    `core\\MediaSetup.lua` slipped after `core\\Constants.lua` in the TOC. It is readable, so
+    nothing complains; the ragged left column is the only symptom. Check the **Copy** box too.
+12. Open another Ka0s addon's debug console alongside this one. Apart from their titles the two must
+    be **indistinguishable**: same border, same inner highlight, same gold title, same divider, and
+    the same three marks in the same order. Any difference means the shared edge has drifted in one
+    of them, and the fix belongs in `../LibKa0s`, never in `libs/`.
 
 ## S-15 · Test mode
 
@@ -316,8 +334,9 @@ tolerance.
 
 ## S-18 · LibKa0s — the degraded install
 
-The four LibKa0s seams (`core/CoreSetup.lua` today, more as modules are adopted) each degrade
-rather than error when the vendored library is absent. Nothing headless can prove what the client
+The five LibKa0s seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/MediaSetup.lua`,
+`settings/OptionsSetup.lua` and `settings/Slash.lua`) each degrade rather than error when the
+vendored library is absent. Nothing headless can prove what the client
 actually draws, and an install missing `libs/LibKa0s` is exactly the install those branches exist
 for.
 
@@ -337,8 +356,16 @@ for.
    truncation. A degraded printer that drops lines is the failure this step exists to catch.
 6. `/bl show`, `/bl config`, `/bl debug` — the ledger window, the settings panel and the console all
    open and behave. Nothing about the addon's own function depends on the library.
-7. Quit, rename `libs/LibKa0s.off` back to `libs/LibKa0s`, log in. The notice is gone and `/bl list`
-   is byte-for-byte what it was in step 5.
+7. **The Media seam is the silent one.** With the library gone, `NS.Icon` and `NS.MediaFont` both
+   answer `nil`, and nothing errors either way. Every mark falls back to the rung below it (S-21
+   step 10 is the full list), and every monospace surface falls back to `STANDARD_TEXT_FONT`: the
+   debug console, the **Copy** box, the direction ▲/▼ column in History and the same glyph in the
+   session window. The console's log goes proportional and the ▲/▼ render as **boxes**. All of that
+   is correct in this state and a **bug** in a healthy install — if you see a box or a
+   proportional log with `libs/LibKa0s` in place, the seam is broken, not the client.
+8. Quit, rename `libs/LibKa0s.off` back to `libs/LibKa0s`, log in. The notice is gone and `/bl list`
+   is byte-for-byte what it was in step 5. Re-check the console: monospace again, and the three
+   marks back on its title bar.
 
 **Rename the folder back before you finish.** A repo left in the degraded state passes its own gate
 and ships broken.
@@ -378,3 +405,55 @@ redraw, so this is the only place the fix is actually observable.
    should flicker — only the page you are looking at does work.
 9. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
    the reset values.
+
+## S-21 · The shared marks
+
+The one failure mode nothing headless can see. A texture that does not load draws **nothing** and
+raises **nothing** — no error, no log line, no red suite. Every assertion in `tests/test_marks.lua`
+is about the path and the argument; this is where somebody actually looks at the window.
+
+1. `/bl show`. The title bar's close control is an **outlined ×**, not a font character: thinner,
+   evenly weighted, and the same shape you see on every other Ka0s window. Hover it — it takes your
+   class color, exactly as the old glyph did. Click it; the window closes.
+2. Reopen, then check the other three title bars the same way: `/bl session`, then **Export**, then
+   **Export to CSV** on the modal. All four wear the same mark, because all four go through
+   `B:MakeCloseButton`. A window whose × still looks like a font character means one of them stopped
+   using that factory. The **debug console** and its **Copy** box are the two windows this factory
+   does *not* draw — they are the library's, and S-14 steps 9–11 are where you check them.
+3. **Every dropdown on the filter bar** ends in a **chevron**, not Blizzard's filled arrow — that is
+   eight today: **Group by** on row 1, then Date, Direction, Store, Quality, Type, Sub-type and
+   Character on row 2. Count them; Group by is the one a "seven filters" habit skips. The modal's
+   **Data set** dropdown makes nine — it is the same factory.
+   Open any MULTI-select one (Store, Type, Quality, Character) and pick two values. Each chosen row
+   is prefixed by a **flat white tick**, the same weight as the chevron on the button above it — not
+   Blizzard's beveled `UI-CheckBox-Check`. A beveled tick means `CHECK_MARKUP` stopped resolving
+   `confirm` and fell to its rung, which is the same art the menu used before the marks landed.
+4. Click a **column header** in History. The sort arrow beside the label is a chevron-weight
+   **sort-up / sort-down** mark, and it flips when you click again. Group by **Day**: each group
+   header now opens with a **chevron**, right when collapsed and down when expanded, where it used to
+   be Blizzard's boxed `+` / `-`. Click one; the chevron turns.
+   **These four, and the tick in step 3, sit at FULL WHITE, and that is correct.** They are inline
+   `|T…|t` markup, which carries no vertex colour, so they read a shade brighter than the game-font
+   label beside them and than the gray `(count)` on the same line. Every mark drawn on a *widget* —
+   close, the dropdown chevron, the magnifier, both export marks — is toned to 0.7–0.85 gray instead.
+   The difference is recorded in [media.md](media.md) and is **not** a regression to file.
+5. The **Export** button on the filter bar has a small mark on its LEFT and the word **Export** still
+   **centred** — not shifted. Same for **Export to CSV** in the modal. If either word has moved off
+   centre, the label was anchored to the art instead of to the button.
+   **Measure the modal's button against the Data set dropdown directly above it.** It must be about
+   *two-fifths* as wide and centred under it, with the mark and the words close enough to read as one
+   control. If it spans the modal edge to edge like the dropdown does, its 150px width was overridden
+   by a left-and-right anchor pair — the mark is then pinned at the far-left edge with the label
+   floating ~150px away, which reads as an unrelated decoration rather than as a mark BESIDE a label.
+6. **Save · Reset · Clear** carry **no** mark. That is deliberate: at 51px there is no room beside a
+   centred word, and the word is what tells you which is which.
+7. The search box shows a **magnifier** on its left, with "Search items…" starting just past it. Type
+   into it — your text starts in the same place, not under the magnifier.
+8. **Hover every mark in turn.** None of them shows a tooltip of its own. The four filter-bar buttons
+   still show *their* tooltips, which is not the same thing.
+9. **The settings panel has no marks at all** — `/bl config`, every page. Its widgets belong to
+   `LibKa0s-Options-1.0`; a mark that has appeared there came from the wrong side of the seam.
+10. **The degraded pass.** Rename `libs/LibKa0s` aside and `/reload`. Every surface above must still
+    draw *something*: the font-character ×, Blizzard's ▼, its `Arrow-Up-Up` sort arrows, its boxed
+    `+`/`-`, its beveled `UI-CheckBox-Check` tick, and the two action buttons with their words and no
+    art. Nothing blank, nothing off-centre, no error. Put the folder back.

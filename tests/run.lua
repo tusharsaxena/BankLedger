@@ -20,16 +20,17 @@ local SUITES = {
   "test_ledger", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_slash",
-  "test_panel", "test_harness", "test_mock", "test_libka0s", "test_vendor_sync",
+  "test_panel", "test_harness", "test_mock", "test_mediasetup", "test_marks", "test_libka0s", "test_vendor_sync",
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
 -- Loader.tocFiles deliberately skips `libs\` lines — the TOC pulls these in through an XML it
--- cannot see inside. All eight load, not just the adopted majors, because that is what the client
+-- cannot see inside. All nine load, not just the adopted majors, because that is what the client
 -- does: a load-time error in a module this addon does not yet use is still a broken install.
 -- tests/test_libka0s.lua asserts this list against LibKa0s.xml so the two cannot drift.
 local LIBKA0S_FILES = {
   "libs/LibKa0s/Core.lua",
+  "libs/LibKa0s/Media.lua",
   "libs/LibKa0s/DebugLog.lua",
   "libs/LibKa0s/Slash.lua",
   "libs/LibKa0s/Options.lua",

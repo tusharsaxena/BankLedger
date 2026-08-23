@@ -147,6 +147,7 @@ if not lib then
     SessionCheckbox = function() return nil end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
+    RefreshPanel = function() end,
     RestoreDefaults = function() end,
     RestoreAllDefaults = function() end,
     __panels = function() return {} end,

@@ -22,7 +22,10 @@
 --                         Window geometry here round-trips through SavedVariables, so the position
 --                         and size have to be real state or the persistence is untestable. The base
 --                         also never fires OnHide, and "the session window closes with the bank
---                         frame" is exactly an OnHide assertion.
+--                         frame" is exactly an OnHide assertion. It also RECORDS SetTexture,
+--                         SetTextInsets and SetText/GetText, because a mark is a PATH beside a
+--                         LABEL and a no-op setter makes the one failure mode that draws nothing
+--                         and raises nothing unobservable.
 --   2. __shown = true   — the base starts frames hidden; real frames start shown, and nine IsShown
 --                         assertions in tests/test_sessionwindow.lua read the difference.
 --   3. __fireTimers     — the base's returns nothing and its CancelTimer is a no-op. The capture
@@ -182,7 +185,44 @@ FRAME_METHODS.CreateFontString = function(f)
   end
 end
 
-local function stubFrame()
+-- A TEXTURE IS ITS OWN WIDGET, not its parent under another name. The catch-all below would answer
+-- CreateTexture with the frame itself, and that was harmless right up until a library sized a
+-- button and then sized the ART INSIDE it: `b:SetSize(18,18)` followed by `tex:SetSize(12,12)`
+-- left the BUTTON measuring 12, and every offset derived from `close:GetWidth()` came out wrong
+-- while looking perfectly plausible. Geometry is modeled state here (see above), so a texture
+-- gets its own stub and the arithmetic the library actually runs is the arithmetic measured.
+-- Font strings still resolve to the frame: nothing sizes one and then reads the parent back.
+local stubFrame
+FRAME_METHODS.CreateTexture = function() return function() return stubFrame() end end
+
+-- A TEXTURE PATH IS THE WHOLE POINT OF A MARK, and a mark resolved to the wrong path draws nothing
+-- and raises nothing — which is the one failure the mark suite exists to catch out of game. So
+-- SetTexture is RECORDED rather than no-opped (fidelity rule 3): tests/test_marks.lua reads
+-- `__texture` back to prove the shared art arrived, extensionless, and that an install without
+-- LibKa0s still got the Blizzard rung it always had. SetTextInsets is recorded for the same reason:
+-- the search box's left inset is what moves to make room for the magnifier, and it has to NOT move
+-- when there is no magnifier.
+FRAME_METHODS.SetTexture = function(f)
+  return function(_, path) f.__texture = path; return f end
+end
+FRAME_METHODS.SetTextInsets = function(f)
+  return function(_, l, r, t, b) f.__insets = { l, r, t, b }; return f end
+end
+
+-- THE WORDS ARE RECORDED FOR THE SAME REASON THE PATH IS (fidelity rule 3). A BESIDE button is a
+-- mark AND a label, and the label is the half no other recorder can reach: the catch-all answered
+-- `GetText` with the frame itself, so a call site that passed "" for its text was a wordless glyph
+-- button — and, on an install without LibKa0s, a completely empty one — that every suite here read
+-- as green. Real widgets answer GetText with the string, so this is the more faithful stub as well
+-- as the useful one.
+FRAME_METHODS.SetText = function(f)
+  return function(_, v) f.__text = v; return f end
+end
+FRAME_METHODS.GetText = function(f)
+  return function() return f.__text end
+end
+
+function stubFrame()
   local f = { __shown = true, __points = {}, __w = 0, __h = 0, __scripts = {} }
   setmetatable(f, { __index = function(_, k)
     -- The table lookup comes FIRST: a named method always wins over the catch-all, or IsShown would
@@ -212,6 +252,19 @@ return function()
   M.__stubFrame = stubFrame
   M.UIParent    = stubFrame()
   M.CreateFrame = function() return stubFrame() end
+
+  -- The client's own default font, which every Ka0s fallback ladder ends on. Absent from the kit's
+  -- base because nothing needed it until core/Constants.lua stopped naming a font file of its own:
+  -- FONT_MONO now resolves through the LibKa0s-Media seam and lands HERE when the library is not
+  -- installed. A nil here would let a degraded install hand SetFont nothing while the suite that is
+  -- supposed to notice reported the fallback working. The exact bytes are the real client's.
+  --
+  -- ON THIS TABLE ONLY, never on the real `_G`. Every reader in this addon spells the global BARE
+  -- (core/Constants.lua, modules/Browser.lua's degraded close rung), which the loader's sandbox
+  -- resolves through here — so writing it process-wide would leak one mock's font into every suite
+  -- that runs after it, and a case built on mocks WITHOUT a client font would silently still see
+  -- this value and report a pass. Same reason core/Compat.lua reads GuildBankFrame bare.
+  M.STANDARD_TEXT_FONT = "Fonts\\FRIZQT__.TTF"
 
   -- Override 10: left nil so the seven `if GameTooltip then` guards keep taking the headless path.
   M.GameTooltip = nil

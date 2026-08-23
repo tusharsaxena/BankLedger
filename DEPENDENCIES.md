@@ -22,10 +22,13 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   `.pkgmeta:3`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
   player happens to have one; it never means the player must install anything.
 - LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:29`),
-  v1.8.2 per the provenance line in the root `CLAUDE.md`.
-- The bundled JetBrains Mono font (`media/fonts/JetBrainsMono-Regular.ttf`) and the logo art under
-  `media/logos/` are **assets, not dependencies**: they ship in the package and need no tooling to
-  use.
+  v1.10.1 per the provenance line in the root `CLAUDE.md`.
+- **The monospace face arrives inside that payload**, not beside it. This addon used to ship its own
+  `media/fonts/JetBrainsMono-Regular.ttf`; the bytes are `libs/LibKa0s/media/fonts/` now, resolved
+  through `core/MediaSetup.lua` and registered with LibSharedMedia by the library. Nothing under
+  `media/fonts/` remains.
+- The logo art under `media/logos/` is an **asset, not a dependency**: it ships in the package and
+  needs no tooling to use.
 
 ## 2. Development — the contributor toolchain
 
@@ -170,8 +173,9 @@ Nothing to install.
   repo invokes them. If you find a reference, it is stale and should be deleted.
 - **BLP tooling** — the addon ships `.tga`, which the client reads directly (`.pkgmeta:14-18`). No
   converter is needed.
-- **Font tooling** — `media/fonts/JetBrainsMono-Regular.ttf` ships as-is under its OFL license
-  (`media/fonts/OFL.txt`). It is not generated or subsetted here.
+- **Font tooling** — this addon ships no font. JetBrains Mono comes with the LibKa0s payload
+  (`libs/LibKa0s/media/fonts/`, under its OFL license, recorded there); it is neither generated nor
+  subsetted in this repo, and its provenance is the LibKa0s repo's to keep.
 
 ## 4. Am I set up correctly?
 

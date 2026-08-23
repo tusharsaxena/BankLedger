@@ -68,7 +68,7 @@ C.DirectionRGB = {
 }
 
 -- ▲ out of the store, ▼ into it. These are TEXT glyphs: WoW's default font has neither and renders
--- a box, so anything drawing them must use the vendored mono font below (see FONT_MONO).
+-- a box, so anything drawing them must use the LibKa0s mono face below (see FONT_MONO).
 C.DirectionGlyph = {
   WITHDRAW = "\226\150\178",   -- ▲ U+25B2
   DEPOSIT  = "\226\150\188",   -- ▼ U+25BC
@@ -190,10 +190,26 @@ for _, s in ipairs(C.StoreOrder) do
   end
 end
 
--- Vendored monospace font (JetBrains Mono, OFL) used by the debug console and the copy boxes. Path
--- is the in-game addon-relative form; the file lives at media/fonts/ in the repo. A sanctioned
--- styling exception — WoW ships no monospace font object (debug-logging-§2).
-C.FONT_MONO = "Interface\\AddOns\\BankLedger\\media\\fonts\\JetBrainsMono-Regular.ttf"
+-- The monospace face, used by the debug console, the CSV copy box and the ▲/▼ direction glyphs. A
+-- sanctioned styling exception — WoW ships no monospace font object (debug-logging-§2).
+--
+-- IT USED TO BE OURS. This addon shipped its own JetBrains Mono under media/fonts/ and named it
+-- here as a bare string literal. The bytes live inside the LibKa0s payload now (v1.10.1,
+-- `LibKa0s-Media-1.0`), so every Ka0s addon prints its columns in one face rather than in one copy
+-- of it each — see core/MediaSetup.lua, which publishes this seam and registers the face with
+-- LibSharedMedia. That is also why core/MediaSetup.lua must load BEFORE this file.
+--
+-- THE FALLBACK IS A REAL CLIENT FONT, NOT NIL AND NOT A PATH. A degraded install has no LibKa0s
+-- and therefore no face. Every reader here hands this straight to SetFont, which accepts a path to
+-- a file that is not there, fails to load it, and then simply does not draw the text — so a stale
+-- path would be worse than no font at all. STANDARD_TEXT_FONT loses the monospace grid and the
+-- direction glyphs (the client default renders ▲/▼ as a box) and keeps every number on screen.
+C.FONT_MONO = (NS.MediaFont and NS.MediaFont("JetBrains Mono")) or STANDARD_TEXT_FONT
+
+-- The LibSharedMedia key the face is registered under — by the LIBRARY, whose catalog spells it
+-- this way (`LibKa0s-Media-1.0`'s `FONTS`). Kept beside the path so anything in this addon that
+-- names the font by key cannot drift from what was actually registered.
+C.FONT_MONO_NAME = "JetBrains Mono"
 
 -- Addon logo, shown on the settings landing page at 300px (options-ui-§5). WoW cannot load
 -- .jpg/.png at runtime, so the shipped runtime asset is a 512×512 24-bit RLE .tga — a power of two,
