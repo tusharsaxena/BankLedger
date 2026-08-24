@@ -33,7 +33,7 @@ local core = LibStub and LibStub("LibKa0s-Core-1.0", true)
 local NEEDS_CORE = 1
 if not core or (core.MINOR or 0) < NEEDS_CORE then return end   -- no NewLibrary; module absent
 
-local MAJOR, MINOR = "LibKa0s-Widgets-1.0", 2
+local MAJOR, MINOR = "LibKa0s-Widgets-1.0", 3
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -82,8 +82,15 @@ local function makeMenuRow(menu)
   -- named as `opts.glyphFont` — because the row font has no such glyph, and because which mono face
   -- a host draws in is the host's decision, not this library's (see the header). It stays a
   -- CHARACTER and does not become a mark: it takes its color from the same SetTextColor the label
-  -- uses. The face itself is set in paintMenuRow, not here — see the comment there.
-  local gl = b:CreateFontString(nil, "OVERLAY")
+  -- uses. The FACE is re-set on every paint — see the comment in paintMenuRow.
+  --
+  -- BUILT FROM A TEMPLATE, and it must be. A FontString created bare has no font, and the client
+  -- answers `FontString:SetText(): Font not set` on the very next call — which paintMenuRow makes
+  -- unconditionally, for every row, glyphed or not. The template is only ever a floor: a host that
+  -- named a face overwrites it on each paint, and a host that named none draws nothing here anyway
+  -- because the glyph is hidden. It exists so that the SetText below can never be the first thing
+  -- this FontString hears.
+  local gl = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   gl:SetPoint("LEFT", 8, 0)
   gl:SetWidth(12)
   gl:SetJustifyH("CENTER")
@@ -120,7 +127,9 @@ local function paintMenuRow(b, dd, opt, selected)
   --
   -- A host that passes no face gets no glyph column: SetFont with a nil path raises, and a glyph
   -- drawn in the row's own proportional face is a box, which is the failure this widget's whole
-  -- family of comments is about.
+  -- family of comments is about. The column is DROPPED, not crashed into — the SetText a line
+  -- below runs on every row whether or not this branch did, which is why makeMenuRow builds the
+  -- glyph from a font template.
   if dd.__glyphFont and opt.glyph then
     b.glyph:SetFont(dd.__glyphFont, 11, "")
   end
