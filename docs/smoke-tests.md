@@ -501,8 +501,13 @@ headless can reach it — the addon is handed no reference to it, only `W.CloseM
    modal's **×**: same result. That close button and Escape are the two routes
    `modules/Export.lua`'s `OnHide` hook covers.
 3. **A slash-command close closes the menu.** Open the ledger, open any filter menu, and type
-   `/bl show` in chat to toggle the window shut with the menu still open. The menu closes with it.
-   Same for `/bl session` and the session window if one is open.
+   `/bl hide` in chat with the menu still open. The window closes *and the menu goes with it* —
+   `/bl hide` lands on `B:Hide`, which calls `W.CloseMenu()` itself. Repeat with `/bl toggle` on an
+   open window: it hides the frame, the `OnHide` hook fires, and the menu goes the same way.
+   `/bl show` is **not** a toggle in this addon — it re-shows an already-open window and closes
+   nothing, so it is not the verb to use here. No other slash verb closes the ledger, and no other
+   window owns one of these menus: the session window (`/bl session`) has no `LibKa0s-Widgets-1.0`
+   dropdown, so a filter menu left open while it closes stays open, correctly.
 4. **Two dropdowns do not fight.** Open **Store**'s menu, then — without closing it — click
    **Character**. The Store menu closes and the Character menu opens in its place; exactly one menu
    is on screen, the way a native game menu behaves. Then open **Export** on top of the ledger
