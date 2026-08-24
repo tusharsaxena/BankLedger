@@ -723,13 +723,13 @@ local function sectionQuality(self, y, w, stats)
   local qualityRows = {}
   for _, q in ipairs(qualityIDs) do
     local color = W.QualityColor(q)
-    qualityRows[#qualityRows + 1] = { label = NS.Compat.QualityLabel(q), color = color,
+    qualityRows[#qualityRows + 1] = { label = NS.Item.QualityLabel(q), color = color,
       labelColor = color, frac = stats.byQuality[q], value = tostring(stats.byQuality[q]) }
   end
   y = self:RenderBars("quality", "quality", qualityRows, y, w)
   return self:RenderDirectionSplit("qualityDir", "qualityDir", "qualityDirLeg",
     stats.qualityByDirection,
-    { labelOf = NS.Compat.QualityLabel, labelColorOf = W.QualityColor }, y, w)
+    { labelOf = NS.Item.QualityLabel, labelColorOf = W.QualityColor }, y, w)
 end
 
 -- A ranked bar chart drawn from the categorical palette by rank, so adjacent bars are always

@@ -44,7 +44,7 @@ local COLUMNS = {
   { "kind",         function(e) return C.KindLabel[e.kind] or e.kind end },
   { "itemID",       function(e) return e.itemID end },
   { "itemName",     function(e) return e.itemName end },
-  { "quality",      function(e) return e.quality ~= nil and NS.Compat.QualityLabel(e.quality) or "" end },
+  { "quality",      function(e) return e.quality ~= nil and NS.Item.QualityLabel(e.quality) or "" end },
   { "qualityRaw",   function(e) return e.quality end },
   { "itemType",     function(e) return e.itemType end },
   { "itemSubType",  function(e) return e.itemSubType end },
@@ -154,7 +154,7 @@ function E:InsightsCSV(stats)
   for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
   table.sort(qualityIDs)
   for _, q in ipairs(qualityIDs) do
-    row("By Quality", NS.Compat.QualityLabel(q), stats.byQuality[q])
+    row("By Quality", NS.Item.QualityLabel(q), stats.byQuality[q])
   end
 
   section("By Zone", rankedRows(stats.byZone))

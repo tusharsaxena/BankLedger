@@ -76,7 +76,7 @@ LT.COLUMNS = {
     desc = "Item quality (Poor to Legendary). Gold has none, and shows a dash.",
     valueFn = function(e)
       if e.kind == C.Kind.MONEY then return EM_DASH end
-      return e.quality ~= nil and NS.Compat.QualityLabel(e.quality) or ""
+      return e.quality ~= nil and NS.Item.QualityLabel(e.quality) or ""
     end,
     sortFn = function(e) return e.quality or -1 end },
   { key = "type", label = "Type", width = 86, align = "LEFT",
@@ -206,7 +206,7 @@ local GROUP_OF = {
   -- has no quality; it gathers under its own group instead of vanishing into "Poor".
   quality = function(e)
     if e.quality == nil then return "None", "none" end
-    return NS.Compat.QualityLabel(e.quality), tostring(e.quality)
+    return NS.Item.QualityLabel(e.quality), tostring(e.quality)
   end,
   char = function(e)
     local c = e.char or "Unknown"

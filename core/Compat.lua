@@ -10,6 +10,12 @@ local Compat = NS.Compat
 -- The TOC-metadata, map-id and zone reads left for LibKa0s-Env-1.0 and are reached through
 -- core/EnvSetup.lua as NS.Meta / NS.Version / NS.PlayerMapID / NS.Zone. They went because every
 -- addon in the collection had written the same ladders; these stayed because nobody else has them.
+--
+-- The four item PRIMITIVES went the same way, to LibKa0s-Item-1.0 via core/ItemSetup.lua, and are
+-- reached as NS.Item.ItemIDFromLink / QualityFromLink / QualityLabel / LoadItem. What stayed is
+-- the RESOLVER: GetItemDetails and ItemNameQuality refuse an item the client has not cached, and
+-- that refusal is this addon's policy ("cannot be judged" is not "passes", F-006). LootHistory's
+-- resolver guesses from the link on purpose; a shared one would have had to overturn one of them.
 
 -- ── World / player ──────────────────────────────────────────────────────────────
 
@@ -91,7 +97,7 @@ function Compat.GetGuildBankSlot(tab, slot)
     local _, n = GetGuildBankItemInfo(tab, slot)
     count = n or 1
   end
-  local itemID = Compat.ItemIDFromLink(link)
+  local itemID = NS.Item.ItemIDFromLink(link)
   if not itemID then return nil end
   return { itemID = itemID, link = link, count = count }
 end
@@ -141,23 +147,6 @@ end
 
 -- ── Item identity / display ─────────────────────────────────────────────────────
 
--- itemID parsed from an item link or itemString. Locale-independent; nil when absent.
-function Compat.ItemIDFromLink(link)
-  if type(link) ~= "string" then return nil end
-  return tonumber(link:match("|?H?item:(%d+)"))
-end
-
--- Localized quality label (Poor/Common/…). Falls back to a static English map headlessly and for
--- unknown ids. Matches on the *id*, never a localized string (localization-§4).
-local QUALITY_LABEL_EN = {
-  [0] = "Poor", [1] = "Common", [2] = "Uncommon", [3] = "Rare",
-  [4] = "Epic", [5] = "Legendary", [6] = "Artifact", [7] = "Heirloom", [8] = "WoW Token",
-}
-function Compat.QualityLabel(q)
-  q = q or 0
-  return _G["ITEM_QUALITY" .. q .. "_DESC"] or QUALITY_LABEL_EN[q] or tostring(q)
-end
-
 -- Display info for an item id (or link). Returns name, quality, itemType, itemSubType, link --
 -- each nil when the client hasn't cached the item yet. Vendor price is deliberately NOT read: the
 -- addon does not derive or persist item value (schema v2).
@@ -183,11 +172,4 @@ function Compat.ItemNameQuality(idOrLink)
     return name, quality
   end
   return nil
-end
-
--- Ask the server to cache an item id so a later ItemNameQuality resolves; `cb` fires once loaded.
-function Compat.LoadItem(id, cb)
-  if not (id and C_Item and C_Item.RequestLoadItemDataByID) then return end
-  C_Item.RequestLoadItemDataByID(id)
-  if cb and C_Timer and C_Timer.After then C_Timer.After(0.4, cb) end
 end

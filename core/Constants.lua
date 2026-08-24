@@ -178,7 +178,7 @@ C.QUALITY_OPTIONS = {}
 for _, q in ipairs({ 0, 1, 2, 3, 4, 5 }) do
   C.QUALITY_OPTIONS[#C.QUALITY_OPTIONS + 1] = {
     value = q,
-    text  = ("|cff%s%s|r and above"):format(qualityHex(q), NS.Compat.QualityLabel(q)),
+    text  = ("|cff%s%s|r and above"):format(qualityHex(q), NS.Item.QualityLabel(q)),
   }
 end
 

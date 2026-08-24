@@ -423,7 +423,7 @@ function L:GateReason(move)
     local _, quality = NS.Compat.ItemNameQuality(move.link or id)
     if quality == nil then
       if DB_QUALITY > 0 then
-        NS.Compat.LoadItem(id)
+        NS.Item.LoadItem(id)
         return "uncached"
       end
     elseif quality < DB_QUALITY then

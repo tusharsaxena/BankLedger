@@ -334,8 +334,9 @@ tolerance.
 
 ## S-18 · LibKa0s — the degraded install
 
-The five LibKa0s seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/MediaSetup.lua`,
-`settings/OptionsSetup.lua` and `settings/Slash.lua`) each degrade rather than error when the
+The eight LibKa0s seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
+`core/ItemSetup.lua`, `core/MediaSetup.lua`, `core/PoolSetup.lua`, `settings/OptionsSetup.lua` and
+`settings/Slash.lua`) each degrade rather than error when the
 vendored library is absent. Nothing headless can prove what the client
 actually draws, and an install missing `libs/LibKa0s` is exactly the install those branches exist
 for.
@@ -525,3 +526,29 @@ headless can reach it — the addon is handed no reference to it, only `W.CloseM
    words on the button. **"Type: All" on a bar that is visibly filtering is now the regression.**
    The same applies to **Store**, **Quality** and **Sub-type**. It cannot happen to **Character**:
    that list always carries its **All** and **Current** rows, whatever the data holds.
+
+## S-23 · The Item seam, and the refusal it did not take with it
+
+`core/ItemSetup.lua` moved four primitives to `LibKa0s-Item-1.0` and left the **resolver** in
+`core/Compat.lua` on purpose. Two things need a client to see: the seam resolves before
+`core/Constants.lua` builds its quality labels at file load, and the capture gate still **refuses**
+an item it cannot classify. Neither is visible headlessly — the first is a load-order accident that
+only a real login can produce, the second needs an item the client has genuinely not cached.
+
+1. Log in with error display on (`/console scriptErrors 1`). **Zero Lua errors.** A nil-index in
+   `core/Constants.lua` here means `core\ItemSetup.lua` has slipped below `core\Constants.lua` in
+   the TOC.
+2. `/bl config` → **Filters**. The **Minimum quality** dropdown lists six rows, each the quality's
+   own name in its own colour followed by " and above": *Poor*, *Common*, *Uncommon*, *Rare*,
+   *Epic*, *Legendary*. A row reading a bare number, or a row with no colour, is the seam failing.
+   On a non-English client the names are the client's own, never English.
+3. `/bl show` — the **Quality** column and the Quality filter still read the same words they did
+   before this change, and `/bl export` writes the same quality names into its rows.
+4. **The refusal survives (F-006).** Set Minimum quality to *Rare*. Move an item the client has not
+   cached this session — the reliable way is `/reload` and then immediately move something unusual
+   from a bank tab you have not opened. `/bl debug` shows the movement recorded as skipped with
+   cause `uncached`, **not** captured and **not** guessed at from the link's colour. The addon also
+   asks the client to cache the id, so repeating the same movement a few seconds later judges it
+   properly and either captures it or skips it on quality. A row that appears immediately at a
+   quality nothing resolved is the regression this step exists to catch: that is LootHistory's
+   policy, and it is wrong here.

@@ -40,13 +40,8 @@ badge and any count quoted in the docs must agree with it.
 - Util.WowheadURL accepts a bare item string as well as a full hyperlink
 - Util.WowheadURL returns nothing for a row with no item at all
 
-### test_compat.lua (18)
+### test_compat.lua (13)
 
-- Compat.ItemIDFromLink pulls the id out of a full item link
-- Compat.ItemIDFromLink accepts a bare itemString
-- Compat.ItemIDFromLink returns nil for anything that is not a link
-- Compat.QualityLabel maps a quality id to its English name
-- Compat.QualityLabel defaults to Poor when given nothing
 - Compat.GetItemDetails returns name, quality, type, subtype and vendor price
 - Compat.GetItemDetails returns nil for an item the client has not cached
 - Compat.ItemNameQuality resolves an id the client knows
@@ -862,12 +857,24 @@ badge and any count quoted in the docs must agree with it.
 - PoolSetup: a released object is reused rather than rebuilt
 - PoolSetup: a nested release empties both levels
 
+### test_itemsetup.lua (9)
+
+- ItemSetup: the seam is published
+- ItemSetup: the primitives answer what the deleted shims answered
+- ItemSetup: ItemIDFromLink pulls the id out of a full item link
+- ItemSetup: ItemIDFromLink accepts a bare itemString
+- ItemSetup: ItemIDFromLink returns nil for anything that is not a link
+- ItemSetup: QualityLabel maps a quality id to its English name
+- ItemSetup: this addon now HAS the colour fallback it lacked
+- ItemSetup: the resolver did NOT move
+- ItemSetup: the moved shims are gone from Compat
+
 ## Totals
 
 | Suite | Cases |
 |-------|------:|
 | test_util.lua | 31 |
-| test_compat.lua | 18 |
+| test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 116 |
@@ -890,4 +897,5 @@ badge and any count quoted in the docs must agree with it.
 | test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
-| **Total** | **784** |
+| test_itemsetup.lua | 9 |
+| **Total** | **788** |

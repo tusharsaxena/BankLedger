@@ -3,30 +3,6 @@ local NS = T.NS
 local mocks = T.mocks
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
-test("Compat.ItemIDFromLink pulls the id out of a full item link", function()
-  assertEqual(NS.Compat.ItemIDFromLink(
-    "|cffffffff|Hitem:2589::::::::::|h[Linen Cloth]|h|r"), 2589)
-end)
-
-test("Compat.ItemIDFromLink accepts a bare itemString", function()
-  assertEqual(NS.Compat.ItemIDFromLink("item:19019::::::::::"), 19019)
-end)
-
-test("Compat.ItemIDFromLink returns nil for anything that is not a link", function()
-  assertEqual(NS.Compat.ItemIDFromLink("Linen Cloth"), nil)
-  assertEqual(NS.Compat.ItemIDFromLink(nil), nil)
-  assertEqual(NS.Compat.ItemIDFromLink(2589), nil)
-end)
-
-test("Compat.QualityLabel maps a quality id to its English name", function()
-  assertEqual(NS.Compat.QualityLabel(0), "Poor")
-  assertEqual(NS.Compat.QualityLabel(4), "Epic")
-end)
-
-test("Compat.QualityLabel defaults to Poor when given nothing", function()
-  assertEqual(NS.Compat.QualityLabel(nil), "Poor")
-end)
-
 test("Compat.GetItemDetails returns name, quality, type, subtype and vendor price", function()
   local name, quality, itemType, itemSubType = NS.Compat.GetItemDetails(171276)
   assertEqual(name, "Spectral Flask")

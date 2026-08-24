@@ -476,8 +476,29 @@ return function()
   M.__loadRequests = {}
 
   -- strings / helpers
+  -- The client's real per-quality colours, id by id, because a consumer may read this table
+  -- BACKWARDS: NS.Item.QualityFromLink inverts it into hex -> quality so an uncached link can
+  -- still be classified by its colour prefix. A blanket __index that answered one colour for
+  -- every id made that inversion collapse to a single entry, and the fallback silently answered
+  -- nil for every real link. The metatable stays for ids outside 0-8 (cosmetic there).
+  --
+  -- Heirloom and WoW Token genuinely share 00ccff in the live client, so the inverse map keeps
+  -- whichever the consumer's loop wrote last. That ambiguity is the game's, not the mock's.
+  local QUALITY_HEX = {
+    [0] = "9d9d9d", [1] = "ffffff", [2] = "1eff00", [3] = "0070dd", [4] = "a335ee",
+    [5] = "ff8000", [6] = "e6cc80", [7] = "00ccff", [8] = "00ccff",
+  }
   M.ITEM_QUALITY_COLORS = setmetatable({}, {
-    __index = function() return { r = 1, g = 1, b = 1, hex = "ffffffff" } end,
+    __index = function(_, q)
+      local rgb = QUALITY_HEX[q]
+      if not rgb then return { r = 1, g = 1, b = 1, hex = "ffffffff" } end
+      return {
+        r = tonumber(rgb:sub(1, 2), 16) / 255,
+        g = tonumber(rgb:sub(3, 4), 16) / 255,
+        b = tonumber(rgb:sub(5, 6), 16) / 255,
+        hex = "ff" .. rgb,
+      }
+    end,
   })
   -- The base declines strsplit/strtrim on the grounds that no consumer calls them. This one does,
   -- and it is declared in .luacheckrc read_globals.

@@ -431,7 +431,7 @@ local function qualityOptions()
   local items = { { value = "all", label = "Quality: All" } }
   for _, q in ipairs(ids) do
     local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
-    items[#items + 1] = { value = q, label = NS.Compat.QualityLabel(q),
+    items[#items + 1] = { value = q, label = NS.Item.QualityLabel(q),
                           color = c and { c.r, c.g, c.b } or nil }
   end
   return items
