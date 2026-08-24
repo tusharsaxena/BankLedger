@@ -173,15 +173,33 @@ FRAME_METHODS.SetHeight = function(f) return function(_, h) f.__h = h; return f 
 FRAME_METHODS.GetWidth = function(f) return function() return f.__w end end
 FRAME_METHODS.GetHeight = function(f) return function() return f.__h end end
 
--- Font strings resolve to the frame itself (the catch-all below), which is fine for the
--- geometry the tests exercise. What is NOT recoverable that way is which FONT TEMPLATE a
--- widget asked for, and "every card shares one headline template" is a real invariant, so
--- record the templates in creation order.
+-- Forward declaration: both CreateFontString and CreateTexture below mint one of these.
+local stubFrame
+
+-- A FONTSTRING IS ITS OWN WIDGET, and it carries the client's font rule. It used to resolve to the
+-- frame itself through the catch-all, which was conceded in this comment's predecessor as "fine for
+-- the geometry the tests exercise" and was not: a pooled menu row's LABEL and its GLYPH are two
+-- FontStrings on one button, and answered with the button they were one object carrying one font —
+-- so a glyph that never had a face of its own was indistinguishable from one that did, which is
+-- exactly the defect LibKa0s-Widgets-1.0's glyphFont precondition is about. CreateTexture was given
+-- its own stub for this same class of reason; see the note above it.
+--
+-- Its own object also means the client's SetText rule can exist at all (see FRAME_METHODS.SetText):
+-- a FontString with no font raises, and that is the crash LibKa0s v1.11.0/v1.11.1 shipped.
+--
+-- The FONT TEMPLATE is still recorded ON THE PARENT, in creation order, because "every card shares
+-- one headline template" is a real invariant that tests/test_insights.lua reads back — and it is
+-- also recorded on the FontString itself, because a template IS a font as far as SetText cares.
+--
+-- ../LibKa0s/tests/test_widgets.lua's geomFrame is the reference implementation.
 FRAME_METHODS.CreateFontString = function(f)
   return function(_, _, _, template)
     f.__fontTemplates = f.__fontTemplates or {}
     f.__fontTemplates[#f.__fontTemplates + 1] = template
-    return f
+    local fs = stubFrame()
+    fs.__objectType = "FontString"
+    fs.__template   = template
+    return fs
   end
 end
 
@@ -191,8 +209,7 @@ end
 -- left the BUTTON measuring 12, and every offset derived from `close:GetWidth()` came out wrong
 -- while looking perfectly plausible. Geometry is modeled state here (see above), so a texture
 -- gets its own stub and the arithmetic the library actually runs is the arithmetic measured.
--- Font strings still resolve to the frame: nothing sizes one and then reads the parent back.
-local stubFrame
+-- A FontString gets its own stub for the same reason, one factory up.
 FRAME_METHODS.CreateTexture = function() return function() return stubFrame() end end
 
 -- A TEXTURE PATH IS THE WHOLE POINT OF A MARK, and a mark resolved to the wrong path draws nothing
@@ -215,11 +232,37 @@ end
 -- button — and, on an install without LibKa0s, a completely empty one — that every suite here read
 -- as green. Real widgets answer GetText with the string, so this is the more faithful stub as well
 -- as the useful one.
+--
+-- AND A FONTSTRING WITH NO FONT RAISES, exactly as the client does. A bare `CreateFontString()`
+-- followed by `SetText` answers `FontString:SetText(): Font not set` in game and took a consuming
+-- addon down at BuildFrame for two LibKa0s releases while every headless case passed, because a
+-- recorder is happy to store a string. The check keys on `__font or __template`, because a
+-- FontString built FROM a template already has a face — a bare one is the case worth catching.
 FRAME_METHODS.SetText = function(f)
-  return function(_, v) f.__text = v; return f end
+  return function(_, v)
+    if f.__objectType == "FontString" and not (f.__font or f.__template) then
+      error("FontString:SetText(): Font not set", 2)
+    end
+    f.__text = v
+    return f
+  end
 end
 FRAME_METHODS.GetText = function(f)
   return function() return f.__text end
+end
+
+-- The face a FontString was given, recorded — it is what rescues a bare one from the rule above,
+-- and LibKa0s-Widgets-1.0 re-sets the glyph face on every paint precisely because the row pool is
+-- shared across addons, so which face a glyph is wearing is a fact worth being able to read back.
+FRAME_METHODS.SetFont = function(f)
+  return function(_, path, size, flags) f.__font = { path, size, flags }; return f end
+end
+
+-- A PROPORTIONAL-ISH 6px a character, so width arithmetic has real numbers to run on. The catch-all
+-- answered this with the frame, and LibKa0s-Widgets-1.0's menuWidth does
+-- `(measure:GetStringWidth() or 0) + pad` — adding a number to a table. Same rule as geomFrame's.
+FRAME_METHODS.GetStringWidth = function(f)
+  return function() return #(f.__text or "") * 6 end
 end
 
 function stubFrame()

@@ -166,13 +166,87 @@ end)
 
 -- ── Font strings ───────────────────────────────────────────────────────────────
 
-test("Mock frame: CreateFontString returns the frame and records templates in order", function()
+-- A FONTSTRING IS ITS OWN WIDGET, and it has the client's font rule. Both halves of this were
+-- missing, and both hid the same class of defect: answering CreateFontString with the FRAME meant a
+-- row's label and its glyph were one object carrying one font, so a glyph that never had a face of
+-- its own looked exactly like one that did; and a SetText that only recorded meant a bare
+-- FontString never raised `FontString:SetText(): Font not set`, which is the crash LibKa0s v1.11.0
+-- and v1.11.1 shipped and which 553 green library cases sailed over. CreateTexture was given its
+-- own stub for the same class of reason (see the note above it in tests/wow_mock.lua).
+--
+-- ../LibKa0s/tests/test_widgets.lua's geomFrame is the reference implementation; these cases pin
+-- the same rule here.
+
+test("Mock frame: CreateFontString answers with its OWN object, not the frame", function()
   local f = frame()
-  assertEqual(f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"), f)
-  f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  assertEqual(f.__fontTemplates[1], "GameFontNormalLarge")
-  assertEqual(f.__fontTemplates[2], "GameFontHighlightSmall")
-  assertEqual(#f.__fontTemplates, 2)
+  local fs = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  assertFalse(fs == f, "a label is not its parent under another name")
+  local other = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  assertFalse(fs == other, "a row's label and its glyph are two objects, not one")
+end)
+
+test("Mock frame: sizing a FontString does not resize its parent", function()
+  -- The same failure the texture stub was written for: a widget sizes a button, then sizes the
+  -- text inside it, and the button ends up measuring the text.
+  local f = frame()
+  f:SetSize(120, 20)
+  local fs = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  fs:SetWidth(12)
+  assertEqual(f:GetWidth(), 120, "the parent keeps its own width")
+  assertEqual(fs:GetWidth(), 12)
+end)
+
+test("Mock frame: CreateFontString still records the templates it was asked for, in order",
+  function()
+    local f = frame()
+    f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    assertEqual(f.__fontTemplates[1], "GameFontNormalLarge")
+    assertEqual(f.__fontTemplates[2], "GameFontHighlightSmall")
+    assertEqual(#f.__fontTemplates, 2)
+  end)
+
+test("Mock frame: a FontString with NO font raises on SetText, exactly as the client does",
+  function()
+    local f = frame()
+    local fs = f:CreateFontString()      -- bare: no template, and nobody called SetFont
+    local err = T.assertError(function() fs:SetText("x") end,
+      "a bare FontString must refuse SetText")
+    assertTrue(err:find("Font not set", 1, true) ~= nil,
+      "and it must refuse it with the client's own words: " .. err)
+  end)
+
+test("Mock frame: a FontString built FROM A TEMPLATE has a font and accepts SetText", function()
+  local f = frame()
+  local fs = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  fs:SetText("ok")
+  assertEqual(fs:GetText(), "ok")
+end)
+
+test("Mock frame: SetFont is what rescues a bare FontString, and it is recorded", function()
+  local f = frame()
+  local fs = f:CreateFontString()
+  fs:SetFont("Interface\\AddOns\\X\\mono.ttf", 11, "")
+  fs:SetText("^")
+  assertEqual(fs.__font[1], "Interface\\AddOns\\X\\mono.ttf")
+  assertEqual(fs.__font[2], 11)
+end)
+
+test("Mock frame: the FONT rule is a FontString rule, not a frame rule", function()
+  -- A plain frame or a button has no such restriction; only a FontString does.
+  local f = frame()
+  f:SetText("button words")
+  assertEqual(f:GetText(), "button words")
+end)
+
+test("Mock frame: a FontString measures its text rather than answering with a frame", function()
+  -- LibKa0s-Widgets-1.0's menuWidth does `(measure:GetStringWidth() or 0) + pad`. The catch-all
+  -- answered that with the frame itself, so the arithmetic raised -- which is why
+  -- tests/test_browser.lua had to force GetStringWidth sane around its real-click case.
+  local f = frame()
+  local fs = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  fs:SetText("abcde")
+  assertEqual(fs:GetStringWidth(), 30, "6px a character, the same rule geomFrame uses")
 end)
 
 -- ── The catch-all ──────────────────────────────────────────────────────────────

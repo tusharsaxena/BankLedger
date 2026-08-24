@@ -697,7 +697,7 @@ badge and any count quoted in the docs must agree with it.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_mock.lua (19)
+### test_mock.lua (26)
 
 - Mock frame: a stub starts SHOWN, as a real frame does
 - Mock frame: Show, Hide and SetShown flip the one piece of state the stub models
@@ -714,7 +714,14 @@ badge and any count quoted in the docs must agree with it.
 - Mock frame: a bare SetPoint defaults its offsets to zero
 - Mock frame: points accumulate, ClearAllPoints drops them, GetPoint misses to nil
 - Mock frame: size is real state through SetSize, SetWidth and SetHeight
-- Mock frame: CreateFontString returns the frame and records templates in order
+- Mock frame: CreateFontString answers with its OWN object, not the frame
+- Mock frame: sizing a FontString does not resize its parent
+- Mock frame: CreateFontString still records the templates it was asked for, in order
+- Mock frame: a FontString with NO font raises on SetText, exactly as the client does
+- Mock frame: a FontString built FROM A TEMPLATE has a font and accepts SetText
+- Mock frame: SetFont is what rescues a bare FontString, and it is recorded
+- Mock frame: the FONT rule is a FontString rule, not a frame rule
+- Mock frame: a FontString measures its text rather than answering with a frame
 - Mock frame: any other PascalCase key is a chainable no-op
 - Mock frame: a named method always beats the catch-all
 - Mock frame: lowercase and non-string keys miss through to nil
@@ -853,9 +860,9 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 33 |
 | test_panel.lua | 26 |
 | test_harness.lua | 7 |
-| test_mock.lua | 19 |
+| test_mock.lua | 26 |
 | test_mediasetup.lua | 13 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **760** |
+| **Total** | **767** |

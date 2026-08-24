@@ -384,17 +384,16 @@ test("the ledger window closes an open dropdown menu when it hides", function()
 
   -- The shared menu is a file-local inside Widgets.lua with no handle exposed to a host; capture
   -- the frame the click builds by spying on CreateFrame for the duration of the click, the same
-  -- way the library's own suite captures it. This addon's shared mock has no dedicated stub for
-  -- GetStringWidth, so its catch-all resolves it to a function returning the frame itself, and
-  -- the popup's row-width math then tries to add a number to that frame -- so GetStringWidth is
-  -- forced sane on every frame minted during the click, for the duration of this one test, the
-  -- same way ../LibKa0s's own Widgets suite installs a geometry-aware frame rather than widen the
-  -- mock every other suite here inherits.
+  -- way the library's own suite captures it.
+  --
+  -- GetStringWidth used to be forced sane on every frame minted here, because the shared mock's
+  -- catch-all answered it with the frame itself and the popup's row-width math then added a number
+  -- to a table. It is a real stub on the FontString now (tests/wow_mock.lua), so the spy only
+  -- captures.
   local realCreateFrame = mocks.CreateFrame
   local capturedMenu
   mocks.CreateFrame = function(...)
     local f = realCreateFrame(...)
-    f.GetStringWidth = function() return 50 end
     if not capturedMenu then capturedMenu = f end
     return f
   end
