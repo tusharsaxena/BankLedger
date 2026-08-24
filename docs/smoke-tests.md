@@ -465,8 +465,58 @@ is about the path and the argument; this is where somebody actually looks at the
    build entirely** — none of its eight dropdowns appear, and the chat line reads "Filters need
    LibKa0s. The ledger itself is unaffected." The History table underneath still works and is still
    usable with no filters. Every surface not on that bar must still draw *something*: the
-   font-character ×, its `Arrow-Up-Up` sort arrows, its boxed `+`/`-` group expanders, and
-   **Export to CSV** with its words and no art. **The four header marks are GOLD on this rung too** —
+   font-character ×, its `Arrow-Up-Up` sort arrows and its boxed `+`/`-` group expanders.
+   **The four header marks are GOLD on this rung too** —
    the tint rides on the escape rather than on the art, so a gold `Arrow-Up-Up` and a gold boxed `+`
    are correct here; a near-white one means the fallback path lost the tail the resolved path keeps.
-   Nothing blank, nothing off-centre, no error. Put the folder back.
+   Nothing blank, nothing off-centre, no error.
+
+   **The export modal is NOT on this rung, and that is not a gap in the check.** This step used to
+   ask for "**Export to CSV** with its words and no art", and it could not be performed: the
+   **Export** button lives on the filter bar, the filter bar refuses to build, so nothing in the
+   client can call `NS.Export:Open` and the modal never exists. Confirm the *absence* instead — no
+   **Export** button anywhere, no way to reach the modal — and check the modal's own marks on the
+   healthy rung, at steps 2 and 5. `tests/test_export.lua` covers what the modal does if it is ever
+   opened on this rung anyway: it draws no **Data set** dropdown rather than a dead one, and it does
+   not raise. Put the folder back.
+
+## S-22 · LibKa0s-Widgets-1.0 — the shared dropdown menu
+
+S-21 checks the *art* on the dropdowns. This section checks the *menu*, which is a different thing
+and a shared one: `LibKa0s-Widgets-1.0` drops **one** popup frame for every dropdown in the client,
+parented to `UIParent` at `FULLSCREEN_DIALOG` and outliving any window that opened it. Nothing
+headless can reach it — the addon is handed no reference to it, only `W.CloseMenu()`.
+
+1. **The first click opens the menu.** `/bl show`, then click **Store** as the very first dropdown
+   you touch after logging in. The menu drops. This is the check for the crash v1.11.0 and v1.11.1
+   of the library shipped: the *first* click built the row pool, and building a row raised
+   `FontString:SetText(): Font not set` before anything appeared. A second click is not a substitute
+   — by then the pool exists. If it drops, click **Direction** too: its rows carry the ▲/▼ glyph,
+   which is the row field that was crashing, and it must be a **glyph and not a box**.
+2. **Escape closes the window AND the menu.** Open **Store**'s menu and, with it still open, press
+   Escape. The ledger window closes *and the menu goes with it*. A menu left floating over the game
+   with no window behind it is the failure: `modules/Browser.lua`'s `OnHide` hook missed its
+   `W.CloseMenu()`. Do the same on the **export modal**: **Export**, open the **Data set** menu,
+   press Escape — modal and menu both go. Then reopen the modal, open the menu again and click the
+   modal's **×**: same result. That close button and Escape are the two routes
+   `modules/Export.lua`'s `OnHide` hook covers.
+3. **A slash-command close closes the menu.** Open the ledger, open any filter menu, and type
+   `/bl show` in chat to toggle the window shut with the menu still open. The menu closes with it.
+   Same for `/bl session` and the session window if one is open.
+4. **Two dropdowns do not fight.** Open **Store**'s menu, then — without closing it — click
+   **Character**. The Store menu closes and the Character menu opens in its place; exactly one menu
+   is on screen, the way a native game menu behaves. Then open **Export** on top of the ledger
+   window, open the modal's **Data set** menu, and click somewhere in the ledger window behind it:
+   the menu closes and the click does **not** land on the modal. The modal sits at `DIALOG`, below
+   the menu's `FULLSCREEN_DIALOG` catcher, which is what makes the outside click reach the catcher
+   first.
+5. **A collapsed multi-select names a filter it can no longer list.** *(New at LibKa0s v1.12.0,
+   Widgets minor 4 — this is a deliberate change to what the button says.)* Filter History to a
+   single item **Type** that only one character owns, press **Save**, then switch to a character
+   with none of it (or `/bl test` and back) so today's dataset no longer contains that type. The
+   **Type** button reads the **type's own name**. It used to read **"Type: All"** while the filter
+   was still on — the old label walked the option list, and a selected value with no row in it was
+   invisible. The filter itself has not changed and the row count is the same as before; only the
+   words on the button. **"Type: All" on a bar that is visibly filtering is now the regression.**
+   The same applies to **Store**, **Quality** and **Sub-type**. It cannot happen to **Character**:
+   that list always carries its **All** and **Current** rows, whatever the data holds.
