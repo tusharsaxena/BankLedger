@@ -3,6 +3,14 @@ NS.Export = NS.Export or {}
 local E = NS.Export
 local C = NS.Constants
 
+-- The flat-skin dropdown's library, soft-optional exactly as modules/Browser.lua looks it up. This
+-- file needs it for ONE thing the dropdown itself cannot do: CloseMenu(). The popup a dropdown
+-- drops is a process-wide singleton parented to UIParent at FULLSCREEN_DIALOG, shared with every
+-- other Ka0s addon's dropdowns -- this modal's own Hide() does not reach it. The dropdown itself
+-- still arrives through NS.Browser:MakeDropdown, which is where this addon's art and font are
+-- injected, so there is still exactly one factory.
+local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+
 -- ── Serialization ───────────────────────────────────────────────────────────────
 -- Pure, unit-tested helpers (CSV text). The modal UI below consumes them; it needs the live client,
 -- so it is smoke-tested rather than unit-tested. Export is called directly by the Browser
@@ -346,21 +354,31 @@ local function EnsureFrame()
   t:SetPoint("CENTER"); t:SetText("Export")
   frame.titleFS = t
   if NS.Browser and NS.Browser.MakeCloseButton then
-    NS.Browser:MakeCloseButton(tbar, function() frame:Hide() end)
-      :SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
+    local close = NS.Browser:MakeCloseButton(tbar, function() frame:Hide() end)
+    close:SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
+    frame.closeBtn = close   -- the suite fires this to prove the close ROUTE, not just Hide()
   end
 
-  local ds = NS.Browser:MakeDropdown(frame, 148)
-  ds:SetHeight(24)
-  ds:ClearAllPoints()
-  ds:SetPoint("TOPLEFT", 16, -40)
-  ds:SetPoint("TOPRIGHT", -16, -40)
-  ds:SetOptions(DATASET_OPTIONS)
-  ds:SetValue(dataset, "Data set: " .. datasetLabel(dataset))
-  ds.onSelect = function(v)
-    dataset = v
-    ds:SetValue(v, "Data set: " .. datasetLabel(v))
+  -- GUARDED, because NS.Browser:MakeDropdown answers nil with no LibKa0s-Widgets-1.0
+  -- (modules/Browser.lua:277 documents exactly that) and the SetHeight below would raise on it.
+  -- REFUSE THE CONTROL rather than build a dead one that opens no menu: the modal's one job -- hand
+  -- the player the CSV -- still works, on the default data set. This rung is not reachable in game
+  -- today, because the filter bar that carries the Export button also refuses to build without the
+  -- library, but a latent raise on a documented nil is a defect and not a design.
+  local ds = NS.Browser and NS.Browser.MakeDropdown and NS.Browser:MakeDropdown(frame, 148)
+  if ds then
+    ds:SetHeight(24)
+    ds:ClearAllPoints()
+    ds:SetPoint("TOPLEFT", 16, -40)
+    ds:SetPoint("TOPRIGHT", -16, -40)
+    ds:SetOptions(DATASET_OPTIONS)
+    ds:SetValue(dataset, "Data set: " .. datasetLabel(dataset))
+    ds.onSelect = function(v)
+      dataset = v
+      ds:SetValue(v, "Data set: " .. datasetLabel(v))
+    end
   end
+  frame.datasetDD = ds
 
   -- 150px, so the mark and the words sit side by side with room to spare — and the words stay,
   -- because "Export to CSV" is what this button promises and a bare arrow is not.
@@ -375,6 +393,17 @@ local function EnsureFrame()
   end, NS.Icon and NS.Icon("export"))
   frame.csvBtn = csvBtn   -- the one marked button in this modal; the mark suite reads it back
   csvBtn:SetPoint("TOP", frame, "TOP", 0, -80)
+
+  -- EVERY NON-CLICK CLOSE PATH, through one seam. The Data Set menu is LibKa0s-Widgets-1.0's
+  -- process-wide singleton and this frame's Hide() cannot reach it, so Escape (this frame is a
+  -- UISpecialFrame, below) or the titlebar close button would otherwise leave the menu floating
+  -- over the game at FULLSCREEN_DIALOG with nothing left to hide it. Both of those routes -- and
+  -- any future one -- close this modal by hiding it, so OnHide is the seam that covers all of them.
+  -- CloseMenu() is a safe no-op when no menu is open, and there is no library to call on the
+  -- degraded rung, which is why the call is guarded rather than the frame left unhooked.
+  frame:HookScript("OnHide", function()
+    if W then W.CloseMenu() end
+  end)
 
   if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame) end
   frame:Hide()

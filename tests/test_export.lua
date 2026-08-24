@@ -257,3 +257,114 @@ test("Export:CSV leaves the wowhead cell empty for a gold row", function()
         itemType = NIL, itemSubType = NIL, quantity = 50000 }) }))[2])
   assertEqual(row[columnIndex("wowhead")], "")
 end)
+
+-- ── The export modal's Data Set dropdown ──────────────────────────────────────
+--
+-- The modal is this addon's SECOND LibKa0s-Widgets-1.0 consumer, after the filter bar, and until
+-- now no case here touched it: a grep for MakeDropdown or CloseMenu in this file returned nothing.
+-- Two defects lived in that gap and both are pinned below.
+--
+-- The environments are ISOLATED (T.makeMocks + the loader) rather than the shared NS, for two
+-- reasons: the popup menu is a process-wide singleton behind a file-local, so the only way to get a
+-- handle on it is to be the FIRST click in a freshly loaded Widgets.lua; and the degraded rung is
+-- honestly reachable only by loading every LibKa0s major EXCEPT Widgets, which is the real shape of
+-- "the vendored copy's NEEDS_CORE floor is unmet" or "the file was never copied in".
+
+local function loadEnv(withWidgets)
+  local m = T.makeMocks()
+  local ns = {}
+  local files = {}
+  for _, path in ipairs(T.libka0sFiles) do
+    if withWidgets or path ~= "libs/LibKa0s/Widgets.lua" then files[#files + 1] = path end
+  end
+  T.Loader.loadAll(files, ns, m)
+  T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  return ns, m
+end
+
+test("Export modal: the Data Set control is a real LibKa0s-Widgets-1.0 dropdown", function()
+  local ns, m = loadEnv(true)
+  assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) ~= nil, "this rung HAS the library")
+  local f = ns.Export:Open({})
+  local ds = f.datasetDD
+  assertTrue(ds ~= nil, "the modal keeps a handle on the control it built")
+  assertEqual(ds:GetHeight(), 24, "the modal's own height, taller than the filter bar's 20")
+  assertTrue(type(ds.SetOptions) == "function", "it is the library's dropdown, not a stand-in")
+  assertEqual(ds.text:GetText(), "Data set: All Data", "seeded with the default data set")
+end)
+
+test("Export modal: with no Widgets library it REFUSES the Data Set control instead of raising",
+  function()
+    -- modules/Browser.lua:277's MakeDropdown is documented to answer nil with no library, and the
+    -- SetHeight / ClearAllPoints that followed it here were unguarded -- so this rung raised.
+    -- Latent only because the filter bar refuses to build without the library, so the Export button
+    -- that calls Open never exists; a latent raise on a documented nil is still a defect.
+    -- Review 2026-08-03 filed it as C-012 / F-013 T4.5 and it was never applied.
+    local ns, m = loadEnv(false)
+    assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded rung has no library")
+    assertTrue(ns.Browser:MakeDropdown(m.__stubFrame(), 100) == nil,
+      "and the factory answers nil, as modules/Browser.lua:277 documents")
+    local f
+    local ok, err = pcall(function() f = ns.Export:Open({}) end)
+    assertTrue(ok, "opening the modal must not raise on the documented nil: " .. tostring(err))
+    assertTrue(f ~= nil, "the modal still exists")
+    assertTrue(f.datasetDD == nil, "and it drew NO dead control that opens no menu")
+    assertTrue(f.csvBtn ~= nil, "the one thing the modal is for is still there")
+  end)
+
+-- Opening the shared popup the only way the game can: a real click on a real dropdown. Answers the
+-- menu frame, which no host is given a handle to.
+local function openMenu(ns, m, ds)
+  local onClick = ds:GetScript("OnClick")
+  assertTrue(onClick ~= nil, "the dropdown wires an OnClick that opens the shared menu")
+  local realCreateFrame, captured = m.CreateFrame, nil
+  m.CreateFrame = function(...)
+    local f = realCreateFrame(...)
+    if not captured then captured = f end
+    return f
+  end
+  local ok, err = pcall(onClick, ds)
+  m.CreateFrame = realCreateFrame
+  if not ok then error(err, 0) end
+  assertTrue(captured ~= nil, "the click built the shared popup menu")
+  assertTrue(captured:IsShown(), "and opening the dropdown showed it")
+  return captured
+end
+
+test("Export modal: hiding the modal closes an open dropdown menu", function()
+  -- The popup is parented to UIParent at FULLSCREEN_DIALOG, not to this modal, so the modal's own
+  -- Hide() cannot reach it. Escape (the modal is in UISpecialFrames) and the titlebar close button
+  -- both go through Hide, so the OnHide hook is the one seam that covers every non-click route.
+  local ns, m = loadEnv(true)
+  local f = ns.Export:Open({})
+  local menu = openMenu(ns, m, f.datasetDD)
+  f:Hide()
+  assertTrue(menu:IsShown() == false, "hiding the modal closed the menu via W.CloseMenu()")
+end)
+
+test("Export modal: the titlebar close button closes the menu with the modal", function()
+  local ns, m = loadEnv(true)
+  local f = ns.Export:Open({})
+  assertTrue(f.closeBtn ~= nil, "the modal keeps a handle on its close control")
+  local menu = openMenu(ns, m, f.datasetDD)
+  f.closeBtn:GetScript("OnClick")(f.closeBtn)
+  assertTrue(f:IsShown() == false, "the close button hid the modal")
+  assertTrue(menu:IsShown() == false, "and the shared menu went with it")
+end)
+
+test("Export modal: Escape reaches the same close path, because the modal is a UISpecialFrame",
+  function()
+    -- UISpecialFrames is how Escape closes this window, and it closes it by Hide() -- which is
+    -- exactly the path the case above pins. Assert the registration, so the coverage above is
+    -- coverage of the Escape route and not only of a direct Hide.
+    local ns, m = loadEnv(true)
+    ns.Export:Open({})
+    local found = false
+    for _, name in ipairs(m.UISpecialFrames or {}) do
+      if name == "BankLedgerExportWindow" then found = true end
+    end
+    assertTrue(found, "the modal is in UISpecialFrames, so Escape hides it")
+  end)
