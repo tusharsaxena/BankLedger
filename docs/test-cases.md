@@ -856,6 +856,12 @@ badge and any count quoted in the docs must agree with it.
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
 - tests/_kit is the test kit that shipped with that release
 
+### test_poolsetup.lua (3)
+
+- PoolSetup: the seam is published
+- PoolSetup: a released object is reused rather than rebuilt
+- PoolSetup: a nested release empties both levels
+
 ## Totals
 
 | Suite | Cases |
@@ -883,4 +889,5 @@ badge and any count quoted in the docs must agree with it.
 | test_marks.lua | 22 |
 | test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **781** |
+| test_poolsetup.lua | 3 |
+| **Total** | **784** |

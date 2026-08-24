@@ -359,23 +359,12 @@ end
 
 -- ── Pools ──────────────────────────────────────────────────────────────────────
 
-function W.NewPool() return { free = {}, active = {} } end
-
-function W.Acquire(pool, factory)
-  local o = table.remove(pool.free)
-  if not o then o = factory() end
-  pool.active[#pool.active + 1] = o
-  o:Show()
-  return o
-end
-
-function W.ReleaseAll(pool)
-  for _, o in ipairs(pool.active) do
-    o:Hide()
-    pool.free[#pool.free + 1] = o
-  end
-  for i = #pool.active, 1, -1 do pool.active[i] = nil end
-end
+-- The pool lives in LibKa0s-Pool-1.0 now (core/PoolSetup.lua). These three stay as names because
+-- every call site in modules/Insights.lua reads W.Acquire / W.ReleaseAll, and renaming forty call
+-- sites to prove a point is not a refactor.
+W.NewPool    = function() return NS.Pool.New() end
+W.Acquire    = function(pool, factory) return NS.Pool.Acquire(pool, factory) end
+W.ReleaseAll = function(pool) return NS.Pool.ReleaseAll(pool) end
 
 -- ── Tooltips ───────────────────────────────────────────────────────────────────
 
@@ -786,9 +775,10 @@ function W.SetPanelTitle(panel, text)
 end
 
 -- Release a panel pool AND every panel's rows, so a shrinking pass leaves no orphan row visible.
+-- A panel owns a row pool, so releasing the panels releases their rows first. That ordering used
+-- to be two nested loops here; it is the library's `before` hook now.
 function W.ReleasePanels(pool)
-  for _, p in ipairs(pool.active) do W.ReleaseAll(p._rows) end
-  W.ReleaseAll(pool)
+  NS.Pool.ReleaseAll(pool, function(p) NS.Pool.ReleaseAll(p._rows) end)
 end
 
 function W.MakeListRow(parent)

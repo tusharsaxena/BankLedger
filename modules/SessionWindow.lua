@@ -298,15 +298,14 @@ end
 
 -- ── Pooled rows ─────────────────────────────────────────────────────────────────
 
+-- The free/active bookkeeping is LibKa0s-Pool-1.0's now (core/PoolSetup.lua); what is left here is
+-- the frame construction, in SW:BuildRow below.
 function SW:AcquireRow()
-  local pool = self.rowPool
-  local row = table.remove(pool.free)
-  if row then
-    row:Show()
-    return row
-  end
+  return NS.Pool.Acquire(self.rowPool, function() return self:BuildRow() end)
+end
 
-  row = CreateFrame("Button", nil, self.rowHost)
+function SW:BuildRow()
+  local row = CreateFrame("Button", nil, self.rowHost)
   row:SetHeight(ROW_H)
   row:SetPoint("LEFT", self.rowHost, "LEFT", 0, 0)
   row:SetPoint("RIGHT", self.rowHost, "RIGHT", 0, 0)
@@ -389,12 +388,7 @@ function SW:LayoutRowCells(row)
 end
 
 function SW:ReleaseAllRows()
-  local pool = self.rowPool
-  for _, row in ipairs(pool.active) do
-    row:Hide()
-    pool.free[#pool.free + 1] = row
-  end
-  for i = #pool.active, 1, -1 do pool.active[i] = nil end
+  NS.Pool.ReleaseAll(self.rowPool)
 end
 
 -- ── Header ──────────────────────────────────────────────────────────────────────
@@ -517,7 +511,7 @@ local function ensureFrame()
   host:SetPoint("BOTTOMRIGHT", scroll, "BOTTOMRIGHT", 0, 0)
   SW.rowHost = host
 
-  SW.rowPool = { active = {}, free = {} }
+  SW.rowPool = NS.Pool.New()
 
   local empty = pane:CreateFontString(nil, "OVERLAY", "GameFontDisableLarge")
   empty:SetPoint("CENTER", scroll, "CENTER", 0, 0)
@@ -585,7 +579,8 @@ function SW:Bind()
   self.emptyText:SetShown(#list == 0)
   if #list == 0 then return end
 
-  local pool = self.rowPool
+  -- The acquired row is already on the pool's active list: NS.Pool.Acquire puts it there, where
+  -- the hand-rolled AcquireRow left that to this loop.
   for i = 1, numVisible do
     local entry = list[offset + i]
     if entry then
@@ -593,7 +588,6 @@ function SW:Bind()
       row:SetPoint("TOP", self.rowHost, "TOP", 0, -(i - 1) * ROW_H)
       self:LayoutRowCells(row)
       self:BindRow(row, entry, offset + i)
-      pool.active[#pool.active + 1] = row
     end
   end
 end

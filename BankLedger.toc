@@ -55,6 +55,9 @@ core\State.lua
 core\Util.lua
 core\BankLedger.lua
 core\Database.lua
+# The LibKa0s-Pool seam. Before every module that pools a widget — InsightsWidgets, LedgerTable and
+# SessionWindow all take NS.Pool at call time, so this is conventional rather than load-bearing.
+core\PoolSetup.lua
 
 # Defaults
 defaults\Global.lua
