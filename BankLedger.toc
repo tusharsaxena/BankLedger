@@ -34,6 +34,10 @@ locales\PostLoad.lua
 
 # Core (Compat loads first)
 core\Compat.lua
+# The LibKa0s-Env seam. After Compat, whose three world/metadata shims it replaced, and before
+# every file that reads a version, a zone or a map id. Nothing here resolves at load beyond the
+# LibStub lookup, so unlike core\MediaSetup.lua below this position is conventional.
+core\EnvSetup.lua
 # The LibKa0s-Media seam. BEFORE Constants, deliberately and load-bearingly: C.FONT_MONO is
 # RESOLVED from NS.MediaFont at load, so a Constants that ran first would resolve the console's
 # face to the client default forever. tests/test_libka0s.lua pins this ordering.

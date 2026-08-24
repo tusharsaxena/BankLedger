@@ -5,7 +5,8 @@ libraries under `libs/` are not listed — they are consumed, not maintained her
 
 | File | Role |
 |---|---|
-| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, TOC metadata. |
+| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, item lookups, the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name. TOC metadata, the map id and the zone left for `core/EnvSetup.lua`. |
+| `core/EnvSetup.lua` | The **LibKa0s-Env-1.0 seam**: publishes `NS.Meta(field)`, `NS.Version()`, `NS.PlayerMapID()` and `NS.Zone()` over the vendored library, passing this addon's own **folder name** (its first vararg) because a vendored copy cannot know which folder it sits in. It replaced three `core/Compat.lua` shims that were identical to every other addon's; `Compat` kept the readers that are genuinely this addon's. Every helper writes its **fallback out in full**, so an install missing LibKa0s reads its own TOC and stamps its own zone exactly as before — this is a seam, not a feature. `NS.Zone` answers **two strings and never nil**: `modules/Ledger.lua` buckets `""` with nil on purpose, in storage and in the zone filter. |
 | `core/MediaSetup.lua` | The **LibKa0s-Media-1.0 seam**: publishes `NS.Icon(name)` and `NS.MediaFont(name)` over the vendored library, passing this addon's own **folder name** (its first vararg) so the library can build a texture path into a copy it cannot locate for itself. Makes the one `Media.RegisterLSM` call, at **file load** — the registration this addon used to make itself from `core/BankLedger.lua`'s `OnInitialize`, against its own copy of the face. Both answers are `nil` where the library is absent, which is a value a caller branches on and never a path to build around. Also publishes **`NS.ICON_NAMES`** — every mark this addon draws, by name, read by nothing at runtime and cross-checked against the library's catalog and against the source by `tests/test_marks.lua` and `tests/test_mediasetup.lua`. |
 | `core/Constants.lua` | The `Store` / `Context` / `Direction` / `Kind` enums, their labels and display order, the container-id groups per store, settings option lists, the logo path, and `FONT_MONO` — resolved through the Media seam above, never a literal. |
 | `core/Namespace.lua` | Bootstrap: `NS.name`, `NS.version`, `NS.SCHEMA_VERSION` (the one source for the shipped default and the migration target), the cyan `NS.PREFIX` chat tag. |
@@ -37,6 +38,9 @@ The TOC's file order is not cosmetic in four places, and the comments in `BankLe
 each one:
 
 - **`core/Compat.lua` loads first**, so every later file can shim through it.
+- **`core/EnvSetup.lua` follows it**, before every file that reads a version, a zone or a map id.
+  Nothing there resolves at load beyond the LibStub lookup, so unlike the Media seam below this
+  position is conventional rather than load-bearing.
 - **`core/MediaSetup.lua` sits before `core/Constants.lua`**, and that position is load-bearing
   rather than conventional: `C.FONT_MONO` is *resolved* from `NS.MediaFont` at load, so a
   `Constants` that ran first would resolve the mono face to the client default in a perfectly
@@ -54,13 +58,18 @@ breaks one of these is red rather than silent.
 
 #### The `Compat` surface
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 19 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 16 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
+The TOC-metadata, map-id and zone reads are **not** here: they were identical in every addon in the
+collection, so they live in `LibKa0s-Env-1.0` and are reached through `core/EnvSetup.lua` as
+`NS.Meta`, `NS.Version`, `NS.PlayerMapID` and `NS.Zone`. What stays in `Compat` is what is
+genuinely this addon’s — the container, guild-bank and item readers.
+
 | Group | Exports |
 |---|---|
-| Metadata / player | `GetAddOnMetadata`, `GetPlayerMapID`, `GetZone`, `GetGuildName` |
+| Player | `GetGuildName` |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `ItemIDFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |

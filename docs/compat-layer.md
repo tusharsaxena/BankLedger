@@ -3,13 +3,18 @@
 `core/Compat.lua` — the single file in the addon allowed to call a deprecated or patch-varying API.
 Everything else calls `NS.Compat.X` and never the raw global.
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 19 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 16 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
+The TOC-metadata, map-id and zone reads are **not** here: they were identical in every addon in the
+collection, so they live in `LibKa0s-Env-1.0` and are reached through `core/EnvSetup.lua` as
+`NS.Meta`, `NS.Version`, `NS.PlayerMapID` and `NS.Zone`. What stays in `Compat` is what is
+genuinely this addon’s — the container, guild-bank and item readers.
+
 | Group | Exports |
 |---|---|
-| Metadata / player | `GetAddOnMetadata`, `GetPlayerMapID`, `GetZone`, `GetGuildName` |
+| Player | `GetGuildName` |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `ItemIDFromLink`, `QualityLabel`, `GetItemDetails`, `ItemNameQuality`, `LoadItem` |

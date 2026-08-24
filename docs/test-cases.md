@@ -40,7 +40,7 @@ badge and any count quoted in the docs must agree with it.
 - Util.WowheadURL accepts a bare item string as well as a full hyperlink
 - Util.WowheadURL returns nothing for a row with no item at all
 
-### test_compat.lua (21)
+### test_compat.lua (18)
 
 - Compat.ItemIDFromLink pulls the id out of a full item link
 - Compat.ItemIDFromLink accepts a bare itemString
@@ -53,7 +53,6 @@ badge and any count quoted in the docs must agree with it.
 - Compat.GetContainerNumSlots reports zero for an unreachable container
 - Compat.GetContainerSlot returns a normalized triple for a filled slot
 - Compat.GetContainerSlot returns nil for an empty slot
-- Compat.GetZone returns the zone and subzone
 - Compat.GetGuildName returns the player's guild
 - Compat.GetMoney reads the carried balance
 - Compat.GetStoreMoney reads the guild bank's own balance while the frame is open
@@ -61,8 +60,6 @@ badge and any count quoted in the docs must agree with it.
 - Compat.GetStoreMoney reads the warband balance by BankType name, not by number
 - Compat.GetStoreMoney returns nil for a store that holds no coin of its own
 - Compat.GetStoreMoney returns nil when the build exposes no reader
-- Compat.GetPlayerMapID returns the current map id
-- Compat.GetAddOnMetadata degrades to nil when neither getter exists
 
 ### test_constants.lua (21)
 
@@ -750,6 +747,18 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
 - LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
 
+### test_envsetup.lua (9)
+
+- EnvSetup: NS.Meta asks about THIS addon's folder, not its title or its frame prefix
+- EnvSetup: NS.Meta degrades to nil when the client exposes no manifest reader
+- EnvSetup: NS.Version prefers the TOC over this addon's own constant
+- EnvSetup: NS.Version falls back to this addon's own constant
+- EnvSetup: NS.Zone answers two strings
+- EnvSetup: NS.Zone answers "" rather than nil when the client has no zone text
+- EnvSetup: NS.PlayerMapID answers the map id
+- EnvSetup degraded: an install with no LibKa0s still reads its TOC and stamps its zone
+- EnvSetup: the deleted shims are gone from Compat
+
 ### test_marks.lua (22)
 
 - marks: the close control on every window this addon draws is the collection's close
@@ -852,7 +861,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_util.lua | 31 |
-| test_compat.lua | 21 |
+| test_compat.lua | 18 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 116 |
@@ -870,7 +879,8 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 7 |
 | test_mock.lua | 26 |
 | test_mediasetup.lua | 13 |
+| test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **775** |
+| **Total** | **781** |

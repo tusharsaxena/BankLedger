@@ -98,12 +98,11 @@ end
 
 local lib = LibStub and LibStub("LibKa0s-Slash-1.0", true)
 
--- The addon's version, resolved once. The TOC's ## Version is the truth; NS.version is the fallback
--- for builds where the metadata API is unavailable. `/bl version` and the help header both come
--- through here, so they cannot report different numbers (F-017).
+-- The addon's version. The TOC's ## Version is the truth and NS.version is the fallback, but that
+-- ladder is core/EnvSetup.lua's now — this stays a method so that `/bl version` and the help
+-- header keep resolving through ONE place and cannot report different numbers (F-017).
 function Sl:Version()
-  return (NS.Compat and NS.Compat.GetAddOnMetadata
-    and NS.Compat.GetAddOnMetadata(NS.name, "Version")) or NS.version or "?"
+  return NS.Version()
 end
 
 if not lib then

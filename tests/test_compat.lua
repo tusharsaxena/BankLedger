@@ -62,12 +62,6 @@ test("Compat.GetContainerSlot returns nil for an empty slot", function()
   assertEqual(NS.Compat.GetContainerSlot(0, 1), nil)
 end)
 
-test("Compat.GetZone returns the zone and subzone", function()
-  local zone, subzone = NS.Compat.GetZone()
-  assertEqual(zone, "Testville")
-  assertEqual(subzone, "The Vault")
-end)
-
 test("Compat.GetGuildName returns the player's guild", function()
   assertEqual(NS.Compat.GetGuildName(), "Ka0s")
 end)
@@ -113,13 +107,4 @@ test("Compat.GetStoreMoney returns nil when the build exposes no reader", functi
   assertEqual(NS.Compat.GetStoreMoney("WARBAND_BANK"), nil)
   assertEqual(NS.Compat.GetStoreMoney("GUILD_BANK"), nil)
   mocks.C_Bank, mocks.GetGuildBankMoney = savedBank, savedGuild
-end)
-
-test("Compat.GetPlayerMapID returns the current map id", function()
-  assertEqual(NS.Compat.GetPlayerMapID(), 2657)
-end)
-
-test("Compat.GetAddOnMetadata degrades to nil when neither getter exists", function()
-  -- Neither C_AddOns nor the bare global is stubbed, so the shim must return nil rather than raise.
-  assertTrue(NS.Compat.GetAddOnMetadata("BankLedger", "Version") == nil)
 end)

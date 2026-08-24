@@ -442,7 +442,7 @@ end
 -- refuses to admit an uncached item under a non-zero quality threshold rather than recording it and
 -- hoping — a row that can never be classified is not one a threshold ever asked for.
 function L:BuildEntry(move)
-  local zone, subzone = NS.Compat.GetZone()
+  local zone, subzone = NS.Zone()
   local _, classFile = UnitClass("player")
   local entry = {
     ts = time(),
@@ -454,7 +454,7 @@ function L:BuildEntry(move)
     quantity = move.quantity,
     zone = zone ~= "" and zone or nil,
     subzone = subzone ~= "" and subzone or nil,
-    mapID = NS.Compat.GetPlayerMapID(),
+    mapID = NS.PlayerMapID(),
   }
 
   if move.store == C.Store.GUILD_BANK then

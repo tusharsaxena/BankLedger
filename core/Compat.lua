@@ -5,35 +5,13 @@ local Compat = NS.Compat
 -- Retail-only addon: no game-flavor branching (compat). Every varying / deprecated API is gated by
 -- a direct C_*/global presence check here, so a shim degrades to nil/false when its API is absent —
 -- never by reading a game-flavor project id. Feature modules call NS.Compat.X, never the raw API.
-
--- ── Addon metadata ──────────────────────────────────────────────────────────────
-
--- TOC metadata field (e.g. "Version"), read from the packaged manifest so `/bl version` can't drift
--- from the TOC. Retail moved the getter to C_AddOns; falls back to the bare global, then nil.
-function Compat.GetAddOnMetadata(name, field)
-  if C_AddOns and C_AddOns.GetAddOnMetadata then
-    return C_AddOns.GetAddOnMetadata(name, field)
-  end
-  if type(GetAddOnMetadata) == "function" then
-    return GetAddOnMetadata(name, field)
-  end
-  return nil
-end
+--
+-- What is here is what is genuinely THIS addon's: the container, guild-bank and item readers.
+-- The TOC-metadata, map-id and zone reads left for LibKa0s-Env-1.0 and are reached through
+-- core/EnvSetup.lua as NS.Meta / NS.Version / NS.PlayerMapID / NS.Zone. They went because every
+-- addon in the collection had written the same ladders; these stayed because nobody else has them.
 
 -- ── World / player ──────────────────────────────────────────────────────────────
-
-function Compat.GetPlayerMapID()
-  if C_Map and C_Map.GetBestMapForUnit then
-    return C_Map.GetBestMapForUnit("player")
-  end
-  return nil
-end
-
-function Compat.GetZone()
-  local zone = (GetZoneText and GetZoneText()) or ""
-  local subzone = (GetSubZoneText and GetSubZoneText()) or ""
-  return zone, subzone
-end
 
 -- The player's guild name, or nil when unguilded / the API is absent. Used to stamp guild-bank
 -- movements so a character who changes guild keeps its history straight.
