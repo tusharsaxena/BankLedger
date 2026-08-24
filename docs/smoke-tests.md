@@ -239,9 +239,9 @@ tolerance.
 2. `/bl debug on` → a green ON ack in chat, a `[Debug] logging enabled` line and an `[Init]` summary
    naming the build, schema and profile.
 3. Move something to your bank → one `[Move]` summary line per pass, not one per item.
-4. The scrollbar tracks the wheel both ways, and the counter reads `N / 500 lines`.
+4. The scrollbar tracks the wheel both ways, and the counter reads `N / 1500 lines`.
 5. **Copy** opens a monospace box with the plain, color-code-free log. **Clear** empties both and
-   resets the counter to `0 / 500`.
+   resets the counter to `0 / 1500`.
 6. `/bl debug off` → a red OFF ack and a `[Debug] logging disabled` line.
 7. `/reload` → logging is off again, because the flag is session-only.
 8. **Chrome.** The console and the **Copy** box wear the same edge as the ledger window — a flat 1px

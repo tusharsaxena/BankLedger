@@ -25,11 +25,14 @@ local SUITES = {
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
 -- Loader.tocFiles deliberately skips `libs\` lines — the TOC pulls these in through an XML it
--- cannot see inside. All nine load, not just the adopted majors, because that is what the client
+-- cannot see inside. All of them load, not just the adopted majors, because that is what the client
 -- does: a load-time error in a module this addon does not yet use is still a broken install.
 -- tests/test_libka0s.lua asserts this list against LibKa0s.xml so the two cannot drift.
 local LIBKA0S_FILES = {
   "libs/LibKa0s/Core.lua",
+  "libs/LibKa0s/Env.lua",
+  "libs/LibKa0s/Pool.lua",
+  "libs/LibKa0s/Item.lua",
   "libs/LibKa0s/Media.lua",
   "libs/LibKa0s/Widgets.lua",
   "libs/LibKa0s/DebugLog.lua",
