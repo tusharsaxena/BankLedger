@@ -552,3 +552,22 @@ only a real login can produce, the second needs an item the client has genuinely
    properly and either captures it or skips it on quality. A row that appears immediately at a
    quality nothing resolved is the regression this step exists to catch: that is LootHistory's
    policy, and it is wrong here.
+
+## S-24 · The copy window is LibKa0s-Widgets-1.0's
+
+`modules/Export.lua` no longer builds a frame for the export copy window; it passes a descriptor to
+`Widgets.CopyWindow`. Focus, selection and the Esc binding are the three things a headless suite
+cannot see, so they are checked here. **NOT YET RUN** — recorded when the adoption landed.
+
+1. `/bl` → open the ledger → **Export** → with **All Data** selected, click **Export to CSV**.
+2. The copy window opens **centred on the ledger window**, above the modal, with the CSV **already
+   selected**.
+3. Ctrl+C, paste into a text editor: the whole CSV, including the `\r\n` line breaks the exporter
+   writes.
+4. Switch the **Data Set** to **Current View** and export again: the **same** window, new text,
+   selected again — not a second window stacked on the first.
+5. Esc closes the copy window and leaves the modal open.
+6. Drag the ledger window somewhere else and export again: the copy window follows it.
+7. **The close glyph is the library's now** — 18x18 with a red hover, where this addon's own close
+   is 24x24 with a class-coloured hover. Confirm it still reads as a close button in the title bar
+   and is not clipped by the 26px bar. This is the one deliberate visual difference in the change.

@@ -1,4 +1,6 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local addonName, NS = ...
+-- `addonName` is consumed: the copy window's descriptor hands it to LibKa0s-Widgets-1.0, which
+-- needs it to find this addon's own close art. It used to carry a `luacheck: ignore`.
 NS.Export = NS.Export or {}
 local E = NS.Export
 local C = NS.Constants
@@ -212,7 +214,7 @@ end
 -- A small skinned window: a Data Set selector (All Data / Current View) plus an Export-to-CSV
 -- button. Reuses the Browser's flat skin and close glyph.
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local frame, copyFrame
+local frame
 -- Per-open config: { title, providers = { allData, currentView }, csv = function(dataset) }.
 local config = {}
 local dataset = "allData"
@@ -228,59 +230,58 @@ local function centerOnBrowser(f)
   end
 end
 
-local function EnsureCopyFrame()
-  if copyFrame then return copyFrame end
-  copyFrame = CreateFrame("Frame", "BankLedgerExportCopyWindow", UIParent, "BackdropTemplate")
-  copyFrame:SetSize(640, 420)
-  copyFrame:SetPoint("CENTER")
-  copyFrame:SetFrameStrata("FULLSCREEN")
-  copyFrame:EnableMouse(true)
-  copyFrame:SetMovable(true)
-  copyFrame:SetClampedToScreen(true)
+-- The copy window belongs to LibKa0s-Widgets-1.0. What stays here is the DESCRIPTOR: the frame's
+-- global name, the face, the title, the skin and the anchor -- the things a vendored library cannot
+-- know about this addon. The build is lazy inside the library, so a session that never exports
+-- creates nothing.
+--
+-- `width` (640), `height` (420), `editWidth` (590) and the 0.06/0.06/0.08/0.95 backdrop are OMITTED
+-- because the library's defaults ARE the values this file used to write out by hand -- checked
+-- against the builder that was deleted here, not assumed. `fontSize` is omitted for the same
+-- reason: the default is the 10pt this file passed to SetFont.
+--
+-- The scroll-width read-back that used to live in ShowCopy -- `f.scroll:GetWidth() > 0 and ... or
+-- 590` -- happens inside the library now. It is still the same argument: the ScrollFrame's real
+-- width is only known after layout, and the descriptor's editWidth is the fallback for the first
+-- open, before the client has measured anything.
+local copyWindow
 
-  local tbar = CreateFrame("Frame", nil, copyFrame)
-  tbar:SetPoint("TOPLEFT", 1, -1); tbar:SetPoint("TOPRIGHT", -1, -1); tbar:SetHeight(26)
-  tbar:EnableMouse(true); tbar:RegisterForDrag("LeftButton")
-  tbar:SetScript("OnDragStart", function() copyFrame:StartMoving() end)
-  tbar:SetScript("OnDragStop", function() copyFrame:StopMovingOrSizing() end)
-  local t = tbar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  t:SetPoint("CENTER"); t:SetText("Export \226\128\148 Ctrl+C, then Esc")
-  copyFrame.title = t
-
-  if NS.Browser and NS.Browser.MakeCloseButton then
-    NS.Browser:MakeCloseButton(tbar, function() copyFrame:Hide() end)
-      :SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
-  end
-
-  local scroll = CreateFrame("ScrollFrame", nil, copyFrame, "UIPanelScrollFrameTemplate")
-  scroll:SetPoint("TOPLEFT", 8, -30); scroll:SetPoint("BOTTOMRIGHT", -28, 10)
-  local edit = CreateFrame("EditBox", nil, scroll)
-  edit:SetMultiLine(true)
-  edit:SetFont(NS.Constants.FONT_MONO, 10, "")
-  edit:SetAutoFocus(false)
-  edit:SetWidth(590)
-  edit:SetScript("OnEscapePressed", function(self) self:ClearFocus(); copyFrame:Hide() end)
-  scroll:SetScrollChild(edit)
-  copyFrame.scroll, copyFrame.edit = scroll, edit
-
-  if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(copyFrame) end
-  -- Denser than the shared skin: CSV is dense monospace text, so the world behind must not bleed in.
-  copyFrame:SetBackdropColor(0.06, 0.06, 0.08, 0.95)
-  copyFrame:Hide()
-  if type(UISpecialFrames) == "table" then
-    table.insert(UISpecialFrames, "BankLedgerExportCopyWindow")
-  end
-  return copyFrame
+local function ensureCopyWindow()
+  if copyWindow then return copyWindow end
+  if not W or not W.CopyWindow then return nil end
+  copyWindow = W.CopyWindow({
+    addonName = addonName,
+    name      = "BankLedgerExportCopyWindow",
+    title     = "Export \226\128\148 Ctrl+C, then Esc",
+    font      = NS.Constants.FONT_MONO,
+    applySkin = function(f) if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(f) end end,
+    -- Consulted on EVERY show, so the popup lands over the ledger window wherever the user has
+    -- since dragged it, and over the screen when that window is not up.
+    anchorTo  = function()
+      return NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow() or nil
+    end,
+  })
+  -- Published for tests/test_export.lua: an EditBox is write-only through the frame API, so the
+  -- handle is the only way to assert what the window is showing.
+  E.__copyWindow = copyWindow
+  return copyWindow
 end
 
-local function ShowCopy(text)
-  local f = EnsureCopyFrame()
-  centerOnBrowser(f)
-  f.edit:SetWidth(f.scroll:GetWidth() > 0 and f.scroll:GetWidth() or 590)
-  f.edit:SetText(text)
-  f.edit:SetCursorPosition(0)
-  f:Show(); f.edit:SetFocus(); f.edit:HighlightText()
+--- Show text in the copy window, selected and ready for Ctrl+C.
+---
+--- The ORDER inside the window -- width, text, cursor, show, focus, highlight -- is the library's
+--- now. It was load-bearing here and it is load-bearing there; what changed is that it is written
+--- down once instead of four times.
+---
+--- DEGRADED: with no LibKa0s-Widgets-1.0 there is no copy window at all, and this is a no-op rather
+--- than an error, exactly as the Data Set dropdown degrades a few lines below.
+local function showCopy(text)
+  local win = ensureCopyWindow()
+  if not win then return end
+  win:Show(text)
 end
+
+E.__showCopy = showCopy
 
 -- The data for the current Data Set selection. An empty table when the provider is missing.
 local function selectedData()
@@ -389,7 +390,7 @@ local function EnsureFrame()
   -- than as a mark BESIDE a label. The mark suite asserts the anchor set for exactly that reason.
   local csvBtn = makeButton(frame, "Export to CSV", 150, function()
     local serialize = config.csv or function(d) return E:CSV(d) end
-    ShowCopy(serialize(selectedData()))
+    showCopy(serialize(selectedData()))
   end, NS.Icon and NS.Icon("export"))
   frame.csvBtn = csvBtn   -- the one marked button in this modal; the mark suite reads it back
   csvBtn:SetPoint("TOP", frame, "TOP", 0, -80)

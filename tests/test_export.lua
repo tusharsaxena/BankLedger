@@ -368,3 +368,32 @@ test("Export modal: Escape reaches the same close path, because the modal is a U
     end
     assertTrue(found, "the modal is in UISpecialFrames, so Escape hides it")
   end)
+
+-- ── The copy window ───────────────────────────────────────────────────────────
+--
+-- This addon's copy frame was the one nobody recorded: fifty-two lines identical to LootHistory's
+-- but for one assignment and one line wrap, which is why MultiMeters' comment could call itself the
+-- third of three and be wrong. It is LibKa0s-Widgets-1.0's now, and this file passes a descriptor.
+--
+-- __showCopy / __copyWindow are publications made FOR these cases: an EditBox is write-only through
+-- the frame API, so the only way to assert what the window is showing is through the handle.
+
+test("Export: the copy window comes from LibKa0s-Widgets-1.0", function()
+  local source = io.open("modules/Export.lua"):read("*a")
+  assertEqual(source:find('CreateFrame%("EditBox"'), nil,
+    "this file builds no EditBox any more; the copy window belongs to the library")
+  assertTrue(source:find("CopyWindow", 1, true) ~= nil, "the descriptor call is present")
+end)
+
+test("Export: showing the copy window puts the text in it", function()
+  local text = "when,item,quality\r\n1,Linen Cloth,1\r\n"
+  NS.Export.__showCopy(text)
+  assertEqual(NS.Export.__copyWindow:GetText(), text)
+end)
+
+test("Export: the copy window is built once and reused", function()
+  NS.Export.__showCopy("first")
+  local f = NS.Export.__copyWindow:GetFrame()
+  NS.Export.__showCopy("second")
+  assertTrue(NS.Export.__copyWindow:GetFrame() == f, "no rebuild per open")
+end)

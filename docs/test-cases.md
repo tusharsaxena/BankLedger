@@ -530,7 +530,7 @@ badge and any count quoted in the docs must agree with it.
 - Insights: the headline split puts withdrawals left, deposits right, peak-scaled
 - Insights: a back-to-back half's tip carries its count and its share of the row
 
-### test_export.lua (39)
+### test_export.lua (42)
 
 - Export:CSV emits a header row even with no data
 - Export:CSV emits one row per entry
@@ -571,6 +571,9 @@ badge and any count quoted in the docs must agree with it.
 - Export modal: hiding the modal closes an open dropdown menu
 - Export modal: the titlebar close button closes the menu with the modal
 - Export modal: Escape reaches the same close path, because the modal is a UISpecialFrame
+- Export: the copy window comes from LibKa0s-Widgets-1.0
+- Export: showing the copy window puts the text in it
+- Export: the copy window is built once and reused
 
 ### test_debuglog.lua (18)
 
@@ -884,7 +887,7 @@ badge and any count quoted in the docs must agree with it.
 | test_browser.lua | 41 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
-| test_export.lua | 39 |
+| test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 26 |
 | test_slash.lua | 33 |
@@ -898,4 +901,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **788** |
+| **Total** | **791** |
