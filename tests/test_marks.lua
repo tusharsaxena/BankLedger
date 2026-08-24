@@ -129,26 +129,35 @@ test("marks: every filter dropdown wears chevron-down, through the shared factor
   assertEqual(dd.arrow.__texture, ICONS .. "chevron-down")
 end)
 
-test("marks degraded: the dropdown keeps Blizzard's arrow, never a ▼ character", function()
-  -- The ▼ character is not in the client's default font and renders as a box, which is why the
-  -- lower rung is a TEXTURE rather than the glyph it looks like.
-  local ns = loadDegraded("modules/Browser.lua")
-  local dd = ns.Browser:MakeDropdown(mocks.__stubFrame(), 100)
-  assertEqual(dd.arrow.__texture, "Interface\\Buttons\\Arrow-Down-Up")
-end)
+test("marks degraded: MakeDropdown answers nil rather than a half-built widget, with no library",
+  function()
+    -- The ▼-texture rung this case used to pin now lives inside LibKa0s-Widgets-1.0's own
+    -- Dropdown() — it only runs when the WIDGET library is present but this addon's own NS.Icon has
+    -- nothing to hand it, and tests/test_browser.lua's "still hands back a working dropdown with no
+    -- LibKa0s art" case pins exactly that rung. This is the OTHER rung: with the widget library
+    -- itself absent, there is no Dropdown() to fall through to, and the forwarder's whole job is to
+    -- say so — nil, not an attempt to call a method on a library that was never there.
+    local ns = loadDegraded("modules/Browser.lua")
+    local dd = ns.Browser:MakeDropdown(mocks.__stubFrame(), 100)
+    assertNil(dd, "MakeDropdown built something anyway with no LibKa0s-Widgets-1.0 to build it from")
+  end)
 
 test("marks: a chosen row of a multi-select menu wears the collection's tick", function()
   -- The button a filter menu drops from wears the flat `chevron-down`; Blizzard's beveled tick on
   -- the rows below it was the one widget in this addon where two eras of art met. It is `confirm`
   -- now. tests/test_browser.lua reads the composed markup back off a painted row, which is the draw
-  -- site; what is pinned HERE is the LADDER, because the menu is a singleton opened once per run and
-  -- a second suite cannot reach a degraded copy of it. Both rungs on one line, so a nil can never be
-  -- concatenated into the escape and the extensionless spelling is the one that ships.
-  local src = readSource("modules/Browser.lua")
-  assertTrue(src:find('NS.Icon and NS.Icon("confirm")', 1, true) ~= nil,
-    "the multi-select tick stopped asking the seam for the collection's mark")
-  assertTrue(src:find('or "Interface\\\\Buttons\\\\UI-CheckBox-Check"', 1, true) ~= nil,
-    "the tick's Blizzard rung is gone — a degraded install concatenates nil into a |T…|t escape")
+  -- site; what is pinned HERE is the LADDER — split across two files since the widget's own
+  -- fallback moved with it. This addon's half is the injection: it must still ASK the seam for the
+  -- mark, in modules/Browser.lua's B:MakeDropdown. The library's half is the Blizzard rung, in the
+  -- vendored libs/LibKa0s/Widgets.lua, so a nil `opts.check` still resolves to an escape rather
+  -- than concatenating nil into one.
+  local browserSrc = readSource("modules/Browser.lua")
+  assertTrue(browserSrc:find('NS.Icon and NS.Icon("confirm")', 1, true) ~= nil,
+    "the multi-select tick's injection stopped asking the seam for the collection's mark")
+  local widgetsSrc = readSource("libs/LibKa0s/Widgets.lua")
+  assertTrue(widgetsSrc:find('"Interface\\\\Buttons\\\\UI-CheckBox-Check"', 1, true) ~= nil,
+    "the tick's Blizzard rung is gone from the vendored library — a nil opts.check would concatenate"
+    .. " nil into a |T…|t escape")
 end)
 
 -- ── the inline markup: sort arrows and the group expander ────────────────────────────────────

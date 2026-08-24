@@ -12,7 +12,7 @@ boxes, but the History table's Direction column and the Direction filter dropdow
 **THIS ADDON NO LONGER SHIPS THE FILE.** It used to, under `media/fonts/`, with its own `OFL.txt` and
 its own `LSM:Register("font", "JetBrains Mono", …)` call in `core/BankLedger.lua`. Both are gone. The
 bytes arrive inside the LibKa0s payload (`libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf`,
-v1.10.2), `core/MediaSetup.lua` publishes the `NS.MediaFont` seam that resolves the path, and
+v1.11.2), `core/MediaSetup.lua` publishes the `NS.MediaFont` seam that resolves the path, and
 `C.FONT_MONO` is that resolution rather than a literal — falling back to the client's own
 `STANDARD_TEXT_FONT` when the library is absent, because `SetFont` given a path to a missing file
 draws nothing at all. The library makes the LibSharedMedia registration, once, so two Ka0s addons
@@ -77,10 +77,11 @@ uncropped, and `255:209:0` is the gold. One `HEADER_RGB` constant feeds the tint
 `SetTextColor` calls, so a mark cannot drift off the word beside it. The tint rides on the escape
 rather than on the art, so it survives the fall to the Blizzard rung.
 
-**The multi-select tick in `modules/Browser.lua` is the one inline mark still at full white, and
-that is the intended look.** It sits on a menu row drawn in plain white text, not in gold, so it has
-nothing to match; it is marginally brighter than the label beside it. **This is a recorded decision,
-not a regression** — S-21 step 3 says so too, so the next reviewer does not file it.
+**The multi-select tick, drawn by `LibKa0s-Widgets-1.0`'s shared menu from the `confirm` path this
+addon's `B:MakeDropdown` hands it, is the one inline mark still at full white, and that is the
+intended look.** It sits on a menu row drawn in plain white text, not in gold, so it has nothing to
+match; it is marginally brighter than the label beside it. **This is a recorded decision, not a
+regression** — S-21 step 3 says so too, so the next reviewer does not file it.
 
 **The debug console's three marks are not in that table, and they are not this addon's to draw.**
 The console and its **Copy** box are LibKa0s-DebugLog-1.0's windows, so the library builds its own

@@ -2,6 +2,7 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 NS.Browser = NS.Browser or {}
 local B = NS.Browser
 local C = NS.Constants
+local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)   -- the flat-skin dropdown, vendored
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 local frame
 
@@ -21,17 +22,6 @@ local DBIcon                          -- LibDBIcon-1.0, resolved lazily in Setup
 -- restating them, so the ledger window, the session window, both export popups and the debug
 -- console cannot drift apart. The seam stays because those four reach the edge through it.
 local WHITE = "Interface\\Buttons\\WHITE8X8"
--- The tick a multi-select dropdown puts in front of every chosen row. INLINE |T…|t markup, resolved
--- ONCE at load into this local exactly the way modules/LedgerTable.lua's four are, so a degraded
--- install appends the Blizzard string it always did rather than concatenating a nil into an escape.
---
--- It is a MARK, and it has to be: the button this menu drops from wears the collection's flat
--- `chevron-down`, and Blizzard's beveled tick on the rows below it was the one place in this addon
--- where two eras of art met inside a single widget. `confirm` is the catalog's check glyph. The
--- trailing space is the gap to the label and predates the mark; the path stays EXTENSIONLESS.
-local CHECK_MARKUP = "|T"
-  .. ((NS.Icon and NS.Icon("confirm")) or "Interface\\Buttons\\UI-CheckBox-Check")
-  .. ":0|t "
 local SKIN = {
   tabActive   = { 1.0, 0.82, 0.0 },
   tabIdle     = { 0.7, 0.7, 0.72 },
@@ -276,235 +266,21 @@ end
 
 B.activeFilter = {}
 
--- One shared popup menu, reused by every dropdown, with a full-screen catcher that closes it on an
--- outside click. The menu sits above the HIGH-strata window; the catcher one strata below it.
-local MENU_ROW_H = 16
-
--- Never narrower than the button it drops from, but grown to the widest label it must show:
--- a class icon plus a Name-Realm outruns the 140px Character button. Measured with a spare
--- FontString in the row font (inline icon markup counts toward GetStringWidth), + the 8px
--- insets, the tick markup and a little slack; capped so one freak label can't fill the screen.
-local function menuWidth(menu, dd, opts)
-  local w = math.max(dd:GetWidth(), 90)
-  if not menu.measure then
-    menu.measure = menu:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    menu.measure:Hide()
-  end
-  for _, opt in ipairs(opts) do
-    menu.measure:SetText((dd.multi and CHECK_MARKUP or "") .. (opt.label or ""))
-    local pad = opt.glyph and 38 or 24   -- a glyphed row indents its text by a further 14px
-    w = math.max(w, math.min(320, (menu.measure:GetStringWidth() or 0) + pad))
-  end
-  return w
+-- The flat dropdown is LibKa0s-Widgets-1.0's now. What stays here is the INJECTION, and it stays
+-- here because it cannot live there: the library builds no path of its own -- Media.Icon needs the
+-- consuming addon's name, and a vendored copy does not know which folder it was copied into. So the
+-- three pieces of art a Bank Ledger dropdown wears are resolved on this side and handed over.
+--
+-- FONT_MONO for the glyph because the row font has no ▲/▼, which is the same documented deviation
+-- the Direction column in modules/LedgerTable.lua carries, for the same reason.
+function B:MakeDropdown(parent, width)
+  if not W then return nil end
+  return W.Dropdown(parent, width, {
+    chevron   = NS.Icon and NS.Icon("chevron-down"),
+    check     = NS.Icon and NS.Icon("confirm"),
+    glyphFont = C.FONT_MONO,
+  })
 end
-
--- One pooled row button. Only ever built for an index that has none: every dropdown after the first
--- reuses these, which is why paintMenuRow repaints every last field of one.
-local function makeMenuRow(menu)
-  local b = CreateFrame("Button", nil, menu)
-  b:SetHeight(MENU_ROW_H)
-  local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  fs:SetPoint("RIGHT", -8, 0)
-  fs:SetJustifyH("LEFT")
-  fs:SetWordWrap(false)   -- a long label truncates on its row; it never wraps into the next
-  b.fs = fs
-  -- Optional leading glyph (the direction ▲/▼). A separate FontString in the MONO face —
-  -- C.FONT_MONO, which the LibKa0s payload supplies through core/MediaSetup.lua rather than this
-  -- addon's own media/ — because the row font has no such glyph. Same reason, and the same
-  -- documented deviation, as the Direction column in the table. It stays a CHARACTER and does not
-  -- become a mark: it takes its color from the same SetTextColor the label uses.
-  local gl = b:CreateFontString(nil, "OVERLAY")
-  gl:SetFont(C.FONT_MONO, 11, "")
-  gl:SetPoint("LEFT", 8, 0)
-  gl:SetWidth(12)
-  gl:SetJustifyH("CENTER")
-  b.glyph = gl
-  local hl = b:CreateTexture(nil, "HIGHLIGHT")
-  hl:SetAllPoints()
-  hl:SetColorTexture(1, 0.82, 0, 0.15)
-  return b
-end
-
--- Selection state: single-select highlights the one active value; multi-select highlights
--- every value in the set (and highlights "all" when the set is empty = no filter).
-local function rowSelected(dd, opt)
-  if dd.multi then
-    return (opt.value == "all") and (not next(dd._selected)) or (dd._selected[opt.value] or false)
-  end
-  return (opt.value == dd._value)
-end
-
--- Repaint one row from its option. EVERY field is written on every pass, including the blank ones:
--- the rows are pooled across dropdowns, so a field left alone leaks the previous menu's glyph or
--- color onto this one.
-local function paintMenuRow(b, dd, opt, selected)
-  local check = (dd.multi and selected) and CHECK_MARKUP or ""
-  b.fs:SetText(check .. opt.label)
-  -- A glyphed row indents its text to clear the glyph; every other row starts at the margin.
-  b.fs:ClearAllPoints()
-  b.fs:SetPoint("LEFT", opt.glyph and 22 or 8, 0)
-  b.fs:SetPoint("RIGHT", -8, 0)
-  b.glyph:SetText(opt.glyph or "")
-  b.glyph:SetShown(opt.glyph ~= nil)
-  -- The selected row goes gold to mark the selection; otherwise the value keeps its own color
-  -- (store / direction / class), so the menu reads like the column it filters. The glyph always
-  -- keeps the direction's color — it IS the value, not a selection state.
-  if selected then
-    b.fs:SetTextColor(1, 0.82, 0)
-  elseif opt.color then
-    b.fs:SetTextColor(opt.color[1], opt.color[2], opt.color[3])
-  else
-    b.fs:SetTextColor(0.9, 0.9, 0.9)
-  end
-  if opt.color then b.glyph:SetTextColor(opt.color[1], opt.color[2], opt.color[3]) end
-end
-
--- One row's click handler.
-local function rowOnClick(menu, dd, opt)
-  return function()
-    if dd.multi then
-      -- Toggle in place and keep the menu open, so several can be picked in one visit.
-      dd:ToggleSelected(opt.value)
-      menu:Populate(dd)
-      if dd.onMultiSelect then dd.onMultiSelect(dd._selected) end
-    else
-      dd:SetValue(opt.value, opt.label)
-      menu:Hide()
-      if dd.onSelect then dd.onSelect(opt.value) end
-    end
-  end
-end
-
-local menu
-local function EnsureMenu()
-  if menu then return menu end
-  menu = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-  menu:SetFrameStrata("FULLSCREEN_DIALOG")
-  menu:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-  menu:SetBackdropColor(0.06, 0.06, 0.08, 0.98)
-  menu:SetBackdropBorderColor(0, 0, 0, 1)
-  menu:Hide()
-  menu.buttons = {}
-
-  local catcher = CreateFrame("Button", nil, UIParent)
-  catcher:SetAllPoints(UIParent)
-  catcher:SetFrameStrata("FULLSCREEN")
-  catcher:Hide()
-  catcher:SetScript("OnClick", function() menu:Hide() end)
-  menu.catcher = catcher
-  menu:SetScript("OnHide", function() catcher:Hide() end)
-
-  function menu:Populate(dd)
-    for _, b in ipairs(self.buttons) do b:Hide() end
-    local opts = dd._options or {}
-    local w = menuWidth(self, dd, opts)
-    for i, opt in ipairs(opts) do
-      local b = self.buttons[i]
-      if not b then
-        b = makeMenuRow(self)
-        self.buttons[i] = b
-      end
-      b:SetWidth(w)
-      b:ClearAllPoints()
-      b:SetPoint("TOPLEFT", 0, -4 - (i - 1) * MENU_ROW_H)
-      paintMenuRow(b, dd, opt, rowSelected(dd, opt))
-      b:SetScript("OnClick", rowOnClick(self, dd, opt))
-      b:Show()
-    end
-    self:SetSize(w, #opts * MENU_ROW_H + 8)
-  end
-  return menu
-end
-
--- A dropdown button: shows the current label plus a ▼ texture; clicking opens the shared menu.
-local function MakeDropdown(parent, width)
-  local dd = CreateFrame("Button", nil, parent, "BackdropTemplate")
-  dd:SetSize(width, 20)
-  dd:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                   insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  dd:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
-  dd:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
-
-  local fs = dd:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  fs:SetPoint("LEFT", 6, 0)
-  fs:SetPoint("RIGHT", -16, 0)
-  fs:SetJustifyH("LEFT")
-  dd.text = fs
-
-  -- The ▼ affordance. It is a texture rather than a character because the ▼ glyph is not in the
-  -- default WoW font and renders as a box — and now it is the collection's `chevron-down` mark,
-  -- with Blizzard's own arrow kept as the rung below it. The vertex color is unchanged, which is
-  -- what makes the shared white art wear this filter bar's gray instead of its own.
-  local arrow = dd:CreateTexture(nil, "OVERLAY")
-  arrow:SetSize(12, 12)
-  arrow:SetPoint("RIGHT", -4, 0)
-  arrow:SetTexture((NS.Icon and NS.Icon("chevron-down")) or "Interface\\Buttons\\Arrow-Down-Up")
-  arrow:SetVertexColor(0.7, 0.7, 0.72)
-  dd.arrow = arrow   -- kept for the out-of-game mark suite; nothing at runtime reads it back
-
-  dd._selected = {}   -- multi-select value set (empty = "All"); only used when dd.multi is true
-  function dd:SetOptions(opts)
-    self._options = opts
-    if self.multi then self:UpdateMultiLabel() end
-  end
-  function dd:SetValue(v, label) self._value = v; self.text:SetText(label or "") end
-  function dd:SelectValue(v)
-    for _, o in ipairs(self._options or {}) do
-      if o.value == v then self:SetValue(o.value, o.label); return end
-    end
-    self:SetValue(v, tostring(v))
-  end
-
-  function dd:SetMulti(on) self.multi = on and true or false end
-  function dd:SetSelected(set)
-    local s = {}
-    if type(set) == "table" then for k, on in pairs(set) do if on then s[k] = true end end end
-    self._selected = s
-    self:UpdateMultiLabel()
-  end
-  function dd:ToggleSelected(value)
-    if value == "all" then
-      self._selected = {}
-    else
-      self._selected[value] = (not self._selected[value]) or nil
-    end
-    self:UpdateMultiLabel()
-  end
-  -- Collapsed-button summary: the "All" label when empty, the single option's label when one is
-  -- picked, else "<Prefix>: N selected" (the prefix comes from the "all" sentinel's label).
-  function dd:UpdateMultiLabel()
-    local n, firstLabel
-    for _, o in ipairs(self._options or {}) do
-      if o.value ~= "all" and self._selected[o.value] then
-        n = (n or 0) + 1
-        firstLabel = firstLabel or o.label
-      end
-    end
-    local allLabel = (self._options and self._options[1] and self._options[1].label) or "All"
-    if not n then
-      self.text:SetText(allLabel)
-    elseif n == 1 then
-      self.text:SetText(firstLabel)
-    else
-      self.text:SetText((allLabel:match("^(.-):") or allLabel) .. ": " .. n .. " selected")
-    end
-  end
-
-  dd:SetScript("OnClick", function(self2)
-    local m = EnsureMenu()
-    if m:IsShown() and m._owner == self2 then m:Hide(); return end
-    m._owner = self2
-    m:Populate(self2)
-    m:ClearAllPoints()
-    m:SetPoint("TOPLEFT", self2, "BOTTOMLEFT", 0, -1)
-    m.catcher:Show()
-    m:Show()
-  end)
-  return dd
-end
-
--- Shared factory so sibling modules (Export) can build a flat-skin dropdown off the same machinery.
-function B:MakeDropdown(parent, width) return MakeDropdown(parent, width) end
 
 -- A small flat-skin text button for the filter bar.
 --
@@ -529,7 +305,7 @@ local function makeBarButton(parent, text, width, onClick, tooltip)
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   fs:SetPoint("CENTER")
   fs:SetText(text)
-  -- Exposed the same way makeMenuRow exposes its own, and for the same kind of reason: the WORDS are
+  -- Exposed the same way LibKa0s-Widgets-1.0's own row builder exposes its own, and for the same kind of reason: the WORDS are
   -- the half of a BESIDE button that no other assertion can reach. Without this the mark suite can
   -- see the art and the anchors but not the label, so a call site that passed "" would ship a
   -- wordless glyph button — and an install without LibKa0s an entirely empty one — while every
@@ -1039,11 +815,18 @@ end
 --   Row 1: Group by · [search…] · Clear
 --   Row 2: Date · Direction · Store · Type · Character · Export
 function B:BuildFilterBar(bar)
+  -- No dropdown widget, no filter bar. Seven controls that open nothing is a browser that looks
+  -- broken; the ledger table underneath still works, and the absence is legible.
+  if not W then
+    if NS.Print then NS.Print("Filters need LibKa0s. The ledger itself is unaffected.") end
+    return
+  end
+
   local ROW1, ROW2 = 0, -24
   local dd = {}
   self._dd = dd
 
-  dd.group = MakeDropdown(bar, 110)
+  dd.group = self:MakeDropdown(bar, 110)
   dd.group:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, ROW1)
   dd.group:SetOptions(GROUP_OPTIONS)
   dd.group:SetValue("none", "Group: None")
@@ -1114,7 +897,7 @@ function B:BuildFilterBar(bar)
   self._search = search
 
   -- Row 2, left→right in the same order the columns appear in the table.
-  dd.date = MakeDropdown(bar, DD_W.date)
+  dd.date = self:MakeDropdown(bar, DD_W.date)
   dd.date:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, ROW2)
   dd.date:SetOptions(DATE_OPTIONS)
   dd.date:SetValue("all", "Date: All")
@@ -1123,7 +906,7 @@ function B:BuildFilterBar(bar)
     B:ApplyFilterNow()
   end
 
-  dd.direction = MakeDropdown(bar, DD_W.direction)
+  dd.direction = self:MakeDropdown(bar, DD_W.direction)
   dd.direction:SetPoint("LEFT", dd.date, "RIGHT", DD_GAP, 0)
   dd.direction:SetMulti(true)
   dd.direction:SetOptions(directionOptions())
@@ -1132,7 +915,7 @@ function B:BuildFilterBar(bar)
     B:ApplyFilterNow()
   end
 
-  dd.store = MakeDropdown(bar, DD_W.store)
+  dd.store = self:MakeDropdown(bar, DD_W.store)
   dd.store:SetPoint("LEFT", dd.direction, "RIGHT", DD_GAP, 0)
   dd.store:SetMulti(true)
   dd.store:SetOptions(storeOptions())
@@ -1141,7 +924,7 @@ function B:BuildFilterBar(bar)
     B:ApplyFilterNow()
   end
 
-  dd.quality = MakeDropdown(bar, DD_W.quality)
+  dd.quality = self:MakeDropdown(bar, DD_W.quality)
   dd.quality:SetPoint("LEFT", dd.store, "RIGHT", DD_GAP, 0)
   dd.quality:SetMulti(true)
   dd.quality.onMultiSelect = function(set)
@@ -1149,7 +932,7 @@ function B:BuildFilterBar(bar)
     B:ApplyFilterNow()
   end
 
-  dd.type = MakeDropdown(bar, DD_W.type)
+  dd.type = self:MakeDropdown(bar, DD_W.type)
   dd.type:SetPoint("LEFT", dd.quality, "RIGHT", DD_GAP, 0)
   dd.type:SetMulti(true)
   dd.type.onMultiSelect = function(set)
@@ -1157,7 +940,7 @@ function B:BuildFilterBar(bar)
     B:ApplyFilterNow()
   end
 
-  dd.subtype = MakeDropdown(bar, DD_W.subtype)
+  dd.subtype = self:MakeDropdown(bar, DD_W.subtype)
   dd.subtype:SetPoint("LEFT", dd.type, "RIGHT", DD_GAP, 0)
   dd.subtype:SetMulti(true)
   dd.subtype.onMultiSelect = function(set)
@@ -1165,7 +948,7 @@ function B:BuildFilterBar(bar)
     B:ApplyFilterNow()
   end
 
-  dd.char = MakeDropdown(bar, DD_W.char)
+  dd.char = self:MakeDropdown(bar, DD_W.char)
   dd.char:SetPoint("LEFT", dd.subtype, "RIGHT", DD_GAP, 0)
   dd.char:SetMulti(true)
   dd.char.onMultiSelect = function(set)
@@ -1318,14 +1101,15 @@ local function EnsureFrame()
   end)
   frame.resizeGrip = grip
 
-  -- Close any open dropdown menu whenever the window hides — this also covers the ESC path, which
-  -- calls frame:Hide() directly rather than B:Hide(). Also the single seam for the [UI] show/hide
-  -- trace, so it fires once per visibility change whatever the call path.
+  -- The single seam for the [UI] show/hide trace, so it fires once per visibility change whatever
+  -- the call path. The dropdown popup is LibKa0s-Widgets-1.0's process-wide singleton, parented to
+  -- UIParent rather than to this frame, so this frame's own OnHide does not reach it -- CloseMenu()
+  -- is the library's seam for exactly that, and it is a safe no-op when no menu is open.
   frame:HookScript("OnShow", function()
     if NS.State.debug and NS.Debug then NS.Debug("UI", "window shown") end
   end)
   frame:HookScript("OnHide", function()
-    if menu then menu:Hide() end
+    if W then W.CloseMenu() end
     -- The save that actually carries geometry across a game session: closing the window is
     -- guaranteed to happen, where the drag/resize handlers may never have fired.
     B:SaveGeometry()
@@ -1355,7 +1139,7 @@ function B:Show()
 end
 
 function B:Hide()
-  if menu then menu:Hide() end
+  if W then W.CloseMenu() end
   if frame then frame:Hide() end
 end
 

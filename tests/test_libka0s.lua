@@ -345,6 +345,21 @@ test("LibKa0s: the locale-descriptor matcher catches all three spellings", funct
     "a file-scope capture handed on is still the locale table")
 end)
 
+-- ── LibKa0s-Widgets-1.0 ──────────────────────────────────────────────────────────────────────
+--
+-- Widgets has no core/*Setup.lua seam of its own — it is a plain filter-bar concern, so
+-- modules/Browser.lua resolves it directly, the same way it resolves LibDataBroker and LibDBIcon.
+-- What still belongs HERE is the one thing every other major gets: proof the vendored payload
+-- actually registers this major, so a copy that silently dropped Widgets.lua (or shipped it under
+-- the wrong major/minor) is caught before it reaches modules/Browser.lua's forwarder at all.
+
+test("LibKa0s-Widgets: the vendored major registered", function()
+  local widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  assertTrue(widgets ~= nil,
+    "LibKa0s-Widgets-1.0 did not register — modules/Browser.lua's dropdown forwarder is untested")
+  assertTrue(type(widgets.Dropdown) == "function", "the registered major has no Dropdown constructor")
+end)
+
 -- ── vendoring and load order ─────────────────────────────────────────────────────────────────
 
 test("LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order", function()

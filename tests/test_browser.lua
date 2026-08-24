@@ -369,6 +369,46 @@ test("the ledger window saves its geometry when it hides", function()
   assertEqual(saved.w, 980)
 end)
 
+-- The regression this addon shipped once: the popup menu is LibKa0s-Widgets-1.0's process-wide
+-- singleton, parented to UIParent rather than to this window, so this window's own Hide/OnHide
+-- cannot reach it on its own. modules/Browser.lua must call W.CloseMenu() from every place it
+-- closes the window by a route other than a click on the dropdown itself, or a menu left open by
+-- Escape or a slash command orphans over the game. Caught here by opening the real shared menu
+-- (a genuine click, not a stand-in) and watching W.CloseMenu() actually reach it through B:Hide().
+test("the ledger window closes an open dropdown menu when it hides", function()
+  NS.Browser:Show()
+  local dd = B._dd and B._dd.group
+  assertTrue(dd ~= nil, "the group dropdown exists once the filter bar is built")
+  local onClick = dd:GetScript("OnClick")
+  assertTrue(onClick ~= nil, "the dropdown wires an OnClick that opens the shared menu")
+
+  -- The shared menu is a file-local inside Widgets.lua with no handle exposed to a host; capture
+  -- the frame the click builds by spying on CreateFrame for the duration of the click, the same
+  -- way the library's own suite captures it. This addon's shared mock has no dedicated stub for
+  -- GetStringWidth, so its catch-all resolves it to a function returning the frame itself, and
+  -- the popup's row-width math then tries to add a number to that frame -- so GetStringWidth is
+  -- forced sane on every frame minted during the click, for the duration of this one test, the
+  -- same way ../LibKa0s's own Widgets suite installs a geometry-aware frame rather than widen the
+  -- mock every other suite here inherits.
+  local realCreateFrame = mocks.CreateFrame
+  local capturedMenu
+  mocks.CreateFrame = function(...)
+    local f = realCreateFrame(...)
+    f.GetStringWidth = function() return 50 end
+    if not capturedMenu then capturedMenu = f end
+    return f
+  end
+  local ok, err = pcall(onClick, dd)
+  mocks.CreateFrame = realCreateFrame
+  if not ok then error(err, 0) end
+
+  assertTrue(capturedMenu ~= nil, "the click built (or reused) the shared popup menu")
+  assertTrue(capturedMenu:IsShown(), "opening the dropdown showed the shared menu")
+
+  NS.Browser:Hide()
+  assertFalse(capturedMenu:IsShown(), "hiding the window closed the menu via W.CloseMenu()")
+end)
+
 test("the ledger window saves its geometry at logout", function()
   NS.db.global.settings.window = {}
   NS.Browser:Show()
@@ -466,197 +506,100 @@ test("Browser hands the table a filter COPY, not its own mutable one", function(
   end)
 end)
 
--- ── The shared dropdown menu ───────────────────────────────────────────────────
+-- ── The dropdown forwarder ────────────────────────────────────────
 --
--- The popup every dropdown drops is one shared frame behind two file-locals (the singleton and
--- EnsureMenu), so the only way in is the way the game takes: build a real dropdown and fire its
--- OnClick. The menu is the first frame that call creates, and the kit collects every suite before
--- it runs any case, so nothing else can have opened a dropdown first — the assert in the first
--- case below is what fails if that ever stops being true.
-local MENU
-do
-  local dd = B:MakeDropdown(mocks.UIParent, 110)
-  dd:SetMulti(true)
-  dd:SetOptions({})   -- empty: the width loop is what needs the measuring stub installed below
-  local made, realCreateFrame = {}, mocks.CreateFrame
-  mocks.CreateFrame = function(...)
-    local f = realCreateFrame(...)
-    made[#made + 1] = f
-    return f
+-- The widget itself is LibKa0s-Widgets-1.0's now, and its behaviour is asserted in that repo's
+-- tests/test_widgets.lua -- the cases that used to sit here moved there verbatim. What is still this
+-- addon's is the INJECTION: three resolved paths that only a host can produce, because the library
+-- builds a path from an addon name it does not have. Getting one of them wrong draws nothing and
+-- raises nothing, which is the failure this addon's mark suite exists for.
+
+-- A spy on W.Dropdown, not a read of dropdown internals: the library's own docs (see
+-- ../LibKa0s/docs/api/Widgets/version-2-docs.md, "`__`-prefixed instance fields are INTERNAL")
+-- say a host may not read `dd.__check` / `dd.__glyphFont` — that is the suite exercising the
+-- library from the inside, not a precedent this host gets to borrow. Wrapping the constructor and
+-- capturing the `opts` table MakeDropdown hands it tests exactly what the forwarder exists to do —
+-- which host-resolved paths it injects — without reaching past the published surface to check it.
+local function spyOnDropdown(fn)
+  local Widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  local realDropdown = Widgets.Dropdown
+  local capturedOpts
+  Widgets.Dropdown = function(parent, width, opts)
+    capturedOpts = opts
+    return realDropdown(parent, width, opts)
   end
-  dd:__fire("OnClick")
-  mocks.CreateFrame = realCreateFrame
-  MENU = made[1]
-  -- The mock's CreateFontString hands back the frame itself, so the real measuring FontString
-  -- reports a table rather than a width and the width loop would raise on the first option. Stand
-  -- in a stub that measures 6px per character: the widths asserted below are that stub's
-  -- arithmetic, and what is being pinned is the +pad / cap / floor rules around it.
-  if MENU then
-    MENU.measure = {
-      SetText = function(self, t) self._t = t or "" end,
-      GetStringWidth = function(self) return #(self._t or "") * 6 end,
-      Hide = function() end,
-    }
+  local ok, err = pcall(fn)
+  Widgets.Dropdown = realDropdown
+  if not ok then error(err, 0) end
+  return capturedOpts
+end
+
+test("Browser: MakeDropdown injects this addon's chevron, tick and mono face", function()
+  local dd
+  local capturedOpts = spyOnDropdown(function()
+    dd = B:MakeDropdown(mocks.UIParent, 110)
+  end)
+  assertTrue(dd ~= nil, "MakeDropdown built a dropdown")
+  assertTrue(capturedOpts ~= nil, "MakeDropdown called W.Dropdown")
+  assertEqual(capturedOpts.chevron, NS.Icon("chevron-down"),
+    "the collapsed button is handed the collection's chevron")
+  assertEqual(capturedOpts.check, NS.Icon("confirm"),
+    "and a multi-select row's tick is handed the collection's check glyph")
+  assertEqual(capturedOpts.glyphFont, NS.Constants.FONT_MONO,
+    "the direction glyph is handed the face that actually has the character")
+end)
+
+test("Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art", function()
+  -- The rung below. Red under: a forwarder that concatenates a nil into a path.
+  local realIcon = NS.Icon
+  NS.Icon = function() return nil end
+  local dd
+  local capturedOpts = spyOnDropdown(function()
+    dd = B:MakeDropdown(mocks.UIParent, 110)
+  end)
+  NS.Icon = realIcon
+  assertEqual(capturedOpts.chevron, nil, "no chevron path is handed over when this addon has no art")
+  assertEqual(dd.arrow.__texture, "Interface\\Buttons\\Arrow-Down-Up",
+    "the library falls back to Blizzard's own arrow — dd.arrow is a documented, host-readable field")
+end)
+
+-- ── Degraded: LibKa0s-Widgets-1.0 absent ────────────────────────────────
+--
+-- Spec §10: seven controls that open nothing is a browser that looks broken, so the filter bar refuses
+-- to draw rather than build them. A fully isolated environment, loaded with every LibKa0s major
+-- EXCEPT Widgets -- the actual shape of "the vendored copy's NEEDS_CORE floor is unmet" or "the file
+-- was never copied in" -- is the only honest way to exercise the branch that runs in that install,
+-- the same reasoning test_libka0s.lua's own degraded cases already rest on.
+
+local function loadWithoutWidgets()
+  local m = T.makeMocks()
+  local ns = {}
+  local files = {}
+  for _, path in ipairs(T.libka0sFiles) do
+    if path ~= "libs/LibKa0s/Widgets.lua" then files[#files + 1] = path end
   end
+  T.Loader.loadAll(files, ns, m)
+  T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  return ns, m
 end
 
--- The tick markup Populate prefixes to a selected multi-select row, as Browser.lua spells it.
--- Duplicated here on purpose, like the Character sentinel above: if the markup changes shape this
--- suite must fail rather than follow it silently. It is the collection's `confirm` mark now, with
--- Blizzard's beveled tick as the rung below it — tests/test_marks.lua owns BOTH rungs; this suite
--- only needs whichever one a healthy install draws, so it is spelt out here byte for byte.
-local CHECK = "|TInterface\\AddOns\\BankLedger\\libs\\LibKa0s\\media\\icons\\confirm:0|t "
-
--- A recording stand-in for a row's FontString. The mock resolves every FontString to its own frame,
--- which conflates a row's label, its glyph and the button itself; these keep the three apart so the
--- paint rules are observable at all.
-local function fakeFS()
-  local r = { points = {} }
-  function r:SetText(t) self.text = t end
-  function r:SetTextColor(a, b, c) self.color = { a, b, c } end
-  function r:SetShown(v) self.shown = v and true or false end
-  function r:ClearAllPoints() self.points = {} end
-  function r:SetPoint(p, x, y) self.points[#self.points + 1] = { p, x, y } end
-  return r
-end
-
--- A recording stand-in for a pooled row button.
-local function fakeRow()
-  local b = { fs = fakeFS(), glyph = fakeFS(), points = {}, scripts = {} }
-  function b:SetWidth(w) self.width = w end
-  function b:ClearAllPoints() self.points = {} end
-  function b:SetPoint(p, x, y) self.points[#self.points + 1] = { p, x, y } end
-  function b:SetScript(k, fn) self.scripts[k] = fn end
-  function b:Show() self.shown = true end
-  function b:Hide() self.shown = false end
-  return b
-end
-
--- Seed `n` recording rows into the shared pool, then populate it. Seeding is not a shortcut: rows
--- are pooled on the menu and reused across dropdowns, so this IS the path every dropdown after the
--- first one takes, and it is the one that can leak a stale glyph or color.
-local function populate(dd, opts, n)
-  dd:SetOptions(opts)
-  MENU.buttons = {}
-  for i = 1, (n or #opts) do MENU.buttons[i] = fakeRow() end
-  MENU:Populate(dd)
-  return MENU.buttons
-end
-
--- The mock resolves CreateTexture to the frame itself, so the dropdown's 12x12 arrow overwrites the
--- button's own size on the way out of MakeDropdown. Re-assert the width after building, or every
--- dropdown reports 12px wide and the "never narrower than its own button" rule is unobservable.
-local function menuDropdown(multi, width)
-  local dd = B:MakeDropdown(mocks.UIParent, width or 110)
-  dd:SetWidth(width or 110)
-  dd:SetMulti(multi)
-  return dd
-end
-
-local MENU_OPTS = {
-  { value = "all", label = "All" },
-  { value = "BANK", label = "Bank", color = { 0.4, 0.6, 1 } },
-  { value = "GUILD_BANK", label = "Guild", glyph = "\226\150\178" },
-}
-
-test("Browser menu: Populate shows one row per option and sizes the menu to them", function()
-  assertTrue(MENU ~= nil and MENU.buttons ~= nil, "the shared menu was captured on its first open")
-  local dd = menuDropdown(true)
-  local rows = populate(dd, MENU_OPTS)
-  assertEqual(#MENU.buttons, 3)
-  for i = 1, 3 do
-    assertEqual(rows[i].shown, true, "row " .. i .. " is shown")
-    assertEqual(rows[i].width, MENU.__w, "every row spans the menu")
-    assertEqual(rows[i].points[1][1], "TOPLEFT")
-    assertEqual(rows[i].points[1][3], -4 - (i - 1) * 16, "rows stack on a 16px pitch")
-  end
-  assertEqual(MENU.__h, 3 * 16 + 8, "height is the rows plus the 4px inset top and bottom")
-end)
-
-test("Browser menu: a freak label is capped at 320px", function()
-  local dd = menuDropdown(false)
-  populate(dd, { { value = "x", label = string.rep("W", 200) } })
-  assertEqual(MENU.__w, 320)
-end)
-
-test("Browser menu: the menu is never narrower than 90px, nor than its own dropdown", function()
-  local narrow = menuDropdown(false, 40)
-  populate(narrow, { { value = "x", label = "A" } })
-  assertEqual(MENU.__w, 90, "the floor holds even under a 40px dropdown")
-
-  local wide = menuDropdown(false, 200)
-  populate(wide, { { value = "x", label = "A" } })
-  assertEqual(MENU.__w, 200, "and it never undercuts the button it drops from")
-end)
-
-test("Browser menu: rows are POOLED — a shorter dropdown hides the spares, never rebuilds", function()
-  local dd = menuDropdown(true)
-  local rows = populate(dd, { MENU_OPTS[1], MENU_OPTS[2] }, 3)
-  assertEqual(#MENU.buttons, 3, "the third row is kept for the next dropdown")
-  assertEqual(rows[3].shown, false, "and it is hidden rather than left on screen")
-end)
-
-test("Browser menu: multi-select ticks 'all' exactly when nothing is selected", function()
-  local dd = menuDropdown(true)
-  local rows = populate(dd, MENU_OPTS)
-  assertEqual(rows[1].fs.text, CHECK .. "All", "an empty set IS 'All'")
-  assertEqual(rows[2].fs.text, "Bank")
-
-  dd:SetSelected({ BANK = true })
-  rows = populate(dd, MENU_OPTS)
-  assertEqual(rows[1].fs.text, "All", "'all' loses its tick once a real value is picked")
-  assertEqual(rows[2].fs.text, CHECK .. "Bank")
-end)
-
-test("Browser menu: single-select marks the active value and never draws a tick", function()
-  local dd = menuDropdown(false)
-  dd._value = "BANK"
-  local rows = populate(dd, MENU_OPTS)
-  assertEqual(rows[2].fs.text, "Bank", "no tick markup on a single-select menu")
-  assertEqual(rows[2].fs.color[1], 1, "the active value still goes gold")
-  assertEqual(rows[2].fs.color[2], 0.82)
-end)
-
-test("Browser menu: selected rows go gold, the rest keep the value's own color", function()
-  local dd = menuDropdown(true)
-  local rows = populate(dd, MENU_OPTS)
-  assertEqual(rows[1].fs.color[1], 1, "the selected row is gold")
-  assertEqual(rows[1].fs.color[2], 0.82)
-  assertEqual(rows[2].fs.color[1], 0.4, "an unselected row keeps its store/direction/class color")
-  assertEqual(rows[3].fs.color[1], 0.9, "and a colorless one falls back to gray")
-end)
-
-test("Browser menu: a glyphed row shows its glyph and indents its text past it", function()
-  local dd = menuDropdown(true)
-  local rows = populate(dd, MENU_OPTS)
-  assertEqual(rows[3].glyph.text, "\226\150\178")
-  assertEqual(rows[3].glyph.shown, true)
-  assertEqual(rows[3].fs.points[1][2], 22, "the label clears the glyph")
-  assertEqual(rows[2].glyph.text, "", "a glyphless row is repainted blank, not left stale")
-  assertEqual(rows[2].glyph.shown, false)
-  assertEqual(rows[2].fs.points[1][2], 8, "and starts at the margin")
-end)
-
-test("Browser menu: clicking a multi-select row toggles it and leaves the menu open", function()
-  local dd = menuDropdown(true)
-  local reported
-  dd.onMultiSelect = function(set) reported = set end
-  local rows = populate(dd, MENU_OPTS)
-  MENU:Show()
-  rows[2].scripts.OnClick()
-  assertEqual(dd._selected.BANK, true)
-  assertEqual(MENU:IsShown(), true, "several values can be picked in one visit")
-  assertEqual((reported or {}).BANK, true, "the owner is told about the new set")
-end)
-
-test("Browser menu: clicking a single-select row sets the value and closes the menu", function()
-  local dd = menuDropdown(false)
-  local reported
-  dd.onSelect = function(v) reported = v end
-  local rows = populate(dd, MENU_OPTS)
-  MENU:Show()
-  rows[2].scripts.OnClick()
-  assertEqual(dd._value, "BANK")
-  assertEqual(MENU:IsShown(), false)
-  assertEqual(reported, "BANK")
-end)
+test("Browser: the window still opens and the ledger table still populates with no Widgets library",
+  function()
+    local ns, m = loadWithoutWidgets()
+    assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded arm still has the library")
+    ns.Database:Add({
+      ts = 1770000000, char = "Mock-Realm", classFile = "MAGE",
+      kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quality = 1,
+      itemType = "Tradegoods", itemSubType = "Cloth",
+      quantity = 10, zone = "Testville", mapID = 2657,
+    })
+    local ok, err = pcall(function() ns.Browser:Show() end)
+    assertTrue(ok, "opening the browser must not error with no dropdown widget: " .. tostring(err))
+    assertTrue(ns.Browser:GetWindow():IsShown(), "the ledger window still opens")
+    assertEqual(ns.LedgerTable.matchCount, 1, "the table underneath still queries and populates")
+    ns.Browser:Hide()
+  end)
