@@ -384,17 +384,16 @@ test("the ledger window closes an open dropdown menu when it hides", function()
 
   -- The shared menu is a file-local inside Widgets.lua with no handle exposed to a host; capture
   -- the frame the click builds by spying on CreateFrame for the duration of the click, the same
-  -- way the library's own suite captures it. This addon's shared mock has no dedicated stub for
-  -- GetStringWidth, so its catch-all resolves it to a function returning the frame itself, and
-  -- the popup's row-width math then tries to add a number to that frame -- so GetStringWidth is
-  -- forced sane on every frame minted during the click, for the duration of this one test, the
-  -- same way ../LibKa0s's own Widgets suite installs a geometry-aware frame rather than widen the
-  -- mock every other suite here inherits.
+  -- way the library's own suite captures it.
+  --
+  -- GetStringWidth used to be forced sane on every frame minted here, because the shared mock's
+  -- catch-all answered it with the frame itself and the popup's row-width math then added a number
+  -- to a table. It is a real stub on the FontString now (tests/wow_mock.lua), so the spy only
+  -- captures.
   local realCreateFrame = mocks.CreateFrame
   local capturedMenu
   mocks.CreateFrame = function(...)
     local f = realCreateFrame(...)
-    f.GetStringWidth = function() return 50 end
     if not capturedMenu then capturedMenu = f end
     return f
   end
@@ -603,3 +602,81 @@ test("Browser: the window still opens and the ledger table still populates with 
     assertEqual(ns.LedgerTable.matchCount, 1, "the table underneath still queries and populates")
     ns.Browser:Hide()
   end)
+
+-- ── LibKa0s-Widgets-1.0 minor 4: a selection that outlives its option list ─────
+--
+-- WHAT CHANGED, and it is a change to THIS ADDON'S visible behavior, not only a new seam.
+-- UpdateMultiLabel used to walk `_options` and ask which of them were selected, so a selected value
+-- with no row in the CURRENT option list was invisible to it and the button fell back to the "All"
+-- label. Minor 4 labels every value in `_selected`, from its option row when there is one and from
+-- the raw value when there is not.
+--
+-- This addon's five column filters are all data-driven off the live dataset (typeOptions,
+-- subTypeOptions, storeOptions, qualityOptions, charOptions all walk `dataset()`), and a SAVED VIEW
+-- is applied against whatever option lists today's ledger produces -- so the selection genuinely can
+-- outlive its list here, and the old label was a lie: "Type: All" on a bar that was filtering.
+--
+-- Character is the one that CANNOT: charOptions always inserts the "all" sentinel and the "Current"
+-- sentinel by hand, and the only default selection is the Current sentinel, so its selection always
+-- has a row. Pinned below so a change to that stays visible.
+
+-- One real row, so the data-driven option lists are not empty. Restores whatever was there.
+local function withTradegoodsRow(fn)
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {}
+  NS.Database:Add({
+    ts = 1770000000, char = "Mock-Realm", classFile = "MAGE",
+    kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+    itemID = 2589, itemName = "Linen Cloth", quality = 1,
+    itemType = "Tradegoods", itemSubType = "Cloth",
+    quantity = 10, zone = "Testville", mapID = 2657,
+  })
+  B:Show()
+  B:RefreshFilterOptions()
+  local ok, err = pcall(fn)
+  B:ApplyView(nil, "all")
+  NS.db.global.ledger = saved
+  if not ok then error(err, 0) end
+end
+
+test("Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All",
+  function()
+    withTradegoodsRow(function()
+      local dd = B._dd
+      local hasConsumable = false
+      for _, o in ipairs(dd.type._options or {}) do
+        if o.value == "Consumable" then hasConsumable = true end
+      end
+      assertFalse(hasConsumable, "today's dataset produces no Consumable row, which is the premise")
+
+      -- A saved view is applied against whatever option lists TODAY'S ledger produces. This one
+      -- names a type that is no longer in it — the ledger it was saved against had one.
+      B:ApplyView({ itemType = { Consumable = true } }, "all")
+      assertEqual(dd.type.text:GetText(), "Consumable",
+        "minor 4 labels the raw value; minor 3 said 'Type: All' while the filter was on")
+      assertTrue(B.activeFilter.itemType ~= nil, "and the filter really is on, which is the point")
+    end)
+  end)
+
+test("Browser: a selection that DOES have a row still labels from that row", function()
+  withTradegoodsRow(function()
+    local dd = B._dd
+    B:ApplyView({ itemType = { Tradegoods = true } }, "all")
+    assertEqual(dd.type.text:GetText(), "Tradegoods", "the row's own label, not a count")
+  end)
+end)
+
+test("Browser: the Character filter's selection can never outlive its option list", function()
+  -- charOptions() inserts the "all" sentinel and the "Current" sentinel by hand, outside the
+  -- data-driven loop, and defaultCharSelection() only ever picks the Current sentinel -- so the
+  -- label change above cannot reach this dropdown.
+  B:Show()
+  local dd = B._dd
+  local haveAll, haveCurrent = false, false
+  for _, o in ipairs(dd.char._options or {}) do
+    if o.value == "all" then haveAll = true end
+    if o.value == CURRENT then haveCurrent = true end
+  end
+  assertTrue(haveAll, "the All sentinel is always a row")
+  assertTrue(haveCurrent, "and so is the Current sentinel, whatever the dataset holds")
+end)

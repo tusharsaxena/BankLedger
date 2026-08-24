@@ -21,10 +21,13 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   every one of them is **vendored** under `libs/` and committed (`BankLedger.toc:16-29`,
   `.pkgmeta:3`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
   player happens to have one; it never means the player must install anything.
-- LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:29`),
-  v1.11.2 per the provenance line in the root `CLAUDE.md`. That payload now includes
-  **LibKa0s-Widgets-1.0**, the flat dropdown and shared menu the filter bar and the export modal
-  draw through.
+- LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:29`).
+  **Which release, is not written here.** The one answer is the provenance line in the root
+  [`CLAUDE.md`](CLAUDE.md), and `tests/test_vendor_sync.lua` machine-reads *that* line and compares
+  both vendored payloads against the tag it names. A version restated in prose does not move with
+  the copy — this bullet carried a stale one, a re-vendor behind the payload beside it, and a second
+  place to bump is a second place to forget. That payload includes **LibKa0s-Widgets-1.0**, the flat
+  dropdown and shared menu the filter bar and the export modal draw through.
 - **The monospace face arrives inside that payload**, not beside it. This addon used to ship its own
   `media/fonts/JetBrainsMono-Regular.ttf`; the bytes are `libs/LibKa0s/media/fonts/` now, resolved
   through `core/MediaSetup.lua` and registered with LibSharedMedia by the library. Nothing under
