@@ -33,7 +33,7 @@ local core = LibStub and LibStub("LibKa0s-Core-1.0", true)
 local NEEDS_CORE = 1
 if not core or (core.MINOR or 0) < NEEDS_CORE then return end   -- no NewLibrary; module absent
 
-local MAJOR, MINOR = "LibKa0s-Widgets-1.0", 3
+local MAJOR, MINOR = "LibKa0s-Widgets-1.0", 4
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -103,7 +103,16 @@ end
 
 -- Selection state: single-select highlights the one active value; multi-select highlights
 -- every value in the set (and highlights "all" when the set is empty = no filter).
+--
+-- An option may override both of those with its own `isActive(dd)` predicate, and a PRESET ROW has
+-- to. A preset is a row whose value is not one of the values it selects — "Character: Current"
+-- picks the current player's key, "all" picks nothing — so neither `_selected[opt.value]` nor
+-- `opt.value == _value` can ever be true of it, and without a predicate such a row is the one row
+-- in the menu that can never light up even when it is exactly what the dropdown is showing. The
+-- predicate is asked FIRST and its answer is final: an option that carries one is describing a
+-- state the value set alone does not express.
 local function rowSelected(dd, opt)
+  if opt.isActive then return opt.isActive(dd) and true or false end
   if dd.multi then
     return (opt.value == "all") and (not next(dd._selected)) or (dd._selected[opt.value] or false)
   end
@@ -205,6 +214,43 @@ local function EnsureMenu()
   return menu
 end
 
+-- A preset row that reports itself active NAMES THE WHOLE SELECTION, so its label is the collapsed
+-- button's label and the count below is never consulted. Asked first because the label has to hold
+-- even when the selected value has no option row at all: option lists are usually data-driven, and
+-- a value that has dropped out of the data would otherwise fall the button back to "All" while the
+-- filter is still on.
+local function activePresetLabel(dd)
+  for _, o in ipairs(dd._options or {}) do
+    if o.isActive and o.isActive(dd) then return o.label end
+  end
+  return nil
+end
+
+-- Label every selected value: from its option row when there is one, else the raw value. A
+-- selection whose row is not in the CURRENT option list still counts and still reads sensibly —
+-- which is the whole difference from walking the options and asking which are selected, the shape
+-- this had through minor 3. A filter that is on must never summarize as "All".
+local function selectionLabels(dd)
+  local labels = {}
+  for k in pairs(dd._selected or {}) do labels[k] = tostring(k) end
+  for _, o in ipairs(dd._options or {}) do
+    if o.value ~= "all" and labels[o.value] ~= nil then labels[o.value] = o.label end
+  end
+  return labels
+end
+
+-- The collapsed text for a labeled selection.
+local function summarizeSelection(labels, allLabel)
+  local n, firstLabel
+  for _, lbl in pairs(labels) do
+    n = (n or 0) + 1
+    firstLabel = firstLabel or lbl
+  end
+  if not n then return allLabel end
+  if n == 1 then return firstLabel end
+  return (allLabel:match("^(.-):") or allLabel) .. ": " .. n .. " selected"
+end
+
 -- A dropdown button: shows the current label plus a ▼ texture; clicking opens the shared menu.
 local function MakeDropdown(parent, width, opts)
   opts = opts or {}
@@ -271,32 +317,31 @@ local function MakeDropdown(parent, width, opts)
     self._selected = s
     self:UpdateMultiLabel()
   end
+  -- `dd.presets` (optional, set by the host: { [value] = function(dd) end }) lets specific option
+  -- values REPLACE the selection instead of toggling into it — a one-click "only me". The handler
+  -- owns `dd._selected` outright and is responsible for writing it; UpdateMultiLabel runs after it
+  -- either way. It is asked before the "all" sentinel so a host may override even that, and it is a
+  -- plain field on the dropdown rather than a constructor option because the closure it carries
+  -- usually needs the dropdown the host is still in the middle of building.
   function dd:ToggleSelected(value)
-    if value == "all" then
+    local preset = self.presets and self.presets[value]
+    if preset then
+      preset(self)
+    elseif value == "all" then
       self._selected = {}
     else
       self._selected[value] = (not self._selected[value]) or nil
     end
     self:UpdateMultiLabel()
   end
-  -- Collapsed-button summary: the "All" label when empty, the single option's label when one is
-  -- picked, else "<Prefix>: N selected" (the prefix comes from the "all" sentinel's label).
+  -- Collapsed-button summary: an active preset's own label when one reports itself active, else the
+  -- "All" label when nothing is picked, the single selection's label when one is, else
+  -- "<Prefix>: N selected" (the prefix comes from the "all" sentinel's label).
   function dd:UpdateMultiLabel()
-    local n, firstLabel
-    for _, o in ipairs(self._options or {}) do
-      if o.value ~= "all" and self._selected[o.value] then
-        n = (n or 0) + 1
-        firstLabel = firstLabel or o.label
-      end
-    end
+    local preset = activePresetLabel(self)
+    if preset then self.text:SetText(preset); return end
     local allLabel = (self._options and self._options[1] and self._options[1].label) or "All"
-    if not n then
-      self.text:SetText(allLabel)
-    elseif n == 1 then
-      self.text:SetText(firstLabel)
-    else
-      self.text:SetText((allLabel:match("^(.-):") or allLabel) .. ": " .. n .. " selected")
-    end
+    self.text:SetText(summarizeSelection(selectionLabels(self), allLabel))
   end
 
   dd:SetScript("OnClick", function(self2)
