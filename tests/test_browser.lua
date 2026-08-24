@@ -602,3 +602,81 @@ test("Browser: the window still opens and the ledger table still populates with 
     assertEqual(ns.LedgerTable.matchCount, 1, "the table underneath still queries and populates")
     ns.Browser:Hide()
   end)
+
+-- ── LibKa0s-Widgets-1.0 minor 4: a selection that outlives its option list ─────
+--
+-- WHAT CHANGED, and it is a change to THIS ADDON'S visible behavior, not only a new seam.
+-- UpdateMultiLabel used to walk `_options` and ask which of them were selected, so a selected value
+-- with no row in the CURRENT option list was invisible to it and the button fell back to the "All"
+-- label. Minor 4 labels every value in `_selected`, from its option row when there is one and from
+-- the raw value when there is not.
+--
+-- This addon's five column filters are all data-driven off the live dataset (typeOptions,
+-- subTypeOptions, storeOptions, qualityOptions, charOptions all walk `dataset()`), and a SAVED VIEW
+-- is applied against whatever option lists today's ledger produces -- so the selection genuinely can
+-- outlive its list here, and the old label was a lie: "Type: All" on a bar that was filtering.
+--
+-- Character is the one that CANNOT: charOptions always inserts the "all" sentinel and the "Current"
+-- sentinel by hand, and the only default selection is the Current sentinel, so its selection always
+-- has a row. Pinned below so a change to that stays visible.
+
+-- One real row, so the data-driven option lists are not empty. Restores whatever was there.
+local function withTradegoodsRow(fn)
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = {}
+  NS.Database:Add({
+    ts = 1770000000, char = "Mock-Realm", classFile = "MAGE",
+    kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+    itemID = 2589, itemName = "Linen Cloth", quality = 1,
+    itemType = "Tradegoods", itemSubType = "Cloth",
+    quantity = 10, zone = "Testville", mapID = 2657,
+  })
+  B:Show()
+  B:RefreshFilterOptions()
+  local ok, err = pcall(fn)
+  B:ApplyView(nil, "all")
+  NS.db.global.ledger = saved
+  if not ok then error(err, 0) end
+end
+
+test("Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All",
+  function()
+    withTradegoodsRow(function()
+      local dd = B._dd
+      local hasConsumable = false
+      for _, o in ipairs(dd.type._options or {}) do
+        if o.value == "Consumable" then hasConsumable = true end
+      end
+      assertFalse(hasConsumable, "today's dataset produces no Consumable row, which is the premise")
+
+      -- A saved view is applied against whatever option lists TODAY'S ledger produces. This one
+      -- names a type that is no longer in it — the ledger it was saved against had one.
+      B:ApplyView({ itemType = { Consumable = true } }, "all")
+      assertEqual(dd.type.text:GetText(), "Consumable",
+        "minor 4 labels the raw value; minor 3 said 'Type: All' while the filter was on")
+      assertTrue(B.activeFilter.itemType ~= nil, "and the filter really is on, which is the point")
+    end)
+  end)
+
+test("Browser: a selection that DOES have a row still labels from that row", function()
+  withTradegoodsRow(function()
+    local dd = B._dd
+    B:ApplyView({ itemType = { Tradegoods = true } }, "all")
+    assertEqual(dd.type.text:GetText(), "Tradegoods", "the row's own label, not a count")
+  end)
+end)
+
+test("Browser: the Character filter's selection can never outlive its option list", function()
+  -- charOptions() inserts the "all" sentinel and the "Current" sentinel by hand, outside the
+  -- data-driven loop, and defaultCharSelection() only ever picks the Current sentinel -- so the
+  -- label change above cannot reach this dropdown.
+  B:Show()
+  local dd = B._dd
+  local haveAll, haveCurrent = false, false
+  for _, o in ipairs(dd.char._options or {}) do
+    if o.value == "all" then haveAll = true end
+    if o.value == CURRENT then haveCurrent = true end
+  end
+  assertTrue(haveAll, "the All sentinel is always a row")
+  assertTrue(haveCurrent, "and so is the Current sentinel, whatever the dataset holds")
+end)

@@ -380,7 +380,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable row menu disables every mutating action in test mode
 - LedgerTable row menu still disables item actions on a money row
 
-### test_browser.lua (38)
+### test_browser.lua (41)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -420,6 +420,9 @@ badge and any count quoted in the docs must agree with it.
 - Browser: MakeDropdown injects this addon's chevron, tick and mono face
 - Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art
 - Browser: the window still opens and the ledger table still populates with no Widgets library
+- Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
+- Browser: a selection that DOES have a row still labels from that row
+- Browser: the Character filter's selection can never outlive its option list
 
 ### test_sessionwindow.lua (32)
 
@@ -535,7 +538,7 @@ badge and any count quoted in the docs must agree with it.
 - Insights: the headline split puts withdrawals left, deposits right, peak-scaled
 - Insights: a back-to-back half's tip carries its count and its share of the row
 
-### test_export.lua (34)
+### test_export.lua (39)
 
 - Export:CSV emits a header row even with no data
 - Export:CSV emits one row per entry
@@ -571,6 +574,11 @@ badge and any count quoted in the docs must agree with it.
 - Export:CSV writes a wowhead URL carrying the item's bonus ids
 - Export:CSV writes a bare item URL when the row has no link
 - Export:CSV leaves the wowhead cell empty for a gold row
+- Export modal: the Data Set control is a real LibKa0s-Widgets-1.0 dropdown
+- Export modal: with no Widgets library it REFUSES the Data Set control instead of raising
+- Export modal: hiding the modal closes an open dropdown menu
+- Export modal: the titlebar close button closes the menu with the modal
+- Export modal: Escape reaches the same close path, because the modal is a UISpecialFrame
 
 ### test_debuglog.lua (18)
 
@@ -851,10 +859,10 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 43 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 51 |
-| test_browser.lua | 38 |
+| test_browser.lua | 41 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
-| test_export.lua | 34 |
+| test_export.lua | 39 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 26 |
 | test_slash.lua | 33 |
@@ -865,4 +873,4 @@ badge and any count quoted in the docs must agree with it.
 | test_marks.lua | 22 |
 | test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **767** |
+| **Total** | **775** |
