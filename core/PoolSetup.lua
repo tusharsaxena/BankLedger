@@ -34,7 +34,11 @@ NS.Pool = Pool or {
   -- releases a pool of list panels and each panel owns its own row pool.
   ReleaseAll = function(pool, before)
     local active = pool.active
-    for i = 1, #active do
+    -- BACKWARD, mirroring LibKa0s-Pool-1.0 minor 3. Acquire pops the free list from the END,
+    -- so parking the last rank first leaves rank 1 on top and the next Acquire hands each
+    -- widget back to the rank it already held. Walking forward alternates that mapping every
+    -- render, which is the flicker this module's degraded half must not reintroduce.
+    for i = #active, 1, -1 do
       local o = active[i]
       if before then before(o) end
       o:Hide()
