@@ -513,9 +513,14 @@ headless can reach it — the addon is handed no reference to it, only `W.CloseM
    **Character**. The Store menu closes and the Character menu opens in its place; exactly one menu
    is on screen, the way a native game menu behaves. Then open **Export** on top of the ledger
    window, open the modal's **Data set** menu, and click somewhere in the ledger window behind it:
-   the menu closes and the click does **not** land on the modal. The modal sits at `DIALOG`, below
-   the menu's `FULLSCREEN_DIALOG` catcher, which is what makes the outside click reach the catcher
-   first.
+   the menu closes **and the click lands** on whatever in the ledger window sits under the cursor,
+   in that same press. Right-click there instead and the same holds: the menu goes, and the
+   right-click reaches what is under it. *(Changed at LibKa0s v1.13.0, Widgets minor 5. The menu
+   used to be dismissed by a full-screen `Button` shown alongside it, which intercepted the press —
+   so closing the menu cost a click that did nothing else. That `Button` registered `LeftButtonUp`
+   and nothing else, so a right-click anywhere while a menu was open landed on it, found no handler
+   and went nowhere at all. The catcher is gone; two presses where one should do is now a
+   regression.)*
 5. **A collapsed multi-select names a filter it can no longer list.** *(New at LibKa0s v1.12.0,
    Widgets minor 4 — this is a deliberate change to what the button says.)* Filter History to a
    single item **Type** that only one character owns, press **Save**, then switch to a character

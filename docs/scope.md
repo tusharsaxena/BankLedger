@@ -11,7 +11,7 @@ What Bank Ledger is for, and — the load-bearing half — what it deliberately 
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 25 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 28 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## In scope

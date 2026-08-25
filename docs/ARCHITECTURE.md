@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 25 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 28 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,8 +34,8 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-25 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the three LibKa0s seams; `modules/` holds the capture engine
+28 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the six LibKa0s seams; `modules/` holds the capture engine
 and every window; `settings/` holds the schema and the three panel pages.
 
 Load order is load-bearing in four places, and `tests/test_harness.lua` guards the order the harness
@@ -159,7 +159,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 |---|---|---|
 | `slash-dispatch.md` | Present | 15 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
-| `compat-layer.md` | Present | `core/Compat.lua` carries 19 addon-specific shims beyond LibKa0s |
+| `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
 | `profiles.md` | Not applicable | No AceDB profiles are user-visible — the addon is account-wide by design and the profile namespace is unused |
 | `debug.md` | Not applicable | The console is `LibKa0s-DebugLog-1.0`'s, with no debug surface of the addon's own beyond `/bl debug scan` and `/bl debug panel` |
