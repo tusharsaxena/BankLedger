@@ -82,10 +82,15 @@ seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispa
 
 ## Event Subscriptions
 
-Eight registrations, all through `Ledger:RegisterEventSafely` — modern retail **raises** on an unknown
-event name, so a bare loop turns one retired event into a silently deaf addon. Change events are
-debounced into one reconcile pass per user action, and the baseline is held whenever a pass sees a
-one-sided change.
+Eleven registrations. **Eight** are the capture engine's and all go through
+`Ledger:RegisterEventSafely` — modern retail **raises** on an unknown event name, so a bare loop turns
+one retired event into a silently deaf addon. The other three sit outside the engine and outside that
+guard, because none of their names can go away under it: `PLAYER_ENTERING_WORLD` on the AceEvent addon
+object (`core/BankLedger.lua:45`, the one-shot retention prune) and `PLAYER_LOGOUT` on each window's
+own event frame (`modules/Browser.lua:1243`, `modules/SessionWindow.lua:662`, geometry flush).
+
+Change events are debounced into one reconcile pass per user action, and the baseline is held
+whenever a pass sees a one-sided change.
 
 The guild bank is the one store with no usable open **or** close event. Full event table, the
 debounce/settle contract and the guild-bank arrangement in **[data-flow.md](data-flow.md)**; the
@@ -139,7 +144,7 @@ Each of these is a decision with its reasoning; see **[scope.md](scope.md)**.
 
 Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
 generated directories are named once each and never enumerated per run: `docs/audits/`,
-`docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`.
+`docs/reviews/`, `docs/automated-tests/`, `docs/revendor/`, `docs/superpowers/`.
 
 ### Required (documentation-§3, Tier 1)
 
