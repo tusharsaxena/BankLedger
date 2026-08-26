@@ -107,9 +107,9 @@ cannot read `.png` or `.jpg` at runtime.
 
 | File | Size | Role |
 |---|---|---|
-| `bankledger.logo.png` | 1254×1254 | The master. Never shipped to the client; every other file is derived from it. |
+| `bankledger.logo.png` | 2000×2000 | The master. Never shipped to the client; the `.tga` and the 256 avatar are derived from it. |
 | `bankledger.logo.tga` | 512×512, 24-bit RLE | **The runtime asset** — `C.LOGO_PATH`, drawn on the settings landing page at 300px. |
-| `bankledger.logo.jpg` | 1024×1024 | The README image. |
+| `bankledger.logo.jpg` | 2000×2000 | The README / CDN image. Supplied alongside the master at full size, not downscaled from it. |
 | `bankledger.logo.256.jpg` | 256×256 | The CurseForge project avatar. |
 
 Three rules the derivatives have to follow, each of which has already gone wrong once:
@@ -118,7 +118,7 @@ Three rules the derivatives have to follow, each of which has already gone wrong
   a missing file draws nothing rather than erroring — so the settings landing page just renders
   blank and nobody notices. That silence is why the art was absent for a while without anything
   failing. The runtime asset ships now, so this is a fallback path rather than a live problem.
-- **Power-of-two dimensions.** The master is 1254×1254, which is not one; a non-power-of-two texture
+- **Power-of-two dimensions.** The master is 2000×2000, which is not one; a non-power-of-two texture
   is rescaled by the client and softens. 512 is the smallest power of two comfortably above the
   300px display size, and matches the sibling addons.
 - **Downscale with Lanczos, and sharpen the 256.** This is dense artwork — a ledger page of tiny
@@ -133,8 +133,6 @@ from PIL import Image, ImageFilter
 src = Image.open("media/logos/bankledger.logo.png").convert("RGB")
 src.resize((512, 512), Image.LANCZOS).save(
     "media/logos/bankledger.logo.tga", compression="tga_rle")
-src.resize((1024, 1024), Image.LANCZOS).save(
-    "media/logos/bankledger.logo.jpg", quality=95, subsampling=0, optimize=True)
 src.resize((256, 256), Image.LANCZOS) \
    .filter(ImageFilter.UnsharpMask(radius=0.8, percent=60, threshold=2)) \
    .save("media/logos/bankledger.logo.256.jpg", quality=95, subsampling=0, optimize=True)
