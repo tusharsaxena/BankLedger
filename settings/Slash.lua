@@ -3,6 +3,16 @@ NS.Slash = NS.Slash or {}
 local Sl = NS.Slash
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 
+--- A deep copy of the declared defaults, so the restored store never aliases the defaults table --
+--- a later write into `db.global` would otherwise reach back into `NS.defaults.global` and change
+--- what the NEXT reset restores.
+local function deepcopyGlobal(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, val in pairs(v) do out[k] = deepcopyGlobal(val) end
+  return out
+end
+
 -- Confirm dialogs for the destructive actions. Registered once; in-game only.
 if type(StaticPopupDialogs) == "table" then
   StaticPopupDialogs["KA0S_BANKLEDGER_PURGE"] = {
@@ -17,8 +27,11 @@ if type(StaticPopupDialogs) == "table" then
     preferredIndex = 3,
   }
   StaticPopupDialogs["KA0S_BANKLEDGER_RESETALL"] = {
-    text = "Reset ALL Ka0s Bank Ledger settings AND delete ALL recorded history? "
-      .. "This cannot be undone.",
+    -- THE COLLECTION'S SECOND CANONICAL WORDING (options-ui-§12), verbatim: the one for an addon
+    -- with no profile. The first closes with "your other profiles are not affected", which is a
+    -- promise this addon cannot keep -- it has none.
+    text = "Reset this addon to its defaults? Everything you have configured or recorded is "
+      .. "discarded, for every character on this account — this cannot be undone.",
     button1 = YES or "Yes",
     button2 = NO or "No",
     OnAccept = function() Sl:ResetEverything() end,
@@ -67,12 +80,33 @@ if type(StaticPopupDialogs) == "table" then
   }
 end
 
--- The confirm-gated full reset: wipe the ledger AND restore every persisted piece of account state
--- to its stock shape. CliResetAll covers the schema settings and the filter lists; this adds the
--- window-geometry carve-out the non-destructive resets deliberately leave alone.
+--- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with
+--- NO PROFILE.
+---
+--- Everything this addon stores is account-wide: `NS.defaults.global` carries the ledger, the filter
+--- lists AND the settings, and there is no `profile` section at all. `db:ResetProfile()` -- what the
+--- rule asks of an addon that has one -- would be a no-op here, so the rule translates: empty the
+--- account-wide store wholesale and merge the declared defaults back, so what comes back is
+--- indistinguishable from a fresh install.
+---
+--- WIPED IN PLACE, and NOT key by key. `NS.db.global` is held by modules from load, so replacing the
+--- table would leave every holder on a stale one. And a hand-written list of things to clear fails
+--- exactly the way a row-by-row schema sweep fails -- one release later, when something new is
+--- stored beside the ones the list names -- which is what this function used to be: a purge, a
+--- schema walk, a filter-list clear and two window-geometry carve-outs, five enumerations that
+--- between them happened to cover the whole table. AceDB ships no `ResetGlobal`, so it is written
+--- here.
+---
+--- The window resets that follow are not stored data: they re-anchor live frames from what is now an
+--- empty store.
 function Sl:ResetEverything()
-  if NS.Database and NS.Database.Purge then NS.Database:Purge() end
-  Sl:CliResetAll()   -- resets settings + filter lists and prints the confirmation line
+  local db = NS.db
+  if db and db.global then
+    local g = db.global
+    for k in pairs(g) do g[k] = nil end
+    for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
+  end
+  print("this addon reset to defaults.")
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end

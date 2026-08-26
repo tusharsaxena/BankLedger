@@ -491,3 +491,60 @@ test("Panel:Diagnose dumps the frame, its parent chain and every scrap of its ar
     for i = 1, #want do assertEqual(tail[i], want[i], "line " .. i) end
   end)
 end)
+
+-- ── the destructive reset (options-ui-§12) ──────────────────────────────────────────────────────
+
+test("Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current", function()
+  -- This addon has NO PROFILE -- NS.defaults.global carries the ledger, the filter lists AND the
+  -- settings -- so db:ResetProfile() would be a no-op and the rule translates: empty the
+  -- account-wide store wholesale and merge the declared defaults back.
+  --
+  -- The old body was five enumerations (a purge, a schema walk, a filter-list clear and two window
+  -- carve-outs) which between them happened to cover the whole table. That is the shape the rule
+  -- forbids, for the reason it forbids a row-by-row sweep: it fails one release later, when
+  -- something new is stored beside the ones the list names, and it fails silently.
+  --
+  -- The probe key is one no enumeration could have named, because it exists nowhere in this addon.
+  -- red under: reinstating the purge + CliResetAll + ResetWindow composition.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  NS.db.global.__probeNothingNames = { deep = { value = 1 } }
+
+  NS.Slash:ResetEverything()
+
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  assertEqual(NS.db.global.__probeNothingNames, nil,
+    "a key no enumeration names survived the reset")
+  -- And the declared defaults came back rather than the store being left empty.
+  assertTrue(type(NS.db.global.settings) == "table", "the defaults did not come back")
+end)
+
+test("Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table", function()
+  -- Modules capture NS.db.global at load. Replacing the table would leave every one of them
+  -- pointing at the old one -- and a suite that re-reads NS.db.global on every access cannot see
+  -- that. So the wipe is in place, which is what the real library does to a profile.
+  -- red under: `db.global = deepcopyGlobal(NS.defaults.global)`.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local before = NS.db.global
+
+  NS.Slash:ResetEverything()
+
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  assertEqual(NS.db.global, before, "the store was replaced rather than emptied")
+end)
+
+test("Slash: the restored store does not ALIAS the defaults table", function()
+  -- A later write into db.global would otherwise reach back into NS.defaults.global and change what
+  -- the NEXT reset restores -- a bug that only shows up on the second reset of a session.
+  -- red under: copying the defaults by reference instead of deep.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+
+  NS.Slash:ResetEverything()
+  NS.db.global.settings.__probeAlias = true
+
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  assertEqual(NS.defaults.global.settings.__probeAlias, nil,
+    "the store aliases the defaults table")
+end)
