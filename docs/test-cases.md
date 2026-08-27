@@ -661,7 +661,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (26)
+### test_panel.lua (29)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -689,6 +689,9 @@ badge and any count quoted in the docs must agree with it.
 - Panel:Diagnose says so and stops when no defaults button was ever built
 - Panel:Diagnose stops at a button with no frame
 - Panel:Diagnose dumps the frame, its parent chain and every scrap of its art
+- Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
+- Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
+- Slash: the restored store does not ALIAS the defaults table
 
 ### test_harness.lua (7)
 
@@ -891,7 +894,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 26 |
 | test_slash.lua | 33 |
-| test_panel.lua | 26 |
+| test_panel.lua | 29 |
 | test_harness.lua | 7 |
 | test_mock.lua | 26 |
 | test_mediasetup.lua | 13 |
@@ -901,4 +904,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **791** |
+| **Total** | **794** |
