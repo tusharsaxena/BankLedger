@@ -1154,21 +1154,97 @@ test("Compat.GetGuildBankSlot survives a build with no guild-bank API", function
   assertEqual(result, nil)
 end)
 
--- ── The guild bank arms itself on data, not on an open event ───────────────────
+-- ── The guild bank arms itself on its frame showing, not on an open event ──────
 -- GUILDBANKFRAME_OPENED is a valid event name that registers without complaint and then never
 -- fires on 12.0.7, so waiting for it left the addon permanently unarmed and every guild deposit
--- unrecorded. Tab contents arriving is the signal that actually happens.
+-- unrecorded. The frame's own OnShow is the notice the client DOES give, installed the moment the
+-- load-on-demand Blizzard_GuildBankUI arrives.
+--
+-- Tab contents arriving used to be the signal instead, and it armed a banking session in the middle
+-- of a field (issue #12): the server pushes guild bank data on reload sync and whenever ANOTHER
+-- guild member moves something, neither of which involves the player being at a bank. Data now arms
+-- only as a backstop for a build whose OnShow never fires, and only when the window says it is
+-- explicitly visible.
 
 local function clearContext()
   NS.State.openContext, NS.State.lastSnapshot, NS.Ledger._settleSince = nil, nil, nil
 end
 
-test("Ledger:OnGuildBankData arms the guild bank when nothing else is open", function()
+test("Ledger: the guild-bank frame showing arms the context", function()
   clearContext()
-  mocks.__guildQueried = {}
-  NS.Ledger:OnGuildBankData()
-  assertEqual(NS.State.openContext, "GUILD_BANK", "data arriving is what arms it")
+  NS.Ledger._guildHooked = nil
+  assertTrue(NS.Ledger:HookGuildBankFrame(), "the frame exists, so the hooks go on")
+  mocks.__openGuildBank()
+  assertEqual(NS.State.openContext, "GUILD_BANK", "the window opening is what arms it")
   assertTrue(NS.State.lastSnapshot ~= nil, "and takes a baseline")
+  clearContext()
+end)
+
+test("Ledger: the guild-bank frame showing never steals an open bank context", function()
+  clearContext()
+  NS.Ledger._guildHooked = nil
+  NS.Ledger:HookGuildBankFrame()
+  NS.Ledger:OpenContext("BANK_FRAME")
+  mocks.__openGuildBank()
+  assertEqual(NS.State.openContext, "BANK_FRAME", "the bank frame has its own events")
+  clearContext()
+end)
+
+test("Ledger:OnAddonLoaded hooks the frame when Blizzard_GuildBankUI arrives", function()
+  -- The UI is load-on-demand: GuildBankFrame does not exist until the player opens a guild bank
+  -- once, so this is the earliest moment OnShow can be hooked at all.
+  clearContext()
+  NS.Ledger._guildHooked = nil
+  local savedFrame = mocks.GuildBankFrame
+  mocks.GuildBankFrame = nil
+  assertFalse(NS.Ledger:OnAddonLoaded("Blizzard_GuildBankUI"), "no frame yet, nothing to hook")
+  mocks.GuildBankFrame = savedFrame
+  assertFalse(NS.Ledger:OnAddonLoaded("SomeOtherAddon"), "only the guild bank UI matters")
+  assertTrue(NS.Ledger:OnAddonLoaded("Blizzard_GuildBankUI"), "the LoD UI landing installs them")
+  clearContext()
+end)
+
+-- ...and tab contents arriving is not proof of anything (issue #12).
+
+test("Ledger:OnGuildBankData arms when the guild-bank window is explicitly visible", function()
+  clearContext()
+  mocks.__guildQueried, mocks.__guildVisible = {}, true
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "GUILD_BANK", "a visible window is a real visit")
+  assertTrue(NS.State.lastSnapshot ~= nil, "and takes a baseline")
+  clearContext()
+end)
+
+test("Ledger:OnGuildBankData does NOT arm when there is no guild-bank window", function()
+  -- The reload-sync case, exactly as reported: 8 tabs queried, a GUILD_BANK session opened and a
+  -- baseline of 0 kinds, all with the player nowhere near a bank. Blizzard_GuildBankUI is not
+  -- loaded, so IsGuildBankVisible() answers nil -- and nil must never read as "the window is up".
+  clearContext()
+  local savedFrame = mocks.GuildBankFrame
+  mocks.GuildBankFrame = nil
+  NS.Ledger:OnGuildBankData()
+  mocks.GuildBankFrame = savedFrame
+  assertEqual(NS.State.openContext, nil, "a session must not open away from a bank")
+  clearContext()
+end)
+
+test("Ledger:OnGuildBankData does NOT arm when the guild-bank window is hidden", function()
+  -- A guildmate moving something in the vault pushes the same event to everyone in the guild.
+  clearContext()
+  mocks.__guildVisible = false
+  NS.Ledger:OnGuildBankData()
+  mocks.__guildVisible = true
+  assertEqual(NS.State.openContext, nil, "someone else's deposit is not this player's visit")
+  clearContext()
+end)
+
+test("Ledger:OnGuildBankData still reconciles a context that is already open", function()
+  -- Demoting the arming must not demote the reconcile: tab contents arriving mid-visit is still how
+  -- the guild side of a deposit is seen at all.
+  clearContext()
+  NS.Ledger:OpenContext("GUILD_BANK")
+  NS.Ledger:OnGuildBankData()
+  assertEqual(NS.State.openContext, "GUILD_BANK", "still armed, and still reconciling")
   clearContext()
 end)
 
@@ -1258,12 +1334,12 @@ test("Ledger: the guild-bank OnHide hook is installed once, not once per data ev
   clearContext()
 end)
 
-test("Ledger:Diagnose reports whether the guild-bank close hook is installed", function()
+test("Ledger:Diagnose reports whether the guild-bank frame hooks are installed", function()
   clearContext()
   NS.Ledger:OnGuildBankData()
   local text = table.concat(NS.Ledger:Diagnose(), "\n")
-  assertTrue(text:find("guild bank close hook: installed", 1, true) ~= nil,
-    "the one line that explains a guild session that will not end")
+  assertTrue(text:find("guild bank frame hooks: installed", 1, true) ~= nil,
+    "the one line that explains a guild session that never starts, or never ends")
   clearContext()
 end)
 

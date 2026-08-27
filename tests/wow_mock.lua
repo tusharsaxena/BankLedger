@@ -408,9 +408,11 @@ return function()
   -- the hooks — so a test can prove the addon notices.
   M.__guildVisible = true
   M.__guildHideHooks = {}
+  M.__guildShowHooks = {}
   M.GuildBankFrame = setmetatable({
     HookScript = function(_, script, handler)
       if script == "OnHide" then M.__guildHideHooks[#M.__guildHideHooks + 1] = handler end
+      if script == "OnShow" then M.__guildShowHooks[#M.__guildShowHooks + 1] = handler end
     end,
   }, { __index = function(_, k)
     if k == "IsVisible" then return function() return M.__guildVisible end end
@@ -419,6 +421,13 @@ return function()
   M.__closeGuildBank = function()
     M.__guildVisible = false
     for _, fn in ipairs(M.__guildHideHooks) do fn(M.GuildBankFrame) end
+  end
+  -- ...and opens it the way the client does: show the frame, then run the OnShow hooks. This is the
+  -- ONLY notice the client gives that the guild bank has opened, GUILDBANKFRAME_OPENED being a name
+  -- that registers fine and never fires on 12.0.7.
+  M.__openGuildBank = function()
+    M.__guildVisible = true
+    for _, fn in ipairs(M.__guildShowHooks) do fn(M.GuildBankFrame) end
   end
 
   -- Coin held BY a store. Reproduced from a live 12.0.7 `/bl debug scan` at a bank and at a guild

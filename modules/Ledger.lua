@@ -367,9 +367,10 @@ function L:Diagnose()
     type(GetGuildBankItemLink), type(GetGuildBankItemInfo), type(QueryGuildBankTab),
     type(GetNumGuildBankTabs), tostring(NS.Compat.GetCurrentGuildBankTab()),
     tostring(NS.Compat.IsGuildBankVisible()))
-  -- The guild bank fires no close event, so its OnHide hook IS its close path. A `no` here means a
-  -- guild session will linger until some unrelated bag update triggers the visibility backstop.
-  add("guild bank close hook: %s (frame=%s)",
+  -- The guild bank fires neither an open nor a close event, so these hooks ARE both paths: OnShow
+  -- opens the session and OnHide closes it. NOT INSTALLED means the load-on-demand UI has never
+  -- arrived, so no guild visit can be noticed at all and no session can end on its own.
+  add("guild bank frame hooks: %s (frame=%s)",
     L._guildHooked and "installed" or "NOT INSTALLED", type(GuildBankFrame))
   local tabs = NS.Compat.GetNumGuildBankTabs()
   add("guild bank tabs=%s (tab: filled / distinct ids)", tabs)
@@ -685,7 +686,7 @@ function L:CancelPendingReconcile()
   L._pendingTimer = nil
 end
 
--- Notice the guild bank CLOSING.
+-- Notice the guild bank OPENING and CLOSING.
 --
 -- Every other frame announces its own close and `CloseContext` runs off that event. The guild bank
 -- announces nothing: `GUILDBANKFRAME_CLOSED` registers without complaint and never fires on 12.0.7,
@@ -695,23 +696,44 @@ end
 -- fires, no reconcile pass runs, and the context stays armed until some unrelated bag update happens
 -- along. That check is the backstop for a frame that vanished without hiding; this is the close.
 --
--- The frame's own `OnHide` is the one notice the client does give. `GuildBankFrame` lives in
--- Blizzard_GuildBankUI, loaded on demand, so the hook is installed the first time the guild bank is
--- actually in play rather than at load — and once only, because a hook cannot be removed and this
--- runs on every arming. Hooking `OnHide` on a plain non-secure frame taints nothing.
+-- The frame's own `OnShow`/`OnHide` are the notices the client does give, and they are the whole of
+-- what this addon knows about a guild bank visit. `OnShow` is the open the missing
+-- `GUILDBANKFRAME_OPENED` was supposed to be: it fires when the player is demonstrably looking at
+-- the vault, which tab data arriving does NOT establish (see `L:OnGuildBankData` and issue #12).
+--
+-- `GuildBankFrame` lives in Blizzard_GuildBankUI, loaded on demand, so the hooks go on the first
+-- time the guild bank is actually in play rather than at load — and once only, because a hook
+-- cannot be removed and this runs from several places. Hooking a plain non-secure frame taints
+-- nothing.
 function L:HookGuildBankFrame()
   if L._guildHooked then return true end
   local frame = GuildBankFrame
   if not (frame and type(frame.HookScript) == "function") then return false end
   L._guildHooked = true
+  frame:HookScript("OnShow", function()
+    -- Never steal the context from a frame that is already open; that one has its own events.
+    if not NS.State.openContext then L:OpenContext(C.Context.GUILD_BANK) end
+  end)
   frame:HookScript("OnHide", function()
     -- Only ever ends the GUILD BANK's own session. The guild frame also hides whenever it is simply
     -- not the window on screen, and closing the character bank's context on that basis would throw
     -- away a baseline that is still in use.
     if NS.State.openContext == C.Context.GUILD_BANK then L:CloseContext() end
   end)
-  if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK close hook installed") end
+  if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK frame hooks installed") end
   return true
+end
+
+-- Blizzard_GuildBankUI landing is the earliest moment `GuildBankFrame` exists to be hooked at all.
+-- It is load-on-demand, so on a fresh session there is no frame until the player opens a guild bank
+-- for the first time — and that first open is precisely the one whose `OnShow` would otherwise be
+-- missed. `ADDON_LOADED` fires for every addon, hence the name test and the already-hooked
+-- short-circuit ahead of any work.
+L.GUILD_BANK_UI = "Blizzard_GuildBankUI"
+
+function L:OnAddonLoaded(name)
+  if L._guildHooked or name ~= L.GUILD_BANK_UI then return false end
+  return self:HookGuildBankFrame()
 end
 
 function L:OpenContext(context)
@@ -738,17 +760,30 @@ function L:OpenContext(context)
   fireSessionChanged(true, context)
 end
 
--- Guild bank data arrived.
+-- Guild bank data arrived. Primarily a cue to re-diff; only marginally a cue to arm.
 --
--- The guild bank gets no usable open event: GUILDBANKFRAME_OPENED is a valid name that registers
--- without complaint and then never fires on 12.0.7, so waiting for it left the addon permanently
--- unarmed and every guild deposit unrecorded. What the server DOES reliably send is the tab
--- contents themselves, so data arriving is the signal that the guild bank is in play — the first
--- one lands when the window opens, before anything can be moved, which is exactly when the baseline
--- wants taking.
+-- Data arriving is NOT proof the player is at a guild bank, which is what this handler used to
+-- assume. The server pushes tab contents on login and reload sync, and again whenever ANOTHER guild
+-- member moves something — neither of which involves the player being anywhere near a bank. Arming
+-- on that alone opened a banking session in the middle of a field, and the session could not end:
+-- with Blizzard_GuildBankUI unloaded there is no frame, `IsGuildBankVisible()` answers nil ("cannot
+-- tell") rather than false, and `disarmGuildBankIfGone` rightly declines to disarm on nil. So it sat
+-- armed, rescanning eight 98-slot tabs on every bag update, until an unrelated frame took the
+-- context off it (issue #12).
+--
+-- The frame SHOWING is the open signal instead — see `L:HookGuildBankFrame`. What is left here:
+--
+--   * install the hooks if the frame has come into existence since the last event (idempotent, and
+--     the cheapest place to notice a load-on-demand UI that `ADDON_LOADED` somehow missed);
+--   * arm ONLY on an explicitly visible window, as a backstop for a build whose `OnShow` never
+--     fires. Three-valued visibility does the work: nil can never satisfy `== true`;
+--   * reconcile, which is the part that must not be weakened. Tab contents arriving mid-visit is
+--     still the only way the guild side of a deposit is ever seen (`ScheduleReconcile` is a no-op
+--     when nothing is armed).
 function L:OnGuildBankData()
+  self:HookGuildBankFrame()
   -- Never steal the context from a bank frame that is already open; that one has its own events.
-  if not NS.State.openContext then
+  if not NS.State.openContext and NS.Compat.IsGuildBankVisible() == true then
     self:OpenContext(C.Context.GUILD_BANK)
   end
   self:ScheduleReconcile()
@@ -783,7 +818,7 @@ local CLOSE_EVENTS = {
 local CHANGE_EVENTS = {
   "BAG_UPDATE_DELAYED", "PLAYERBANKSLOTS_CHANGED", "PLAYER_MONEY",
 }
--- Guild bank data. Handled separately because it ARMS the guild-bank context as well as
+-- Guild bank data. Handled separately because it may still arm the guild-bank context as well as
 -- reconciling it — see L:OnGuildBankData.
 local GUILD_DATA_EVENTS = { "GUILDBANKBAGSLOTS_CHANGED" }
 
@@ -828,6 +863,11 @@ function L:Enable()
   for _, event in ipairs(GUILD_DATA_EVENTS) do
     self:RegisterEventSafely(addon, event, function() L:OnGuildBankData() end)
   end
+  -- The guild bank's open signal is its frame's OnShow, and the frame arrives with a load-on-demand
+  -- addon. Try now — the UI may already be loaded, on a /reload with the vault open — and listen for
+  -- it landing later.
+  self:HookGuildBankFrame()
+  self:RegisterEventSafely(addon, "ADDON_LOADED", function(_, name) L:OnAddonLoaded(name) end)
 
   -- Re-cache the hot-path upvalues whenever a setting changes. Registered on this module's OWN
   -- AceEvent target, never the shared bus-as-self, so it can't clobber another consumer of the same

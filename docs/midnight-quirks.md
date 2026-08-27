@@ -10,19 +10,32 @@ exactly why it needs writing down rather than rediscovering.
 12.0.7. So is `GUILDBANKFRAME_CLOSED`. Registering them costs nothing and buys nothing, and an addon
 that trusts them tracks the guild bank not at all.
 
-- **Open** is stood in for by the arrival of tab **data** — `GUILDBANKBAGSLOTS_CHANGED`. The first one
-  lands as the window opens, before anything can be moved, which is exactly when the baseline wants
-  taking. It never steals the context from an already-open bank frame.
-- **Close** is caught two ways, because neither alone is sufficient. `GuildBankFrame`'s own `OnHide`
-  (`Ledger:HookGuildBankFrame`) is the real close path — it has to be a hook rather than a check
-  inside `Reconcile`, because closing the window changes no container and moves no money, so no event
-  fires and no reconcile pass ever runs. `GuildBankFrame` lives in `Blizzard_GuildBankUI`, loaded on
-  demand, so the hook is installed the first time the guild bank is in play, once only. The backstop
-  is `Compat.IsGuildBankVisible() == false`, checked by `disarmGuildBankIfGone` on every pass, for a
-  frame that went away without hiding.
+- **Open** is stood in for by `GuildBankFrame`'s own `OnShow` (`Ledger:HookGuildBankFrame`). It fires
+  when the player is demonstrably looking at the vault, before anything can be moved, which is
+  exactly when the baseline wants taking. It never steals the context from an already-open bank frame.
+- **Close** is caught two ways, because neither alone is sufficient. The same frame's `OnHide` is the
+  real close path — it has to be a hook rather than a check inside `Reconcile`, because closing the
+  window changes no container and moves no money, so no event fires and no reconcile pass ever runs.
+  The backstop is `Compat.IsGuildBankVisible() == false`, checked by `disarmGuildBankIfGone` on every
+  pass, for a frame that went away without hiding.
 
-`/bl debug scan` reports whether the close hook is installed. A `NOT INSTALLED` there is the
-explanation for a guild session that will not end.
+`GuildBankFrame` lives in `Blizzard_GuildBankUI`, loaded on demand, so it does not exist until the
+player opens a guild bank for the first time in a session — and that first open is the one whose
+`OnShow` would otherwise be missed. `Ledger:OnAddonLoaded` installs both hooks the moment that addon
+lands; `Enable` and `OnGuildBankData` retry, idempotently.
+
+`/bl debug scan` reports whether the frame hooks are installed. A `NOT INSTALLED` there is the
+explanation for a guild session that never starts, or never ends.
+
+### Tab data arriving is NOT the guild bank being open
+
+It was, until issue #12. `GUILDBANKBAGSLOTS_CHANGED` looks like a proxy for "the player is at the
+vault" and is not one: the server pushes tab contents on login and reload sync, and again whenever
+**another guild member** moves something. Neither involves the player being anywhere near a bank.
+Arming on it opened a banking session in the middle of a field, and the session could not end —
+with `Blizzard_GuildBankUI` unloaded there is no frame, `IsGuildBankVisible()` answers `nil` rather
+than `false`, and the disarm backstop rightly refuses to act on `nil`. The event is now a reconcile
+cue that arms only on an explicitly visible window.
 
 ## A guild-bank tab holds no data until it has been queried
 

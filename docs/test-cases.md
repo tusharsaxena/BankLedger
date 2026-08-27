@@ -98,7 +98,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (116)
+### test_ledger.lua (122)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -194,7 +194,13 @@ badge and any count quoted in the docs must agree with it.
 - Ledger: a guild-bank deposit is recorded
 - Ledger:Diagnose reports the guild-bank API and per-tab contents
 - Compat.GetGuildBankSlot survives a build with no guild-bank API
-- Ledger:OnGuildBankData arms the guild bank when nothing else is open
+- Ledger: the guild-bank frame showing arms the context
+- Ledger: the guild-bank frame showing never steals an open bank context
+- Ledger:OnAddonLoaded hooks the frame when Blizzard_GuildBankUI arrives
+- Ledger:OnGuildBankData arms when the guild-bank window is explicitly visible
+- Ledger:OnGuildBankData does NOT arm when there is no guild-bank window
+- Ledger:OnGuildBankData does NOT arm when the guild-bank window is hidden
+- Ledger:OnGuildBankData still reconciles a context that is already open
 - Ledger:OnGuildBankData queries the tabs when it arms
 - Ledger:OnGuildBankData never steals the context from an open bank frame
 - Ledger:OnGuildBankData re-arms without churning the baseline once armed
@@ -202,7 +208,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger: the guild bank disarms once its window has gone
 - Ledger: hiding the guild-bank frame disarms it there and then, with no event
 - Ledger: the guild-bank OnHide hook is installed once, not once per data event
-- Ledger:Diagnose reports whether the guild-bank close hook is installed
+- Ledger:Diagnose reports whether the guild-bank frame hooks are installed
 - Ledger: hiding the guild-bank frame leaves an open BANK frame alone
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
@@ -883,7 +889,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 116 |
+| test_ledger.lua | 122 |
 | test_database.lua | 43 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 51 |
@@ -904,4 +910,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **794** |
+| **Total** | **800** |

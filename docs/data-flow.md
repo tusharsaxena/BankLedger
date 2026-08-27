@@ -74,7 +74,8 @@ warband movement, because no event announces one.
 | `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches (the guild one never fires — see below) |
 | `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm (the guild one never fires — see below) |
 | `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
-| `GUILDBANKBAGSLOTS_CHANGED` | Both at once: **arms** the guild-bank context if nothing else holds it, then schedules the same debounced pass. It is the guild bank's stand-in for an open event — see below |
+| `GUILDBANKBAGSLOTS_CHANGED` | Schedules the same debounced pass. It also **arms** the guild-bank context, but only when the guild-bank window reports itself explicitly visible — data alone is not proof of a visit, see below |
+| `ADDON_LOADED` | Installs `GuildBankFrame`'s `OnShow`/`OnHide` hooks when the load-on-demand `Blizzard_GuildBankUI` arrives. Those hooks are the guild bank's open and close — see below |
 | `PLAYER_LOGOUT` | Flush each window's geometry to SavedVariables (`modules/Browser.lua`, `modules/SessionWindow.lua`) |
 
 The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
@@ -106,25 +107,40 @@ unless the player has script errors switched on. Names this build rejected are r
 
 The guild bank is the one store with **no usable open event, and no usable close event either**.
 `GUILDBANKFRAME_OPENED` is a valid name that registers without complaint and never fires on 12.0.7,
-so it is the arrival of tab **data** (`GUILDBANKBAGSLOTS_CHANGED`) that arms the context — the first
-one lands as the window opens, before anything can be moved, which is exactly when the baseline wants
-taking. It never steals the context from an already-open bank frame.
+and `GUILDBANKFRAME_CLOSED` is the same story. Both ends therefore hang off the frame's own scripts:
 
-`GUILDBANKFRAME_CLOSED` is the same story, so closing it is caught two ways:
+- **`GuildBankFrame`'s own `OnShow`** (`Ledger:HookGuildBankFrame`) is the open path. It fires when
+  the player is demonstrably looking at the vault, which is exactly when the baseline wants taking,
+  and it never steals the context from an already-open bank frame.
+- **`GuildBankFrame`'s own `OnHide`** is the close path. It is the one notice the client gives, and
+  it has to be a hook rather than a check inside `Reconcile`, because closing the window changes no
+  container and moves no money — so no event fires and no reconcile pass runs. The hook only ends
+  the guild bank's *own* context (the frame also hides whenever it is simply not the panel on
+  screen).
 
-- **`GuildBankFrame`'s own `OnHide`** (`Ledger:HookGuildBankFrame`) is the close path. It is the one
-  notice the client gives, and it has to be a hook rather than a check inside `Reconcile`, because
-  closing the window changes no container and moves no money — so no event fires and no reconcile
-  pass runs. The hook only ends the guild bank's *own* context (the frame also hides whenever it is
-  simply not the panel on screen). `GuildBankFrame` lives in `Blizzard_GuildBankUI`, loaded on
-  demand, so the hook is installed the first time the guild bank is in play, and once only.
+`GuildBankFrame` lives in `Blizzard_GuildBankUI`, loaded on demand, so there is no frame to hook
+until the player opens a guild bank for the first time in a session — and that first open is the one
+whose `OnShow` would otherwise be missed. `Ledger:OnAddonLoaded` therefore installs both hooks the
+moment that addon lands, `Ledger:Enable` tries once in case it is already loaded, and
+`OnGuildBankData` tries again on every data event. All three are idempotent; a hook cannot be
+removed, so it goes on once.
+
+Tab **data** arriving (`GUILDBANKBAGSLOTS_CHANGED`) used to be the open signal, and it was wrong:
+the server pushes tab contents on reload sync and whenever *another guild member* moves something,
+so a banking session opened in the middle of a field and — with no frame in existence to report
+itself hidden — could not end (issue #12). Data now arms only when
+`Compat.IsGuildBankVisible() == true`, a backstop for a build whose `OnShow` never fires. Its
+reconcile role is unchanged, and that is the half that matters: tab contents arriving mid-visit is
+still the only way the guild side of a deposit is ever seen.
+
+The close is caught a second way as well:
 - **`Compat.IsGuildBankVisible() == false`, checked in `disarmGuildBankIfGone`** (a file-local in
   `modules/Ledger.lua` that `Reconcile` calls on every pass), is the backstop for a frame
   that went away without hiding, and stops the addon rescanning six 98-slot tabs on every bag update.
   That check is three-valued: `nil` means "this build cannot tell" and deliberately does not disarm.
 
-`/bl debug scan` reports whether the close hook is installed — a `NOT INSTALLED` there is the
-explanation for a guild session that will not end.
+`/bl debug scan` reports whether the frame hooks are installed — a `NOT INSTALLED` there is the
+explanation for a guild session that never starts, or never ends.
 
 The guild bank also has a prerequisite the container stores do not: a tab holds **no data until it
 has been queried** (`QueryGuildBankTab`), so only the tab the player is looking at is readable for

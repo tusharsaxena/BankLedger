@@ -68,8 +68,8 @@ two consumers sharing a target silently clobber each other.
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
 `openContext` for, instead of re-deriving it from the open/close events — which would have missed the
-guild bank entirely, since that is armed by the arrival of tab data rather than by an event, and gets
-no close event at all.
+guild bank entirely, since that is armed by its frame's own `OnShow` rather than by an event, and
+gets no close event either.
 
 `NS.Filters` deliberately does **not** introduce a fourth sender: it calls
 `Database:FireLedgerChanged()` so `Database` stays the sole emitter of that message.

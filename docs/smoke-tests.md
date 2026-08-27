@@ -316,19 +316,27 @@ tolerance.
 11. Delete one of those rows from the History table while the bank is still open — it disappears from
     the session window too.
 12. Repeat steps 1–5 at the **warband** tabs and at a **guild bank**. Both drive the same window.
-13. **Guild bank close, specifically.** The guild bank fires no close event, so its session ends on
-    the frame's own `OnHide`. Open the guild bank, move something, then close it **without touching
-    your bags afterwards** — the session window must disappear *immediately*, not on your next bag
-    change. If it lingers, `/bl debug scan` will say `guild bank close hook: NOT INSTALLED`.
-14. **Geometry across a game session.** Move and resize the window, close the bank, then `/reload`.
+13. **Guild bank open and close, specifically.** The guild bank fires neither event, so its session
+    starts on the frame's own `OnShow` and ends on its `OnHide`. Open the guild bank — the session
+    window must appear, and `/bl debug` must show `[Store] GUILD_BANK opened` with a **non-zero**
+    baseline for the `GUILD_BANK` store once the tab queries land. Move something and confirm the
+    row. Then close it **without touching your bags afterwards** — the window must disappear
+    *immediately*, not on your next bag change. If either half misbehaves, `/bl debug scan` will say
+    `guild bank frame hooks: NOT INSTALLED`.
+14. **No session away from a bank** (issue #12). `/bl debug on`, then `/reload` while standing
+    somewhere with no bank in sight, and leave the character parked for a few minutes — ideally
+    while a guildmate moves something in the guild vault. No session window may appear, and the log
+    must show **no** `[Store] GUILD_BANK opened` line. A `GUILD_BANK opened` with a baseline of
+    `GUILD_BANK 0` is the exact signature of the regression.
+15. **Geometry across a game session.** Move and resize the window, close the bank, then `/reload`.
     Open a bank again: it comes back at the size and position you left it, with no rows. Repeat
     logging in on a **different character** — the geometry is account-wide, so it follows you.
     Do it once more resizing *only* (never dragging), and once more with the window still on screen
     when you `/reload`: both must survive. Session *data* is never persisted; only the geometry is.
-15. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
+16. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
     movements you make are still recorded (check the History window). Tick it again while a bank is
     open and it appears on the next movement; untick it while it is open and it closes at once.
-16. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
+17. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
     again to dismiss it. While a real bank session is open, `/bl session` refuses and says so rather
     than replacing your actual data with placeholders.
 
