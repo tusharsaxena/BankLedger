@@ -39,6 +39,15 @@ NS.defaults.global = {
     windowScale      = 1.0,
     window           = {},     -- persisted position/size (standalone-windows carve-out)
 
+    -- The pooled-row tint, shared by the History table and the session window. Each value IS the
+    -- literal it was promoted from (modules/LedgerTable.lua and modules/SessionWindow.lua both
+    -- built every row with these two numbers), so an install that touches neither slider is drawn
+    -- exactly as it was before they existed. Read through NS.Util.RowTintAlpha, which clamps:
+    -- these arrive from SavedVariables, where a hand-edited 5 is not an error, it is a table
+    -- drawn opaque white.
+    rowStripeAlpha    = 0.03,  -- every second row's zebra band
+    rowHoverAlpha     = 0.10,  -- the gold wash under the cursor
+
     -- The live "Current Banking Session" window: shown automatically whenever a bank frame is open.
     showSessionWindow = true,
     sessionWindow     = {},    -- its own persisted position/size (same carve-out as `window`)

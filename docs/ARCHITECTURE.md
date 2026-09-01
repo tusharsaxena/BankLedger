@@ -44,9 +44,16 @@ derives from the TOC. File-by-file table, load-order notes and the locale seam i
 
 ## Settings Schema
 
-Ten schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
+**Twelve** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write goes through `NS.Schema:Set`, so
 a slash write and a panel widget take exactly the same path.
+
+They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+the array's declaration order is the tab order, and the strip reads **Capture** (5) · **Interface**
+(6) · **History** (1). The **Filters** page carries no schema rows and drives the same `H.TabStrip`
+by hand over its two id-lists. Two of the twelve rows are chrome literals promoted to settings in
+the tabbed-panel pass — `settings.rowStripeAlpha` and `settings.rowHoverAlpha`, each defaulting to
+the number it replaced.
 
 Four pieces of persisted state are **carve-outs** with no schema widget: the two windows' geometry,
 the filter id-lists, and the saved ledger view. Row table and panel structure in
@@ -154,7 +161,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, carve-outs, migrations |
-| `settings-panel.md` | The three pages, the ten rows, and the single `Schema:Set` write seam |
+| `settings-panel.md` | The three pages, the two tab strips, the twelve rows, and the single `Schema:Set` write seam |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 

@@ -211,11 +211,24 @@ tolerance.
    Defaults button looks like every other button on the page — if it renders as Blizzard's red
    stone button, it was built before a UI skin hooked AceGUI (`/bl debug panel` shows the region
    list; the bare 5-region `130828` form is the unskinned one).
-   General's sections read **Master Controls** (enable, minimap, session window, debug console,
-   window scale + Reset all), then **Capture** (quality, retention, item/gold toggles, per-store
-   grid), then **Storage**. Master Controls' four checkboxes pair two to a line — *Enable capture ·
-   Hide minimap button* on the first, *Session window · Debug console* on the second — with no
-   ragged single-column gap between them.
+   Both pages are **tabbed** (`options-ui-§13`): a strip pinned under the header, above the scroll,
+   with no section heading anywhere on the page — the tab is the heading. General's strip reads
+   **Capture · Interface · History**, in that order; Filters' reads **Blacklist · Whitelist**.
+   Capture is selected when General first opens.
+   - **Capture** — *Enable capture* alone on the first line, then *Track items · Track gold*, then
+     *Minimum quality*, then the full-width per-store grid. The master switch must not share its
+     line with anything.
+   - **Interface** — *Window scale · Hide minimap button*, then *Session window · Debug console*,
+     then *Row stripe opacity · Row hover opacity*. Three full lines, no ragged single-column gap.
+     The two opacity sliders must be side by side on one line, not stacked.
+   - **History** — *Keep history for*, then the storage read-out ("N movements recorded over N
+     days" and the estimated database size), then **Purge ledger…** and **Reset all…** side by side.
+     There must be no *Reset all* button anywhere on Interface.
+   Click each tab in turn and then click back: the store grid, the read-out and both buttons must
+   still be there. They are drawn from the tab's `afterGroup` hook precisely so that a second visit
+   redraws them; anything drawn by the page body instead would survive exactly one render.
+   Switch Filters between its two tabs: each shows one list, its own blurb, its own add box and its
+   own **Clear all**, and never both lists at once.
 4. Toggle a checkbox, then run `/bl list` — the value matches.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
 6. The scrollbar is visible on both pages and grayed out on the one that fits, so the body width
@@ -225,6 +238,29 @@ tolerance.
    the ledger is untouched (`/bl` reports the same entry count as before). Headless coverage stops at
    the callback contract; only the live client proves the framework actually invokes it. On Filters
    the same control raises the clear-both-lists confirmation, exactly as the header button does.
+
+## S-12a · The row tint sliders
+
+Two settings that were hardcoded numbers until the tabbed-panel pass: `settings.rowStripeAlpha`
+(the zebra band behind every second row, `0.03`) and `settings.rowHoverAlpha` (the gold wash under
+the cursor, `0.10`). Both live on **Settings ▸ General ▸ Interface** and both drive **two** tables —
+the History window and the Current Banking Session window.
+
+1. `/bl show` with a few movements recorded. Every second row carries a faint lighter band. Hover a
+   row: it takes a faint gold wash. That is the shipped look, and it must be **identical** to what
+   the addon drew before these sliders existed — the defaults are the literals they replaced, so an
+   install that never touches them is not redrawn by the upgrade.
+2. Open Settings ▸ General ▸ Interface with the ledger window still on screen. Drag **Row stripe
+   opacity** to its maximum. The banding darkens **while you drag**, with no reload.
+3. Drag it to `0`. The banding disappears entirely — every row reads the same.
+4. Drag **Row hover opacity** to its maximum, then hover a row: the wash is strong and unmistakably
+   gold. Set it to `0` and hover again: no highlight at all.
+5. Open a bank so the **Current Banking Session** window appears, and move something. Its rows wear
+   the same band and the same hover at the same strengths — one setting, both tables.
+6. `/bl set settings.rowStripeAlpha 5`. The CLI clamps to the slider's maximum; the table is tinted
+   at that value and never drawn as an opaque white block. Same for a negative value: it clamps to
+   `0`. (These come out of SavedVariables, so a hand-edit is the real case.)
+7. `/bl resetall`, then look again: `0.03` and `0.10`, and the tables read exactly as in step 1.
 
 ## S-13 · Combat
 
@@ -293,8 +329,8 @@ tolerance.
 
 1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
 2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **Reset all** asks to confirm and restores everything, recentering both
-   windows.
+3. Settings ▸ General ▸ **History** ▸ **Reset all…** asks to confirm and restores everything,
+   recentering both windows. It sits beside **Purge ledger…** on that tab, and nowhere else.
 
 ## S-17 · Current Banking Session window
 
@@ -361,8 +397,9 @@ for.
    the finding.
 4. `/bl version` again. The notice is **not** repeated. It is said once per session, on the first
    line the addon prints, never stapled to every line.
-5. `/bl list` prints a **complete** listing — every schema row, both group headings, no gaps and no
-   truncation. A degraded printer that drops lines is the failure this step exists to catch.
+5. `/bl list` prints a **complete** listing — every schema row under all three group headings
+   (*Capture*, *Interface*, *History*, in that order), no gaps and no truncation. A degraded printer
+   that drops lines is the failure this step exists to catch.
 6. `/bl show`, `/bl config`, `/bl debug` — the ledger window, the settings panel and the console all
    open and behave. Nothing about the addon's own function depends on the library.
 7. **The Media seam is the silent one.** With the library gone, `NS.Icon` and `NS.MediaFont` both

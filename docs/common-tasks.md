@@ -12,7 +12,14 @@ for a path that already has a row.
 1. Add the shipped value to `defaults/Global.lua`. That is the **only** place a default is hardcoded
    (`savedvariables-§2`); there is deliberately no `defaults/Profile.lua`.
 2. Add the row to the schema table in `settings/Schema.lua`, at the position you want it to render —
-   **rows render in schema order, so the table is also the panel layout, top to bottom.**
+   **rows render in schema order, so the table is also the panel layout.** `group` names the **tab**
+   the row draws on (`options-ui-§13`), and the array's declaration order is the tab order, so a
+   group's rows must stay **contiguous**: a row filed under a group the page has already left prints
+   that tab a second time further down. Within a tab, consecutive rows pair **two to a line** —
+   pair a mode with the thing it modes, and rest beside hover, so the reader goes across rather than
+   down. `solo` breaks a row onto its own line; use it for a genuine pivot, not for spacing.
+   Then update the page → tab → count table (`PARTITION`) in `tests/test_schema.lua`; it is the case
+   that catches a row drifting into the wrong tab.
 3. **A slider row must declare its `step`.** `LibKa0s-Options-1.0`'s `makeSlider` assumes `1` when the
    row omits it, which would snap a 0.6–1.6 range to its two endpoints and nothing in between.
    `settings.windowScale` declares `0.05` and never relies on the default.
@@ -26,6 +33,25 @@ for a path that already has a row.
 If the value is a dynamic id-set, an ordered list or window geometry, it is a **carve-out**, not a
 row — see [schema.md](schema.md) → *Storage carve-outs* — and it needs a line in
 `Slash:CliResetAll`'s wrapper so a reset still reaches it.
+
+If the row needs a **bespoke widget** beside it — a picker, a grid, a button pair — draw it from the
+tab's `afterGroup` hook (`GENERAL_AFTER_TAB` in `settings/Panel.lua`), never from the page renderer
+after the `RenderTabbedSchema` call. A tab click re-renders the schema and nothing else, so anything
+the page body drew survives exactly one render and then vanishes the first time the player comes
+back to the tab.
+
+## Promote a hardcoded chrome value to a setting
+
+1. **Ship the default as the number it replaced.** If it is not, every existing install is redrawn by
+   an upgrade that promised to change nothing. `tests/test_schema.lua` asserts both tint defaults
+   against their old literals for exactly that reason.
+2. **Clamp it at the read**, not at the write: it arrives from SavedVariables, which a player can
+   hand-edit. `NS.Util.RowTintAlpha` is the shape — out-of-range clamps, a non-number falls back to
+   the shipped default rather than to zero.
+3. **A pair of literals is usually a pair of settings.** A value at rest and a value on hover are two
+   answers to two questions; do not collapse them into one slider.
+4. **Do not promote a value `Core.SKIN` owns.** The shared skin carries the window edge, fill, border
+   and title across every Ka0s window; a per-addon copy of one is the copy that goes stale.
 
 ## Add a slash command
 

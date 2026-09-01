@@ -138,11 +138,31 @@ if not lib then
     Section = function() end,
     AddSpacer = function() end,
     AttachTooltip = function() end,
+    -- Reached now: settings/Panel.lua's History tab draws its storage read-out with O.TextRow
+    -- rather than hand-rolling the SetJustifyH / SetFontObject guard pair the library owns.
+    TextRow = function() return nil end,
     RenderField = function() return nil end,
     RenderRows = function() end,
     RenderSchema = function() end,
     RenderGrid = function() end,
     SetRenderer = function() end,
+
+    -- The tabbed page (options-ui-§13) and the page banner (options-ui-§14) surface, which
+    -- arrived with LibKa0s v1.23.0. settings/Panel.lua now calls RenderTabbedSchema on General and
+    -- TabStrip on Filters, so these are reachable names rather than speculative ones -- and the
+    -- __-prefixed six are published on the live instance too, which is what the parity case
+    -- compares against. All no-ops: without a panel there is no chrome band to reserve, nothing
+    -- to place in it, and nothing to release from it.
+    SetChromeHeight = function() end,
+    TabStrip = function() return nil end,
+    PageBanner = function() return nil end,
+    RenderTabbedSchema = function() return {} end,
+    __releaseChrome = function() end,
+    __layoutTabs = function() end,
+    __tabPlacement = function() return {}, 0 end,
+    __tabBand = function() return 0 end,
+    __bannerBand = function() return 0 end,
+    __scrollTopInset = function() return 0 end,
     InlineButtonPair = function() end,
     SessionCheckbox = function() return nil end,
     RefreshAllPanels = function() end,
@@ -158,7 +178,9 @@ if not lib then
     -- The layout constants a host page reads off the instance. Zero rather than a copied number:
     -- anti-pattern #47 forbids carrying the library's values into a stub, and a spacer of zero on a
     -- panel that cannot be drawn costs nothing.
+    -- Same rule for the chrome band's three: zero, never the library's numbers.
     ROW_VSPACER = 0, SECTION_HEADING_H = 0, BUTTON_PAIR_REL = 0.5,
+    CHROME_GAP = 0, TAB_H = 0, BANNER_H = 0,
     AceGUI = nil,
   }
   return

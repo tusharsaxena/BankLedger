@@ -312,12 +312,15 @@ function SW:BuildRow()
 
   local stripe = row:CreateTexture(nil, "BACKGROUND")
   stripe:SetAllPoints()
-  stripe:SetColorTexture(1, 1, 1, 0.03)
   row.stripe = stripe
 
   local hl = row:CreateTexture(nil, "HIGHLIGHT")
   hl:SetAllPoints()
-  hl:SetColorTexture(1, 0.82, 0, 0.10)
+  -- Parked on the row so NS.Util.ApplyRowTint can reach it again: both alphas are settings now
+  -- (Settings > Interface), and a texture only the constructor could see would be stuck at
+  -- whatever the slider said when the row was built.
+  row.rowHover = hl
+  NS.Util.ApplyRowTint(row)
 
   row.cells = {}
   for _, col in ipairs(self:Columns()) do
@@ -594,7 +597,9 @@ end
 
 function SW:BindRow(row, entry, absIndex)
   row.entry = entry
-  row.stripe:SetShown(absIndex % 2 == 0)
+  -- Tint AND banding in one call: a recycled row may have been built before the slider
+  -- moved, so the colour is re-read here rather than trusted from construction.
+  NS.Util.ApplyRowTint(row, absIndex % 2 == 0)
   -- Text AND color come from LedgerTable's shared seam, so a cell can never read one way in the
   -- History window and another here.
   for _, col in ipairs(self:Columns()) do

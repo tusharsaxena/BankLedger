@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-800%2F800_passing-green)
+![Tests](https://img.shields.io/badge/Tests-813%2F813_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
 
@@ -105,22 +105,27 @@ synthetic and those actions would otherwise reach your real settings and history
 
 ### Settings panel
 
-| Tab | Covers |
-| --- | ------ |
-| General | What gets recorded, how long it is kept, and how the windows behave |
-| Filters | The item blacklist and whitelist |
+| Page | Tabs | Covers |
+| --- | --- | ------ |
+| General | Capture · Interface · History | What gets recorded, how the windows look, and how much is kept |
+| Filters | Blacklist · Whitelist | The two item lists |
 
-**General** has three sections. *Master Controls* is the top-level stuff: the switch that turns
-recording on or off, the minimap button, whether the Current Banking Session window appears at a
-bank, the debug console, and the window scale. *Capture* is what actually gets recorded — a minimum
-item quality, how long history is kept (30 days by default), whether items and gold are tracked, and
-which banks you care about. *Storage* shows how much you have recorded and how big it is, with a
-button to wipe it.
+**General ▸ Capture** is what actually gets recorded: the master switch, whether items and gold are
+tracked, a minimum item quality, and which banks you care about.
 
-**Filters** manages two lists of items by id. Blacklisted items are never recorded; whitelisted
-items are always recorded, even below your minimum quality. Add an item by typing its id or by
-shift-clicking its link into the box. Both lists only affect what happens from now on — nothing
-already in your ledger is ever hidden or removed by them.
+**General ▸ Interface** is what is on screen: the window scale, the minimap button, whether the
+Current Banking Session window appears at a bank, the debug console, and how strongly the tables
+band their rows and highlight the one under your cursor.
+
+**General ▸ History** is how much is kept — 30 days by default — with a read-out of how many
+movements you have recorded and roughly how big the database is, and the two buttons that destroy
+things: **Purge ledger…** empties the history, **Reset all…** returns everything to stock. Both ask
+first.
+
+**Filters** manages two lists of items by id, one per tab. Blacklisted items are never recorded;
+whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id
+or by shift-clicking its link into the box. Both lists only affect what happens from now on —
+nothing already in your ledger is ever hidden or removed by them.
 
 ## How the ledger works
 
@@ -160,7 +165,7 @@ questing — never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ Filters. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all** button in the body also recenters them, but it deletes your history too — export first if you want to keep it.) |
+| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all…** button on the History tab also recenters them, but it deletes your history too — export first if you want to keep it.) |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. |
 

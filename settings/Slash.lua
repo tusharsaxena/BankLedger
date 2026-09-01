@@ -220,7 +220,7 @@ local cli = lib:New({
   allRows      = function() return NS.Schema.Schema end,
   applyDefault = function(row) NS.Schema:Set(row.path, NS.Schema:Default(row.path)) end,
 
-  -- This addon's schema groups its rows under `group`, which is its panel section header; the
+  -- This addon's schema groups its rows under `group`, which names the TAB it draws on; the
   -- library defaults to `row.page`. Without this every row collapses under one "[settings]" heading
   -- and `/bl list` silently loses both its section headings.
   groupKey = function(row) return row.group or "?" end,

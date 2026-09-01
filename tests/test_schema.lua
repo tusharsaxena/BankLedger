@@ -178,24 +178,182 @@ test("COMMANDS: a test verb exists (test-mode)", function()
   assertTrue(names.test)
 end)
 
-test("Schema: the four Master Controls switches pair into two full rows", function()
-  -- The panel pairs consecutive non-wide rows two to a line (settings/Panel.lua renderRows), so
-  -- this order plus the absence of any row-breaking flag is what produces the intended 2x2:
-  --   Enable capture   Hide minimap button
-  --   Session window   Debug console
-  -- A stray soloRow/wide on any of the four would push the rest down into a ragged single column.
-  local want = { "settings.enabled", "minimap.hide",
-                 "settings.showSessionWindow", "state.debugConsole" }
-  local i = 1
+-- ── The tab partition (options-ui-§13) ────────────────────────────────────────
+--
+-- H.RenderTabbedSchema partitions a page's rows by `group`, IN DECLARATION ORDER, and draws one tab
+-- per distinct group. So the table below IS the settings panel's strip: page → tab → row count. It
+-- is the case that catches a row drifting into the wrong tab, and the one that catches a group's
+-- rows losing contiguity — a row filed under a group the page has already left prints that tab a
+-- second time further down, which nothing else reports.
+--
+-- Counts are RENDERED rows plus the skipRender ones, i.e. every row the schema files under the tab.
+local PARTITION = {
+  general = {
+    { tab = "Capture",   rows = 5 },
+    { tab = "Interface", rows = 6 },
+    { tab = "History",   rows = 1 },
+  },
+}
+
+-- A tab whose stored rows number fewer than two is not a subject — UNLESS its row sits beside
+-- BESPOKE controls that have no path and so cannot be counted here. History is that case and is
+-- exempt BY NAME: settings/Panel.lua's renderStorage hangs the live storage read-out and the
+-- Purge / Reset all button pair off it. Widening the rule instead of naming the exception is how
+-- the next one-row tab gets waved through.
+local THIN_TAB_EXEMPT = { History = "the storage read-out and the Purge / Reset all pair" }
+
+test("Schema: the page partitions into the designed tabs, in the designed order", function()
+  local order, counts = {}, {}
   for _, row in ipairs(S.Schema) do
-    if row.group == "Master Controls" and row.widget == "CheckBox" then
-      assertEqual(row.path, want[i], "Master Controls checkbox #" .. i .. " is out of order")
-      assertFalse(row.soloRow == true, row.path .. " breaks the two-column pairing")
-      assertFalse(row.wide == true, row.path .. " breaks the two-column pairing")
-      i = i + 1
+    local g = row.group
+    if counts[g] == nil then order[#order + 1] = g; counts[g] = 0 end
+    counts[g] = counts[g] + 1
+  end
+
+  local want = PARTITION.general
+  assertEqual(#order, #want, "the General page draws " .. #want .. " tabs")
+  for i, spec in ipairs(want) do
+    assertEqual(order[i], spec.tab, "tab " .. i .. " is out of designed order")
+    assertEqual(counts[spec.tab], spec.rows, spec.tab .. " holds the wrong number of rows")
+  end
+end)
+
+test("Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice", function()
+  local seen, last = {}, nil
+  for _, row in ipairs(S.Schema) do
+    if row.group ~= last then
+      assertFalse(seen[row.group],
+        row.path .. " reopens the '" .. tostring(row.group) .. "' tab after the page left it")
+      seen[row.group] = true
+      last = row.group
     end
   end
-  assertEqual(i - 1, #want, "expected exactly four Master Controls checkboxes")
+end)
+
+test("Schema: no tab holds fewer than two controls unless it is exempt by name", function()
+  local counts = {}
+  for _, row in ipairs(S.Schema) do counts[row.group] = (counts[row.group] or 0) + 1 end
+  for tab, n in pairs(counts) do
+    if n < 2 then
+      assertTrue(THIN_TAB_EXEMPT[tab] ~= nil,
+        "the '" .. tab .. "' tab holds " .. n .. " control(s) and is not a subject — merge it into "
+        .. "the tab whose subject contains it, or exempt it by name with the bespoke controls that "
+        .. "justify it")
+    end
+  end
+end)
+
+test("Schema: two tabs draw a strip at all — a single-group page falls back to sections", function()
+  -- The library's own behaviour, and the reason the partition above matters: with fewer than two
+  -- groups RenderTabbedSchema calls RenderSchema and draws no strip.
+  local groups = {}
+  for _, row in ipairs(S.Schema) do groups[row.group] = true end
+  local n = 0
+  for _ in pairs(groups) do n = n + 1 end
+  assertTrue(n >= 2, "the General page would lose its tab strip")
+end)
+
+-- ── Row order inside a tab is LAYOUT ──────────────────────────────────────────
+
+test("Schema: the Capture tab leads with the master switch, alone on its line", function()
+  -- The flow engine pairs consecutive non-wide rows two to a line, so declaration order IS the
+  -- layout. `solo` is what keeps "Enable capture" — the switch every other row on the tab is
+  -- conditional on — from sharing a line with "Track items".
+  local first
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Capture" then first = row; break end
+  end
+  assertEqual(first.path, "settings.enabled", "the master switch must lead the Capture tab")
+  assertTrue(first.solo == true, "the master switch must break onto its own line")
+end)
+
+test("Schema: the Capture kind toggles pair across one line, in item-then-gold order", function()
+  local want = { "settings.trackItems", "settings.trackMoney" }
+  local got = {}
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Capture" and row.widget == "CheckBox" and row.path ~= "settings.enabled" then
+      got[#got + 1] = row.path
+    end
+  end
+  assertEqual(#got, #want, "expected exactly two kind toggles on Capture")
+  for i, path in ipairs(want) do
+    assertEqual(got[i], path, "Capture checkbox #" .. i .. " is out of order")
+    local row = S:FindRow(path)
+    assertFalse(row.solo == true, path .. " breaks the two-column pairing")
+    assertFalse(row.wide == true, path .. " breaks the two-column pairing")
+  end
+end)
+
+test("Schema: rest and hover sit on ONE line, so they are read across and not down", function()
+  -- The row tint pair. Reading down a column is one state; reading across a line compares the two,
+  -- which is the question someone setting a hover actually has. Consecutive and neither solo nor
+  -- wide is what puts them on the same line.
+  local order = {}
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Interface" then order[#order + 1] = row end
+  end
+  local at
+  for i, row in ipairs(order) do
+    if row.path == "settings.rowStripeAlpha" then at = i end
+  end
+  assertTrue(at ~= nil, "settings.rowStripeAlpha is not on the Interface tab")
+  assertTrue(order[at + 1] ~= nil and order[at + 1].path == "settings.rowHoverAlpha",
+    "the hover slider must follow the rest slider immediately")
+  -- An ODD number of rows before them would push the pair onto separate lines.
+  assertEqual((at - 1) % 2, 0, "an odd row count above the pair splits it across two lines")
+  for _, path in ipairs({ "settings.rowStripeAlpha", "settings.rowHoverAlpha" }) do
+    local row = S:FindRow(path)
+    assertFalse(row.solo == true, path .. " breaks the pair")
+    assertFalse(row.wide == true, path .. " breaks the pair")
+  end
+end)
+
+test("Schema: the Interface tab opens with the control most players reach for", function()
+  local first
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Interface" then first = row; break end
+  end
+  assertEqual(first.path, "settings.windowScale")
+end)
+
+-- ── The promoted chrome literals (Step 4) ─────────────────────────────────────
+
+test("Schema: each promoted tint default IS the literal it replaced", function()
+  -- If a promoted default is not the number it replaced, every existing install is redrawn by an
+  -- upgrade that promised to change nothing.
+  assertEqual(S:Default("settings.rowStripeAlpha"), 0.03, "the zebra band's old hardcoded alpha")
+  assertEqual(S:Default("settings.rowHoverAlpha"), 0.10, "the hover wash's old hardcoded alpha")
+  assertEqual(NS.defaults.global.settings.rowStripeAlpha, 0.03, "the defaults mirror disagrees")
+  assertEqual(NS.defaults.global.settings.rowHoverAlpha, 0.10, "the defaults mirror disagrees")
+end)
+
+test("Util.RowTintAlpha clamps what SavedVariables hands it", function()
+  -- These are hand-editable. An alpha of 5 is not an error the client reports: it is a table drawn
+  -- opaque white, which reads as the slider not working.
+  local saved = NS.db.global.settings.rowStripeAlpha
+  NS.db.global.settings.rowStripeAlpha = 5
+  assertEqual(NS.Util.RowTintAlpha("rowStripeAlpha", 0.03), 1, "above 1 clamps to 1")
+  NS.db.global.settings.rowStripeAlpha = -3
+  assertEqual(NS.Util.RowTintAlpha("rowStripeAlpha", 0.03), 0, "below 0 clamps to 0")
+  NS.db.global.settings.rowStripeAlpha = "opaque"
+  assertEqual(NS.Util.RowTintAlpha("rowStripeAlpha", 0.03), 0.03,
+    "a non-number falls back to the shipped default, not to zero")
+  NS.db.global.settings.rowStripeAlpha = saved
+end)
+
+test("Util.ApplyRowTint paints both textures and drives the banding", function()
+  local painted = {}
+  local row = {
+    stripe   = { SetColorTexture = function(_, r, g, b, a) painted.stripe = a end,
+                 SetShown = function(_, v) painted.shown = v end },
+    rowHover = { SetColorTexture = function(_, r, g, b, a) painted.hover = a end },
+  }
+  NS.Util.ApplyRowTint(row, true)
+  assertEqual(painted.stripe, NS.Schema:Get("settings.rowStripeAlpha"))
+  assertEqual(painted.hover,  NS.Schema:Get("settings.rowHoverAlpha"))
+  assertEqual(painted.shown, true)
+  NS.Util.ApplyRowTint(row, false)
+  assertEqual(painted.shown, false, "an odd row must not wear the band")
 end)
 
 test("Schema: every row carries a tooltip", function()

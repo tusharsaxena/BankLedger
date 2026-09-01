@@ -602,7 +602,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (26)
+### test_schema.lua (36)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -624,7 +624,17 @@ badge and any count quoted in the docs must agree with it.
 - COMMANDS: names are unique, so dispatch can never be ambiguous
 - COMMANDS: the standard's required verbs are all present
 - COMMANDS: a test verb exists (test-mode)
-- Schema: the four Master Controls switches pair into two full rows
+- Schema: the page partitions into the designed tabs, in the designed order
+- Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice
+- Schema: no tab holds fewer than two controls unless it is exempt by name
+- Schema: two tabs draw a strip at all — a single-group page falls back to sections
+- Schema: the Capture tab leads with the master switch, alone on its line
+- Schema: the Capture kind toggles pair across one line, in item-then-gold order
+- Schema: rest and hover sit on ONE line, so they are read across and not down
+- Schema: the Interface tab opens with the control most players reach for
+- Schema: each promoted tint default IS the literal it replaced
+- Util.RowTintAlpha clamps what SavedVariables hands it
+- Util.ApplyRowTint paints both textures and drives the banding
 - Schema: every row carries a tooltip
 - Schema: settings.windowScale declares its own step
 - Schema: a row the library cannot draw is marked skipRender, not left to vanish
@@ -667,7 +677,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (29)
+### test_panel.lua (32)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -682,15 +692,18 @@ badge and any count quoted in the docs must agree with it.
 - Panel: Batch unwinds its depth on the error path
 - Panel: /bl resetall repaints, and only once
 - Panel: a refresher that raises does not stop the others
-- Panel: the General page renders without the library reporting a failure
-- Panel: every renderable schema row reaches the page as a labeled widget
+- Panel: every tab of the General page renders without the library reporting a failure
+- Panel: the General page draws a tab strip, one button per schema group
+- Panel: every renderable schema row reaches the page on ITS OWN tab
 - Panel: a boolean row is a CheckBox and a range row is a Slider
 - Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
 - Panel: a checkbox write goes through the single write seam
-- Panel: the Reset all button is paired into the Window scale row
+- Panel: Reset all sits on History beside Purge, and NOT beside the window-scale slider
 - Panel: the store grid renders as an inverted checkbox set, host-drawn
-- Panel: the Storage section renders under the schema rows
-- Panel: the Filters page renders its two id lists
+- Panel: a tabbed page draws NO section headings — the strip is the heading
+- Panel: the storage read-out lands on the History tab and nowhere else
+- Panel: the Filters page is a two-tab strip, one list per tab
+- Panel: a Filters tab whose key no longer exists heals to the first tab
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Panel:Diagnose says so and stops when no defaults button was ever built
 - Panel:Diagnose stops at a button with no frame
@@ -898,9 +911,9 @@ badge and any count quoted in the docs must agree with it.
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 26 |
+| test_schema.lua | 36 |
 | test_slash.lua | 33 |
-| test_panel.lua | 29 |
+| test_panel.lua | 32 |
 | test_harness.lua | 7 |
 | test_mock.lua | 26 |
 | test_mediasetup.lua | 13 |
@@ -910,4 +923,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **800** |
+| **Total** | **813** |

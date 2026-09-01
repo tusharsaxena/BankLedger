@@ -18,7 +18,11 @@ local O = NS.Helpers
 --     with the same gold header every subcategory uses.
 --   * Each settings group is a canvas SUBCATEGORY with a breadcrumb header
 --     ("Ka0s Bank Ledger ▸ General"), a Defaults button, and a gold divider.
---   * Bodies render schema rows into a TWO-COLUMN grid; O.AceGUI Headings group them into sections.
+--   * Both settings pages are TABBED (options-ui-§13): a strip pinned in the page's chrome band,
+--     one tab per subject, and the active tab's rows drawn into a TWO-COLUMN grid below it. General
+--     partitions on the schema's own `group` field through O.RenderTabbedSchema; Filters has no
+--     schema rows at all and drives the same O.TabStrip by hand.
+--   * A tabbed page draws NO section headings — the tab is the heading.
 -- The category is registered EAGERLY at load so the entry is always in the options list; each
 -- body is built LAZILY on its first OnShow, because O.AceGUI lays out against the panel's current
 -- width, which is 0 before the panel is first shown.
@@ -56,15 +60,10 @@ end
 -- describes for a global reset: the hook first, the refresh once, after.
 local bulkDepth = 0
 
--- The single seam for a paired action button's width — insets to O.BUTTON_PAIR_REL so the right
--- border isn't shaved by the ScrollFrame clip. Never hand-set 0.5 on a paired button.
-local function makePairButton(text, onClick)
-  local btn = O.AceGUI:Create("Button")
-  btn:SetText(text)
-  btn:SetRelativeWidth(O.BUTTON_PAIR_REL)
-  if onClick then btn:SetCallback("OnClick", onClick) end
-  return btn
-end
+-- The host copy of "a paired action button" is GONE. It existed to inset a button to
+-- O.BUTTON_PAIR_REL so the ScrollFrame clip would not shave its right border; the page's only two
+-- such buttons — Purge ledger and Reset all — now go through the library's own O.InlineButtonPair,
+-- which owns that inset, the pcall around a host onClick and the tooltip in one place.
 
 -- A set-map rendered full-width as a wrapping checkbox grid. With row.invert, a CHECKED box means
 -- the store is recorded (i.e. NOT in the muted set), so the stored value is the logical inverse of
@@ -105,25 +104,25 @@ local function makeMultiCheck(ctx, row, scroll)
   refresh()
 end
 
--- ── Storage section: live DB stats + purge ─────────────────────────────────────
+-- ── The History tab's tail: the live storage read-out and the two destructive buttons ─────────
+--
+-- Drawn from the History tab's `afterGroup` hook, NOT from the page renderer. A tab click
+-- re-renders the SCHEMA and nothing else (options-ui-§13: RenderTabbedSchema clears the scroll and
+-- calls itself), so anything the page body drew by hand would be on the page exactly once — until
+-- the player clicked another tab and came back, and then never again.
+--
+-- "Reset all" MOVED HERE from the right of Window scale, where the library's `pairWith` used to
+-- put it. Two reasons, and the second is the one that decided it: a button that wipes the whole
+-- ledger has no business one pixel from the slider a player drags to size the window; and this is
+-- now the page's one destructive corner, beside Purge and under the read-out that says how much
+-- there is to lose. Both stay confirm-gated — the buttons only raise a StaticPopup.
 local function renderStorage(ctx)
   local scroll = O.EnsureScroll(ctx)
-  O.Section(ctx, "Storage")
+  if not scroll then return end
+  O.AddSpacer(scroll, O.ROW_VSPACER)
 
-  local rowFrame = O.AceGUI:Create("SimpleGroup")
-  rowFrame:SetLayout("Flow"); rowFrame:SetFullWidth(true)
-
-  local statsLabel = O.AceGUI:Create("Label")
-  statsLabel:SetRelativeWidth(0.5)
-  rowFrame:AddChild(statsLabel)
-
-  -- "Purge ledger…" — the ellipsis says it opens a confirm dialog.
-  local purgeBtn = makePairButton("Purge ledger\226\128\166", function()
-    if type(StaticPopup_Show) == "function" then StaticPopup_Show("KA0S_BANKLEDGER_PURGE")
-    elseif NS.Database and NS.Database.Purge then NS.Database:Purge() end
-  end)
-  rowFrame:AddChild(purgeBtn)
-  scroll:AddChild(rowFrame)
+  local statsLabel = O.TextRow(ctx, "")
+  if not statsLabel then return end
 
   local function refreshStats()
     local s = NS.Database:StorageStats()
@@ -142,19 +141,67 @@ local function renderStorage(ctx)
   end
   ctx.refreshers[#ctx.refreshers + 1] = refreshStats
   refreshStats()
+  -- Parked so the bus handler below can reach the CURRENT read-out. The handler is registered once
+  -- and lives for the session, while `statsLabel` is released and rebuilt on every render of this
+  -- tab — a handler closing over the first one would go on writing into a released widget the
+  -- moment the player clicked away and back.
+  P.__storageRefresh = refreshStats
+
+  -- Both ellipses say the same thing: the click opens a confirm dialog, it does not do the deed.
+  O.InlineButtonPair(ctx,
+    { text = "Purge ledger\226\128\166",
+      tooltip = "Delete every recorded movement. Your settings are left alone.",
+      onClick = function()
+        if type(StaticPopup_Show) == "function" then StaticPopup_Show("KA0S_BANKLEDGER_PURGE")
+        elseif NS.Database and NS.Database.Purge then NS.Database:Purge() end
+      end },
+    { text = "Reset all\226\128\166",
+      tooltip = "Delete the recorded history AND return every setting, filter list and saved "
+        .. "view to its default. This is the destructive form of the header's Defaults button.",
+      onClick = function()
+        if type(StaticPopup_Show) == "function" then
+          StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
+        elseif NS.Slash and NS.Slash.ResetEverything then
+          NS.Slash:ResetEverything()
+        end
+      end })
 
   -- Live-refresh while the panel is open, on a private bus target (NOT NS.bus-as-self) so it can't
   -- clobber the Browser/Insights consumers of the same messages (architecture-§4).
   if not P.__ev then
     local ev = NS.NewBusTarget()
     if ev then
-      local onChange = function() if ctx.panel:IsShown() then refreshStats() end end
+      local onChange = function()
+        if ctx.panel:IsShown() and P.__storageRefresh then P.__storageRefresh() end
+      end
       ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", onChange)
       ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", onChange)
       P.__ev = ev
     end
   end
 end
+
+-- ── The Capture tab's tail: the inverted per-store grid ───────────────────────
+--
+-- The row declares `skipRender = true` so the flow engine walks past it; this emits the grid into
+-- the same scroll, from the Capture tab's `afterGroup` hook, for the same reason renderStorage
+-- hangs off History's. No library maker draws a multi-select set picker, let alone an inverted one.
+local function renderStoreGrid(ctx)
+  local storesRow = NS.Schema:FindRow("settings.excludedStores")
+  if not storesRow then return end
+  local scroll = O.EnsureScroll(ctx)
+  if not scroll then return end
+  makeMultiCheck(ctx, storesRow, scroll)
+  O.AddSpacer(scroll, O.ROW_VSPACER)
+end
+
+-- The General page's tab hooks, by tab name. Hoisted to file scope deliberately: the library's
+-- RenderRows keeps its own call-local "already fired" ledger rather than consuming the host's
+-- entries, precisely so a shared table survives a second render.
+local GENERAL_AFTER_TAB = {
+  ["Capture"] = renderStoreGrid,
+  ["History"] = renderStorage,
+}
 
 -- ── Filters sub-page: blacklist / whitelist item-id management ─────────────────
 
@@ -207,10 +254,14 @@ local function rebuildFilterList(ctx, listGroup, listKey)
   if listGroup.DoLayout then listGroup:DoLayout() end
 end
 
--- One section (blacklist or whitelist): heading, description, add-row, bulk clear, live list.
-local function makeFilterSection(ctx, listKey, title, desc)
+-- One list (blacklist or whitelist): description, add-row, bulk clear, live list.
+--
+-- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
+-- was the only thing telling them apart; the page is a tab strip now and the tab IS the heading, so
+-- a "Blacklist" heading under a tab labelled Blacklist would say the word twice — which is the same
+-- rule the library applies to a tabbed schema page (RenderRows' `noHeadings`).
+local function makeFilterSection(ctx, listKey, desc)
   local scroll = O.EnsureScroll(ctx)
-  O.Section(ctx, title)
 
   local descLabel = O.AceGUI:Create("Label")
   descLabel:SetFullWidth(true); descLabel:SetText(desc)
@@ -272,14 +323,51 @@ local function makeFilterSection(ctx, listKey, title, desc)
   rebuildFilterList(ctx, listGroup, listKey)
 end
 
+-- The Filters strip. Two lists, two tabs, in the order the capture gate consults them: an item is
+-- refused by the blacklist first, and the whitelist is the exception that overrides the quality
+-- gate afterwards.
+--
+-- Hand-driven rather than through H.RenderTabbedSchema, because that function partitions SCHEMA
+-- ROWS by `group` and this page has none — both lists are storage carve-outs mutated through
+-- NS.Filters, not settings with paths. So the page calls the same H.TabStrip underneath it, keeps
+-- the active tab in the same `ctx.activeTab` the library uses, and re-renders on select exactly the
+-- way RenderTabbedSchema does. What it must NOT do is invent a second piece of state for which tab
+-- is showing: the library's refresh path reads ctx.activeTab, and a private copy would go stale the
+-- first time a page was marked dirty while hidden.
+local FILTER_TABS = {
+  { key = "blacklist", label = "Blacklist",
+    tooltip = "Items that are never recorded, whatever their quality." },
+  { key = "whitelist", label = "Whitelist",
+    tooltip = "Items that are always recorded, even below your minimum quality." },
+}
+
+local FILTER_DESC = {
+  blacklist = "Items here are never recorded when they move from now on. Existing rows are left "
+    .. "untouched (this only affects future movements \226\128\148 delete old rows from the ledger table "
+    .. "if you want them gone).",
+  whitelist = "Items here are always recorded, even when they fall below your minimum quality. "
+    .. "Adding an id to one list removes it from the other.",
+}
+
 local function buildFilters(ctx)
-  makeFilterSection(ctx, "blacklist", "Blacklist",
-    "Items here are never recorded when they move from now on. Existing rows are left untouched "
-    .. "(this only affects future movements — delete old rows from the ledger table if you want "
-    .. "them gone).")
-  makeFilterSection(ctx, "whitelist", "Whitelist",
-    "Items here are always recorded, even when they fall below your minimum quality. Adding an id "
-    .. "to one list removes it from the other.")
+  -- A stale pointer heals to the first tab rather than being trusted — the same self-repair the
+  -- library does, and for the same reason: the alternative is a page that is blank until the user
+  -- clicks something.
+  if not FILTER_DESC[ctx.activeTab] then ctx.activeTab = FILTER_TABS[1].key end
+
+  O.TabStrip(ctx, {
+    tabs  = FILTER_TABS,
+    value = ctx.activeTab,
+    onSelect = function(key)
+      if key == ctx.activeTab then return end
+      ctx.activeTab = key
+      O.ClearScroll(ctx)
+      buildFilters(ctx)
+      if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
+    end,
+  })
+
+  makeFilterSection(ctx, ctx.activeTab, FILTER_DESC[ctx.activeTab])
 
   -- Live-update both lists when they change from elsewhere (the ledger table's right-click menu),
   -- on a private bus target. While the page is on screen we repaint immediately; while it is hidden
@@ -500,7 +588,7 @@ end
 
 -- ── Registration ───────────────────────────────────────────────────────────────
 --
--- Three pages. The library owns the shell and the TIMING of every body — first show, and again
+-- Three pages, two of them tabbed. The library owns the shell and the TIMING of every body — first show, and again
 -- after a refresh marked the page dirty while it was hidden, because those are the two moments only
 -- its registry can see. It builds each page's Defaults button on that first show (the O.AceGUI
 -- skinning race) and refuses to render under combat while closing the Settings window, which is a
@@ -523,7 +611,10 @@ function P:Register()
     if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
   end)
 
-  -- General = every schema row, the store grid, and the Storage section under them.
+  -- General = every schema row, on three tabs: Capture (what is recorded, with the store grid
+  -- hanging off it), Interface (what is on screen) and History (how much is kept, plus the storage
+  -- read-out and the two destructive buttons). Both bespoke blocks are afterGroup hooks, because a
+  -- tab click re-renders the schema alone.
   O.RegisterOptionsPage("general", "General", function(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then return end
     local ctx = O.CreatePanel("BankLedgerGeneralPanel", "General", {
@@ -541,41 +632,23 @@ function P:Register()
     -- The destructive path stays behind the confirm-gated KA0S_BANKLEDGER_RESETALL popup.
     setDefaultsAction(ctx.panel, function() P:RestoreDefaults() end)
 
+    -- ONE LINE of adoption (options-ui-§13). The schema's `group` field already declared the
+    -- sections; RenderTabbedSchema partitions on it in declaration order and pins a tab strip in
+    -- the page's chrome band instead of stacking three headed sections down one scroll. Both
+    -- bespoke blocks moved into GENERAL_AFTER_TAB above, because a tab click re-renders only what
+    -- this call draws.
     O.SetRenderer(ctx, function(c)
       O.ClearScroll(c)
-      -- "Reset all" sits to the right of Window scale; it wipes the ledger AND the settings. The
-      -- library calls a pairWith entry once per RenderRows, after the field it pairs with and
-      -- inside that field's own Flow line.
-      O.RenderSchema(c, "general", nil, {
-        ["settings.windowScale"] = function(_, parentRow)
-          parentRow:AddChild(makePairButton("Reset all", function()
-            if type(StaticPopup_Show) == "function" then
-              StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
-            elseif NS.Slash and NS.Slash.ResetEverything then
-              NS.Slash:ResetEverything()
-            end
-          end))
-        end,
-      })
-      -- The store grid is a bespoke CELL inside the library's flow, not a page-level opt-out: the
-      -- row declares `skipRender = true` so RenderSchema walks past it, and it is emitted here into
-      -- the same scroll, between the same spacers. No library maker draws a multi-select set
-      -- picker, let alone an inverted one.
-      local storesRow = NS.Schema:FindRow("settings.excludedStores")
-      if storesRow then
-        local scroll = O.EnsureScroll(c)
-        makeMultiCheck(c, storesRow, scroll)
-        O.AddSpacer(scroll, O.ROW_VSPACER)
-      end
-      renderStorage(c)
+      O.RenderTabbedSchema(c, "general", GENERAL_AFTER_TAB)
       if c.scroll and c.scroll.DoLayout then c.scroll:DoLayout() end
     end)
 
     Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, "General")
   end)
 
-  -- Filters = blacklist / whitelist item-id management. No schema rows at all, so the whole body is
-  -- host-drawn — but into the library's scroll, through its sections and its spacers.
+  -- Filters = blacklist / whitelist item-id management, one list per tab. No schema rows at all, so
+  -- the whole body is host-drawn — but into the library's scroll, under the library's own tab strip,
+  -- through its spacers.
   O.RegisterOptionsPage("filters", "Filters", function(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then return end
     local ctx = O.CreatePanel("BankLedgerFiltersPanel", "Filters", {

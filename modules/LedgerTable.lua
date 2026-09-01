@@ -669,12 +669,15 @@ function LT:BuildRow()
 
   local stripe = row:CreateTexture(nil, "BACKGROUND")
   stripe:SetAllPoints()
-  stripe:SetColorTexture(1, 1, 1, 0.03)
   row.stripe = stripe
 
   local hl = row:CreateTexture(nil, "HIGHLIGHT")
   hl:SetAllPoints()
-  hl:SetColorTexture(1, 0.82, 0, 0.10)
+  -- Parked on the row so NS.Util.ApplyRowTint can reach it again: both alphas are settings now
+  -- (Settings > Interface), and a texture only the constructor could see would be stuck at
+  -- whatever the slider said when the row was built.
+  row.rowHover = hl
+  NS.Util.ApplyRowTint(row)
 
   -- One FontString per data column, laid out left→right with the Item column flexing.
   row.cells = {}
@@ -966,7 +969,9 @@ end
 
 function LT:BindRow(row, item, absIndex)
   row.item = item
-  row.stripe:SetShown(absIndex % 2 == 0)
+  -- Tint AND banding in one call: a recycled row may have been built before the slider
+  -- moved, so the colour is re-read here rather than trusted from construction.
+  NS.Util.ApplyRowTint(row, absIndex % 2 == 0)
 
   if item.kind == "header" then
     for _, col in ipairs(self.COLUMNS) do row.cells[col.key]:SetText("") end

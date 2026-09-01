@@ -723,9 +723,12 @@ test("LibKa0s-Slash: /bl list keeps its section headings", function()
     local g = line:match("^  |cff3399ff%[(.-)%]")
     if g then headings[#headings + 1] = g end
   end
-  assertEqual(headings[1], "Master Controls")
-  assertEqual(headings[2], "Capture")
-  assertEqual(#headings, 2)
+  -- One heading per TAB, in tab order (options-ui-§13): `group` names a tab now, so the chat
+  -- listing and the panel's strip are the same partition read two ways.
+  assertEqual(headings[1], "Capture")
+  assertEqual(headings[2], "Interface")
+  assertEqual(headings[3], "History")
+  assertEqual(#headings, 3)
 end)
 
 test("LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel", function()
@@ -834,10 +837,10 @@ test("LibKa0s-Slash: reset takes a PATH and resetall takes none — already conv
   -- already existed, so there was no page-shaped form to remove and no confirmation to re-anchor.
   -- Asserted rather than assumed, because "not applicable" and "declined" are different states and
   -- only one of them is a finding.
-  -- The library takes the first token, so a two-word page name arrives as "Master" — and the point
+  -- The library takes the first token, so a two-word page name arrives as "Keep" — and the point
   -- stands either way: it resolves as a PATH lookup and misses, rather than resetting a page.
-  local out = joinLines(chat(function() Sl:CliReset("Master Controls") end))
-  assertTrue(out:find("Setting not found: Master", 1, true) ~= nil,
+  local out = joinLines(chat(function() Sl:CliReset("Interface tab") end))
+  assertTrue(out:find("Setting not found: Interface", 1, true) ~= nil,
     "a page name must not resolve as a reset target: " .. out)
   local usage = joinLines(chat(function() Sl:CliReset("") end))
   assertTrue(usage:find("Usage: /bl reset <path>", 1, true) ~= nil, usage)
@@ -939,15 +942,20 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- `ignore` is the live-only surface, as DATA. Checked against this addon's call sites:
   --   grep -rnE "O[.:]|Helpers[.:]" settings core modules
   -- reaches O.AceGUI and the page/panel/render members the stub already carries; PADDING_X,
-  -- LSMValues, TextRow, BuildLandingPage and PatchAlwaysShowScrollbar have NO call site here, and
+  -- LSMValues, BuildLandingPage and PatchAlwaysShowScrollbar have NO call site here, and
   -- carrying the library's constants into a stub is anti-pattern #47.
+  --
+  -- TextRow LEFT this list with the tabbed-panel pass: the History tab's storage read-out is drawn
+  -- with it now, so it is a reachable name and the stub answers it. The tab strip's own surface
+  -- (TabStrip, RenderTabbedSchema, SetChromeHeight, PageBanner, the chrome constants and the six
+  -- __-prefixed internals) is reachable for the same reason and is in the stub, not in here.
   --
   -- AceGUI is the deliberate one, and the stub names it: `AceGUI = nil`. Every O.AceGUI:Create in
   -- settings/Panel.lua sits inside a body that only runs once a panel has been built, and on this
   -- path CreateOptionsPanel refuses with one honest line instead. A stub handing back a fake AceGUI
   -- would be a widget factory this addon then has to keep working.
   local IGNORE = {
-    "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar", "TextRow",
+    "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar",
   }
   local degraded, dm = loadDegraded()
   assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")

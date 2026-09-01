@@ -8,83 +8,30 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- the slash get/set/list/reset dispatch (architecture-§5) — add a setting here and all three
 -- surfaces pick it up with no other edit. Paths resolve against NS.db.global (account-wide).
 --
--- `group` names the panel section header, and row order within a group drives the two-column
--- pairing. `wide` forces a full-width row; `solo` puts a row on its own line; `skipRender` keeps a
--- row in the schema — so the CLI, the defaults and a reset all still see it — while the panel draws
--- it by hand. Those three names are LibKa0s-Options-1.0's, not ours: the flow engine reads them.
+-- `group` names one TAB on the page (options-ui-§13): H.RenderTabbedSchema partitions the page's
+-- rows by `group` IN DECLARATION ORDER and draws one tab per distinct group, so the array's order
+-- IS the tab order and a group's rows must stay CONTIGUOUS — a row filed under a group the page has
+-- already left prints that tab a second time further down. Row order within a group drives the
+-- two-column pairing. `wide` forces a full-width row; `solo` puts a row on its own line;
+-- `skipRender` keeps a row in the schema — so the CLI, the defaults and a reset all still see it —
+-- while the panel draws it by hand. Those names are LibKa0s-Options-1.0's, not ours: the flow
+-- engine reads them.
+--
+-- The tabs, in order: Capture (what is recorded), Interface (what is on screen), History (how much
+-- is kept, and the two ways to destroy it).
 S.Schema = {
-  -- ── Master Controls ──
-  -- The master switches and the window controls, ahead of what is actually captured: the same
-  -- shape the sibling Ka0s addons use, so General reads the same way across the suite.
+  -- ── Capture ──
+  -- FIRST, because it is what the addon is for and what a player opens this page to change. The
+  -- master switch leads on its own line (`solo`), then the two kind toggles across one line, then
+  -- the quality gate, then the per-store grid — narrowest question to widest.
   { path = "settings.enabled", default = true, type = "bool", widget = "CheckBox",
-    group = "Master Controls", label = "Enable capture",
+    -- `solo` is spent here and nowhere else on the page: this is the switch every other row on
+    -- the tab is conditional on, which is the "genuine pivot" the flag exists for.
+    solo = true,
+    group = "Capture", label = "Enable capture",
     tooltip = "Master switch for recording bank movements.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
-    end },
-
-  { path = "minimap.hide", default = false, type = "bool", widget = "CheckBox",
-    group = "Master Controls", label = "Hide minimap button",
-    tooltip = "Hide the Bank Ledger minimap button.",
-    onChange = function(v)
-      if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
-    end },
-
-  { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
-    group = "Master Controls", label = "Session window",
-    tooltip = "Show a small live window listing what you move while a bank is open. "
-      .. "Turning this off never stops capture \226\128\148 only the window.",
-    onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "sessionWindow") end
-    end },
-
-  -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
-  -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
-  -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
-  { path = "state.debugConsole", sessionOnly = true, default = false, type = "bool",
-    widget = "CheckBox", group = "Master Controls", label = "Debug console",
-    tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
-    get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
-    set = function(v)
-      if not NS.DebugLog then return end
-      if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
-    end },
-
-  -- Paired with the "Reset all" button by the panel's `companions` map (settings/Panel.lua).
-  { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
-    -- Declared explicitly because the two renderers disagree about the default: this addon's old
-    -- panel assumed 0.05, LibKa0s-Options-1.0's makeSlider assumes 1. Left undeclared, the library
-    -- would snap a 0.6-1.6 slider to its two endpoints and nothing else.
-    step = 0.05,
-    widget = "Slider",
-    fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
-    group = "Master Controls", label = "Window scale",
-    tooltip = "Scale of the ledger window.",
-    -- The direct call repaints the window the user is almost certainly looking at with no latency;
-    -- the broadcast is what reaches everything ELSE that scales. SessionWindow already subscribes
-    -- to SettingsChanged and already reads windowScale, so it needed no change — it was simply
-    -- never told (F-003). A second direct call would have been one line and anti-pattern #19, and
-    -- would have left the same hole for the next window added.
-    onChange = function(v)
-      if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "windowScale") end
-    end },
-
-  -- ── Capture ──
-  -- What gets recorded: the two scope dropdowns first, then the kind toggles, then the per-store
-  -- grid — narrowest-to-widest, as the sibling addons order their collection section.
-  { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
-    tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
-    onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
-    end },
-
-  { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Keep history for", values = C.RETENTION_OPTIONS,
-    tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
-    onChange = function()
-      if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end },
 
   { path = "settings.trackItems", default = true, type = "bool", widget = "CheckBox",
@@ -102,12 +49,20 @@ S.Schema = {
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "trackMoney") end
     end },
 
+  { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
+    group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
+    tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
+    onChange = function()
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
+    end },
+
   -- Stored as the set of MUTED stores (excludedStores); the panel renders it inverted
   -- (invert = true) as "Record movements to and from", so a ticked box means "record this store".
   -- `skipRender` because no library maker draws a multi-select set picker, let alone an inverted
   -- one — RenderField dispatches on bool/number/string/color and answers nil for anything else. The
   -- row stays in the schema so `/bl list`, `/bl get` and every reset still see it; the panel emits
-  -- the checkbox grid itself, in the library's own flow, between two of its spacers.
+  -- the checkbox grid itself, from the Capture tab's `afterGroup` hook, which is what keeps it on
+  -- the tab through a tab click (the strip re-renders the schema alone, not the page body).
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
     wide = true, invert = true, skipRender = true,
     group = "Capture", label = "Record movements to and from", values = C.STORE_OPTIONS,
@@ -117,7 +72,94 @@ S.Schema = {
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "stores") end
     end },
+
+  -- ── Interface ──
+  -- Everything about what is on screen and how it looks. Three full lines, and each line is one
+  -- question: scale and the launcher, then the two windows you can switch on, then the row tint
+  -- pair — rest beside hover, so the reader compares them across the line instead of down a column.
+  { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
+    -- Declared explicitly because the two renderers disagree about the default: this addon's old
+    -- panel assumed 0.05, LibKa0s-Options-1.0's makeSlider assumes 1. Left undeclared, the library
+    -- would snap a 0.6-1.6 slider to its two endpoints and nothing else.
+    step = 0.05,
+    widget = "Slider",
+    fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
+    group = "Interface", label = "Window scale",
+    tooltip = "Scale of the ledger window.",
+    -- The direct call repaints the window the user is almost certainly looking at with no latency;
+    -- the broadcast is what reaches everything ELSE that scales. SessionWindow already subscribes
+    -- to SettingsChanged and already reads windowScale, so it needed no change — it was simply
+    -- never told (F-003). A second direct call would have been one line and anti-pattern #19, and
+    -- would have left the same hole for the next window added.
+    onChange = function(v)
+      if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "windowScale") end
+    end },
+
+  { path = "minimap.hide", default = false, type = "bool", widget = "CheckBox",
+    group = "Interface", label = "Hide minimap button",
+    tooltip = "Hide the Bank Ledger minimap button.",
+    onChange = function(v)
+      if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
+    end },
+
+  { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
+    group = "Interface", label = "Session window",
+    tooltip = "Show a small live window listing what you move while a bank is open. "
+      .. "Turning this off never stops capture \226\128\148 only the window.",
+    onChange = function()
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "sessionWindow") end
+    end },
+
+  -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
+  -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
+  -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
+  { path = "state.debugConsole", sessionOnly = true, default = false, type = "bool",
+    widget = "CheckBox", group = "Interface", label = "Debug console",
+    tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
+    get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
+    set = function(v)
+      if not NS.DebugLog then return end
+      if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
+    end },
+
+  -- The row tint pair. Both were hardcoded in TWO files each — modules/LedgerTable.lua and
+  -- modules/SessionWindow.lua built every pooled row with `1,1,1,0.03` behind the even rows and
+  -- `1,0.82,0,0.10` under the cursor — and they are two answers to two questions, so they are two
+  -- sliders rather than one "row emphasis". Neither value is Core.SKIN's: the shared skin owns the
+  -- window edge, fill, border and title, and says so byte for byte in modules/Browser.lua's
+  -- B:ApplySkin note. The table interior is this addon's own.
+  --
+  -- Both defaults ARE the literals they replaced, so an install that touches neither is drawn
+  -- exactly as it was. Both are clamped at the read (NS.Util.RowTintAlpha): these come out of
+  -- SavedVariables, where a hand-edited 5 is not an error, it is a table drawn opaque white.
+  { path = "settings.rowStripeAlpha", default = 0.03, type = "number", min = 0, max = 0.3,
+    step = 0.01, widget = "Slider", fmt = "%.2f",
+    group = "Interface", label = "Row stripe opacity",
+    tooltip = "How strongly every second row in the ledger and session tables is tinted. "
+      .. "0 turns the banding off.",
+    onChange = function() NS.Util.RefreshRowTint() end },
+
+  { path = "settings.rowHoverAlpha", default = 0.10, type = "number", min = 0, max = 0.4,
+    step = 0.01, widget = "Slider", fmt = "%.2f",
+    group = "Interface", label = "Row hover opacity",
+    tooltip = "How strongly the row under your cursor is highlighted in the ledger and session "
+      .. "tables. 0 turns the highlight off.",
+    onChange = function() NS.Util.RefreshRowTint() end },
+
+  -- ── History ──
+  -- LAST: what you set once and leave, and the only place anything is destroyed. The retention
+  -- dropdown is the tab's one stored row; the live storage read-out and the two confirm-gated
+  -- buttons beside it (Purge ledger, Reset all) are bespoke and have no path, which is the
+  -- named exemption to "a tab holding fewer than two visible controls is not a subject".
+  { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
+    group = "History", label = "Keep history for", values = C.RETENTION_OPTIONS,
+    tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
+    onChange = function()
+      if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+    end },
 }
+
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
 -- console WINDOW's visibility IS the `state.debugConsole` row above.

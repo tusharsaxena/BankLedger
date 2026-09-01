@@ -194,8 +194,13 @@ end
 local function groupHeaderText(LT, collapsed)
   local header = stubFS()
   header.Show = function() end
+  -- The stub mirrors what LT:BuildRow actually parks on a row. `stripe` grew a SetColorTexture and
+  -- `rowHover` appeared when the zebra band and the hover wash became settings: BindRow now hands
+  -- both to NS.Util.ApplyRowTint, so a stub carrying only SetShown is a stub that no longer looks
+  -- like a row.
   local row = {
-    stripe = { SetShown = function() end },
+    stripe = { SetShown = function() end, SetColorTexture = function() end },
+    rowHover = { SetColorTexture = function() end },
     dirGlyph = { Hide = function() end },
     header = header,
     cells = {},

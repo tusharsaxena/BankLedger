@@ -31,7 +31,9 @@ match, so it was left alone rather than folded into the rename.
 ## What the host supplies to the library
 
 - **`groupKey`** — this schema groups by `group`, not by `page`, so the help renderer is told which
-  field to bucket on.
+  field to bucket on. `group` also names the panel **tab** the row draws on (`options-ui-§13`), so
+  `/bl list`'s headings and the settings strip are the same partition read two ways — *Capture*,
+  *Interface*, *History*, in declaration order.
 - **A `format` hook** for the set-typed `settings.excludedStores` row, which has no scalar rendering.
 - **A `parse` override** that refuses a chat edit of that same row by name — a muted-store set is not
   something a `set` line can express unambiguously.

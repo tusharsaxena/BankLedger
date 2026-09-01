@@ -246,6 +246,32 @@ local function renderPage(name)
   return made, chat
 end
 
+--- Render one TAB of a tabbed page and hand back the widgets it created.
+---
+--- The strip re-renders the SCHEMA on a click (options-ui-§13), and `ctx.activeTab` is the only
+--- state that says which group is on screen — so a case about a row now has to say which tab it
+--- expects to find it on. Setting it directly is exactly what a click does.
+local function renderTab(name, tab)
+  local c = ctxFor(name)
+  assertTrue(c ~= nil, name .. " has no ctx in the library's registry")
+  c.activeTab = tab
+  return renderPage(name)
+end
+
+--- Every widget the page draws across ALL of its tabs, concatenated in tab order.
+local function renderAllTabs(name, tabs)
+  local all = {}
+  for _, tab in ipairs(tabs) do
+    for _, w in ipairs(renderTab(name, tab)) do all[#all + 1] = w end
+  end
+  return all
+end
+
+-- The General page's strip, in tab order. Kept here rather than derived from the schema on purpose:
+-- a case that reads the tab list out of the thing it is testing agrees with itself no matter what
+-- the thing says. tests/test_schema.lua owns the partition; this is the panel's copy of the answer.
+local GENERAL_TABS = { "Capture", "Interface", "History" }
+
 local function widgetLabeled(made, label)
   for _, w in ipairs(made) do
     if w.labelText == label then return w end
@@ -255,38 +281,75 @@ end
 
 local function joined(t) return table.concat(t, "\n") end
 
-test("Panel: the General page renders without the library reporting a failure", function()
+test("Panel: every tab of the General page renders without the library reporting a failure", function()
   -- The library pcalls each page render and prints which page failed. That report is the only
   -- thing standing between a raise inside a bespoke widget and a settings page that silently stops
-  -- half-way — which is exactly what a missing SetTitle did the first time this ran.
-  local made, chat = renderPage("General")
-  assertFalse(joined(chat):find("failed to render", 1, true) ~= nil, joined(chat))
-  assertTrue(#made > 20, "expected a full page of widgets; got " .. #made)
+  -- half-way — which is exactly what a missing SetTitle did the first time this ran. Every tab is
+  -- driven, because a raise inside one tab's afterGroup hook is invisible from any other tab.
+  local total = 0
+  for _, tab in ipairs(GENERAL_TABS) do
+    local made, chat = renderTab("General", tab)
+    assertFalse(joined(chat):find("failed to render", 1, true) ~= nil, tab .. ": " .. joined(chat))
+    assertTrue(#made > 2, tab .. " drew almost nothing; got " .. #made)
+    total = total + #made
+  end
+  assertTrue(total > 20, "expected a full page of widgets across the strip; got " .. total)
 end)
 
-test("Panel: every renderable schema row reaches the page as a labeled widget", function()
-  local made = renderPage("General")
-  for _, row in ipairs(NS.Schema.Schema) do
-    if not row.skipRender then
-      assertTrue(widgetLabeled(made, row.label) ~= nil,
-        row.path .. " (" .. tostring(row.label) .. ") never reached the page")
+test("Panel: the General page draws a tab strip, one button per schema group", function()
+  -- The adoption itself (options-ui-§13). The strip's buttons are CreateFrame Buttons, not AceGUI
+  -- widgets, so they never reach __created — they are recorded in the ctx's own tab layout, which
+  -- is also what the strip re-places from when the canvas finally reports a real width.
+  --
+  -- Counted off __tabLayout.buttons and NOT off __tabKids: that ledger also holds the content panel
+  -- the strip draws beneath itself, so it answers one more than the tab count and a case written
+  -- against it would be asserting "three tabs" with the number four.
+  local c = ctxFor("General")
+  renderTab("General", "Capture")
+  local layout = c.__tabLayout
+  assertTrue(layout ~= nil, "no tab strip was laid out")
+  assertEqual(#layout.buttons, #GENERAL_TABS, "one tab button per group")
+  assertEqual(c.activeTab, "Capture")
+
+  -- And a click on another tab moves the strip rather than redrawing the same page.
+  layout.buttons[2]:__fire("OnClick")
+  assertEqual(c.activeTab, GENERAL_TABS[2], "clicking a tab must select it")
+  c.activeTab = GENERAL_TABS[1]
+end)
+
+test("Panel: every renderable schema row reaches the page on ITS OWN tab", function()
+  -- A row drifting into the wrong group renders under the wrong tab, which the partition case in
+  -- tests/test_schema.lua catches in the data. This is the same claim about the drawn page: the row
+  -- must be on the tab its group names, and must NOT be on the others.
+  for _, tab in ipairs(GENERAL_TABS) do
+    local made = renderTab("General", tab)
+    for _, row in ipairs(NS.Schema.Schema) do
+      if not row.skipRender then
+        local drawn = widgetLabeled(made, row.label) ~= nil
+        if row.group == tab then
+          assertTrue(drawn, row.path .. " (" .. tostring(row.label) .. ") never reached its tab")
+        else
+          assertFalse(drawn, row.path .. " leaked onto the '" .. tab .. "' tab")
+        end
+      end
     end
   end
 end)
 
 test("Panel: a boolean row is a CheckBox and a range row is a Slider", function()
-  local made = renderPage("General")
-  assertEqual(widgetLabeled(made, "Enable capture").type, "CheckBox")
-  assertEqual(widgetLabeled(made, "Window scale").type, "Slider")
+  assertEqual(widgetLabeled(renderTab("General", "Capture"), "Enable capture").type, "CheckBox")
+  local iface = renderTab("General", "Interface")
+  assertEqual(widgetLabeled(iface, "Window scale").type, "Slider")
+  assertEqual(widgetLabeled(iface, "Row stripe opacity").type, "Slider")
+  assertEqual(widgetLabeled(iface, "Row hover opacity").type, "Slider")
 end)
 
 test("Panel: a numeric ENUM row is a Dropdown, not a slider over its indices", function()
   -- The whole reason LibKa0s-Options-1.0 went to OptionsWidgets minor 5. Neither of these rows
   -- declares min/max/step, so under minor 4 they rendered as 0-to-1 sliders — a control that could
-  -- not express any of their values, with nothing raising.
-  local made = renderPage("General")
-  local q = widgetLabeled(made, "Minimum quality")
-  local r = widgetLabeled(made, "Keep history for")
+  -- not express any of their values, with nothing raising. The two now live on different tabs.
+  local q = widgetLabeled(renderTab("General", "Capture"), "Minimum quality")
+  local r = widgetLabeled(renderTab("General", "History"), "Keep history for")
   assertEqual(q.type, "Dropdown")
   assertEqual(r.type, "Dropdown")
   assertEqual(r.list[30], "30 days", "the entries carry their own labels, not stringified values")
@@ -294,7 +357,7 @@ test("Panel: a numeric ENUM row is a Dropdown, not a slider over its indices", f
 end)
 
 test("Panel: a checkbox write goes through the single write seam", function()
-  local made = renderPage("General")
+  local made = renderTab("General", "Capture")
   local cb = widgetLabeled(made, "Track gold")
   local saved = NS.Schema:Get("settings.trackMoney")
   cb:__fire("OnValueChanged", false)
@@ -304,23 +367,36 @@ test("Panel: a checkbox write goes through the single write seam", function()
   NS.Schema:Set("settings.trackMoney", saved)
 end)
 
-test("Panel: the Reset all button is paired into the Window scale row", function()
-  -- The descriptor's pairWith. Dropped, it silently vanishes — there is no error for a companion
-  -- that never fired.
-  local made = renderPage("General")
-  local seenScale, paired = false, false
-  for _, w in ipairs(made) do
-    if w.labelText == "Window scale" then seenScale = true
-    elseif seenScale and w.type == "Button" and w.text == "Reset all" then paired = true; break end
+test("Panel: Reset all sits on History beside Purge, and NOT beside the window-scale slider", function()
+  -- It used to be the descriptor's `pairWith` on settings.windowScale, one pixel from the slider a
+  -- player drags to size the window. It is now the right half of the History tab's InlineButtonPair,
+  -- next to Purge and under the read-out that says how much there is to lose.
+  --
+  -- BOTH halves are asserted. A case that only checked the new home would stay green if the old
+  -- pairing were reinstated as well, and two buttons that wipe the ledger is worse than one in the
+  -- wrong place.
+  local history = renderTab("General", "History")
+  local seenPurge, paired = false, false
+  for _, w in ipairs(history) do
+    if w.type == "Button" and w.text == "Purge ledger\226\128\166" then seenPurge = true
+    elseif seenPurge and w.type == "Button" and w.text == "Reset all\226\128\166" then
+      paired = true; break
+    end
   end
-  assertTrue(paired, "the Reset all button must follow Window scale inside the same row")
+  assertTrue(paired, "Reset all must follow Purge ledger inside the same row")
+
+  local iface = renderTab("General", "Interface")
+  for _, w in ipairs(iface) do
+    assertFalse(w.type == "Button" and (w.text or ""):find("Reset all", 1, true) ~= nil,
+      "Reset all is back beside the window-scale slider")
+  end
 end)
 
 test("Panel: the store grid renders as an inverted checkbox set, host-drawn", function()
   -- `skipRender = true` keeps the row out of the flow engine; the page emits this grid itself. The
   -- inversion is the part worth pinning: the row STORES the muted set, so a TICKED box means
   -- "record this store".
-  local made = renderPage("General")
+  local made = renderTab("General", "Capture")
   local group
   for _, w in ipairs(made) do
     if w.type == "InlineGroup" then group = w end
@@ -332,8 +408,8 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
 
   local saved = NS.Schema:Get("settings.excludedStores")
   NS.Schema:Set("settings.excludedStores", {})
-  renderPage("General")   -- re-render so the boxes seed from the empty muted set
-  local made2 = renderPage("General")
+  renderTab("General", "Capture")   -- re-render so the boxes seed from the empty muted set
+  local made2 = renderTab("General", "Capture")
   local grid
   for _, w in ipairs(made2) do if w.type == "InlineGroup" then grid = w end end
   for _, cb in ipairs(grid.children) do
@@ -347,22 +423,74 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
   NS.Schema:Set("settings.excludedStores", saved or {})
 end)
 
-test("Panel: the Storage section renders under the schema rows", function()
-  -- It was the casualty the first time the store grid raised: the library's per-page pcall stopped
-  -- the renderer, and everything after the raise silently never drew.
-  local made = renderPage("General")
-  local headings, lastHeading = 0, nil
-  for _, w in ipairs(made) do
-    if w.type == "Heading" then headings = headings + 1; lastHeading = w.text end
+test("Panel: a tabbed page draws NO section headings — the strip is the heading", function()
+  -- RenderTabbedSchema renders the active group with `noHeadings`, because a tab labelled Capture
+  -- over a section headed Capture says the same word twice. This used to assert the opposite (a
+  -- heading per group plus one for Storage), which is exactly the drift the adoption removes.
+  for _, tab in ipairs(GENERAL_TABS) do
+    for _, w in ipairs(renderTab("General", tab)) do
+      assertFalse(w.type == "Heading", tab .. " drew a section heading: " .. tostring(w.text))
+    end
   end
-  assertTrue(headings >= 3, "expected a heading per schema group plus Storage; got " .. headings)
-  assertEqual(lastHeading, "Storage", "Storage is the last section on the page")
 end)
 
-test("Panel: the Filters page renders its two id lists", function()
+test("Panel: the storage read-out lands on the History tab and nowhere else", function()
+  -- It was the casualty the first time the store grid raised: the library's per-page pcall stopped
+  -- the renderer, and everything after the raise silently never drew. It is now drawn from the
+  -- History tab's afterGroup hook, which is what keeps it on the page through a tab click — the
+  -- page renderer's own trailing calls would have survived exactly one render.
+  local function readoutIn(made)
+    for _, w in ipairs(made) do
+      if w.type == "Label" and (w.text or ""):find("Database size", 1, true) then return true end
+    end
+    return false
+  end
+  assertTrue(readoutIn(renderTab("General", "History")), "no storage read-out on History")
+  assertFalse(readoutIn(renderTab("General", "Capture")), "the read-out leaked onto Capture")
+  assertFalse(readoutIn(renderTab("General", "Interface")), "the read-out leaked onto Interface")
+
+  -- And it survives a second visit to the tab, which is the whole point of the afterGroup hook.
+  assertTrue(readoutIn(renderTab("General", "History")), "the read-out vanished on a re-render")
+end)
+
+test("Panel: the Filters page is a two-tab strip, one list per tab", function()
+  -- It used to stack both lists down one scroll, and the case that covered it only counted widgets
+  -- — which stayed true whichever list was on screen, and would have stayed true with one of them
+  -- missing. It now asserts WHICH list is drawn, because that is the thing the tab strip decides.
+  local c = ctxFor("Filters")
+  assertTrue(c ~= nil, "the Filters ctx is in the library's registry")
+
+  local function bodyText(made)
+    local out = {}
+    for _, w in ipairs(made) do
+      if w.type == "Label" and w.text then out[#out + 1] = w.text end
+    end
+    return table.concat(out, "\n")
+  end
+
+  c.activeTab = "blacklist"
   local made, chat = renderPage("Filters")
   assertFalse(joined(chat):find("failed to render", 1, true) ~= nil, joined(chat))
-  assertTrue(#made > 4, "expected the blacklist and whitelist sections; got " .. #made)
+  local layout = c.__tabLayout
+  assertTrue(layout ~= nil and #layout.buttons == 2, "expected a two-tab strip")
+  local black = bodyText(made)
+  assertTrue(black:find("never recorded", 1, true) ~= nil, "the blacklist blurb is missing")
+  assertFalse(black:find("always recorded", 1, true) ~= nil, "the whitelist leaked onto Blacklist")
+
+  c.activeTab = "whitelist"
+  local white = bodyText(renderPage("Filters"))
+  assertTrue(white:find("always recorded", 1, true) ~= nil, "the whitelist blurb is missing")
+  assertFalse(white:find("never recorded", 1, true) ~= nil, "the blacklist leaked onto Whitelist")
+
+  c.activeTab = "blacklist"
+end)
+
+test("Panel: a Filters tab whose key no longer exists heals to the first tab", function()
+  -- A stale ctx.activeTab would otherwise draw a strip over an empty page, with nothing to say so.
+  local c = ctxFor("Filters")
+  c.activeTab = "greylist"
+  renderPage("Filters")
+  assertEqual(c.activeTab, "blacklist")
 end)
 
 test("Panel: re-rendering a page releases the previous widgets and their refreshers", function()

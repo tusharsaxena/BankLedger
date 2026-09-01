@@ -163,6 +163,51 @@ function Util.FormatBytes(bytes)
   end
 end
 
+-- ── Pooled-row tint ─────────────────────────────────────────────────────────────
+--
+-- The zebra band behind every second row and the gold wash under the cursor, for BOTH pooled
+-- tables (modules/LedgerTable.lua and modules/SessionWindow.lua). Both were hardcoded in both
+-- files — `1,1,1,0.03` and `1,0.82,0,0.10` — and both are now settings, so the read lives here
+-- once rather than being spelled out four times.
+--
+-- CLAMPED, not trusted. These come out of SavedVariables, which a player can hand-edit and another
+-- addon can write: an alpha of 5 or of -1 is not an error the client reports, it is a table drawn
+-- opaque white or with the band silently missing, which reads as the slider not working. Anything
+-- that is not a number falls back to the shipped default rather than to zero, so a corrupt key
+-- degrades to the stock look instead of to no look at all.
+function Util.RowTintAlpha(key, fallback)
+  local g = NS.db and NS.db.global and NS.db.global.settings
+  local v = g and g[key]
+  if type(v) ~= "number" then return fallback end
+  if v < 0 then return 0 end
+  if v > 1 then return 1 end
+  return v
+end
+
+--- Paint one pooled row's stripe and hover textures from the current settings, and show or hide
+--- the stripe. Called from BuildRow (so a row is correct the moment it exists) and from BindRow
+--- (so a row recycled onto a different index, or drawn after the slider moved, re-reads).
+function Util.ApplyRowTint(row, striped)
+  if not row then return end
+  if row.stripe then
+    row.stripe:SetColorTexture(1, 1, 1, Util.RowTintAlpha("rowStripeAlpha", 0.03))
+    if striped ~= nil then row.stripe:SetShown(striped and true or false) end
+  end
+  if row.rowHover then
+    row.rowHover:SetColorTexture(1, 0.82, 0, Util.RowTintAlpha("rowHoverAlpha", 0.10))
+  end
+end
+
+--- Repaint both tables after a tint slider moved. Direct calls rather than a bus message alone,
+--- for the reason settings.windowScale's onChange gives: the direct call repaints the window the
+--- player is looking at with no latency. The broadcast goes out beside it so anything added later
+--- hears about it without this function growing a third line.
+function Util.RefreshRowTint()
+  if NS.LedgerTable and NS.LedgerTable.Bind then NS.LedgerTable:Bind() end
+  if NS.SessionWindow and NS.SessionWindow.Bind then NS.SessionWindow:Bind() end
+  if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "rowTint") end
+end
+
 -- ── Secret-safe chat printer ────────────────────────────────────────────────────
 -- Moved to core/CoreSetup.lua, which builds it from LibKa0s-Core-1.0 (library-stack). The guard
 -- (NS.IsConcatSafe), the stringifier (NS.SafeToString) and the printer (NS.Print / NS.Util.print)
