@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-813%2F813_passing-green)
+![Tests](https://img.shields.io/badge/Tests-830%2F830_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
 
@@ -86,7 +86,7 @@ addon prints to chat carries the cyan `[BL]` tag.
 | `/bl set setting value` | Set a setting value |
 | `/bl list` | List all settings |
 | `/bl reset setting` | Reset one setting |
-| `/bl resetall` | Reset all settings |
+| `/bl resetall` | Reset every setting to defaults (your recorded history is kept) |
 | `/bl session` | Toggle the banking-session window (sample data outside a bank) |
 | `/bl test` | Toggle a sample ledger |
 | `/bl purge` | Delete ALL ledger history (asks first) |
@@ -107,25 +107,28 @@ synthetic and those actions would otherwise reach your real settings and history
 
 | Page | Tabs | Covers |
 | --- | --- | ------ |
-| General | Capture · Interface · History | What gets recorded, how the windows look, and how much is kept |
-| Filters | Blacklist · Whitelist | The two item lists |
+| General | Master controls · Capture · Interface · History · Blacklist · Whitelist | The whole addon, on one strip |
 
-**General ▸ Capture** is what actually gets recorded: the master switch, whether items and gold are
-tracked, a minimum item quality, and which banks you care about.
+**General ▸ Master controls** is the addon as a whole, and it is the same first tab in every Ka0s
+addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them
+in place, open the debug console, put the windows back where they started, or return every setting to
+stock.
 
-**General ▸ Interface** is what is on screen: the window scale, the minimap button, whether the
-Current Banking Session window appears at a bank, the debug console, and how strongly the tables
-band their rows and highlight the one under your cursor.
+**General ▸ Capture** is what actually gets recorded: whether items and gold are tracked, a minimum
+item quality, and which banks you care about.
+
+**General ▸ Interface** is what is on screen: the minimap button, whether the Current Banking Session
+window appears at a bank, and how strongly the tables band their rows and highlight the one under
+your cursor.
 
 **General ▸ History** is how much is kept — 30 days by default — with a read-out of how many
-movements you have recorded and roughly how big the database is, and the two buttons that destroy
-things: **Purge ledger…** empties the history, **Reset all…** returns everything to stock. Both ask
-first.
+movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties
+the history after asking first.
 
-**Filters** manages two lists of items by id, one per tab. Blacklisted items are never recorded;
-whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id
-or by shift-clicking its link into the box. Both lists only affect what happens from now on —
-nothing already in your ledger is ever hidden or removed by them.
+**General ▸ Blacklist** and **▸ Whitelist** manage two lists of items by id. Blacklisted items are
+never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item
+by typing its id or by shift-clicking its link into the box. Both lists only affect what happens from
+now on — nothing already in your ledger is ever hidden or removed by them.
 
 ## How the ledger works
 
@@ -161,8 +164,8 @@ questing — never ends up in the book.
 
 | Symptom | Fix |
 | ------- | --- |
-| Nothing is recorded | Check `Enable capture` is on in Settings ▸ General, and that the bank you are using is ticked in "Record movements to and from". |
-| An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ Filters. |
+| Nothing is recorded | Check `Enable Bank Ledger` is on in Settings ▸ General ▸ Master controls, and that the bank you are using is ticked in "Record movements to and from" on the Capture tab. |
+| An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
 | The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all…** button on the History tab also recenters them, but it deletes your history too — export first if you want to keep it.) |

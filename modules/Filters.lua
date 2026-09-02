@@ -115,7 +115,7 @@ function F:ClearList(listKey)
 end
 
 -- Empty BOTH lists with a single _notify. Returns the total ids removed. Used by the settings
--- reset paths (Slash:CliResetAll, the Filters page's Defaults button).
+-- reset paths (Slash:CliResetAll, which the General page's Defaults button goes through).
 function F:ClearAll()
   local removed = self:Count(self:Blacklist()) + self:Count(self:Whitelist())
   if removed == 0 then return 0 end

@@ -724,11 +724,15 @@ test("LibKa0s-Slash: /bl list keeps its section headings", function()
     if g then headings[#headings + 1] = g end
   end
   -- One heading per TAB, in tab order (options-ui-§13): `group` names a tab now, so the chat
-  -- listing and the panel's strip are the same partition read two ways.
-  assertEqual(headings[1], "Capture")
-  assertEqual(headings[2], "Interface")
-  assertEqual(headings[3], "History")
-  assertEqual(#headings, 3)
+  -- listing and the panel's strip are the same partition read two ways. FOUR, not six: the two
+  -- item-id lists are tabs of the page but not settings, so nothing files a row under them and the
+  -- CLI has nothing to list — which is exactly right, `/bl set blacklist` is not an edit the chat
+  -- grammar has.
+  assertEqual(headings[1], "Master controls")
+  assertEqual(headings[2], "Capture")
+  assertEqual(headings[3], "Interface")
+  assertEqual(headings[4], "History")
+  assertEqual(#headings, 4)
 end)
 
 test("LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel", function()
@@ -782,10 +786,15 @@ end)
 test("LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed",
   function()
     -- A behavior change, and an improvement: NS.Schema:Set validates nothing, so the old CLI wrote
-    -- 9 into a 0.6-1.6 row and the panel drew a slider pinned to its end with a value it could not
+    -- 9 into the row and the panel drew a slider pinned to its end with a value it could not
     -- represent.
+    --
+    -- The ceiling is 2 and no longer 1.6: Master scale is the canonical composed row now
+    -- (options-ui-§15) and its range is the library's 0.5-2, not the 0.6-1.6 this addon picked for
+    -- itself. Every stored value stays inside it, so no install is touched — what widened is what
+    -- the slider will let you ask for.
     chat(function() Sl:CliSet("settings.windowScale 9") end)
-    assertEqual(NS.Schema:Get("settings.windowScale"), 1.6)
+    assertEqual(NS.Schema:Get("settings.windowScale"), 2)
     chat(function() Sl:CliReset("settings.windowScale") end)
   end)
 
@@ -914,8 +923,10 @@ test("LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause c
 end)
 
 test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself", function()
-  -- It is the body the panel's Defaults button and the confirm-gated /bl resetall share. A reset
-  -- that silently did nothing is worse than a missing help index.
+  -- It is the body the panel's Defaults button and `/bl resetall` share — neither is confirm-gated,
+  -- because neither is destructive; the confirm-gated act is the Master controls button's
+  -- Sl:ResetEverything, which is a different implementation (docs/ARCHITECTURE.md's deviation
+  -- register, options-ui-§12). A reset that silently did nothing is worse than a missing help index.
   local ns, m = loadDegraded()
   ns:InitDB()
   ns.Schema:Set("settings.qualityThreshold", 4)
@@ -954,8 +965,20 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- settings/Panel.lua sits inside a body that only runs once a panel has been built, and on this
   -- path CreateOptionsPanel refuses with one honest line instead. A stub handing back a fake AceGUI
   -- would be a widget factory this addon then has to keep working.
+  --
+  -- The six added with LibKa0s v1.24.0's composers are library DATA, not behavior: the font-flag
+  -- map, the visibility map, their two sortings, the canonical group name and the class-color
+  -- tooltip note. Carrying any of them into a stub is anti-pattern #47 — the host copy is the copy
+  -- that goes stale — and none has a call site here: the composer emits the values itself, and
+  -- settings/Panel.lua keys its afterGroup table on the "Master controls" LITERAL, which is what the
+  -- library documents the host doing.
+  --
+  -- The composer FUNCTIONS are a different question and are in the stub, not in here: MasterControls
+  -- is reached (settings/OptionsSetup.lua calls it), and the other four are stubbed beside it.
   local IGNORE = {
     "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar",
+    "CLASS_COLOR_NOTE", "FONT_FLAGS", "FONT_FLAGS_SORT", "MASTER_GROUP",
+    "VISIBILITY_SORT", "VISIBILITY_VALUES",
   }
   local degraded, dm = loadDegraded()
   assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")

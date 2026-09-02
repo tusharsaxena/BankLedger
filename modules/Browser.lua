@@ -1118,7 +1118,9 @@ local function EnsureFrame()
 
   B:ApplySkin(frame)
   B:ApplyGeometry()
-  frame:SetScale((NS.db and NS.db.global.settings.windowScale) or 1.0)
+  -- Master scale, master alpha and Lock frame in one read (options-ui-§15). It replaced a bare
+  -- SetScale here; the other two rows are new and this is where the window first honors them.
+  NS.Util.ApplyMasterFrame(frame)
   frame:Hide()
 
   -- ESC closes the window and it joins the standard close-stack (standalone-windows).
@@ -1129,6 +1131,10 @@ local function EnsureFrame()
 end
 
 function B:Show()
+  -- General visibility (options-ui-§15). Refused rather than deferred: a window that pops itself
+  -- open the moment combat drops is the behavior options-ui-§2 refuses for the settings panel, and
+  -- for the same reason. NS.Util.ApplyVisibility is what puts it back on the transition.
+  if not NS.Util.VisibilityAllows() then return end
   local f = EnsureFrame()
   f:Show()
   -- Eager-build the History pane so the table attaches and matchCount is fresh — the shared footer
@@ -1156,7 +1162,7 @@ function B:SetScale(v)
 end
 
 function B:OnSettingsChanged()
-  if frame then frame:SetScale(NS.db.global.settings.windowScale or 1.0) end
+  if frame then NS.Util.ApplyMasterFrame(frame) end
   self:SetMinimapHidden(NS.db.global.minimap and NS.db.global.minimap.hide)
 end
 

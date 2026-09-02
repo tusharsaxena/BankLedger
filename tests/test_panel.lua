@@ -22,7 +22,10 @@ end
 test("Panel: every registered canvas frame is handed to the Settings framework", function()
   assertTrue(mocks.__settingsPanels["Ka0s Bank Ledger"] ~= nil, "landing page")
   assertTrue(mocks.__settingsPanels["General"] ~= nil, "General subcategory")
-  assertTrue(mocks.__settingsPanels["Filters"] ~= nil, "Filters subcategory")
+  -- And the Filters subcategory is GONE (R3), not registered-and-empty: its two lists are two of
+  -- General's tabs now. A page left registered would be a second entry in the Blizzard sidebar
+  -- opening onto nothing.
+  assertTrue(mocks.__settingsPanels["Filters"] == nil, "the Filters subcategory must be gone")
 end)
 
 -- Blizzard's Settings window calls all three on the registered canvas — OnCommit on apply, OnDefault
@@ -35,7 +38,7 @@ end)
 -- the day it was written until a mutation proved it could not fail. rawget asks the only question
 -- that matters: did the addon actually put something here?
 test("Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh", function()
-  for _, name in ipairs({ "Ka0s Bank Ledger", "General", "Filters" }) do
+  for _, name in ipairs({ "Ka0s Bank Ledger", "General" }) do
     local p = panel(name)
     assertEqual(type(rawget(p, "OnCommit")),  "function", name .. " OnCommit")
     assertEqual(type(rawget(p, "OnDefault")), "function", name .. " OnDefault")
@@ -58,7 +61,7 @@ end)
 -- longer the same object, and identity was only ever a proxy for the thing that matters: calling
 -- one runs the other.
 test("Panel: OnDefault runs the same action as the header Defaults button", function()
-  for _, name in ipairs({ "General", "Filters" }) do
+  for _, name in ipairs({ "General" }) do
     local p = panel(name)
     local parked = rawget(p, "defaultsOnClick")
     assertTrue(parked ~= nil, name .. " parks a defaults action")
@@ -89,7 +92,7 @@ test("Panel: the General defaults action resets settings but never the ledger", 
 end)
 
 test("Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes", function()
-  for _, name in ipairs({ "Ka0s Bank Ledger", "General", "Filters" }) do
+  for _, name in ipairs({ "Ka0s Bank Ledger", "General" }) do
     local p = panel(name)
     p.OnCommit()
     p.OnRefresh()
@@ -270,7 +273,12 @@ end
 -- The General page's strip, in tab order. Kept here rather than derived from the schema on purpose:
 -- a case that reads the tab list out of the thing it is testing agrees with itself no matter what
 -- the thing says. tests/test_schema.lua owns the partition; this is the panel's copy of the answer.
-local GENERAL_TABS = { "Capture", "Interface", "History" }
+--
+-- Six now: Master controls leads (options-ui-§15), and Blacklist / Whitelist are the retired Filters
+-- page's two lists (R3), drawn from afterGroup hooks under General's own strip.
+local GENERAL_TABS = {
+  "Master controls", "Capture", "Interface", "History", "Blacklist", "Whitelist",
+}
 
 local function widgetLabeled(made, label)
   for _, w in ipairs(made) do
@@ -303,17 +311,46 @@ test("Panel: the General page draws a tab strip, one button per schema group", f
   --
   -- Counted off __tabLayout.buttons and NOT off __tabKids: that ledger also holds the content panel
   -- the strip draws beneath itself, so it answers one more than the tab count and a case written
-  -- against it would be asserting "three tabs" with the number four.
+  -- against it would be asserting "six tabs" with the number seven.
   local c = ctxFor("General")
-  renderTab("General", "Capture")
+  renderTab("General", "Master controls")
   local layout = c.__tabLayout
   assertTrue(layout ~= nil, "no tab strip was laid out")
   assertEqual(#layout.buttons, #GENERAL_TABS, "one tab button per group")
-  assertEqual(c.activeTab, "Capture")
+  assertEqual(c.activeTab, "Master controls")
 
   -- And a click on another tab moves the strip rather than redrawing the same page.
   layout.buttons[2]:__fire("OnClick")
   assertEqual(c.activeTab, GENERAL_TABS[2], "clicking a tab must select it")
+  c.activeTab = GENERAL_TABS[1]
+end)
+
+test("Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's", function()
+  -- options-ui-§15 in the drawn page rather than in the data, plus R3's merge: the strip's last two
+  -- buttons are the lists that used to be a page of their own, and their bodies come up under
+  -- General's strip.
+  --
+  -- Dies under: splicing the composed rows anywhere but the head of S.Schema, or dropping either
+  -- Blacklist/Whitelist entry from GENERAL_AFTER_TAB.
+  local c = ctxFor("General")
+  renderTab("General", "Master controls")
+  local labels = {}
+  for i, btn in ipairs(c.__tabLayout.buttons) do labels[i] = btn.__labelText or btn.text end
+  assertEqual(labels[1] or GENERAL_TABS[1], GENERAL_TABS[1])
+
+  local function bodyText(made)
+    local out = {}
+    for _, w in ipairs(made) do
+      if w.type == "Label" and w.text then out[#out + 1] = w.text end
+    end
+    return table.concat(out, "\n")
+  end
+  local black = bodyText(renderTab("General", "Blacklist"))
+  assertTrue(black:find("never recorded", 1, true) ~= nil, "the blacklist blurb is missing")
+  assertFalse(black:find("always recorded", 1, true) ~= nil, "the whitelist leaked onto Blacklist")
+  local white = bodyText(renderTab("General", "Whitelist"))
+  assertTrue(white:find("always recorded", 1, true) ~= nil, "the whitelist blurb is missing")
+  assertFalse(white:find("never recorded", 1, true) ~= nil, "the blacklist leaked onto Whitelist")
   c.activeTab = GENERAL_TABS[1]
 end)
 
@@ -337,11 +374,40 @@ test("Panel: every renderable schema row reaches the page on ITS OWN tab", funct
 end)
 
 test("Panel: a boolean row is a CheckBox and a range row is a Slider", function()
-  assertEqual(widgetLabeled(renderTab("General", "Capture"), "Enable capture").type, "CheckBox")
+  -- The two canonical labels moved with their rows: "Enable capture" is "Enable Bank Ledger" and
+  -- "Window scale" is "Master scale", both on Master controls (options-ui-§15).
+  local master = renderTab("General", "Master controls")
+  assertEqual(widgetLabeled(master, "Enable Bank Ledger").type, "CheckBox")
+  assertEqual(widgetLabeled(master, "Master scale").type, "Slider")
+  assertEqual(widgetLabeled(master, "Master alpha").type, "Slider")
+  assertEqual(widgetLabeled(master, "General visibility").type, "Dropdown")
   local iface = renderTab("General", "Interface")
-  assertEqual(widgetLabeled(iface, "Window scale").type, "Slider")
   assertEqual(widgetLabeled(iface, "Row stripe opacity").type, "Slider")
   assertEqual(widgetLabeled(iface, "Row hover opacity").type, "Slider")
+end)
+
+test("Panel: the Master controls tab closes with the two reset buttons", function()
+  -- The composer's afterGroup hook, wired under the group's own name — rename the group and the
+  -- pair silently detaches (options-ui-§15). "Reset all settings" is options-ui-§12's global reset,
+  -- so this is also the case that proves it did not stay behind on History as a second control.
+  --
+  -- Dies under: dropping GENERAL_AFTER_TAB["Master controls"], or renaming the group.
+  local master = renderTab("General", "Master controls")
+  local seenPosition, paired = false, false
+  for _, w in ipairs(master) do
+    if w.type == "Button" and w.text == "Reset position" then seenPosition = true
+    elseif seenPosition and w.type == "Button" and w.text == "Reset all settings" then
+      paired = true; break
+    end
+  end
+  assertTrue(paired, "Reset all settings must follow Reset position inside the same row")
+
+  for _, tab in ipairs({ "Capture", "Interface", "History" }) do
+    for _, w in ipairs(renderTab("General", tab)) do
+      assertFalse(w.type == "Button" and (w.text or ""):find("Reset all", 1, true) ~= nil,
+        "a second Reset all is drawn on the '" .. tab .. "' tab")
+    end
+  end
 end)
 
 test("Panel: a numeric ENUM row is a Dropdown, not a slider over its indices", function()
@@ -367,29 +433,21 @@ test("Panel: a checkbox write goes through the single write seam", function()
   NS.Schema:Set("settings.trackMoney", saved)
 end)
 
-test("Panel: Reset all sits on History beside Purge, and NOT beside the window-scale slider", function()
-  -- It used to be the descriptor's `pairWith` on settings.windowScale, one pixel from the slider a
-  -- player drags to size the window. It is now the right half of the History tab's InlineButtonPair,
-  -- next to Purge and under the read-out that says how much there is to lose.
+test("Panel: History draws Purge alone — Reset all left with the Master controls tab", function()
+  -- "Reset all…" used to be the right half of this pair, and it raised the SAME popup the Master
+  -- controls tab's "Reset all settings" raises now. Two controls over one act is what the revamp
+  -- removes, so it moved rather than being copied, and Purge is alone in its pair.
   --
-  -- BOTH halves are asserted. A case that only checked the new home would stay green if the old
-  -- pairing were reinstated as well, and two buttons that wipe the ledger is worse than one in the
-  -- wrong place.
+  -- Dies under: putting the second spec back into renderStorage's InlineButtonPair call.
   local history = renderTab("General", "History")
-  local seenPurge, paired = false, false
+  local seenPurge = false
   for _, w in ipairs(history) do
     if w.type == "Button" and w.text == "Purge ledger\226\128\166" then seenPurge = true
-    elseif seenPurge and w.type == "Button" and w.text == "Reset all\226\128\166" then
-      paired = true; break
+    elseif seenPurge and w.type == "Button" then
+      assertFalse(true, "History drew a second button beside Purge: " .. tostring(w.text))
     end
   end
-  assertTrue(paired, "Reset all must follow Purge ledger inside the same row")
-
-  local iface = renderTab("General", "Interface")
-  for _, w in ipairs(iface) do
-    assertFalse(w.type == "Button" and (w.text or ""):find("Reset all", 1, true) ~= nil,
-      "Reset all is back beside the window-scale slider")
-  end
+  assertTrue(seenPurge, "the Purge button is missing from History")
 end)
 
 test("Panel: the store grid renders as an inverted checkbox set, host-drawn", function()
@@ -423,13 +481,34 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
   NS.Schema:Set("settings.excludedStores", saved or {})
 end)
 
-test("Panel: a tabbed page draws NO section headings — the strip is the heading", function()
+test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", function()
   -- RenderTabbedSchema renders the active group with `noHeadings`, because a tab labelled Capture
-  -- over a section headed Capture says the same word twice. This used to assert the opposite (a
-  -- heading per group plus one for Storage), which is exactly the drift the adoption removes.
+  -- over a section headed Capture says the same word twice. A SUBSECTION heading is the exception
+  -- and is deliberately not suppressed (options-ui-§7): it names a kind of control the tab mixes,
+  -- and it is declared by the row's `subgroup`, never drawn by a builder.
+  --
+  -- So the claim is not "no Heading" — it is "every Heading on this tab is one its rows asked for,
+  -- and none of them repeats the tab's own name".
+  --
+  -- Dies under: dropping `subgroup` from the Interface rows (Windows/Table rows vanish), or drawing
+  -- a heading by hand from an afterGroup hook.
   for _, tab in ipairs(GENERAL_TABS) do
+    local declared = {}
+    for _, row in ipairs(NS.Schema:PageRows()) do
+      if row.group == tab and row.subgroup then declared[row.subgroup] = true end
+    end
+    local drawn = {}
     for _, w in ipairs(renderTab("General", tab)) do
-      assertFalse(w.type == "Heading", tab .. " drew a section heading: " .. tostring(w.text))
+      if w.type == "Heading" then
+        assertTrue(declared[w.text] == true,
+          tab .. " drew a heading no row declared: " .. tostring(w.text))
+        assertFalse(w.text == tab, tab .. " drew a heading repeating its own tab name")
+        drawn[w.text] = true
+      end
+    end
+    for name in pairs(declared) do
+      assertTrue(drawn[name] == true, tab .. " declared the subsection '" .. name
+        .. "' and drew no heading for it")
     end
   end
 end)
@@ -453,45 +532,12 @@ test("Panel: the storage read-out lands on the History tab and nowhere else", fu
   assertTrue(readoutIn(renderTab("General", "History")), "the read-out vanished on a re-render")
 end)
 
-test("Panel: the Filters page is a two-tab strip, one list per tab", function()
-  -- It used to stack both lists down one scroll, and the case that covered it only counted widgets
-  -- — which stayed true whichever list was on screen, and would have stayed true with one of them
-  -- missing. It now asserts WHICH list is drawn, because that is the thing the tab strip decides.
-  local c = ctxFor("Filters")
-  assertTrue(c ~= nil, "the Filters ctx is in the library's registry")
-
-  local function bodyText(made)
-    local out = {}
-    for _, w in ipairs(made) do
-      if w.type == "Label" and w.text then out[#out + 1] = w.text end
-    end
-    return table.concat(out, "\n")
-  end
-
-  c.activeTab = "blacklist"
-  local made, chat = renderPage("Filters")
-  assertFalse(joined(chat):find("failed to render", 1, true) ~= nil, joined(chat))
-  local layout = c.__tabLayout
-  assertTrue(layout ~= nil and #layout.buttons == 2, "expected a two-tab strip")
-  local black = bodyText(made)
-  assertTrue(black:find("never recorded", 1, true) ~= nil, "the blacklist blurb is missing")
-  assertFalse(black:find("always recorded", 1, true) ~= nil, "the whitelist leaked onto Blacklist")
-
-  c.activeTab = "whitelist"
-  local white = bodyText(renderPage("Filters"))
-  assertTrue(white:find("always recorded", 1, true) ~= nil, "the whitelist blurb is missing")
-  assertFalse(white:find("never recorded", 1, true) ~= nil, "the blacklist leaked onto Whitelist")
-
-  c.activeTab = "blacklist"
-end)
-
-test("Panel: a Filters tab whose key no longer exists heals to the first tab", function()
-  -- A stale ctx.activeTab would otherwise draw a strip over an empty page, with nothing to say so.
-  local c = ctxFor("Filters")
-  c.activeTab = "greylist"
-  renderPage("Filters")
-  assertEqual(c.activeTab, "blacklist")
-end)
+-- The two Filters-page cases that used to live here are GONE with the page (R3). What they proved
+-- — which list is drawn under which tab, and a stale tab pointer healing to the first — is now
+-- General's, and both are covered above: "the strip's FIRST tab is Master controls, and it is not
+-- the Filters page's" asserts the bodies, and the heal is RenderTabbedSchema's own (it repoints
+-- ctx.activeTab at groups[1] when the pointer names a group the page no longer has), exercised by
+-- every renderTab call in this file.
 
 test("Panel: re-rendering a page releases the previous widgets and their refreshers", function()
   -- Every render appends refresher closures that capture the widgets it made. Keeping them across a
@@ -675,4 +721,59 @@ test("Slash: the restored store does not ALIAS the defaults table", function()
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertEqual(NS.defaults.global.settings.__probeAlias, nil,
     "the store aliases the defaults table")
+end)
+
+-- ── The two resets are two acts, and they must not wear one name ────────────────────────────────
+--
+-- options-ui-§12 requires the General page's Reset all settings control, the header/footer Defaults
+-- button and `/bl resetall` to sit behind ONE implementation, "so a player MUST NOT have to
+-- discover which of the two does more". This addon has three routes over TWO implementations, and
+-- that divergence is a ratified row in docs/ARCHITECTURE.md ▸ Documented deviations.
+--
+-- These two cases exist so the divergence cannot drift: the first PINS the blast radii that are
+-- actually shipping, so unifying them is a deliberate, visible change to this file rather than a
+-- silent one; the second holds the mitigation the register row promises, which is that the two acts
+-- are at least labelled apart while the split stands.
+
+test("Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one", function()
+  -- Dies under: pointing CliResetAll at ResetEverything (or the reverse) without also deleting the
+  -- options-ui-§12 row from the deviation register and rewriting this case to match.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  -- Dated NOW on purpose: resetting settings.retentionDays re-runs the retention cleanup, and a
+  -- 1970-stamped row would be dropped as ancient rather than as part of a reset.
+  local entry = { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 }
+
+  NS.db.global.ledger = { entry }
+  NS.Slash:CliResetAll()
+  local afterCli = #NS.db.global.ledger
+
+  NS.db.global.ledger = { entry }
+  NS.Slash:ResetEverything()
+  local afterEverything = #NS.db.global.ledger
+
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  assertEqual(afterCli, 1, "/bl resetall and the Defaults button must leave recorded history alone")
+  assertEqual(afterEverything, 0, "the confirm-gated button must empty the store wholesale")
+end)
+
+test("Slash: while the split stands, the button and the verb do NOT share a label", function()
+  -- Two controls whose names are identical and whose blast radii are not is precisely what §12
+  -- exists to prevent. The button keeps §12's canonical name because it is §12's act; the verb
+  -- takes slash-commands-§3's own reference wording instead.
+  --
+  -- Dies under: restoring "Reset all settings" as the resetall verb's description.
+  local button
+  for _, w in ipairs(renderTab("General", "Master controls")) do
+    if w.type == "Button" and w.text == "Reset all settings" then button = w.text end
+  end
+  assertTrue(button ~= nil, "the Master controls tab lost its Reset all settings button")
+
+  local verb
+  for _, cmd in ipairs(NS.COMMANDS) do
+    if cmd[1] == "resetall" then verb = cmd[2] end
+  end
+  assertTrue(verb ~= nil, "the resetall verb is missing from NS.COMMANDS")
+  assertTrue(verb ~= button,
+    "two acts with two blast radii are advertised under one name: " .. tostring(verb))
 end)

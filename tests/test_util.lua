@@ -185,3 +185,166 @@ test("Util.WowheadURL returns nothing for a row with no item at all", function()
   assertEqual(NS.Util.WowheadURL({ kind = "MONEY", itemName = "Gold" }), "")
   assertEqual(NS.Util.WowheadURL(nil), "")
 end)
+
+-- ── Master controls: the three settings the tab ADDED, and the code that honors them ──────────
+--
+-- A setting that is declared and not honored is worse than one that is absent, so each of these
+-- drives the real drawing seam rather than the row. `Master scale` needs no case of its own here:
+-- it is the pre-existing settings.windowScale, promoted rather than added, and the cases that
+-- already covered it are unchanged.
+
+--- A frame stand-in that records the three calls Util.ApplyMasterFrame makes.
+local function fakeFrame()
+  local f = { shown = false }
+  f.SetScale   = function(_, v) f.scale = v end
+  f.SetAlpha   = function(_, v) f.alpha = v end
+  f.SetMovable = function(_, v) f.movable = v end
+  f.IsShown    = function() return f.shown end
+  return f
+end
+
+--- Run `fn` with the master settings temporarily set, then put every one of them back.
+local function withSettings(values, fn)
+  local g = NS.db.global.settings
+  local saved = {}
+  for k, v in pairs(values) do saved[k] = g[k]; g[k] = v end
+  local ok, err = pcall(fn)
+  for k in pairs(values) do g[k] = saved[k] end
+  if not ok then error(err, 0) end
+end
+
+test("Util.ApplyMasterFrame applies scale, alpha AND the lock to one frame", function()
+  -- Dies under: dropping any one of the three calls, or reading `windowScale` for the alpha.
+  local f = fakeFrame()
+  withSettings({ windowScale = 1.25, alpha = 0.4, locked = true }, function()
+    NS.Util.ApplyMasterFrame(f)
+  end)
+  assertEqual(f.scale, 1.25)
+  assertEqual(f.alpha, 0.4)
+  assertEqual(f.movable, false, "Lock frame is expressed as SetMovable(false)")
+
+  local g = fakeFrame()
+  withSettings({ windowScale = 1.0, alpha = 1.0, locked = false }, function()
+    NS.Util.ApplyMasterFrame(g)
+  end)
+  assertEqual(g.movable, true, "an unlocked frame must be movable again")
+end)
+
+test("Util.ApplyMasterFrame clamps a master alpha that would hide the addon outright", function()
+  -- Hand-editable, like the row tints. A stored 0 is an addon that is invisible with no way back to
+  -- the panel that set it, and a stored 5 is a window that never fades and reads as a dead slider.
+  local f = fakeFrame()
+  withSettings({ alpha = 0 }, function() NS.Util.ApplyMasterFrame(f) end)
+  assertEqual(f.alpha, 0.1, "0 clamps to the lowest alpha you can still find on screen")
+  withSettings({ alpha = 5 }, function() NS.Util.ApplyMasterFrame(f) end)
+  assertEqual(f.alpha, 1)
+  withSettings({ alpha = "opaque" }, function() NS.Util.ApplyMasterFrame(f) end)
+  assertEqual(f.alpha, 1, "a non-number falls back to fully opaque, never to invisible")
+end)
+
+test("Util: every stop the Master alpha slider offers is a stop the drawing code draws", function()
+  -- STEP 4.3, the declared-vs-honored rule. The composer's canonical row offers min = 0 while
+  -- ApplyMasterFrame refuses anything under NS.Constants.MASTER_ALPHA_MIN, so an undecorated row
+  -- would put two stops on the slider (0.00 and 0.05) that both render at 0.1 — a control whose
+  -- bottom end visibly does nothing.
+  --
+  -- Dies under: dropping `min` from MASTER_DECOR["settings.alpha"] (the row falls back to the
+  -- composer's 0 and the walk below finds a stop the clamp moved), or changing the clamp's floor
+  -- without moving the constant both halves read.
+  local row = NS.Schema:FindRow("settings.alpha")
+  assertEqual(row.min, NS.Constants.MASTER_ALPHA_MIN,
+    "the declared minimum must BE the honored floor, not merely near it")
+
+  local f = fakeFrame()
+  local stop = row.min
+  while stop <= row.max + 1e-9 do
+    local want = stop
+    withSettings({ alpha = want }, function() NS.Util.ApplyMasterFrame(f) end)
+    assertTrue(math.abs(f.alpha - want) < 1e-9,
+      ("slider stop %.2f draws at %.2f — the row offers a value the clamp overrides")
+        :format(want, f.alpha))
+    stop = stop + row.step
+  end
+end)
+
+test("Util.VisibilityAllows answers all four modes against the combat state", function()
+  -- The dropdown exists because a boolean can only ever answer two of the four (options-ui-§15).
+  --
+  -- Dies under: collapsing inCombat/outOfCombat to one branch, or ignoring InCombatLockdown.
+  local savedLockdown = mocks.InCombatLockdown
+  local inCombat = false
+  mocks.InCombatLockdown = function() return inCombat end
+
+  local function allows(mode)
+    local out
+    withSettings({ visibility = mode }, function() out = NS.Util.VisibilityAllows() end)
+    return out
+  end
+
+  assertTrue(allows("always"))
+  assertFalse(allows("never"))
+  assertFalse(allows("inCombat"), "out of combat, 'Only in combat' hides")
+  assertTrue(allows("outOfCombat"))
+  inCombat = true
+  assertTrue(allows("inCombat"))
+  assertFalse(allows("outOfCombat"), "in combat, 'Only out of combat' hides")
+  assertTrue(allows("always"))
+  -- A value nobody recognises shows the addon, so a corrupt key never costs the player the panel.
+  assertTrue(allows("whenever"))
+
+  mocks.InCombatLockdown = savedLockdown
+end)
+
+test("Util.ApplyVisibility hides only what was up, and re-shows only what IT hid", function()
+  -- The transition half of the rule. Re-showing a window the player closed themselves would be the
+  -- addon reopening a window on every combat drop, which is the failure the ledger exists to avoid.
+  --
+  -- Dies under: dropping State.hiddenByVisibility and re-showing everything on the way back.
+  local savedLockdown = mocks.InCombatLockdown
+  mocks.InCombatLockdown = function() return false end
+  for k in pairs(NS.State.hiddenByVisibility) do NS.State.hiddenByVisibility[k] = nil end
+
+  NS.Browser:Show()
+  assertTrue(NS.Browser:GetWindow():IsShown(), "the ledger window must be up to start with")
+  assertFalse(NS.SessionWindow:IsShown(), "the session window is deliberately left closed")
+
+  withSettings({ visibility = "inCombat" }, function() NS.Util.ApplyVisibility() end)
+  assertFalse(NS.Browser:GetWindow():IsShown(), "the rule must take the open window")
+  assertEqual(NS.State.hiddenByVisibility.Browser, true)
+  assertEqual(NS.State.hiddenByVisibility.SessionWindow, nil,
+    "a window that was already closed must not be remembered")
+
+  NS.Util.ApplyVisibility()   -- back to `always`
+  assertTrue(NS.Browser:GetWindow():IsShown(), "the rule must put back what it took")
+  assertEqual(NS.State.hiddenByVisibility.Browser, nil)
+  assertFalse(NS.SessionWindow:IsShown(), "and must NOT open the one it never touched")
+
+  NS.Browser:Hide()
+  mocks.InCombatLockdown = savedLockdown
+end)
+
+test("Browser:Show refuses while General visibility says no", function()
+  -- The gate at the door, not just at the transition: `never` has no transition to ride.
+  local savedLockdown = mocks.InCombatLockdown
+  mocks.InCombatLockdown = function() return false end
+  NS.Browser:Hide()
+  withSettings({ visibility = "never" }, function() NS.Browser:Show() end)
+  local f = NS.Browser:GetWindow()
+  assertFalse(f ~= nil and f:IsShown(), "the window opened against the visibility rule")
+  NS.Browser:Show()
+  assertTrue(NS.Browser:GetWindow():IsShown(), "and it opens again once the rule allows it")
+  NS.Browser:Hide()
+  mocks.InCombatLockdown = savedLockdown
+end)
+
+test("Util.ResetWindowPositions clears BOTH windows' stored geometry", function()
+  -- The Master controls tab's "Reset position" button and the General page's Defaults button share
+  -- this one body. Before the tab existed the act was only ever reachable as a side effect of the
+  -- second, which is why it is a named seam now rather than two lines in P:RestoreDefaults.
+  NS.db.global.settings.window = { x = 400, y = 300 }
+  NS.db.global.settings.sessionWindow = { x = 120, y = 90 }
+  NS.Util.ResetWindowPositions()
+  assertEqual(next(NS.db.global.settings.window or {}), nil, "the ledger window's geometry survived")
+  assertEqual(next(NS.db.global.settings.sessionWindow or {}), nil,
+    "the session window's geometry survived")
+end)

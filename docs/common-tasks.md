@@ -17,16 +17,26 @@ for a path that already has a row.
    group's rows must stay **contiguous**: a row filed under a group the page has already left prints
    that tab a second time further down. Within a tab, consecutive rows pair **two to a line** —
    pair a mode with the thing it modes, and rest beside hover, so the reader goes across rather than
-   down. `solo` breaks a row onto its own line; use it for a genuine pivot, not for spacing.
+   down. `solo` breaks a row onto its own line; use it for a genuine pivot, not for spacing;
+   `startsLine` flushes the pending line before a row, so a declared pair can never be split. Where
+   a tab mixes **kinds** of control, every row on it carries a `subgroup` naming its kind — that
+   heading is drawn inside the tab and is deliberately not suppressed (`options-ui-§7`).
    Then update the page → tab → count table (`PARTITION`) in `tests/test_schema.lua`; it is the case
    that catches a row drifting into the wrong tab.
-3. **A slider row must declare its `step`.** `LibKa0s-Options-1.0`'s `makeSlider` assumes `1` when the
-   row omits it, which would snap a 0.6–1.6 range to its two endpoints and nothing in between.
-   `settings.windowScale` declares `0.05` and never relies on the default.
-4. Give the row an `onChange` if anything must react. By convention it sends
+3. **Do not hand-write a canonical block.** A font, border or bar group, a color swatch and its
+   `Use class color` companion, or anything on the **Master controls** tab is *composed*
+   (`H.FontGroup`, `H.BorderGroup`, `H.BarGroup`, `H.ColorPair`, `H.MasterControls`) — a hand-written
+   copy is anti-pattern #73. Pass `keys` and `defaults` so the composer keeps this addon's stored
+   paths and values; see `S.MASTER_SPEC` in `settings/Schema.lua` for the shape. Adding the first
+   color row also means adding `colorDecode`/`colorEncode` to the descriptor in
+   `settings/OptionsSetup.lua`, which has none today.
+4. **A slider row must declare its `step`.** `LibKa0s-Options-1.0`'s `makeSlider` assumes `1` when the
+   row omits it, which would snap a fractional range to its two endpoints and nothing in between.
+   The two tint sliders declare `0.01`; the composed rows carry their own.
+5. Give the row an `onChange` if anything must react. By convention it sends
    `Ka0s_BankLedger_SettingsChanged` with a short reason string — that is what makes `modules/Ledger.lua`
    re-cache its capture-gate upvalues.
-5. Every write — panel widget or slash line — goes through `NS.Schema:Set`, which validates, writes,
+6. Every write — panel widget or slash line — goes through `NS.Schema:Set`, which validates, writes,
    emits the one debug trace, runs `onChange` and repaints an open panel. Do not write `db.global`
    directly from a new code path.
 

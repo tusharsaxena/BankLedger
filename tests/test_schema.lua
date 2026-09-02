@@ -57,10 +57,19 @@ test("Schema: every row declares a default", function()
 end)
 
 test("Schema: dropdown rows carry their option list", function()
+  -- TWO shapes, both of which LibKa0s-Options-1.0 reads (OptionsWidgets' dropdown entries): an
+  -- ARRAY, whose position IS the order, or a KEY MAP plus an explicit `sorting`. This addon writes
+  -- arrays; the Master controls composer emits `visibility` as a key map, which is why the check is
+  -- no longer "#values > 0". A key map with no `sorting` is still a failure — the library falls back
+  -- to sorted keys, so the four visibility answers would be offered alphabetically by accident.
   for _, row in ipairs(S.Schema) do
     if row.widget == "Dropdown" or row.widget == "MultiCheck" then
-      assertTrue(type(row.values) == "table" and #row.values > 0,
-        row.path .. " has no options")
+      assertTrue(type(row.values) == "table", row.path .. " has no options")
+      if #row.values == 0 then
+        assertTrue(next(row.values) ~= nil, row.path .. " has no options")
+        assertTrue(type(row.sorting) == "table" and #row.sorting > 0,
+          row.path .. " is a key map with no `sorting`, so its order is alphabetical by accident")
+      end
     end
   end
 end)
@@ -186,25 +195,36 @@ end)
 -- rows losing contiguity — a row filed under a group the page has already left prints that tab a
 -- second time further down, which nothing else reports.
 --
--- Counts are RENDERED rows plus the skipRender ones, i.e. every row the schema files under the tab.
+-- Counts are RENDERED rows plus the skipRender ones, i.e. every row the page files under the tab.
+--
+-- Read off S:PageRows(), NOT S.Schema, and that is the whole difference the revamp made: the page
+-- also draws the two item-id filter tabs, whose `group` is declared by a renderer-only row that is
+-- deliberately not a setting. S.Schema alone would report four tabs for a six-tab strip.
 local PARTITION = {
   general = {
-    { tab = "Capture",   rows = 5 },
-    { tab = "Interface", rows = 6 },
-    { tab = "History",   rows = 1 },
+    { tab = "Master controls", rows = 6 },
+    { tab = "Capture",         rows = 4 },
+    { tab = "Interface",       rows = 4 },
+    { tab = "History",         rows = 1 },
+    { tab = "Blacklist",       rows = 1 },
+    { tab = "Whitelist",       rows = 1 },
   },
 }
 
--- A tab whose stored rows number fewer than two is not a subject — UNLESS its row sits beside
--- BESPOKE controls that have no path and so cannot be counted here. History is that case and is
--- exempt BY NAME: settings/Panel.lua's renderStorage hangs the live storage read-out and the
--- Purge / Reset all button pair off it. Widening the rule instead of naming the exception is how
--- the next one-row tab gets waved through.
-local THIN_TAB_EXEMPT = { History = "the storage read-out and the Purge / Reset all pair" }
+-- A tab whose declared rows number fewer than two is not a subject — UNLESS its row sits beside
+-- BESPOKE controls that have no path and so cannot be counted here. Three tabs are that case and
+-- each is exempt BY NAME: settings/Panel.lua's renderStorage hangs the live storage read-out and the
+-- Purge button off History, and renderFilterTab draws each id-list's whole body. Widening the rule
+-- instead of naming the exception is how the next one-row tab gets waved through.
+local THIN_TAB_EXEMPT = {
+  History   = "the storage read-out and the Purge button",
+  Blacklist = "the host-drawn id list, its add row and its Clear all button",
+  Whitelist = "the host-drawn id list, its add row and its Clear all button",
+}
 
 test("Schema: the page partitions into the designed tabs, in the designed order", function()
   local order, counts = {}, {}
-  for _, row in ipairs(S.Schema) do
+  for _, row in ipairs(S:PageRows()) do
     local g = row.group
     if counts[g] == nil then order[#order + 1] = g; counts[g] = 0 end
     counts[g] = counts[g] + 1
@@ -218,12 +238,53 @@ test("Schema: the page partitions into the designed tabs, in the designed order"
   end
 end)
 
+test("Schema: Master controls is the FIRST tab, and holds exactly the canonical rows", function()
+  -- options-ui-§15. The set is canonical, not a menu: this addon draws three movable frames
+  -- (modules/Browser.lua:1007, modules/SessionWindow.lua:449, modules/Export.lua:347) so it is not
+  -- frameless and every frame-only row applies. The ORDER is the standard's table read across then
+  -- down, and it must not be reordered, renamed or split.
+  --
+  -- Dies under: dropping `visibility` from the composer spec, reordering the emitted rows, or
+  -- splicing the block anywhere but the head of S.Schema.
+  local want = {
+    "settings.enabled", "settings.visibility",
+    "settings.windowScale", "settings.alpha",
+    "settings.locked", "state.debugConsole",
+  }
+  local got = {}
+  for _, row in ipairs(S:PageRows()) do
+    if row.group == "Master controls" then got[#got + 1] = row.path end
+  end
+  assertEqual(S:PageRows()[1].group, "Master controls", "Master controls must be the FIRST tab")
+  assertEqual(#got, #want, "Master controls holds the wrong number of rows")
+  for i, path in ipairs(want) do
+    assertEqual(got[i], path, "Master controls row #" .. i .. " is out of canonical order")
+  end
+  -- The stored paths are this addon's own, not the composer's leaf names: `keys` is what preserves
+  -- them, and every existing install stores its scale under settings.windowScale.
+  assertEqual(S:FindRow("settings.windowScale").label, "Master scale")
+  assertEqual(S:FindRow("settings.enabled").label, "Enable Bank Ledger")
+end)
+
+test("Schema: every row on every tab of the page carries a group", function()
+  -- A page whose rows declare none cannot draw a strip: the library reports it and renders the page
+  -- untabbed (options-ui-§13, anti-pattern #69). Over the RENDERED rows, because that is the set
+  -- RenderTabbedSchema partitions.
+  --
+  -- Dies under: deleting `group` from any one row, in either half of PageRows.
+  for i, row in ipairs(S:PageRows()) do
+    assertTrue(type(row.group) == "string" and row.group ~= "",
+      "row #" .. i .. " (" .. tostring(row.path or row.label) .. ") carries no group")
+  end
+end)
+
 test("Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice", function()
   local seen, last = {}, nil
-  for _, row in ipairs(S.Schema) do
+  for _, row in ipairs(S:PageRows()) do
     if row.group ~= last then
       assertFalse(seen[row.group],
-        row.path .. " reopens the '" .. tostring(row.group) .. "' tab after the page left it")
+        tostring(row.path or row.label) .. " reopens the '" .. tostring(row.group)
+        .. "' tab after the page left it")
       seen[row.group] = true
       last = row.group
     end
@@ -232,7 +293,7 @@ end)
 
 test("Schema: no tab holds fewer than two controls unless it is exempt by name", function()
   local counts = {}
-  for _, row in ipairs(S.Schema) do counts[row.group] = (counts[row.group] or 0) + 1 end
+  for _, row in ipairs(S:PageRows()) do counts[row.group] = (counts[row.group] or 0) + 1 end
   for tab, n in pairs(counts) do
     if n < 2 then
       assertTrue(THIN_TAB_EXEMPT[tab] ~= nil,
@@ -244,34 +305,36 @@ test("Schema: no tab holds fewer than two controls unless it is exempt by name",
 end)
 
 test("Schema: two tabs draw a strip at all — a single-group page falls back to sections", function()
-  -- The library's own behaviour, and the reason the partition above matters: with fewer than two
-  -- groups RenderTabbedSchema calls RenderSchema and draws no strip.
+  -- The library draws a strip for a one-group page as of OptionsWidgets minor 13, so this is no
+  -- longer the difference between a strip and no strip — what it still catches is the page
+  -- collapsing to one subject, which would be the revamp undone.
   local groups = {}
-  for _, row in ipairs(S.Schema) do groups[row.group] = true end
+  for _, row in ipairs(S:PageRows()) do groups[row.group] = true end
   local n = 0
   for _ in pairs(groups) do n = n + 1 end
-  assertTrue(n >= 2, "the General page would lose its tab strip")
+  assertTrue(n >= 2, "the General page collapsed to a single subject")
 end)
 
 -- ── Row order inside a tab is LAYOUT ──────────────────────────────────────────
 
-test("Schema: the Capture tab leads with the master switch, alone on its line", function()
+test("Schema: the Capture tab leads with the two kind toggles, paired across one line", function()
   -- The flow engine pairs consecutive non-wide rows two to a line, so declaration order IS the
-  -- layout. `solo` is what keeps "Enable capture" — the switch every other row on the tab is
-  -- conditional on — from sharing a line with "Track items".
+  -- layout. The master switch that used to lead this tab is "Enable Bank Ledger" on Master controls
+  -- now (options-ui-§15) and there is exactly ONE of it — the `solo` that kept it off the toggles'
+  -- line went with it.
   local first
   for _, row in ipairs(S.Schema) do
     if row.group == "Capture" then first = row; break end
   end
-  assertEqual(first.path, "settings.enabled", "the master switch must lead the Capture tab")
-  assertTrue(first.solo == true, "the master switch must break onto its own line")
+  assertEqual(first.path, "settings.trackItems", "the item toggle must lead the Capture tab")
+  assertFalse(first.solo == true, "a solo lead row splits the kind toggles across two lines")
 end)
 
 test("Schema: the Capture kind toggles pair across one line, in item-then-gold order", function()
   local want = { "settings.trackItems", "settings.trackMoney" }
   local got = {}
   for _, row in ipairs(S.Schema) do
-    if row.group == "Capture" and row.widget == "CheckBox" and row.path ~= "settings.enabled" then
+    if row.group == "Capture" and row.widget == "CheckBox" then
       got[#got + 1] = row.path
     end
   end
@@ -309,11 +372,35 @@ test("Schema: rest and hover sit on ONE line, so they are read across and not do
 end)
 
 test("Schema: the Interface tab opens with the control most players reach for", function()
+  -- Master scale led this tab until it was promoted to Master controls (options-ui-§15), where it
+  -- has always belonged: modules/Browser.lua and modules/SessionWindow.lua both read that one key,
+  -- so it was never the "window scale" of any particular window.
   local first
   for _, row in ipairs(S.Schema) do
     if row.group == "Interface" then first = row; break end
   end
-  assertEqual(first.path, "settings.windowScale")
+  assertEqual(first.path, "minimap.hide")
+end)
+
+test("Schema: the Interface tab heads each KIND of control it mixes", function()
+  -- options-ui-§7: a tab mixing kinds must break them up, and those headings are NOT suppressed the
+  -- way the tab's own section heading is. Interface holds two kinds — the windows you can switch on
+  -- and the tint of a table row — so every row on it carries a `subgroup`, and no subgroup may
+  -- repeat the tab's own name.
+  --
+  -- Dies under: dropping `subgroup` from any Interface row, or naming one "Interface".
+  local kinds, order = {}, {}
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Interface" then
+      assertTrue(type(row.subgroup) == "string" and row.subgroup ~= "",
+        row.path .. " sits on a mixed tab with no subsection heading")
+      assertFalse(row.subgroup == row.group, row.path .. "'s subgroup repeats its tab's name")
+      if not kinds[row.subgroup] then kinds[row.subgroup] = true; order[#order + 1] = row.subgroup end
+    end
+  end
+  assertEqual(#order, 2, "Interface should head exactly two kinds of control")
+  assertEqual(order[1], "Windows")
+  assertEqual(order[2], "Table rows")
 end)
 
 -- ── The promoted chrome literals (Step 4) ─────────────────────────────────────
@@ -362,6 +449,70 @@ test("Schema: every row carries a tooltip", function()
   for _, row in ipairs(S.Schema) do
     assertTrue((row.tooltip or "") ~= "", row.path .. " has no tooltip")
   end
+end)
+
+-- ── The class-color companion (options-ui-§17) ────────────────────────────────
+
+test("Schema: this addon still declares no color row at all", function()
+  -- Pinned rather than assumed, because it is what makes the case below a guard rather than a
+  -- vacuous loop. The moment a swatch is added, the loop stops passing for free — and this case is
+  -- what says the emptiness was a fact about the addon and not an accident of how the loop is
+  -- written. settings/OptionsSetup.lua's descriptor carries no colorDecode/colorEncode for the same
+  -- reason, so a color row added without them would not even round-trip.
+  --
+  -- Dies under: adding any `type = "color"` row.
+  for _, row in ipairs(S:PageRows()) do
+    assertFalse(row.type == "color",
+      tostring(row.path) .. " is a color row; the descriptor needs colorDecode/colorEncode and the "
+      .. "companion loop below is no longer vacuous")
+  end
+end)
+
+test("Schema: a color row is followed by its companion, and never carries disabledIf", function()
+  -- options-ui-§17: the companion sits immediately to the swatch's right, so it is the very next
+  -- row in declaration order, and the swatch is NEVER disabled while the companion is on — it is
+  -- still read for its alpha, so graying it would tell the player something untrue
+  -- (anti-pattern #74). The composers set both, which is why H.ColorPair is the way to add one.
+  --
+  -- Dies under: a hand-written swatch with no companion after it, or a `disabledIf` on one.
+  local rows = S:PageRows()
+  for i, row in ipairs(rows) do
+    if row.type == "color" then
+      local next_ = rows[i + 1]
+      assertTrue(next_ ~= nil and next_.type == "bool" and next_.label == "Use class color",
+        tostring(row.path) .. " has no `Use class color` companion beside it")
+      assertTrue(row.classColorSource == "player" or row.classColorSource == "unit",
+        tostring(row.path) .. " does not declare which class it means")
+      assertTrue(row.startsLine == true,
+        tostring(row.path) .. " can be split from its companion by an odd row count above it")
+    end
+    assertTrue(row.disabledIf == nil,
+      tostring(row.path) .. " carries disabledIf; forbidden on a color row and unused here")
+  end
+end)
+
+-- ── General visibility (options-ui-§15) ───────────────────────────────────────
+
+test("Schema: General visibility is a dropdown over the four canonical answers", function()
+  -- A boolean can only ever answer two of the four. This addon never shipped a `show only in
+  -- combat` checkbox, so there is NO stored value to migrate and SCHEMA_VERSION is deliberately
+  -- unmoved — the second half of this case is what pins that claim, so a later reader does not go
+  -- looking for a migration step that was never owed.
+  --
+  -- Dies under: declaring the row `type = "bool"`, or dropping one of the four answers.
+  local row = S:FindRow("settings.visibility")
+  assertEqual(row.type, "string")
+  assertEqual(row.default, "always")
+  local want = { "always", "inCombat", "outOfCombat", "never" }
+  assertEqual(#row.sorting, #want, "the four answers must all be offered")
+  for i, key in ipairs(want) do
+    assertEqual(row.sorting[i], key, "visibility answer #" .. i .. " is out of order")
+    assertTrue((row.values[key] or "") ~= "", key .. " has no label")
+  end
+  local shipped = NS.defaults.global.settings
+  assertEqual(shipped.visibility, "always", "the defaults mirror disagrees")
+  assertEqual(shipped.showOnlyInCombat, nil,
+    "a legacy boolean turned up — it would need a migration, not a type change")
 end)
 
 -- ── LibKa0s-Options-1.0 row vocabulary ─────────────────────────────────────────

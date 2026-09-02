@@ -16,7 +16,8 @@ NS.defaults.global = {
   ledger = {},   -- array of movement entries, oldest first
 
   -- Item-id filter lists. Blacklisted ids are never recorded; whitelisted ids are always recorded,
-  -- bypassing the quality gate. Managed via a custom UI (Settings ▸ Filters) and the ledger table's
+  -- bypassing the quality gate. Managed via a custom UI (Settings ▸ General ▸ Blacklist /
+  -- Whitelist, the two tabs the retired Filters page became) and the ledger table's
   -- right-click menu — NOT Schema rows, so they are an architecture-§5 carve-out like `window`
   -- (mutated directly through NS.Filters, not via Schema:Set).
   blacklist = {},
@@ -36,7 +37,20 @@ NS.defaults.global = {
     qualityThreshold = 0,      -- Poor and above: a bank ledger cares about junk too
     excludedStores   = {},     -- set of muted Store keys
     retentionDays    = 30,     -- 0 == keep Always
+
+    -- The Master controls block (options-ui-§15). Each default is the composer's own, restated here
+    -- because NS.Schema:Register resolves every schema path against this table — a composed row with
+    -- no default here is a path that reads nil forever, and that check is what catches it.
+    --
+    -- `visibility` is a DROPDOWN, not a boolean, and it starts life as one: this addon never shipped
+    -- a "show only in combat" checkbox, so there is no stored value to migrate and SCHEMA_VERSION is
+    -- unmoved. Honored in NS.Util.VisibilityAllows.
+    visibility       = "always",  -- always | inCombat | outOfCombat | never
+    -- "Master scale". Already addon-wide before it was promoted onto that tab: modules/Browser.lua
+    -- and modules/SessionWindow.lua both read this one key.
     windowScale      = 1.0,
+    alpha            = 1.0,    -- "Master alpha" — NS.Util.ApplyMasterChrome
+    locked           = false,  -- "Lock frame"   — NS.Util.ApplyMasterChrome
     window           = {},     -- persisted position/size (standalone-windows carve-out)
 
     -- The pooled-row tint, shared by the History table and the session window. Each value IS the

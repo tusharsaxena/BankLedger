@@ -1,5 +1,6 @@
 local T = _G.BL_TEST
 local NS = T.NS
+local mocks = T.mocks
 local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
@@ -519,4 +520,47 @@ test("LedgerTable row menu still disables item actions on a money row", function
   assertFalse(m["Blacklist item"].enabled)
   assertFalse(m["Link to chat"].enabled)
   assertTrue(m["Delete"].enabled, "a real money row is still deletable")
+end)
+
+-- ── The confirmation lines point at a page that exists (R3) ────────────────────
+--
+-- The Filters sub-page was deregistered when its two lists became General's Blacklist and Whitelist
+-- tabs (settings/Panel.lua). These two chat lines are the only user-facing copy that names the
+-- destination, and a stale one sends the player to a sidebar entry that is no longer there.
+
+local function captureChat(fn)
+  local out = {}
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+  local ok, err = pcall(fn)
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+  return table.concat(out, "\n")
+end
+
+--- Fire one row-menu entry with both filter lists restored afterwards, so the assertion cannot
+--- leave a stray id in the persisted capture filter for a later file to trip over.
+local function fireMenuItem(label, entry)
+  local blacklist, whitelist = NS.Filters:Blacklist(), NS.Filters:Whitelist()
+  local out = captureChat(function() menuByLabel(entry, false)[label].fn() end)
+  NS.db.global.blacklist, NS.db.global.whitelist = blacklist, whitelist
+  NS.Filters:_notify()
+  return out
+end
+
+test("LedgerTable: the blacklist confirmation names the tab the list actually lives on", function()
+  -- Dies under: restoring "Settings \226\150\184 Filters." — the deregistered page — or pointing
+  -- the blacklist line at the Whitelist tab.
+  local out = fireMenuItem("Blacklist item", { itemID = 2589, itemName = "Linen Cloth" })
+  assertTrue(out:find("Settings \226\150\184 General \226\150\184 Blacklist%.") ~= nil,
+    "blacklist line must route to General \226\150\184 Blacklist, got: " .. out)
+  assertFalse(out:find("\226\150\184 Filters") ~= nil, "the Filters page no longer exists")
+end)
+
+test("LedgerTable: the whitelist confirmation names the tab the list actually lives on", function()
+  -- Dies under: leaving the whitelist line pointing at Filters, or copying the blacklist wording.
+  local out = fireMenuItem("Whitelist item", { itemID = 2589, itemName = "Linen Cloth" })
+  assertTrue(out:find("Settings \226\150\184 General \226\150\184 Whitelist%.") ~= nil,
+    "whitelist line must route to General \226\150\184 Whitelist, got: " .. out)
+  assertFalse(out:find("\226\150\184 Filters") ~= nil, "the Filters page no longer exists")
 end)
