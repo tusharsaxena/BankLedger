@@ -146,7 +146,7 @@ item exists for one job that is done rarely and by hand.
 
 `media/logos/bankledger.logo.png` is the 2000×2000 master. The `.tga` the client actually loads and
 the two `.jpg` renders for the project page are produced from it by a short Pillow script recorded
-verbatim in **`docs/media.md:131-141`** (`from PIL import Image, ImageFilter`, `LANCZOS`
+verbatim in **`docs/media.md:131-139`** (`from PIL import Image, ImageFilter`, `LANCZOS`
 downscales, an unsharp mask on the 256). The derivatives are **committed**, so this is needed only
 when the artwork changes.
 

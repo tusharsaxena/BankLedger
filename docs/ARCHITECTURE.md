@@ -36,9 +36,9 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 28 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
 the Compat firewall, the AceDB layer and the six LibKa0s seams; `modules/` holds the capture engine
-and every window; `settings/` holds the schema and the three panel pages.
+and every window; `settings/` holds the schema and the two panel pages.
 
-Load order is load-bearing in four places, and `tests/test_harness.lua` guards the order the harness
+Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
 derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 
@@ -77,7 +77,7 @@ two consumers sharing a target silently clobber each other.
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
 | `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Blacklist / Whitelist tabs) |
-| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
@@ -96,12 +96,16 @@ seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispa
 
 ## Event Subscriptions
 
-Eleven registrations. **Eight** are the capture engine's and all go through
+Fourteen registrations. **Nine** are the capture engine's and all go through
 `Ledger:RegisterEventSafely` — modern retail **raises** on an unknown event name, so a bare loop turns
-one retired event into a silently deaf addon. The other three sit outside the engine and outside that
+one retired event into a silently deaf addon. The other five sit outside the engine and outside that
 guard, because none of their names can go away under it: `PLAYER_ENTERING_WORLD` on the AceEvent addon
-object (`core/BankLedger.lua:45`, the one-shot retention prune) and `PLAYER_LOGOUT` on each window's
-own event frame (`modules/Browser.lua:1243`, `modules/SessionWindow.lua:662`, geometry flush).
+object (`core/BankLedger.lua:45`, the one-shot retention prune), the combat pair
+`PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the same object (`core/BankLedger.lua:49-50`
+→ `addon:OnCombatChanged` → `NS.Util.ApplyVisibility`, the two edges the **General visibility** rule
+answers on — without them a window opened out of combat would simply stay up through a pull), and
+`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1249`,
+`modules/SessionWindow.lua:673`, geometry flush).
 
 Change events are debounced into one reconcile pass per user action, and the baseline is held
 whenever a pass sees a one-sided change.

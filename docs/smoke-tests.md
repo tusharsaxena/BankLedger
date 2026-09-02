@@ -373,8 +373,10 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
 
 1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
 2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **History** ▸ **Reset all…** asks to confirm and restores everything,
-   recentering both windows. It sits beside **Purge ledger…** on that tab, and nowhere else.
+3. Settings ▸ General ▸ **Master controls** ▸ **Reset all settings** asks to confirm and restores
+   everything, recentering both windows and discarding the recorded ledger with them. It sits beside
+   **Reset position** in that tab's closing button pair, and nowhere else — History carries
+   **Purge ledger…** alone (S-12).
 
 ## S-17 · Current Banking Session window
 

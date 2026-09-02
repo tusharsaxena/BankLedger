@@ -2,7 +2,7 @@
 
 `/bl`, aliased `/bankledger`. `settings/Slash.lua` is the **LibKa0s-Slash-1.0 seam**: the dispatcher,
 the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's; what stays the
-host's is AceConsole registration, the five confirm dialogs, `Sl:Version`, and the full reset.
+host's is AceConsole registration, the four confirm dialogs, `Sl:Version`, and the full reset.
 
 `/bl`, aliased `/bankledger`. The table is generated from `NS.COMMANDS`, so `/bl help`, the
 settings landing page and the README all read from one place.
@@ -32,8 +32,10 @@ match, so it was left alone rather than folded into the rename.
 
 - **`groupKey`** — this schema groups by `group`, not by `page`, so the help renderer is told which
   field to bucket on. `group` also names the panel **tab** the row draws on (`options-ui-§13`), so
-  `/bl list`'s headings and the settings strip are the same partition read two ways — *Capture*,
-  *Interface*, *History*, in declaration order.
+  `/bl list`'s headings and the settings strip are the same partition read two ways — *Master
+  controls*, *Capture*, *Interface*, *History*, in declaration order. *Master controls* leads because
+  `S:ComposeMaster` splices the composed rows at the **head** of `S.Schema`; in a degraded install
+  the composer emits nothing and that heading is simply absent from `/bl list` along with its rows.
 - **A `format` hook** for the set-typed `settings.excludedStores` row, which has no scalar rendering.
 - **A `parse` override** that refuses a chat edit of that same row by name — a muted-store set is not
   something a `set` line can express unambiguously.

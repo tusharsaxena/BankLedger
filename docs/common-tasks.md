@@ -65,7 +65,7 @@ back to the tab.
 
 ## Add a slash command
 
-Append one entry to `NS.COMMANDS` (`settings/Schema.lua:235`). `/bl help`, the settings landing page
+Append one entry to `NS.COMMANDS` (`settings/Schema.lua:396`). `/bl help`, the settings landing page
 and the README's command table all read from that table, so nothing else needs editing — regenerate
 the README with `/wow-addon:sync-docs`. See [slash-dispatch.md](slash-dispatch.md) for what the
 library owns versus what stays the host's.
@@ -141,7 +141,12 @@ this build rejected land in `Ledger.unavailableEvents` and are reported by `/bl 
 
 Both existing windows are plain non-secure frames sharing one `SKIN` / `ApplySkin` seam and one
 close-control factory — `B:MakeCloseButton`, which draws the collection's shared `close` mark and
-keeps a 24pt × as the rung below it. Reach for that factory rather than a fourth hand-rolled ×. Anchor geometry persistence to the **guaranteed** moments —
+keeps a 24pt × as the rung below it. Reach for that factory rather than a fourth hand-rolled ×.
+Call `NS.Util.ApplyMasterFrame(frame)` once the frame is built, **after** the stock
+`SetMovable(true)`: it is the single seam behind master scale, master alpha and `Lock frame`
+(`options-ui-§15`), and a window that skips it is the one the Master controls tab silently does not
+reach. `NS.Util.ApplyMasterChrome` then has to learn about it too — it walks a fixed list of window
+owners. Anchor geometry persistence to the **guaranteed** moments —
 `SaveGeometry()` on every `OnHide` and on `PLAYER_LOGOUT`, `ApplyGeometry()` once at frame build.
 Drag-stop and resize-stop are conveniences on top, not the contract: releasing a resize grip a pixel
 outside a 16×16 button never delivers its `OnMouseUp`, and the in-memory frame then masks the fault
