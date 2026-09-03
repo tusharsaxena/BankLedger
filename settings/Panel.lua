@@ -196,7 +196,7 @@ end
 -- reached through NS.Schema.masterTail at CALL time rather than captured here, because
 -- settings/OptionsSetup.lua composes it one file earlier and a degraded install composes nothing.
 --
--- The two Blacklist/Whitelist entries are appended below, once makeFilterSection exists.
+-- The Filters entry is appended below, once buildFiltersTab exists.
 local GENERAL_AFTER_TAB = {
   ["Master controls"] = function(ctx)
     if NS.Schema.masterTail then NS.Schema.masterTail(ctx) end
@@ -205,15 +205,21 @@ local GENERAL_AFTER_TAB = {
   ["History"] = renderStorage,
 }
 
--- ── The Blacklist and Whitelist tabs: item-id management ───────────────────────
+-- ── The Filters tab: item-id management ────────────────────────────────────────
 --
--- These were a SEPARATE "Filters" sub-page until the settings revamp (R3). It held no schema rows
--- at all, so the merge is not a `group` rename: the two lists are now two tabs of the General
--- page's own strip, declared by the renderer-only rows in settings/Schema.lua (S.BespokeRows) and
--- drawn from this file's `afterGroup` hooks — the same seam the Capture store grid and the History
--- read-out already use. The alternative was hand-drawing General's strip with O.TabStrip over a
--- combined list and dispatching per tab, which would have meant re-implementing the partition, the
--- stale-pointer heal and the noHeadings render that RenderTabbedSchema already owns.
+-- This was a SEPARATE "Filters" sub-page until the settings revamp (R3). It held no schema rows at
+-- all, so the merge is not a `group` rename: the lists are a tab of the General page's own strip,
+-- declared by the renderer-only row in settings/Schema.lua (S.BespokeRows) and drawn from this
+-- file's `afterGroup` hook — the same seam the Capture store grid and the History read-out already
+-- use. The alternative was hand-drawing General's strip with O.TabStrip over a combined list and
+-- dispatching per tab, which would have meant re-implementing the partition, the stale-pointer heal
+-- and the noHeadings render that RenderTabbedSchema already owns.
+--
+-- ONE TAB, TWO SUB-TABS, and it used to be two primary tabs. Ka0s Loot History holds three of these
+-- lists and had already put them under one Filters tab with a SECONDARY strip; converging the two
+-- panels on one set of tab names (see settings/Schema.lua's header) made this the shape to keep,
+-- and it is the one that scales — a third list here would otherwise be a third primary tab pushing
+-- Capture, Interface and History along the band for a subject that is not their peer.
 
 -- Display name for an id: "Name  (id)" once cached, "Item <id>" until the client caches it (a
 -- background load is kicked off so a later rebuild fills the name in).
@@ -267,9 +273,9 @@ end
 -- One list (blacklist or whitelist): description, add-row, bulk clear, live list.
 --
 -- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
--- was the only thing telling them apart; the page is a tab strip now and the tab IS the heading, so
--- a "Blacklist" heading under a tab labelled Blacklist would say the word twice — which is the same
--- rule the library applies to a tabbed schema page (RenderRows' `noHeadings`).
+-- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
+-- heading under a sub-tab labelled Blacklist would say the word twice — which is the same rule the
+-- library applies to a tabbed schema page (RenderRows' `noHeadings`).
 local function makeFilterSection(ctx, listKey, desc)
   local scroll = O.EnsureScroll(ctx)
 
@@ -333,22 +339,75 @@ local function makeFilterSection(ctx, listKey, desc)
   rebuildFilterList(ctx, listGroup, listKey)
 end
 
--- The two lists' blurbs, keyed by the stored list name. The tab ORDER is the order the capture gate
--- consults them — an item is refused by the blacklist first, and the whitelist is the exception that
--- overrides the quality gate afterwards — and it is declared once, by S.BespokeRows' position in
--- NS.Schema:PageRows(), not a second time here.
-local FILTER_DESC = {
-  blacklist = "Items here are never recorded when they move from now on. Existing rows are left "
-    .. "untouched (this only affects future movements \226\128\148 delete old rows from the ledger table "
-    .. "if you want them gone).",
-  whitelist = "Items here are always recorded, even when they fall below your minimum quality. "
-    .. "Adding an id to one list removes it from the other.",
+-- The PRIMARY tab's key, spelled once: it is both this tab's `group` in settings/Schema.lua and the
+-- key `ctx.activeSubTab` is filed under, and the convention only works while the two agree.
+local FILTERS_TAB = "Filters"
+
+-- The sub-strip, in order — which is the order the capture gate consults the lists: an item is
+-- refused by the blacklist first, and the whitelist is the exception that overrides the quality gate
+-- afterwards. The `key` is the STORED list name and the `label` is what the sub-tab reads; neither
+-- repeats the word Filters, because the tab above them already says it.
+local FILTER_TABS = {
+  { key = "blacklist", label = "Blacklist",
+    desc = "Items here are never recorded when they move from now on. Existing rows are left "
+      .. "untouched (this only affects future movements \226\128\148 delete old rows from the ledger table "
+      .. "if you want them gone)." },
+  { key = "whitelist", label = "Whitelist",
+    desc = "Items here are always recorded, even when they fall below your minimum quality. "
+      .. "Adding an id to one list removes it from the other." },
 }
 
--- One list tab's whole body, from its group's `afterGroup` hook. There is no strip to draw and no
--- active-tab state to keep: General's own strip is drawing this, and the library owns both.
-local function renderFilterTab(ctx, listKey)
-  makeFilterSection(ctx, listKey, FILTER_DESC[listKey])
+-- The Filters tab's whole body, from its group's `afterGroup` hook: a secondary strip over the two
+-- lists, then the selected one.
+--
+-- THE SUB-TAB SELECTION IS THE HOST'S STATE. The library's SubTabStrip reads `spec.value` and calls
+-- `spec.onSelect` and never looks at either again, and the convention across the collection is
+-- `ctx.activeSubTab` as a TABLE keyed by the PRIMARY tab's key — so leaving Filters for another tab
+-- and coming back returns to the list you were on, and a stale pointer heals per category. Session
+-- state, never persisted (options-ui-§13), exactly like `ctx.activeTab`.
+local function buildFiltersTab(ctx)
+  local scroll = O.EnsureScroll(ctx)
+  if not scroll then return end
+
+  ctx.activeSubTab = ctx.activeSubTab or {}
+  local listKey = ctx.activeSubTab[FILTERS_TAB]
+  -- A pointer naming a list this tab no longer has would render blank, so a stale one heals to the
+  -- first rather than being trusted — the same cheap check the library's own strip does.
+  local known = false
+  for _, tab in ipairs(FILTER_TABS) do if tab.key == listKey then known = true end end
+  if not known then listKey = FILTER_TABS[1].key end
+  ctx.activeSubTab[FILTERS_TAB] = listKey
+
+  -- The strip's buttons are raw frames, so they need a frame to live on: a layout-suppressed
+  -- SimpleGroup added as an ordinary scroll child, sized to whatever height the strip reports.
+  -- ClearScroll drains the library's __subTabKids ledger BEFORE it releases this group, which is
+  -- what stops the buttons riding a pooled frame into somebody else's page.
+  local host = O.AceGUI:Create("SimpleGroup")
+  host:SetLayout(nil); host:SetFullWidth(true)
+  scroll:AddChild(host)
+
+  local tabs = {}
+  for i, tab in ipairs(FILTER_TABS) do tabs[i] = { key = tab.key, label = tab.label } end
+  local _, height = O.SubTabStrip(ctx, host.frame, {
+    tabs  = tabs,
+    value = listKey,
+    onSelect = function(k)
+      if k == ctx.activeSubTab[FILTERS_TAB] then return end
+      ctx.activeSubTab[FILTERS_TAB] = k
+      -- Structural: re-enter the page renderer, which clears the scroll and draws the newly
+      -- selected list. A sub-tab click inside an already-open panel was never a protected action,
+      -- so it needs no combat guard of its own (options-ui-§13).
+      O.RefreshPanel(ctx, true)
+    end,
+  })
+  host:SetHeight(height or 0)
+  O.AddSpacer(scroll, 6)
+
+  -- ONE list, the selected one. Both stacked down the same scroll was two AceGUI teardown-and-
+  -- rebuilds on every paint for a page showing one of them.
+  for _, tab in ipairs(FILTER_TABS) do
+    if tab.key == listKey then makeFilterSection(ctx, tab.key, tab.desc) end
+  end
 
   -- Live-update both lists when they change from elsewhere (the ledger table's right-click menu),
   -- on a private bus target. While the page is on screen we repaint immediately; while it is hidden
@@ -368,10 +427,9 @@ local function renderFilterTab(ctx, listKey)
   end
 end
 
--- Appended rather than declared with the other two: makeFilterSection is defined between them, and
--- a forward local would be a second name for one function.
-GENERAL_AFTER_TAB["Blacklist"] = function(ctx) renderFilterTab(ctx, "blacklist") end
-GENERAL_AFTER_TAB["Whitelist"] = function(ctx) renderFilterTab(ctx, "whitelist") end
+-- Appended rather than declared with the other two: buildFiltersTab is defined between them, and a
+-- forward local would be a second name for one function.
+GENERAL_AFTER_TAB[FILTERS_TAB] = buildFiltersTab
 
 -- ── Landing page: logo + tagline + slash-command list (options-ui-§5) ───────────
 local function buildMainContent(ctx)

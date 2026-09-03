@@ -549,18 +549,22 @@ local function fireMenuItem(label, entry)
 end
 
 test("LedgerTable: the blacklist confirmation names the tab the list actually lives on", function()
-  -- Dies under: restoring "Settings \226\150\184 Filters." — the deregistered page — or pointing
-  -- the blacklist line at the Whitelist tab.
+  -- The route is three deep now: Filters is a TAB of General, and Blacklist a sub-tab of it. A line
+  -- naming only the tab would leave the player on whichever list was last selected.
+  -- Dies under: restoring "Settings \226\150\184 Filters." — the deregistered PAGE, which is the
+  -- same words one level short — or pointing the blacklist line at the Whitelist sub-tab.
   local out = fireMenuItem("Blacklist item", { itemID = 2589, itemName = "Linen Cloth" })
-  assertTrue(out:find("Settings \226\150\184 General \226\150\184 Blacklist%.") ~= nil,
-    "blacklist line must route to General \226\150\184 Blacklist, got: " .. out)
-  assertFalse(out:find("\226\150\184 Filters") ~= nil, "the Filters page no longer exists")
+  assertTrue(out:find("Settings \226\150\184 General \226\150\184 Filters \226\150\184 Blacklist%.") ~= nil,
+    "blacklist line must route to General \226\150\184 Filters \226\150\184 Blacklist, got: " .. out)
+  assertFalse(out:find("Settings \226\150\184 Filters") ~= nil,
+    "the Filters PAGE no longer exists; the tab is reached through General")
 end)
 
 test("LedgerTable: the whitelist confirmation names the tab the list actually lives on", function()
-  -- Dies under: leaving the whitelist line pointing at Filters, or copying the blacklist wording.
+  -- Dies under: stopping at the Filters tab, or copying the blacklist wording.
   local out = fireMenuItem("Whitelist item", { itemID = 2589, itemName = "Linen Cloth" })
-  assertTrue(out:find("Settings \226\150\184 General \226\150\184 Whitelist%.") ~= nil,
-    "whitelist line must route to General \226\150\184 Whitelist, got: " .. out)
-  assertFalse(out:find("\226\150\184 Filters") ~= nil, "the Filters page no longer exists")
+  assertTrue(out:find("Settings \226\150\184 General \226\150\184 Filters \226\150\184 Whitelist%.") ~= nil,
+    "whitelist line must route to General \226\150\184 Filters \226\150\184 Whitelist, got: " .. out)
+  assertFalse(out:find("Settings \226\150\184 Filters") ~= nil,
+    "the Filters PAGE no longer exists; the tab is reached through General")
 end)

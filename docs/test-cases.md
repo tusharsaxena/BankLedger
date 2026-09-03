@@ -692,7 +692,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (34)
+### test_panel.lua (35)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -710,6 +710,7 @@ badge and any count quoted in the docs must agree with it.
 - Panel: every tab of the General page renders without the library reporting a failure
 - Panel: the General page draws a tab strip, one button per schema group
 - Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's
+- Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Panel: every renderable schema row reaches the page on ITS OWN tab
 - Panel: a boolean row is a CheckBox and a range row is a Slider
 - Panel: the Master controls tab closes with the two reset buttons
@@ -930,7 +931,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 42 |
 | test_slash.lua | 33 |
-| test_panel.lua | 34 |
+| test_panel.lua | 35 |
 | test_harness.lua | 7 |
 | test_mock.lua | 26 |
 | test_mediasetup.lua | 13 |
@@ -940,4 +941,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **830** |
+| **Total** | **831** |

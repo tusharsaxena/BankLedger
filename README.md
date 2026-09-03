@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-830%2F830_passing-green)
+![Tests](https://img.shields.io/badge/Tests-831%2F831_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
 
@@ -107,7 +107,7 @@ synthetic and those actions would otherwise reach your real settings and history
 
 | Page | Tabs | Covers |
 | --- | --- | ------ |
-| General | Master controls · Capture · Interface · History · Blacklist · Whitelist | The whole addon, on one strip |
+| General | Master controls · Capture · Interface · History · Filters | The whole addon, on one strip |
 
 **General ▸ Master controls** is the addon as a whole, and it is the same first tab in every Ka0s
 addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them
@@ -125,9 +125,9 @@ your cursor.
 movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties
 the history after asking first.
 
-**General ▸ Blacklist** and **▸ Whitelist** manage two lists of items by id. Blacklisted items are
-never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item
-by typing its id or by shift-clicking its link into the box. Both lists only affect what happens from
+**General ▸ Filters** holds two lists of items by id, one per sub-tab. Blacklisted items are never
+recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by
+typing its id or by shift-clicking its link into the box. Both lists only affect what happens from
 now on — nothing already in your ledger is ever hidden or removed by them.
 
 ## How the ledger works
@@ -165,7 +165,7 @@ questing — never ends up in the book.
 | Symptom | Fix |
 | ------- | --- |
 | Nothing is recorded | Check `Enable Bank Ledger` is on in Settings ▸ General ▸ Master controls, and that the bank you are using is ticked in "Record movements to and from" on the Capture tab. |
-| An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Blacklist. |
+| An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Filters ▸ Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
 | The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all settings** button on the Master controls tab also recenters them, but it deletes your history too — export first if you want to keep it.) |

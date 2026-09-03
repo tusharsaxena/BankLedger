@@ -192,11 +192,13 @@ tolerance.
 ## S-11 · Filters (blacklist / whitelist)
 
 1. Right-click a ledger row → **Blacklist item**. The chat line reads
-   `[BL] blacklisted <name>. Manage in Settings ▸ General ▸ Blacklist.` — it must name **General ▸
-   Blacklist**, not the deregistered *Filters* page. Whitelisting names **General ▸ Whitelist**.
+   `[BL] blacklisted <name>. Manage in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
+   **tab and its sub-tab**, not the deregistered *Filters* page and not the retired top-level
+   *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
 2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
    there (blacklisting is point-in-time, it never rewrites history).
-3. Open Settings ▸ General ▸ **Blacklist** — the id is listed with its item name. Remove it.
+3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the id is listed with its item name.
+   Remove it.
 4. Add an id by shift-clicking an item link into the Add box.
 5. Whitelist an item, set the minimum quality to Epic, and move the whitelisted item — it is still
    recorded.
@@ -217,8 +219,10 @@ tolerance.
    list; the bare 5-region `130828` form is the unskinned one).
    The page is **tabbed** (`options-ui-§13`): a strip pinned under the header, above the scroll,
    with no section heading repeating a tab's own name — the tab is the heading. The strip reads
-   **Master controls · Capture · Interface · History · Blacklist · Whitelist**, in that order, and
-   **Master controls** is selected when General first opens.
+   **Master controls · Capture · Interface · History · Filters**, in that order, and
+   **Master controls** is selected when General first opens. Those names and that order are shared
+   with **Ka0s Loot History**, whose strip is the same five plus **AH Price** after Capture — open
+   both panels side by side and check they agree, because that agreement is the point.
    - **Master controls** — *Enable Bank Ledger · General visibility*, then *Master scale · Master
      alpha*, then *Lock frame · Debug console*, then **Reset position** and **Reset all settings**
      side by side. Exactly that order, three full lines and the button pair; no row may be renamed,
@@ -238,8 +242,12 @@ tolerance.
      days" and the estimated database size), then **Purge ledger…** alone. There must be **no**
      *Reset all* button on History, Interface or Capture — there is exactly one in the panel and it
      is on Master controls.
-   - **Blacklist** / **Whitelist** — each shows one list, its own blurb, its own add box and its own
-     **Clear all**, and never both lists at once.
+   - **Filters** — a **secondary** strip inside the scroll (it scrolls with the content, and there
+     is no second pinned chrome band), reading **Blacklist · Whitelist**, opening on Blacklist. The
+     selected list shows its own blurb, its own add box and its own **Clear all**, and never both
+     lists at once — one add box on screen, not two. Click Whitelist, leave for **Capture**, come
+     back: Filters is still on **Whitelist** (the sub-selection is per-tab session state). Reload:
+     it opens on Blacklist again, because none of it is persisted.
    Click each tab in turn and then click back: the store grid, the read-out, the reset pair and both
    id lists must still be there. They are drawn from the tab's `afterGroup` hook precisely so that a
    second visit redraws them; anything drawn by the page body instead would survive exactly one
@@ -470,7 +478,7 @@ Handing one an addon-wide locale table makes every key resolve to *itself*, so t
 headless source guard cannot see what the client draws.
 
 1. Walk **every** settings page and every tab of General: the landing page, then Master controls,
-   Capture, Interface, History, Blacklist and Whitelist.
+   Capture, Interface, History, and Filters (both of its sub-tabs).
 2. Open the debug console (`/bl debug`) and toggle it on and off.
 3. Run `/bl help`, `/bl list`, `/bl get settings.enabled`, `/bl reset settings.enabled`.
 4. Nothing on screen or in chat is `SCREAMING_SNAKE_CASE`. Every label is prose. One raw key means
@@ -493,7 +501,7 @@ redraw, so this is the only place the fix is actually observable.
 5. `/bl reset settings.windowScale` — the slider returns to 1.00.
 6. `/bl resetall` — every General widget repaints, and the **Database size** line on History
    updates. It should repaint **once**, not flicker per row.
-7. Switch to the **Blacklist** tab, add an item id, then `/bl resetall` — the id list empties while
+7. Switch to **Filters ▸ Blacklist**, add an item id, then `/bl resetall` — the id list empties while
    you watch. (This path was already correct: the lists are structural and ride `LedgerChanged`.)
 8. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
    the reset values.

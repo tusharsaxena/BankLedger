@@ -274,11 +274,18 @@ end
 -- a case that reads the tab list out of the thing it is testing agrees with itself no matter what
 -- the thing says. tests/test_schema.lua owns the partition; this is the panel's copy of the answer.
 --
--- Six now: Master controls leads (options-ui-§15), and Blacklist / Whitelist are the retired Filters
--- page's two lists (R3), drawn from afterGroup hooks under General's own strip.
+-- Five: Master controls leads (options-ui-§15), and Filters is the retired Filters page (R3), now
+-- one tab whose afterGroup hook draws a SECONDARY strip over the two id lists (options-ui-§13).
+-- The names and their order are shared with Ka0s Loot History, which draws the same strip plus an
+-- AH Price tab after Capture -- two addons a player compares should not name one subject twice.
 local GENERAL_TABS = {
-  "Master controls", "Capture", "Interface", "History", "Blacklist", "Whitelist",
+  "Master controls", "Capture", "Interface", "History", "Filters",
 }
+
+-- The Filters tab's sub-strip, in order. The KEY is the stored list name and the LABEL is what the
+-- sub-tab reads, which are deliberately not the same string: the tab above them is already called
+-- Filters.
+local FILTER_SUB_TABS = { "blacklist", "whitelist" }
 
 local function widgetLabeled(made, label)
   for _, w in ipairs(made) do
@@ -326,12 +333,12 @@ test("Panel: the General page draws a tab strip, one button per schema group", f
 end)
 
 test("Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's", function()
-  -- options-ui-§15 in the drawn page rather than in the data, plus R3's merge: the strip's last two
-  -- buttons are the lists that used to be a page of their own, and their bodies come up under
+  -- options-ui-§15 in the drawn page rather than in the data, plus R3's merge: the strip's last
+  -- button is the page that used to be a category of its own, and its body comes up under
   -- General's strip.
   --
-  -- Dies under: splicing the composed rows anywhere but the head of S.Schema, or dropping either
-  -- Blacklist/Whitelist entry from GENERAL_AFTER_TAB.
+  -- Dies under: splicing the composed rows anywhere but the head of S.Schema, or dropping the
+  -- Filters entry from GENERAL_AFTER_TAB.
   local c = ctxFor("General")
   renderTab("General", "Master controls")
   local labels = {}
@@ -345,12 +352,43 @@ test("Panel: the strip's FIRST tab is Master controls, and it is not the Filters
     end
     return table.concat(out, "\n")
   end
-  local black = bodyText(renderTab("General", "Blacklist"))
+  c.activeSubTab = nil
+  local black = bodyText(renderTab("General", "Filters"))
   assertTrue(black:find("never recorded", 1, true) ~= nil, "the blacklist blurb is missing")
   assertFalse(black:find("always recorded", 1, true) ~= nil, "the whitelist leaked onto Blacklist")
-  local white = bodyText(renderTab("General", "Whitelist"))
+  c.activeSubTab["Filters"] = "whitelist"
+  local white = bodyText(renderTab("General", "Filters"))
   assertTrue(white:find("always recorded", 1, true) ~= nil, "the whitelist blurb is missing")
   assertFalse(white:find("never recorded", 1, true) ~= nil, "the blacklist leaked onto Whitelist")
+  c.activeSubTab = nil
+  c.activeTab = GENERAL_TABS[1]
+end)
+
+-- ── the Filters tab's secondary strip (options-ui-§13) ─────────────────────────
+--
+-- Two id-lists are a list of like subjects inside one category, which is what a secondary strip is
+-- for -- drawn inside the scroll as ordinary content, with its selection in ctx.activeSubTab keyed
+-- by the PRIMARY tab's name. Session state, never persisted.
+--
+-- Dies under: promoting the lists back to two primary tabs, or keying the sub-selection off
+-- ctx.activeTab (which a click on another primary tab would then overwrite).
+test("Panel: the Filters tab draws a SECONDARY strip and renders only the selected list", function()
+  local c = ctxFor("General")
+  c.activeSubTab = nil
+  local made = renderTab("General", "Filters")
+  assertTrue(c.__subTabKids ~= nil and #c.__subTabKids == #FILTER_SUB_TABS,
+    "one sub-tab per list")
+  assertEqual(c.activeSubTab["Filters"], FILTER_SUB_TABS[1],
+    "the sub-strip opens on the first list")
+
+  -- One add-row, not two: the tab draws the selected list and nothing else.
+  local boxes = 0
+  for _, w in ipairs(made) do if w.type == "EditBox" then boxes = boxes + 1 end end
+  assertEqual(boxes, 1, "exactly one add-row is on screen")
+
+  c.__subTabKids[2]:__fire("OnClick")
+  assertEqual(c.activeSubTab["Filters"], FILTER_SUB_TABS[2], "sub-tab 2 is the whitelist")
+  c.activeSubTab = nil
   c.activeTab = GENERAL_TABS[1]
 end)
 

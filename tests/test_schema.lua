@@ -198,28 +198,27 @@ end)
 -- Counts are RENDERED rows plus the skipRender ones, i.e. every row the page files under the tab.
 --
 -- Read off S:PageRows(), NOT S.Schema, and that is the whole difference the revamp made: the page
--- also draws the two item-id filter tabs, whose `group` is declared by a renderer-only row that is
--- deliberately not a setting. S.Schema alone would report four tabs for a six-tab strip.
+-- also draws the item-id Filters tab, whose `group` is declared by a renderer-only row that is
+-- deliberately not a setting. S.Schema alone would report four tabs for a five-tab strip.
 local PARTITION = {
   general = {
     { tab = "Master controls", rows = 6 },
     { tab = "Capture",         rows = 4 },
     { tab = "Interface",       rows = 4 },
     { tab = "History",         rows = 1 },
-    { tab = "Blacklist",       rows = 1 },
-    { tab = "Whitelist",       rows = 1 },
+    { tab = "Filters",         rows = 1 },
   },
 }
 
 -- A tab whose declared rows number fewer than two is not a subject — UNLESS its row sits beside
--- BESPOKE controls that have no path and so cannot be counted here. Three tabs are that case and
+-- BESPOKE controls that have no path and so cannot be counted here. Two tabs are that case and
 -- each is exempt BY NAME: settings/Panel.lua's renderStorage hangs the live storage read-out and the
--- Purge button off History, and renderFilterTab draws each id-list's whole body. Widening the rule
--- instead of naming the exception is how the next one-row tab gets waved through.
+-- Purge button off History, and buildFiltersTab draws a secondary strip over both id-lists and the
+-- selected list's whole body. Widening the rule instead of naming the exception is how the next
+-- one-row tab gets waved through.
 local THIN_TAB_EXEMPT = {
-  History   = "the storage read-out and the Purge button",
-  Blacklist = "the host-drawn id list, its add row and its Clear all button",
-  Whitelist = "the host-drawn id list, its add row and its Clear all button",
+  History = "the storage read-out and the Purge button",
+  Filters = "the secondary strip over both id lists, and the selected list's add row and Clear all",
 }
 
 test("Schema: the page partitions into the designed tabs, in the designed order", function()

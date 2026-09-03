@@ -20,8 +20,14 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 --
 -- The tabs, in order: Master controls (the addon as a whole — composed, spliced in at the head from
 -- settings/OptionsSetup.lua, see S:ComposeMaster below), Capture (what is recorded), Interface (what
--- is on screen), History (how much is kept, and the one way to destroy it), then Blacklist and
--- Whitelist (the two item-id lists, host-drawn — see S.BespokeRows).
+-- is on screen), History (how much is kept, and the one way to destroy it), then Filters (both
+-- item-id lists under one host-drawn tab — see S.BespokeRows).
+--
+-- THOSE NAMES AND THAT ORDER ARE SHARED WITH KA0S LOOT HISTORY, which draws the same five plus an
+-- AH Price tab after Capture. The two addons capture and keep the same shape of record and a player
+-- moves between their panels expecting the same furniture; one calling a subject Capture while the
+-- other called it Collection was two names for one thing. Renaming a `group` moves no stored path
+-- (options-ui-§15), which is why the convergence was a rename and not a migration.
 S.Schema = {
   -- ── Capture ──
   -- What is recorded. The two kind toggles pair across one line, then the quality gate, then the
@@ -249,25 +255,30 @@ function S:ComposeMaster(O)
   return rows
 end
 
--- ── The two item-id filter tabs (R3: the Filters page merged into General) ────────────────────
+-- ── The item-id Filters tab (R3: the Filters page merged into General) ────────────────────────
 --
--- RENDERER-ONLY rows. They carry a `group` so H.RenderTabbedSchema draws a tab for each, and
--- `skipRender` so the flow engine walks past them — settings/Panel.lua draws each body from that
+-- ONE RENDERER-ONLY row. It carries a `group` so H.RenderTabbedSchema draws the tab, and
+-- `skipRender` so the flow engine walks past it — settings/Panel.lua draws the body from that
 -- group's `afterGroup` hook, exactly as the Capture store grid and the History read-out already are.
 --
--- They are deliberately NOT in S.Schema and therefore NOT settings. The lists themselves are an
+-- ONE ROW, NOT TWO. The blacklist and the whitelist were a primary tab each until the convergence
+-- with Ka0s Loot History, which holds three such lists and had long since put them under a single
+-- Filters tab with a SECONDARY strip (options-ui-§13: a list of like subjects inside one category
+-- is exactly what a secondary strip is for). Two addons naming the same subject differently is the
+-- drift; the sub-strip is also the shape that scales, since a third list here would otherwise be a
+-- third primary tab pushing the page's own subjects along the band.
+--
+-- It is deliberately NOT in S.Schema and therefore NOT a setting. The lists themselves are an
 -- architecture-§5 storage carve-out mutated through NS.Filters' copy-on-write (which re-caches the
 -- capture gate and fires LedgerChanged); a schema row over the same key would hand `/bl set`,
 -- `/bl reset` and the reset sweep a second writer that skips all of that. `allRows` still answers
 -- S.Schema alone, so the CLI and every reset see exactly the settings and nothing else.
 S.BespokeRows = {
-  { group = "Blacklist", label = "Blacklist", widget = "IdList", skipRender = true,
-    tooltip = "Items that are never recorded, whatever their quality." },
-  { group = "Whitelist", label = "Whitelist", widget = "IdList", skipRender = true,
-    tooltip = "Items that are always recorded, even below your minimum quality." },
+  { group = "Filters", label = "Filters", widget = "IdList", skipRender = true,
+    tooltip = "The item ids that are never recorded, and the ones that always are." },
 }
 
---- The General page's rows AS RENDERED: every setting, then the two host-drawn filter tabs.
+--- The General page's rows AS RENDERED: every setting, then the host-drawn Filters tab.
 ---
 --- Built once and cached — both halves are static after load, and a tab click re-renders the page.
 function S:PageRows()

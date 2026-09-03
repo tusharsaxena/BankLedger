@@ -50,10 +50,18 @@ a slash write and a panel widget take exactly the same path.
 
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (6) ·
-**Capture** (4) · **Interface** (4) · **History** (1) · **Blacklist** · **Whitelist**. The last two
-carry no settings at all — they are the retired **Filters** page's id-lists, drawn from `afterGroup`
-hooks under two renderer-only rows (`S.BespokeRows`) that exist to name a tab and nothing else, which
-is why `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions.
+**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
+all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
+renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
+`NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
+**secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
+selection is `ctx.activeSubTab["Filters"]`, session state and never persisted.
+
+Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
+five with **AH Price** after Capture. The two addons keep the same shape of record and a player
+compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
+was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
+rename and carried no migration (`options-ui-§15`).
 
 The **Master controls** tab is composed by the library (`H.MasterControls`, `options-ui-§15`) and
 spliced at the head of the array; `keys = { scale = "windowScale" }` is what keeps this addon's
@@ -76,7 +84,7 @@ two consumers sharing a target silently clobber each other.
 | Message | Sender | Payload | Consumers |
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
-| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Blacklist / Whitelist tabs) |
+| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
 | `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
 
