@@ -549,7 +549,9 @@ local function ensureFrame()
 
   SW:BuildHeaderCells()
   SW:ApplyGeometry()
-  frame:SetScale((NS.db and NS.db.global.settings.windowScale) or 1.0)
+  -- Master scale, master alpha and Lock frame in one read (options-ui-§15). It replaced a bare
+  -- SetScale here; the other two rows are new and this is where the window first honors them.
+  NS.Util.ApplyMasterFrame(frame)
   frame:Hide()
 
   -- ESC closes it and it joins the standard close-stack (standalone-windows).
@@ -612,6 +614,9 @@ end
 
 function SW:Show()
   if not self:Enabled() then return end
+  -- General visibility (options-ui-§15), the addon-wide gate. Distinct from :Enabled(), which is
+  -- this ONE window's own switch: either alone keeps it off screen.
+  if not NS.Util.VisibilityAllows() then return end
   local f = ensureFrame()
   self:Refresh()
   f:Show()
@@ -636,10 +641,11 @@ function SW:SetScale(v)
   if frame then frame:SetScale(v) end
 end
 
--- A setting changed: honor the scale, and close immediately if the window was just switched off.
+-- A setting changed: honor the master chrome, and close immediately if the window was just
+-- switched off.
 function SW:OnSettingsChanged()
   if not frame then return end
-  frame:SetScale((NS.db and NS.db.global.settings.windowScale) or 1.0)
+  NS.Util.ApplyMasterFrame(frame)
   if not self:Enabled() then self:Hide() end
 end
 

@@ -208,6 +208,94 @@ function Util.RefreshRowTint()
   if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "rowTint") end
 end
 
+-- ── Master controls: the addon-wide chrome (options-ui-§15) ─────────────────────
+--
+-- Three settings the Master controls tab added, honored HERE rather than four times over: this
+-- addon draws three movable frames (the ledger window, the session window and the export dialog)
+-- and every one of them wants the same three answers. A per-window copy of these reads was the
+-- shape the row-tint pair was in before it was promoted, and it drifted.
+
+--- One window's masterable settings, read fresh and defaulted where the store is empty.
+local function masterChrome()
+  local g = (NS.db and NS.db.global and NS.db.global.settings) or {}
+  local scale = tonumber(g.windowScale) or 1.0
+  local alpha = tonumber(g.alpha)
+  if type(alpha) ~= "number" then alpha = 1.0 end
+  -- Clamped for the same reason RowTintAlpha is: these arrive from SavedVariables, and an alpha of
+  -- 5 is not an error the client reports — it is a window that never fades and reads as a broken
+  -- slider, while a 0 stored by accident would be an invisible addon with no way back to the panel.
+  -- The floor is NS.Constants.MASTER_ALPHA_MIN, which is also the Master alpha row's declared
+  -- minimum, so the slider cannot offer a stop this refuses to draw.
+  local floor = NS.Constants.MASTER_ALPHA_MIN
+  if alpha < floor then alpha = floor elseif alpha > 1 then alpha = 1 end
+  return scale, alpha, g.locked and true or false
+end
+
+--- Apply master scale, master alpha and Lock frame to ONE frame. Called at frame construction and
+--- again whenever one of the three changes, so a window built after a change is not the odd one out.
+function Util.ApplyMasterFrame(frame)
+  if not frame then return end
+  local scale, alpha, locked = masterChrome()
+  if frame.SetScale then frame:SetScale(scale) end
+  if frame.SetAlpha then frame:SetAlpha(alpha) end
+  -- The drag handlers all call StartMoving, which the client makes a no-op on an unmovable frame —
+  -- so this is the whole of "Lock frame" and there is no second guard to keep in step.
+  if frame.SetMovable then frame:SetMovable(not locked) end
+end
+
+--- Re-apply the master chrome to every window this addon owns. The write seam's onChange for
+--- `settings.alpha` and `settings.locked`.
+function Util.ApplyMasterChrome()
+  for _, owner in ipairs({ NS.Browser, NS.SessionWindow, NS.Export }) do
+    local frame = owner and owner.GetWindow and owner:GetWindow()
+    if frame then Util.ApplyMasterFrame(frame) end
+  end
+end
+
+--- Is this addon's display allowed on screen right now (`settings.visibility`)?
+---
+--- A dropdown and not a boolean, because a boolean can only ever answer two of the four. An
+--- UNKNOWN stored string answers TRUE: a value nobody recognises is a reason to show the addon and
+--- let the player fix it, never a reason to hide every window with no way back.
+function Util.VisibilityAllows()
+  local g = (NS.db and NS.db.global and NS.db.global.settings) or {}
+  local mode = g.visibility or "always"
+  if mode == "never" then return false end
+  if mode == "always" then return true end
+  local inCombat = (InCombatLockdown and InCombatLockdown()) and true or false
+  if mode == "inCombat" then return inCombat end
+  if mode == "outOfCombat" then return not inCombat end
+  return true
+end
+
+--- Re-evaluate visibility across every window, on a settings change and on each combat transition.
+---
+--- A window hidden by this rule is REMEMBERED, so the transition back re-shows exactly the windows
+--- the rule took and never one the player had closed themselves.
+function Util.ApplyVisibility()
+  local allowed = Util.VisibilityAllows()
+  local hidden = NS.State.hiddenByVisibility
+  for key, owner in pairs({ Browser = NS.Browser, SessionWindow = NS.SessionWindow }) do
+    local frame = owner and owner.GetWindow and owner:GetWindow()
+    if not allowed then
+      -- Only a window that is actually up is remembered, so the transition back cannot open one
+      -- the player never had open.
+      if frame and frame:IsShown() then hidden[key] = true; owner:Hide() end
+    elseif hidden[key] then
+      hidden[key] = nil
+      owner:Show()
+    end
+  end
+end
+
+--- Re-centre both persistent windows at their default size. The Master controls tab's "Reset
+--- position" button and the General page's Defaults button share this one body — the button was
+--- previously only ever reachable as a side effect of the second.
+function Util.ResetWindowPositions()
+  if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
+  if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
+end
+
 -- ── Secret-safe chat printer ────────────────────────────────────────────────────
 -- Moved to core/CoreSetup.lua, which builds it from LibKa0s-Core-1.0 (library-stack). The guard
 -- (NS.IsConcatSafe), the stringifier (NS.SafeToString) and the printer (NS.Print / NS.Util.print)

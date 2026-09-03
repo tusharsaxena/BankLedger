@@ -191,14 +191,20 @@ tolerance.
 
 ## S-11 · Filters (blacklist / whitelist)
 
-1. Right-click a ledger row → **Blacklist item**. A chat line confirms it.
+1. Right-click a ledger row → **Blacklist item**. The chat line reads
+   `[BL] blacklisted <name>. Manage in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
+   **tab and its sub-tab**, not the deregistered *Filters* page and not the retired top-level
+   *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
 2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
    there (blacklisting is point-in-time, it never rewrites history).
-3. Open Settings ▸ Filters — the id is listed with its item name. Remove it.
+3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the id is listed with its item name.
+   Remove it.
 4. Add an id by shift-clicking an item link into the Add box.
 5. Whitelist an item, set the minimum quality to Epic, and move the whitelisted item — it is still
    recorded.
-6. **Defaults** on the Filters page clears both lists after a confirm.
+6. **Defaults** on the General page clears both lists (along with every setting) after a confirm.
+   There is **no Filters page** in the sidebar any more — an entry still listed there would be one
+   opening onto nothing.
 
 ## S-12 · Settings panel
 
@@ -207,37 +213,54 @@ tolerance.
    be there and be crisp — a missing texture draws nothing and raises no error, so blank is a real
    failure mode, and a soft or jagged one means the `.tga` was regenerated at the wrong size (it
    must be a power of two; see ARCHITECTURE ▸ Logo art).
-3. General and Filters both render a breadcrumb header, a gold divider and a Defaults button. The
+3. General renders a breadcrumb header, a gold divider and a Defaults button. The
    Defaults button looks like every other button on the page — if it renders as Blizzard's red
    stone button, it was built before a UI skin hooked AceGUI (`/bl debug panel` shows the region
    list; the bare 5-region `130828` form is the unskinned one).
-   Both pages are **tabbed** (`options-ui-§13`): a strip pinned under the header, above the scroll,
-   with no section heading anywhere on the page — the tab is the heading. General's strip reads
-   **Capture · Interface · History**, in that order; Filters' reads **Blacklist · Whitelist**.
-   Capture is selected when General first opens.
-   - **Capture** — *Enable capture* alone on the first line, then *Track items · Track gold*, then
-     *Minimum quality*, then the full-width per-store grid. The master switch must not share its
-     line with anything.
-   - **Interface** — *Window scale · Hide minimap button*, then *Session window · Debug console*,
-     then *Row stripe opacity · Row hover opacity*. Three full lines, no ragged single-column gap.
-     The two opacity sliders must be side by side on one line, not stacked.
+   The page is **tabbed** (`options-ui-§13`): a strip pinned under the header, above the scroll,
+   with no section heading repeating a tab's own name — the tab is the heading. The strip reads
+   **Master controls · Capture · Interface · History · Filters**, in that order, and
+   **Master controls** is selected when General first opens. Those names and that order are shared
+   with **Ka0s Loot History**, whose strip is the same five plus **AH Price** after Capture — open
+   both panels side by side and check they agree, because that agreement is the point.
+   - **Master controls** — *Enable Bank Ledger · General visibility*, then *Master scale · Master
+     alpha*, then *Lock frame · Debug console*, then **Reset position** and **Reset all settings**
+     side by side. Exactly that order, three full lines and the button pair; no row may be renamed,
+     reordered or missing. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
+     and the windows visibly fade to that and no further — the row's declared minimum IS the floor
+     `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
+     **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**;
+     `/bl resetall` and the header **Defaults** button are a different, non-destructive act (see
+     ARCHITECTURE ▸ Documented deviations, `options-ui-§12`).
+   - **Capture** — *Track items · Track gold*, then *Minimum quality*, then the full-width per-store
+     grid.
+   - **Interface** — a **Windows** heading over *Hide minimap button · Session window*, then a
+     **Table rows** heading over *Row stripe opacity · Row hover opacity*. Both headings must be
+     there (this tab mixes two kinds of control, `options-ui-§7`), and neither may read
+     "Interface". The two opacity sliders must be side by side on one line, not stacked.
    - **History** — *Keep history for*, then the storage read-out ("N movements recorded over N
-     days" and the estimated database size), then **Purge ledger…** and **Reset all…** side by side.
-     There must be no *Reset all* button anywhere on Interface.
-   Click each tab in turn and then click back: the store grid, the read-out and both buttons must
-   still be there. They are drawn from the tab's `afterGroup` hook precisely so that a second visit
-   redraws them; anything drawn by the page body instead would survive exactly one render.
-   Switch Filters between its two tabs: each shows one list, its own blurb, its own add box and its
-   own **Clear all**, and never both lists at once.
+     days" and the estimated database size), then **Purge ledger…** alone. There must be **no**
+     *Reset all* button on History, Interface or Capture — there is exactly one in the panel and it
+     is on Master controls.
+   - **Filters** — a **secondary** strip inside the scroll (it scrolls with the content, and there
+     is no second pinned chrome band), reading **Blacklist · Whitelist**, opening on Blacklist. The
+     selected list shows its own blurb, its own add box and its own **Clear all**, and never both
+     lists at once — one add box on screen, not two. Click Whitelist, leave for **Capture**, come
+     back: Filters is still on **Whitelist** (the sub-selection is per-tab session state). Reload:
+     it opens on Blacklist again, because none of it is persisted.
+   Click each tab in turn and then click back: the store grid, the read-out, the reset pair and both
+   id lists must still be there. They are drawn from the tab's `afterGroup` hook precisely so that a
+   second visit redraws them; anything drawn by the page body instead would survive exactly one
+   render.
 4. Toggle a checkbox, then run `/bl list` — the value matches.
 5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
 6. The scrollbar is visible on both pages and grayed out on the one that fits, so the body width
    does not jump between them.
 7. **Blizzard's own defaults control** (the Settings window's footer, not the addon's header button)
-   reaches the addon: on General, change a setting, then use it — the settings return to stock and
-   the ledger is untouched (`/bl` reports the same entry count as before). Headless coverage stops at
-   the callback contract; only the live client proves the framework actually invokes it. On Filters
-   the same control raises the clear-both-lists confirmation, exactly as the header button does.
+   reaches the addon: on General, change a setting, then use it — the settings return to stock, both
+   id lists are cleared and the ledger is untouched (`/bl` reports the same entry count as before).
+   Headless coverage stops at the callback contract; only the live client proves the framework
+   actually invokes it.
 
 ## S-12a · The row tint sliders
 
@@ -261,6 +284,34 @@ the History window and the Current Banking Session window.
    at that value and never drawn as an opaque white block. Same for a negative value: it clamps to
    `0`. (These come out of SavedVariables, so a hand-edit is the real case.)
 7. `/bl resetall`, then look again: `0.03` and `0.10`, and the tables read exactly as in step 1.
+
+## S-12b · Master controls — the three rows the revamp added
+
+`General visibility`, `Master alpha` and `Lock frame` are new settings, not relabelled old ones.
+Nothing headless can prove a frame is actually dimmed, undraggable or gone, so this is the only place
+these are observable. All three are on **Settings ▸ General ▸ Master controls**.
+
+1. `/bl show`. Drag **Master alpha** down to about a quarter: the ledger window fades **while you
+   drag**. Open a bank so the **Current Banking Session** window appears — it is faded to the same
+   degree. Open **Export** from the filter bar: the modal matches too. All three read one setting.
+2. Set **Master alpha** to its minimum. The windows are faint but still findable and still
+   clickable — never fully invisible. (`0` is clamped to `0.1` at the read for exactly that reason.)
+   Put it back to `1.00`.
+3. Tick **Lock frame**. Try to drag the ledger window by its title bar: it does not move. The session
+   window and the export modal are equally stuck. Untick it — all three drag again.
+4. Move the ledger window well off centre, drag the session window somewhere odd, then click **Reset
+   position**. Both snap back to centre at their default size. Nothing else changes — your settings,
+   your filter lists and your recorded history are all untouched. (The page's **Defaults** button
+   does this too, as part of a wider reset; this button does *only* this.)
+5. Set **General visibility** to **Never**. Every window closes. `/bl show` does nothing — the addon
+   refuses rather than deferring. Capture keeps running: move something into your bank, set
+   visibility back to **Always**, and the movement is in the ledger.
+6. Set **General visibility** to **Only out of combat** with the ledger window open, then pull a
+   training dummy: the window hides on the pull and comes back when you leave combat.
+7. Repeat step 6 with the ledger window **closed**. It must stay closed through both edges — the
+   rule puts back only what it took, never a window you had closed yourself.
+8. Set **General visibility** to **Only in combat** and confirm the mirror image: hidden out of
+   combat, shown on the pull. Set it back to **Always** when you are done.
 
 ## S-13 · Combat
 
@@ -321,7 +372,8 @@ the History window and the Current Banking Session window.
 4. Right-click a sample row. **Link to chat** is available; **Blacklist item**, **Whitelist item**
    and **Delete** are grayed out and click-inert. The sample rows carry synthetic item ids, so those
    three would otherwise reach the real filter lists and the real ledger.
-5. `/bl config` ▸ **Filters** — both lists are unchanged by anything done in step 4.
+5. `/bl config` ▸ **General** ▸ **Filters** ▸ **Blacklist** / **Whitelist** — both lists are unchanged by
+   anything done in step 4.
 6. `/bl test` again returns to the real data and the badge disappears. Right-click a real row: all
    four entries are now available, and **Delete** removes the row and decrements the footer count.
 
@@ -329,8 +381,10 @@ the History window and the Current Banking Session window.
 
 1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
 2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **History** ▸ **Reset all…** asks to confirm and restores everything,
-   recentering both windows. It sits beside **Purge ledger…** on that tab, and nowhere else.
+3. Settings ▸ General ▸ **Master controls** ▸ **Reset all settings** asks to confirm and restores
+   everything, recentering both windows and discarding the recorded ledger with them. It sits beside
+   **Reset position** in that tab's closing button pair, and nowhere else — History carries
+   **Purge ledger…** alone (S-12).
 
 ## S-17 · Current Banking Session window
 
@@ -423,7 +477,8 @@ Handing one an addon-wide locale table makes every key resolve to *itself*, so t
 `DEBUG_ON` and `LIST_HEADER` in place of English — for every string at once, and only in game. The
 headless source guard cannot see what the client draws.
 
-1. Walk **every** settings page: the landing page, General, Filters.
+1. Walk **every** settings page and every tab of General: the landing page, then Master controls,
+   Capture, Interface, History, and Filters (both of its sub-tabs).
 2. Open the debug console (`/bl debug`) and toggle it on and off.
 3. Run `/bl help`, `/bl list`, `/bl get settings.enabled`, `/bl reset settings.enabled`.
 4. Nothing on screen or in chat is `SCREAMING_SNAKE_CASE`. Every label is prose. One raw key means
@@ -437,19 +492,18 @@ showing the old one until the window was closed and reopened. Nothing headless c
 redraw, so this is the only place the fix is actually observable.
 
 1. `/bl config`, then open **General**. Leave the window on screen for every step below.
-2. `/bl set settings.enabled false` — the **Enable capture** checkbox unticks **immediately**, with
-   the settings window still open and still on the General page. Set it back to `true`.
-3. `/bl set settings.windowScale 1.25` — the **Window scale** slider moves at once.
-4. `/bl set settings.windowScale 9` — the slider lands on its maximum (1.60), because the CLI now
-   clamps. The chat echo says `1.60x`, and the slider agrees with it.
+2. `/bl set settings.enabled false` — the **Enable Bank Ledger** checkbox on **Master controls**
+   unticks **immediately**, with the settings window still open. Set it back to `true`.
+3. `/bl set settings.windowScale 1.25` — the **Master scale** slider moves at once, and both the
+   ledger and session windows rescale.
+4. `/bl set settings.windowScale 9` — the slider lands on its maximum (2.00), because the CLI
+   clamps. The chat echo says `2.00x`, and the slider agrees with it.
 5. `/bl reset settings.windowScale` — the slider returns to 1.00.
-6. `/bl resetall` — every General widget repaints, and the **Database size** line under it updates.
-   It should repaint **once**, not flicker per row.
-7. Switch to the **Filters** page, add an item id, then `/bl resetall` — the id list empties while
+6. `/bl resetall` — every General widget repaints, and the **Database size** line on History
+   updates. It should repaint **once**, not flicker per row.
+7. Switch to **Filters ▸ Blacklist**, add an item id, then `/bl resetall` — the id list empties while
    you watch. (This path was already correct: the lists are structural and ride `LedgerChanged`.)
-8. Move to the **Filters** page and run `/bl set settings.enabled false` there. Nothing on Filters
-   should flicker — only the page you are looking at does work.
-9. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
+8. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
    the reset values.
 
 ## S-21 · The shared marks
@@ -588,7 +642,7 @@ only a real login can produce, the second needs an item the client has genuinely
 1. Log in with error display on (`/console scriptErrors 1`). **Zero Lua errors.** A nil-index in
    `core/Constants.lua` here means `core\ItemSetup.lua` has slipped below `core\Constants.lua` in
    the TOC.
-2. `/bl config` → **Filters**. The **Minimum quality** dropdown lists six rows, each the quality's
+2. `/bl config` → **General** ▸ **Capture**. The **Minimum quality** dropdown lists six rows, each the quality's
    own name in its own colour followed by " and above": *Poor*, *Common*, *Uncommon*, *Rare*,
    *Epic*, *Legendary*. A row reading a bare number, or a row with no colour, is the seam failing.
    On a non-English client the names are the client's own, never English.

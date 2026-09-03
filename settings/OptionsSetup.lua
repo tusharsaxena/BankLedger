@@ -10,7 +10,7 @@ local addonName, NS = ...   -- luacheck: ignore addonName
 --
 -- `NS.Helpers` IS the library instance, not a wrapper around it (options-ui-§1). settings/Panel.lua
 -- decorates it in place with the pieces that did not generalize — the store grid, the Storage
--- section, the whole Filters page — so a host page helper can call `O.RenderRows` like any other
+-- section, both item-id list tabs — so a host page helper can call `O.RenderRows` like any other
 -- page does, and a suite that swaps a member out to spy on it is swapping the one the library's own
 -- callers see. A copy-across would hand the test a member nobody calls.
 --
@@ -50,9 +50,14 @@ local descriptor = {
 
   -- Every schema row lives on the General page. `filter` is ctx.unit, which this addon never sets —
   -- it has no per-unit pages — so it is ignored rather than threaded through.
+  --
+  -- NS.Schema:PageRows(), not NS.Schema.Schema: the page also draws the two item-id filter tabs,
+  -- whose bodies are host-drawn and whose `group` is declared by a renderer-only row that is
+  -- deliberately NOT a setting (settings/Schema.lua, S.BespokeRows). `allRows` above still hands
+  -- back the stored schema alone, so the CLI and every reset see exactly the settings.
   rowsForPage = function(pageKey)
     if pageKey ~= "general" then return {} end
-    return NS.Schema.Schema
+    return NS.Schema:PageRows()
   end,
 
   -- The landing page's body. settings/Panel.lua owns what it draws; the library owns WHEN, which is
@@ -148,11 +153,11 @@ if not lib then
     SetRenderer = function() end,
 
     -- The tabbed page (options-ui-§13) and the page banner (options-ui-§14) surface, which
-    -- arrived with LibKa0s v1.23.0. settings/Panel.lua now calls RenderTabbedSchema on General and
-    -- TabStrip on Filters, so these are reachable names rather than speculative ones -- and the
-    -- __-prefixed six are published on the live instance too, which is what the parity case
-    -- compares against. All no-ops: without a panel there is no chrome band to reserve, nothing
-    -- to place in it, and nothing to release from it.
+    -- arrived with LibKa0s v1.23.0. settings/Panel.lua calls RenderTabbedSchema on General, so
+    -- these are reachable names rather than speculative ones -- and the __-prefixed ones are
+    -- published on the live instance too, which is what the parity case compares against. All
+    -- no-ops: without a panel there is no chrome band to reserve, nothing to place in it, and
+    -- nothing to release from it.
     SetChromeHeight = function() end,
     TabStrip = function() return nil end,
     PageBanner = function() return nil end,
@@ -163,6 +168,29 @@ if not lib then
     __tabBand = function() return 0 end,
     __bannerBand = function() return 0 end,
     __scrollTopInset = function() return 0 end,
+    -- The host-drawn chrome block and the secondary strip (options-ui-§13/§14), new at LibKa0s
+    -- v1.24.0. This addon draws neither today; they are stubbed for the same reason the makers
+    -- above are -- a page that grows one meets a no-op rather than a nil index.
+    PageHeader = function() return nil end,
+    SubTabStrip = function() return nil, 0 end,
+    __releaseSubTabs = function() end,
+    __tabArtHeight = function() return 0 end,
+    __resetTabArtHeight = function() end,
+
+    -- The schema composers (options-ui-§15/§16/§17), new at LibKa0s v1.24.0. MasterControls is
+    -- REACHED: settings/Schema.lua's S:ComposeMaster runs it from this file's live arm below.
+    -- Returning an empty row list is the honest answer here and it has a VISIBLE cost, stated so
+    -- nobody reads the no-op as free: in a degraded install the General page's Master controls
+    -- rows are absent from NS.Schema.Schema, so `/bl list`, `/bl set` and `/bl reset` cannot
+    -- reach them (`/bl get` still can -- Schema:Get falls through to the stored value). The
+    -- alternative is a host copy of the canonical block, which is exactly anti-pattern #73 and
+    -- goes stale the first time the standard moves. The other four are unreached -- this addon
+    -- has no color, font, border or bar row at all -- and are stubbed alongside it.
+    MasterControls = function() return {}, function() end end,
+    ColorPair = function() return {} end,
+    FontGroup = function() return {} end,
+    BorderGroup = function() return {} end,
+    BarGroup = function() return {} end,
     InlineButtonPair = function() end,
     SessionCheckbox = function() return nil end,
     RefreshAllPanels = function() end,
@@ -187,6 +215,16 @@ if not lib then
 end
 
 NS.Helpers = lib:New(descriptor)
+
+-- The Master controls tab (options-ui-§15), composed rather than hand-written. It happens HERE and
+-- not in settings/Schema.lua because the composer lives on the INSTANCE, and the instance does not
+-- exist until the line above — the TOC loads settings/Schema.lua first, deliberately, so that this
+-- file's descriptor has a schema and a write seam to read. So the schema declares the spec and the
+-- reactions (S.MASTER_SPEC, S.MASTER_DECOR) and this hands it the composer; the rows are spliced at
+-- the HEAD of S.Schema, which is what makes Master controls the page's FIRST tab.
+--
+-- Nothing renders between load and here, so no page can see the un-spliced array.
+NS.Schema:ComposeMaster(NS.Helpers)
 
 -- settings/Panel.lua hands its landing-page body over here.
 function NS.Helpers.SetMainBuilder(fn) buildMainBody = fn end

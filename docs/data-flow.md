@@ -71,6 +71,7 @@ warband movement, because no event announces one.
 | Event | Handler |
 |---|---|
 | `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune |
+| `PLAYER_REGEN_DISABLED`, `PLAYER_REGEN_ENABLED` | Re-evaluate **General visibility** at each combat edge (`addon:OnCombatChanged` → `NS.Util.ApplyVisibility`). Outside the capture pipeline entirely — no snapshot, no diff, no row |
 | `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches (the guild one never fires — see below) |
 | `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm (the guild one never fires — see below) |
 | `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |

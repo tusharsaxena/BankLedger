@@ -151,6 +151,17 @@ C.STORE_CONTAINERS = {
 
 -- ── Settings option lists ───────────────────────────────────────────────────────
 
+-- The LOWEST master alpha the addon will draw at, and therefore the lowest the slider offers.
+--
+-- ONE number, read by both halves on purpose. `Util.ApplyMasterFrame` clamps up to this floor
+-- because a stored 0 — hand-edited into SavedVariables, or arriving from an older build — is an
+-- addon nobody can see and no way back to the panel that would fix it. The composer's canonical
+-- Master alpha row offers min = 0, so the row is decorated with this same value (settings/
+-- Schema.lua's MASTER_DECOR): a slider whose bottom two stops both draw at 0.1 is a control that
+-- visibly does nothing, and a declared minimum the drawing code refuses is exactly the
+-- declared-but-not-honored gap the standard forbids. Move this and both halves move together.
+C.MASTER_ALPHA_MIN = 0.1
+
 -- Retention presets; 0 means "Always" (cleanup disabled).
 C.RETENTION_OPTIONS = {
   { value = 7,   text  = "7 days" },

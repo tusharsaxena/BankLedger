@@ -1032,16 +1032,16 @@ function LT:RowMenuItems(entry)
         if entry.itemLink and ChatEdit_InsertLink then ChatEdit_InsertLink(entry.itemLink) end
       end },
     -- Blacklisting is point-in-time: it stops FUTURE movements of this id being recorded and leaves
-    -- every stored row alone. Manage the list in Settings ▸ Filters.
+    -- every stored row alone. Manage the list in Settings ▸ General ▸ Filters.
     { label = "Blacklist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddBlacklist(entry.itemID) then
-          print(("blacklisted %s. Manage in Settings \226\150\184 Filters."):format(
+          print(("blacklisted %s. Manage in Settings \226\150\184 General \226\150\184 Filters \226\150\184 Blacklist."):format(
             entry.itemName or ("item " .. tostring(entry.itemID))))
         end
       end },
     { label = "Whitelist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddWhitelist(entry.itemID) then
-          print(("whitelisted %s. Manage in Settings \226\150\184 Filters."):format(
+          print(("whitelisted %s. Manage in Settings \226\150\184 General \226\150\184 Filters \226\150\184 Whitelist."):format(
             entry.itemName or ("item " .. tostring(entry.itemID))))
         end
       end },

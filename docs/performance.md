@@ -34,6 +34,7 @@ exemption is over.
 | Site | What it is | Work while in combat |
 |---|---|---|
 | `core/BankLedger.lua` `OnEnable` | `PLAYER_ENTERING_WORLD` -> `OnEnterWorld` | One boolean check. Latched by `NS.State.cleanupDone`, so it does its work once per session. |
+| `core/BankLedger.lua` `OnEnable` | `PLAYER_REGEN_DISABLED`, `PLAYER_REGEN_ENABLED` -> `OnCombatChanged` -> `NS.Util.ApplyVisibility` | **On the combat EDGE, twice a fight, never inside one.** One `settings.visibility` read, at most one `InCombatLockdown()` call, then a fixed two-entry loop over `NS.Browser` / `NS.SessionWindow` that hides or re-shows a window the rule itself took (`core/State.lua`'s `hiddenByVisibility`). No allocation, no scan, no timer. On the shipped default `always`, `Util.VisibilityAllows` answers before it reads the combat state and the loop finds nothing to do. |
 | `core/BankLedger.lua` `OnEnterWorld` | `C_Timer.After(5, …)` -> `Database:PruneOld` | **One-shot**, not a ticker. Fires five seconds after the first login/zone, off the boot spike. |
 | `core/Compat.lua` `LoadItem` | `C_Timer.After(0.4, cb)` | **One-shot** per item that had to be fetched from the server, and only on a path reached from a bank scan. |
 | `modules/Ledger.lua` — `OPEN_EVENTS` / `CLOSE_EVENTS` | `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED`, and their `…_CLOSED` pair | **Cannot fire in combat**: a bank or guild-bank frame is an out-of-combat NPC interaction. These are what set `NS.State.openContext`, the gate everything else reads. |
@@ -41,6 +42,13 @@ exemption is over.
 | `modules/Ledger.lua` — `GUILD_DATA_EVENTS` | `GUILDBANKBAGSLOTS_CHANGED` -> `OnGuildBankData` | **Can** fire in combat: the server pushes tab contents on reload sync and whenever another guild member moves something (issue #12). The handler is an already-hooked short-circuit, one three-valued visibility read and `ScheduleReconcile`, which opens with the `openContext` nil check — so away from a vault it is a handful of comparisons. |
 | `modules/Ledger.lua` — `ADDON_LOADED` | `OnAddonLoaded` -> `HookGuildBankFrame` | Fires once per addon that loads. Latched by `L._guildHooked` and gated on one string compare, so every firing after the guild bank UI lands is two comparisons. |
 | `modules/Browser.lua`, `modules/SessionWindow.lua` | `PLAYER_LOGOUT` on each window's own event frame | Saves the window's view state. Fires once, at logout. |
+
+The combat pair is the one row that arrived *after* this exemption was ratified — the **General
+visibility** rule (`options-ui-§15`) needs both edges or its two combat modes are declared and never
+honored. It was assessed against the register row's own re-check trigger and does **not** trip it:
+the trigger is an in-combat handler *doing real work*, and this one is bounded, allocation-free,
+fires twice per fight rather than per frame or per event, and does nothing at all on the default
+setting. It is named here rather than left for the next sweep to find.
 
 **No `OnUpdate` handler exists in this repo** — `grep -rn "OnUpdate" core modules settings` returns
 nothing — and **no repeating ticker**: no `C_Timer.NewTicker`, no `ScheduleRepeatingTimer`. Every

@@ -28,6 +28,11 @@ State.testRecords = nil     -- session-only synthetic dataset published by /bl t
                             -- every read-path query (table + Insights) resolves against it instead
                             -- of the live ledger.
 
+-- Which windows the General visibility rule (`settings.visibility`, options-ui-§15) took off
+-- screen, keyed by module name. Written only by NS.Util.ApplyVisibility, and the reason that rule
+-- can put a window BACK without ever opening one the player had closed themselves.
+State.hiddenByVisibility = {}
+
 -- The current BANKING SESSION's movements: references to the ledger entries recorded between a
 -- storage frame opening and closing. Deliberately NOT a second copy of the data and never persisted
 -- — the session window reads it live and it is dropped the moment the frame closes. Owned and

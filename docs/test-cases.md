@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (31)
+### test_util.lua (38)
 
 - Util.PlayerKey joins name and realm with spaces stripped
 - Util.SplitPath splits a dotted settings path
@@ -39,6 +39,13 @@ badge and any count quoted in the docs must agree with it.
 - Util.WowheadURL falls back to the stored item id when there is no link
 - Util.WowheadURL accepts a bare item string as well as a full hyperlink
 - Util.WowheadURL returns nothing for a row with no item at all
+- Util.ApplyMasterFrame applies scale, alpha AND the lock to one frame
+- Util.ApplyMasterFrame clamps a master alpha that would hide the addon outright
+- Util: every stop the Master alpha slider offers is a stop the drawing code draws
+- Util.VisibilityAllows answers all four modes against the combat state
+- Util.ApplyVisibility hides only what was up, and re-shows only what IT hid
+- Browser:Show refuses while General visibility says no
+- Util.ResetWindowPositions clears BOTH windows' stored geometry
 
 ### test_compat.lua (13)
 
@@ -324,7 +331,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (51)
+### test_ledgertable.lua (53)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -377,6 +384,8 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable row menu offers the mutating actions on a real row
 - LedgerTable row menu disables every mutating action in test mode
 - LedgerTable row menu still disables item actions on a money row
+- LedgerTable: the blacklist confirmation names the tab the list actually lives on
+- LedgerTable: the whitelist confirmation names the tab the list actually lives on
 
 ### test_browser.lua (41)
 
@@ -602,7 +611,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (36)
+### test_schema.lua (42)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -625,17 +634,23 @@ badge and any count quoted in the docs must agree with it.
 - COMMANDS: the standard's required verbs are all present
 - COMMANDS: a test verb exists (test-mode)
 - Schema: the page partitions into the designed tabs, in the designed order
+- Schema: Master controls is the FIRST tab, and holds exactly the canonical rows
+- Schema: every row on every tab of the page carries a group
 - Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice
 - Schema: no tab holds fewer than two controls unless it is exempt by name
 - Schema: two tabs draw a strip at all — a single-group page falls back to sections
-- Schema: the Capture tab leads with the master switch, alone on its line
+- Schema: the Capture tab leads with the two kind toggles, paired across one line
 - Schema: the Capture kind toggles pair across one line, in item-then-gold order
 - Schema: rest and hover sit on ONE line, so they are read across and not down
 - Schema: the Interface tab opens with the control most players reach for
+- Schema: the Interface tab heads each KIND of control it mixes
 - Schema: each promoted tint default IS the literal it replaced
 - Util.RowTintAlpha clamps what SavedVariables hands it
 - Util.ApplyRowTint paints both textures and drives the banding
 - Schema: every row carries a tooltip
+- Schema: this addon still declares no color row at all
+- Schema: a color row is followed by its companion, and never carries disabledIf
+- Schema: General visibility is a dropdown over the four canonical answers
 - Schema: settings.windowScale declares its own step
 - Schema: a row the library cannot draw is marked skipRender, not left to vanish
 - Schema: no row uses the pre-library field spellings
@@ -677,7 +692,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (32)
+### test_panel.lua (35)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -694,16 +709,17 @@ badge and any count quoted in the docs must agree with it.
 - Panel: a refresher that raises does not stop the others
 - Panel: every tab of the General page renders without the library reporting a failure
 - Panel: the General page draws a tab strip, one button per schema group
+- Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's
+- Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Panel: every renderable schema row reaches the page on ITS OWN tab
 - Panel: a boolean row is a CheckBox and a range row is a Slider
+- Panel: the Master controls tab closes with the two reset buttons
 - Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
 - Panel: a checkbox write goes through the single write seam
-- Panel: Reset all sits on History beside Purge, and NOT beside the window-scale slider
+- Panel: History draws Purge alone — Reset all left with the Master controls tab
 - Panel: the store grid renders as an inverted checkbox set, host-drawn
-- Panel: a tabbed page draws NO section headings — the strip is the heading
+- Panel: a tab's only headings are the SUBSECTION ones its rows declare
 - Panel: the storage read-out lands on the History tab and nowhere else
-- Panel: the Filters page is a two-tab strip, one list per tab
-- Panel: a Filters tab whose key no longer exists heals to the first tab
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Panel:Diagnose says so and stops when no defaults button was ever built
 - Panel:Diagnose stops at a button with no frame
@@ -711,6 +727,8 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
 - Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
 - Slash: the restored store does not ALIAS the defaults table
+- Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
+- Slash: while the split stands, the button and the verb do NOT share a label
 
 ### test_harness.lua (7)
 
@@ -898,22 +916,22 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 31 |
+| test_util.lua | 38 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 122 |
 | test_database.lua | 43 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 51 |
+| test_ledgertable.lua | 53 |
 | test_browser.lua | 41 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 36 |
+| test_schema.lua | 42 |
 | test_slash.lua | 33 |
-| test_panel.lua | 32 |
+| test_panel.lua | 35 |
 | test_harness.lua | 7 |
 | test_mock.lua | 26 |
 | test_mediasetup.lua | 13 |
@@ -923,4 +941,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **813** |
+| **Total** | **831** |

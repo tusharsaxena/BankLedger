@@ -64,20 +64,10 @@ if type(StaticPopupDialogs) == "table" then
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
     preferredIndex = 3,
   }
-  -- The Filters subcategory's top-right Defaults button (options-ui-§5) clears BOTH lists in one
-  -- action — their default state is empty. Non-destructive, like the per-list clears.
-  StaticPopupDialogs["KA0S_BANKLEDGER_CLEAR_FILTERS"] = {
-    text = "Reset all filters to defaults (clear the item blacklist AND whitelist)? "
-      .. "Your existing history is unaffected.",
-    button1 = YES or "Yes",
-    button2 = NO or "No",
-    OnAccept = function()
-      local n = (NS.Filters and NS.Filters:ClearAll()) or 0
-      print(("filters reset (%d %s cleared)."):format(n, n == 1 and "id" or "ids"))
-    end,
-    timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
-    preferredIndex = 3,
-  }
+  -- NO "clear both filters" popup any more. It existed for the Filters subcategory's own top-right
+  -- Defaults button, and that page is gone (R3) — the two lists are tabs of the General page now,
+  -- whose Defaults button is P:RestoreDefaults and already clears both through CliResetAll. A
+  -- confirm dialog with no caller is one nobody can reach, so it was deleted rather than parked.
 end
 
 --- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with

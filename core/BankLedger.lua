@@ -43,6 +43,11 @@ end
 
 function addon:OnEnable()
   self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEnterWorld")
+  -- The General visibility rule's two transitions (options-ui-§15). `Only in combat` and `Only
+  -- out of combat` are answers that CHANGE without anything being clicked, so the setting is
+  -- unhonored without these: a window opened out of combat would simply stay up through a pull.
+  self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatChanged")
+  self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatChanged")
   if NS.Ledger and NS.Ledger.Enable then NS.Ledger:Enable() end
   if NS.Browser and NS.Browser.Enable then NS.Browser:Enable() end
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
@@ -51,6 +56,12 @@ function addon:OnEnable()
   -- No [Init] line here: the debug flag is session-only and off at login, so a boot-time summary
   -- would always be gated off and never render. It rides the DebugLog:SetEnabled seam instead,
   -- emitted when capture is actually enabled (debug-logging-§5/§8).
+end
+
+-- Both combat edges take the same route: NS.Util.ApplyVisibility re-reads the rule and hides or
+-- re-shows exactly the windows the rule itself took (core/State.lua's hiddenByVisibility).
+function addon:OnCombatChanged()
+  NS.Util.ApplyVisibility()
 end
 
 -- Retention cleanup runs once per session, deferred off the login/zone spike.

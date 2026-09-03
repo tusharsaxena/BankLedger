@@ -36,24 +36,39 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 28 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
 the Compat firewall, the AceDB layer and the six LibKa0s seams; `modules/` holds the capture engine
-and every window; `settings/` holds the schema and the three panel pages.
+and every window; `settings/` holds the schema and the two panel pages.
 
-Load order is load-bearing in four places, and `tests/test_harness.lua` guards the order the harness
+Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
 derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 
 ## Settings Schema
 
-**Twelve** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
+**Fifteen** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write goes through `NS.Schema:Set`, so
 a slash write and a panel widget take exactly the same path.
 
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
-the array's declaration order is the tab order, and the strip reads **Capture** (5) · **Interface**
-(6) · **History** (1). The **Filters** page carries no schema rows and drives the same `H.TabStrip`
-by hand over its two id-lists. Two of the twelve rows are chrome literals promoted to settings in
-the tabbed-panel pass — `settings.rowStripeAlpha` and `settings.rowHoverAlpha`, each defaulting to
-the number it replaced.
+the array's declaration order is the tab order, and the strip reads **Master controls** (6) ·
+**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
+all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
+renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
+`NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
+**secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
+selection is `ctx.activeSubTab["Filters"]`, session state and never persisted.
+
+Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
+five with **AH Price** after Capture. The two addons keep the same shape of record and a player
+compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
+was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
+rename and carried no migration (`options-ui-§15`).
+
+The **Master controls** tab is composed by the library (`H.MasterControls`, `options-ui-§15`) and
+spliced at the head of the array; `keys = { scale = "windowScale" }` is what keeps this addon's
+stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
+`settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
+chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
+`settings.rowHoverAlpha`, each defaulting to the number it replaced.
 
 Four pieces of persisted state are **carve-outs** with no schema widget: the two windows' geometry,
 the filter id-lists, and the saved ledger view. Row table and panel structure in
@@ -69,8 +84,8 @@ two consumers sharing a target silently clobber each other.
 | Message | Sender | Payload | Consumers |
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
-| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + Filters page) |
-| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
+| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
@@ -89,12 +104,16 @@ seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispa
 
 ## Event Subscriptions
 
-Eleven registrations. **Eight** are the capture engine's and all go through
+Fourteen registrations. **Nine** are the capture engine's and all go through
 `Ledger:RegisterEventSafely` — modern retail **raises** on an unknown event name, so a bare loop turns
-one retired event into a silently deaf addon. The other three sit outside the engine and outside that
+one retired event into a silently deaf addon. The other five sit outside the engine and outside that
 guard, because none of their names can go away under it: `PLAYER_ENTERING_WORLD` on the AceEvent addon
-object (`core/BankLedger.lua:45`, the one-shot retention prune) and `PLAYER_LOGOUT` on each window's
-own event frame (`modules/Browser.lua:1243`, `modules/SessionWindow.lua:662`, geometry flush).
+object (`core/BankLedger.lua:45`, the one-shot retention prune), the combat pair
+`PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the same object (`core/BankLedger.lua:49-50`
+→ `addon:OnCombatChanged` → `NS.Util.ApplyVisibility`, the two edges the **General visibility** rule
+answers on — without them a window opened out of combat would simply stay up through a pull), and
+`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1249`,
+`modules/SessionWindow.lua:673`, geometry flush).
 
 Change events are debounced into one reconcile pass per user action, and the baseline is held
 whenever a pass sees a one-sided change.
@@ -161,7 +180,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, carve-outs, migrations |
-| `settings-panel.md` | The three pages, the two tab strips, the twelve rows, and the single `Schema:Set` write seam |
+| `settings-panel.md` | The two pages, the five-tab strip, the fifteen rows, and the single `Schema:Set` write seam |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 
@@ -210,6 +229,7 @@ with no re-check trigger is a permanent exemption granted by accident.
 |---|---|---|---|---|
 | `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and the three events that *can* fire in combat do a single `NS.State.openContext` nil check and return. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. |
 | `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. |
+| `options-ui-§12` | The global reset is **three routes over two implementations**, not one act. The General page's **Reset all settings** button raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose `OnAccept` runs `Sl:ResetEverything` — `db.global` emptied wholesale, **including the recorded ledger**. The header/footer **Defaults** button (`P:RestoreDefaults`) and `/bl resetall` both run `Sl:CliResetAll`, which clears the two filter lists, resets the saved view and defers to the library's schema walk, leaving the ledger alone. §12 requires all three behind **one** implementation, and requires the account-wide form to empty the store wholesale rather than enumerate it — so the *non-destructive* pair is the half that diverges. | **Not argued for — recorded because it is shipping and was not ratified.** The split predates the settings revamp; that pass only moved the destructive button onto the Master controls tab and, in doing so, gave it §12's canonical *name*. Closing it means choosing which act wins, and both choices are user-visible: unifying **up** makes `/bl resetall` and Blizzard's own **Defaults** control destroy a player's entire recorded history (§12 accepts this — its second canonical wording already says *"or recorded"* — but it is a data-loss change no case in `tests/` covers today); unifying **down** leaves the addon with no §12-compliant wholesale reset at all. That is a maintainer's call, not an implementer's, so the divergence is **reported and named** rather than silently widened. What this pass *did* do is stop the two acts sharing a label: the button is *Reset all settings*, `/bl resetall` is *Reset every setting to defaults* (`slash-commands-§3`'s reference wording), so today a player is at least not told two different blast radii have one name. | 2026-09-02 | **The decision itself — this row is a placeholder for a resolution, not an exemption.** Re-check at the next release, or the moment a player reports losing history to *Reset all settings*, whichever comes first. Closing it means pointing `P:RestoreDefaults` and the `resetall` verb at the same confirm-gated body as the button (and extending `Sl:ResetEverything` to sweep the session-only rows a store wipe cannot reach, per §12), then deleting this row. |
 
 Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
 namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — it is simply unused, so

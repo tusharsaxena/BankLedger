@@ -13,27 +13,26 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- IS the tab order and a group's rows must stay CONTIGUOUS — a row filed under a group the page has
 -- already left prints that tab a second time further down. Row order within a group drives the
 -- two-column pairing. `wide` forces a full-width row; `solo` puts a row on its own line;
+-- `subgroup` draws a heading INSIDE a tab, for a tab that mixes kinds of control (options-ui-§7);
 -- `skipRender` keeps a row in the schema — so the CLI, the defaults and a reset all still see it —
 -- while the panel draws it by hand. Those names are LibKa0s-Options-1.0's, not ours: the flow
 -- engine reads them.
 --
--- The tabs, in order: Capture (what is recorded), Interface (what is on screen), History (how much
--- is kept, and the two ways to destroy it).
+-- The tabs, in order: Master controls (the addon as a whole — composed, spliced in at the head from
+-- settings/OptionsSetup.lua, see S:ComposeMaster below), Capture (what is recorded), Interface (what
+-- is on screen), History (how much is kept, and the one way to destroy it), then Filters (both
+-- item-id lists under one host-drawn tab — see S.BespokeRows).
+--
+-- THOSE NAMES AND THAT ORDER ARE SHARED WITH KA0S LOOT HISTORY, which draws the same five plus an
+-- AH Price tab after Capture. The two addons capture and keep the same shape of record and a player
+-- moves between their panels expecting the same furniture; one calling a subject Capture while the
+-- other called it Collection was two names for one thing. Renaming a `group` moves no stored path
+-- (options-ui-§15), which is why the convergence was a rename and not a migration.
 S.Schema = {
   -- ── Capture ──
-  -- FIRST, because it is what the addon is for and what a player opens this page to change. The
-  -- master switch leads on its own line (`solo`), then the two kind toggles across one line, then
-  -- the quality gate, then the per-store grid — narrowest question to widest.
-  { path = "settings.enabled", default = true, type = "bool", widget = "CheckBox",
-    -- `solo` is spent here and nowhere else on the page: this is the switch every other row on
-    -- the tab is conditional on, which is the "genuine pivot" the flag exists for.
-    solo = true,
-    group = "Capture", label = "Enable capture",
-    tooltip = "Master switch for recording bank movements.",
-    onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
-    end },
-
+  -- What is recorded. The two kind toggles pair across one line, then the quality gate, then the
+  -- per-store grid — narrowest question to widest. The master switch that used to lead this tab is
+  -- "Enable Bank Ledger" on Master controls now (options-ui-§15): one control, one place.
   { path = "settings.trackItems", default = true, type = "bool", widget = "CheckBox",
     group = "Capture", label = "Track items",
     tooltip = "Record items moving between your bags and a bank.",
@@ -74,53 +73,23 @@ S.Schema = {
     end },
 
   -- ── Interface ──
-  -- Everything about what is on screen and how it looks. Three full lines, and each line is one
-  -- question: scale and the launcher, then the two windows you can switch on, then the row tint
-  -- pair — rest beside hover, so the reader compares them across the line instead of down a column.
-  { path = "settings.windowScale", default = 1.0, type = "number", min = 0.6, max = 1.6,
-    -- Declared explicitly because the two renderers disagree about the default: this addon's old
-    -- panel assumed 0.05, LibKa0s-Options-1.0's makeSlider assumes 1. Left undeclared, the library
-    -- would snap a 0.6-1.6 slider to its two endpoints and nothing else.
-    step = 0.05,
-    widget = "Slider",
-    fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
-    group = "Interface", label = "Window scale",
-    tooltip = "Scale of the ledger window.",
-    -- The direct call repaints the window the user is almost certainly looking at with no latency;
-    -- the broadcast is what reaches everything ELSE that scales. SessionWindow already subscribes
-    -- to SettingsChanged and already reads windowScale, so it needed no change — it was simply
-    -- never told (F-003). A second direct call would have been one line and anti-pattern #19, and
-    -- would have left the same hole for the next window added.
-    onChange = function(v)
-      if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "windowScale") end
-    end },
-
+  -- Everything about what is on screen and how it looks, and it mixes two kinds of control — the
+  -- windows you can switch on, and the tint of a table row — so each block carries a `subgroup`
+  -- heading (options-ui-§7). Master scale left this tab for Master controls: it was never a
+  -- per-window setting, both windows have always read the one key (see S.MASTER_SPEC below).
   { path = "minimap.hide", default = false, type = "bool", widget = "CheckBox",
-    group = "Interface", label = "Hide minimap button",
+    group = "Interface", subgroup = "Windows", label = "Hide minimap button",
     tooltip = "Hide the Bank Ledger minimap button.",
     onChange = function(v)
       if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
     end },
 
   { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
-    group = "Interface", label = "Session window",
+    group = "Interface", subgroup = "Windows", label = "Session window",
     tooltip = "Show a small live window listing what you move while a bank is open. "
       .. "Turning this off never stops capture \226\128\148 only the window.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "sessionWindow") end
-    end },
-
-  -- A session-only row (never persisted): its value is the debug console WINDOW's visibility, not
-  -- the NS.State.debug logging flag. get/set route to NS.DebugLog, and Schema:Set skips the
-  -- db.global write for sessionOnly rows. Mirrors `/bl debug` with no argument.
-  { path = "state.debugConsole", sessionOnly = true, default = false, type = "bool",
-    widget = "CheckBox", group = "Interface", label = "Debug console",
-    tooltip = "Show or hide the on-screen debug console. Session-only \226\128\148 resets on reload.",
-    get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
-    set = function(v)
-      if not NS.DebugLog then return end
-      if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
     end },
 
   -- The row tint pair. Both were hardcoded in TWO files each — modules/LedgerTable.lua and
@@ -135,23 +104,24 @@ S.Schema = {
   -- SavedVariables, where a hand-edited 5 is not an error, it is a table drawn opaque white.
   { path = "settings.rowStripeAlpha", default = 0.03, type = "number", min = 0, max = 0.3,
     step = 0.01, widget = "Slider", fmt = "%.2f",
-    group = "Interface", label = "Row stripe opacity",
+    group = "Interface", subgroup = "Table rows", label = "Row stripe opacity",
     tooltip = "How strongly every second row in the ledger and session tables is tinted. "
       .. "0 turns the banding off.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
   { path = "settings.rowHoverAlpha", default = 0.10, type = "number", min = 0, max = 0.4,
     step = 0.01, widget = "Slider", fmt = "%.2f",
-    group = "Interface", label = "Row hover opacity",
+    group = "Interface", subgroup = "Table rows", label = "Row hover opacity",
     tooltip = "How strongly the row under your cursor is highlighted in the ledger and session "
       .. "tables. 0 turns the highlight off.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
   -- ── History ──
-  -- LAST: what you set once and leave, and the only place anything is destroyed. The retention
-  -- dropdown is the tab's one stored row; the live storage read-out and the two confirm-gated
-  -- buttons beside it (Purge ledger, Reset all) are bespoke and have no path, which is the
-  -- named exemption to "a tab holding fewer than two visible controls is not a subject".
+  -- LAST of the stored tabs: what you set once and leave, and the only place anything is destroyed.
+  -- The retention dropdown is the tab's one stored row; the live storage read-out and the
+  -- confirm-gated Purge button beside it are bespoke and have no path, which is the named exemption
+  -- to "a tab holding fewer than two visible controls is not a subject". "Reset all settings" is NOT
+  -- here any more — it is the Master controls tab's closing button pair (options-ui-§15).
   { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
     group = "History", label = "Keep history for", values = C.RETENTION_OPTIONS,
     tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
@@ -160,9 +130,169 @@ S.Schema = {
     end },
 }
 
+-- ── The Master controls tab (options-ui-§15) ──────────────────────────────────────────────────
+--
+-- COMPOSED, never typed out: the library emits the canonical eight from one declaration, which is
+-- what stops nine addons drifting into nine orders (anti-pattern #73). What lives here is only the
+-- part that is ours — which stored paths the canonical leaves map onto, and what each row REACTS to.
+--
+-- `keys` is how a composed row keeps a path this addon already ships: `scale` would otherwise emit
+-- `settings.scale`, and every existing install stores its scale under `settings.windowScale`. The
+-- composer must never change what is stored.
+--
+-- WHY `windowScale` IS THE MASTER SCALE and not a per-window one: both of this addon's scalable
+-- surfaces already read that single key. Before the promotion each read it for itself, at frame
+-- construction and again on a settings change; they read it through NS.Util.ApplyMasterFrame now
+-- (modules/Browser.lua:1123 and :1165, modules/SessionWindow.lua:554 and :648), which is the same
+-- one key for a third surface as well. It has been addon-wide since it was added; the tab it sat on
+-- was the only thing suggesting otherwise. So this is a promotion with no second setting invented
+-- beside it, which is what options-ui-§15 asks for.
+S.MASTER_SPEC = {
+  prefix    = "settings.",
+  page      = "general",
+  addonName = "Bank Ledger",
+  -- NOT frameless: modules/Browser.lua:1007, modules/SessionWindow.lua:449 and modules/Export.lua:347
+  -- all call SetMovable(true), so every frame-only row applies.
+  keys      = { scale = "windowScale" },
+  -- The composer leaves the console toggle's default to the host, because "was the console open"
+  -- is session state and only the host knows what it starts as. False is what this addon has always
+  -- shipped, and CliResetAll needs it: a session-only row is restored row by row, since a store
+  -- reset cannot reach it (options-ui-§12).
+  defaults  = { debugConsole = false },
+  -- Verbatim and unprefixed: session state lives outside the block's own prefix.
+  debugConsolePath = "state.debugConsole",
+}
+
+-- The host half of each composed row: the widget name this addon's own suite and CLI read, the
+-- `fmt` its slash output uses, and the reaction. The composer owns the path, the label, the type,
+-- the range and the default — everything a player sees — and deliberately knows nothing about a
+-- host's bus or its debug console, so those are stamped on afterwards rather than hand-written into
+-- a copy of the block.
+S.MASTER_DECOR = {
+  ["settings.enabled"] = { widget = "CheckBox",
+    onChange = function()
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
+    end },
+
+  ["settings.visibility"] = { widget = "Dropdown",
+    -- Honored in core/Util.lua's Util.VisibilityAllows, which every window's Show consults and
+    -- which core/BankLedger.lua re-evaluates on each combat transition.
+    onChange = function() NS.Util.ApplyVisibility() end },
+
+  ["settings.windowScale"] = { widget = "Slider",
+    fmt = "%.2fx",   -- scale → "1.00x" in the slash list/get output (slash-commands-§5)
+    -- The direct calls repaint the windows the player is almost certainly looking at with no
+    -- latency; the broadcast is what reaches everything ELSE that scales.
+    onChange = function(v)
+      if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
+      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "windowScale") end
+    end },
+
+  -- `min` is the ONE decoration here that overrides a value a player sees, and it narrows the
+  -- composer's canonical 0 up to the floor core/Util.lua actually draws at
+  -- (NS.Constants.MASTER_ALPHA_MIN). Left at 0, the slider's bottom two stops (0.00 and 0.05) both
+  -- render at 0.1 and are indistinguishable — a declared setting the drawing code will not honor.
+  -- The clamp stays where it is regardless: SavedVariables is hand-editable and the row is not the
+  -- only way a value gets in.
+  ["settings.alpha"] = { widget = "Slider", fmt = "%.2f",
+    min = NS.Constants.MASTER_ALPHA_MIN,
+    onChange = function() NS.Util.ApplyMasterChrome() end },
+
+  ["settings.locked"] = { widget = "CheckBox",
+    onChange = function() NS.Util.ApplyMasterChrome() end },
+
+  ["state.debugConsole"] = { widget = "CheckBox",
+    -- Session-only: Schema:Set skips the db.global write and calls this set() instead. Mirrors
+    -- `/bl debug` with no argument. It used to be a hand-declared row on the Interface tab.
+    get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
+    set = function(v)
+      if not NS.DebugLog then return end
+      if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
+    end },
+}
+
+--- Compose the Master controls rows and splice them at the HEAD of S.Schema.
+---
+--- Called once, from settings/OptionsSetup.lua, the moment the LibKa0s-Options instance exists —
+--- the composer lives on the instance and the TOC loads this file first. Idempotent, because a
+--- second splice would draw the tab twice.
+---
+--- Stores the group's `afterGroup` hook on S.masterTail; settings/Panel.lua wires it. The GROUP NAME
+--- IS THE HOOK KEY, so renaming the group silently detaches the closing button pair.
+function S:ComposeMaster(O)
+  if S.masterTail or not (O and O.MasterControls) then return end
+
+  local spec = {}
+  for k, v in pairs(S.MASTER_SPEC) do spec[k] = v end
+  spec.onResetPosition = function() NS.Util.ResetWindowPositions() end
+  -- options-ui-§12's global reset for an addon with NO PROFILE, verbatim: the confirm-gated
+  -- KA0S_BANKLEDGER_RESETALL popup (whose text is that rule's second canonical wording, byte for
+  -- byte), never the deed on the click. EXACTLY the act the History tab's "Reset all…" button used
+  -- to raise — the button moved here rather than being copied.
+  --
+  -- Note for whoever reads this next: `/bl resetall` does NOT reach this, and neither does the
+  -- header/footer Defaults button. Both run Sl:CliResetAll, which walks the schema and the two
+  -- carve-outs and leaves the ledger alone, while this raises Sl:ResetEverything, which empties
+  -- db.global wholesale. options-ui-§12 wants all three behind ONE implementation; they are not.
+  -- The divergence predates this tab and is now a RATIFIED ROW in docs/ARCHITECTURE.md's
+  -- `## Documented deviations` register, which also carries what closing it costs. Reported and
+  -- named, not quietly widened here.
+  spec.onResetAll = function()
+    if type(StaticPopup_Show) == "function" then
+      StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
+    elseif NS.Slash and NS.Slash.ResetEverything then
+      NS.Slash:ResetEverything()
+    end
+  end
+
+  local rows, tail = O.MasterControls(spec)
+  for _, row in ipairs(rows) do
+    for field, value in pairs(S.MASTER_DECOR[row.path] or {}) do row[field] = value end
+  end
+  for i = #rows, 1, -1 do table.insert(S.Schema, 1, rows[i]) end
+  S.masterTail = tail or function() end
+  S.__pageRows = nil
+  return rows
+end
+
+-- ── The item-id Filters tab (R3: the Filters page merged into General) ────────────────────────
+--
+-- ONE RENDERER-ONLY row. It carries a `group` so H.RenderTabbedSchema draws the tab, and
+-- `skipRender` so the flow engine walks past it — settings/Panel.lua draws the body from that
+-- group's `afterGroup` hook, exactly as the Capture store grid and the History read-out already are.
+--
+-- ONE ROW, NOT TWO. The blacklist and the whitelist were a primary tab each until the convergence
+-- with Ka0s Loot History, which holds three such lists and had long since put them under a single
+-- Filters tab with a SECONDARY strip (options-ui-§13: a list of like subjects inside one category
+-- is exactly what a secondary strip is for). Two addons naming the same subject differently is the
+-- drift; the sub-strip is also the shape that scales, since a third list here would otherwise be a
+-- third primary tab pushing the page's own subjects along the band.
+--
+-- It is deliberately NOT in S.Schema and therefore NOT a setting. The lists themselves are an
+-- architecture-§5 storage carve-out mutated through NS.Filters' copy-on-write (which re-caches the
+-- capture gate and fires LedgerChanged); a schema row over the same key would hand `/bl set`,
+-- `/bl reset` and the reset sweep a second writer that skips all of that. `allRows` still answers
+-- S.Schema alone, so the CLI and every reset see exactly the settings and nothing else.
+S.BespokeRows = {
+  { group = "Filters", label = "Filters", widget = "IdList", skipRender = true,
+    tooltip = "The item ids that are never recorded, and the ones that always are." },
+}
+
+--- The General page's rows AS RENDERED: every setting, then the host-drawn Filters tab.
+---
+--- Built once and cached — both halves are static after load, and a tab click re-renders the page.
+function S:PageRows()
+  if S.__pageRows then return S.__pageRows end
+  local out = {}
+  for _, row in ipairs(S.Schema) do out[#out + 1] = row end
+  for _, row in ipairs(S.BespokeRows) do out[#out + 1] = row end
+  S.__pageRows = out
+  return out
+end
+
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
--- console WINDOW's visibility IS the `state.debugConsole` row above.
+-- console WINDOW's visibility IS the `state.debugConsole` row the Master controls composer emits.
 -- NOTE: four storage carve-outs are mutated by their owning module rather than through Schema:Set
 -- (architecture-§5). None is a schema row, so none has a widget, a default or an onChange; check
 -- this list before writing a key under db.global directly. All four are:
@@ -286,7 +416,15 @@ NS.COMMANDS = {
   { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },
   { "list",     "List all settings",       function() NS.Slash:CliList() end },
   { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
-  { "resetall", "Reset all settings",      function() NS.Slash:CliResetAll() end },
+  -- NOT the same act as the Master controls tab's "Reset all settings" button, and therefore NOT
+  -- the same words: this walks the schema and the two carve-outs and leaves the recorded ledger
+  -- alone, while the button raises KA0S_BANKLEDGER_RESETALL and empties db.global wholesale. The
+  -- description is slash-commands-§3's own reference wording. options-ui-§12 wants the two behind
+  -- ONE implementation; they are not, and that divergence is a ratified row in
+  -- docs/ARCHITECTURE.md ▸ Documented deviations. Until it is closed, the two MUST NOT wear an
+  -- identical label — a player who cannot tell which of two controls does more is exactly the
+  -- failure that rule spends its length preventing.
+  { "resetall", "Reset every setting to defaults", function() NS.Slash:CliResetAll() end },
   { "session",  "Toggle the banking-session window (sample data outside a bank)",
     function()
       if not NS.SessionWindow then return end

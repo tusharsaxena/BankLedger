@@ -23,6 +23,15 @@ falls back to its own 24pt ×, and both windows still close. The sizes still dif
 18×18 control on a 26px library title bar, 24×24 on this addon's 30px one — and the hover tint stays
 this addon's class color on its own windows. See [media.md](media.md).
 
+**Master scale, master alpha and `Lock frame` are one seam, not per-window settings.** Every movable
+frame this addon builds — the ledger window, the session window and the export modal — calls
+`NS.Util.ApplyMasterFrame(frame)` at construction, after its own `SetMovable(true)`, and
+`NS.Util.ApplyMasterChrome()` re-applies all three across the set whenever one changes. `Lock frame`
+*is* `SetMovable(false)`, which the client makes `StartMoving` a no-op against, so there is no second
+guard in any drag handler to keep in step. Master alpha is clamped up to `NS.Constants.MASTER_ALPHA_MIN`
+on the way in — a stored `0` would be an invisible window with no way back to the panel that set it.
+See [settings-panel.md](settings-panel.md) → *Master controls*.
+
 **When geometry is written matters as much as what is written**, and the obvious answer is wrong. The
 natural call sites — the end of a drag, the end of a resize — fire at the end of an *interaction*,
 and the resize one is easy to miss outright: releasing the grip a pixel outside a 16×16 button never

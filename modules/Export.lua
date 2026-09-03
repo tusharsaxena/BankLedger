@@ -345,6 +345,10 @@ local function EnsureFrame()
   -- menu; the copy window (FULLSCREEN) still opens above this modal.
   frame:SetFrameStrata("DIALOG")
   frame:EnableMouse(true); frame:SetMovable(true); frame:SetClampedToScreen(true)
+  -- Master scale, master alpha and Lock frame (options-ui-§15), from the one seam every window
+  -- in this addon reads. It runs AFTER SetMovable(true) deliberately: Lock frame is expressed as
+  -- SetMovable(false), so the stock line above is the unlocked case and this is what overrides it.
+  NS.Util.ApplyMasterFrame(frame)
 
   local tbar = CreateFrame("Frame", nil, frame)
   tbar:SetPoint("TOPLEFT", 1, -1); tbar:SetPoint("TOPRIGHT", -1, -1); tbar:SetHeight(26)
@@ -419,9 +423,16 @@ end
 -- selected dataset. Always re-centers on the ledger window. Answers the frame, which nothing in
 -- game reads back — the modal is a singleton reached only through here, so the out-of-game mark
 -- suite has no other handle on the button inside it.
+-- The export modal (or nil if never built), so NS.Util.ApplyMasterChrome can re-apply the master
+-- scale/alpha/lock to it the way it does to the two persistent windows.
+function E:GetWindow() return frame end
+
 function E:Open(cfg)
   config = cfg or {}
   local f = EnsureFrame()
+  -- Re-read on every open: the modal is built once and lives for the session, so a master
+  -- setting changed while it was closed would otherwise never reach it.
+  NS.Util.ApplyMasterFrame(f)
   if f.titleFS then f.titleFS:SetText(config.title or "Export") end
   centerOnBrowser(f)
   f:Show()
