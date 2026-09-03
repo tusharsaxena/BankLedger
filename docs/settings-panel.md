@@ -8,11 +8,12 @@ shape behind these paths is [schema.md](schema.md).
 **Two** pages registered with `LibKa0s-Options-1.0`, which owns the shell, the widget makers, the
 flow engine and the render timing: the **landing page** and **General**. `settings/Panel.lua` keeps
 only what did **not** generalize: the inverted store grid, the History tab's storage read-out, the
-two item-id list tabs, the landing-page body, `P:Diagnose` and the `P:Batch` refresh coalescer.
+Filters tab's secondary strip over the two item-id lists, the landing-page body, `P:Diagnose` and
+the `P:Batch` refresh coalescer.
 
 The **Filters** sub-page is gone. It held no schema rows at all, so it was never a page's worth of
-settings — its two lists are two tabs of General's own strip now, and the registration was removed
-rather than left registered-and-empty.
+settings — its two lists are one **Filters** tab of General's own strip now, divided by a secondary
+strip, and the registration was removed rather than left registered-and-empty.
 
 `NS.Helpers` **is** the library instance (`options-ui-§1`), not a wrapper — `settings/Panel.lua`
 decorates it in place, so a member added by the library is available without a re-export.
@@ -31,27 +32,33 @@ those are deliberately not suppressed (`options-ui-§7`).
 | Page | Tab strip, in order | Rows per tab |
 |---|---|---|
 | Landing page | — (exempt: the host's own `buildMain`, `options-ui-§13`) | — |
-| General | **Master controls** · **Capture** · **Interface** · **History** · **Blacklist** · **Whitelist** | 6 · 4 · 4 · 1 · 1 · 1 |
+| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** | 6 · 4 · 4 · 1 · 1 |
+
+Inside **Filters** a **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides **Blacklist**
+from **Whitelist**. Its selection is `ctx.activeSubTab["Filters"]` — a table keyed by the primary
+tab, so leaving Filters and coming back returns to the list you were on — and it is session state,
+never persisted, exactly like `ctx.activeTab`. A stale pointer heals to the first list rather than
+rendering blank.
 
 The partition is by `group` **in declaration order**, so the row array's order *is* the tab order and
 a group's rows must stay **contiguous** — a row filed under a group the page has already left prints
 that tab a second time further down. `tests/test_schema.lua` holds the page → tab → count table that
 catches both.
 
-**What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** Two of the six tabs
-have no settings behind them: `S.BespokeRows` declares one **renderer-only** row per id-list, which
+**What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the five tabs
+has no settings behind it: `S.BespokeRows` declares a single **renderer-only** row for Filters, which
 carries a `group` (so the tab is drawn) and `skipRender` (so the flow engine walks past it) and
-nothing else. They are deliberately not settings — the lists are an `architecture-§5` storage
+nothing else. It is deliberately not a setting — the lists are an `architecture-§5` storage
 carve-out mutated through `NS.Filters`' copy-on-write, which re-caches the capture gate and fires
 `LedgerChanged`; a schema row over the same key would hand `/bl set`, `/bl reset` and the reset sweep
 a second writer that skips all of that. `allRows` still answers `S.Schema` alone, so the CLI and
 every reset see exactly the settings.
 
-**Three tabs hold one declared row and are exempt by name** from "a tab with fewer than two controls
+**Two tabs hold one declared row and are exempt by name** from "a tab with fewer than two controls
 is not a subject": each sits beside bespoke controls that have no path and cannot be counted — the
-storage read-out and **Purge ledger…** on History, and each id-list's whole body on Blacklist and
-Whitelist. The exemption is `THIN_TAB_EXEMPT` in `tests/test_schema.lua`, named rather than a
-loosened rule.
+storage read-out and **Purge ledger…** on History, and the secondary strip plus the selected list's
+add row, **Clear all** and live id list on Filters. The exemption is `THIN_TAB_EXEMPT` in
+`tests/test_schema.lua`, named rather than a loosened rule.
 
 ### The bespoke blocks are `afterGroup` hooks, not page-body calls
 
@@ -65,8 +72,7 @@ the library's `afterGroup` table instead:
 | Master controls | `NS.Schema.masterTail` | The composer's own closing `InlineButtonPair` — **Reset position** and **Reset all settings** |
 | Capture | `renderStoreGrid` | The inverted per-store checkbox grid (`settings.excludedStores`, `skipRender`) |
 | History | `renderStorage` | The live storage read-out, then **Purge ledger…** alone |
-| Blacklist | `renderFilterTab` | The blurb, the add row, **Clear all**, and the live id list |
-| Whitelist | `renderFilterTab` | The same, for the whitelist |
+| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, the add row, **Clear all**, and the live id list |
 
 The **group name is the hook key**, which is also why the Master controls group must keep exactly
 that name: rename it and the closing button pair silently detaches, with nothing raising.

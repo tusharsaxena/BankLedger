@@ -372,7 +372,7 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
 4. Right-click a sample row. **Link to chat** is available; **Blacklist item**, **Whitelist item**
    and **Delete** are grayed out and click-inert. The sample rows carry synthetic item ids, so those
    three would otherwise reach the real filter lists and the real ledger.
-5. `/bl config` ▸ **General** ▸ **Blacklist** / **Whitelist** — both lists are unchanged by
+5. `/bl config` ▸ **General** ▸ **Filters** ▸ **Blacklist** / **Whitelist** — both lists are unchanged by
    anything done in step 4.
 6. `/bl test` again returns to the real data and the badge disappears. Right-click a real row: all
    four entries are now available, and **Delete** removes the row and decrements the footer count.

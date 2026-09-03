@@ -180,7 +180,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, carve-outs, migrations |
-| `settings-panel.md` | The two pages, the six-tab strip, the fifteen rows, and the single `Schema:Set` write seam |
+| `settings-panel.md` | The two pages, the five-tab strip, the fifteen rows, and the single `Schema:Set` write seam |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 
