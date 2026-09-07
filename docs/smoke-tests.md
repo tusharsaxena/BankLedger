@@ -385,6 +385,15 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    everything, recentering both windows and discarding the recorded ledger with them. It sits beside
    **Reset position** in that tab's closing button pair, and nowhere else — History carries
    **Purge ledger…** alone (S-12).
+4. **Without reloading**, capture a bank movement: open your character bank and deposit or withdraw
+   something. The movement is recorded under the restored defaults — a new row in History and in the
+   Current Banking Session window. This is the check that the reset told the rest of the addon it
+   happened: the capture gate holds its settings in cached upvalues, and until it was given a
+   `Ka0s_BankLedger_SettingsChanged` broadcast it went on judging movements by the settings the
+   reset had already destroyed. To make it bite, blacklist an item first (History ▸ right-click ▸
+   or `/bl` ▸ Filters), reset, and then move that item: it must now be **recorded**, because the
+   reset emptied the blacklist. **Fail:** the movement is dropped, or a movement that should be
+   dropped is recorded, until you `/reload`.
 
 ## S-17 · Current Banking Session window
 

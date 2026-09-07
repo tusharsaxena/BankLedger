@@ -696,7 +696,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (35)
+### test_panel.lua (36)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -731,6 +731,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
 - Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
 - Slash: the restored store does not ALIAS the defaults table
+- Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
 - Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
 - Slash: while the split stands, the button and the verb do NOT share a label
 
@@ -944,7 +945,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
 | test_slash.lua | 33 |
-| test_panel.lua | 35 |
+| test_panel.lua | 36 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -955,4 +956,4 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 4 |
-| **Total** | **841** |
+| **Total** | **842** |

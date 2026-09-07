@@ -85,7 +85,7 @@ two consumers sharing a target silently clobber each other.
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
 | `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
-| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers, and `Slash:ResetEverything` once at the end of the confirm-gated full reset | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `reset`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
