@@ -138,6 +138,9 @@ tests/
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
   test_<module>.lua        -- one suite per module
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
+  test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
+                           --   one module: the four _enabled latches released together, and
+                           --   the private bus targets torn down with them
   test_marks.lua           -- the shared LibKa0s-Media marks on this addon's own windows: the PATH
                            --   and the ARGUMENT, never the appearance, and BOTH rungs of every
                            --   fallback ladder — a texture that does not load draws nothing and

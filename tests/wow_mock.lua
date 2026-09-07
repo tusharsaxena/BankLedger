@@ -661,6 +661,12 @@ return function()
     obj.UnregisterMessage = function(self, event)
       if msgRegistry[event] then msgRegistry[event][self] = nil end
     end
+    -- CallbackHandler's own semantics: this drops THIS target's callbacks and leaves every other
+    -- target's registration for the same message untouched. A mock that swept the whole registry
+    -- would make a teardown look correct while it silenced the modules that were still enabled.
+    obj.UnregisterAllMessages = function(self)
+      for _, targets in pairs(msgRegistry) do targets[self] = nil end
+    end
     obj.SendMessage = function(_, event, ...)
       local t = msgRegistry[event]
       if not t then return end
@@ -683,6 +689,7 @@ return function()
         end
       end
       target.UnregisterEvent = noop
+      target.UnregisterAllEvents = noop
       target.RegisterChatCommand = noop
       -- A fireable timer queue. A no-op stub would have hidden the debounce entirely; tests fire
       -- M.__fireTimers() to advance time and assert that several events coalesce into ONE pass.
@@ -706,6 +713,7 @@ return function()
     Embed = function(_, obj)
       obj.RegisterEvent = obj.RegisterEvent or function() end
       obj.UnregisterEvent = obj.UnregisterEvent or function() end
+      obj.UnregisterAllEvents = obj.UnregisterAllEvents or function() end
       return embedBus(obj)
     end,
   }

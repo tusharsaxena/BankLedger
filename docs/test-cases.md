@@ -743,7 +743,7 @@ badge and any count quoted in the docs must agree with it.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_mock.lua (27)
+### test_mock.lua (28)
 
 - Mock frame: a stub starts SHOWN, as a real frame does
 - Mock frame: Show, Hide and SetShown flip the one piece of state the stub models
@@ -772,6 +772,7 @@ badge and any count quoted in the docs must agree with it.
 - Mock frame: a named method always beats the catch-all
 - Mock frame: lowercase and non-string keys miss through to nil
 - Mock AceDB: a scalar default reads through; clearing the key does not unset it
+- Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed
 
 ### test_mediasetup.lua (13)
 
@@ -916,6 +917,13 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
+### test_lifecycle.lua (4)
+
+- addon:OnDisable releases the _enabled latch on every module OnEnable arms
+- a disable then enable cycle leaves all four modules live again
+- addon:OnDisable leaves _guildHooked alone — the hook it records is still installed
+- a disable then enable cycle does not subscribe the session window twice
+
 ## Totals
 
 | Suite | Cases |
@@ -937,7 +945,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 33 |
 | test_panel.lua | 35 |
 | test_harness.lua | 7 |
-| test_mock.lua | 27 |
+| test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
@@ -945,4 +953,5 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **835** |
+| test_lifecycle.lua | 4 |
+| **Total** | **840** |
