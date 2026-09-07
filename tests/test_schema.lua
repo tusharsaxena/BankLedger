@@ -1,5 +1,6 @@
 local T = _G.BL_TEST
 local NS = T.NS
+local mocks = T.mocks
 local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
@@ -185,6 +186,41 @@ test("COMMANDS: a test verb exists (test-mode)", function()
   local names = {}
   for _, cmd in ipairs(NS.COMMANDS) do names[cmd[1]] = true end
   assertTrue(names.test)
+end)
+
+-- Run `fn` with the chat sink captured, and hand back what reached it.
+local function captureChat(fn)
+  local out = {}
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+  local ok, err = pcall(fn)
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+  return out
+end
+
+local function handlerFor(name)
+  for _, cmd in ipairs(NS.COMMANDS) do
+    if cmd[1] == name then return cmd[3] end
+  end
+  return nil
+end
+
+test("COMMANDS: /bl test says the module is missing rather than reporting it off", function()
+  -- BANKLEDGER-R-07. `NS.LedgerTable and NS.LedgerTable.ToggleTestMode and ...()` yields nil for
+  -- an absent module and false for a toggle that turned test mode OFF, and the verb used to print
+  -- both as "test mode off" -- a confirmation of an act that never ran. ToggleTestMode returns
+  -- IsTestMode(), always a boolean, so nil means exactly one thing: nothing to toggle.
+  local saved = NS.LedgerTable
+  NS.LedgerTable = nil
+  local ok, out = pcall(captureChat, handlerFor("test"))
+  NS.LedgerTable = saved
+  assertTrue(ok, "the verb must refuse, not raise, with the module absent: " .. tostring(out))
+  local said = table.concat(out, "\n")
+  assertTrue(said:find("test mode off", 1, true) == nil,
+    "an absent module reported as a state change: " .. said)
+  assertTrue(said:find("not loaded", 1, true) ~= nil,
+    "the refusal must name what is missing: " .. said)
 end)
 
 -- ── The tab partition (options-ui-§13) ────────────────────────────────────────
