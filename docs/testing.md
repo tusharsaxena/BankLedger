@@ -168,6 +168,9 @@ tests/
     README.md
   run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
+  degraded_env.lua         -- builds a SECOND environment with libs/LibKa0s left out of the load
+                           --   list, so the degradation stubs are exercised as a LOAD rather than
+                           --   hand-stubbed. Not a suite, so run.lua does not list it
   test_<module>.lua        -- one suite per module
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
   test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
@@ -179,6 +182,9 @@ tests/
                            --   raises nothing, so no other suite would notice
   test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
                            --   unchanged, so docs/test-cases.md counts the same two cases
+  test_surface_parity.lua  -- the four degradation stubs against the surfaces they stand in for,
+                           --   collected in one file so a fifth seam growing a stub with no case
+                           --   beside it is an obvious hole (M4-09)
 ```
 
 - `run.lua` builds the addon environment once by loading every source **in TOC order** — derived
@@ -187,6 +193,13 @@ tests/
   in-game `OnInitialize` / `OnEnable` lifecycle. It exposes `NS`, the mocks and the assertion helpers
   to the suites through `_G.BL_TEST` (built by `Kit.expose`, so no suite file changed when the kit
   was adopted), runs each case under `pcall`, and exits non-zero on any failure.
+- `run.lua` also calls `Kit.setSurfaceSource` **before** `Kit.expose`, naming the live
+  `LibKa0s-Options-1.0` and `LibKa0s-DebugLog-1.0` instances for `assertSurfaceParity`'s by-name
+  form. `Kit.expose` would otherwise auto-wire the mock's `LibStub`, which answers the library's
+  MODULE table for those names; both of this addon's by-name stubs mirror the object
+  `lib:New(descriptor)` returned, so the auto-wired source reports six divergences that are all
+  correct omissions. `expose` registers a source only when none is registered yet, which is what
+  makes the earlier line stick.
 - `_kit/loader.lua` reproduces the `local addonName, NS = ...` header by calling each chunk as
   `chunk("BankLedger", NS)` under an environment where WoW globals resolve to the mock table first
   and fall back to real `_G`. It also provides `Loader.tocFiles`, which is what removed the

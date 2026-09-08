@@ -22,7 +22,7 @@ local SUITES = {
   "test_export", "test_debuglog", "test_schema", "test_slash",
   "test_panel", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
-  "test_lifecycle",
+  "test_lifecycle", "test_surface_parity",
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
@@ -52,6 +52,24 @@ Loader.loadAll(LIBKA0S_FILES, NS, mocks)
 -- lists that have to agree by hand are one list that rots: this one had already drifted from the TOC
 -- once.
 Loader.loadAll(Loader.tocFiles("BankLedger.toc"), NS, mocks)
+
+-- Where Kit.assertSurfaceParity's by-name form looks the LIVE half up (kit 15, vendored by M4-01).
+-- Registered explicitly, and the explicitness is the point. Kit.expose auto-wires the mock's
+-- LibStub for a repo whose degradation stubs mirror LIBRARY TABLES; this addon's two by-name stubs
+-- mirror an INSTANCE instead -- what `lib:New(descriptor)` returned. Left to the auto-wiring,
+-- "LibKa0s-Options-1.0" resolves the module table (LAYOUT, New, STRINGS) and
+-- "LibKa0s-DebugLog-1.0" resolves its own (MAX_BUFFER, New, STRINGS), so
+-- tests/test_surface_parity.lua goes red naming six members no stub was ever meant to carry.
+--
+-- Set BEFORE Kit.expose, which is what makes it stick: expose registers a source only when none is
+-- registered yet, precisely so a runner like this one keeps its own.
+--
+-- The Core and Slash stubs are deliberately absent from this table -- neither mirrors a major's
+-- instance, so neither has a name to resolve; tests/test_surface_parity.lua's header says why.
+Kit.setSurfaceSource{
+  ["LibKa0s-Options-1.0"]  = NS.Helpers,
+  ["LibKa0s-DebugLog-1.0"] = NS.DebugLog,
+}
 
 _G.BL_TEST = Kit.expose{
   NS = NS, mocks = mocks, Loader = Loader, suites = SUITES, libka0sFiles = LIBKA0S_FILES,

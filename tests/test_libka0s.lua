@@ -20,6 +20,14 @@ local NS = T.NS
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 local Loader = T.Loader
 
+-- The two degraded-install environment builders. Both were file-scope locals here until M4-09 moved
+-- the four stub-surface parity cases out into tests/test_surface_parity.lua. Two suites needing the
+-- same environment is what tests/degraded_env.lua exists for; a second copy would be a second
+-- environment, free to drift from this one. Bound to locals under their old names, so every call
+-- site below reads exactly as it did.
+local Env = dofile("tests/degraded_env.lua")
+local loadDegraded, loadUpTo = Env.loadDegraded, Env.loadUpTo
+
 local lib = T.mocks.LibStub("LibKa0s-Core-1.0", true)
 
 local function joinLines(t) return table.concat(t, "\n") end
@@ -93,18 +101,6 @@ test("LibKa0s-Core: the sentinel is the library's, not a hand-copied literal", f
   assertEqual(lib.SECRET, "<secret>")
   assertEqual(NS.SafeToString({}), lib.SECRET)
 end)
-
--- Load a fresh, isolated environment containing the TOC's files up to and INCLUDING `stop`.
-local function loadUpTo(stop, withLibrary)
-  local m = T.makeMocks()
-  local ns = {}
-  if withLibrary then Loader.loadAll(T.libka0sFiles, ns, m) end
-  for _, path in ipairs(Loader.tocFiles("BankLedger.toc")) do
-    Loader.load(path, ns, m)
-    if path == stop then break end
-  end
-  return ns, m
-end
 
 test("LibKa0s-Core: the seam publishes ONE object to NS.Print and NS.Util.print", function()
   -- Asserted at the seam, before core/BankLedger.lua runs — and that is the whole point. The
@@ -193,13 +189,6 @@ end)
 -- A second, fully isolated environment with NO libs/LibKa0s loaded. This is the install the
 -- fallback branch of core/CoreSetup.lua exists for, and the only way to exercise it honestly.
 
-local function loadDegraded()
-  local m = T.makeMocks()
-  local ns = {}
-  Loader.loadAll(Loader.tocFiles("BankLedger.toc"), ns, m)
-  return ns, m
-end
-
 test("LibKa0s-Core degraded: the addon loads with no library at all", function()
   local ns, m = loadDegraded()
   assertTrue(m.LibStub("LibKa0s-Core-1.0", true) == nil,
@@ -208,24 +197,6 @@ test("LibKa0s-Core degraded: the addon loads with no library at all", function()
   assertEqual(type(ns.SafeToString), "function")
   assertEqual(type(ns.IsConcatSafe), "function")
   assertTrue(ns.Print == ns.Util.print, "the fallback must publish under both names too")
-end)
-
-test("LibKa0s-Core degraded: the fallback carries the whole live seam surface", function()
-  -- The stub-surface parity case for the Core seam (testing-§8). BOTH arms come out of the loader
-  -- from a PARTIAL FILE LIST — the TOC's files up to and including core/CoreSetup.lua, once with
-  -- libs/LibKa0s/*.lua in front of them and once without — so neither side is hand-stubbed and the
-  -- comparison is against the branch that actually runs in a degraded install.
-  --
-  -- Compared at the NAMESPACE, because that is this seam's surface: core/CoreSetup.lua publishes
-  -- onto NS rather than returning an object.
-  --   Members from: grep -nE "^ *function NS\.|^ *NS\.[A-Za-z_]+ *=|^ *Util\.[a-z]" core/CoreSetup.lua
-  -- Nothing is ignored: every member the live branch publishes, the fallback branch owes the caller,
-  -- because six files capture NS.Print at load and a nil member there takes the UI down.
-  local live = loadUpTo("core/CoreSetup.lua", true)
-  local degraded, dm = loadUpTo("core/CoreSetup.lua", false)
-  assertTrue(dm.LibStub("LibKa0s-Core-1.0", true) == nil,
-    "the degraded arm still has the library — this case would prove nothing")
-  T.assertSurfaceParity(live, degraded, "the Core seam's namespace")
 end)
 
 test("LibKa0s-Core degraded: the fallback printer renders the same bytes", function()
@@ -572,32 +543,6 @@ test("LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an 
   ns.Debug("Move", "swallowed")   -- must not raise
 end)
 
-test("LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches", function()
-  -- The stub-surface parity case for the DebugLog seam (testing-§8). Both arms are loaded from a
-  -- partial file list — the TOC up to and including core/DebugLogSetup.lua, with and without the
-  -- vendored library — so the degraded arm is the real fallback branch, never a hand-written table.
-  --
-  -- `ignore` is the live-only surface, as DATA rather than as a shortened comparison. Every name in
-  -- it was checked against the addon's own call sites:
-  --   grep -rnE "DebugLog[.:][A-Za-z_]+|NS\.Debug\b" core modules settings
-  -- returns IsShown/Show/Hide/Toggle/Add/Clear/SetEnabled/IsEnabled and the `NS.Debug` publication —
-  -- and nothing else. The ten below are the library's own console internals and its widget makers,
-  -- which no BankLedger file calls; a stub re-implementing them would be anti-pattern #47.
-  --
-  -- `Debug` is the one that needs saying out loud: the live seam publishes NS.Debug FROM the
-  -- instance (core/DebugLogSetup.lua), while the degraded branch publishes its own no-op onto NS
-  -- directly. NS.Debug therefore exists on both paths — the case above asserts exactly that — and
-  -- only the instance member is live-only.
-  local IGNORE = {
-    "BufferSize", "ConsoleCheckbox", "CopyText", "Debug", "FindLine",
-    "FormatColored", "FormatPlain", "LastLine", "MakeCloseButton", "Text",
-  }
-  local live = loadUpTo("core/DebugLogSetup.lua", true)
-  local degraded, dm = loadUpTo("core/DebugLogSetup.lua", false)
-  assertTrue(dm.LibStub("LibKa0s-DebugLog-1.0", true) == nil, "the degraded arm still has the library")
-  T.assertSurfaceParity(live.DebugLog, degraded.DebugLog, "the DebugLog stub", IGNORE)
-end)
-
 test("LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause", function()
   local ns, m = loadDegraded()
   local out = captureChat(function() ns.DebugLog:Show() end, m)
@@ -901,19 +846,6 @@ test("LibKa0s-Slash degraded: the verbs that never needed the library still work
   ns.COMMANDS[#ns.COMMANDS] = nil
 end)
 
-test("LibKa0s-Slash degraded: the stub carries the whole live surface", function()
-  -- The stub-surface parity case for the Slash seam (testing-§8). The degraded arm is the whole
-  -- addon loaded from the TOC with libs/LibKa0s/*.lua left OUT of the file list, so `Sl` there is
-  -- the table the `if not lib` branch actually built.
-  --   Members from: grep -nE "^function Sl[.:][A-Za-z_]+" settings/Slash.lua
-  -- Nothing is ignored, and nothing may be: `/bl` is how a user reaches anything without the
-  -- settings panel, so every verb the live seam answers the degraded one must answer too — with
-  -- work where it can (CliResetAll) and with one honest line where it cannot.
-  local degraded, dm = loadDegraded()
-  assertTrue(dm.LibStub("LibKa0s-Slash-1.0", true) == nil, "the degraded arm still has the library")
-  T.assertSurfaceParity(Sl, degraded.Slash, "the Slash stub")
-end)
-
 test("LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause", function()
   local ns, m = loadDegraded()
   local out = captureChat(function() ns.Slash:CliList() end, m)
@@ -941,55 +873,6 @@ end)
 
 -- ── LibKa0s-Options-1.0 ──────────────────────────────────────────────────────────────────────
 --
--- The settings panel. tests/test_panel.lua asserts what the panel renders; what lives HERE is the
--- one thing it cannot see — that the degraded stub in settings/OptionsSetup.lua still answers every
--- member the live instance offers this addon, so a page file that grows a call does not meet a nil.
-
-test("LibKa0s-Options degraded: the stub carries the live surface the addon reaches", function()
-  -- The stub-surface parity case for the Options seam (testing-§8). The degraded arm is the whole
-  -- addon loaded from the TOC with libs/LibKa0s/*.lua left out of the file list, so `NS.Helpers`
-  -- there is the table the `if not lib` branch actually built.
-  --
-  -- `ignore` is the live-only surface, as DATA. Checked against this addon's call sites:
-  --   grep -rnE "O[.:]|Helpers[.:]" settings core modules
-  -- reaches O.AceGUI and the page/panel/render members the stub already carries; PADDING_X,
-  -- LSMValues, BuildLandingPage and PatchAlwaysShowScrollbar have NO call site here, and
-  -- carrying the library's constants into a stub is anti-pattern #47.
-  --
-  -- TextRow LEFT this list with the tabbed-panel pass: the History tab's storage read-out is drawn
-  -- with it now, so it is a reachable name and the stub answers it. The tab strip's own surface
-  -- (TabStrip, RenderTabbedSchema, SetChromeHeight, PageBanner, the chrome constants and the six
-  -- __-prefixed internals) is reachable for the same reason and is in the stub, not in here.
-  --
-  -- AceGUI is the deliberate one, and the stub names it: `AceGUI = nil`. Every O.AceGUI:Create in
-  -- settings/Panel.lua sits inside a body that only runs once a panel has been built, and on this
-  -- path CreateOptionsPanel refuses with one honest line instead. A stub handing back a fake AceGUI
-  -- would be a widget factory this addon then has to keep working.
-  --
-  -- The six added with LibKa0s v1.24.0's composers are library DATA, not behavior: the font-flag
-  -- map, the visibility map, their two sortings, the canonical group name and the class-color
-  -- tooltip note. Carrying any of them into a stub is anti-pattern #47 — the host copy is the copy
-  -- that goes stale — and none has a call site here: the composer emits the values itself, and
-  -- settings/Panel.lua keys its afterGroup table on the "Master controls" LITERAL, which is what the
-  -- library documents the host doing.
-  --
-  -- The composer FUNCTIONS are a different question and are in the stub, not in here: MasterControls
-  -- is reached (settings/OptionsSetup.lua calls it), and the other four are stubbed beside it.
-  -- `__print` joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
-  -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
-  -- (libs/LibKa0s/Options.lua:392, read at OptionsWidgets.lua:763). Its own comment there calls it
-  -- internal rather than surface and says a degradation stub does not mirror it, because
-  -- Kit.assertSurfaceParity skips the `__` prefix -- true of the kit's BY-NAME form, which filters
-  -- through Kit.publicMembers, and not of the four-argument form this case uses, which walks every
-  -- key of the live table. So it is named here rather than copied into the stub.
-  local IGNORE = {
-    "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar",
-    "__print",
-    "CLASS_COLOR_NOTE", "FONT_FLAGS", "FONT_FLAGS_SORT", "MASTER_GROUP",
-    "VISIBILITY_SORT", "VISIBILITY_VALUES",
-  }
-  local degraded, dm = loadDegraded()
-  assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")
-  assertTrue(degraded.Helpers.__degraded == true, "the degraded arm is not the fallback branch")
-  T.assertSurfaceParity(NS.Helpers, degraded.Helpers, "the Options stub", IGNORE)
-end)
+-- No cases here, on purpose, and the absence is worth a line rather than a silent gap. What this
+-- seam needs beyond tests/test_panel.lua's render assertions is the stub-surface parity case, and
+-- since M4-09 all four of those live together in tests/test_surface_parity.lua.
