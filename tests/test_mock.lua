@@ -1,4 +1,4 @@
--- The frame stub's own guard rail.
+-- The frame stub's own guard rail, and the AceDB fake's.
 --
 -- tests/wow_mock.lua's stubFrame underpins EVERY headless suite, so any drift in it breaks all of
 -- them at once — and a stub with no self-test can only be debugged through whichever unrelated case
@@ -271,4 +271,28 @@ test("Mock frame: lowercase and non-string keys miss through to nil", function()
   assertEqual(f.rowIndex, nil)
   assertEqual(f[1], nil)
   assertEqual(f[true], nil)
+end)
+
+-- ── The AceDB fake's default fallback ──────────────────────────────────────────
+--
+-- The migration boundary cases in tests/test_database.lua are only worth their ink if a key with a
+-- default can be OBSERVED absent here exactly as rarely as it can in the client, which is never.
+-- Once schemaVersion stops being a shipped default those cases stop exercising this fallback at
+-- all, so it is pinned on its own here rather than left to them.
+
+test("Mock AceDB: a scalar default reads through; clearing the key does not unset it", function()
+  local defaults = { global = { stamp = 7, rows = {} } }
+  local db = mocks.__libs["AceDB-3.0"]:New("ScratchDB", defaults)
+
+  assertEqual(db.global.stamp, 7, "an unwritten default reads as the default")
+  db.global.stamp = 1
+  assertEqual(db.global.stamp, 1, "an explicit write shadows the default")
+  db.global.stamp = nil
+  assertEqual(db.global.stamp, 7,
+    "clearing it does NOT make it absent — AceDB re-supplies it from the defaults table")
+  assertTrue(rawget(db.global, "stamp") == nil, "and it fell back rather than being stored again")
+
+  db.global.rows.a = 1
+  assertEqual(db.global.rows.a, 1, "a table default is a real, writable per-database table")
+  assertTrue(next(defaults.global.rows) == nil, "and the shipped defaults table is not written to")
 end)

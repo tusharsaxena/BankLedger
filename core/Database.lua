@@ -7,14 +7,27 @@ function NS:InitDB()
   NS:RunMigrations()   -- normalize the persisted schema before any ledger read
 end
 
--- Schema-migration runner (toc-file-§2 / savedvariables-§1). Reads/writes db.global.schemaVersion
--- and ships even with an effectively empty body — the *seam* is the requirement: future schema
--- changes get a single, idempotent upgrade path invoked once at init, before any read of
--- db.global.ledger. Safe no-op when the DB isn't ready yet.
+-- Schema-migration runner (toc-file-§2 / savedvariables-§1). Seeds and advances
+-- db.global.schemaVersion, and ships even with an effectively empty body — the *seam* is the
+-- requirement: future schema changes get a single, idempotent upgrade path invoked once at init,
+-- before any read of db.global.ledger. Safe no-op when the DB isn't ready yet.
 function NS:RunMigrations()
   local g = NS.db and NS.db.global
   if not g then return end
-  g.schemaVersion = g.schemaVersion or 1
+  -- Seeding the stamp is this runner's job because the stamp is NOT an AceDB default. A default
+  -- equal to the stored value is stripped from the file at logout, so a defaulted stamp always read
+  -- back as this function's own target and the arm below never fired — defaults/Global.lua carries
+  -- the long version.
+  --
+  -- An unstamped store is one of two things and they want opposite answers: a FRESH install, which
+  -- has nothing to migrate and should start at the current shape, or a PRE-STAMP database from
+  -- before the field existed, which is v1 and must be walked. The ledger is the discriminator, and
+  -- it is an honest one — a migration over an empty ledger is definitionally a no-op, so reading a
+  -- fresh install as v1 would cost a wasted walk, never a wrong result. `g.ledger == nil` is a real
+  -- state rather than defensive decoration, and tests/test_database.lua pins it.
+  if g.schemaVersion == nil then
+    g.schemaVersion = (g.ledger == nil or next(g.ledger) == nil) and NS.SCHEMA_VERSION or 1
+  end
   -- v1 -> v2: the addon no longer derives, captures or persists vendor value, so the field leaves
   -- the SavedVariables file rather than merely going unread. Idempotent: clearing an absent field
   -- is a no-op, so a partially-migrated database converges on a second run.

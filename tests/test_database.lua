@@ -340,6 +340,84 @@ test("RunMigrations treats a database with no schemaVersion key at all as v1", f
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
 end)
 
+-- The next three read the [Migrate] line rather than the stamp. That is deliberate: the stamp alone
+-- cannot tell a fresh install from a database that was walked, because BOTH end at
+-- NS.SCHEMA_VERSION. Asserting on the stamp, the empty-store case below stays green under the exact
+-- mistake it exists to catch — seeding unconditionally at 1, which migrates an empty ledger and then
+-- stamps it current anyway. The debug line is the only headless witness that the pass ran, and it is
+-- also what docs/smoke-tests.md reads in the client, so the two checks now agree on their evidence.
+
+local function migrationLines(fn)
+  local savedDebug = NS.State.debug
+  NS.State.debug = true
+  NS.DebugLog:Clear()
+  local ok, err = pcall(fn)
+  local out = {}
+  for _, line in ipairs(NS.DebugLog.buffer) do
+    if line:find("[Migrate]", 1, true) then out[#out + 1] = line end
+  end
+  NS.DebugLog:Clear()
+  NS.State.debug = savedDebug
+  if not ok then error(err, 0) end
+  return out
+end
+
+test("RunMigrations announces the v1->v2 pass the smoke step reads", function()
+  -- The exact string docs/smoke-tests.md S-25 looks for in the client. Pinned here so the in-game
+  -- step has a headless twin and a rename of MigrationSummary cannot silently break it.
+  -- red under: the disarmed runner this item removed — no line at all was emitted.
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  local lines = migrationLines(function()
+    NS.db.global.schemaVersion = nil
+    NS.db.global.ledger = {
+      { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+        itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
+    }
+    NS:RunMigrations()
+  end)
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+  assertEqual(#lines, 1, "exactly one migration line")
+  assertTrue(lines[1]:find("v1 -> v2, 1 rows touched", 1, true) ~= nil,
+    "the line names the ladder and the row count: " .. tostring(lines[1]))
+end)
+
+test("RunMigrations stamps a stamp-less EMPTY store at the current version without replaying v1->v2",
+function()
+  -- The other half of the discriminator, and the requirement the retired shipped default existed to
+  -- meet. A fresh install carries no stamp and no entries, and must not be read as a pre-stamp
+  -- database: the walk would find nothing and still report a migration that never happened.
+  -- red under: seeding unconditionally at 1.
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  local lines = migrationLines(function()
+    NS.db.global.schemaVersion = nil
+    NS.db.global.ledger = {}
+    NS:RunMigrations()
+  end)
+  local after = NS.db.global.schemaVersion
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+  assertEqual(after, NS.SCHEMA_VERSION,
+    "an empty unstamped store is a fresh install and starts at the current shape")
+  assertEqual(#lines, 0, "and no pass ran, so nothing was announced")
+end)
+
+test("RunMigrations seeds a stamp-less store whose ledger is nil, without raising", function()
+  -- The ledger is the discriminator, so the discriminator has to survive the states the ledger is
+  -- actually in — and nil is one this suite already models a case for. Kept apart from the empty-
+  -- table case above because the obvious tightening, `next(g.ledger) == nil`, passes that one and
+  -- raises on this one, against a real SavedVariables file at login.
+  -- red under: dropping the `g.ledger == nil` clause from the discriminator.
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = nil
+  NS.db.global.ledger = nil
+  local ok
+  local lines = migrationLines(function() ok = pcall(function() NS:RunMigrations() end) end)
+  local after = NS.db.global.schemaVersion
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+  assertTrue(ok, "must not raise on a nil ledger")
+  assertEqual(after, NS.SCHEMA_VERSION, "nothing to migrate, so nothing to do")
+  assertEqual(#lines, 0, "and no pass ran, so nothing was announced")
+end)
+
 test("RunMigrations survives a database with no ledger at all", function()
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
   NS.db.global.schemaVersion = 1
@@ -379,15 +457,21 @@ end)
 
 -- ── Schema version ─────────────────────────────────────────────────────────────
 
-test("Database: the shipped default matches the migration runner's target", function()
-  -- F-008: the default shipped 1 while the runner migrated to 2, so every fresh install replayed a
-  -- v1->v2 pass over an empty ledger. Both now read NS.SCHEMA_VERSION; this asserts they still do.
-  assertEqual(NS.defaults.global.schemaVersion, NS.SCHEMA_VERSION)
+test("Database: schemaVersion is NOT a shipped AceDB default", function()
+  -- This case is what F-008's became. That one asserted the shipped default EQUALLED the runner's
+  -- target, and the equality is precisely what broke the runner: AceDB strips a stored value still
+  -- equal to its default at logout, so the stamp came back as the target and `< NS.SCHEMA_VERSION`
+  -- was never true (BANKLEDGER-R-02). There is no default left to keep in step; what needs pinning
+  -- now is that nobody reinstates one, because a reinstated default is silent — every suite here
+  -- stays green and only a real player's logout can tell.
+  -- red under: putting `schemaVersion = NS.SCHEMA_VERSION` back into NS.defaults.global.
+  assertEqual(NS.defaults.global.schemaVersion, nil)
 end)
 
 test("Database: a fresh database needs no migration", function()
+  -- Seeded explicitly rather than read off NS.defaults.global, which no longer carries the key.
   local saved = NS.db.global.schemaVersion
-  NS.db.global.schemaVersion = NS.defaults.global.schemaVersion
+  NS.db.global.schemaVersion = NS.SCHEMA_VERSION
   NS:RunMigrations()
   local after = NS.db.global.schemaVersion
   NS.db.global.schemaVersion = saved

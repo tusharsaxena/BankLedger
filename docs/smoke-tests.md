@@ -675,3 +675,30 @@ cannot see, so they are checked here. **NOT YET RUN** — recorded when the adop
 7. **The close glyph is the library's now** — 18x18 with a red hover, where this addon's own close
    is 24x24 with a class-coloured hover. Confirm it still reads as a close button in the title bar
    and is not clipped by the 26px bar. This is the one deliberate visual difference in the change.
+
+## S-25 · The v1 → v2 ladder actually runs on a real store
+
+**Session 2 of the 2026-09-07 remediation plan. NOT YET RUN.** `M2-05` took `schemaVersion` out of
+`NS.defaults.global`, because as a declared default it was stripped from the SavedVariables file at
+every logout and re-supplied at the next login as the runner's own target — so `NS:RunMigrations`
+read v2, `< NS.SCHEMA_VERSION` was never true, and the v1 → v2 pass had never once run against a
+player's store. The headless suite now pins the seeding, the discriminator and the `[Migrate]` line,
+but only the client can prove that a stamp the runner wrote **survives a logout**, which is the exact
+thing the defaults declaration broke. That is what this step is for.
+
+**Back up `WTF/` before you start, and do every edit on the copy.** This is the one step in this
+document that touches a real ledger.
+
+1. Copy `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe.
+2. Hand-edit the file in place: delete the `["schemaVersion"] = 2,` line under `["global"]`, and add
+   `["vendorPrice"] = 20,` to exactly one existing ledger entry. Note which entry.
+3. Log in. `/bl debug` on, and open the console.
+4. **Pass:** the console carries `[Migrate] v1 -> v2, 1 rows touched`. **Fail:** no migration line at
+   all — that is the defect this step exists to catch — or a row count that is not the one you
+   planted.
+5. Log out fully (exit to desktop; the strip runs on `PLAYER_LOGOUT`). Reopen the file.
+6. **Pass:** `["schemaVersion"] = 2,` is present under `["global"]`, and the `vendorPrice` key is
+   gone from the entry you edited. **Fail:** the stamp is missing again, which would mean something
+   reinstated it as a default and the next schema bump is already disarmed.
+7. Log back in once more and confirm the console shows **no** migration line the second time — the
+   runner is idempotent and a stamped store is left alone.

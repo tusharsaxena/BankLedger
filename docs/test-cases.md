@@ -230,7 +230,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
 
-### test_database.lua (43)
+### test_database.lua (46)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -269,10 +269,13 @@ badge and any count quoted in the docs must agree with it.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
+- RunMigrations announces the v1->v2 pass the smoke step reads
+- RunMigrations stamps a stamp-less EMPTY store at the current version without replaying v1->v2
+- RunMigrations seeds a stamp-less store whose ledger is nil, without raising
 - RunMigrations survives a database with no ledger at all
 - RunMigrations never downgrades a future schema version
 - Database:Export never emits a vendorPrice field
-- Database: the shipped default matches the migration runner's target
+- Database: schemaVersion is NOT a shipped AceDB default
 - Database: a fresh database needs no migration
 - Database: an older database is migrated up to the current version
 
@@ -740,7 +743,7 @@ badge and any count quoted in the docs must agree with it.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_mock.lua (26)
+### test_mock.lua (27)
 
 - Mock frame: a stub starts SHOWN, as a real frame does
 - Mock frame: Show, Hide and SetShown flip the one piece of state the stub models
@@ -768,6 +771,7 @@ badge and any count quoted in the docs must agree with it.
 - Mock frame: any other PascalCase key is a chainable no-op
 - Mock frame: a named method always beats the catch-all
 - Mock frame: lowercase and non-string keys miss through to nil
+- Mock AceDB: a scalar default reads through; clearing the key does not unset it
 
 ### test_mediasetup.lua (13)
 
@@ -921,7 +925,7 @@ badge and any count quoted in the docs must agree with it.
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 122 |
-| test_database.lua | 43 |
+| test_database.lua | 46 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 53 |
 | test_browser.lua | 41 |
@@ -933,7 +937,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 33 |
 | test_panel.lua | 35 |
 | test_harness.lua | 7 |
-| test_mock.lua | 26 |
+| test_mock.lua | 27 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
@@ -941,4 +945,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| **Total** | **831** |
+| **Total** | **835** |
