@@ -13,7 +13,7 @@
 -- swaps a printer nobody reads, and the whole change looks like it worked.
 
 local T = _G.BL_TEST
-local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
+local test, assertTrue = T.test, T.assertTrue
 local Loader = T.Loader
 
 -- ── the suite list ───────────────────────────────────────────────────────────────────────────

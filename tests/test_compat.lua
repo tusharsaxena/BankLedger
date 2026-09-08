@@ -1,7 +1,7 @@
 local T = _G.BL_TEST
 local NS = T.NS
 local mocks = T.mocks
-local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
+local test, assertEqual = T.test, T.assertEqual
 
 test("Compat.GetItemDetails returns name, quality, type, subtype and vendor price", function()
   local name, quality, itemType, itemSubType = NS.Compat.GetItemDetails(171276)

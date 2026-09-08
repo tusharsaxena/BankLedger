@@ -261,15 +261,6 @@ local function renderTab(name, tab)
   return renderPage(name)
 end
 
---- Every widget the page draws across ALL of its tabs, concatenated in tab order.
-local function renderAllTabs(name, tabs)
-  local all = {}
-  for _, tab in ipairs(tabs) do
-    for _, w in ipairs(renderTab(name, tab)) do all[#all + 1] = w end
-  end
-  return all
-end
-
 -- The General page's strip, in tab order. Kept here rather than derived from the schema on purpose:
 -- a case that reads the tab list out of the thing it is testing agrees with itself no matter what
 -- the thing says. tests/test_schema.lua owns the partition; this is the panel's copy of the answer.

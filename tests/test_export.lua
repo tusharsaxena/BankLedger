@@ -317,7 +317,7 @@ test("Export modal: with no Widgets library it REFUSES the Data Set control inst
 
 -- Opening the shared popup the only way the game can: a real click on a real dropdown. Answers the
 -- menu frame, which no host is given a handle to.
-local function openMenu(ns, m, ds)
+local function openMenu(m, ds)
   local onClick = ds:GetScript("OnClick")
   assertTrue(onClick ~= nil, "the dropdown wires an OnClick that opens the shared menu")
   local realCreateFrame, captured = m.CreateFrame, nil
@@ -340,7 +340,7 @@ test("Export modal: hiding the modal closes an open dropdown menu", function()
   -- both go through Hide, so the OnHide hook is the one seam that covers every non-click route.
   local ns, m = loadEnv(true)
   local f = ns.Export:Open({})
-  local menu = openMenu(ns, m, f.datasetDD)
+  local menu = openMenu(m, f.datasetDD)
   f:Hide()
   assertTrue(menu:IsShown() == false, "hiding the modal closed the menu via W.CloseMenu()")
 end)
@@ -349,7 +349,7 @@ test("Export modal: the titlebar close button closes the menu with the modal", f
   local ns, m = loadEnv(true)
   local f = ns.Export:Open({})
   assertTrue(f.closeBtn ~= nil, "the modal keeps a handle on its close control")
-  local menu = openMenu(ns, m, f.datasetDD)
+  local menu = openMenu(m, f.datasetDD)
   f.closeBtn:GetScript("OnClick")(f.closeBtn)
   assertTrue(f:IsShown() == false, "the close button hid the modal")
   assertTrue(menu:IsShown() == false, "and the shared menu went with it")

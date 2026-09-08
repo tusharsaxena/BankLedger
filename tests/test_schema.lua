@@ -466,9 +466,9 @@ end)
 test("Util.ApplyRowTint paints both textures and drives the banding", function()
   local painted = {}
   local row = {
-    stripe   = { SetColorTexture = function(_, r, g, b, a) painted.stripe = a end,
+    stripe   = { SetColorTexture = function(_, _, _, _, a) painted.stripe = a end,
                  SetShown = function(_, v) painted.shown = v end },
-    rowHover = { SetColorTexture = function(_, r, g, b, a) painted.hover = a end },
+    rowHover = { SetColorTexture = function(_, _, _, _, a) painted.hover = a end },
   }
   NS.Util.ApplyRowTint(row, true)
   assertEqual(painted.stripe, NS.Schema:Get("settings.rowStripeAlpha"))

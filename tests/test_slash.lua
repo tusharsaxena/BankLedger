@@ -266,7 +266,7 @@ test("Slash: /bl list groups in schema declaration order, matching the panel", f
   end
   local got = {}
   for _, line in ipairs(Sl:BuildListLines()) do
-    local g = line:match("^  |cff3399ff%\[(.-)%\]")
+    local g = line:match("^  |cff3399ff%[(.-)%]")
     if g then got[#got + 1] = g end
   end
   assertEqual(#got, #want, "one heading per declared schema group")

@@ -639,8 +639,8 @@ return function()
   end
 
   local baseCreate = libs["AceGUI-3.0"].Create
-  libs["AceGUI-3.0"].Create = function(self, wtype)
-    local w = baseCreate(self, wtype)
+  libs["AceGUI-3.0"].Create = function(gui, wtype)
+    local w = baseCreate(gui, wtype)
     if w and not w.SetTitle then
       function w:SetTitle(v) self.titleText = v; return self end
     end
