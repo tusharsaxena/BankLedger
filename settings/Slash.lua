@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.Slash = NS.Slash or {}
 local Sl = NS.Slash
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)

@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.Compat = NS.Compat or {}
 local Compat = NS.Compat
 

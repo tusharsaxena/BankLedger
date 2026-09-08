@@ -1,5 +1,3 @@
-local addonName, NS = ...   -- luacheck: ignore addonName NS
-
 -- Derived-key aliases (localization-§1): strings whose translation is always the same as another
 -- key's, so a translator never duplicates work. Runs after every locale file, so it reads whatever
 -- the active locale resolved.

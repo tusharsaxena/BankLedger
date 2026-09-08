@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 
 -- settings/OptionsSetup.lua — wires the addon into LibKa0s-Options-1.0 (options-ui).
 --

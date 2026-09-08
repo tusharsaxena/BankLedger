@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 
 -- Account-wide defaults. The ledger and the settings both live under `global`: a bank ledger is
 -- inherently cross-character (you deposit on one alt and withdraw on another), so a per-character

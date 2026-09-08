@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.SessionWindow = NS.SessionWindow or {}
 local SW = NS.SessionWindow
 local C = NS.Constants
