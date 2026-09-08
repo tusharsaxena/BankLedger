@@ -170,15 +170,16 @@ python3 -m venv /tmp/pillow && /tmp/pillow/bin/pip install pillow
 ### Packaging — no local tooling
 
 `.pkgmeta` is read by the **CurseForge/BigWigs packager**, which runs on the distribution side, not
-here. There is no `Makefile`, no build script, and no local packaging step: `.pkgmeta:5-18` only
-lists what to exclude from the built zip (`docs`, `tests`, `_dev`, the non-`.tga` logo sources).
+here. There is no `Makefile`, no build script, and no local packaging step: `.pkgmeta:5-33` only
+lists what to exclude from the built zip (`docs`, `tests`, `_dev`, the root dev-only dotfiles,
+this file and `CLAUDE.md`, `media/screenshots`, and the non-`.tga` logo sources).
 Nothing to install.
 
 ### Not required, despite what a glance at `media/` might suggest
 
 - **ImageMagick, `ffmpeg`, Node/npm** — none are used anywhere. No script, config, or doc in this
   repo invokes them. If you find a reference, it is stale and should be deleted.
-- **BLP tooling** — the addon ships `.tga`, which the client reads directly (`.pkgmeta:14-18`). No
+- **BLP tooling** — the addon ships `.tga`, which the client reads directly (`.pkgmeta:29-33`). No
   converter is needed.
 - **Font tooling** — this addon ships no font. JetBrains Mono comes with the LibKa0s payload
   (`libs/LibKa0s/media/fonts/`, under its OFL license, recorded there); it is neither generated nor
