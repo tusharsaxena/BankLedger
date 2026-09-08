@@ -6,10 +6,10 @@ codes = true
 -- library's testkit/, linted in LibKa0s as source, and linting the copy too would report every
 -- finding twice while letting the copy drift green as the original went red -- the one state the
 -- re-vendor diff gate exists to make impossible. Everything else under tests/ is ours and is
--- linted (lint-§1).
+-- linted (lint.md).
 exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit/" }
 
--- NO TOP-LEVEL `ignore`, and none is coming back (lint-§1, `M4-11`). This file carried
+-- NO TOP-LEVEL `ignore`, and none is coming back (lint.md, `M4-11`). This file carried
 -- `ignore = { "212/self", "212/event" }` until `M4c-06`. Both entries were already spelled in the
 -- `<code>/<variable>` form, which made the blanket look narrow -- but the scope is the problem, not
 -- the spelling: a top-level ignore reaches all 60 files, so it silenced those two names in every
@@ -72,7 +72,7 @@ files["tests/"] = {
 }
 
 -- ---------------------------------------------------------------------------
--- The narrowed 212s (lint-§1, `M4c-06`)
+-- The narrowed 212s (lint.md, `M4c-06`)
 -- ---------------------------------------------------------------------------
 --
 -- Every stanza below names ONE file and ONE variable, in luacheck's `<code>/<variable>` form. That

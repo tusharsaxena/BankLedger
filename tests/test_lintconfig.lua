@@ -1,7 +1,7 @@
 local T = _G.BL_TEST
 local test, fail = T.test, T.fail
 
--- tests/test_lintconfig.lua -- the "no blanket suppression" gate (lint-§1, `M4-11`).
+-- tests/test_lintconfig.lua -- the "no blanket suppression" gate (lint.md, `M4-11`).
 --
 -- WHAT IT PROVES. That `luacheck .` reaching 0/0 in this repo is a statement about the code and not
 -- about the configuration. Four things are checked, and all four are the same rule seen from a
@@ -135,7 +135,7 @@ test("lintconfig: .luacheckrc sets no top-level ignore", function()
     end
     fail(".luacheckrc sets a top-level `ignore` of { " .. table.concat(shown, ", ") .. " }. "
       .. "A blanket ignore silences the code in all 60 files, including the ones with no "
-      .. "business producing it, so it reads as coverage and provides none (lint-§1, `M4-11`). "
+      .. "business producing it, so it reads as coverage and provides none (lint.md, `M4-11`). "
       .. "Naming the variable does not save it: this repo's blanket was already `212/self`, and "
       .. "its `212/event` matched nothing at all. Move each code into a `files[...]` stanza naming "
       .. "the file that earns it, narrow the entry to the variable (`212/self`), or put a "
@@ -156,7 +156,7 @@ test("lintconfig: .luacheckrc switches no warning class off wholesale", function
   if #off > 0 then
     fail(".luacheckrc turns a whole warning class off at the top level: "
       .. table.concat(off, ", ") .. ". That is a blanket ignore spelled as a switch, and "
-      .. "lint-§1 refuses it for the same reason: it reaches every file in the repository "
+      .. "lint.md refuses it for the same reason: it reaches every file in the repository "
       .. "and reports as coverage", 2)
   end
 end)
@@ -267,6 +267,6 @@ test("lintconfig: no source file carries a bare inline luacheck ignore", functio
   if #bare > 0 then
     fail("bare `-- luacheck: ignore` directives, which silence every code in scope: "
       .. table.concat(bare, ", ") .. ". Name the code the line actually produces so the next "
-      .. "warning in the same scope is still reported (lint-§1)", 2)
+      .. "warning in the same scope is still reported (lint.md)", 2)
   end
 end)
