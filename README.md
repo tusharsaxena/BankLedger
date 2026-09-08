@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-843%2F843_passing-green)
+![Tests](https://img.shields.io/badge/Tests-844%2F844_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
 

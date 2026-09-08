@@ -929,6 +929,10 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: the stub carries the whole live surface
 - LibKa0s-Options degraded: the stub carries the live surface the addon reaches
 
+### test_register.lua (1)
+
+- every deviation id the register cites is assigned by a bundle in docs/audits/
+
 ### test_eol.lua (1)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -964,5 +968,6 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 4 |
 | test_surface_parity.lua | 4 |
+| test_register.lua | 1 |
 | test_eol.lua | 1 |
-| **Total** | **843** |
+| **Total** | **844** |
