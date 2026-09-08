@@ -261,15 +261,6 @@ local function renderTab(name, tab)
   return renderPage(name)
 end
 
---- Every widget the page draws across ALL of its tabs, concatenated in tab order.
-local function renderAllTabs(name, tabs)
-  local all = {}
-  for _, tab in ipairs(tabs) do
-    for _, w in ipairs(renderTab(name, tab)) do all[#all + 1] = w end
-  end
-  return all
-end
-
 -- The General page's strip, in tab order. Kept here rather than derived from the schema on purpose:
 -- a case that reads the tab list out of the thing it is testing agrees with itself no matter what
 -- the thing says. tests/test_schema.lua owns the partition; this is the panel's copy of the answer.
@@ -759,6 +750,38 @@ test("Slash: the restored store does not ALIAS the defaults table", function()
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertEqual(NS.defaults.global.settings.__probeAlias, nil,
     "the store aliases the defaults table")
+end)
+
+test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now", function()
+  -- BANKLEDGER-R-01. The reset empties db.global and merges the declared defaults back, which
+  -- changes every setting the Ledger caches on its hot path -- and it changed them silently. The
+  -- Ledger re-caches on Ka0s_BankLedger_SettingsChanged and on nothing else, so until the next
+  -- /reload the gate went on judging bank movements by the settings the player just destroyed.
+  --
+  -- ONCE, not once per key. The reset is one act; a broadcast per restored default would have
+  -- every subscriber rebuild several times over for it, and the reason string would be a lie
+  -- about what happened.
+  -- red under: dropping the SendMessage, or moving it inside the merge loop.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+
+  local move = { kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 171276, quantity = 1 }
+  NS.Filters:AddBlacklist(171276)
+  assertEqual(NS.Ledger:GateReason(move), "blacklist", "precondition: the gate sees the list")
+
+  local seen = {}
+  local target = NS.NewBusTarget()
+  target:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function(_, reason)
+    seen[#seen + 1] = reason
+  end)
+  NS.Slash:ResetEverything()
+  target:UnregisterMessage("Ka0s_BankLedger_SettingsChanged")
+
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  assertEqual(#seen, 1, "one reset, one broadcast")
+  assertEqual(seen[1], "reset", "the reason names the act")
+  assertEqual(NS.Ledger:GateReason(move), nil,
+    "the gate is still judging movements by the settings the reset destroyed")
 end)
 
 -- ── The two resets are two acts, and they must not wear one name ────────────────────────────────

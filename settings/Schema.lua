@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.Schema = NS.Schema or {}
 local S = NS.Schema
 local C = NS.Constants
@@ -436,9 +436,17 @@ NS.COMMANDS = {
       end
     end },
   { "test",     "Toggle a sample ledger",  function()
+      -- Three outcomes, not two, and the same shape the session verb above uses for exactly this:
+      -- ToggleTestMode returns IsTestMode(), always a boolean, so a nil here can only mean the
+      -- guard fell through and nothing was toggled. Folding that into `on and "on" or "off"`
+      -- confirms an act that never ran, which is worse than saying nothing.
       local on = NS.LedgerTable and NS.LedgerTable.ToggleTestMode
         and NS.LedgerTable:ToggleTestMode()
-      print("test mode " .. (on and "on" or "off"))
+      if on == nil then
+        print("the ledger table is not loaded \226\128\148 there is no sample to toggle.")
+      else
+        print("test mode " .. (on and "on" or "off"))
+      end
     end },
   { "purge",    "Delete ALL ledger history (asks first)", function()
       if type(StaticPopup_Show) == "function" then

@@ -58,6 +58,38 @@ function addon:OnEnable()
   -- emitted when capture is actually enabled (debug-logging-§5/§8).
 end
 
+-- The other half of the cycle, and it has to exist: each module below gates its Enable behind a
+-- private `_enabled` latch, so with nothing to release it a disable then re-enable brings all four
+-- back inert — no error, no capture, no windows.
+--
+-- AceAddon does not do this for us. Its AceEvent embed unregisters what was registered on the ADDON
+-- object, which is where the Ledger's capture events live, but every module's live-refresh
+-- subscription sits on a private target handed out by NS.NewBusTarget() that AceAddon has never
+-- seen and cannot reach. Releasing the latch alone would therefore have the next Enable stand a
+-- SECOND target up beside a first that is still subscribed, and SessionWindow:OnEntryAdded appends
+-- unconditionally (modules/SessionWindow.lua:149-154) — one moved stack, two rows. So the targets
+-- go with the latch.
+--
+-- `_guildHooked` deliberately stays set. It is not part of this cycle: it records a hook installed
+-- on GuildBankFrame's OnShow, which nothing here takes off again, so clearing it would let the next
+-- Enable hook the same frame a second time.
+local BUS_MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
+
+function addon:OnDisable()
+  for _, name in ipairs(BUS_MODULES) do
+    local module = NS[name]
+    if module then
+      local ev = module.__ev
+      if ev then
+        if ev.UnregisterAllMessages then ev:UnregisterAllMessages() end
+        if ev.UnregisterAllEvents then ev:UnregisterAllEvents() end
+        module.__ev = nil
+      end
+      module._enabled = nil
+    end
+  end
+end
+
 -- Both combat edges take the same route: NS.Util.ApplyVisibility re-reads the rule and hides or
 -- re-shows exactly the windows the rule itself took (core/State.lua's hiddenByVisibility).
 function addon:OnCombatChanged()

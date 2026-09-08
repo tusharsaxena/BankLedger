@@ -13,6 +13,57 @@ lua tests/run.lua     # all suites green; exits non-zero on any failure
 luacheck .            # 0 errors, 0 warnings
 ```
 
+### What that 0/0 is worth — the suppression gate
+
+`luacheck .` at 0/0 only means something if the configuration is not buying the number. Until
+`M4c-06` this repo's `.luacheckrc` carried `ignore = { "212/self", "212/event" }` at the top level.
+It *looked* narrow -- both entries already name the variable, which is the form the rule steers
+towards -- and that is exactly why it survived so long. The problem is scope, not spelling: a
+top-level `ignore` reaches all 60 files however precisely it is written. `212/event` matched
+**nothing at all** in this tree, so the addon was carrying a live suppression for a warning it did
+not have, and the first handler to drop its event argument would have landed green.
+
+Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
+files. Eighteen further suppressions were sitting inline, one per file --
+`local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
+All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
+`local _, NS = ...` (which `core/CoreSetup.lua`, `core/ItemSetup.lua` and `core/PoolSetup.lua`
+already did, and why they never needed a pragma), and `locales/PostLoad.lua` -- a documented empty
+seam whose body is entirely comment, reading *neither* name -- lost the header outright. **There is
+now no `luacheck:` directive anywhere in this addon's own Lua.**
+
+The 119 that remain are one shape, and it is forced rather than chosen. Every module publishes
+itself as `NS.X = NS.X or {}` / `local X = NS.X` and defines its surface as `function X:Method()`;
+the bodies reach the module through that file-local upvalue and through `NS`, never through the
+receiver. The receiver is still load-bearing, because every call site is a colon call through the
+namespace (`NS.Browser:Show()`, `NS.Schema:Set(path, v)`) -- roughly 900 of them across the addon
+and the suites -- so deleting it would shift every argument one place to the left at all of them.
+Each of the 12 files therefore carries a `files[...]` stanza naming that one file and that one
+variable, with a comment saying which convention forces it.
+
+That the narrowing is real was **measured, not assumed**: a method with an unread `self` added to
+`core/Util.lua` and an unread `event` parameter added to `core/Compat.lua` -- two files with no
+stanza -- both report under the current config, and the same tree re-linted under the old blanket
+came back 0 warnings / 0 errors.
+
+`tests/test_lintconfig.lua` is what keeps the blanket from re-entering, since re-adding one line is
+trivial and noticing it is not. Four cases, all four watched red in the working tree before they
+landed:
+
+| # | The case | What it refuses |
+|---|----------|-----------------|
+| 1 | no top-level `ignore` | the blanket itself, however narrowly its entries are spelled |
+| 2 | no wholesale class switch | `unused_args = false` and eight relatives -- the same blanket as a switch |
+| 3 | every `files[...]` ignore is narrow | a stanza keyed on a *directory* whose entry names no variable |
+| 4 | no bare inline `-- luacheck: ignore` | the blanket at line scope, with no code named |
+
+It reads `.luacheckrc` **as Lua**, under a sandbox that auto-creates tables the way luacheck's own
+config loader does, so it inspects the table luacheck obeys rather than text that a different
+spelling would slip past. And it **fails rather than skips** when it cannot look -- no config, an
+unreadable one, a chunk that will not compile, no `io.popen`, no git -- the same bargain
+`test_docs.lua` and `_kit/test_eol.lua` strike. A gate that goes quiet when blinded reports success,
+which is worse than not existing.
+
 ## The vendor gate
 
 Neither green gate above can see a **stale vendored copy**. This addon carries two folders copied
@@ -22,11 +73,43 @@ its own suite and still passes ours. The library's suite proves the library; our
 against whatever copy happens to be sitting in `libs/`. Nothing compares the two but this:
 
 ```sh
-diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — MUST be empty
+diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — empty vs the CLAIMED tag
 diff -r ../LibKa0s/LibKa0s libs/LibKa0s                        # bytes  — SHOULD be empty
-diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit      # content — MUST be empty
+diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit      # content — empty vs the CLAIMED tag
 diff -r ../LibKa0s/testkit tests/_kit                          # bytes  — SHOULD be empty
 ```
+
+### When these diffs are supposed to be non-empty
+
+They compare against the sibling checkout's **working tree** — whatever `../LibKa0s` happens to have
+checked out — which is a different question from *"is the vendored payload the release this addon
+claims?"*. The two questions give the same answer only while the library has tagged nothing newer
+than the tag this addon has taken.
+
+Between a library release and the re-vendor that carries it they disagree, and that disagreement is
+the normal state rather than a defect. It is the state as this is written: `../LibKa0s` sits on
+**v1.27.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.26.0**, and the commands above report **306**
+differing lines for the library and **947** for the test kit. Re-vendoring to quiet them would be
+the actual mistake — it would pull an untested library release for the sake of a clean diff.
+
+**The authoritative comparison is against the tag `CLAUDE.md` names**, and that one must be empty at
+every commit:
+
+```sh
+tag=$(grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' CLAUDE.md \
+        | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+rm -rf "/tmp/libka0s-$tag" && mkdir -p "/tmp/libka0s-$tag"
+git -C ../LibKa0s archive "$tag" | tar -x -C "/tmp/libka0s-$tag"
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/testkit" tests/_kit     # MUST be empty
+```
+
+`tests/test_vendor_sync.lua` asks exactly this question inside the suite — it greps the tag out of
+`CLAUDE.md` and reads that blob out of git — so **a green suite has already answered it**, and the
+block above is only the by-eye version for when you want to see the hunks. Which leaves the
+working-tree diffs above answering a real but different question: *how far behind the library is
+this addon?* That is release planning, not a gate.
+
 
 **Run both of each pair and read the difference between them.**
 
@@ -136,14 +219,23 @@ tests/
     README.md
   run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
+  degraded_env.lua         -- builds a SECOND environment with libs/LibKa0s left out of the load
+                           --   list, so the degradation stubs are exercised as a LOAD rather than
+                           --   hand-stubbed. Not a suite, so run.lua does not list it
   test_<module>.lua        -- one suite per module
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
+  test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
+                           --   one module: the four _enabled latches released together, and
+                           --   the private bus targets torn down with them
   test_marks.lua           -- the shared LibKa0s-Media marks on this addon's own windows: the PATH
                            --   and the ARGUMENT, never the appearance, and BOTH rungs of every
                            --   fallback ladder — a texture that does not load draws nothing and
                            --   raises nothing, so no other suite would notice
   test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
                            --   unchanged, so docs/test-cases.md counts the same two cases
+  test_surface_parity.lua  -- the four degradation stubs against the surfaces they stand in for,
+                           --   collected in one file so a fifth seam growing a stub with no case
+                           --   beside it is an obvious hole (M4-09)
 ```
 
 - `run.lua` builds the addon environment once by loading every source **in TOC order** — derived
@@ -152,11 +244,23 @@ tests/
   in-game `OnInitialize` / `OnEnable` lifecycle. It exposes `NS`, the mocks and the assertion helpers
   to the suites through `_G.BL_TEST` (built by `Kit.expose`, so no suite file changed when the kit
   was adopted), runs each case under `pcall`, and exits non-zero on any failure.
-- `_kit/loader.lua` reproduces the `local addonName, NS = ...` header by calling each chunk as
+- `run.lua` also calls `Kit.setSurfaceSource` **before** `Kit.expose`, naming the live
+  `LibKa0s-Options-1.0` and `LibKa0s-DebugLog-1.0` instances for `assertSurfaceParity`'s by-name
+  form. `Kit.expose` would otherwise auto-wire the mock's `LibStub`, which answers the library's
+  MODULE table for those names; both of this addon's by-name stubs mirror the object
+  `lib:New(descriptor)` returned, so the auto-wired source reports six divergences that are all
+  correct omissions. `expose` registers a source only when none is registered yet, which is what
+  makes the earlier line stick.
+- `_kit/loader.lua` reproduces the addon's two-vararg header by calling each chunk as
   `chunk("BankLedger", NS)` under an environment where WoW globals resolve to the mock table first
   and fall back to real `_G`. It also provides `Loader.tocFiles`, which is what removed the
   hand-maintained load list. `libs\` lines are skipped — it cannot see inside an XML — so a vendored
   library the suites need must be spelled out in `run.lua`.
+  Both varargs are passed to every file; only the **seven** that actually need the addon FOLDER
+  name bind the first one as `addonName` -- `core/Namespace.lua` (`NS.name`), `core/EnvSetup.lua`,
+  `core/MediaSetup.lua`, `core/Database.lua` (the AceDB store name), `core/DebugLogSetup.lua`,
+  `core/BankLedger.lua` (the AceAddon name) and `modules/Export.lua`. Every other file opens
+  `local _, NS = ...` (`M4c-06`).
 - `_kit/framework.lua` **skips** a listed suite whose file is missing rather than raising, which is
   the opposite of the old runner. `test_harness.lua` closes that hole: it asserts the suite list and
   `tests/test_*.lua` agree in both directions, so a typo is red rather than a green run with fewer

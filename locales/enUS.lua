@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 
 -- Canonical locale. The metatable fallback returns the key itself, so English strings work
 -- untranslated and a missing key never errors (localization-§1). Non-enUS files gate with

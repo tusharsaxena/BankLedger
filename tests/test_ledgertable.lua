@@ -414,9 +414,9 @@ end)
 
 test("BuildTestData covers every store and both directions", function()
   local stores, dirs = {}, {}
-  for _, e in ipairs(testData()) do
-    stores[e.store] = true
-    dirs[e.direction] = true
+  for _, entry in ipairs(testData()) do
+    stores[entry.store] = true
+    dirs[entry.direction] = true
   end
   for _, s in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
     assertTrue(stores[s], "store " .. s .. " must appear")
@@ -426,17 +426,17 @@ end)
 
 test("BuildTestData covers every item quality 0-5", function()
   local seen = {}
-  for _, e in ipairs(testData()) do
-    if e.kind == "ITEM" then seen[e.quality] = true end
+  for _, entry in ipairs(testData()) do
+    if entry.kind == "ITEM" then seen[entry.quality] = true end
   end
   for q = 0, 5 do assertTrue(seen[q], "quality " .. q .. " must appear") end
 end)
 
 test("BuildTestData spans more than 14 days", function()
   local first, last
-  for _, e in ipairs(testData()) do
-    if not first or e.ts < first then first = e.ts end
-    if not last or e.ts > last then last = e.ts end
+  for _, entry in ipairs(testData()) do
+    if not first or entry.ts < first then first = entry.ts end
+    if not last or entry.ts > last then last = entry.ts end
   end
   assertTrue((last - first) > 14 * 86400, "the span must exceed a fortnight")
 end)
@@ -444,17 +444,17 @@ end)
 test("BuildTestData spreads across many characters and zones", function()
   local chars, zones = {}, {}
   local nc, nz = 0, 0
-  for _, e in ipairs(testData()) do
-    if e.char and not chars[e.char] then chars[e.char] = true; nc = nc + 1 end
-    if e.zone and not zones[e.zone] then zones[e.zone] = true; nz = nz + 1 end
+  for _, entry in ipairs(testData()) do
+    if entry.char and not chars[entry.char] then chars[entry.char] = true; nc = nc + 1 end
+    if entry.zone and not zones[entry.zone] then zones[entry.zone] = true; nz = nz + 1 end
   end
   assertTrue(nc >= 8, "at least 8 characters, got " .. nc)
   assertTrue(nz >= 6, "at least 6 zones, got " .. nz)
 end)
 
 test("BuildTestData never carries vendor value", function()
-  for _, e in ipairs(testData()) do
-    assertEqual(e.vendorPrice, nil)
+  for _, entry in ipairs(testData()) do
+    assertEqual(entry.vendorPrice, nil)
   end
 end)
 

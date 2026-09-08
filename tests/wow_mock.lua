@@ -280,11 +280,30 @@ function stubFrame()
   return f
 end
 
-local function deepcopy(t)
-  if type(t) ~= "table" then return t end
-  local r = {}
-  for k, v in pairs(t) do r[k] = deepcopy(v) end
-  return r
+-- AceDB's persisted store, modeled with its DEFAULT FALLBACK intact.
+--
+-- Why this rather than a flat deepcopy of the defaults table: in the client a key that HAS a
+-- default can never be observed absent. AceDB rawsets every scalar default into the store when the
+-- database is built (copyDefaults, libs/AceDB-3.0/AceDB-3.0.lua:125-128) and strips back out every
+-- stored value still equal to its default when the session ends (removeDefaults, :134-178). The
+-- value is therefore either in the SavedVariables file or supplied by the defaults table, and a
+-- reader cannot tell which.
+--
+-- A flat deepcopy collapses that distinction: it turns the default into an ordinary stored value,
+-- so a test can clear the key and read nil — a state no install is ever in. That is how a
+-- migration guarded on "is this key absent?" came to be pinned by a case that could not fail.
+--
+-- So: TABLE defaults are materialized eagerly, exactly as copyDefaults creates a missing sub-table
+-- (:117-124), each level its own table so a write into the store never reaches NS.defaults. SCALAR
+-- defaults are held OFF the store, behind __index, so reading one that was never written — or one
+-- that has been set nil — answers with the default rather than with nil. Writes go straight to
+-- the store and shadow the default, so seeding an explicit version still works and round-trips.
+local function defaultedStore(src)
+  local store, scalars = {}, {}
+  for k, v in pairs(src or {}) do
+    if type(v) == "table" then store[k] = defaultedStore(v) else scalars[k] = v end
+  end
+  return setmetatable(store, { __index = scalars })
 end
 
 return function()
@@ -579,11 +598,16 @@ return function()
   -- Override 5. Account-wide addon: created in-game with defaultProfile = true, so the profile is
   -- always the fixed "Default". The base models a full profile surface for hosts that switch
   -- profiles; this one never does, and its suite asserts against that fixed name.
+  --
+  -- Both scopes are built through defaultedStore, so the defaults FALL BACK rather than being
+  -- copied flat — see its comment for why. That is the one fidelity this override adds back over
+  -- the base, whose copyDefaults writes scalars into the store and therefore lets a cleared key
+  -- read nil, a state AceDB does not hand a running addon.
   libs["AceDB-3.0"] = {
     New = function(_, _name, defaults)
       return {
-        global = deepcopy(defaults and defaults.global or {}),
-        profile = deepcopy(defaults and defaults.profile or {}),
+        global = defaultedStore(defaults and defaults.global),
+        profile = defaultedStore(defaults and defaults.profile),
         GetCurrentProfile = function() return "Default" end,
       }
     end,
@@ -615,8 +639,8 @@ return function()
   end
 
   local baseCreate = libs["AceGUI-3.0"].Create
-  libs["AceGUI-3.0"].Create = function(self, wtype)
-    local w = baseCreate(self, wtype)
+  libs["AceGUI-3.0"].Create = function(gui, wtype)
+    local w = baseCreate(gui, wtype)
     if w and not w.SetTitle then
       function w:SetTitle(v) self.titleText = v; return self end
     end
@@ -636,6 +660,12 @@ return function()
     end
     obj.UnregisterMessage = function(self, event)
       if msgRegistry[event] then msgRegistry[event][self] = nil end
+    end
+    -- CallbackHandler's own semantics: this drops THIS target's callbacks and leaves every other
+    -- target's registration for the same message untouched. A mock that swept the whole registry
+    -- would make a teardown look correct while it silenced the modules that were still enabled.
+    obj.UnregisterAllMessages = function(self)
+      for _, targets in pairs(msgRegistry) do targets[self] = nil end
     end
     obj.SendMessage = function(_, event, ...)
       local t = msgRegistry[event]
@@ -659,6 +689,7 @@ return function()
         end
       end
       target.UnregisterEvent = noop
+      target.UnregisterAllEvents = noop
       target.RegisterChatCommand = noop
       -- A fireable timer queue. A no-op stub would have hidden the debounce entirely; tests fire
       -- M.__fireTimers() to advance time and assert that several events coalesce into ONE pass.
@@ -682,6 +713,7 @@ return function()
     Embed = function(_, obj)
       obj.RegisterEvent = obj.RegisterEvent or function() end
       obj.UnregisterEvent = obj.UnregisterEvent or function() end
+      obj.UnregisterAllEvents = obj.UnregisterAllEvents or function() end
       return embedBus(obj)
     end,
   }

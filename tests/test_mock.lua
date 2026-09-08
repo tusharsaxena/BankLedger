@@ -1,4 +1,4 @@
--- The frame stub's own guard rail.
+-- The frame stub's own guard rail, and the AceDB fake's.
 --
 -- tests/wow_mock.lua's stubFrame underpins EVERY headless suite, so any drift in it breaks all of
 -- them at once — and a stub with no self-test can only be debugged through whichever unrelated case
@@ -271,4 +271,53 @@ test("Mock frame: lowercase and non-string keys miss through to nil", function()
   assertEqual(f.rowIndex, nil)
   assertEqual(f[1], nil)
   assertEqual(f[true], nil)
+end)
+
+-- ── The AceDB fake's default fallback ──────────────────────────────────────────
+--
+-- The migration boundary cases in tests/test_database.lua are only worth their ink if a key with a
+-- default can be OBSERVED absent here exactly as rarely as it can in the client, which is never.
+-- Once schemaVersion stops being a shipped default those cases stop exercising this fallback at
+-- all, so it is pinned on its own here rather than left to them.
+
+test("Mock AceDB: a scalar default reads through; clearing the key does not unset it", function()
+  local defaults = { global = { stamp = 7, rows = {} } }
+  local db = mocks.__libs["AceDB-3.0"]:New("ScratchDB", defaults)
+
+  assertEqual(db.global.stamp, 7, "an unwritten default reads as the default")
+  db.global.stamp = 1
+  assertEqual(db.global.stamp, 1, "an explicit write shadows the default")
+  db.global.stamp = nil
+  assertEqual(db.global.stamp, 7,
+    "clearing it does NOT make it absent — AceDB re-supplies it from the defaults table")
+  assertTrue(rawget(db.global, "stamp") == nil, "and it fell back rather than being stored again")
+
+  db.global.rows.a = 1
+  assertEqual(db.global.rows.a, 1, "a table default is a real, writable per-database table")
+  assertTrue(next(defaults.global.rows) == nil, "and the shipped defaults table is not written to")
+end)
+
+-- ── The message bus fake's per-target teardown ─────────────────────────────
+--
+-- core/BankLedger.lua's OnDisable tears each module's private bus target down before it releases
+-- the `_enabled` latch, and tests/test_lifecycle.lua's "does not subscribe the session window
+-- twice" is only worth anything if this fake unregisters the way CallbackHandler does. A sweep of
+-- the whole registry would make that case pass while a real teardown silenced every module that
+-- was still enabled, so the narrow behavior is pinned here rather than assumed there.
+
+test("Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed", function()
+  local AceEvent = mocks.__libs["AceEvent-3.0"]
+  local a, b = AceEvent:Embed({}), AceEvent:Embed({})
+  local seenA, seenB = 0, 0
+  a:RegisterMessage("Ka0s_Scratch_Ping", function() seenA = seenA + 1 end)
+  b:RegisterMessage("Ka0s_Scratch_Ping", function() seenB = seenB + 1 end)
+
+  a:SendMessage("Ka0s_Scratch_Ping")
+  assertEqual(seenA, 1, "both targets hear a message before anything is torn down")
+  assertEqual(seenB, 1)
+
+  a:UnregisterAllMessages()
+  a:SendMessage("Ka0s_Scratch_Ping")
+  assertEqual(seenA, 1, "the torn-down target hears nothing further")
+  assertEqual(seenB, 2, "and the other target is untouched by its neighbour's teardown")
 end)

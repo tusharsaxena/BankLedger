@@ -96,8 +96,11 @@ Which answer is right depends entirely on whether rows exist:
 
 ## Add a migration
 
-1. Bump `NS.SCHEMA_VERSION` in `core/Namespace.lua` — the one source for both the shipped default and
-   the migration target.
+1. Bump `NS.SCHEMA_VERSION` in `core/Namespace.lua` — the one source the runner seeds fresh installs
+   at and migrates towards. It is deliberately **not** an AceDB default: a default equal to the stored
+   value is stripped from the file at logout, which is how the v1 → v2 ladder spent a release
+   unreachable (`BANKLEDGER-R-02`). `defaults/Global.lua` carries the full reasoning where the key
+   used to be.
 2. Add the step to `NS:RunMigrations` in `core/Database.lua`, gated on the *current* version, and make
    it idempotent: a database already at the new version must be skipped entirely, and re-running a
    partially applied step must be a no-op.

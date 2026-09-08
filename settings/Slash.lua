@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.Slash = NS.Slash or {}
 local Sl = NS.Slash
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
@@ -89,6 +89,15 @@ end
 ---
 --- The window resets that follow are not stored data: they re-anchor live frames from what is now an
 --- empty store.
+---
+--- The broadcast is what tells the rest of the addon the store underneath it changed
+--- (`architecture-§4`). Every Schema row already sends one on a single-key edit; this rewrites
+--- every key there is and used to send nothing, so `modules/Ledger.lua`'s capture gate went on
+--- judging bank movements by the cached settings the reset had just destroyed, until a /reload.
+--- Once, at the end, with `"reset"` as the reason -- one act, one message. Sending per restored key
+--- would make every subscriber rebuild several times over for a single button press, and no
+--- subscriber wants finer grain than "all of it changed". The consumers are NOT enumerated here:
+--- they subscribe, which is the whole point of the bus.
 function Sl:ResetEverything()
   local db = NS.db
   if db and db.global then
@@ -97,6 +106,7 @@ function Sl:ResetEverything()
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
   end
   print("this addon reset to defaults.")
+  if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "reset") end
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end

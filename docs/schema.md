@@ -63,6 +63,16 @@ lives in `quantity` and was never vendor-priced.
 debug line via `NS.MigrationSummary`. It is idempotent — a v2 database is skipped entirely, and
 clearing an already-absent field on a partially-migrated one is a no-op.
 
+**The stamp is not an AceDB default, and must never become one again.** It was one until
+`BANKLEDGER-R-02`, and that is why the ladder above had never actually run on a player's store:
+AceDB's logout handler re-registers `nil` defaults, which strips every stored key still equal to its
+default, so the stamp left the file at logout and came back at the next login as whatever the current
+default said. The runner read its own target and the `< NS.SCHEMA_VERSION` arm was never true. The
+stamp is now seeded by `NS:RunMigrations` as an ordinary stored value. An unstamped store is a fresh
+install when its ledger is empty (or absent) and a pre-stamp v1 database when it is not — the ledger
+is the discriminator, and it is a safe one, because a migration over an empty ledger is a no-op
+whichever way it is read.
+
 #### Accepted deviation — the CSV export contract broke
 
 `core/Database.lua` and `modules/Export.lua` document the CSV column set as stable, and the schema-v2

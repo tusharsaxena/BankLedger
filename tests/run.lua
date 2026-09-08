@@ -22,6 +22,8 @@ local SUITES = {
   "test_export", "test_debuglog", "test_schema", "test_slash",
   "test_panel", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
+  "test_lifecycle", "test_surface_parity", "test_register", "test_docs",
+  "test_lintconfig",
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
@@ -52,6 +54,24 @@ Loader.loadAll(LIBKA0S_FILES, NS, mocks)
 -- once.
 Loader.loadAll(Loader.tocFiles("BankLedger.toc"), NS, mocks)
 
+-- Where Kit.assertSurfaceParity's by-name form looks the LIVE half up (kit 15, vendored by M4-01).
+-- Registered explicitly, and the explicitness is the point. Kit.expose auto-wires the mock's
+-- LibStub for a repo whose degradation stubs mirror LIBRARY TABLES; this addon's two by-name stubs
+-- mirror an INSTANCE instead -- what `lib:New(descriptor)` returned. Left to the auto-wiring,
+-- "LibKa0s-Options-1.0" resolves the module table (LAYOUT, New, STRINGS) and
+-- "LibKa0s-DebugLog-1.0" resolves its own (MAX_BUFFER, New, STRINGS), so
+-- tests/test_surface_parity.lua goes red naming six members no stub was ever meant to carry.
+--
+-- Set BEFORE Kit.expose, which is what makes it stick: expose registers a source only when none is
+-- registered yet, precisely so a runner like this one keeps its own.
+--
+-- The Core and Slash stubs are deliberately absent from this table -- neither mirrors a major's
+-- instance, so neither has a name to resolve; tests/test_surface_parity.lua's header says why.
+Kit.setSurfaceSource{
+  ["LibKa0s-Options-1.0"]  = NS.Helpers,
+  ["LibKa0s-DebugLog-1.0"] = NS.DebugLog,
+}
+
 _G.BL_TEST = Kit.expose{
   NS = NS, mocks = mocks, Loader = Loader, suites = SUITES, libka0sFiles = LIBKA0S_FILES,
   makeMocks = function() return dofile("tests/wow_mock.lua")() end,
@@ -67,4 +87,13 @@ NS.Ledger:Enable()
 -- its suite exercises the real bus wiring rather than calling its handlers by hand.
 NS.SessionWindow:Enable()
 
-Kit.run{ dir = "tests/", suites = SUITES }
+-- The kit has shipped one suite of its own since revision 15 -- tests/_kit/test_eol.lua, the
+-- working-tree line-ending gate -- and Kit.assertSuiteInventory fails the run until the runner
+-- declares it, so it cannot arrive with a re-vendor and then quietly run nothing. It is appended
+-- here rather than written into SUITES because SUITES is also what tests/test_harness.lua walks,
+-- as plain basenames under tests/.
+local RUN_SUITES = {}
+for i, name in ipairs(SUITES) do RUN_SUITES[i] = name end
+RUN_SUITES[#RUN_SUITES + 1] = { name = "test_eol", dir = "tests/_kit/" }
+
+Kit.run{ dir = "tests/", suites = RUN_SUITES }

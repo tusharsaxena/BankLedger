@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.Insights = NS.Insights or {}
 local I = NS.Insights
 local C = NS.Constants

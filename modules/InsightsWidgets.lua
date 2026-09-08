@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.InsightsWidgets = NS.InsightsWidgets or {}
 local W = NS.InsightsWidgets
 

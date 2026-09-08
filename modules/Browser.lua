@@ -1,4 +1,4 @@
-local addonName, NS = ...   -- luacheck: ignore addonName
+local _, NS = ...
 NS.Browser = NS.Browser or {}
 local B = NS.Browser
 local C = NS.Constants
