@@ -1,7 +1,8 @@
 # Automated test results
 
-<!-- The newest run is prepended by tests/_kit/run-automated-tests.sh. -->
+<!-- Regenerated whole by tests/_kit/run-automated-tests.sh on every run. -->
 <!-- This file is OVERWRITTEN IN PLACE — the git history of this one path is the trend line. -->
+<!-- Everything here is generated EXCEPT the watch list's Disposition column. -->
 
 One row per run. The frozen evidence for each is in the dated folder beside this file;
 the analysis of a given run is its `ANALYSIS.md`.
@@ -18,8 +19,11 @@ A `skip` is a suite that did not run at all. It is never a pass, and at the rele
 **NOT EVALUATED** rather than passed: install the tool and re-run. A `—` is a suite that was
 not selected, which is a different fact again.
 
+The **Tests** cell reads `passed/skipped/total`.
+
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260908-181253`](20260908-181253/) | 1.0.0 | 0/0 | 59 | 844/0/844 | skip | 14455 | 2181 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260825-103400`](20260825-103400/) | 1.0.0 | 0/0 | 28 | 791/791 | skip | 13409 | 2043 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260807-115101`](20260807-115101/) | 1.0.0 | 0/0 | 24 | 727/727 | skip | 12735 | 1942 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260807-110442`](20260807-110442/) | 1.0.0 | 0/0 | 24 | 727/727 | skip | 12735 | 1942 | 6.0 | 2.0 | 15 | 0 | **green** |
@@ -28,115 +32,58 @@ not selected, which is a different fact again.
 | [`20260804-214843`](20260804-214843/) | 1.0.0 | 0/0 | 24 | 726/726 | skip | 12788 | 1946 | 6.0 | 2.1 | 0 | 0 | **green** |
 | [`20260804-182039`](20260804-182039/) | 1.0.0 | 0/0 | 24 | 689/689 | skip | 12085 | 1773 | 6.2 | 2.2 | 33 | 15 | **green** |
 
-**Reading the `Max CCN` column: the `0` is an instrument fault, not a measurement.** Every run
-recorded before the testkit rev-6 re-vendor — here that is `20260804-182039` and `20260804-214843` —
-took that number from `lizard`'s warnings block, which lists only functions *over* the threshold. So
-it reported the worst **warned** function, and it printed `0` the moment an addon reached zero
-warnings, which is exactly what happened at `20260804-214843`. The true maximum for an affected run
-is in that same bundle's own `complexity.txt` — for `20260804-214843` it is **15**, over a tree
-byte-identical to the next run's. Rev 6 measures over every function, so `20260804-233144` onward
-reads as "the worst function". The rows themselves stand as recorded: a bundle is frozen evidence,
-and a hand-corrected number reads as measured (`performance-§10`).
-
-The four sections below describe the **current** state, as of the newest run
-[`20260807-115101`](20260807-115101/) — not that run's diff, which is its
-[`ANALYSIS.md`](20260807-115101/ANALYSIS.md).
-
 ## Test suite
 
-727 cases, all passing, none skipped — the largest suite in the collection. The count has now held
-flat across three consecutive runs (`20260807-023005`, `20260807-110442`, `20260807-115101`), and
-that is **not** a stalled-coverage signal: the addon's shipped source has not moved either over the
-same span, at a constant 12735 NLOC across 1942 functions. A count that stops growing while the code
-grows is the thing worth flagging, and this is the other case. The last real churn was at
-`20260804-233144`, whose net +1 hid nine cases added and eight removed: the nine pin the
-link-versus-id fix in `Ledger:BuildEntry`/`Ledger:GateReason`, the `Database:PruneOld` broadcast
-condition, each degraded LibKa0s seam's stub surface as a set, and the vendored-payload gate now
-reading the provenance line from `CLAUDE.md` rather than `README.md`; the eight were the seven
-`Insights.RankRows`/`Insights.BarFraction` cases and the superseded README-sourced wording of that
-same vendor-sync case. The generated inventory `test-cases.md` in each bundle is the authority on
-what exists at that point; the README badge tracks the same number. Note what the suite cannot
-cover: it is headless, so every in-client behavior — frame creation, taint, real bank events — is
-covered by `docs/smoke-tests.md` and by nothing here.
+**844 cases** — 844 passed, 0 failed, 0 skipped. The generated inventory
+[`20260908-181253/test-cases.md`](20260908-181253/test-cases.md) is the authority on which cases existed at this run;
+`docs/test-cases.md` is that same list at HEAD.
+
+Moved **791 → 844** since the previous run.
+
+No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
+that was not exercised.
 
 ## Lint
 
-Clean over 24 files: 0 warnings, 0 errors. **What is in scope matters more than the `0/0`**, and the
-scope is narrower than it looks: `.luacheckrc`'s `exclude_files` is
-`{ "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/" }`, so `luacheck .` lints the addon's
-own shipped source — `core/`, `defaults/`, `locales/`, `modules/`, `settings/` — and **not** the
-`tests/` tree. The 24 files in the row are exactly those shipped files, one per TOC entry; the ~20
-suites under `tests/` are never linted. That is a deliberate exclusion rather than an oversight — the
-harness files are checked by running them — but a reader comparing this `0/0` against another addon's
-should know it covers roughly half the repo's Lua. `libs/` and `tests/_kit/` are out of scope because
-neither is this repo's to fix.
+**0 warnings / 0 errors over 59 files** (`luacheck .`).
+
+Read that figure with its scope attached: `.luacheckrc` sets `exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit/" }`, so those paths
+are not in it. A `0/0` that never moves is partly a statement about what was never looked at, which
+is why the exclusion is restated on every run.
 
 ## Perf
 
-This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather than a
-transient tooling gap — and that absence is a **ratified state, not a gap**. BankLedger holds a
-recorded `performance-§12` no-combat-path exemption: the register row is in
-[`../ARCHITECTURE.md`](../ARCHITECTURE.md) and the whole-repo sweep that earns it is
-[`../performance.md`](../performance.md), which is why there is no `tests/perf.lua`, no `perf` verb
-registration and no `docs/perf-analysis/` store. Two things still follow, and both are standing facts
-rather than any run's news: the record says **nothing** about the addon's in-combat runtime cost, and
-`performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is
-off — does not exist for it. (The older framing of these as gaps, `BL-15` and `BL-16` in
-`docs/audits/2026-08-04/02_DEVIATIONS.md`, is superseded by the exemption; that bundle stands as
-frozen evidence of what was true when it was written.) The reason to name for this column is the
-exemption, not the bare absence of the file — `automated-tests-§3` sanctions exactly two `perf` skip
-reasons and calls the exemption the more informative one. The runner records the other, *"no
-`tests/perf.lua`"*, because an absent file is all a script can see; the exemption is stated here
-instead, and no manifest is hand-corrected to carry it. A `skip` is never a pass — this column
-records that the suite did not run, not that it ran clean, and at the release gate it is NOT
-EVALUATED.
+**This repo ships no `tests/perf.lua`, so `perf` is a permanent `skip`** — the first of
+`automated-tests-§3`'s two sanctioned reasons, *nothing to run*, rather than a ratified
+`performance-§12` no-combat-path exemption. The record is therefore **silent about runtime
+cost**: nothing in this file says this addon is fast or cheap, only that the question was
+never asked.
 
 ## Complexity watch list
 
-Every function `lizard` warned on, and every file at or above `layout-§1`'s 1000-LOC on-notice
-threshold, each with a one-line disposition — current state as of
-[`20260807-115101`](20260807-115101/).
+Current as of [`20260908-181253`](20260908-181253/) — **this run's measurement, not its diff.** Max CCN **15** across 2181
+functions, **0** of them warned on; 3 file(s) in the 1000–1500 band and 0 over the 1500 cap
+(`layout-§1`).
+
+Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
+the one authored cell in this file** (`automated-tests-§4`, *the one boundary*): it is carried
+forward verbatim while its entry is unchanged, and left **blank** when the entry is new — a blank
+cell is this file saying something crossed and nobody has ruled on it yet.
 
 ### Functions `lizard` warned on
 
-| Function | CCN | Location | Disposition |
-|---|---|---|---|
-| — | — | — | **None.** |
-
-That is the result, not an empty section. `lizard` warned on fifteen functions at `20260804-182039`
-and on none since `20260804-214843` — four consecutive runs now clean. `feat/fix-ccn` peeled every
-one of them below the cap, and the whole watch list from `20260804-182039` is gone with it. Their old
-dispositions are not carried forward: an "Accepted" with no warning attached to it is noise on a
-future reader's desk. The frozen `20260804-182039` bundle keeps them if the reasoning is ever wanted.
-
-The highest CCN measured anywhere in the tree is **15** — at the cap, not under it by a comfortable
-margin — and **five** functions sit there, unchanged since `20260807-023005`: `ensureFrame`
-(`modules/SessionWindow.lua:441`), `I:Layout` (`modules/Insights.lua:505`), `accumulateItemTaxonomy`
-(`core/Database.lua:234`), `LT:UpdateHeaderArrows` (`modules/LedgerTable.lua:827`) and `L:GateReason`
-(`modules/Ledger.lua:402`), the last of which reached 15 from 14 at `20260807-023005` when the
-quality gate learned to judge the **moved link** rather than the base item. All five are dense
-**guarding** rather than tangled control flow: `lizard` scores every `and`/`or` short-circuit as a
-decision, and a run of Lua guard clauses reads high with no visible branching. None is a warning and
-none is over the cap, but at 15 there is no headroom, so the next edit to any of the five is the one
-that would trip the release gate.
+None.
 
 ### Files by `layout-§1` band
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `tests/test_ledger.lua` | 1402 | **Accepted.** A suite grows with the cases it pins, and this one covers the addon's core mechanic. Last moved at `20260807-023005`, up 41 lines for the three link-versus-id cases. Split by concern if it passes 1500. |
-| 1000–1500 (on notice) | `modules/Browser.lua` | 1358 | **Already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`), with the peel seam named: the skin/close-button factory and the geometry persistence lift into a sibling file. Last moved at `20260807-023005`, down 10 lines, when the window edge began delegating to `Core.ApplySkin`. |
-| 1000–1500 (on notice) | `modules/LedgerTable.lua` | 1052 | **Accepted for now.** Entered the band at `20260804-214843` and unmoved since. The test-data generator (`makeTestEntry`/`seedCoverage`/`bulkMovements`/`goldMovements`) is a self-contained block and is the peel seam if it grows. |
+| 1000–1500 (on notice) | `modules/Browser.lua` | 1251 | **Already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`), with the peel seam named: the skin/close-button factory and the geometry persistence lift into a sibling file. 1245 at the previous run's commit, +6 when the Filters page folded into the master controls. The cell this replaces read 1358 — a figure last true three runs ago. |
+| 1000–1500 (on notice) | `modules/LedgerTable.lua` | 1096 | **Accepted.** Entered the band at `20260804-214843` and has moved 45 lines in the month since — 1091 at the previous run's commit, +5 when both settings pages became tab strips. The test-data generator (`makeTestEntry`/`seedCoverage`/`bulkMovements`/`goldMovements`) is a self-contained block and is still the peel seam if it grows. |
+| 1000–1500 (on notice) | `tests/test_ledger.lua` | 1478 | **Accepted, and the closest thing here to a trigger.** A suite grows with the cases it pins, and this one covers the addon's core mechanic — 1402 at the previous run's commit, +76 for the cases pinning the guild bank arming on its frame showing. That leaves 22 lines of headroom before `layout-§1`'s 1500 cap, and over the cap is a bug rather than a band entry. Split by concern at the next case, not at 1500. |
 
-Nothing newly crossed a band at `20260807-115101`, and nothing is over the 1500-LOC cap. The `4 → 3`
-move in the manifest's `bandFiles` happened at `20260807-023005`, when **`modules/Insights.lua` left
-the band** at 1023 → 992 LOC; its disposition is retired rather than carried, since there is no entry
-left to hold one.
+`lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
+`t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
+here usually means *this function defaults or guards a lot of fields* rather than *this function
+is tangled*, and the two want different fixes (`performance-§10`).
 
-**On the shelf life of these dispositions** (`automated-tests-§4`, anti-pattern #53): the clock runs
-in **release** runs, and `RESULTS.md`'s git history shows this record has never carried one — every
-manifest under `docs/automated-tests/` has `"release": null`, this run's included. So no "Accepted"
-here has yet spent a release, let alone three, and nothing is owed a fix or a tracked deviation ID on
-that count. `tests/test_ledger.lua` and `modules/LedgerTable.lua` are the two to watch when the first
-release run lands; `modules/Browser.lua` already points at a tracked ID and is not subject to the
-clock.
