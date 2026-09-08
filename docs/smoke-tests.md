@@ -732,3 +732,79 @@ every automated check in this repo.**
    shrinks. **Fail:** a label carried over from the previously-dressed tab, a highlight on the wrong
    button, a body drawn under the wrong tab, or a strip whose height moves between passes — each of
    which is the pool handing back a frame it did not finish dressing.
+
+## S-27 · Non-English client (session 6, `M5-08`)
+
+**Session 6 of the 2026-09-07 remediation plan. NOT YET RUN — no WoW client was available when
+`M5-08` landed, so nothing below has been performed and no step here is recorded as passed.** Run
+on a client set to **deDE or frFR** — the two the collection's other locale steps use
+(`ConsumableMaster/docs/smoke-tests.md` § 3c, `KickCD/docs/smoke-tests.md` § 9b). Any character with
+a bank works; a warband or guild bank is not needed.
+
+This section exists because the headless suite is structurally blind here. `tests/wow_mock.lua`
+answers enUS for every localized global it defines, so a path that keys off a display string is
+green whether it is right or wrong — the test and the bug agree with each other.
+
+**What this addon reads in the player's language.** Four seams:
+
+- **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:477-482`, via
+  `core/Compat.lua:153-159`). These are `C_Item.GetItemInfo`'s **localized** type and sub-type
+  strings. They are not only displayed: `core/Database.lua:248-270` uses them as analytics **keys**
+  (`byItemType`, `byItemSubType`, and `byTypeSub` keyed on `type\tsubType`), they are persisted into
+  SavedVariables on every row, and `modules/Export.lua`'s `itemType` / `itemSubType` columns emit
+  them raw. The same `C_Item.GetItemInfo` call returns the locale-independent `classID` /
+  `subClassID`, and `core/Compat.lua:156` discards both with `_, _`. `quality` and `store` each have
+  a `*Raw` sibling column for exactly this reason; these two have none.
+- **`NS.Item.QualityLabel`** (`core/ItemSetup.lua:59-62`) — `_G["ITEM_QUALITY" .. q .. "_DESC"]`,
+  falling back to an English table when the client leaves the global nil. Localized by design, with
+  the numeric `qualityRaw` beside it in the CSV.
+- **`Util.FormatDate`** (`core/Util.lua:29-31`) — `date("%d-%b-%Y")`, whose comment claims the shape
+  is "unambiguous across locales". That is true of the **order** and not of `%b`, which is the
+  month's abbreviation in the client's own language.
+- **Case folding.** `modules/LedgerTable.lua:66`, `:85`, `:89` and `:94` sort on `:lower()`, and
+  `core/Database.lua:143` and `:160` lowercase the item name and the search text before matching.
+  Lua's `string.lower` folds ASCII and nothing else, so `Ä` is not `ä` to any of them.
+
+**English by design, and not a failure here.** `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and
+every label, tooltip and chat line the addon prints are hardcoded English and stay English on a
+German client. The CSV's **header row** is likewise English `snake_case` and must stay
+byte-identical to the enUS header — it is a key another tool parses, not prose.
+
+1. **The type facets are the client's language, and they split on a language switch.** Deposit two
+   items of different classes — a piece of armor and a trade good, say. Open **Insights** and read
+   the **Movements By Item Type** and sub-type facets.
+   **Pass** — the facet labels are the client's own words (`Rüstung`, `Handelswaren`), the counts
+   are right, and the type × sub-type pivot pairs them correctly. **Fail** — a facet labelled with a
+   number, an empty label, or two facets counted separately for what is plainly one category.
+   Then, if this account has rows captured on an **English** client (or capture some, switch the
+   client language, and come back), look for **both** spellings in the same facet list: one category
+   with an English label and a German one is the persisted-display-string defect, and it is what
+   this step is really for. Record what you see either way — a split facet list is a finding to
+   file, not a step to re-run.
+2. **The export.** History ▸ **Export** ▸ **Current View** ▸ **Export to CSV**.
+   **Pass** — the header row is byte-identical to the enUS one (`ts,date,time,char,classFile,…`,
+   all ASCII), `quality` carries the localized label with the numeric `qualityRaw` beside it, and
+   `direction` / `store` / `kind` are still the English labels the constants define. **Fail** — a
+   translated header key, or a `storeRaw` / `qualityRaw` cell that is anything but the raw token.
+   Then read two cells and **write down exactly what they say**: the `date` cell's month token
+   (`11-Jul-2026` on enUS — what is it here?) and the `itemType` / `itemSubType` pair. Those two
+   answers are what decides whether the CSV contract is locale-independent in fact or only in the
+   comment, and they cannot be obtained any other way.
+3. **Sorting and search over non-ASCII text.** With rows whose item names begin with an accented or
+   umlauted letter in the client's language, click the **Item** column header to sort both ways,
+   then type the name into the search box in **lower case** with the accent (`änderung`, `épée`).
+   **Pass** — accented names sort in with their unaccented neighbors, and the search finds the row
+   whichever case you type. **Fail** — every accented name clumped at one end of the sort, or a
+   search that finds nothing until you match the capital exactly. Both are `string.lower` folding
+   only ASCII, and both are invisible on an English client. This is the step most likely to fail.
+4. **Nothing else moved.** Walk `S-1`, `S-2` and `S-8` once on this client. **Pass** — capture,
+   the ledger table, grouping and the filter bar behave exactly as they do on English. **Fail** —
+   any Lua error at all, which on this client means a localized string reached something that
+   assumed an English one.
+
+**Sign-off without a non-English client.** There is none for steps 1 to 3. The headless cases that
+touch these paths (`test_database`'s analytics grouping, `test_export`'s column contract,
+`test_ledgertable`'s sort keys) all feed the mock's English strings in and check that the same
+English strings come back, which is the answer they are asking for. Step 4 alone is covered by the
+rest of this file on English. Until the pass runs, the honest state of this section is unrun, and it
+is recorded that way rather than as coverage.

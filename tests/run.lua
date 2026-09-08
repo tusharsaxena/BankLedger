@@ -22,7 +22,7 @@ local SUITES = {
   "test_export", "test_debuglog", "test_schema", "test_slash",
   "test_panel", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
-  "test_lifecycle", "test_surface_parity", "test_register",
+  "test_lifecycle", "test_surface_parity", "test_register", "test_docs",
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
