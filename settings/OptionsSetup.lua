@@ -177,15 +177,18 @@ if not lib then
     __tabArtHeight = function() return 0 end,
     __resetTabArtHeight = function() end,
 
-    -- The schema composers (options-ui-§15/§16/§17), new at LibKa0s v1.24.0. MasterControls is
-    -- REACHED: settings/Schema.lua's S:ComposeMaster runs it from this file's live arm below.
-    -- Returning an empty row list is the honest answer here and it has a VISIBLE cost, stated so
+    -- The schema composers (options-ui-§15/§16/§17), new at LibKa0s v1.24.0. Every one of them is
+    -- unreached ON THIS ARM, MasterControls included, and the reason is worth stating because it is
+    -- not the reason the other four are unreached. `S:ComposeMaster` is the only caller, and it runs
+    -- from this file's LIVE arm, below the `return` that ends this table -- so on a degraded install
+    -- the stub is built and then nothing ever asks it for a row.
+    -- Returning an empty row list is still the honest answer here and it has a VISIBLE cost, stated so
     -- nobody reads the no-op as free: in a degraded install the General page's Master controls
     -- rows are absent from NS.Schema.Schema, so `/bl list`, `/bl set` and `/bl reset` cannot
     -- reach them (`/bl get` still can -- Schema:Get falls through to the stored value). The
     -- alternative is a host copy of the canonical block, which is exactly anti-pattern #73 and
-    -- goes stale the first time the standard moves. The other four are unreached -- this addon
-    -- has no color, font, border or bar row at all -- and are stubbed alongside it.
+    -- goes stale the first time the standard moves. The other four are unreached on BOTH arms --
+    -- this addon has no color, font, border or bar row at all -- and are stubbed alongside it.
     MasterControls = function() return {}, function() end end,
     ColorPair = function() return {} end,
     FontGroup = function() return {} end,
