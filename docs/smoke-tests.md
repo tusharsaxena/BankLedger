@@ -711,3 +711,24 @@ document that touches a real ledger.
    reinstated it as a default and the next schema bump is already disarmed.
 7. Log back in once more and confirm the console shows **no** migration line the second time — the
    runner is idempotent and a stamped store is left alone.
+
+## S-26 · The tab strip survives being pooled and re-dressed
+
+**Session 3 of the 2026-09-07 remediation plan. NOT YET RUN.** `M4-01` re-vendors LibKa0s v1.27.0,
+and `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer builds a button and a content panel per
+click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses them, re-setting
+`OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a second selection
+pass. The case that would pin band geometry as invariant under selection cannot be written yet — the
+shared mock answers `GetHeight` with 0 for every frame and that flips at kit 16, not here. **So a
+stale label, a mis-anchored button or a band that changes height on a re-dressed tab is invisible to
+every automated check in this repo.**
+
+1. `/bl config`, then **General** — the page `settings/Panel.lua` draws with
+   `O.RenderTabbedSchema`.
+2. Cycle every tab of the strip three times, ending back on the first.
+3. Watch three things on each pass: the **label** is that tab's own, the **selected** tab is the one
+   you pressed, and the strip's **band height** does not move as you go through it.
+4. **Pass:** every tab labelled and selected correctly on all three passes, no band that grows or
+   shrinks. **Fail:** a label carried over from the previously-dressed tab, a highlight on the wrong
+   button, a body drawn under the wrong tab, or a strip whose height moves between passes — each of
+   which is the pool handing back a frame it did not finish dressing.

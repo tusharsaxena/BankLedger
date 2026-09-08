@@ -68,4 +68,13 @@ NS.Ledger:Enable()
 -- its suite exercises the real bus wiring rather than calling its handlers by hand.
 NS.SessionWindow:Enable()
 
-Kit.run{ dir = "tests/", suites = SUITES }
+-- The kit has shipped one suite of its own since revision 15 -- tests/_kit/test_eol.lua, the
+-- working-tree line-ending gate -- and Kit.assertSuiteInventory fails the run until the runner
+-- declares it, so it cannot arrive with a re-vendor and then quietly run nothing. It is appended
+-- here rather than written into SUITES because SUITES is also what tests/test_harness.lua walks,
+-- as plain basenames under tests/.
+local RUN_SUITES = {}
+for i, name in ipairs(SUITES) do RUN_SUITES[i] = name end
+RUN_SUITES[#RUN_SUITES + 1] = { name = "test_eol", dir = "tests/_kit/" }
+
+Kit.run{ dir = "tests/", suites = RUN_SUITES }

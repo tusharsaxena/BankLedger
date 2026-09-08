@@ -975,8 +975,16 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   --
   -- The composer FUNCTIONS are a different question and are in the stub, not in here: MasterControls
   -- is reached (settings/OptionsSetup.lua calls it), and the other four are stubbed beside it.
+  -- `__print` joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
+  -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
+  -- (libs/LibKa0s/Options.lua:392, read at OptionsWidgets.lua:763). Its own comment there calls it
+  -- internal rather than surface and says a degradation stub does not mirror it, because
+  -- Kit.assertSurfaceParity skips the `__` prefix -- true of the kit's BY-NAME form, which filters
+  -- through Kit.publicMembers, and not of the four-argument form this case uses, which walks every
+  -- key of the live table. So it is named here rather than copied into the stub.
   local IGNORE = {
     "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar",
+    "__print",
     "CLASS_COLOR_NOTE", "FONT_FLAGS", "FONT_FLAGS_SORT", "MASTER_GROUP",
     "VISIBILITY_SORT", "VISIBILITY_VALUES",
   }

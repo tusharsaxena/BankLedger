@@ -926,6 +926,10 @@ badge and any count quoted in the docs must agree with it.
 - addon:OnDisable leaves _guildHooked alone — the hook it records is still installed
 - a disable then enable cycle does not subscribe the session window twice
 
+### test_eol.lua (1)
+
+- eol: every tracked file carries the terminator .gitattributes declares for it
+
 ## Totals
 
 | Suite | Cases |
@@ -956,4 +960,5 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 4 |
-| **Total** | **842** |
+| test_eol.lua | 1 |
+| **Total** | **843** |
