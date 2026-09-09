@@ -17,19 +17,6 @@ already shows you. How it got that way is the part the client forgets the moment
 closes, and that is the part kept here. One book, account-wide, so every character writes to it and
 reads from it.
 
-## What's new in 1.0.0
-
-- First release: a complete passbook of every item and gold movement between your bags and your
-  character bank, warband bank and guild bank.
-- History tab with search, per-column filters, grouping and sorting, plus a saved view, so **Save**
-  makes your layout the one every session opens on.
-- Insights tab with fourteen headline figures and seventeen charts, including deposit/withdrawal
-  companions for every breakdown and ranked "Top Of The List" panels.
-- A live **Current Banking Session** window that opens with any bank and lists what you moved during
-  that visit.
-- CSV export for either tab, all your data or just the view on screen, with a Wowhead link for the
-  exact item that moved, bonus IDs and all.
-
 ## Screenshots
 
 **_History browser_**
