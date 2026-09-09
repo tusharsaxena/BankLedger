@@ -3,6 +3,23 @@
 Every user-facing option, the widget that renders it, and the one seam every write takes. The stored
 shape behind these paths is [schema.md](schema.md).
 
+## At a glance
+
+The page-granularity summary, moved here out of the README when documentation-§1 made Usage prose
+only. The finer tree is everything below it.
+
+| Page | Tabs | Covers |
+| --- | --- | ------ |
+| General | Master controls · Capture · Interface · History · Filters | The whole addon, on one strip |
+
+| Tab | Covers |
+| --- | ------ |
+| Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put the windows back where they started, or return every setting to stock. |
+| Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
+| Interface | What is on screen: the minimap button, whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor. |
+| History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
+| Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or by shift-clicking its link into the box. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
+
 ## Shape
 
 **Two** pages registered with `LibKa0s-Options-1.0`, which owns the shell, the widget makers, the

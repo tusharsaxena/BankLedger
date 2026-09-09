@@ -98,8 +98,8 @@ gets no close event either.
 
 ## Slash Commands
 
-`/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help`, the settings landing page
-and the README all read one table. Fifteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+`/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
+page read one table. Fifteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
 seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispatch.md)**.
 
 ## Event Subscriptions

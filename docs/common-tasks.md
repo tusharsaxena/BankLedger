@@ -65,9 +65,9 @@ back to the tab.
 
 ## Add a slash command
 
-Append one entry to `NS.COMMANDS` (`settings/Schema.lua:396`). `/bl help`, the settings landing page
-and the README's command table all read from that table, so nothing else needs editing — regenerate
-the README with `/wow-addon:sync-docs`. See [slash-dispatch.md](slash-dispatch.md) for what the
+Append one entry to `NS.COMMANDS` (`settings/Schema.lua:396`). `/bl help` and the settings landing
+page both read from that table, so nothing else needs editing — the README documents no command
+list of its own (`documentation-§1` item 7). See [slash-dispatch.md](slash-dispatch.md) for what the
 library owns versus what stays the host's.
 
 ## Add a tracked store

@@ -4,8 +4,8 @@
 the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's; what stays the
 host's is AceConsole registration, the four confirm dialogs, `Sl:Version`, and the full reset.
 
-`/bl`, aliased `/bankledger`. The table is generated from `NS.COMMANDS`, so `/bl help`, the
-settings landing page and the README all read from one place.
+`/bl`, aliased `/bankledger`. The table below is generated from `NS.COMMANDS`, so `/bl help` and the
+settings landing page both read from one place.
 
 | Command | What it does |
 |---|---|
@@ -42,5 +42,5 @@ match, so it was left alone rather than folded into the rename.
 - **A `CliResetAll` wrapper**, so the two carve-outs with no Schema widget — the filter lists and the
   saved ledger view — are still reset. The library only knows about schema rows.
 
-Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help`, the settings landing
-page and the README all read from that one table.
+Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
+landing page both read from that one table.

@@ -402,7 +402,7 @@ function S:Register()
 end
 
 -- Slash command table. Dispatch lives in Slash.lua and the help index is generated from this, so
--- `/bl help`, the README's command table and the settings landing page can never drift
+-- `/bl help` and the settings landing page can never drift
 -- (slash-commands-§3).
 NS.COMMANDS = {
   { "show",     "Open the ledger window",  function() NS.Browser:Show() end },
