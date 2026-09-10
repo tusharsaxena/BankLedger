@@ -6,8 +6,6 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-849%2F849_passing-green)
 
-![Logo](https://media.forgecdn.net/attachments/1825/805/bankledger-logo-jpg.jpg)
-
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
 when. Gold is tracked the same way at the two banks that hold gold.
@@ -21,25 +19,19 @@ reads from it.
 
 **_History browser_**
 
-![History browser](https://media.forgecdn.net/attachments/1825/818/bankledger-screenshot-01-png.png)
+![History browser](https://media.forgecdn.net/attachments/1936/483/bankledger-screenshot-01-png.png)
 
-![History browser](https://media.forgecdn.net/attachments/1825/820/bankledger-screenshot-02-png.png)
+![History browser](https://media.forgecdn.net/attachments/1936/484/bankledger-screenshot-02-png.png)
 
-**_Insights_**
+**_Insights panel_**
 
-![Insights](https://media.forgecdn.net/attachments/1825/821/bankledger-screenshot-03-png.png)
+![Insights panel](https://media.forgecdn.net/attachments/1936/485/bankledger-screenshot-03-png.png)
 
-![Insights](https://media.forgecdn.net/attachments/1825/822/bankledger-screenshot-04-png.png)
+![Insights panel](https://media.forgecdn.net/attachments/1936/486/bankledger-screenshot-04-png.png)
 
 **_Current Banking Session (opens automatically at a bank)_**
 
-![Current Banking Session](https://media.forgecdn.net/attachments/1825/823/bankledger-screenshot-05-png.png)
-
-**_Settings Panel_**
-
-![Settings Panel](https://media.forgecdn.net/attachments/1825/824/bankledger-screenshot-06-png.png)
-
-![Settings Panel](https://media.forgecdn.net/attachments/1825/825/bankledger-screenshot-07-png.png)
+![Current Banking Session](https://media.forgecdn.net/attachments/1936/487/bankledger-screenshot-05-png.png)
 
 ## Usage
 
