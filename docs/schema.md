@@ -37,7 +37,7 @@ members, and the removal deliberately sits outside the rule above.
 
 The rule protects rows that already exist: renaming a member orphans stored data that still carries
 the old string. Neither of these could ever have produced one. The addon is Retail-only at Interface
-120007, where Midnight has already removed both — void storage exposes no container or events at
+120100, where Midnight has already removed both — void storage exposes no container or events at
 all, and `REAGENT_BANK`'s container group resolved empty, so `StoresFor` dropped it from every scan
 before a movement could be attributed to it. There is no installed base either: both were removed
 before v1.0.0, the first published release, so no shipped build ever wrote a row against them. Zero

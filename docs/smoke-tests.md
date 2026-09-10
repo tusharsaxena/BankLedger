@@ -9,7 +9,7 @@ tolerance.
 ## S-1 · Load
 
 1. Enable the addon and log in.
-2. `/bl version` prints one cyan-tagged line, `[BL] v1.0.0`.
+2. `/bl version` prints one cyan-tagged line, `[BL] v1.1.0`.
 3. No Lua errors on login (turn error display on first: `/console scriptErrors 1`).
 4. The minimap button is present and its tooltip shows the movement count.
 
@@ -450,7 +450,7 @@ for.
 
 1. Quit the game. Rename `Interface/AddOns/BankLedger/libs/LibKa0s` to `libs/LibKa0s.off`.
 2. Log in. **Zero Lua errors.** Not one — turn error display on (`/console scriptErrors 1`) first.
-3. `/bl version` prints two lines: the notice, then `[BL] v1.0.0`. The notice reads, exactly:
+3. `/bl version` prints two lines: the notice, then `[BL] v1.1.0`. The notice reads, exactly:
 
    > `[BL] The LibKa0s library is missing from this installation of Ka0s Bank Ledger (expected in
    > libs/LibKa0s); running on reduced built-in fallbacks.`

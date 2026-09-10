@@ -10,7 +10,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | | |
 |---|---|
 | Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
-| Scope | Retail (Mainline) only — a single `## Interface:` line, currently `120007` |
+| Scope | Retail (Mainline) only — a single `## Interface:` line, currently `120100` |
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |

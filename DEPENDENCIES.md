@@ -14,7 +14,7 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
 
 **World of Warcraft (Retail). Nothing else.**
 
-- The TOC targets `## Interface: 120007` (`BankLedger.toc:1`) — Midnight 12.0.7. Retail only; there
+- The TOC targets `## Interface: 120100` (`BankLedger.toc:1`) — Midnight 12.1.0. Retail only; there
   is no Classic build.
 - There is **no** `## Dependencies` line. The `## OptionalDeps` line (`BankLedger.toc:8`) names
   Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1 and LibDBIcon-1.0, and

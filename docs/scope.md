@@ -7,7 +7,7 @@ What Bank Ledger is for, and — the load-bearing half — what it deliberately 
 | | |
 |---|---|
 | Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
-| Client | Retail (Mainline) only — a single `## Interface:` line, currently `120007` |
+| Client | Retail (Mainline) only — a single `## Interface:` line, currently `120100` |
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag |
