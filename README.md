@@ -1,6 +1,6 @@
 # Ka0s Bank Ledger
 
-![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.0-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
@@ -128,4 +128,5 @@ lives.
 
 | Version | Date | Highlights |
 | ------- | ---- | ---------- |
+| 1.1.0 | 2026-09-10 | The two id-lists are now one **Filters** tab, and the settings pages gained **Master controls**<br>Fixed the guild bank arming on data arriving rather than on its frame showing, which could miss the first deposit of a session<br>A disabled addon can now be re-enabled without a reload, and `/bl test` no longer confirms a toggle that never happened<br>**Reset Everything** now clears the capture gate's stored settings instead of leaving dead ones behind<br>Updated for game patch 12.1.0<br>_Verified against lint, tests and complexity. This addon ships no `tests/perf.lua`, so the perf suite was skipped rather than measured — the release gate covered three suites, not four._ |
 | 1.0.0 | 2026-07-28 | First release: a complete passbook of item and gold movements across the character, warband and guild banks<br>History tab with search, per-column filters, grouping, sorting and a saved view<br>Insights tab with fourteen headline figures and seventeen charts<br>A live Current Banking Session window<br>CSV export for either tab, with a Wowhead link per row |
