@@ -26,8 +26,9 @@ There is no `04_EXECUTION_PLAN.md` in this bundle because nothing was implemente
 
 ## What was declined
 
-Both are **not now**, both for the same reason, and neither was filed. They go back to the owner as
-proposed issues (03_DECISIONS).
+Both are **not now**, both for the same reason, and neither was filed by this run. They went back to
+the owner as proposed issues (03_DECISIONS), and after approval were filed as
+tusharsaxena/BankLedger#18 (#29) and tusharsaxena/BankLedger#19 (#30).
 
 - **#29:** the event half on an embed. The local AceEvent Embed (`tests/wow_mock.lua:712-719`)
   replaces the kit's wholesale, so its no-op event lines (:714-716) are not redundant with kit 16.
