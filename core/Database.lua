@@ -585,6 +585,11 @@ function Database:Delete(pred)
   end
   NS.db.global.ledger = kept
   fireLedgerChanged()
+  -- A user-initiated delete of recorded data (the History row menu), so debug-logging-§8 wants it
+  -- traced: one line per act, carrying the count, the same [Data] tag DeleteAt and Purge use.
+  if NS.State.debug and NS.Debug then
+    NS.Debug("Data", "delete removed %s entries", tostring(removed))
+  end
   return removed
 end
 

@@ -105,7 +105,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (122)
+### test_ledger.lua (123)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -169,6 +169,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:Diagnose lists the BagIndex members the client exposes
 - Ledger:Diagnose probes containers and reports only the ones with slots
 - Ledger:Diagnose never raises when no container is reachable
+- reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
 - Ledger:Enable survives a retired event and still binds the rest
 - Ledger:Enable binds the capture events even when several are retired
@@ -230,7 +231,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
 
-### test_database.lua (46)
+### test_database.lua (48)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -256,6 +257,8 @@ badge and any count quoted in the docs must agree with it.
 - Database:DeleteAt rejects an out-of-range index
 - Database:Delete removes every entry matching the predicate
 - Database:Purge empties the ledger and reports the count
+- Database:Delete traces one [Data] line naming how many entries it removed
+- Database:Delete writes no line while logging is off
 - Database:PruneOld drops entries past the retention window
 - Database:PruneOld keeps everything when retention is Always (0)
 - Database:PruneOld broadcasts LedgerChanged only when a row actually went
@@ -390,7 +393,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 
-### test_browser.lua (41)
+### test_browser.lua (43)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -433,6 +436,8 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
+- the minimap table always exists: the defaults ship it and AceDB materializes it
+- Browser:SetupMinimap never replaces the table that holds the minimap.hide row
 
 ### test_sessionwindow.lua (32)
 
@@ -660,7 +665,7 @@ badge and any count quoted in the docs must agree with it.
 - Schema: no row uses the pre-library field spellings
 - Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
 
-### test_slash.lua (33)
+### test_slash.lua (40)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -685,6 +690,13 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliReset echoes the colored key = value shape, like get and set
 - Slash:CliReset echoes the stored value, not the requested one
 - Slash:CliResetAll restores the schema AND clears the filter lists
+- Slash: /bl resetall logs ONE [Set] reset all line counting the rows it CHANGED, and no per-row [Set]
+- Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
+- Slash: a reset nested inside another bracket logs ONE line, for the outermost act
+- Slash: a bracket reporting profileReset logs nothing, even around a nested reset
+- Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards
+- Slash: a row that raises mid-resetall logs ONE line marked as stopped, re-raises, and unmutes the seam
+- Slash: a resetall row raising nil logs the line without the marker (the library hands err = nil)
 - Slash: a bare /bl prints the help index
 - Slash: the help index has one row per COMMANDS entry, plus the header
 - Slash: the help header names both the short verb and its alias
@@ -696,7 +708,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (36)
+### test_panel.lua (40)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -732,6 +744,10 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
 - Slash: the restored store does not ALIAS the defaults table
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
+- Slash: ResetEverything traces the recorded entries it wiped, once
+- Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
+- Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
+- Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
 - Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
 - Slash: while the split stands, the button and the verb do NOT share a label
 
@@ -829,7 +845,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (60)
+### test_libka0s.lua (63)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -890,6 +906,9 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
+- LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one per row
+- LibKa0s-Slash degraded: a raising resetall logs ONE line marked as stopped, re-raises, and unmutes
+- LibKa0s-Slash degraded: a resetall raising nil is still marked, since the fallback owns its pcall
 - LibKa0s-Slash: the seam loads after the schema it reads
 
 ### test_vendor_sync.lua (3)
@@ -916,12 +935,14 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
-### test_lifecycle.lua (4)
+### test_lifecycle.lua (6)
 
 - addon:OnDisable releases the _enabled latch on every module OnEnable arms
 - a disable then enable cycle leaves all four modules live again
 - addon:OnDisable leaves _guildHooked alone — the hook it records is still installed
 - a disable then enable cycle does not subscribe the session window twice
+- addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
+- NS.addon carries the kit's Printf and records its own events
 
 ### test_surface_parity.lua (4)
 
@@ -957,31 +978,31 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 122 |
-| test_database.lua | 46 |
+| test_ledger.lua | 123 |
+| test_database.lua | 48 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 53 |
-| test_browser.lua | 41 |
+| test_browser.lua | 43 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
-| test_slash.lua | 33 |
-| test_panel.lua | 36 |
+| test_slash.lua | 40 |
+| test_panel.lua | 40 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 60 |
+| test_libka0s.lua | 63 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| test_lifecycle.lua | 4 |
+| test_lifecycle.lua | 6 |
 | test_surface_parity.lua | 4 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **850** |
+| **Total** | **871** |

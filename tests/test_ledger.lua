@@ -636,7 +636,23 @@ end)
 -- event name, so a bare registration loop aborts and leaves every later event unbound. The addon
 -- then hears one event and goes deaf, with no error unless script errors are switched on.
 
+-- Unregisters the LEDGER'S events first, and only those. The kit (revision 17) raises for a name in
+-- __badEvents where the client raises: from AceEvent's OnUsed, which runs only for an event's FIRST
+-- registrant. The runner's own NS.Ledger:Enable() has already registered every capture event on
+-- NS.addon, so a re-registration would not raise, and the retired-event cases would pass a build
+-- that never refused anything. Clearing the Ledger's events makes each registration below a first
+-- one again.
+--
+-- Not UnregisterAllEvents: that also strips the addon's own PLAYER_ENTERING_WORLD and PLAYER_REGEN_*
+-- registrations from OnEnable, which nothing here re-registers, so every later case would run
+-- against a deaf addon object. Both of the Ledger's lists are walked, because a refused
+-- registration still leaves its callback behind (CallbackHandler stores it before OnUsed raises),
+-- and a leftover would turn the next refusal of that name into a silent re-registration.
 local function reEnable(badEvents)
+  local L = NS.Ledger
+  for _, list in ipairs({ L.registeredEvents, L.unavailableEvents }) do
+    for _, event in ipairs(list) do NS.addon:UnregisterEvent(event) end
+  end
   mocks.__badEvents = badEvents or {}
   NS.Ledger._enabled = nil
   NS.Ledger:Enable()
@@ -647,6 +663,51 @@ local function listHas(list, value)
   for _, v in ipairs(list) do if v == value then return true end end
   return false
 end
+
+-- The helper's own guard rail. reEnable used to clear EVERY event on NS.addon, which took the
+-- addon's own OnEnable registrations with it and left each later case running against an addon
+-- that no longer heard a zone change or a combat transition. The runner's lifecycle kick enables the
+-- Ledger alone, so those registrations exist only once a case has run addon:OnEnable: the leak was
+-- latent in today's suite order, and bit whichever case came after one. So the case arms them
+-- itself, through the real OnEnable with the two window arms held off (the Ledger's own guard makes
+-- its arm a no-op), and hands the build back as it found it. Asserted both ways: the registrations
+-- are still recorded, and the kit's dispatch still reaches the method they name.
+test("reEnable leaves the addon's own event registrations standing", function()
+  local own = {
+    PLAYER_ENTERING_WORLD = "OnEnterWorld",
+    PLAYER_REGEN_DISABLED = "OnCombatChanged",
+    PLAYER_REGEN_ENABLED  = "OnCombatChanged",
+  }
+  local before = {}
+  for event in pairs(own) do before[event] = NS.addon.__events[event] end
+  local browserEnable, sessionEnable = NS.Browser.Enable, NS.SessionWindow.Enable
+  NS.Browser.Enable, NS.SessionWindow.Enable = nil, nil
+  local armed, armErr = pcall(NS.addon.OnEnable, NS.addon)
+  NS.Browser.Enable, NS.SessionWindow.Enable = browserEnable, sessionEnable
+  assertTrue(armed, armErr)
+  for event, method in pairs(own) do
+    assertEqual(NS.addon.__events[event], method, event .. " was not registered before reEnable")
+  end
+
+  reEnable({ PLAYERBANKSLOTS_CHANGED = true })
+  reEnable(nil)
+
+  local survived = {}
+  for event in pairs(own) do survived[event] = NS.addon.__events[event] end
+  local original, calls = NS.addon.OnCombatChanged, 0
+  NS.addon.OnCombatChanged = function() calls = calls + 1 end
+  local ok, err = pcall(mocks.__fireEvent, "PLAYER_REGEN_DISABLED")
+  NS.addon.OnCombatChanged = original
+  for event in pairs(own) do
+    if before[event] == nil then NS.addon:UnregisterEvent(event) end
+  end
+
+  assertTrue(ok, err)
+  for event, method in pairs(own) do
+    assertEqual(survived[event], method, event .. " did not survive reEnable")
+  end
+  assertEqual(calls, 1, "PLAYER_REGEN_DISABLED no longer reaches the addon after reEnable")
+end)
 
 test("Ledger:Enable registers every event on a build that has them all", function()
   reEnable(nil)

@@ -294,18 +294,20 @@ end
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
 -- console WINDOW's visibility IS the `state.debugConsole` row the Master controls composer emits.
--- NOTE: three storage carve-outs are mutated by their owning module rather than through Schema:Set.
--- None is a schema row, so none has a widget, a default or an onChange; check this list before
--- writing a key under db.global directly. None has an architecture-§5 `Documented deviations` row
--- yet (docs/ARCHITECTURE.md ▸ Settings Schema). All three are:
---   1. `settings.window` — the ledger window's geometry. Written by B:SaveGeometry
---      (modules/Browser.lua:147), cleared by B:ResetWindow (:185).
---   2. `settings.sessionWindow` — the session window's geometry. Written by SW:SaveGeometry
---      (modules/SessionWindow.lua:252), cleared by SW:ResetWindow (:289).
---   3. `savedView` — the account-wide column/sort baseline. Written by B:SaveView
+-- NOTE: four storage carve-outs are architecture-§5 named non-setting state, written by their owner
+-- rather than through Schema:Set. None is a schema row, so none has a widget, a default or an
+-- onChange. None has a `Documented deviations` row either: docs/ARCHITECTURE.md ▸ Settings Schema
+-- names each one's owner and every writer, and that naming is the compliance. Check that list
+-- before writing a key under db.global directly, and add any new writer to it. The four are:
+--   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
+--      (modules/Browser.lua:147) on four occasions: drag-stop, resize-grip mouse-up (:1099), hide
+--      and logout. Emptied by B:ResetWindow (:185).
+--   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written on the
+--      same four by SW:SaveGeometry (modules/SessionWindow.lua:252, grip :533); emptied by SW:ResetWindow (:289).
+--   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
 --      (modules/Browser.lua:748), cleared by B:ResetView (:757).
--- `minimap.minimapPos` is the same kind of state, but LibDBIcon writes it on a button drag, into the
--- table B:SetupMinimap hands it; it sits beside the `minimap.hide` row and no row addresses it.
+--   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table B:SetupMinimap
+--      hands it. That table also holds the `minimap.hide` row, so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
 -- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
 -- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.
@@ -348,12 +350,86 @@ local function deepcopy(v)
   return out
 end
 
+-- ── The bulk bracket (debug-logging-§10) ──────────────────────────────────────────────────────
+--
+-- A bulk reset through this seam is logged as ONE `[Set] <act> <scope>: N rows` line, never one
+-- `[Set]` per row (standard v2.44.0). Validation and each row's onChange still run per row; only the
+-- per-row LOG line below is muted while a bracket is open. The pair is handed to the LibKa0s-Slash
+-- descriptor (settings/Slash.lua), whose CliResetAll calls it around its walk at minor 8, and the
+-- degraded fallback CliResetAll calls it around its own walk.
+--
+-- N is the rows the act actually CHANGED, never the library's `count`. The library counts every row
+-- its applyDefault returned from, a row already at its default included, and §10 does not count
+-- that row. So while a bracket is open the seam tallies each write whose stored value differs from
+-- the one it replaces (S.SameValue), and BulkEnd logs that tally.
+--
+-- A DEPTH COUNTER, not a boolean, and ONE line per outermost act. A bracket opened inside another,
+-- say a host act wrapping the library's CliResetAll, adds its writes to the same tally and logs
+-- nothing when it closes. The line is emitted only as the depth returns to 0, under the OUTERMOST
+-- act and scope. If any level reported `info.profileReset`, nothing is emitted: a whole-profile reset
+-- is logged by the profile-event handler. This addon has no profile, so no walk here sets it, but the
+-- contract says stay silent then and this honors it. The library runs bulkEnd whenever bulkBegin
+-- ran, raising row or not, so the depth always unwinds. `P:Batch` is NOT a bracket: it coalesces
+-- repaints and logs nothing.
+--
+-- A walk that raised part-way still logs its one line, and the line says so: any level handed a
+-- non-nil `err` appends ` (stopped by an error)`, so the count is not read as a completed reset. The
+-- library hands `err = nil` for a raise of nil or false (documented upstream), and that raise gets no
+-- marker.
+local bulkDepth, bulkChanged, bulkProfileReset, bulkFailed = 0, 0, false, false
+
+--- Deep value equality, for the "did this write change anything" test. A `table` row
+--- (`settings.excludedStores`) is a set, so two distinct tables with the same keys are the same value.
+function S.SameValue(a, b)
+  if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+  for k, v in pairs(a) do
+    if not S.SameValue(v, b[k]) then return false end
+  end
+  for k in pairs(b) do
+    if a[k] == nil then return false end
+  end
+  return true
+end
+
+function S.BulkBegin()
+  if bulkDepth == 0 then bulkChanged, bulkProfileReset, bulkFailed = 0, false, false end
+  bulkDepth = bulkDepth + 1
+end
+
+--- The library's `count` (third argument) is deliberately unused: N is this seam's own tally. The
+--- `err` (fourth) only marks the line: a raising walk still logs the rows it changed before it
+--- stopped, with ` (stopped by an error)` appended. Re-raising `err` is the caller's job.
+function S.BulkEnd(act, scope, ...)
+  if bulkDepth == 0 then return end   -- unpaired: nothing was muted, nothing to report
+  local _, err, info = ...
+  if info and info.profileReset then bulkProfileReset = true end
+  if err ~= nil then bulkFailed = true end
+  bulkDepth = bulkDepth - 1
+  if bulkDepth > 0 then return end
+  local changed, silent, failed = bulkChanged, bulkProfileReset, bulkFailed
+  bulkChanged, bulkProfileReset, bulkFailed = 0, false, false
+  if silent then return end
+  if NS.State and NS.State.debug and NS.Debug then
+    NS.Debug("Set", "%s %s: %d rows%s", tostring(act), tostring(scope), changed,
+      failed and " (stopped by an error)" or "")
+  end
+end
+
+-- The value a write is about to replace: a session-only row answers through its own get().
+local function storedValue(row, path)
+  if row.sessionOnly then return row.get and row.get() end
+  return S:ReadPath(NS.db.global, path)
+end
+
 -- The single write seam. Panel widgets and the slash `set` both route through here, so validation,
 -- the debug trace and the onChange reaction can never be skipped by one caller.
 function S:Set(path, value)
   local row = S:FindRow(path)
   if not row then return false, "unknown path: " .. tostring(path) end
   if row.validate and not row.validate(value) then return false, "invalid value" end
+  if bulkDepth > 0 and not S.SameValue(storedValue(row, path), value) then
+    bulkChanged = bulkChanged + 1
+  end
   if row.sessionOnly then
     -- Session-only rows never touch db.global; the row's own set() applies the value.
     if row.set then row.set(value) end
@@ -361,8 +437,9 @@ function S:Set(path, value)
     S:WritePath(NS.db.global, path, deepcopy(value))
   end
   -- Every settings mutation is logged ONCE, here at the write seam (debug-logging-§10). Downstream
-  -- reactors must not re-echo the same value.
-  if NS.State and NS.State.debug and NS.Debug then
+  -- reactors must not re-echo the same value. Inside a bulk bracket the act logs its one summary
+  -- line from S.BulkEnd instead.
+  if bulkDepth == 0 and NS.State and NS.State.debug and NS.Debug then
     NS.Debug("Set", "%s = %s", tostring(path), tostring(value))
   end
   if row.onChange then row.onChange(value) end

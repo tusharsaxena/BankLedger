@@ -180,8 +180,8 @@ function B:OnLogout()
   self:SaveGeometry()
 end
 
--- Reset the persisted geometry and recenter the live frame. Used only by the destructive
--- "Reset all", since position is runtime state the ordinary settings resets leave alone.
+-- Reset the persisted geometry and recenter the live frame. Three routes reach it: "Reset position"
+-- and the General page's Defaults (both via NS.Util.ResetWindowPositions), and Sl:ResetEverything.
 function B:ResetWindow()
   if NS.db and NS.db.global and NS.db.global.settings then
     NS.db.global.settings.window = {}
@@ -1199,9 +1199,10 @@ function B:SetupMinimap()
     end,
   })
 
-  local mm = NS.db.global.minimap
-  if not mm then mm = { hide = false }; NS.db.global.minimap = mm end
-  DBIcon:Register(LDB_NAME, minimapObject, mm)
+  -- No seed. defaults/Global.lua ships `minimap = { hide = false }` and AceDB materializes it, so the
+  -- table is always there, and replacing it whole would be a write over the `minimap.hide` row
+  -- (architecture-§5, "a row wins"). LibDBIcon writes `minimapPos` into it on a button drag.
+  DBIcon:Register(LDB_NAME, minimapObject, NS.db.global.minimap)
 end
 
 function B:SetMinimapHidden(hide)

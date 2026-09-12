@@ -28,13 +28,17 @@
 --                         and raises nothing unobservable.
 --   2. __shown = true   — the base starts frames hidden; real frames start shown, and nine IsShown
 --                         assertions in tests/test_sessionwindow.lua read the difference.
---   3. __fireTimers     — the base's returns nothing and its CancelTimer is a no-op. The capture
---                         engine's debounce is asserted as "three events, ONE reconcile pass" and
---                         "the pending timer was canceled", which needs both a count and honored
---                         cancellation.
---   4. AceAddon         — RegisterEvent must RAISE for a name in __badEvents. Modern retail rejects
---                         a retired event name outright, and that failure mode once unregistered
---                         this whole addon; a mock that accepted everything would hide it.
+--   3. C_Timer.After    — a no-op, set on the kit's C_Timer table rather than replacing it, so the
+--                         retention-cleanup deferral never runs inside the suites. The timer QUEUE
+--                         is the kit's: since revision 17 `__fireTimers` skips a canceled entry and
+--                         answers how many ran, which is all the capture debounce's "three events,
+--                         ONE reconcile pass" needs. This file's own queue is gone (#19).
+--   4. (retired)        — AceAddon, AceEvent, AceTimer and AceConsole are all TAKEN from the kit
+--                         (#18, #19). The kit's NewAddon embeds exactly the three libraries
+--                         production lists, and its event half raises for a name in __badEvents on
+--                         the event's first registrant, where retail raises. That is the failure
+--                         mode that once unregistered this whole addon, so tests/test_ledger.lua's
+--                         reEnable clears the addon's events before each re-registration.
 --   5. AceDB            — the base models profiles because its other consumers switch them. This is
 --                         an account-wide addon created with defaultProfile = true, and its own
 --                         suite asserts against a fixed "Default", so the simpler stub is kept.
@@ -568,27 +572,15 @@ return function()
   }
   M.StaticPopupDialogs = {}
 
-  -- Event names this fake client rejects, mirroring a build that has retired them.
-  M.__badEvents = {}
-
-  -- Override 3. Pending AceTimer callbacks. __fireTimers runs every timer that is still live and
-  -- returns how many fired, so a test can prove that N rapid events produce exactly one reconcile
-  -- pass. C_Timer.After is a no-op here: the retention-cleanup deferral must NOT run inside the
+  -- The timer queue is the KIT'S (revision 17), for #19. `M.__timers` and `M.__fireTimers` are the
+  -- kit's own: the queue skips a canceled entry and answers how many ran, which is what "three
+  -- events, ONE reconcile pass" and "the pending timer was canceled" assert. AceTimer pushes onto
+  -- that queue directly, not through C_Timer.After, so the no-op below cannot silence it.
+  --
+  -- C_Timer.After alone is a no-op, layered onto the kit's C_Timer rather than replacing the table:
+  -- the retention-cleanup deferral (core/BankLedger.lua's OnEnterWorld) must NOT run inside the
   -- suites, which seed history directly.
-  M.__timers = {}
-  M.__fireTimers = function()
-    local due = M.__timers
-    M.__timers = {}
-    local fired = 0
-    for _, handle in ipairs(due) do
-      if not handle.canceled then
-        fired = fired + 1
-        handle.callback()
-      end
-    end
-    return fired
-  end
-  M.C_Timer = { After = function() end }
+  M.C_Timer.After = function() end
 
   -- ── the Ace fakes ────────────────────────────────────────────────────────────────────────────
   -- Registered through M.__libs, the seam the base exposes for exactly this, so the base's LibStub
@@ -647,76 +639,21 @@ return function()
     return w
   end
 
-  -- Message bus modeled on CallbackHandler: callbacks keyed by (message, target). Registering the
-  -- same message twice on ONE target overwrites (only the last survives); SendMessage fires to every
-  -- distinct target. Mirroring the real semantics is what lets a test catch same-target clobbering
-  -- (architecture-§4) — a bare no-op mock hides that whole bug class.
-  local msgRegistry = {}
-  M.__msgRegistry = msgRegistry
-  local function embedBus(obj)
-    obj.RegisterMessage = function(self, event, fn)
-      msgRegistry[event] = msgRegistry[event] or {}
-      msgRegistry[event][self] = fn
-    end
-    obj.UnregisterMessage = function(self, event)
-      if msgRegistry[event] then msgRegistry[event][self] = nil end
-    end
-    -- CallbackHandler's own semantics: this drops THIS target's callbacks and leaves every other
-    -- target's registration for the same message untouched. A mock that swept the whole registry
-    -- would make a teardown look correct while it silenced the modules that were still enabled.
-    obj.UnregisterAllMessages = function(self)
-      for _, targets in pairs(msgRegistry) do targets[self] = nil end
-    end
-    obj.SendMessage = function(_, event, ...)
-      local t = msgRegistry[event]
-      if not t then return end
-      for _, fn in pairs(t) do fn(event, ...) end
-    end
-    return obj
-  end
+  -- AceEvent-3.0 is TAKEN from the kit (revision 17), for #18. Its Embed stamps the recorded,
+  -- validated event half and the CallbackHandler message half: callbacks keyed by (message, target),
+  -- a second registration on one target overwriting the first, `UnregisterAllMessages` dropping only
+  -- its own target's callbacks, and `M.__msgRegistry` publishing the one registry. That is every rule
+  -- this file's own bus hand-rolled (architecture-§4), so the copy is gone and there is ONE message
+  -- registry, the kit's, shared by the addon object and every NS.NewBusTarget().
 
-  -- Override 4.
-  libs["AceAddon-3.0"] = {
-    NewAddon = function(_, target)
-      target = target or {}
-      local noop = function() end
-      -- Modern retail RAISES on an unknown event name instead of ignoring it, which is what turned
-      -- one retired event into a whole unregistered addon. Tests put names in M.__badEvents to
-      -- reproduce that; a mock that silently accepted everything would hide the entire failure mode.
-      target.RegisterEvent = function(_, event)
-        if M.__badEvents[event] then
-          error("Attempt to register unknown event: " .. tostring(event), 2)
-        end
-      end
-      target.UnregisterEvent = noop
-      target.UnregisterAllEvents = noop
-      target.RegisterChatCommand = noop
-      -- A fireable timer queue. A no-op stub would have hidden the debounce entirely; tests fire
-      -- M.__fireTimers() to advance time and assert that several events coalesce into ONE pass.
-      target.ScheduleTimer = function(_, callback, delay)
-        local handle = { callback = callback, delay = delay, canceled = false }
-        M.__timers[#M.__timers + 1] = handle
-        return handle
-      end
-      target.CancelTimer = function(_, handle)
-        if type(handle) == "table" then handle.canceled = true end
-      end
-      -- AceConsole's :Print mixin, reproduced faithfully: embedding it CLOBBERS a same-named custom
-      -- NS.Print, and renders "|cff33ff99<msg>|r:" (green, trailing colon, no cyan tag). The addon
-      -- reclaims its own printer right after NewAddon; without this stamp the test suite would never
-      -- exercise that reclaim (architecture-§2, anti-pattern #36).
-      target.Print = function(self) return "|cff33ff99" .. tostring(self) .. "|r:" end
-      return embedBus(target)
-    end,
-  }
-  libs["AceEvent-3.0"] = {
-    Embed = function(_, obj)
-      obj.RegisterEvent = obj.RegisterEvent or function() end
-      obj.UnregisterEvent = obj.UnregisterEvent or function() end
-      obj.UnregisterAllEvents = obj.UnregisterAllEvents or function() end
-      return embedBus(obj)
-    end,
-  }
+  -- AceAddon-3.0 is TAKEN from the kit (revision 17), for #19. core/BankLedger.lua calls
+  -- `NewAddon(NS, "BankLedger", "AceEvent-3.0", "AceTimer-3.0", "AceConsole-3.0")`, and the kit's
+  -- NewAddon honors that list: it embeds exactly those three, through M.LibStub, so the addon object
+  -- gets the kit's recorded, validated event half (M.__badEvents raising on an event's first
+  -- registrant, where retail raises), AceTimer with honored cancellation, and AceConsole's Print AND
+  -- Printf -- which clobber a same-named NS.Print exactly as the real embed does, so the reclaim in
+  -- core/BankLedger.lua is still exercised (architecture-§2, anti-pattern #36). It also names the
+  -- object and registers it for GetAddon. Nothing of this file's own is layered on the addon object.
 
   return M
 end

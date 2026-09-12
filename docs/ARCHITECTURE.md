@@ -48,6 +48,30 @@ derives from the TOC. File-by-file table, load-order notes and the locale seam i
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
+**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). `NS.Schema:Set` logs one
+`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, which
+`settings/Slash.lua` hands to the Slash descriptor as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
+Inside the bracket the seam mutes that line, and it counts each write whose stored value actually
+changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
+per row.
+- `/bl resetall` and both Defaults controls (`P:RestoreDefaults`) reach the library's `CliResetAll`,
+  which logs exactly `[Set] reset all: N rows`. N is the rows whose value changed, so a press with
+  every row already at its default logs `0 rows`. The library's own `count` is not used, because it
+  includes rows already at their default.
+- A walk that raises part-way still logs its one line, counting the rows changed before the raise,
+  with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
+  still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
+  raise of nil or false (documented upstream), so that raise gets no marker.
+- The degraded fallback `CliResetAll` brackets its own walk the same way. It owns its pcall, so it
+  marks every caught error, a nil or false raise included.
+- Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
+  the line. `P:Batch` coalesces repaints and is not a bracket.
+- The Options descriptor carries no pair, because nothing here calls `O.RestoreDefaults` or
+  `O.RestoreAllDefaults`.
+- `Sl:ResetEverything` is a wholesale wipe, not a walk through the seam. It logs one
+  `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
+  already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
+
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (6) ·
 **Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
@@ -82,17 +106,61 @@ to and removes them from.
   (`core/Database.lua`), the only load-time pass, never touches them. `Sl:ResetEverything` empties the
   whole store, which is not a registry write.
 
-The movement log (`db.global.ledger`) is recorded data rather than a collection the player builds,
-and `core/Database.lua` owns it.
+**The movement log is recorded data**, `architecture-§5` named non-setting state. The addon records
+every entry, and the player authors none, so it is not a registry, and naming it is the
+compliance. It has no `Documented deviations` row.
+- **Storage key.** `db.global.ledger`, an array of entries, shipped empty in `defaults/Global.lua`.
+- **Owner.** `NS.Database` (`core/Database.lua`). Every runtime write is one of its five functions,
+  and nothing outside it writes the key:
+  - `Database:Add` appends each movement the capture engine derives (`modules/Ledger.lua`) and
+    fires `EntryAdded`.
+  - `Database:Delete` removes the entries a predicate matches, reached from the History table's
+    right-click *Delete* (`modules/LedgerTable.lua`).
+  - `Database:DeleteAt` removes one entry by index. It has no production caller; the tests use it
+    as the index-delete seam.
+  - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
+    button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
+  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
+    from that row's `onChange` and once per session, five seconds after `PLAYER_ENTERING_WORLD`
+    (`addon:OnEnterWorld`).
+- **Why none of those is a player choice.** Deleting entries, purging the log and pruning it by the
+  retention row are the owner's operations on recorded data. The rule allows all three.
+- **Load pass.** `NS:RunMigrations` may rewrite entries in place, as its v1 → v2 step does when it
+  strips `vendorPrice`, and is not a writer to name. `Sl:ResetEverything` empties `db.global`
+  wholesale, ledger included, which is not a writer either. Test mode reads `NS.State.testRecords`
+  and never writes the log.
 
-Three other pieces of persisted state are **storage carve-outs** with no schema row: the two windows'
-geometry and the saved ledger view. A fourth sits beside the `minimap.hide` row: LibDBIcon writes
-`minimapPos` into `db.global.minimap` when the player drags the minimap button. No row addresses
-any of the four, and none has a `Documented deviations` row yet, which the `architecture-§5` MUST NOT
-asks of persistent state written outside the helper. Whether each needs one, and whether a library's
-own write counts as this addon's, is an open owner decision: tusharsaxena/BankLedger#16. Row table
-and panel structure are in **[settings-panel.md](settings-panel.md)**; the stored shape and the
-carve-out rules are in **[schema.md](schema.md)**.
+**Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
+and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That
+naming is what makes them compliant, so none has a `Documented deviations` row. A reset below only
+empties the state or puts back the shipped default, and *Save* captures what is on screen, so
+neither chooses a value. The Master controls tab's *Reset position* is one of those resets.
+- **Main window geometry.** Storage key `db.global.settings.window` (`point`, `x`, `y`, `w`, `h`).
+  Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
+  drag-stop, on the resize grip's mouse-up, on every `OnHide`, and at `PLAYER_LOGOUT` through
+  `B:OnLogout`. `B:ResetWindow` empties it. Three routes reach that reset: `NS.Util.ResetWindowPositions`
+  (the Master controls tab's *Reset position*, and the General page's *Defaults* button through
+  `P:RestoreDefaults`), and `Sl:ResetEverything` once its wholesale reset is done.
+- **Session window geometry.** Storage key `db.global.settings.sessionWindow`, same shape. Owner
+  `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
+  occasions (drag-stop, grip mouse-up, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and
+  `SW:ResetWindow`, which empties it and is reached by the same three routes as `B:ResetWindow`.
+- **Saved ledger view.** Storage key `db.global.savedView`, absent until the player saves. Owner
+  `NS.Browser`. Writers: `B:SaveView`, from the filter bar's **Save** button, which stores the view on
+  screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
+  calls `B:ResetView`, and so does `Sl:CliResetAll`, which is `/bl resetall` and the *Defaults*
+  button.
+- **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner `NS.Browser`, whose
+  `B:SetupMinimap` hands `db.global.minimap` to LibDBIcon. Writer: LibDBIcon itself, when the player
+  drags the button (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field.
+  The same table holds the `minimap.hide` row, so the addon never replaces the table whole either.
+  AceDB supplies it from `defaults/Global.lua`, and `B:SetupMinimap` has no seed of its own.
+
+`NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
+merges the defaults back, which replaces all four along with everything else; the standard does not
+count a wholesale replacement as a writer to name. Row table and panel structure are in
+**[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
+**[schema.md](schema.md)**.
 
 ## Message bus
 

@@ -90,8 +90,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.30.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.30.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.32.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.32.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -271,17 +271,27 @@ tests/
   `tests/test_*.lua` agree in both directions, so a typo is red rather than a green run with fewer
   cases.
 - `wow_mock.lua` layers Bank Ledger's own container, guild-bank, item and money model over
-  `_kit/mock_base.lua`, and **overrides ten of the base's behaviors** — the first ten decisions are numbered in the
-  file's header with the suite that depends on each — number 8, AceGUI, being a deliberate
-  *non*-override, taken from the base as it stands — and the eleventh, the AceGUI `SetTitle`
-  wrapper, is documented at its own site. Those overrides are deliberate divergence, not
-  drift: read the header before "simplifying" one away. The base contributes the piece that matters
-  most here, a real `LibStub` with `NewLibrary`, so the vendored LibKa0s majors register headlessly
-  exactly as they do in the client. Pieces of mock **fidelity** that are load-bearing:
-  - the AceAddon mock stamps AceConsole's colliding `:Print` mixin, so the tests exercise the real
-    printer-reclaim path;
-  - the message bus keys callbacks by `(message, target)` and fans `SendMessage` out to every
+  `_kit/mock_base.lua`, plus a short list of decisions of its own, numbered in the file's header
+  with the suite that depends on each: the frame stub, frames shown by default, the no-op
+  `C_Timer.After`, the defaulted-store AceDB, `__settingsPanels`, the plain-table
+  `DEFAULT_CHAT_FRAME`, and the nil `StaticPopup_Show` and `GameTooltip`. Two more are documented at
+  their own sites: the AceGUI `SetTitle` wrap and `LibStub.minors`. Those are deliberate
+  divergence, not drift: read the header before "simplifying" one away. **The Ace fakes are the
+  kit's**: AceAddon, AceEvent, AceTimer, AceConsole and AceGUI are taken from the base as they stand
+  (kit revision 17; #18, #19), and nothing is layered on the addon object. The base contributes the
+  piece that matters most here, a real `LibStub` with `NewLibrary`, so the vendored LibKa0s majors
+  register headlessly exactly as they do in the client. Pieces of mock **fidelity** that are
+  load-bearing:
+  - the kit's `NewAddon` embeds exactly the three libraries `core/BankLedger.lua` lists, so
+    AceConsole's `:Print` and `:Printf` clobber `NS.Print` as the real embed does and the tests
+    exercise the real printer-reclaim path;
+  - the kit's event half raises for a name in `mocks.__badEvents` on the event's **first**
+    registrant, where retail raises, so a case that re-registers must unregister first
+    (`test_ledger.lua`'s `reEnable`);
+  - the kit's message bus keys callbacks by `(message, target)` and fans `SendMessage` out to every
     target, so a test can catch two receivers clobbering each other on a shared target;
+  - the kit's timer queue skips a canceled entry and `mocks.__fireTimers()` answers how many ran, so
+    the capture debounce is asserted as "three events, one reconcile pass";
   - the `Settings.RegisterCanvasLayout(Sub)category` fakes keep each frame they are handed in
     `mocks.__settingsPanels`, so `test_panel.lua` can assert the `OnCommit` / `OnDefault` /
     `OnRefresh` contract on what the framework actually received (options-ui-§1).
