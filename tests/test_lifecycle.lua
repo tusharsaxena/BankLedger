@@ -94,3 +94,24 @@ test("addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow tar
   end
   NS.addon:OnEnable()
 end)
+
+-- The addon object is the kit's (#19). The harness used to build it with a NewAddon of its own that
+-- stamped only Print and no-op event methods, so the real embed's Printf never reached a suite and
+-- the addon's own registrations recorded nothing. Production defines no Printf and calls none, so
+-- the one the embed stamps is AceConsole's in the client too; what matters is that it is THERE, and
+-- that the Print reclaim beside it still holds.
+test("NS.addon carries the kit's Printf and records its own events", function()
+  local AceConsole = mocks.LibStub("AceConsole-3.0")
+  assertEqual(type(NS.addon.Printf), "function", "the AceConsole embed stamped no Printf")
+  assertTrue(NS.addon.Printf == AceConsole.Printf, "the addon's Printf is not the kit's AceConsole mixin")
+  assertTrue(NS.Print == NS.Util.print, "the Print reclaim no longer holds beside the embed")
+
+  NS.addon:OnEnable()
+  assertEqual(NS.addon.__events.PLAYER_ENTERING_WORLD, "OnEnterWorld")
+  assertEqual(NS.addon.__events.PLAYER_REGEN_DISABLED, "OnCombatChanged")
+  assertEqual(NS.addon.__events.PLAYER_REGEN_ENABLED, "OnCombatChanged")
+
+  assertEqual(tostring(NS.addon), "BankLedger", "the kit's NewAddon names the object")
+  assertTrue(mocks.LibStub("AceAddon-3.0"):GetAddon("BankLedger") == NS.addon,
+    "and registers it for GetAddon")
+end)

@@ -636,7 +636,13 @@ end)
 -- event name, so a bare registration loop aborts and leaves every later event unbound. The addon
 -- then hears one event and goes deaf, with no error unless script errors are switched on.
 
+-- Unregisters the addon's events FIRST. The kit (revision 17) raises for a name in __badEvents where
+-- the client raises: from AceEvent's OnUsed, which runs only for an event's FIRST registrant. The
+-- runner's own NS.Ledger:Enable() has already registered every capture event on NS.addon, so a
+-- re-registration would not raise, and the retired-event cases would pass a build that never
+-- refused anything. Clearing the addon's events makes each registration below a first one again.
 local function reEnable(badEvents)
+  NS.addon:UnregisterAllEvents()
   mocks.__badEvents = badEvents or {}
   NS.Ledger._enabled = nil
   NS.Ledger:Enable()
