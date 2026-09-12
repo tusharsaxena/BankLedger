@@ -235,8 +235,9 @@ tests/
                            --   and the ARGUMENT, never the appearance, and BOTH rungs of every
                            --   fallback ladder — a texture that does not load draws nothing and
                            --   raises nothing, so no other suite would notice
-  test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
-                           --   unchanged, so docs/test-cases.md counts the same two cases
+  test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; docs/test-cases.md
+                           --   counts three cases: the two payload cases, plus the runner-mode
+                           --   case kit revision 16 adds with no host change
   test_surface_parity.lua  -- the four degradation stubs against the surfaces they stand in for,
                            --   collected in one file so a fifth seam growing a stub with no case
                            --   beside it is an obvious hole (M4-09)
