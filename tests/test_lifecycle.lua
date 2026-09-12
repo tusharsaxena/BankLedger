@@ -12,6 +12,7 @@
 
 local T = _G.BL_TEST
 local NS = T.NS
+local mocks = T.mocks
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
 -- The four OnEnable arms: three directly, Insights through the Browser (modules/Browser.lua:1229).
@@ -65,4 +66,31 @@ test("a disable then enable cycle does not subscribe the session window twice", 
     "one moved stack must be recorded once, not once per surviving subscription")
   NS.State.sessionActive = false
   NS.State.sessionEntries = {}
+end)
+
+-- The geometry belt's event half (#18). Browser and SessionWindow each register PLAYER_LOGOUT on
+-- their own NS.NewBusTarget(), guarded by `if __ev.RegisterEvent`, and addon:OnDisable tears the
+-- target down with UnregisterAllEvents. Under a harness whose Embed stamped no-op event methods
+-- none of that was observable: the registration recorded nothing and the teardown cleared nothing,
+-- so a misspelled handler or a registration that never happened still passed. The kit's Embed
+-- records `__events`, so both halves are asserted here: the registration took, and it is gone
+-- after OnDisable, along with the target's message subscriptions.
+test("addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered", function()
+  NS.addon:OnEnable()
+  local targets = { Browser = NS.Browser.__ev, SessionWindow = NS.SessionWindow.__ev }
+  for name, ev in pairs(targets) do
+    assertTrue(ev ~= nil, name .. " stood up no bus target")
+    assertEqual(type(ev.__events and ev.__events.PLAYER_LOGOUT), "function",
+      name .. "'s target did not record PLAYER_LOGOUT")
+  end
+  assertTrue(mocks.__msgRegistry["Ka0s_BankLedger_LedgerChanged"][targets.SessionWindow] ~= nil,
+    "the session window's target is subscribed before the disable")
+
+  NS.addon:OnDisable()
+  for name, ev in pairs(targets) do
+    assertTrue(ev.__events.PLAYER_LOGOUT == nil, name .. "'s PLAYER_LOGOUT survived OnDisable")
+    assertTrue(mocks.__msgRegistry["Ka0s_BankLedger_LedgerChanged"][ev] == nil,
+      name .. "'s LedgerChanged subscription survived OnDisable")
+  end
+  NS.addon:OnEnable()
 end)

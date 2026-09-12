@@ -647,38 +647,18 @@ return function()
     return w
   end
 
-  -- Message bus modeled on CallbackHandler: callbacks keyed by (message, target). Registering the
-  -- same message twice on ONE target overwrites (only the last survives); SendMessage fires to every
-  -- distinct target. Mirroring the real semantics is what lets a test catch same-target clobbering
-  -- (architecture-§4) — a bare no-op mock hides that whole bug class.
-  local msgRegistry = {}
-  M.__msgRegistry = msgRegistry
-  local function embedBus(obj)
-    obj.RegisterMessage = function(self, event, fn)
-      msgRegistry[event] = msgRegistry[event] or {}
-      msgRegistry[event][self] = fn
-    end
-    obj.UnregisterMessage = function(self, event)
-      if msgRegistry[event] then msgRegistry[event][self] = nil end
-    end
-    -- CallbackHandler's own semantics: this drops THIS target's callbacks and leaves every other
-    -- target's registration for the same message untouched. A mock that swept the whole registry
-    -- would make a teardown look correct while it silenced the modules that were still enabled.
-    obj.UnregisterAllMessages = function(self)
-      for _, targets in pairs(msgRegistry) do targets[self] = nil end
-    end
-    obj.SendMessage = function(_, event, ...)
-      local t = msgRegistry[event]
-      if not t then return end
-      for _, fn in pairs(t) do fn(event, ...) end
-    end
-    return obj
-  end
+  -- AceEvent-3.0 is TAKEN from the kit (revision 17), for #18. Its Embed stamps the recorded,
+  -- validated event half and the CallbackHandler message half: callbacks keyed by (message, target),
+  -- a second registration on one target overwriting the first, `UnregisterAllMessages` dropping only
+  -- its own target's callbacks, and `M.__msgRegistry` publishing the one registry. That is every rule
+  -- this file's own bus hand-rolled (architecture-§4), so the copy is gone and there is ONE message
+  -- registry, the kit's, shared by the addon object and every NS.NewBusTarget().
 
   -- Override 4.
   libs["AceAddon-3.0"] = {
     NewAddon = function(_, target)
       target = target or {}
+      libs["AceEvent-3.0"]:Embed(target)
       local noop = function() end
       -- Modern retail RAISES on an unknown event name instead of ignoring it, which is what turned
       -- one retired event into a whole unregistered addon. Tests put names in M.__badEvents to
@@ -706,15 +686,7 @@ return function()
       -- reclaims its own printer right after NewAddon; without this stamp the test suite would never
       -- exercise that reclaim (architecture-§2, anti-pattern #36).
       target.Print = function(self) return "|cff33ff99" .. tostring(self) .. "|r:" end
-      return embedBus(target)
-    end,
-  }
-  libs["AceEvent-3.0"] = {
-    Embed = function(_, obj)
-      obj.RegisterEvent = obj.RegisterEvent or function() end
-      obj.UnregisterEvent = obj.UnregisterEvent or function() end
-      obj.UnregisterAllEvents = obj.UnregisterAllEvents or function() end
-      return embedBus(obj)
+      return target
     end,
   }
 

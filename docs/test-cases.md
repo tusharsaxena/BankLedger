@@ -918,12 +918,13 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
-### test_lifecycle.lua (4)
+### test_lifecycle.lua (5)
 
 - addon:OnDisable releases the _enabled latch on every module OnEnable arms
 - a disable then enable cycle leaves all four modules live again
 - addon:OnDisable leaves _guildHooked alone — the hook it records is still installed
 - a disable then enable cycle does not subscribe the session window twice
+- addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
 
 ### test_surface_parity.lua (4)
 
@@ -980,10 +981,10 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| test_lifecycle.lua | 4 |
+| test_lifecycle.lua | 5 |
 | test_surface_parity.lua | 4 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **852** |
+| **Total** | **853** |
