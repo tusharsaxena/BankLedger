@@ -196,6 +196,51 @@ test("Database:Purge empties the ledger and reports the count", function()
   end)
 end)
 
+-- The [Data] lines a call emits with logging on. debug-logging-§8 requires every user-initiated
+-- delete or purge of stored data to be traced, and under standard v2.44.0 debug-logging-§10 that
+-- includes recorded data such as this log. The line is the only headless witness that the trace
+-- exists at all.
+local function dataLines(fn)
+  local savedDebug = NS.State.debug
+  NS.State.debug = true
+  NS.DebugLog:Clear()
+  local ok, err = pcall(fn)
+  local out = {}
+  for _, line in ipairs(NS.DebugLog.buffer) do
+    if line:find("[Data]", 1, true) then out[#out + 1] = line end
+  end
+  NS.DebugLog:Clear()
+  NS.State.debug = savedDebug
+  if not ok then error(err, 0) end
+  return out
+end
+
+test("Database:Delete traces one [Data] line naming how many entries it removed", function()
+  -- The History table's right-click Delete reaches the log through here
+  -- (modules/LedgerTable.lua). DeleteAt and Purge already traced; this was the one delete verb
+  -- that did not.
+  withLedger({ entry(), entry({ store = "GUILD_BANK" }), entry() }, function()
+    local lines = dataLines(function()
+      NS.Database:Delete(function(e) return e.store == "BANK" end)
+    end)
+    assertEqual(#lines, 1, "one line per delete act, not one per entry")
+    assertTrue(lines[1]:find("delete removed 2 entries", 1, true) ~= nil,
+      "the line names the count, got: " .. tostring(lines[1]))
+  end)
+end)
+
+test("Database:Delete writes no line while logging is off", function()
+  withLedger({ entry() }, function()
+    local savedDebug = NS.State.debug
+    NS.State.debug = false
+    NS.DebugLog:Clear()
+    NS.Database:Delete(function() return true end)
+    local n = #NS.DebugLog.buffer
+    NS.State.debug = savedDebug
+    assertEqual(n, 0, "the trace is behind the debug gate")
+  end)
+end)
+
 -- PruneOld compares against the addon's `time()`, which is the mock's clock — not os.time(). Using
 -- the wrong clock here would make the window silently meaningless.
 local MOCK_NOW = T.mocks.__now

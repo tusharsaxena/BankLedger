@@ -784,6 +784,36 @@ test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches n
     "the gate is still judging movements by the settings the reset destroyed")
 end)
 
+test("Slash: ResetEverything traces the recorded entries it wiped, once", function()
+  -- The wholesale reset empties db.global, and the recorded ledger goes with it. That is a purge of
+  -- recorded data, which debug-logging-§8 requires traced (standard v2.44.0, debug-logging-§10),
+  -- exactly as Database:Purge traces `/bl purge`. It traced nothing.
+  -- red under: dropping the NS.Debug line from Sl:ResetEverything.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local savedDebug = NS.State.debug
+  NS.db.global.ledger = {
+    { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
+    { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 4306 },
+  }
+
+  NS.State.debug = true
+  NS.DebugLog:Clear()
+  NS.Slash:ResetEverything()
+  local lines = {}
+  for _, line in ipairs(NS.DebugLog.buffer) do
+    if line:find("reset-all", 1, true) then lines[#lines + 1] = line end
+  end
+  NS.DebugLog:Clear()
+  NS.State.debug = savedDebug
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+
+  assertEqual(#lines, 1, "one line for the one act")
+  assertTrue(lines[1]:find("[Data]", 1, true) ~= nil, "under the [Data] tag the other purges use")
+  assertTrue(lines[1]:find("wiped 2 ledger entries", 1, true) ~= nil,
+    "the line names the count, got: " .. tostring(lines[1]))
+end)
+
 -- ── The two resets are two acts, and they must not wear one name ────────────────────────────────
 --
 -- options-ui-§12 requires the General page's Reset all settings control, the header/footer Defaults

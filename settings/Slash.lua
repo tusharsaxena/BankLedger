@@ -70,6 +70,17 @@ if type(StaticPopupDialogs) == "table" then
   -- confirm dialog with no caller is one nobody can reach, so it was deleted rather than parked.
 end
 
+--- debug-logging-§8: the wholesale reset below takes the recorded ledger with the rest of the store,
+--- which is a purge of recorded data, so it is traced exactly as Database:Purge traces `/bl purge`:
+--- one [Data] line carrying the count. Called just BEFORE the wipe, while the count is still there to
+--- read; the wipe that follows is plain table work that cannot fail part-way. Nothing is counted or
+--- formatted while logging is off.
+local function traceLedgerWipe(g)
+  if not (NS.State and NS.State.debug and NS.Debug) then return end
+  local n = type(g.ledger) == "table" and #g.ledger or 0
+  NS.Debug("Data", "reset-all wiped %s ledger entries", tostring(n))
+end
+
 --- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with
 --- NO PROFILE.
 ---
@@ -102,6 +113,7 @@ function Sl:ResetEverything()
   local db = NS.db
   if db and db.global then
     local g = db.global
+    traceLedgerWipe(g)
     for k in pairs(g) do g[k] = nil end
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
   end

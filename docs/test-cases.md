@@ -230,7 +230,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
 
-### test_database.lua (46)
+### test_database.lua (48)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -256,6 +256,8 @@ badge and any count quoted in the docs must agree with it.
 - Database:DeleteAt rejects an out-of-range index
 - Database:Delete removes every entry matching the predicate
 - Database:Purge empties the ledger and reports the count
+- Database:Delete traces one [Data] line naming how many entries it removed
+- Database:Delete writes no line while logging is off
 - Database:PruneOld drops entries past the retention window
 - Database:PruneOld keeps everything when retention is Always (0)
 - Database:PruneOld broadcasts LedgerChanged only when a row actually went
@@ -698,7 +700,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (36)
+### test_panel.lua (37)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -734,6 +736,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
 - Slash: the restored store does not ALIAS the defaults table
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
+- Slash: ResetEverything traces the recorded entries it wiped, once
 - Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
 - Slash: while the split stands, the button and the verb do NOT share a label
 
@@ -962,7 +965,7 @@ badge and any count quoted in the docs must agree with it.
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
 | test_ledger.lua | 122 |
-| test_database.lua | 46 |
+| test_database.lua | 48 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 53 |
 | test_browser.lua | 43 |
@@ -972,7 +975,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
 | test_slash.lua | 33 |
-| test_panel.lua | 36 |
+| test_panel.lua | 37 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -988,4 +991,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **854** |
+| **Total** | **857** |
