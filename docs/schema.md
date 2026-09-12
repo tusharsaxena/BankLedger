@@ -126,6 +126,12 @@ scope is deliberately *not* part of a view — it is a per-session default of Cu
 demand, so a stale save can never pin the window to one alt. Applied once, at frame build, so
 closing and reopening the window mid-session keeps whatever you were working with.
 
+**The movement log is recorded data, not a carve-out or a registry** (`architecture-§5` named
+non-setting state). `db.global.ledger` is owned by `NS.Database`, and only its `Add`, `Delete`,
+`DeleteAt`, `Purge` and `PruneOld` write it. `PruneOld` runs off the `settings.retentionDays` row.
+[ARCHITECTURE.md → Settings Schema](ARCHITECTURE.md#settings-schema) names the act that reaches each
+writer.
+
 **Not settings:** the debug *logging* flag is `NS.State.debug` — session-only, off at login, never
 written to SavedVariables. The current banking session's movements are `NS.State.sessionEntries` —
 references to already-stored entries, held only while a bank frame is open and never persisted.

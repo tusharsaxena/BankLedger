@@ -82,8 +82,29 @@ to and removes them from.
   (`core/Database.lua`), the only load-time pass, never touches them. `Sl:ResetEverything` empties the
   whole store, which is not a registry write.
 
-The movement log (`db.global.ledger`) is recorded data rather than a collection the player builds,
-and `core/Database.lua` owns it.
+**The movement log is recorded data**, `architecture-§5` named non-setting state. The addon records
+every entry, and the player authors none, so it is not a registry, and naming it is the
+compliance. It has no `Documented deviations` row.
+- **Storage key.** `db.global.ledger`, an array of entries, shipped empty in `defaults/Global.lua`.
+- **Owner.** `NS.Database` (`core/Database.lua`). Every runtime write is one of its five functions,
+  and nothing outside it writes the key:
+  - `Database:Add` appends each movement the capture engine derives (`modules/Ledger.lua`) and
+    fires `EntryAdded`.
+  - `Database:Delete` removes the entries a predicate matches, reached from the History table's
+    right-click *Delete* (`modules/LedgerTable.lua`).
+  - `Database:DeleteAt` removes one entry by index. It has no production caller; the tests use it
+    as the index-delete seam.
+  - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
+    button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
+  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
+    from that row's `onChange` and once per session, five seconds after `PLAYER_ENTERING_WORLD`
+    (`addon:OnEnterWorld`).
+- **Why none of those is a player choice.** Deleting entries, purging the log and pruning it by the
+  retention row are the owner's operations on recorded data. The rule allows all three.
+- **Load pass.** `NS:RunMigrations` may rewrite entries in place, as its v1 → v2 step does when it
+  strips `vendorPrice`, and is not a writer to name. `Sl:ResetEverything` empties `db.global`
+  wholesale, ledger included, which is not a writer either. Test mode reads `NS.State.testRecords`
+  and never writes the log.
 
 **Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
 and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That
