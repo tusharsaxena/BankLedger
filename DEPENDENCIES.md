@@ -103,14 +103,14 @@ trying to stop.
 Two suites run external commands, so they are dependencies of `lua tests/run.lua` even though no
 Lua code `require`s them:
 
-- **`git`** — `tests/_kit/vendor_sync.lua:184` runs `git -C <path> …` against the **sibling LibKa0s
+- **`git`** — `tests/_kit/vendor_sync.lua:195` runs `git -C <path> …` against the **sibling LibKa0s
   checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
   is one line of adoption over that shared gate; the implementation is vendored, not local.
 - **`ls`** — `tests/test_harness.lua:24` runs `ls tests/test_*.lua` to prove the suite list and the
   files on disk agree in both directions.
-- **`find`** — `tests/_kit/vendor_sync.lua:122` runs `find . -type f` to list a vendored directory
+- **`find`** — `tests/_kit/vendor_sync.lua:126` runs `find . -type f` to list a vendored directory
   (Lua 5.1 has no directory API and this repo deliberately does not depend on LuaFileSystem —
-  `tests/_kit/vendor_sync.lua:103`). A `dir /b /s` fallback at `:125` covers cmd.exe only; under
+  `tests/_kit/vendor_sync.lua:107`). A `dir /b /s` fallback at `:129` covers cmd.exe only; under
   WSL2 it is `find` that runs.
 
 All three are present on any Ubuntu install; `git` is the only one that might not be.
@@ -123,7 +123,7 @@ sudo apt install -y git
 
 ### The sibling LibKa0s checkout — optional, but the vendor gate is blind without it
 
-`tests/_kit/vendor_sync.lua:70` resolves the library repo as `<repo root>/../LibKa0s`. Clone it
+`tests/_kit/vendor_sync.lua:72` resolves the library repo as `<repo root>/../LibKa0s`. Clone it
 beside this repo if you want the vendor gate to actually compare anything:
 
 ```sh
@@ -131,7 +131,7 @@ git clone https://github.com/tusharsaxena/LibKa0s.git ../LibKa0s
 ```
 
 Without it the suite still runs — the pair reports a **skip carrying its reason**
-(`tests/_kit/vendor_sync.lua:285`, `"<path> checkout absent — the vendored payload was NOT
+(`tests/_kit/vendor_sync.lua:296`, `"<path> checkout absent — the vendored payload was NOT
 compared"`) rather than failing, and deliberately not a pass — so this is a **capability**, not a
 blocker. Watch the runner's skip count: a `0 skipped` line is what proves the comparison actually
 ran. `docs/testing.md`'s "The vendor gate" section needs it too: its `diff -r ../LibKa0s/…`
