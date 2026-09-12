@@ -40,9 +40,12 @@ for a path that already has a row.
    emits the one debug trace, runs `onChange` and repaints an open panel. Do not write `db.global`
    directly from a new code path.
 
-If the value is a dynamic id-set, an ordered list or window geometry, it is a **carve-out**, not a
-row — see [schema.md](schema.md) → *Storage carve-outs* — and it needs a line in
-`Slash:CliResetAll`'s wrapper so a reset still reaches it.
+If the value is window geometry or a remembered view, it is a **carve-out**, not a row. See
+[schema.md](schema.md) → *Storage carve-outs*. If it is a collection the player adds to and removes
+from, like the filter id-sets, it is a **structural registry** (`architecture-§5`). One module is its
+only writer, and ARCHITECTURE.md → Settings Schema names its storage keys, that writer and its load
+pass. Either way it needs a line in `Slash:CliResetAll`'s wrapper so a reset still reaches it. For a
+registry, that line calls the writer.
 
 If the row needs a **bespoke widget** beside it — a picker, a grid, a button pair — draw it from the
 tab's `afterGroup` hook (`GENERAL_AFTER_TAB` in `settings/Panel.lua`), never from the page renderer

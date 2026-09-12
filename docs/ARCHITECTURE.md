@@ -45,8 +45,8 @@ derives from the TOC. File-by-file table, load-order notes and the locale seam i
 ## Settings Schema
 
 **Fifteen** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
-`/bl get|set|list|reset` dispatch and the defaults reset. Every write goes through `NS.Schema:Set`, so
-a slash write and a panel widget take exactly the same path.
+`/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
+`NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (6) ·
@@ -70,9 +70,24 @@ stored paths. Three of its rows are new — `settings.visibility`, `settings.alp
 chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
 `settings.rowHoverAlpha`, each defaulting to the number it replaced.
 
-Four pieces of persisted state are **carve-outs** with no schema widget: the two windows' geometry,
-the filter id-lists, and the saved ledger view. Row table and panel structure in
-**[settings-panel.md](settings-panel.md)**; the stored shape and carve-out rules in
+**One structural registry** (`architecture-§5`): the filter id-sets, which the player adds item ids
+to and removes them from.
+- **Storage keys.** `db.global.blacklist` and `db.global.whitelist`, both shipped empty in
+  `defaults/Global.lua`.
+- **Writer.** `NS.Filters` in `modules/Filters.lua`: `F:_move`, `F:_remove`, `F:ClearList` and
+  `F:ClearAll`, with `AddBlacklist` / `AddWhitelist` / `RemoveBlacklist` / `RemoveWhitelist` over the
+  first two. The Filters tab, the ledger's right-click menu, the two clear popups and
+  `Sl:CliResetAll` call it, and nothing else writes either key.
+- **Load pass.** There is none. AceDB supplies the empty defaults, and `NS:RunMigrations`
+  (`core/Database.lua`), the only load-time pass, never touches them. `Sl:ResetEverything` empties the
+  whole store, which is not a registry write.
+
+The movement log (`db.global.ledger`) is recorded data rather than a collection the player builds,
+and `core/Database.lua` owns it.
+
+Three other pieces of persisted state are **storage carve-outs** with no schema row: the two windows'
+geometry and the saved ledger view. Row table and panel structure are in
+**[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
 **[schema.md](schema.md)**.
 
 ## Message bus
