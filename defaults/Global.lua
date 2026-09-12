@@ -26,16 +26,16 @@ NS.defaults.global = {
   -- Item-id filter lists. Blacklisted ids are never recorded; whitelisted ids are always recorded,
   -- bypassing the quality gate. Managed via a custom UI (Settings ▸ General ▸ Blacklist /
   -- Whitelist, the two tabs the retired Filters page became) and the ledger table's
-  -- right-click menu — NOT Schema rows, so they are an architecture-§5 carve-out like `window`
-  -- (mutated directly through NS.Filters, not via Schema:Set).
+  -- right-click menu — NOT Schema rows. They are an architecture-§5 structural registry: NS.Filters
+  -- is their one writer (copy-on-write, never Schema:Set), and there is no load pass.
   blacklist = {},
   whitelist = {},
 
   -- savedView — the ledger window's saved filter/group/sort baseline, written by the filter bar's
   -- Save button (NS.Browser:SaveView). Deliberately ABSENT from these defaults: "no key" is what
   -- "nothing saved" means, and seeding it as {} would make an empty table indistinguishable from a
-  -- deliberate save of an all-cleared view. Another architecture-§5 carve-out like `window` and the
-  -- id-lists above — a captured view has no Schema widget to drive it, so it is written directly
+  -- deliberate save of an all-cleared view. A storage carve-out like `window`, not a registry like
+  -- the id-lists above — a captured view has no Schema widget to drive it, so it is written directly
   -- rather than through Schema:Set. Character scope is never part of it (Browser's STOCK_VIEW).
 
   settings = {

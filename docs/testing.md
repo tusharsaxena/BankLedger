@@ -90,8 +90,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.29.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.29.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.30.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.30.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -235,8 +235,9 @@ tests/
                            --   and the ARGUMENT, never the appearance, and BOTH rungs of every
                            --   fallback ladder — a texture that does not load draws nothing and
                            --   raises nothing, so no other suite would notice
-  test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; the case names are
-                           --   unchanged, so docs/test-cases.md counts the same two cases
+  test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; docs/test-cases.md
+                           --   counts three cases: the two payload cases, plus the runner-mode
+                           --   case kit revision 16 adds with no host change
   test_surface_parity.lua  -- the four degradation stubs against the surfaces they stand in for,
                            --   collected in one file so a fifth seam growing a stub with no case
                            --   beside it is an obvious hole (M4-09)

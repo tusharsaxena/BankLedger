@@ -11,8 +11,10 @@ local F = NS.Filters
 -- entry already written. (Delete unwanted rows from the ledger table if you want them gone.)
 --
 -- The lists are stored account-wide in NS.db.global.{blacklist,whitelist} — NOT under settings, and
--- NOT as Schema rows. Like `settings.window` they are an architecture-§5 carve-out, mutated here
--- rather than through Schema:Set, because a dynamic id-set has no Schema widget to drive.
+-- NOT as Schema rows. They are an architecture-§5 structural registry (the player adds and removes
+-- ids, and no row path names one), and this module is its one writer: F:_move, F:_remove,
+-- F:ClearList and F:ClearAll. Nothing else writes either key, and none of it goes through
+-- Schema:Set. There is no load pass; AceDB supplies the empty defaults.
 --
 -- An id can be on at most ONE list (adding to one drops it from the other), so the capture gate's
 -- whitelist/blacklist checks can never contradict.

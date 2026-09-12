@@ -65,8 +65,8 @@ catches both.
 **What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the five tabs
 has no settings behind it: `S.BespokeRows` declares a single **renderer-only** row for Filters, which
 carries a `group` (so the tab is drawn) and `skipRender` (so the flow engine walks past it) and
-nothing else. It is deliberately not a setting — the lists are an `architecture-§5` storage
-carve-out mutated through `NS.Filters`' copy-on-write, which re-caches the capture gate and fires
+nothing else. It is deliberately not a setting — the lists are an `architecture-§5` structural
+registry whose one writer is `NS.Filters`' copy-on-write, which re-caches the capture gate and fires
 `LedgerChanged`; a schema row over the same key would hand `/bl set`, `/bl reset` and the reset sweep
 a second writer that skips all of that. `allRows` still answers `S.Schema` alone, so the CLI and
 every reset see exactly the settings.
@@ -163,7 +163,8 @@ frameless** and every frame-only row applies.
 ## Rows
 
 `settings/Schema.lua` is the single source: it drives the panel widgets, the slash `get`/`set`/
-`list`/`reset` dispatch, and the defaults reset. Every write goes through `NS.Schema:Set`.
+`list`/`reset` dispatch, and the defaults reset. Every write to a schema-row path goes through
+`NS.Schema:Set`.
 
 Rows render in schema order, so this table is also the panel's layout — tab by tab, and two rows to
 a line within a tab unless a row declares `solo`, `wide` or `startsLine`, or a `subgroup` boundary

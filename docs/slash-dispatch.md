@@ -39,8 +39,10 @@ match, so it was left alone rather than folded into the rename.
 - **A `format` hook** for the set-typed `settings.excludedStores` row, which has no scalar rendering.
 - **A `parse` override** that refuses a chat edit of that same row by name — a muted-store set is not
   something a `set` line can express unambiguously.
-- **A `CliResetAll` wrapper**, so the two carve-outs with no Schema widget — the filter lists and the
-  saved ledger view — are still reset. The library only knows about schema rows.
+- **A `CliResetAll` wrapper**, so the two pieces of state with no Schema widget are still reset. The
+  filter lists, an `architecture-§5` registry, are reset through their writer, `NS.Filters:ClearAll`.
+  The saved ledger view, a carve-out, goes back to its stock state. The library only knows about schema
+  rows.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
 landing page both read from that one table.

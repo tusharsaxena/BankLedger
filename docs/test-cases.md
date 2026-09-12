@@ -883,7 +883,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
 - LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
 - LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
-- LibKa0s-Slash: CliResetAll keeps this addon's two carve-outs
+- LibKa0s-Slash: CliResetAll also resets the filter registry and the saved view
 - LibKa0s-Slash: the landing page and the chat help render the SAME rows
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
@@ -892,10 +892,11 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
 - LibKa0s-Slash: the seam loads after the schema it reads
 
-### test_vendor_sync.lua (2)
+### test_vendor_sync.lua (3)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
 - tests/_kit is the test kit that shipped with that release
+- the automated-test runner is recorded executable (100755)
 
 ### test_poolsetup.lua (3)
 
@@ -974,7 +975,7 @@ badge and any count quoted in the docs must agree with it.
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 60 |
-| test_vendor_sync.lua | 2 |
+| test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 4 |
@@ -983,4 +984,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **849** |
+| **Total** | **850** |

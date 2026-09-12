@@ -1,7 +1,7 @@
 # Schema
 
 What Bank Ledger persists: the single account-wide saved variable, one entry per movement, the
-storage-only carve-outs, and the migration seam. The controls that write settings are
+storage-only carve-outs, the filter id-set registry, and the migration seam. The controls that write settings are
 [settings-panel.md](settings-panel.md); how an entry comes to exist is [data-flow.md](data-flow.md).
 
 ## The saved variable
@@ -96,11 +96,23 @@ what the stable-column-set promise allows.
 
 ## Storage carve-outs
 
-**Storage carve-outs** — mutated by their owning module rather than through `Schema:Set`, because
-none has a schema widget to drive: `settings.window` (main-window geometry, `modules/Browser.lua`),
-`settings.sessionWindow` (session-window geometry, `modules/SessionWindow.lua`),
-`db.global.blacklist` / `db.global.whitelist` (`modules/Filters.lua`) and `db.global.savedView`
-(the filter bar's saved baseline, `modules/Browser.lua`).
+**Storage carve-outs** are mutated by their owning module rather than through `Schema:Set`, because
+none has a schema widget to drive:
+- `settings.window`, the main window's geometry (`modules/Browser.lua`);
+- `settings.sessionWindow`, the session window's geometry (`modules/SessionWindow.lua`);
+- `db.global.savedView`, the filter bar's saved baseline (`modules/Browser.lua`).
+
+`db.global.minimap.minimapPos` is the same kind of state with a different writer: LibDBIcon stores
+the button's position there on a drag, in the table `B:SetupMinimap` hands it, beside the
+`minimap.hide` row. None of the four has a `Documented deviations` row yet; see
+[ARCHITECTURE.md → Settings Schema](ARCHITECTURE.md#settings-schema).
+
+**The filter id-sets are a structural registry, not a carve-out** (`architecture-§5`).
+`db.global.blacklist` and `db.global.whitelist` are item-id sets the player adds to and removes from,
+and no row path names them. Their one writer is `NS.Filters` (`modules/Filters.lua`), which writes
+copy-on-write, re-caches the capture gate and fires `LedgerChanged`. They have no load pass: AceDB
+supplies the empty defaults, and `NS:RunMigrations` never writes them. See
+[ARCHITECTURE.md → Settings Schema](ARCHITECTURE.md#settings-schema).
 
 **The saved view** — `db.global.savedView` holds the grouping, sort, date range, search text and the
 five multi-select column filters, captured by the filter bar's **Save** button. It is *absent* until
