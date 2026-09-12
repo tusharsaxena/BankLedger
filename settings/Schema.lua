@@ -294,18 +294,20 @@ end
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
 -- console WINDOW's visibility IS the `state.debugConsole` row the Master controls composer emits.
--- NOTE: three storage carve-outs are mutated by their owning module rather than through Schema:Set.
--- None is a schema row, so none has a widget, a default or an onChange; check this list before
--- writing a key under db.global directly. None has an architecture-§5 `Documented deviations` row
--- yet (docs/ARCHITECTURE.md ▸ Settings Schema). All three are:
---   1. `settings.window` — the ledger window's geometry. Written by B:SaveGeometry
---      (modules/Browser.lua:147), cleared by B:ResetWindow (:185).
---   2. `settings.sessionWindow` — the session window's geometry. Written by SW:SaveGeometry
---      (modules/SessionWindow.lua:252), cleared by SW:ResetWindow (:289).
---   3. `savedView` — the account-wide column/sort baseline. Written by B:SaveView
+-- NOTE: four storage carve-outs are architecture-§5 named non-setting state, written by their owner
+-- rather than through Schema:Set. None is a schema row, so none has a widget, a default or an
+-- onChange. None has a `Documented deviations` row either: docs/ARCHITECTURE.md ▸ Settings Schema
+-- names each one's owner and every writer, and that naming is the compliance. Check that list
+-- before writing a key under db.global directly, and add any new writer to it. The four are:
+--   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
+--      (modules/Browser.lua:147) on drag-stop, on hide and at logout; emptied by B:ResetWindow (:185).
+--   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written by
+--      SW:SaveGeometry (modules/SessionWindow.lua:252) on the same three occasions; emptied by
+--      SW:ResetWindow (:289).
+--   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
 --      (modules/Browser.lua:748), cleared by B:ResetView (:757).
--- `minimap.minimapPos` is the same kind of state, but LibDBIcon writes it on a button drag, into the
--- table B:SetupMinimap hands it; it sits beside the `minimap.hide` row and no row addresses it.
+--   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table B:SetupMinimap
+--      hands it. That table also holds the `minimap.hide` row, so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
 -- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
 -- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.

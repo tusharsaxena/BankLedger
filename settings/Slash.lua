@@ -261,9 +261,9 @@ function Sl:CliVersion() return cli:CliVersion() end
 function Sl:LandingRows() return cli:LandingRows() end
 
 -- Reset every user setting to its default. The library's CliResetAll walks the schema rows and
--- acknowledges; it cannot know about this addon's two pieces of player-set state with no Schema
--- widget: the filter id-sets, an architecture-§5 registry cleared through its one writer
--- NS.Filters, and the saved ledger view, a storage carve-out. So they are wrapped around the
+-- acknowledges; it cannot know about this addon's two pieces of state with no Schema widget: the
+-- filter id-sets, an architecture-§5 registry cleared through its one writer NS.Filters, and the
+-- saved ledger view, named non-setting state its owner Browser clears. So they are wrapped around the
 -- library's call rather than forked from it. ResetView is called SILENTLY so this path still emits
 -- exactly ONE confirmation line.
 --

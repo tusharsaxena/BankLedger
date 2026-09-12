@@ -759,7 +759,7 @@ test("LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN 
 test("LibKa0s-Slash: CliResetAll also resets the filter registry and the saved view", function()
   -- The library's CliResetAll walks the schema and acknowledges; it cannot know about state that
   -- has no Schema row: the filter id-sets (an architecture-§5 registry, cleared through NS.Filters)
-  -- and the saved view (a storage carve-out). The player sets both though neither has a widget, so
+  -- and the saved view (named non-setting state). A reset reaches both though neither has a widget, so
   -- the host wraps the library call rather than forking it — and the wrap runs BEFORE it, because
   -- that call is what prints the single acknowledgment.
   NS.Filters:AddBlacklist(2589)

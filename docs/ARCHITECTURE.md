@@ -85,14 +85,37 @@ to and removes them from.
 The movement log (`db.global.ledger`) is recorded data rather than a collection the player builds,
 and `core/Database.lua` owns it.
 
-Three other pieces of persisted state are **storage carve-outs** with no schema row: the two windows'
-geometry and the saved ledger view. A fourth sits beside the `minimap.hide` row: LibDBIcon writes
-`minimapPos` into `db.global.minimap` when the player drags the minimap button. No row addresses
-any of the four, and none has a `Documented deviations` row yet, which the `architecture-§5` MUST NOT
-asks of persistent state written outside the helper. Whether each needs one, and whether a library's
-own write counts as this addon's, is an open owner decision: tusharsaxena/BankLedger#16. Row table
-and panel structure are in **[settings-panel.md](settings-panel.md)**; the stored shape and the
-carve-out rules are in **[schema.md](schema.md)**.
+**Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
+and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That
+naming is what makes them compliant, so none has a `Documented deviations` row. A reset below only
+empties the state or puts back the shipped default, and *Save* captures what is on screen, so
+neither chooses a value. The Master controls tab's *Reset position* is one of those resets.
+- **Main window geometry.** Storage key `db.global.settings.window` (`point`, `x`, `y`, `w`, `h`).
+  Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
+  drag-stop, on the resize grip's mouse-up, on every `OnHide`, and at `PLAYER_LOGOUT` through
+  `B:OnLogout`. `B:ResetWindow` empties it. Three routes reach that reset: `NS.Util.ResetWindowPositions`
+  (the Master controls tab's *Reset position*, and the General page's *Defaults* button through
+  `P:RestoreDefaults`), and `Sl:ResetEverything` once its wholesale reset is done.
+- **Session window geometry.** Storage key `db.global.settings.sessionWindow`, same shape. Owner
+  `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
+  occasions (drag-stop, grip mouse-up, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and
+  `SW:ResetWindow`, which empties it and is reached by the same three routes as `B:ResetWindow`.
+- **Saved ledger view.** Storage key `db.global.savedView`, absent until the player saves. Owner
+  `NS.Browser`. Writers: `B:SaveView`, from the filter bar's **Save** button, which stores the view on
+  screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
+  calls `B:ResetView`, and so does `Sl:CliResetAll`, which is `/bl resetall` and the *Defaults*
+  button.
+- **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner `NS.Browser`, whose
+  `B:SetupMinimap` hands `db.global.minimap` to LibDBIcon. Writer: LibDBIcon itself, when the player
+  drags the button (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field.
+  The same table holds the `minimap.hide` row, so the addon never replaces the table whole either.
+  AceDB supplies it from `defaults/Global.lua`, and `B:SetupMinimap` has no seed of its own.
+
+`NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
+merges the defaults back, which replaces all four along with everything else; the standard does not
+count a wholesale replacement as a writer to name. Row table and panel structure are in
+**[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
+**[schema.md](schema.md)**.
 
 ## Message bus
 

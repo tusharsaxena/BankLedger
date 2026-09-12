@@ -680,3 +680,46 @@ test("Browser: the Character filter's selection can never outlive its option lis
   assertTrue(haveAll, "the All sentinel is always a row")
   assertTrue(haveCurrent, "and so is the Current sentinel, whatever the dataset holds")
 end)
+
+-- ── Minimap button ─────────────────────────────────────────────────────────────
+
+test("the minimap table always exists: the defaults ship it and AceDB materializes it", function()
+  -- B:SetupMinimap hands LibDBIcon db.global.minimap as is, with no seed of its own. That is sound
+  -- only because the table can never be absent: defaults/Global.lua ships it, and AceDB creates a
+  -- missing table default when the database is built (copyDefaults), which the mock's AceDB models.
+  local shipped = NS.defaults.global.minimap
+  assertEqual(type(shipped), "table", "defaults/Global.lua ships db.global.minimap")
+  assertEqual(shipped.hide, false)
+  local db = mocks.LibStub("AceDB-3.0"):New("BankLedgerDB", NS.defaults, true)
+  assertEqual(type(rawget(db.global, "minimap")), "table", "AceDB materializes the table default")
+  assertEqual(db.global.minimap.hide, false)
+end)
+
+test("Browser:SetupMinimap never replaces the table that holds the minimap.hide row", function()
+  -- architecture-§5, "a row wins": a write that replaces a whole table holding a row path is a
+  -- schema-row write, and `minimap = { hide = false }` over the `minimap.hide` row is the standard's
+  -- own example. The store below has no minimap table, a state AceDB never hands a running addon
+  -- (see the case above). It is used here because it is the only state in which such a seed would
+  -- write at all.
+  -- red under: reinstating `if not mm then mm = { hide = false }; NS.db.global.minimap = mm end`.
+  local libs, g = mocks.__libs, NS.db.global
+  local saved = rawget(g, "minimap")
+  local live, registered = true, false
+  libs["LibDataBroker-1.1"] = { NewDataObject = function(_, _, obj) return obj end }
+  -- Browser caches this object for the rest of the run, so once the case ends it answers as an
+  -- unregistered button. SetMinimapHidden then does nothing, as it did before with no library.
+  libs["LibDBIcon-1.0"] = {
+    Register = function() registered = true end,
+    IsRegistered = function() return live and registered end,
+    Hide = function() end, Show = function() end,
+  }
+  rawset(g, "minimap", nil)
+  local ok, err = pcall(function() B:SetupMinimap() end)
+  local wrote = rawget(g, "minimap")
+  live = false
+  libs["LibDataBroker-1.1"], libs["LibDBIcon-1.0"] = nil, nil
+  rawset(g, "minimap", saved)
+  assertTrue(ok, tostring(err))
+  assertTrue(registered, "the button registered with LibDBIcon")
+  assertEqual(wrote, nil, "SetupMinimap wrote db.global.minimap whole, over the minimap.hide row")
+end)

@@ -40,7 +40,9 @@ for a path that already has a row.
    emits the one debug trace, runs `onChange` and repaints an open panel. Do not write `db.global`
    directly from a new code path.
 
-If the value is window geometry or a remembered view, it is a **carve-out**, not a row. See
+If the value is window geometry or a remembered view, it is a **carve-out**, not a row. That is
+`architecture-§5` named non-setting state, and ARCHITECTURE.md → Settings Schema must name its
+storage key, its one owner and every writer with the act that reaches it. See
 [schema.md](schema.md) → *Storage carve-outs*. If it is a collection the player adds to and removes
 from, like the filter id-sets, it is a **structural registry** (`architecture-§5`). One module is its
 only writer, and ARCHITECTURE.md → Settings Schema names its storage keys, that writer and its load

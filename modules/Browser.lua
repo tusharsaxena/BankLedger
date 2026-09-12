@@ -1199,9 +1199,10 @@ function B:SetupMinimap()
     end,
   })
 
-  local mm = NS.db.global.minimap
-  if not mm then mm = { hide = false }; NS.db.global.minimap = mm end
-  DBIcon:Register(LDB_NAME, minimapObject, mm)
+  -- No seed. defaults/Global.lua ships `minimap = { hide = false }` and AceDB materializes it, so the
+  -- table is always there, and replacing it whole would be a write over the `minimap.hide` row
+  -- (architecture-§5, "a row wins"). LibDBIcon writes `minimapPos` into it on a button drag.
+  DBIcon:Register(LDB_NAME, minimapObject, NS.db.global.minimap)
 end
 
 function B:SetMinimapHidden(hide)

@@ -390,7 +390,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 
-### test_browser.lua (41)
+### test_browser.lua (43)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -433,6 +433,8 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
+- the minimap table always exists: the defaults ship it and AceDB materializes it
+- Browser:SetupMinimap never replaces the table that holds the minimap.hide row
 
 ### test_sessionwindow.lua (32)
 
@@ -961,7 +963,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 46 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 53 |
-| test_browser.lua | 41 |
+| test_browser.lua | 43 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -984,4 +986,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **850** |
+| **Total** | **852** |
