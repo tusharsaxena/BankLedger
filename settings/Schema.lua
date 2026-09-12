@@ -371,7 +371,12 @@ end
 -- contract says stay silent then and this honors it. The library runs bulkEnd whenever bulkBegin
 -- ran, raising row or not, so the depth always unwinds. `P:Batch` is NOT a bracket: it coalesces
 -- repaints and logs nothing.
-local bulkDepth, bulkChanged, bulkProfileReset = 0, 0, false
+--
+-- A walk that raised part-way still logs its one line, and the line says so: any level handed a
+-- non-nil `err` appends ` (stopped by an error)`, so the count is not read as a completed reset. The
+-- library hands `err = nil` for a raise of nil or false (documented upstream), and that raise gets no
+-- marker.
+local bulkDepth, bulkChanged, bulkProfileReset, bulkFailed = 0, 0, false, false
 
 --- Deep value equality, for the "did this write change anything" test. A `table` row
 --- (`settings.excludedStores`) is a set, so two distinct tables with the same keys are the same value.
@@ -387,23 +392,26 @@ function S.SameValue(a, b)
 end
 
 function S.BulkBegin()
-  if bulkDepth == 0 then bulkChanged, bulkProfileReset = 0, false end
+  if bulkDepth == 0 then bulkChanged, bulkProfileReset, bulkFailed = 0, false, false end
   bulkDepth = bulkDepth + 1
 end
 
---- The library's `count` (third argument) and `err` (fourth) are deliberately unused: N is this
---- seam's own tally, and a raising walk still logs the rows it changed before it stopped.
+--- The library's `count` (third argument) is deliberately unused: N is this seam's own tally. The
+--- `err` (fourth) only marks the line: a raising walk still logs the rows it changed before it
+--- stopped, with ` (stopped by an error)` appended. Re-raising `err` is the caller's job.
 function S.BulkEnd(act, scope, ...)
   if bulkDepth == 0 then return end   -- unpaired: nothing was muted, nothing to report
-  local _, _, info = ...
+  local _, err, info = ...
   if info and info.profileReset then bulkProfileReset = true end
+  if err ~= nil then bulkFailed = true end
   bulkDepth = bulkDepth - 1
   if bulkDepth > 0 then return end
-  local changed, silent = bulkChanged, bulkProfileReset
-  bulkChanged, bulkProfileReset = 0, false
+  local changed, silent, failed = bulkChanged, bulkProfileReset, bulkFailed
+  bulkChanged, bulkProfileReset, bulkFailed = 0, false, false
   if silent then return end
   if NS.State and NS.State.debug and NS.Debug then
-    NS.Debug("Set", "%s %s: %d rows", tostring(act), tostring(scope), changed)
+    NS.Debug("Set", "%s %s: %d rows%s", tostring(act), tostring(scope), changed,
+      failed and " (stopped by an error)" or "")
   end
 end
 

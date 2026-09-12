@@ -205,8 +205,9 @@ end)
 -- walks every row through the write seam, which logged every one of them. The library's Slash minor 8
 -- brackets that walk (`bulkBegin` / `bulkEnd`), and the seam mutes itself inside the bracket.
 
--- Every [Set] line one act writes to the debug buffer, with logging on for the act alone.
-local function setLines(fn)
+-- Every [Set] line one act writes to the debug buffer, with logging on for the act alone. Returns
+-- the lines, then pcall's ok and err, so a case can read the lines of an act that raised.
+local function setLinesProtected(fn)
   local savedDebug = NS.State.debug
   NS.State.debug = true
   NS.DebugLog:Clear()
@@ -217,6 +218,12 @@ local function setLines(fn)
   end
   NS.DebugLog:Clear()
   NS.State.debug = savedDebug
+  return out, ok, err
+end
+
+-- The same, re-raising the act's error.
+local function setLines(fn)
+  local out, ok, err = setLinesProtected(fn)
   if not ok then error(err, 0) end
   return out
 end
@@ -309,18 +316,50 @@ test("Slash: /bl resetall still runs every row's onChange, and the seam logs aga
   assertTrue(lines[1]:find("settings.qualityThreshold = 2", 1, true) ~= nil, tostring(lines[1]))
 end)
 
-test("Slash: a row that raises mid-resetall still closes the bracket, so the seam is not left muted", function()
-  -- The library runs bulkEnd whenever bulkBegin ran, then re-raises. The host's depth counter must
-  -- unwind on that path, or one bad row mutes the seam for the rest of the session.
+test("Slash: a row that raises mid-resetall logs ONE line marked as stopped, re-raises, and unmutes the seam", function()
+  -- The library runs bulkEnd whenever bulkBegin ran, handing it the raised value, then re-raises.
+  -- The line still comes, once, counting the rows changed before the raise, and says the reset
+  -- stopped. The host's depth counter must unwind on that path, or one bad row mutes the seam for
+  -- the rest of the session.
+  -- red under: BulkEnd ignoring `err` (no marker), or the host swallowing the error.
+  -- qualityThreshold comes before retentionDays in schema order, so it is reset and counted before
+  -- the raise. retentionDays is written, counted, and then raises from its onChange.
+  captureChat(function() Sl:CliResetAll() end)   -- baseline: every row at its default
+  NS.Schema:Set("settings.qualityThreshold", 4)
+  NS.Schema:Set("settings.retentionDays", 7)
   local row = NS.Schema:FindRow("settings.retentionDays")
   local orig = row.onChange
-  row.onChange = function() error("boom") end
-  local ok = pcall(function()
-    captureChat(function() setLines(function() Sl:CliResetAll() end) end)
-  end)
+  row.onChange = function() error("boom", 0) end
+  local lines, ok, err
+  captureChat(function() lines, ok, err = setLinesProtected(function() Sl:CliResetAll() end) end)
   row.onChange = orig
+  captureChat(function() Sl:CliResetAll() end)   -- leave every row at its default
   assertTrue(not ok, "the raising row's error must reach the caller")
+  assertEqual(err, "boom", "the error is re-raised unchanged")
+  assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
+  assertTrue(lines[1]:find("[Set] reset all: 2 rows (stopped by an error)", 1, true) ~= nil,
+    "the line counts the rows changed before the raise and is marked, got: " .. tostring(lines[1]))
 
+  local after = setLines(function() NS.Schema:Set("settings.qualityThreshold", 3) end)
+  NS.Schema:Set("settings.qualityThreshold", 0)
+  assertEqual(#after, 1, "the seam must log again once the raising reset is over")
+  assertTrue(after[1]:find("(stopped by an error)", 1, true) == nil, "the marker does not stick")
+end)
+
+test("Slash: a resetall row raising nil logs the line without the marker (the library hands err = nil)", function()
+  -- Characterizes the documented upstream limit: the library hands bulkEnd the raw pcall value, so
+  -- a raise of nil reaches the host as `err = nil` and cannot be told from success. The line is
+  -- still emitted once and the seam still unmutes.
+  local row = NS.Schema:FindRow("settings.retentionDays")
+  local orig = row.onChange
+  row.onChange = function() error(nil) end
+  local lines, ok
+  captureChat(function() lines, ok = setLinesProtected(function() Sl:CliResetAll() end) end)
+  row.onChange = orig
+  assertTrue(not ok, "the raise still reaches the caller")
+  assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
+  assertTrue(lines[1]:find("[Set] reset all: 0 rows", 1, true) ~= nil, tostring(lines[1]))
+  assertTrue(lines[1]:find("stopped by an error", 1, true) == nil, tostring(lines[1]))
   local after = setLines(function() NS.Schema:Set("settings.qualityThreshold", 3) end)
   NS.Schema:Set("settings.qualityThreshold", 0)
   assertEqual(#after, 1, "the seam must log again once the raising reset is over")

@@ -58,7 +58,12 @@ per row.
   which logs exactly `[Set] reset all: N rows`. N is the rows whose value changed, so a press with
   every row already at its default logs `0 rows`. The library's own `count` is not used, because it
   includes rows already at their default.
-- The degraded fallback `CliResetAll` brackets its own walk the same way.
+- A walk that raises part-way still logs its one line, counting the rows changed before the raise,
+  with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
+  still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
+  raise of nil or false (documented upstream), so that raise gets no marker.
+- The degraded fallback `CliResetAll` brackets its own walk the same way. It owns its pcall, so it
+  marks every caught error, a nil or false raise included.
 - Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
   the line. `P:Batch` coalesces repaints and is not a bracket.
 - The Options descriptor carries no pair, because nothing here calls `O.RestoreDefaults` or

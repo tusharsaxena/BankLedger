@@ -197,7 +197,9 @@ if not lib then
   -- Bracketed like the library's walk (debug-logging-§10): the seam mutes its per-row [Set] line,
   -- tallies the rows whose value changed, and S.BulkEnd logs the one `[Set] reset all: N rows`.
   -- BulkEnd runs on the raising path too, so the mute cannot stick, and the error is re-raised
-  -- unchanged.
+  -- unchanged. Every caught error marks the line ` (stopped by an error)`. This walk has its own
+  -- pcall, so unlike the library it can mark a raise of nil or false too: BulkEnd gets a stand-in
+  -- `err`, and the re-raise still carries the original value.
   function Sl:CliResetAll()
     local S = NS.Schema
     local function walk()
@@ -205,7 +207,9 @@ if not lib then
       local ok, err = pcall(function()
         for _, row in ipairs(S.Schema) do S:Set(row.path, S:Default(row.path)) end
       end)
-      S.BulkEnd("reset", "all", nil, (not ok) and err or nil, { profileReset = false })
+      local failure = nil
+      if not ok then failure = (err ~= nil and err ~= false) and err or "raised without a value" end
+      S.BulkEnd("reset", "all", nil, failure, { profileReset = false })
       if not ok then error(err, 0) end
     end
     if NS.Panel and NS.Panel.Batch then NS.Panel:Batch(walk) else walk() end

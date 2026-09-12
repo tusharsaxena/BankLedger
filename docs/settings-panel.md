@@ -161,7 +161,9 @@ frameless** and every frame-only row applies.
   (`slash-commands-§3`'s own reference wording).
 
   With logging on, each act writes one settings line (`debug-logging-§10`), never a line per row.
-  **Defaults** and `/bl resetall` log `[Set] reset all: N rows`, N the rows whose value changed.
+  **Defaults** and `/bl resetall` log `[Set] reset all: N rows`, N the rows whose value changed. A
+  reset that raises part-way logs `[Set] reset all: N rows (stopped by an error)`, still once, and
+  re-raises the error.
   *Reset all settings* logs `[Set] reset account-wide settings to defaults (N rows)` beside its
   `[Data] reset-all wiped N ledger entries` line.
 

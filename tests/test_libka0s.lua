@@ -892,6 +892,51 @@ test("LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one pe
   assertEqual(set[1], "[Set] reset all: 2 rows")
 end)
 
+-- The fallback resetall with retentionDays' onChange raising `raised`; returns the [Set] lines,
+-- pcall's ok and err, and whether the seam logs a plain write again afterwards.
+local function degradedRaisingReset(raised)
+  local ns, m = loadDegraded()
+  ns:InitDB()
+  captureChat(function() ns.Slash:CliResetAll() end, m)   -- baseline: every row at its default
+  ns.Schema:Set("settings.qualityThreshold", 4)
+  local lines = {}
+  ns.Debug = function(tag, fmt, ...) lines[#lines + 1] = ("[%s] " .. fmt):format(tag, ...) end
+  ns.State.debug = true
+  local row = ns.Schema:FindRow("settings.retentionDays")
+  local orig = row.onChange
+  row.onChange = function() error(raised, 0) end
+  local ok, err = pcall(function() captureChat(function() ns.Slash:CliResetAll() end, m) end)
+  row.onChange = orig
+  local set = {}
+  for _, line in ipairs(lines) do
+    if line:find("[Set]", 1, true) then set[#set + 1] = line end
+  end
+  lines = {}
+  ns.Schema:Set("settings.trackItems", false)
+  return set, ok, err, #lines
+end
+
+test("LibKa0s-Slash degraded: a raising resetall logs ONE line marked as stopped, re-raises, and unmutes", function()
+  -- red under: the fallback passing no `err` to BulkEnd, or swallowing the error.
+  local set, ok, err, after = degradedRaisingReset("boom")
+  assertTrue(not ok, "the raising row's error must reach the caller")
+  assertEqual(err, "boom", "the error is re-raised unchanged")
+  assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
+  assertEqual(set[1], "[Set] reset all: 1 rows (stopped by an error)")
+  assertEqual(after, 1, "the seam logs a plain write again once the raising reset is over")
+end)
+
+test("LibKa0s-Slash degraded: a resetall raising nil is still marked, since the fallback owns its pcall", function()
+  -- Unlike the library, which hands bulkEnd `err = nil` for this raise, the fallback knows the walk
+  -- failed and marks the line. The re-raise still carries the original nil.
+  local set, ok, err, after = degradedRaisingReset(nil)
+  assertTrue(not ok, "the raise must reach the caller")
+  assertEqual(err, nil, "the original nil is re-raised")
+  assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
+  assertEqual(set[1], "[Set] reset all: 1 rows (stopped by an error)")
+  assertEqual(after, 1, "the seam logs a plain write again once the raising reset is over")
+end)
+
 test("LibKa0s-Slash: the seam loads after the schema it reads", function()
   loadsBefore("settings/Schema.lua", "settings/Slash.lua")
 end)
