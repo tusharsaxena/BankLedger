@@ -70,7 +70,7 @@ back to the tab.
 
 ## Add a slash command
 
-Append one entry to `NS.COMMANDS` (`settings/Schema.lua:396`). `/bl help` and the settings landing
+Append one entry to `NS.COMMANDS` (`settings/Schema.lua:489`). `/bl help` and the settings landing
 page both read from that table, so nothing else needs editing — the README documents no command
 list of its own (`documentation-§1` item 7). See [slash-dispatch.md](slash-dispatch.md) for what the
 library owns versus what stays the host's.

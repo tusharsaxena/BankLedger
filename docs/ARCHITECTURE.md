@@ -199,7 +199,7 @@ object (`core/BankLedger.lua:45`, the one-shot retention prune), the combat pair
 `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the same object (`core/BankLedger.lua:49-50`
 → `addon:OnCombatChanged` → `NS.Util.ApplyVisibility`, the two edges the **General visibility** rule
 answers on — without them a window opened out of combat would simply stay up through a pull), and
-`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1249`,
+`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1250`,
 `modules/SessionWindow.lua:673`, geometry flush).
 
 Change events are debounced into one reconcile pass per user action, and the baseline is held
