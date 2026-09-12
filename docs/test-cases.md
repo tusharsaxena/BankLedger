@@ -105,7 +105,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (122)
+### test_ledger.lua (123)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -169,6 +169,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:Diagnose lists the BagIndex members the client exposes
 - Ledger:Diagnose probes containers and reports only the ones with slots
 - Ledger:Diagnose never raises when no container is reachable
+- reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
 - Ledger:Enable survives a retired event and still binds the rest
 - Ledger:Enable binds the capture events even when several are retired
@@ -964,7 +965,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 15 |
-| test_ledger.lua | 122 |
+| test_ledger.lua | 123 |
 | test_database.lua | 48 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 53 |
@@ -991,4 +992,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **857** |
+| **Total** | **858** |

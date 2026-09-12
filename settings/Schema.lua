@@ -300,10 +300,10 @@ end
 -- names each one's owner and every writer, and that naming is the compliance. Check that list
 -- before writing a key under db.global directly, and add any new writer to it. The four are:
 --   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
---      (modules/Browser.lua:147) on drag-stop, on hide and at logout; emptied by B:ResetWindow (:185).
---   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written by
---      SW:SaveGeometry (modules/SessionWindow.lua:252) on the same three occasions; emptied by
---      SW:ResetWindow (:289).
+--      (modules/Browser.lua:147) on four occasions: drag-stop, resize-grip mouse-up (:1099), hide
+--      and logout. Emptied by B:ResetWindow (:185).
+--   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written on the
+--      same four by SW:SaveGeometry (modules/SessionWindow.lua:252, grip :533); emptied by SW:ResetWindow (:289).
 --   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
 --      (modules/Browser.lua:748), cleared by B:ResetView (:757).
 --   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table B:SetupMinimap

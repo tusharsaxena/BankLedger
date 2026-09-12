@@ -27,6 +27,6 @@ id-sets, which the Filters tab edits through `NS.Filters`, not through a compose
 
 | Major | Status |
 |---|---|
-| Perf | **Settled decline**, not re-offered. The `performance-§12` row in `docs/ARCHITECTURE.md` → Documented deviations records it: the capture engine never runs in combat, so every bucket would read `0.000` by construction. v1.31.0 does not touch `Perf.lua` (minor 10 → 10) or `PerfPanel.lua` (5 → 5), so no premise moved. |
+| Perf | **Settled decline**, not re-offered. The `performance-§12` row in `docs/ARCHITECTURE.md` → Documented deviations records it: the capture engine never runs in combat, so every bucket would read `0.000` by construction. v1.31.0 does not touch `Perf.lua` (minor 10 → 10) or `PerfPanel.lua` (5 → 5), so no premise moved. *(First cut only. The re-cut tag moves `Perf.lua` to minor 11; Perf is still not wired here, so the decline holds. See the addendum at the end of `01_DELTA.md`.)* |
 
 Every other major in the payload already has a lookup site (`01_DELTA.md` §3e).
