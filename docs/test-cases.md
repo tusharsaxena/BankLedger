@@ -883,7 +883,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
 - LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
 - LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
-- LibKa0s-Slash: CliResetAll keeps this addon's two carve-outs
+- LibKa0s-Slash: CliResetAll also resets the filter registry and the saved view
 - LibKa0s-Slash: the landing page and the chat help render the SAME rows
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key

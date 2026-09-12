@@ -231,9 +231,10 @@ function S:ComposeMaster(O)
   -- to raise — the button moved here rather than being copied.
   --
   -- Note for whoever reads this next: `/bl resetall` does NOT reach this, and neither does the
-  -- header/footer Defaults button. Both run Sl:CliResetAll, which walks the schema and the two
-  -- carve-outs and leaves the ledger alone, while this raises Sl:ResetEverything, which empties
-  -- db.global wholesale. options-ui-§12 wants all three behind ONE implementation; they are not.
+  -- header/footer Defaults button. Both run Sl:CliResetAll, which walks the schema, clears the
+  -- filter registry through NS.Filters, discards the saved view and leaves the ledger alone, while
+  -- this raises Sl:ResetEverything, which empties db.global wholesale. options-ui-§12 wants all
+  -- three behind ONE implementation; they are not.
   -- The divergence predates this tab and is now a RATIFIED ROW in docs/ARCHITECTURE.md's
   -- `## Documented deviations` register, which also carries what closing it costs. Reported and
   -- named, not quietly widened here.
@@ -269,8 +270,8 @@ end
 -- third primary tab pushing the page's own subjects along the band.
 --
 -- It is deliberately NOT in S.Schema and therefore NOT a setting. The lists themselves are an
--- architecture-§5 storage carve-out mutated through NS.Filters' copy-on-write (which re-caches the
--- capture gate and fires LedgerChanged); a schema row over the same key would hand `/bl set`,
+-- architecture-§5 structural registry whose one writer is NS.Filters, copy-on-write (it re-caches
+-- the capture gate and fires LedgerChanged); a schema row over the same key would hand `/bl set`,
 -- `/bl reset` and the reset sweep a second writer that skips all of that. `allRows` still answers
 -- S.Schema alone, so the CLI and every reset see exactly the settings and nothing else.
 S.BespokeRows = {
@@ -293,17 +294,21 @@ end
 -- NOTE: the debug LOGGING flag (NS.State.debug) is deliberately NOT a schema setting — it is
 -- session-only, set via `/bl debug on|off`, and always off after a reload (debug-logging-§5). The
 -- console WINDOW's visibility IS the `state.debugConsole` row the Master controls composer emits.
--- NOTE: four storage carve-outs are mutated by their owning module rather than through Schema:Set
--- (architecture-§5). None is a schema row, so none has a widget, a default or an onChange; check
--- this list before writing a key under db.global directly. All four are:
+-- NOTE: three storage carve-outs are mutated by their owning module rather than through Schema:Set.
+-- None is a schema row, so none has a widget, a default or an onChange; check this list before
+-- writing a key under db.global directly. None has an architecture-§5 `Documented deviations` row
+-- yet (docs/ARCHITECTURE.md ▸ Settings Schema). All three are:
 --   1. `settings.window` — the ledger window's geometry. Written by B:SaveGeometry
 --      (modules/Browser.lua:147), cleared by B:ResetWindow (:185).
 --   2. `settings.sessionWindow` — the session window's geometry. Written by SW:SaveGeometry
 --      (modules/SessionWindow.lua:252), cleared by SW:ResetWindow (:289).
 --   3. `savedView` — the account-wide column/sort baseline. Written by B:SaveView
 --      (modules/Browser.lua:748), cleared by B:ResetView (:757).
---   4. `blacklist` / `whitelist` — the filter id-sets, copy-on-write in modules/Filters.lua:81,
---      :83, :95, :112, :122-123, which then calls Database:FireLedgerChanged itself.
+-- `minimap.minimapPos` is the same kind of state, but LibDBIcon writes it on a button drag, into the
+-- table B:SetupMinimap hands it; it sits beside the `minimap.hide` row and no row addresses it.
+-- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
+-- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
+-- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.
 
 function S:FindRow(path)
   for _, row in ipairs(S.Schema) do
@@ -417,10 +422,10 @@ NS.COMMANDS = {
   { "list",     "List all settings",       function() NS.Slash:CliList() end },
   { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
   -- NOT the same act as the Master controls tab's "Reset all settings" button, and therefore NOT
-  -- the same words: this walks the schema and the two carve-outs and leaves the recorded ledger
-  -- alone, while the button raises KA0S_BANKLEDGER_RESETALL and empties db.global wholesale. The
-  -- description is slash-commands-§3's own reference wording. options-ui-§12 wants the two behind
-  -- ONE implementation; they are not, and that divergence is a ratified row in
+  -- the same words: this walks the schema, the filter registry and the saved view, and leaves the
+  -- recorded ledger alone, while the button raises KA0S_BANKLEDGER_RESETALL and empties db.global
+  -- wholesale. The description is slash-commands-§3's own reference wording. options-ui-§12 wants
+  -- the two behind ONE implementation; they are not, and that divergence is a ratified row in
   -- docs/ARCHITECTURE.md ▸ Documented deviations. Until it is closed, the two MUST NOT wear an
   -- identical label — a player who cannot tell which of two controls does more is exactly the
   -- failure that rule spends its length preventing.

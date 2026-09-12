@@ -102,6 +102,11 @@ none has a schema widget to drive:
 - `settings.sessionWindow`, the session window's geometry (`modules/SessionWindow.lua`);
 - `db.global.savedView`, the filter bar's saved baseline (`modules/Browser.lua`).
 
+`db.global.minimap.minimapPos` is the same kind of state with a different writer: LibDBIcon stores
+the button's position there on a drag, in the table `B:SetupMinimap` hands it, beside the
+`minimap.hide` row. None of the four has a `Documented deviations` row yet; see
+[ARCHITECTURE.md → Settings Schema](ARCHITECTURE.md#settings-schema).
+
 **The filter id-sets are a structural registry, not a carve-out** (`architecture-§5`).
 `db.global.blacklist` and `db.global.whitelist` are item-id sets the player adds to and removes from,
 and no row path names them. Their one writer is `NS.Filters` (`modules/Filters.lua`), which writes

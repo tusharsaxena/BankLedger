@@ -27,7 +27,9 @@ local O = NS.Helpers
 -- The category is registered EAGERLY at load so the entry is always in the options list; each
 -- body is built LAZILY on its first OnShow, because O.AceGUI lays out against the panel's current
 -- width, which is 0 before the panel is first shown.
--- Every write routes through NS.Schema:Set (validate → write → onChange); reads via :Get.
+-- Every settings write routes through NS.Schema:Set (validate → write → onChange); reads via :Get.
+-- The Filters tab is the exception: its id-lists are an architecture-§5 registry, and it writes
+-- them only through their one writer, NS.Filters.
 
 local ADDON_TAGLINE =
   "Keeps a passbook of every item and every coin that moves between your bags and your banks."

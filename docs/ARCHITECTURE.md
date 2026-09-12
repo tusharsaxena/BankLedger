@@ -86,7 +86,11 @@ The movement log (`db.global.ledger`) is recorded data rather than a collection 
 and `core/Database.lua` owns it.
 
 Three other pieces of persisted state are **storage carve-outs** with no schema row: the two windows'
-geometry and the saved ledger view. Row table and panel structure are in
+geometry and the saved ledger view. A fourth sits beside the `minimap.hide` row: LibDBIcon writes
+`minimapPos` into `db.global.minimap` when the player drags the minimap button. No row addresses
+any of the four, and none has a `Documented deviations` row yet, which the `architecture-§5` MUST NOT
+asks of persistent state written outside the helper. Whether each needs one, and whether a library's
+own write counts as this addon's, is an open owner decision. Row table and panel structure are in
 **[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
 **[schema.md](schema.md)**.
 
