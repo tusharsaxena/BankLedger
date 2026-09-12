@@ -116,14 +116,14 @@ NS.SafeToString = lib.SafeToString
 
 -- `lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED, and this paragraph is here so the next
 -- reader does not add it back. This addon draws its own close control — modules/Browser.lua's
--- `B:MakeCloseButton`, 24x24, class-coloured on hover — and all four of its title bars (ledger,
--- session, export modal, export copy) go through that one factory. It resolves the SAME shared
+-- `B:MakeCloseButton`, 24x24, class-coloured on hover — and all three of its title bars (ledger,
+-- session, export modal) go through that one factory. It resolves the SAME shared
 -- `close` mark, through `NS.Icon`, which knows the folder because core/MediaSetup.lua was handed
 -- the first vararg; so the two implementations agree on the art and differ only in size and hover
 -- tint, which is the line standalone-windows draws.
 --
 -- A wrapper here would have had exactly one consumer — its own spy test — and a published, tested
--- seam that no window reaches reads as coverage of those four title bars while covering nothing a
+-- seam that no window reaches reads as coverage of those three title bars while covering nothing a
 -- player can see. The library's factory is still used, on the windows that are the LIBRARY's: the
 -- debug console and its Copy box, whose controls it draws for itself once core/DebugLogSetup.lua
 -- passes `addonName`. That is where the "tell the library which folder is asking" argument actually
