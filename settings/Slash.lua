@@ -81,6 +81,26 @@ local function traceLedgerWipe(g)
   NS.Debug("Data", "reset-all wiped %s ledger entries", tostring(n))
 end
 
+--- debug-logging-§10: the same wipe replaces every stored setting, and that is logged ONCE, as a
+--- [Set] line worded by the act. It is the no-profile form of the profile handler's
+--- `reset profile '<name>' to defaults (N rows)`: a wholesale replacement, not a walk through the
+--- helper, so the write seam never runs and there is no per-row line to mute. N is the stored rows
+--- the wipe actually changes: a row already at its default is not counted, and neither is the
+--- session-only console row, which lives outside db.global where the wipe cannot reach it. So it is
+--- read BEFORE the wipe, beside the [Data] trace, while the old values are still there to compare.
+--- Worded apart from the [Data] line's "reset-all" on purpose: that line is the ledger purge, this
+--- one is the settings.
+local function traceSettingsReset(g)
+  if not (NS.State and NS.State.debug and NS.Debug) then return end
+  local S, n = NS.Schema, 0
+  for _, row in ipairs(S and S.Schema or {}) do
+    if not row.sessionOnly and not S.SameValue(S:ReadPath(g, row.path), row.default) then
+      n = n + 1
+    end
+  end
+  NS.Debug("Set", "reset account-wide settings to defaults (%d rows)", n)
+end
+
 --- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with
 --- NO PROFILE.
 ---
@@ -114,6 +134,7 @@ function Sl:ResetEverything()
   if db and db.global then
     local g = db.global
     traceLedgerWipe(g)
+    traceSettingsReset(g)
     for k in pairs(g) do g[k] = nil end
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
   end
@@ -172,11 +193,20 @@ if not lib then
   -- The one verb that must keep WORKING rather than merely explaining itself: it is the body the
   -- settings panel's Defaults button and the confirm-gated `/bl resetall` both share, and a reset
   -- that silently did nothing is worse than a missing help index.
+  --
+  -- Bracketed like the library's walk (debug-logging-§10): the seam mutes its per-row [Set] line,
+  -- tallies the rows whose value changed, and S.BulkEnd logs the one `[Set] reset all: N rows`.
+  -- BulkEnd runs on the raising path too, so the mute cannot stick, and the error is re-raised
+  -- unchanged.
   function Sl:CliResetAll()
+    local S = NS.Schema
     local function walk()
-      for _, row in ipairs(NS.Schema.Schema) do
-        NS.Schema:Set(row.path, NS.Schema:Default(row.path))
-      end
+      S.BulkBegin("reset", "all")
+      local ok, err = pcall(function()
+        for _, row in ipairs(S.Schema) do S:Set(row.path, S:Default(row.path)) end
+      end)
+      S.BulkEnd("reset", "all", nil, (not ok) and err or nil, { profileReset = false })
+      if not ok then error(err, 0) end
     end
     if NS.Panel and NS.Panel.Batch then NS.Panel:Batch(walk) else walk() end
     if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
@@ -231,6 +261,15 @@ local cli = lib:New({
   findRow      = function(path) return NS.Schema:FindRow(path) end,
   allRows      = function() return NS.Schema.Schema end,
   applyDefault = function(row) NS.Schema:Set(row.path, NS.Schema:Default(row.path)) end,
+
+  -- The bulk bracket (Slash minor 8, debug-logging-§10). CliResetAll, which is `/bl resetall` and
+  -- both Defaults controls, calls these around its row walk: the seam mutes its per-row [Set] line
+  -- and S.BulkEnd emits the one `[Set] reset all: N rows`, N the rows whose value changed. Always
+  -- the pair, never one without the other. The Options descriptor gets no pair: this
+  -- addon never calls O.RestoreDefaults or O.RestoreAllDefaults (settings/OptionsSetup.lua).
+  -- Direct references are safe because the TOC loads settings/Schema.lua first.
+  bulkBegin    = NS.Schema.BulkBegin,
+  bulkEnd      = NS.Schema.BulkEnd,
 
   -- This addon's schema groups its rows under `group`, which names the TAB it draws on; the
   -- library defaults to `row.page`. Without this every row collapses under one "[settings]" heading

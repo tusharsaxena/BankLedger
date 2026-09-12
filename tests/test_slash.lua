@@ -198,6 +198,134 @@ test("Slash:CliResetAll restores the schema AND clears the filter lists", functi
   assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0)
 end)
 
+-- ── A bulk reset is ONE [Set] line (debug-logging-§10) ─────────────────────────────────────────
+--
+-- Standard v2.44.0: a reset through the settings helper is logged as ONE `[Set] <act> <scope>: N rows`
+-- line and MUST NOT emit a per-row `[Set]` line, while each row's onChange still runs. `/bl resetall`
+-- walks every row through the write seam, which logged every one of them. The library's Slash minor 8
+-- brackets that walk (`bulkBegin` / `bulkEnd`), and the seam mutes itself inside the bracket.
+
+-- Every [Set] line one act writes to the debug buffer, with logging on for the act alone.
+local function setLines(fn)
+  local savedDebug = NS.State.debug
+  NS.State.debug = true
+  NS.DebugLog:Clear()
+  local ok, err = pcall(fn)
+  local out = {}
+  for _, line in ipairs(NS.DebugLog.buffer) do
+    if line:find("[Set]", 1, true) then out[#out + 1] = line end
+  end
+  NS.DebugLog:Clear()
+  NS.State.debug = savedDebug
+  if not ok then error(err, 0) end
+  return out
+end
+
+test("Slash: /bl resetall logs ONE [Set] reset all line counting the rows it CHANGED, and no per-row [Set]", function()
+  -- N is the rows whose value actually changed, not every row walked: a row already at its default
+  -- is not counted (debug-logging-§10). The walk visits all fifteen rows and two of them move.
+  -- red under: dropping bulkBegin/bulkEnd from the descriptor (a `[Set] <path> = <value>` line per
+  -- row), muting the seam without emitting the summary (none), or logging the library's `count`
+  -- (15, every row applyDefault returned from).
+  captureChat(function() Sl:CliResetAll() end)   -- baseline: every row at its default
+  captureChat(function() Sl:CliSet("settings.qualityThreshold 4") end)
+  captureChat(function() Sl:CliSet("settings.rowHoverAlpha 0.3") end)
+  local lines
+  captureChat(function() lines = setLines(function() Sl:OnSlash("resetall") end) end)
+  assertEqual(#NS.Schema.Schema, 15, "the walk visits every schema row")
+  assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
+  assertTrue(lines[1]:find("[Set] reset all: 2 rows", 1, true) ~= nil,
+    "the line names the act, the scope and the rows changed, got: " .. tostring(lines[1]))
+  assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
+end)
+
+test("Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row", function()
+  -- The act still happened, so it still gets its one line. It changed nothing, so N is 0.
+  captureChat(function() Sl:CliResetAll() end)
+  local lines
+  captureChat(function() lines = setLines(function() Sl:CliResetAll() end) end)
+  assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
+  assertTrue(lines[1]:find("[Set] reset all: 0 rows", 1, true) ~= nil, tostring(lines[1]))
+end)
+
+-- A host act wrapped around the library's reset, one bracket inside another.
+local function nestedResetAll(info)
+  NS.Schema.BulkBegin("reset", "all")
+  local ok, err = pcall(function() Sl:CliResetAll() end)
+  NS.Schema.BulkEnd("reset", "all", 0, (not ok) and err or nil, info)
+  if not ok then error(err, 0) end
+end
+
+test("Slash: a reset nested inside another bracket logs ONE line, for the outermost act", function()
+  -- The inner bracket's close must not emit: its writes join the outer tally, and the one line comes
+  -- when the depth returns to 0.
+  -- red under: emitting from every BulkEnd rather than only the outermost.
+  captureChat(function() Sl:CliResetAll() end)
+  NS.Schema:Set("settings.qualityThreshold", 4)
+  NS.Schema:Set("settings.trackItems", false)
+  local lines
+  captureChat(function()
+    lines = setLines(function() nestedResetAll({ profileReset = false }) end)
+  end)
+  assertEqual(#lines, 1, "one line for the nested act, got:\n" .. table.concat(lines, "\n"))
+  assertTrue(lines[1]:find("[Set] reset all: 2 rows", 1, true) ~= nil, tostring(lines[1]))
+end)
+
+test("Slash: a bracket reporting profileReset logs nothing, even around a nested reset", function()
+  -- The profile-event handler logs a whole-profile reset once; no bracket may add a second line.
+  captureChat(function() Sl:CliResetAll() end)
+  NS.Schema:Set("settings.qualityThreshold", 4)
+  local lines
+  captureChat(function()
+    lines = setLines(function() nestedResetAll({ profileReset = true }) end)
+  end)
+  assertEqual(#lines, 0, "no [Set] line at all, got:\n" .. table.concat(lines, "\n"))
+  local after = setLines(function() NS.Schema:Set("settings.qualityThreshold", 1) end)
+  NS.Schema:Set("settings.qualityThreshold", 0)
+  assertEqual(#after, 1, "and the seam logs again afterwards")
+end)
+
+test("Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards", function()
+  -- Only the LOG collapses. A mute that also skipped onChange would leave the capture gate judging
+  -- movements by settings the reset had replaced; a mute that stuck would silence every later write.
+  local fired, withOnChange = 0, 0
+  local wrapped = {}
+  for _, row in ipairs(NS.Schema.Schema) do
+    if row.onChange then
+      local orig = row.onChange
+      wrapped[row] = orig
+      withOnChange = withOnChange + 1
+      row.onChange = function(v) fired = fired + 1; return orig(v) end
+    end
+  end
+  local ok, err = pcall(function() captureChat(function() Sl:CliResetAll() end) end)
+  for row, orig in pairs(wrapped) do row.onChange = orig end
+  if not ok then error(err, 0) end
+  assertEqual(fired, withOnChange, "every row's onChange must fire once inside the bracket")
+
+  local lines = setLines(function() NS.Schema:Set("settings.qualityThreshold", 2) end)
+  NS.Schema:Set("settings.qualityThreshold", 0)
+  assertEqual(#lines, 1, "a single write after the reset is logged, once")
+  assertTrue(lines[1]:find("settings.qualityThreshold = 2", 1, true) ~= nil, tostring(lines[1]))
+end)
+
+test("Slash: a row that raises mid-resetall still closes the bracket, so the seam is not left muted", function()
+  -- The library runs bulkEnd whenever bulkBegin ran, then re-raises. The host's depth counter must
+  -- unwind on that path, or one bad row mutes the seam for the rest of the session.
+  local row = NS.Schema:FindRow("settings.retentionDays")
+  local orig = row.onChange
+  row.onChange = function() error("boom") end
+  local ok = pcall(function()
+    captureChat(function() setLines(function() Sl:CliResetAll() end) end)
+  end)
+  row.onChange = orig
+  assertTrue(not ok, "the raising row's error must reach the caller")
+
+  local after = setLines(function() NS.Schema:Set("settings.qualityThreshold", 3) end)
+  NS.Schema:Set("settings.qualityThreshold", 0)
+  assertEqual(#after, 1, "the seam must log again once the raising reset is over")
+end)
+
 -- ── Dispatch and help ──────────────────────────────────────────────────────────
 
 test("Slash: a bare /bl prints the help index", function()

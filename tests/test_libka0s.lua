@@ -868,6 +868,30 @@ test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining
   assertEqual(out[#out], "|cff00ffff[BL]|r All settings reset to defaults")
 end)
 
+test("LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one per row", function()
+  -- The fallback walk is this addon's own, so it has to bracket itself the way the library's
+  -- CliResetAll does (debug-logging-§10). Degraded, NS.Debug is the DebugLog stub's no-op, so the
+  -- case installs a recorder in its place.
+  -- red under: the fallback walking rows through the seam with no bracket around it.
+  -- N is the rows whose value changed (two), not the rows walked.
+  local ns, m = loadDegraded()
+  ns:InitDB()
+  captureChat(function() ns.Slash:CliResetAll() end, m)   -- baseline: every row at its default
+  ns.Schema:Set("settings.qualityThreshold", 4)
+  ns.Schema:Set("settings.trackItems", false)
+  local lines = {}
+  ns.Debug = function(tag, fmt, ...) lines[#lines + 1] = ("[%s] " .. fmt):format(tag, ...) end
+  ns.State.debug = true
+  captureChat(function() ns.Slash:CliResetAll() end, m)
+  local set = {}
+  for _, line in ipairs(lines) do
+    if line:find("[Set]", 1, true) then set[#set + 1] = line end
+  end
+  assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
+  assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
+  assertEqual(set[1], "[Set] reset all: 2 rows")
+end)
+
 test("LibKa0s-Slash: the seam loads after the schema it reads", function()
   loadsBefore("settings/Schema.lua", "settings/Slash.lua")
 end)

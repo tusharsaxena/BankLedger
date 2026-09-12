@@ -514,6 +514,11 @@ redraw, so this is the only place the fix is actually observable.
    you watch. (This path was already correct: the lists are structural and ride `LedgerChanged`.)
 8. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
    the reset values.
+9. `/bl debug on` and open the console (`/bl debug`). Run `/bl set settings.qualityThreshold 4` and
+   `/bl set settings.rowHoverAlpha 0.3`, then `/bl resetall`. The console shows exactly **one**
+   `[Set] reset all: 2 rows` line for the reset, with no `[Set] settings.… = …` line under it. Run
+   `/bl resetall` again: one `[Set] reset all: 0 rows`. Press the General page's **Defaults** and
+   expect the same one line. Then `/bl debug off` (`debug-logging-§10`).
 
 ## S-21 · The shared marks
 

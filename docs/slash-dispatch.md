@@ -43,6 +43,12 @@ match, so it was left alone rather than folded into the rename.
   filter lists, an `architecture-§5` registry, are reset through their writer, `NS.Filters:ClearAll`.
   The saved ledger view, a carve-out, goes back to its stock state. The library only knows about schema
   rows.
+- **The bulk bracket** (`bulkBegin` / `bulkEnd`, Slash minor 8), so a reset logs one line
+  (`debug-logging-§10`). Both are `settings/Schema.lua`'s `S.BulkBegin` / `S.BulkEnd`. While the
+  library's `CliResetAll` walks the rows, the write seam mutes its per-row `[Set]` line and counts the
+  rows whose value changed. The walk then logs exactly `[Set] reset all: N rows`, which is `0 rows`
+  when everything was already at its default. The degraded fallback `CliResetAll` brackets its own
+  walk the same way.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
 landing page both read from that one table.

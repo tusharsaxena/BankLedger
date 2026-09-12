@@ -814,6 +814,79 @@ test("Slash: ResetEverything traces the recorded entries it wiped, once", functi
     "the line names the count, got: " .. tostring(lines[1]))
 end)
 
+-- ── A bulk reset is ONE [Set] line (debug-logging-§10) ─────────────────────────────────────────
+
+-- Every debug line one act writes, with logging on for the act alone and chat muted.
+local function actLines(fn)
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local savedDebug = NS.State.debug
+  NS.State.debug = true
+  NS.DebugLog:Clear()
+  local ok, err = pcall(fn)
+  local out = {}
+  for _, line in ipairs(NS.DebugLog.buffer) do out[#out + 1] = line end
+  NS.DebugLog:Clear()
+  NS.State.debug = savedDebug
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+  return out
+end
+
+local function withTag(lines, tag)
+  local out = {}
+  for _, line in ipairs(lines) do
+    if line:find(tag, 1, true) then out[#out + 1] = line end
+  end
+  return out
+end
+
+test("Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]", function()
+  -- The header/footer Defaults button is P:RestoreDefaults, which runs the library's CliResetAll
+  -- inside its bracket. The window re-anchoring after it writes geometry, a carve-out outside the
+  -- seam, so it adds no [Set] line of its own.
+  -- P:Batch wraps that walk, and it is not a bracket, so it adds no second line.
+  -- red under: dropping bulkBegin/bulkEnd from the Slash descriptor.
+  actLines(function() P:RestoreDefaults() end)   -- baseline: every row at its default
+  NS.Schema:Set("settings.rowHoverAlpha", 0.3)
+  NS.Schema:Set("settings.rowStripeAlpha", 0.2)
+  local set = withTag(actLines(function() P:RestoreDefaults() end), "[Set]")
+  assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
+  assertTrue(set[1]:find("[Set] reset all: 2 rows", 1, true) ~= nil, "got: " .. tostring(set[1]))
+  assertEqual(NS.Schema:Get("settings.rowHoverAlpha"), 0.10, "the reset still happened")
+end)
+
+test("Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row", function()
+  actLines(function() P:RestoreDefaults() end)
+  local set = withTag(actLines(function() P:RestoreDefaults() end), "[Set]")
+  assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
+  assertTrue(set[1]:find("[Set] reset all: 0 rows", 1, true) ~= nil, "got: " .. tostring(set[1]))
+end)
+
+test("Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line", function()
+  -- The wholesale reset replaces every stored setting along with the ledger. It is not a walk through
+  -- the helper, so the seam never runs, but debug-logging-§10 still wants the settings reset logged
+  -- once, as a [Set] line worded by the act (the no-profile form of `reset profile '<name>' to
+  -- defaults (N rows)`). N is the stored rows the wipe actually changes: a row already at its
+  -- default is not counted, nor is the session-only console row, which lives outside db.global.
+  -- The wording deliberately avoids "reset-all", so the [Data] case above still sees ONE such line.
+  -- red under: dropping the [Set] line from Sl:ResetEverything, or counting every stored row (14).
+  actLines(function() NS.Slash:ResetEverything() end)   -- baseline: every row at its default
+  NS.Schema:Set("settings.qualityThreshold", 4)
+  NS.Schema:Set("settings.trackMoney", false)
+  NS.db.global.ledger = {
+    { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
+  }
+  local lines = actLines(function() NS.Slash:ResetEverything() end)
+  local set, data = withTag(lines, "[Set]"), withTag(lines, "[Data]")
+
+  assertEqual(#data, 1, "the [Data] line for the ledger wipe is unchanged")
+  assertEqual(#set, 1, "one [Set] line for the settings reset, got:\n" .. table.concat(set, "\n"))
+  assertTrue(set[1]:find("[Set] reset account-wide settings to defaults (2 rows)", 1, true) ~= nil,
+    "got: " .. tostring(set[1]))
+  assertTrue(set[1]:find("reset-all", 1, true) == nil, "must not collide with the [Data] line's word")
+end)
+
 -- ── The two resets are two acts, and they must not wear one name ────────────────────────────────
 --
 -- options-ui-§12 requires the General page's Reset all settings control, the header/footer Defaults

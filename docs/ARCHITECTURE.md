@@ -48,6 +48,25 @@ derives from the TOC. File-by-file table, load-order notes and the locale seam i
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
+**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). `NS.Schema:Set` logs one
+`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, which
+`settings/Slash.lua` hands to the Slash descriptor as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
+Inside the bracket the seam mutes that line, and it counts each write whose stored value actually
+changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
+per row.
+- `/bl resetall` and both Defaults controls (`P:RestoreDefaults`) reach the library's `CliResetAll`,
+  which logs exactly `[Set] reset all: N rows`. N is the rows whose value changed, so a press with
+  every row already at its default logs `0 rows`. The library's own `count` is not used, because it
+  includes rows already at their default.
+- The degraded fallback `CliResetAll` brackets its own walk the same way.
+- Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
+  the line. `P:Batch` coalesces repaints and is not a bracket.
+- The Options descriptor carries no pair, because nothing here calls `O.RestoreDefaults` or
+  `O.RestoreAllDefaults`.
+- `Sl:ResetEverything` is a wholesale wipe, not a walk through the seam. It logs one
+  `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
+  already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
+
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (6) ·
 **Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at

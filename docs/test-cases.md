@@ -665,7 +665,7 @@ badge and any count quoted in the docs must agree with it.
 - Schema: no row uses the pre-library field spellings
 - Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
 
-### test_slash.lua (33)
+### test_slash.lua (39)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -690,6 +690,12 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliReset echoes the colored key = value shape, like get and set
 - Slash:CliReset echoes the stored value, not the requested one
 - Slash:CliResetAll restores the schema AND clears the filter lists
+- Slash: /bl resetall logs ONE [Set] reset all line counting the rows it CHANGED, and no per-row [Set]
+- Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
+- Slash: a reset nested inside another bracket logs ONE line, for the outermost act
+- Slash: a bracket reporting profileReset logs nothing, even around a nested reset
+- Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards
+- Slash: a row that raises mid-resetall still closes the bracket, so the seam is not left muted
 - Slash: a bare /bl prints the help index
 - Slash: the help index has one row per COMMANDS entry, plus the header
 - Slash: the help header names both the short verb and its alias
@@ -701,7 +707,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (37)
+### test_panel.lua (40)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -738,6 +744,9 @@ badge and any count quoted in the docs must agree with it.
 - Slash: the restored store does not ALIAS the defaults table
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
 - Slash: ResetEverything traces the recorded entries it wiped, once
+- Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
+- Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
+- Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
 - Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
 - Slash: while the split stands, the button and the verb do NOT share a label
 
@@ -835,7 +844,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (60)
+### test_libka0s.lua (61)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -896,6 +905,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
+- LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one per row
 - LibKa0s-Slash: the seam loads after the schema it reads
 
 ### test_vendor_sync.lua (3)
@@ -975,14 +985,14 @@ badge and any count quoted in the docs must agree with it.
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
-| test_slash.lua | 33 |
-| test_panel.lua | 37 |
+| test_slash.lua | 39 |
+| test_panel.lua | 40 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 60 |
+| test_libka0s.lua | 61 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
@@ -992,4 +1002,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **858** |
+| **Total** | **868** |

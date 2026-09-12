@@ -160,6 +160,11 @@ frameless** and every frame-only row applies.
   settings*, and `/bl resetall` is described as *Reset every setting to defaults*
   (`slash-commands-§3`'s own reference wording).
 
+  With logging on, each act writes one settings line (`debug-logging-§10`), never a line per row.
+  **Defaults** and `/bl resetall` log `[Set] reset all: N rows`, N the rows whose value changed.
+  *Reset all settings* logs `[Set] reset account-wide settings to defaults (N rows)` beside its
+  `[Data] reset-all wiped N ledger entries` line.
+
 ## Rows
 
 `settings/Schema.lua` is the single source: it drives the panel widgets, the slash `get`/`set`/
