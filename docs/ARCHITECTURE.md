@@ -80,8 +80,12 @@ renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, 
 `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
 **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
 selection is `ctx.activeSubTab["Filters"]`, session state and never persisted. Each list is one
-LibKa0s `O.IdList` (`kind = "item"`, v1.35.0): the widget resolves an item id, a link or a cached
-item's name and calls back into `NS.Filters`, which stays the lists' only writer. That write fires
+LibKa0s `O.IdList` (`kind = "item"`, v1.35.0): the widget resolves an item id, a link or an item's
+name and calls back into `NS.Filters`, which stays the lists' only writer. The client has no
+item-name search (its name lookup answers only for items carried this session), so the list passes
+`candidates`: both lists' ids plus every item id the ledger recorded, read from existing state. The
+widget names them, suggests matches as the player types (one row per crafted-quality rank), and
+refuses a shared name until one is picked. That write fires
 `LedgerChanged` synchronously, so the tab's own listener is held off for it (`filterWrite`'s
 `ctx.__filterWrite`) and the widget's redraw goes through `ctx.rebuild` = `O.RefreshPanel(ctx, true)`:
 one add or Remove repaints this page once, rather than twice across every rendered page.
