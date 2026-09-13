@@ -391,10 +391,18 @@ end)
 -- lists exclusive and db.global.{blacklist,whitelist} keep their [itemID] = true shape. The names
 -- come from the kit's opt-in id lookups, which tests/wow_mock.lua installs (override 13).
 
---- Open Filters on `listKey` with the two lists seeded as given; hand back what the tab drew.
-local function filtersTab(listKey, black, white)
+-- The ledger a Filters case replaced, boxed so a nil one comes back as nil; leaveFilters restores it.
+local savedLedger
+
+--- Open Filters on `listKey` with the two lists seeded as given, and the ledger holding `ledgerRows`
+--- (empty when omitted); hand back what the tab drew. The ledger is set every time because the
+--- lists' add box takes its name candidates from it: rows left behind by another suite would be
+--- unnamed ids, and a typed name waits on a lookup while any candidate is unnamed.
+local function filtersTab(listKey, black, white, ledgerRows)
   NS.db.global.blacklist = black or {}
   NS.db.global.whitelist = white or {}
+  if savedLedger == nil then savedLedger = { NS.db.global.ledger } end
+  NS.db.global.ledger = ledgerRows or {}
   local c = ctxFor("General")
   c.activeSubTab = { Filters = listKey }
   return renderTab("General", "Filters"), c
@@ -429,6 +437,8 @@ end
 
 local function leaveFilters(c)
   NS.db.global.blacklist, NS.db.global.whitelist = {}, {}
+  if savedLedger then NS.db.global.ledger = savedLedger[1] end
+  savedLedger = nil
   c.activeSubTab = nil
   c.activeTab = GENERAL_TABS[1]
 end
@@ -633,6 +643,215 @@ test("Filters tab: a list change from elsewhere still repaints the open tab", fu
   local boxes = editBoxesMadeBy(function() NS.Filters:AddBlacklist(4306) end)
   assertEqual(boxes, 1, "the open tab repaints for an outside change")
   leaveFilters(c)
+end)
+
+test("Filters tab: an entry's name is drawn in its item quality color", function()
+  -- The client's ITEM_QUALITY_COLORS[q].hex is a whole color code, "|cff" prefix included, and
+  -- IdList prepends it as-is. red under: a palette hex without the prefix (the line read
+  -- "ff0070ddRuned Band|r"), which is what tests/wow_mock.lua answered before it matched the client.
+  mocks.addIdRecord("item", 99104, "Runed Band", 134400, nil, 3)
+  local ok, made, c = pcall(filtersTab, "blacklist", { [99104] = true })
+  mocks.__idRecords.item[99104] = nil
+  if not ok then error(made, 0) end
+  local line = firstOf(made, "InteractiveLabel", "Runed Band")
+  assertTrue(line ~= nil, "the entry is drawn")
+  assertEqual(line.text:find("|cff0070ddRuned Band|r", 1, true), 1,
+    "a rare item's name opens in the rare color code")
+  leaveFilters(c)
+end)
+
+-- ── the Filters tab's suggestions (LibKa0s v1.35.0 re-cut, issue #31) ────────────────────────
+--
+-- The client has no item-name search: C_Item's name lookups answer only for an item the player
+-- carries or carried this session. So the add box gets `candidates` -- every item id the ledger has
+-- recorded, plus both lists' ids -- which the widget names itself, lists as the player types, and
+-- resolves a typed name against. The dropdown is a library frame, not an AceGUI widget, so a case
+-- records the frames CreateFrame hands out and finds the one carrying `rows`, and reads each row off
+-- the library's own record on it (`row.entry`, `row.labelText`): the kit's frame stub keeps no
+-- FontString text. This harness's C_Timer.After is a no-op, so each case queues the typing debounce
+-- and runs it by hand.
+
+local ZEPHYR = "Potion of the Hushed Zephyr"
+local ZEPHYR_IDS = { 191395, 191396, 191397 }
+-- The words the add box's refusal and tooltip end with. Spelled here, not read off settings/Panel.lua:
+-- a case that reads its answer out of the thing it tests agrees with itself whatever that says.
+local NAME_HINT = "Names work for items you carry (or carried this session), items on either list "
+  .. "and items your ledger has recorded; otherwise use the id or shift-click a link."
+
+-- The dropdown, once a case has seen it built: there is one per library instance, built the first
+-- time it shows, so later cases find it here rather than among their own frames.
+local seenDropdown
+
+--- One suggestion case. `fn(s)` gets:
+---   s.item(id, name, quality, tier) -- a cached item record, removed again when the case ends;
+---   s.rows(ids)                     -- ledger rows recording `ids`, plus a gold row with no item;
+---   s.notCarried()                  -- C_Item's name lookups answer nothing for a plain name, as
+---                                      the client's do for an item not in the bags this session;
+---   s.flush()                       -- run the queued timers (the typing debounce, a lookup);
+---   s.dropdown(), s.c               -- the dropdown frame; set s.c to the ctx to leave Filters.
+local function suggestCase(name, fn)
+  test(name, function()
+    local realFrame, realAfter = mocks.CreateFrame, mocks.C_Timer.After
+    local realInstant, realInfo = mocks.C_Item.GetItemInfoInstant, mocks.C_Item.GetItemInfo
+    local frames, queue, seeded = {}, {}, {}
+    mocks.CreateFrame = function(...)
+      local f = realFrame(...)
+      frames[#frames + 1] = f
+      return f
+    end
+    mocks.C_Timer.After = function(_, cb) queue[#queue + 1] = cb end
+    local s = {}
+    function s.item(id, itemName, quality, tier)
+      mocks.addIdRecord("item", id, itemName, 134400, nil, quality)
+      if tier then mocks.setCraftedQuality(id, tier) end
+      seeded[#seeded + 1] = id
+    end
+    function s.rows(ids)
+      local rows = {}
+      for i, id in ipairs(ids) do rows[i] = { itemID = id, quantity = 1 } end
+      rows[#rows + 1] = { quantity = 100 }
+      return rows
+    end
+    function s.notCarried()
+      local function byName(real)
+        return function(key, ...)
+          if type(key) == "string" and not tonumber(key) and not key:find("item:%d") then
+            return nil
+          end
+          return real(key, ...)
+        end
+      end
+      mocks.C_Item.GetItemInfoInstant = byName(realInstant)
+      if realInfo then mocks.C_Item.GetItemInfo = byName(realInfo) end
+    end
+    function s.flush()
+      for _ = 1, 50 do
+        if #queue == 0 then return end
+        local due = queue
+        queue = {}
+        for _, cb in ipairs(due) do cb() end
+      end
+    end
+    function s.dropdown()
+      for i = #frames, 1, -1 do
+        if type(frames[i].rows) == "table" then seenDropdown = frames[i] end
+      end
+      return seenDropdown
+    end
+    local ok, err = pcall(fn, s)
+    mocks.CreateFrame, mocks.C_Timer.After = realFrame, realAfter
+    mocks.C_Item.GetItemInfoInstant, mocks.C_Item.GetItemInfo = realInstant, realInfo
+    for _, id in ipairs(seeded) do
+      mocks.__idRecords.item[id] = nil
+      mocks.__craftedQuality[id] = nil
+    end
+    if s.c then leaveFilters(s.c) end
+    if not ok then error(err, 0) end
+  end)
+end
+
+--- Type into the add box as AceGUI's EditBox reports it, then let the debounce run.
+local function typeText(made, text, s)
+  local box = firstOf(made, "EditBox")
+  assertTrue(box ~= nil, "the Filters tab has no add box")
+  box:SetText(text)
+  box:__fire("OnTextChanged", text)
+  s.flush()
+end
+
+--- The ids the dropdown's visible rows carry, in order; "" while it is hidden.
+local function shownIds(s)
+  local dd = s.dropdown()
+  if not (dd and dd:IsShown()) then return "" end
+  local ids = {}
+  for _, row in ipairs(dd.rows) do
+    if row:IsShown() and row.entry then ids[#ids + 1] = row.entry.id end
+  end
+  return table.concat(ids, ",")
+end
+
+suggestCase("Filters tab: typing lists the items the ledger recorded and the other list holds", function(s)
+  -- red under: no candidates. The bags are empty, so the dropdown would have nothing to list.
+  s.item(99101, "Glimmering Opal")
+  s.item(99102, "Glimmering Shard")
+  local made
+  made, s.c = filtersTab("blacklist", nil, { [99102] = true }, s.rows({ 99101, 99101 }))
+  typeText(made, "glimmering", s)
+  assertEqual(shownIds(s), "99101,99102", "the ledger's item and the whitelist's, each once")
+end)
+
+suggestCase("Filters tab: a name the client's lookup cannot find resolves through the ledger's ids", function(s)
+  -- The owner's case: an item the player does not carry, so C_Item answers nothing for its name.
+  -- red under: no candidates (the name resolves to nothing and the add is refused).
+  s.item(99103, "Gossamer Thread")
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows({ 99103 }))
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, "gossamer thread") end)
+  assertEqual(table.concat(calls, ","), "99103")
+end)
+
+suggestCase("Filters tab: picking a suggestion adds it through the list's own writer, once", function(s)
+  -- red under: no candidates (no row to pick), or a pick that reaches the writer twice.
+  s.item(99101, "Glimmering Opal")
+  local made
+  made, s.c = filtersTab("whitelist", nil, nil, s.rows({ 99101 }))
+  typeText(made, "glimm", s)
+  local dd = s.dropdown()
+  assertTrue(dd ~= nil and dd:IsShown(), "the dropdown is up")
+  local black
+  local white = spyWriter("AddWhitelist", function()
+    black = spyWriter("AddBlacklist", function() dd.rows[1]:__fire("OnClick") end)
+  end)
+  assertEqual(table.concat(white, ","), "99101", "one call, with the picked id")
+  assertEqual(#black, 0, "the other list's writer is not called")
+  assertTrue(NS.db.global.whitelist[99101] == true, "the pick landed on the whitelist")
+end)
+
+suggestCase("Filters tab: a name three ranks share lists every rank; Enter without a pick adds none", function(s)
+  for tier, id in ipairs(ZEPHYR_IDS) do s.item(id, ZEPHYR, 1, tier) end
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows(ZEPHYR_IDS))
+  typeText(made, ZEPHYR, s)
+  -- red under: no candidates (nothing listed, the player cannot pick a rank)
+  assertEqual(shownIds(s), "191395,191396,191397", "every rank is its own row")
+  for i = 1, 3 do
+    assertTrue(s.dropdown().rows[i].labelText:find("Tier" .. i, 1, true) ~= nil,
+      "row " .. i .. " is labeled with its rank")
+  end
+  local box = firstOf(made, "EditBox")
+  local calls = spyWriter("AddBlacklist", function() box:__fire("OnEnterPressed", ZEPHYR) end)
+  -- red under: no candidates, where the client's one answer for the name adds its first rank
+  assertEqual(#calls, 0, "neither one rank nor all three")
+  assertTrue(firstOf(made, "Label", "Several items are named '" .. ZEPHYR
+    .. "' \226\128\148 pick one from the list, or use the id.") ~= nil, "the refusal says why")
+  assertEqual(shownIds(s), "191395,191396,191397", "the ranks stay listed to pick from")
+  calls = spyWriter("AddBlacklist", function() s.dropdown().rows[3]:__fire("OnClick") end)
+  assertEqual(table.concat(calls, ","), "191397", "the picked rank, and only it")
+end)
+
+suggestCase("Filters tab: a name nothing knows is refused, saying where names come from", function(s)
+  -- red under: the library's default hint, which says "ones this list knows" and never that the
+  -- ledger's items count too.
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist")
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, "Unseen Relic") end)
+  assertEqual(#calls, 0, "nothing reaches the writer")
+  assertTrue(firstOf(made, "Label", "No item named 'Unseen Relic' that the game can find. "
+    .. NAME_HINT) ~= nil, "the refusal ends with the tab's own hint")
+  -- And the box's tooltip says it before anything is typed. GameTooltip is nil in this harness
+  -- (tests/wow_mock.lua override 10), so the case lends it a recorder for one hover.
+  local lines = {}
+  mocks.GameTooltip = {
+    SetOwner = function() end, SetText = function() end, Show = function() end,
+    Hide = function() end, AddLine = function(_, text) lines[#lines + 1] = text end,
+  }
+  local ok, err = pcall(function() firstOf(made, "EditBox"):__fire("OnEnter") end)
+  mocks.GameTooltip = nil
+  if not ok then error(err, 0) end
+  assertTrue(type(lines[1]) == "string" and lines[1]:find(NAME_HINT, 1, true) ~= nil,
+    "the add box's tooltip carries the hint")
 end)
 
 test("Panel: every renderable schema row reaches the page on ITS OWN tab", function()

@@ -60,7 +60,9 @@
 --                         Slash/Options work rather than smuggled into a harness swap.
 --  10. GameTooltip      — same argument: the base defines it and seven `if GameTooltip then` guards
 --                         change branch. Left nil here so this swap is behavior-neutral.
---  13. id lookups       — TAKEN from the kit's opt-in tests/_kit/mock_ids.lua (revision 20), for the
+--  13. id lookups       — TAKEN from the kit's opt-in tests/_kit/mock_ids.lua (revision 20), with its
+--                         second opt-in M.installIdSuggestions() for the add box's suggestion
+--                         dropdown (tier lookups, C_SpellBook, an EditBox `editbox` frame), for the
 --                         Filters tab's LibKa0s IdList, which resolves an item typed by NAME. This
 --                         file's own C_Item.GetItemInfoInstant is gone: it answered an id and nothing
 --                         else, no production file called it, and the installer only fills a key
@@ -529,12 +531,14 @@ return function()
   M.ITEM_QUALITY_COLORS = setmetatable({}, {
     __index = function(_, q)
       local rgb = QUALITY_HEX[q]
-      if not rgb then return { r = 1, g = 1, b = 1, hex = "ffffffff" } end
+      -- `hex` is a whole color code, "|cff" prefix included, as the client's is: a consumer
+      -- prepends it to a name as-is (LibKa0s IdList does), and the six-digit readers take :sub(-6).
+      if not rgb then return { r = 1, g = 1, b = 1, hex = "|cffffffff" } end
       return {
         r = tonumber(rgb:sub(1, 2), 16) / 255,
         g = tonumber(rgb:sub(3, 4), 16) / 255,
         b = tonumber(rgb:sub(5, 6), 16) / 255,
-        hex = "ff" .. rgb,
+        hex = "|cff" .. rgb,
       }
     end,
   })
@@ -666,6 +670,12 @@ return function()
   -- what is still missing. 134400 is the client's question-mark icon, one number for all four.
   dofile("tests/_kit/mock_ids.lua")(M)
   for id, it in pairs(M.__items) do M.addIdRecord("item", id, it[1], 134400) end
+  -- And what the add box's suggestions read (kit revision 20's second opt-in): the tier lookups,
+  -- C_SpellBook, and an `editbox` input frame on every AceGUI EditBox. It fills only what is
+  -- missing, so this file's own C_Container keeps its two scanner calls and gains the one
+  -- GetContainerItemID the suggestions walk -- answered from the kit's empty bags, not
+  -- M.__containers, so no suite's bag fixture leaks into a suggestion list.
+  M.installIdSuggestions()
 
   return M
 end

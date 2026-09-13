@@ -274,12 +274,53 @@ local function filterWrite(ctx, verb, id)
   if not ok then error(err, 0) end
 end
 
+-- Where a typed item NAME can come from, said once: the add box's refusal ends with it (IdList's
+-- `nameHint`, filling `{hint}` in its notFound) and its tooltip repeats it. The client has no
+-- item-name search — C_Item's name lookups answer only for an item the player carries or carried
+-- this session — so beyond that a name can only match an id this tab hands the widget as a
+-- candidate (filterCandidates below). The library's own default says "ones this list knows",
+-- which undersells this tab: the ledger's items count too.
+local ITEM_NAME_HINT = "Names work for items you carry (or carried this session), items on either "
+  .. "list and items your ledger has recorded; otherwise use the id or shift-click a link."
+
+-- The ids a typed name may match beyond the client's own lookup: both lists' ids, then every item
+-- the ledger has recorded, newest first, each once. Read-only over state that already exists —
+-- NS.Filters' two sets and the live ledger (NS.Database:Ledger(), not the `/bl test` dataset) — so
+-- it stores nothing. IdList calls it at every draw and every submit; it names the ids itself
+-- (pre-warming the uncached ones), lists them as the player types, and a name several of them
+-- share (an item's crafted-quality ranks) is listed rank by rank and refused unpicked.
+local function filterCandidates()
+  local out, seen = {}, {}
+  local function take(id)
+    if type(id) == "number" and not seen[id] then
+      seen[id] = true
+      out[#out + 1] = id
+    end
+  end
+  local F = NS.Filters
+  if F then
+    for _, id in ipairs(F:SortedIDs(F:Blacklist())) do take(id) end
+    for _, id in ipairs(F:SortedIDs(F:Whitelist())) do take(id) end
+  end
+  local ledger = NS.db and NS.Database and NS.Database:Ledger()
+  if type(ledger) == "table" then
+    for i = #ledger, 1, -1 do
+      local e = ledger[i]
+      if type(e) == "table" then take(e.itemID) end
+    end
+  end
+  return out
+end
+
 -- One list (blacklist or whitelist): description, Clear all, then the LibKa0s id list — its add box
 -- and one line per id (icon, item name and id, Remove).
 --
 -- The add box takes an item id, a shift-clicked item link or an item's NAME (O.ResolveId, kind
--- "item"); a name resolves only once the client has the item cached, and anything that resolves to
--- nothing adds nothing and says why under the box. The widget never writes a path: onAdd / onRemove
+-- "item"). As the player types it lists the matching names — the bags' items and filterCandidates'
+-- — one row per crafted-quality rank; a click (or Up/Down and Enter) adds that row's id. A typed
+-- name resolves through the client's lookup or the candidates, and a name several ids share is
+-- refused until one is picked. Anything that resolves to nothing adds nothing and says why under
+-- the box, ending with ITEM_NAME_HINT. The widget never writes a path: onAdd / onRemove
 -- call the writers above (through filterWrite), and the list keeps its [itemID] = true shape. After
 -- an add or a remove IdList redraws through ctx.rebuild, which buildFiltersTab points at THIS page
 -- alone, and an entry the client cannot name yet is loaded through LibKa0s-Item-1.0 and redrawn the
@@ -304,7 +345,9 @@ local function makeFilterSection(ctx, listKey, desc)
     kind      = "item",
     label     = "Add an item by id, link or name",
     tooltip   = "Type an item id or an item's name, or shift-click an item link into the box. "
-      .. "A name is found only once the game has that item cached.",
+      .. ITEM_NAME_HINT,
+    candidates = filterCandidates,
+    strings   = { nameHint = ITEM_NAME_HINT },
     entries   = function() return filterEntries(list) end,
     onAdd     = function(id) filterWrite(ctx, list.add, id) end,
     onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
