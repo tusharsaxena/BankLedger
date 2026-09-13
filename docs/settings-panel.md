@@ -18,7 +18,7 @@ only. The finer tree is everything below it.
 | Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
 | Interface | What is on screen: the minimap button, whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor. |
 | History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
-| Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or by shift-clicking its link into the box. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
+| Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box (a name is found once the game has seen that item). Each entry shows the item's icon, name and id with a **Remove** button, and **Clear all** empties the list after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 
 ## Shape
 
@@ -74,7 +74,7 @@ every reset see exactly the settings.
 **Two tabs hold one declared row and are exempt by name** from "a tab with fewer than two controls
 is not a subject": each sits beside bespoke controls that have no path and cannot be counted — the
 storage read-out and **Purge ledger…** on History, and the secondary strip plus the selected list's
-add row, **Clear all** and live id list on Filters. The exemption is `THIN_TAB_EXEMPT` in
+**Clear all** and its LibKa0s `IdList` (the add box and the live id list) on Filters. The exemption is `THIN_TAB_EXEMPT` in
 `tests/test_schema.lua`, named rather than a loosened rule.
 
 ### The bespoke blocks are `afterGroup` hooks, not page-body calls
@@ -89,7 +89,7 @@ the library's `afterGroup` table instead:
 | Master controls | `NS.Schema.masterTail` | The composer's own closing `InlineButtonPair` — **Reset position** and **Reset all settings** |
 | Capture | `renderStoreGrid` | The inverted per-store checkbox grid (`settings.excludedStores`, `skipRender`) |
 | History | `renderStorage` | The live storage read-out, then **Purge ledger…** alone |
-| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, the add row, **Clear all**, and the live id list |
+| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, **Clear all** (a host button behind a confirm), and one `O.IdList` (`kind = "item"`, LibKa0s v1.35.0) whose add box takes an id, a link or a cached item's name, and whose add and Remove call `NS.Filters`' own writers |
 
 The **group name is the hook key**, which is also why the Master controls group must keep exactly
 that name: rename it and the closing button pair silently detaches, with nothing raising.

@@ -1,7 +1,6 @@
 local _, NS = ...
 NS.Panel = NS.Panel or {}
 local P = NS.Panel
-local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 
 -- The LibKa0s-Options-1.0 instance, built in settings/OptionsSetup.lua, which the TOC loads just
 -- above this file. Captured at file scope but never CALLED at file scope: everything below runs at
@@ -223,106 +222,35 @@ local GENERAL_AFTER_TAB = {
 -- and it is the one that scales — a third list here would otherwise be a third primary tab pushing
 -- Capture, Interface and History along the band for a subject that is not their peer.
 
--- Display name for an id: "Name  (id)" once cached, "Item <id>" until the client caches it (a
--- background load is kicked off so a later rebuild fills the name in).
-local function filterEntryLabel(id, onCached)
-  local name, quality = NS.Compat.ItemNameQuality(id)
-  if not name then
-    if NS.Item.LoadItem then NS.Item.LoadItem(id, onCached) end
-    return "|cffaaaaaaItem " .. id .. "|r"
-  end
-  local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality or 1]
-  local hex = c and c.color and c.color.GenerateHexColor and c.color:GenerateHexColor()
-  local shown = hex and ("|c" .. hex .. name .. "|r") or name
-  return shown .. "  |cff808080(" .. id .. ")|r"
+-- Each list's reader, its two writers and its Clear-all confirm, by STORED key. NS.Filters is the
+-- lists' one writer (architecture-§5), so the widget below only ever calls these: an add still goes
+-- through F:_move, which is what keeps the two lists exclusive.
+local FILTER_LISTS = {
+  blacklist = { read = "Blacklist", add = "AddBlacklist", remove = "RemoveBlacklist",
+                popup = "KA0S_BANKLEDGER_CLEAR_BLACKLIST" },
+  whitelist = { read = "Whitelist", add = "AddWhitelist", remove = "RemoveWhitelist",
+                popup = "KA0S_BANKLEDGER_CLEAR_WHITELIST" },
+}
+
+-- The ids on a list as IdList's entries, in the stable sorted order the old list drew.
+local function filterEntries(list)
+  local F = NS.Filters
+  local out = {}
+  for i, id in ipairs(F:SortedIDs(F[list.read](F))) do out[i] = { id = id } end
+  return out
 end
 
--- Rebuild `listGroup` from the ids currently on `listKey`. Each row: item label + Remove button.
-local function rebuildFilterList(ctx, listGroup, listKey)
-  listGroup:ReleaseChildren()
-  local set = (listKey == "blacklist") and NS.Filters:Blacklist() or NS.Filters:Whitelist()
-  local ids = NS.Filters:SortedIDs(set)
-  if #ids == 0 then
-    local empty = O.AceGUI:Create("Label")
-    empty:SetFullWidth(true)
-    empty:SetText("|cff808080(none)|r")
-    listGroup:AddChild(empty)
-  else
-    for _, id in ipairs(ids) do
-      local rowG = O.AceGUI:Create("SimpleGroup")
-      rowG:SetLayout("Flow"); rowG:SetFullWidth(true)
-      local lbl = O.AceGUI:Create("Label")
-      lbl:SetRelativeWidth(0.78)
-      lbl:SetText(filterEntryLabel(id, function()
-        if ctx.panel:IsShown() then rebuildFilterList(ctx, listGroup, listKey) end
-      end))
-      rowG:AddChild(lbl)
-      local rm = O.AceGUI:Create("Button")
-      rm:SetText("Remove"); rm:SetRelativeWidth(0.20)
-      rm:SetCallback("OnClick", function()
-        if listKey == "blacklist" then NS.Filters:RemoveBlacklist(id)
-        else NS.Filters:RemoveWhitelist(id) end
-        rebuildFilterList(ctx, listGroup, listKey)
-        if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
-      end)
-      rowG:AddChild(rm)
-      listGroup:AddChild(rowG)
-    end
-  end
-  if listGroup.DoLayout then listGroup:DoLayout() end
-end
-
--- One list (blacklist or whitelist): description, add-row, bulk clear, live list.
---
--- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
--- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
--- heading under a sub-tab labelled Blacklist would say the word twice — which is the same rule the
--- library applies to a tabbed schema page (RenderRows' `noHeadings`).
-local function makeFilterSection(ctx, listKey, desc)
+-- Clear all stays the HOST'S button: it is a bulk act behind a confirm, and IdList draws per-entry
+-- Remove only. Without StaticPopup_Show (a headless run) it clears directly, as it always has.
+local function makeClearAll(ctx, listKey, list)
   local scroll = O.EnsureScroll(ctx)
-
-  local descLabel = O.AceGUI:Create("Label")
-  descLabel:SetFullWidth(true); descLabel:SetText(desc)
-  scroll:AddChild(descLabel)
-  O.AddSpacer(scroll, 6)
-
-  local listGroup = O.AceGUI:Create("SimpleGroup")
-  listGroup:SetLayout("List"); listGroup:SetFullWidth(true)
-
-  local addRow = O.AceGUI:Create("SimpleGroup")
-  addRow:SetLayout("Flow"); addRow:SetFullWidth(true)
-  local box = O.AceGUI:Create("EditBox")
-  box:SetLabel("Add item id or link")
-  box:SetRelativeWidth(0.78)
-  local function submit()
-    local id = NS.Filters:ParseItemID(box:GetText())
-    if not id then
-      print("enter a numeric item id (or shift-click an item link).")
-      return
-    end
-    if listKey == "blacklist" then NS.Filters:AddBlacklist(id) else NS.Filters:AddWhitelist(id) end
-    box:SetText("")
-    rebuildFilterList(ctx, listGroup, listKey)
-    if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
-  end
-  box:SetCallback("OnEnterPressed", function() submit() end)
-  addRow:AddChild(box)
-  local addBtn = O.AceGUI:Create("Button")
-  addBtn:SetText("Add"); addBtn:SetRelativeWidth(0.20)
-  addBtn:SetCallback("OnClick", submit)
-  addRow:AddChild(addBtn)
-  scroll:AddChild(addRow)
-  O.AddSpacer(scroll, 4)
-
   local clearRow = O.AceGUI:Create("SimpleGroup")
   clearRow:SetLayout("Flow"); clearRow:SetFullWidth(true)
   local clearBtn = O.AceGUI:Create("Button")
   clearBtn:SetText("Clear all"); clearBtn:SetRelativeWidth(0.30)
   clearBtn:SetCallback("OnClick", function()
-    local popup = (listKey == "blacklist") and "KA0S_BANKLEDGER_CLEAR_BLACKLIST"
-      or "KA0S_BANKLEDGER_CLEAR_WHITELIST"
     if type(StaticPopup_Show) == "function" then
-      StaticPopup_Show(popup)
+      StaticPopup_Show(list.popup)
     elseif NS.Filters then
       NS.Filters:ClearList(listKey)
     end
@@ -330,15 +258,43 @@ local function makeFilterSection(ctx, listKey, desc)
   clearRow:AddChild(clearBtn)
   scroll:AddChild(clearRow)
   O.AddSpacer(scroll, 4)
+end
 
-  scroll:AddChild(listGroup)
+-- One list (blacklist or whitelist): description, Clear all, then the LibKa0s id list — its add box
+-- and one line per id (icon, item name and id, Remove).
+--
+-- The add box takes an item id, a shift-clicked item link or an item's NAME (O.ResolveId, kind
+-- "item"); a name resolves only once the client has the item cached, and anything that resolves to
+-- nothing adds nothing and says why under the box. The widget never writes a path: onAdd / onRemove
+-- call the writers above, and the list keeps its [itemID] = true shape. After an add or a remove
+-- IdList redraws through O.RefreshAllPanels, and an entry the client cannot name yet is loaded
+-- through LibKa0s-Item-1.0 and redrawn the same way when it lands.
+--
+-- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
+-- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
+-- heading under a sub-tab labelled Blacklist would say the word twice — which is the same rule the
+-- library applies to a tabbed schema page (RenderRows' `noHeadings`).
+local function makeFilterSection(ctx, listKey, desc)
+  local scroll = O.EnsureScroll(ctx)
+  local list = FILTER_LISTS[listKey]
 
-  -- Painted as part of the page render rather than through a separate rebuilder tier. The library's
-  -- registry now owns that distinction: a scalar write runs refreshers (RefreshScalars), a
-  -- structural change re-runs the whole renderer (RefreshAllPanels), and both skip a page that is
-  -- not on screen and mark it dirty instead. The id lists are structural, so their bus handler
-  -- calls RefreshAllPanels and this simply draws whatever the list holds right now.
-  rebuildFilterList(ctx, listGroup, listKey)
+  local descLabel = O.AceGUI:Create("Label")
+  descLabel:SetFullWidth(true); descLabel:SetText(desc)
+  scroll:AddChild(descLabel)
+  O.AddSpacer(scroll, 6)
+
+  makeClearAll(ctx, listKey, list)
+
+  O.IdList(ctx, {
+    kind      = "item",
+    label     = "Add an item by id, link or name",
+    tooltip   = "Type an item id or an item's name, or shift-click an item link into the box. "
+      .. "A name is found only once the game has that item cached.",
+    entries   = function() return filterEntries(list) end,
+    onAdd     = function(id) NS.Filters[list.add](NS.Filters, id) end,
+    onRemove  = function(id) NS.Filters[list.remove](NS.Filters, id) end,
+    emptyText = "|cff808080(none)|r",
+  })
 end
 
 -- The PRIMARY tab's key, spelled once: it is both this tab's `group` in settings/Schema.lua and the

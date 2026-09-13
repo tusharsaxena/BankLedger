@@ -254,7 +254,7 @@ local PARTITION = {
 -- one-row tab gets waved through.
 local THIN_TAB_EXEMPT = {
   History = "the storage read-out and the Purge button",
-  Filters = "the secondary strip over both id lists, and the selected list's add row and Clear all",
+  Filters = "the secondary strip over both id lists, and the selected list's Clear all and IdList",
 }
 
 test("Schema: the page partitions into the designed tabs, in the designed order", function()

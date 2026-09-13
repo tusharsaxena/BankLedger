@@ -79,7 +79,9 @@ all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
 `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
 **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
-selection is `ctx.activeSubTab["Filters"]`, session state and never persisted.
+selection is `ctx.activeSubTab["Filters"]`, session state and never persisted. Each list is one
+LibKa0s `O.IdList` (`kind = "item"`, v1.35.0): the widget resolves an item id, a link or a cached
+item's name and calls back into `NS.Filters`, which stays the lists' only writer.
 
 Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
 five with **AH Price** after Capture. The two addons keep the same shape of record and a player

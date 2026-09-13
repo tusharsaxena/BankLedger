@@ -60,6 +60,13 @@
 --                         Slash/Options work rather than smuggled into a harness swap.
 --  10. GameTooltip      — same argument: the base defines it and seven `if GameTooltip then` guards
 --                         change branch. Left nil here so this swap is behavior-neutral.
+--  13. id lookups       — TAKEN from the kit's opt-in tests/_kit/mock_ids.lua (revision 20), for the
+--                         Filters tab's LibKa0s IdList, which resolves an item typed by NAME. This
+--                         file's own C_Item.GetItemInfoInstant is gone: it answered an id and nothing
+--                         else, no production file called it, and the installer only fills a key
+--                         that is still missing, so keeping it would have made a name unresolvable.
+--                         The item database below is seeded as the kit's records, so the four items
+--                         every suite knows by id are known by name too.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -497,10 +504,7 @@ return function()
         or ("|cffffffff|Hitem:" .. id .. "::::::::::|h[" .. it[1] .. "]|h|r")
       return it[1], link, it[2], 1, 1, it[3], it[4], 1, "", 0, it[5]
     end,
-    GetItemInfoInstant = function(idOrLink)
-      local id = tonumber(idOrLink) or tonumber(tostring(idOrLink):match("|?H?item:(%d+)") or "")
-      return id
-    end,
+    -- No GetItemInfoInstant / GetItemNameByID here: override 13 takes the kit's, seeded below.
     -- Records what was asked for. An addon that SKIPS an uncached item must also ask the client to
     -- cache it, or that id stays unjudgeable forever and is skipped again on every future move.
     RequestLoadItemDataByID = function(id) M.__loadRequests[id] = true end,
@@ -654,6 +658,12 @@ return function()
   -- Printf -- which clobber a same-named NS.Print exactly as the real embed does, so the reclaim in
   -- core/BankLedger.lua is still exercised (architecture-§2, anti-pattern #36). It also names the
   -- object and registers it for GetAddon. Nothing of this file's own is layered on the addon object.
+
+  -- Override 13 (see the header): the kit's id lookups, then the item database as their records.
+  -- Installed LAST so every C_Item key this file set above keeps answering; the installer fills only
+  -- what is still missing. 134400 is the client's question-mark icon, one number for all four.
+  dofile("tests/_kit/mock_ids.lua")(M)
+  for id, it in pairs(M.__items) do M.addIdRecord("item", id, it[1], 134400) end
 
   return M
 end

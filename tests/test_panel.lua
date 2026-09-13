@@ -383,6 +383,162 @@ test("Panel: the Filters tab draws a SECONDARY strip and renders only the select
   c.activeTab = GENERAL_TABS[1]
 end)
 
+-- ── the Filters tab's id list (LibKa0s-Options IdList, v1.35.0) ──────────────────────────────
+--
+-- Each list is ONE O.IdList with kind = "item" now: the box resolves a number, a shift-clicked link
+-- or an item's NAME through O.ResolveId, and the entry lines are the library's. The host keeps the
+-- storage. Every add and remove goes through NS.Filters' own writers, so F:_move still keeps the two
+-- lists exclusive and db.global.{blacklist,whitelist} keep their [itemID] = true shape. The names
+-- come from the kit's opt-in id lookups, which tests/wow_mock.lua installs (override 13).
+
+--- Open Filters on `listKey` with the two lists seeded as given; hand back what the tab drew.
+local function filtersTab(listKey, black, white)
+  NS.db.global.blacklist = black or {}
+  NS.db.global.whitelist = white or {}
+  local c = ctxFor("General")
+  c.activeSubTab = { Filters = listKey }
+  return renderTab("General", "Filters"), c
+end
+
+--- The first drawn widget of `wtype`, optionally one whose text contains `part`.
+local function firstOf(made, wtype, part)
+  for _, w in ipairs(made) do
+    if w.type == wtype and (part == nil
+        or (type(w.text) == "string" and w.text:find(part, 1, true) ~= nil)) then
+      return w
+    end
+  end
+  return nil
+end
+
+--- Spy on one NS.Filters writer for the length of `fn`, still calling through to the real one.
+local function spyWriter(name, fn)
+  local real, calls = NS.Filters[name], {}
+  NS.Filters[name] = function(self, id) calls[#calls + 1] = id; return real(self, id) end
+  local ok, err = pcall(fn)
+  NS.Filters[name] = real
+  if not ok then error(err, 0) end
+  return calls
+end
+
+local function typeInto(made, text)
+  local box = firstOf(made, "EditBox")
+  assertTrue(box ~= nil, "the Filters tab has no add box")
+  box:__fire("OnEnterPressed", text)
+end
+
+local function leaveFilters(c)
+  NS.db.global.blacklist, NS.db.global.whitelist = {}, {}
+  c.activeSubTab = nil
+  c.activeTab = GENERAL_TABS[1]
+end
+
+test("Filters tab: an item id typed into the box goes through Filters:AddBlacklist", function()
+  -- red under: onAdd writing db.global.blacklist directly (the spy sees nothing), or not wired.
+  local made, c = filtersTab("blacklist")
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, "2589") end)
+  assertEqual(#calls, 1, "one add, one writer call")
+  assertEqual(calls[1], 2589)
+  -- The stored shape is unchanged: a number key, the value true, and nothing else in the set.
+  local keys = 0
+  for k, v in pairs(NS.db.global.blacklist) do
+    keys = keys + 1
+    assertEqual(type(k), "number", "keyed by the numeric item id")
+    assertEqual(v, true, "stored as [itemID] = true")
+  end
+  assertEqual(keys, 1, "exactly the one id")
+  leaveFilters(c)
+end)
+
+test("Filters tab: a shift-clicked item link adds the id inside it", function()
+  -- red under: a kind other than "item" (a link of another type resolves to nothing).
+  local made, c = filtersTab("blacklist")
+  local link = "|cffffffff|Hitem:4306::::::::::|h[Silk Cloth]|h|r"
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, link) end)
+  assertEqual(calls[1], 4306)
+  leaveFilters(c)
+end)
+
+test("Filters tab: an item typed by NAME resolves to its id, whatever its case", function()
+  -- The new capability: the old box took a number or a link and nothing else.
+  -- red under: kind omitted (the id-only kind resolves no name), or the old ParseItemID submit.
+  local made, c = filtersTab("blacklist")
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, "linen cloth") end)
+  assertEqual(calls[1], 2589)
+  leaveFilters(c)
+end)
+
+test("Filters tab: input that names no item adds nothing and says why on the tab", function()
+  -- red under: kind omitted (the id-only kind's reason reads "No entry named"), or the old editor's
+  -- submit, which reported a bad input only as a chat line.
+  local made, c = filtersTab("blacklist")
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, "Nonesuch Blade") end)
+  assertEqual(#calls, 0, "nothing reaches the writer")
+  assertEqual(next(NS.db.global.blacklist), nil, "the list is untouched")
+  assertTrue(firstOf(made, "Label", "No item named 'Nonesuch Blade'") ~= nil,
+    "the reason is shown under the box")
+  leaveFilters(c)
+end)
+
+test("Filters tab: an entry's Remove goes through Filters:RemoveBlacklist", function()
+  -- red under: onRemove not wired, or pointed at the other list's writer.
+  local made, c = filtersTab("blacklist", { [2589] = true })
+  local rm = firstOf(made, "Button", "Remove")
+  assertTrue(rm ~= nil, "the entry has a Remove button")
+  local calls = spyWriter("RemoveBlacklist", function() rm:__fire("OnClick") end)
+  assertEqual(calls[1], 2589)
+  assertEqual(next(NS.db.global.blacklist), nil, "the id is gone from the store")
+  leaveFilters(c)
+end)
+
+test("Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move, unchanged)", function()
+  -- red under: the Whitelist tab's onAdd calling AddBlacklist, or writing the store directly.
+  local made, c = filtersTab("whitelist", { [2589] = true })
+  local calls = spyWriter("AddWhitelist", function() typeInto(made, "2589") end)
+  assertEqual(calls[1], 2589)
+  assertTrue(NS.db.global.whitelist[2589] == true, "now on the whitelist")
+  assertTrue(NS.db.global.blacklist[2589] == nil, "and off the blacklist")
+  leaveFilters(c)
+end)
+
+test("Filters tab: an entry reads its item name and id; an empty list reads (none)", function()
+  -- red under: dropping kind = "item" (the line reads "Unknown entry 2589"), or dropping emptyText.
+  local made, c = filtersTab("blacklist", { [2589] = true })
+  local line = firstOf(made, "InteractiveLabel", "Linen Cloth")
+  assertTrue(line ~= nil and line.text:find("(2589)", 1, true) ~= nil, "name and id on the line")
+  made = filtersTab("blacklist")
+  assertTrue(firstOf(made, "Label", "(none)") ~= nil, "the empty list says so")
+  assertTrue(firstOf(made, "Button", "Clear all") ~= nil, "Clear all stays the host's button")
+  leaveFilters(c)
+end)
+
+test("Filters tab: an uncached item is asked for, and the list redraws when it lands", function()
+  -- red under: kind omitted (the id-only kind neither names an item nor loads one), or the old
+  -- editor's label, which read "Item <id>" and redrew only its own group.
+  mocks.addIdRecord("item", 99001, "Gilded Trinket", 134400, true)
+  local landed
+  local savedAfter, savedRefresh = mocks.C_Timer.After, NS.Helpers.RefreshAllPanels
+  mocks.C_Timer.After = function(_, cb) landed = cb end
+  local ok, made, c = pcall(filtersTab, "blacklist", { [99001] = true })
+  mocks.C_Timer.After = savedAfter
+  if not ok then error(made, 0) end
+  assertTrue(firstOf(made, "InteractiveLabel", "Unknown item 99001") ~= nil, "unnamed until cached")
+  assertTrue(mocks.__loadRequests[99001] == true, "the client was asked to load it")
+  assertTrue(type(landed) == "function", "a load callback is waiting")
+
+  local redraws = 0
+  NS.Helpers.RefreshAllPanels = function() redraws = redraws + 1 end
+  mocks.addIdRecord("item", 99001, "Gilded Trinket", 134400)
+  local ran, err = pcall(landed)
+  NS.Helpers.RefreshAllPanels = savedRefresh
+  if not ran then error(err, 0) end
+  assertEqual(redraws, 1, "the load landing redraws the list")
+  made = filtersTab("blacklist", { [99001] = true })
+  assertTrue(firstOf(made, "InteractiveLabel", "Gilded Trinket") ~= nil, "named once cached")
+  mocks.__idRecords.item[99001] = nil
+  leaveFilters(c)
+end)
+
 test("Panel: every renderable schema row reaches the page on ITS OWN tab", function()
   -- A row drifting into the wrong group renders under the wrong tab, which the partition case in
   -- tests/test_schema.lua catches in the data. This is the same claim about the drawn page: the row

@@ -708,7 +708,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (40)
+### test_panel.lua (48)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -727,6 +727,14 @@ badge and any count quoted in the docs must agree with it.
 - Panel: the General page draws a tab strip, one button per schema group
 - Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
+- Filters tab: an item id typed into the box goes through Filters:AddBlacklist
+- Filters tab: a shift-clicked item link adds the id inside it
+- Filters tab: an item typed by NAME resolves to its id, whatever its case
+- Filters tab: input that names no item adds nothing and says why on the tab
+- Filters tab: an entry's Remove goes through Filters:RemoveBlacklist
+- Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move, unchanged)
+- Filters tab: an entry reads its item name and id; an empty list reads (none)
+- Filters tab: an uncached item is asked for, and the list redraws when it lands
 - Panel: every renderable schema row reaches the page on ITS OWN tab
 - Panel: a boolean row is a CheckBox and a range row is a Slider
 - Panel: the Master controls tab closes with the two reset buttons
@@ -989,7 +997,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
 | test_slash.lua | 40 |
-| test_panel.lua | 40 |
+| test_panel.lua | 48 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -1005,4 +1013,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **871** |
+| **Total** | **879** |

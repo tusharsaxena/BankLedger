@@ -137,6 +137,10 @@ end
 
 -- Extract an item id from free-form input: a bare number, or an item link / itemString the user
 -- shift-clicked into the field. Returns a number, or nil when nothing parses.
+--
+-- No production caller since the Filters tab adopted LibKa0s IdList (v1.35.0), whose O.ResolveId
+-- parses the same two forms and a name as well. Kept as the tested parse seam for an item-id input
+-- (tests/test_filters.lua:57, :62) until a caller needs it or the next sweep retires it.
 function F:ParseItemID(input)
   if type(input) == "number" then return input end
   if type(input) ~= "string" then return nil end
