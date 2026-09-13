@@ -211,9 +211,10 @@ tolerance.
 7. **The dropdown appears, and ranks are labeled.** Type two or more letters of an item your ledger
    has recorded. A list drops down under the box, above the settings panel and not clipped by it:
    each row shows the item's icon, its name in its quality color and its id in gray. An item made in
-   several crafted-quality ranks (a Dragonflight potion or reagent your ledger holds) shows one row
-   per rank, each labeled with its quality-tier icon. More than ten matches end in a gray
-   `+N more` line.
+   several crafted-quality ranks (a Dragonflight potion or reagent) shows one row for each rank you
+   carry or your ledger or lists hold, each labeled with its quality-tier icon. Only those ranks: a
+   rank nothing here has seen is not listed, and a name with just one known rank is added as that
+   rank on Enter. More than ten matches end in a gray `+N more` line.
 8. **Picking adds.** Click a row, or highlight one with Up/Down and press Enter — that exact id is
    added once, the box clears, the dropdown closes, and the list shows the item. Escape, or clicking
    elsewhere, closes the dropdown without adding anything. Type a name several ranks share in full

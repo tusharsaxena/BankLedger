@@ -724,6 +724,14 @@ local function suggestCase(name, fn)
       mocks.C_Item.GetItemInfoInstant = byName(realInstant)
       if realInfo then mocks.C_Item.GetItemInfo = byName(realInfo) end
     end
+    -- The bags: the kit answers GetContainerItemID from mocks.__bags, and this file's own
+    -- GetContainerNumSlots reads the scanner's M.__containers, so a case carrying items lends it
+    -- the kit's slot count for its length.
+    local realSlots = mocks.C_Container.GetContainerNumSlots
+    function s.carry(ids)
+      mocks.setBagItems(0, ids)
+      mocks.C_Container.GetContainerNumSlots = function(bag) return #(mocks.__bags[bag] or {}) end
+    end
     function s.flush()
       for _ = 1, 50 do
         if #queue == 0 then return end
@@ -741,6 +749,8 @@ local function suggestCase(name, fn)
     local ok, err = pcall(fn, s)
     mocks.CreateFrame, mocks.C_Timer.After = realFrame, realAfter
     mocks.C_Item.GetItemInfoInstant, mocks.C_Item.GetItemInfo = realInstant, realInfo
+    mocks.C_Container.GetContainerNumSlots = realSlots
+    mocks.setBagItems(0, {})
     for _, id in ipairs(seeded) do
       mocks.__idRecords.item[id] = nil
       mocks.__craftedQuality[id] = nil
@@ -828,6 +838,55 @@ suggestCase("Filters tab: a name three ranks share lists every rank; Enter witho
   assertEqual(shownIds(s), "191395,191396,191397", "the ranks stay listed to pick from")
   calls = spyWriter("AddBlacklist", function() s.dropdown().rows[3]:__fire("OnClick") end)
   assertEqual(table.concat(calls, ","), "191397", "the picked rank, and only it")
+end)
+
+suggestCase("Filters tab: a name two ranks in the bags share is refused unpicked, with no ledger", function(s)
+  -- The everyday case: two ranks of one crafted potion in the bags, nothing on the lists or in the
+  -- ledger. The client's name lookup answers ONE id for the name (here rank 1, which the player
+  -- does not even carry). red under LibKa0s v1.35.0 as first tagged (48b486d), which checked that
+  -- answer against the host's candidates alone: Enter added 191395, one rank, and not a listed one.
+  for tier, id in ipairs(ZEPHYR_IDS) do s.item(id, ZEPHYR, 1, tier) end
+  s.carry({ 191396, 191397 })
+  local made
+  made, s.c = filtersTab("blacklist")
+  typeText(made, ZEPHYR, s)
+  assertEqual(shownIds(s), "191396,191397", "both carried ranks are listed")
+  local box = firstOf(made, "EditBox")
+  local calls = spyWriter("AddBlacklist", function() box:__fire("OnEnterPressed", ZEPHYR) end)
+  assertEqual(#calls, 0, "no rank is added unpicked")
+  assertTrue(firstOf(made, "Label", "Several items are named '" .. ZEPHYR
+    .. "' \226\128\148 pick one from the list, or use the id.") ~= nil, "the refusal says why")
+  calls = spyWriter("AddBlacklist", function() s.dropdown().rows[2]:__fire("OnClick") end)
+  assertEqual(table.concat(calls, ","), "191397", "the picked rank, and only it")
+end)
+
+suggestCase("Filters tab: Enter after retyping adds what was typed, not the old highlighted row", function(s)
+  -- A fast typist: highlight a row, type a different name and press Enter before the debounce has
+  -- re-listed. red under LibKa0s v1.35.0 as first tagged (48b486d), where a keystroke left the
+  -- highlight up and Enter took the stale row (99101, an item the box no longer names).
+  s.item(99101, "Glimmering Opal")
+  s.item(99105, "Gossamer Thread")
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows({ 99101, 99105 }))
+  typeText(made, "glimm", s)
+  local box = firstOf(made, "EditBox")
+  box.editbox:__fire("OnArrowPressed", "DOWN")
+  box:SetText("Gossamer Thread")
+  box:__fire("OnTextChanged", "Gossamer Thread")   -- the debounce is queued and NOT run
+  local calls = spyWriter("AddBlacklist", function() box:__fire("OnEnterPressed", "Gossamer Thread") end)
+  assertEqual(table.concat(calls, ","), "99105", "the typed name's item, once")
+end)
+
+suggestCase("Filters tab: a shared name with one rank known here adds that rank", function(s)
+  -- Characterization of the limit docs/settings-panel.md states: the client has no item-name
+  -- search, so with only rank 3 in the ledger and none carried, nothing here knows ranks 1 and 2
+  -- exist, and the name is not ambiguous to anything this addon can see.
+  for tier, id in ipairs(ZEPHYR_IDS) do s.item(id, ZEPHYR, 1, tier) end
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows({ 191397 }))
+  local calls = spyWriter("AddBlacklist", function() typeInto(made, ZEPHYR) end)
+  assertEqual(table.concat(calls, ","), "191397", "the one known rank")
 end)
 
 suggestCase("Filters tab: a name nothing knows is refused, saying where names come from", function(s)
