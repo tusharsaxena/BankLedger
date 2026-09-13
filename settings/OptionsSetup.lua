@@ -198,11 +198,15 @@ if not lib then
     SessionCheckbox = function() return nil end,
     -- The choice grid and the id-list surface (LibKa0s v1.35.0, Options widgets minor 16). All
     -- render-time: settings/Panel.lua's Filters tab draws its two lists with IdList, and nothing
-    -- calls any of the four at load, so a no-op keeps this stub load-completing (options-ui-§1).
+    -- calls any of them at load, so a no-op keeps this stub load-completing (options-ui-§1).
+    -- ID_NAME_HINT is the live instance's table of default hint strings; an EMPTY table here, not
+    -- the library's words (anti-pattern #47), so a host reading it meets no nil index.
     ChoiceGrid = function() return nil end,
     ResolveId = function() return nil, "notFound" end,
     IdInput = function() return nil end,
     IdList = function() return nil end,
+    UnnamedCandidates = function() return {} end,
+    ID_NAME_HINT = {},
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
