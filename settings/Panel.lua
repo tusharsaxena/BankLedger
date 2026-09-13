@@ -260,15 +260,30 @@ local function makeClearAll(ctx, listKey, list)
   O.AddSpacer(scroll, 4)
 end
 
+-- Call one NS.Filters writer with the Filters tab's LedgerChanged repaint held off.
+--
+-- The writer fires LedgerChanged SYNCHRONOUSLY, and the listener in buildFiltersTab repaints the page
+-- on it — releasing the very edit box and status line IdList clears once onAdd returns, just before
+-- IdList asks for its own redraw through ctx.rebuild anyway. Held off for the call, one click costs
+-- exactly one repaint: the widget's, after it has finished with its widgets (anti-pattern #39). A
+-- raise is re-raised, so IdList still keeps the typed text and reports the failure.
+local function filterWrite(ctx, verb, id)
+  ctx.__filterWrite = true
+  local ok, err = pcall(NS.Filters[verb], NS.Filters, id)
+  ctx.__filterWrite = nil
+  if not ok then error(err, 0) end
+end
+
 -- One list (blacklist or whitelist): description, Clear all, then the LibKa0s id list — its add box
 -- and one line per id (icon, item name and id, Remove).
 --
 -- The add box takes an item id, a shift-clicked item link or an item's NAME (O.ResolveId, kind
 -- "item"); a name resolves only once the client has the item cached, and anything that resolves to
 -- nothing adds nothing and says why under the box. The widget never writes a path: onAdd / onRemove
--- call the writers above, and the list keeps its [itemID] = true shape. After an add or a remove
--- IdList redraws through O.RefreshAllPanels, and an entry the client cannot name yet is loaded
--- through LibKa0s-Item-1.0 and redrawn the same way when it lands.
+-- call the writers above (through filterWrite), and the list keeps its [itemID] = true shape. After
+-- an add or a remove IdList redraws through ctx.rebuild, which buildFiltersTab points at THIS page
+-- alone, and an entry the client cannot name yet is loaded through LibKa0s-Item-1.0 and redrawn the
+-- same way when it lands.
 --
 -- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
 -- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
@@ -291,8 +306,8 @@ local function makeFilterSection(ctx, listKey, desc)
     tooltip   = "Type an item id or an item's name, or shift-click an item link into the box. "
       .. "A name is found only once the game has that item cached.",
     entries   = function() return filterEntries(list) end,
-    onAdd     = function(id) NS.Filters[list.add](NS.Filters, id) end,
-    onRemove  = function(id) NS.Filters[list.remove](NS.Filters, id) end,
+    onAdd     = function(id) filterWrite(ctx, list.add, id) end,
+    onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
     emptyText = "|cff808080(none)|r",
   })
 end
@@ -367,10 +382,16 @@ local function buildFiltersTab(ctx)
     if tab.key == listKey then makeFilterSection(ctx, tab.key, tab.desc) end
   end
 
+  -- Where IdList redraws after an add, a remove, or an item load landing: this page, re-rendered
+  -- structurally, with the library's own shown / mark-dirty split. Left unset, the widget falls back
+  -- to O.RefreshAllPanels and repaints every rendered page to service this one.
+  ctx.rebuild = function() O.RefreshPanel(ctx, true) end
+
   -- Live-update both lists when they change from elsewhere (the ledger table's right-click menu),
   -- on a private bus target. While the page is on screen we repaint immediately; while it is hidden
   -- we only flag it dirty, so the next OnShow repaints once instead of every tab click paying an
-  -- O.AceGUI teardown+rebuild (options-ui-§11).
+  -- O.AceGUI teardown+rebuild (options-ui-§11). A change this page's own IdList made is skipped
+  -- here: the widget repaints for it once it is done with its widgets (filterWrite).
   if not P.__evFilters then
     local ev = NS.NewBusTarget()
     if ev then
@@ -379,7 +400,9 @@ local function buildFiltersTab(ctx)
       -- already does the on-screen / mark-dirty split this used to do by hand: a hidden page is
       -- flagged and repaints once on its next show, instead of every tab click paying an AceGUI
       -- teardown (options-ui-§11).
-      ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() O.RefreshAllPanels() end)
+      ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function()
+        if not ctx.__filterWrite then O.RefreshAllPanels() end
+      end)
       P.__evFilters = ev
     end
   end

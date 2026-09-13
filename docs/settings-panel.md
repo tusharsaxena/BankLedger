@@ -89,7 +89,7 @@ the library's `afterGroup` table instead:
 | Master controls | `NS.Schema.masterTail` | The composer's own closing `InlineButtonPair` — **Reset position** and **Reset all settings** |
 | Capture | `renderStoreGrid` | The inverted per-store checkbox grid (`settings.excludedStores`, `skipRender`) |
 | History | `renderStorage` | The live storage read-out, then **Purge ledger…** alone |
-| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, **Clear all** (a host button behind a confirm), and one `O.IdList` (`kind = "item"`, LibKa0s v1.35.0) whose add box takes an id, a link or a cached item's name, and whose add and Remove call `NS.Filters`' own writers |
+| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, **Clear all** (a host button behind a confirm), and one `O.IdList` (`kind = "item"`, LibKa0s v1.35.0) whose add box takes an id, a link or a cached item's name, and whose add and Remove call `NS.Filters`' own writers through `filterWrite`, which holds the tab's `LedgerChanged` repaint off so one click redraws the page once, via `ctx.rebuild` (this page only) |
 
 The **group name is the hook key**, which is also why the Master controls group must keep exactly
 that name: rename it and the closing button pair silently detaches, with nothing raising.

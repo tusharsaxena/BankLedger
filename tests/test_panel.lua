@@ -526,16 +526,81 @@ test("Filters tab: an uncached item is asked for, and the list redraws when it l
   assertTrue(mocks.__loadRequests[99001] == true, "the client was asked to load it")
   assertTrue(type(landed) == "function", "a load callback is waiting")
 
+  -- The redraw is this page's own (ctx.rebuild -> O.RefreshPanel on this ctx), not a sweep.
   local redraws = 0
-  NS.Helpers.RefreshAllPanels = function() redraws = redraws + 1 end
+  NS.Helpers.RefreshPanel = function(ctx, structural)
+    if ctx == c and structural then redraws = redraws + 1 end
+  end
   mocks.addIdRecord("item", 99001, "Gilded Trinket", 134400)
   local ran, err = pcall(landed)
-  NS.Helpers.RefreshAllPanels = savedRefresh
+  NS.Helpers.RefreshPanel = savedRefresh
   if not ran then error(err, 0) end
   assertEqual(redraws, 1, "the load landing redraws the list")
   made = filtersTab("blacklist", { [99001] = true })
   assertTrue(firstOf(made, "InteractiveLabel", "Gilded Trinket") ~= nil, "named once cached")
   mocks.__idRecords.item[99001] = nil
+  leaveFilters(c)
+end)
+
+--- How many EditBoxes `fn` created with the General page ON SCREEN: one per repaint of the Filters
+--- tab, which draws exactly one. Firing OnShow draws the page but never marks it shown, and a hidden
+--- page is only flagged dirty by a refresh, so without the Show the repaints this counts never run.
+local function editBoxesMadeBy(fn)
+  local frame = panel("General")
+  local wasShown = frame:IsShown()
+  frame:Show()
+  local before = #AceGUI.__created
+  local ok, err = pcall(fn)
+  if not wasShown then frame:Hide() end
+  if not ok then error(err, 0) end
+  local boxes = 0
+  for i = before + 1, #AceGUI.__created do
+    if AceGUI.__created[i].type == "EditBox" then boxes = boxes + 1 end
+  end
+  return boxes
+end
+
+test("Filters tab: one add redraws the page once, not twice", function()
+  -- The writer fires LedgerChanged synchronously and the page's own listener repaints on it; the
+  -- widget then asks for its own redraw. Two full repaints per click is the anti-pattern #39 cost,
+  -- and the first one releases the edit box and status line the widget clears after onAdd returns.
+  -- red under: dropping the write guard that holds the LedgerChanged repaint off during an add.
+  local made, c = filtersTab("blacklist")
+  local boxes = editBoxesMadeBy(function() typeInto(made, "2589") end)
+  assertEqual(boxes, 1, "exactly one repaint follows one add")
+  assertTrue(NS.db.global.blacklist[2589] == true, "the add landed")
+  leaveFilters(c)
+end)
+
+test("Filters tab: one Remove redraws the page once, not twice", function()
+  -- red under: the write guard wrapping onAdd but not onRemove.
+  local made, c = filtersTab("blacklist", { [2589] = true })
+  local rm = firstOf(made, "Button", "Remove")
+  local boxes = editBoxesMadeBy(function() rm:__fire("OnClick") end)
+  assertEqual(boxes, 1, "exactly one repaint follows one remove")
+  assertEqual(next(NS.db.global.blacklist), nil, "the remove landed")
+  leaveFilters(c)
+end)
+
+test("Filters tab: the list's own redraw repaints this page, never every rendered page", function()
+  -- red under: no ctx.rebuild, where the widget falls back to O.RefreshAllPanels.
+  local made, c = filtersTab("blacklist")
+  local saved, sweeps = NS.Helpers.RefreshAllPanels, 0
+  NS.Helpers.RefreshAllPanels = function() sweeps = sweeps + 1 end
+  local ok, err = pcall(typeInto, made, "2589")
+  NS.Helpers.RefreshAllPanels = saved
+  if not ok then error(err, 0) end
+  assertEqual(sweeps, 0, "an add sweeps no page but this one")
+  leaveFilters(c)
+end)
+
+test("Filters tab: a list change from elsewhere still repaints the open tab", function()
+  -- The guard holds the listener off only for the page's OWN write; the ledger table's right-click
+  -- Blacklist goes through the same writer outside it and must still show up on an open tab.
+  -- red under: the guard left set after a write, or the listener dropped.
+  local _, c = filtersTab("blacklist")
+  local boxes = editBoxesMadeBy(function() NS.Filters:AddBlacklist(4306) end)
+  assertEqual(boxes, 1, "the open tab repaints for an outside change")
   leaveFilters(c)
 end)
 
