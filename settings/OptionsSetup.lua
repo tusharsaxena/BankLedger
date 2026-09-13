@@ -196,6 +196,13 @@ if not lib then
     BarGroup = function() return {} end,
     InlineButtonPair = function() end,
     SessionCheckbox = function() return nil end,
+    -- The choice grid and the id-list surface (LibKa0s v1.35.0, Options widgets minor 16). All
+    -- render-time: settings/Panel.lua's Filters tab draws its two lists with IdList, and nothing
+    -- calls any of the four at load, so a no-op keeps this stub load-completing (options-ui-§1).
+    ChoiceGrid = function() return nil end,
+    ResolveId = function() return nil, "notFound" end,
+    IdInput = function() return nil end,
+    IdList = function() return nil end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
