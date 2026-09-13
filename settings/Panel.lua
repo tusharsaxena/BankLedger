@@ -289,7 +289,32 @@ local ITEM_NAME_HINT = "Names work for items you carry (or carried this session)
 -- it stores nothing. IdList calls it at every draw and every submit; it names the ids itself
 -- (pre-warming the uncached ones), lists them as the player types, and a name several of them
 -- share (an item's crafted-quality ranks) is listed rank by rank and refused unpicked.
+--
+-- MEMOIZED, because the walk grows with ledger ROWS, not distinct items. The list is kept until
+-- the state it read moves: a different ledger or list table (Delete, Purge and Defaults swap them),
+-- a longer or shorter ledger (Add appends in place, firing EntryAdded, not LedgerChanged), or any
+-- LedgerChanged (an in-place DeleteAt, a list write), which bumps `version` in buildFiltersTab's
+-- listener. With no listener (no bus target) nothing could say so, and the memo stays off. The
+-- library only reads the list it is handed, so sharing it is safe.
+local candidateMemo = { version = 0, listening = false }
+
+local function candidateState()
+  local F = NS.Filters
+  local ledger = NS.db and NS.Database and NS.Database:Ledger()
+  return {
+    ledger = ledger, n = type(ledger) == "table" and #ledger or 0, at = candidateMemo.version,
+    black = F and F:Blacklist(), white = F and F:Whitelist(),
+  }
+end
+
+local function sameState(a, b)
+  return a.ledger == b.ledger and a.n == b.n and a.at == b.at
+    and a.black == b.black and a.white == b.white
+end
+
 local function filterCandidates()
+  local state, memo = candidateState(), candidateMemo
+  if memo.listening and memo.state and sameState(memo.state, state) then return memo.ids end
   local out, seen = {}, {}
   local function take(id)
     if type(id) == "number" and not seen[id] then
@@ -299,16 +324,17 @@ local function filterCandidates()
   end
   local F = NS.Filters
   if F then
-    for _, id in ipairs(F:SortedIDs(F:Blacklist())) do take(id) end
-    for _, id in ipairs(F:SortedIDs(F:Whitelist())) do take(id) end
+    for _, id in ipairs(F:SortedIDs(state.black)) do take(id) end
+    for _, id in ipairs(F:SortedIDs(state.white)) do take(id) end
   end
-  local ledger = NS.db and NS.Database and NS.Database:Ledger()
+  local ledger = state.ledger
   if type(ledger) == "table" then
     for i = #ledger, 1, -1 do
       local e = ledger[i]
       if type(e) == "table" then take(e.itemID) end
     end
   end
+  memo.state, memo.ids = state, out
   return out
 end
 
@@ -443,9 +469,13 @@ local function buildFiltersTab(ctx)
       -- already does the on-screen / mark-dirty split this used to do by hand: a hidden page is
       -- flagged and repaints once on its next show, instead of every tab click paying an AceGUI
       -- teardown (options-ui-§11).
+      -- Every LedgerChanged also retires the add box's name candidates (filterCandidates' memo),
+      -- this page's own writes included.
       ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function()
+        candidateMemo.version = candidateMemo.version + 1
         if not ctx.__filterWrite then O.RefreshAllPanels() end
       end)
+      candidateMemo.listening = true
       P.__evFilters = ev
     end
   end

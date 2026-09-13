@@ -708,7 +708,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (62)
+### test_panel.lua (67)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -747,6 +747,11 @@ badge and any count quoted in the docs must agree with it.
 - Filters tab: a name three ranks share lists every rank; Enter without a pick adds none
 - Filters tab: a name two ranks in the bags share is refused unpicked, with no ledger
 - Filters tab: Enter after retyping adds what was typed, not the old highlighted row
+- Filters tab: the name candidates walk the ledger once until it changes
+- Filters tab: a ledger change reaches the name candidates
+- Filters tab: an item recorded after the tab was drawn resolves by name
+- Filters tab: a ledger table swapped with no message still reaches the candidates
+- Filters tab: a list table swapped with no message still reaches the candidates
 - Filters tab: a shared name with one rank known here adds that rank
 - Filters tab: a name nothing knows is refused, saying where names come from
 - Panel: every renderable schema row reaches the page on ITS OWN tab
@@ -1011,7 +1016,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
 | test_slash.lua | 40 |
-| test_panel.lua | 62 |
+| test_panel.lua | 67 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -1027,4 +1032,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **893** |
+| **Total** | **898** |

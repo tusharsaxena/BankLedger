@@ -223,8 +223,10 @@ tolerance.
    listed to pick from.
 9. **A name you never had this session resolves.** `/reload`, make sure an item your ledger
    recorded (or one on the other list) is **not** in your bags, then type its exact name and press
-   Enter. It is added. A gray `Looking up items…` line may show for a moment first, while the
-   client loads names it has not cached yet.
+   Enter. It is added. A gray `Looking up items…` line may show first, while the client loads names
+   it has not cached yet. On a large ledger whose items are uncached, or that holds items the game
+   has retired, the first name typed after a `/reload` can wait up to about ten seconds (five
+   windows of five asks, 0.4 s apart) before it resolves or is refused; later ones answer at once.
 10. **A name nothing knows is refused, honestly.** Type the exact name of a real item that you have
     not carried this session, that is on neither list, and that your ledger never recorded, then press
     Enter. Nothing is added, the text stays in the box, and the orange line reads

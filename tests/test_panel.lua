@@ -877,6 +877,86 @@ suggestCase("Filters tab: Enter after retyping adds what was typed, not the old 
   assertEqual(table.concat(calls, ","), "99105", "the typed name's item, once")
 end)
 
+--- Ledger rows recording `ids` that count every read of their fields into `reads[1]`.
+local function countedRows(s, ids, reads)
+  local rows = {}
+  for i, real in ipairs(s.rows(ids)) do
+    rows[i] = setmetatable({}, { __index = function(_, k) reads[1] = reads[1] + 1; return real[k] end })
+  end
+  return rows
+end
+
+suggestCase("Filters tab: the name candidates walk the ledger once until it changes", function(s)
+  -- IdList asks for its candidates at the draw, on the first keystroke and at every submit; the
+  -- ledger grows with rows, not items, so walking it each time is the cost. red under a
+  -- filterCandidates that walks the whole ledger on every call.
+  s.item(99101, "Glimmering Opal")
+  s.notCarried()
+  local reads = { 0 }
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, countedRows(s, { 99101, 99101, 99101 }, reads))
+  local drawn = reads[1]
+  typeText(made, "glimm", s)
+  typeInto(made, "Unseen Relic")
+  typeInto(made, "Unseen Relic")
+  assertEqual(reads[1], drawn, "no row is read again while the ledger is unchanged")
+end)
+
+suggestCase("Filters tab: a ledger change reaches the name candidates", function(s)
+  -- The memo must not outlive the ledger it read. DeleteAt then Add leaves the same table at the
+  -- same length with a different item in it, which only LedgerChanged tells apart.
+  s.item(99101, "Glimmering Opal")
+  s.item(99105, "Gossamer Thread")
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows({ 99101 }))
+  NS.Database:DeleteAt(1)
+  NS.Database:Add({ itemID = 99105, quantity = 1 })
+  local black = spyWriter("AddBlacklist", function()
+    typeInto(made, "Glimmering Opal")
+    typeInto(made, "Gossamer Thread")
+  end)
+  assertEqual(table.concat(black, ","), "99105", "the deleted row's item is gone, the added one found")
+end)
+
+suggestCase("Filters tab: an item recorded after the tab was drawn resolves by name", function(s)
+  -- A bank visit with the settings open: Add appends in place and fires EntryAdded, never
+  -- LedgerChanged, so only the ledger's length says the memo is stale. red under a memo keyed
+  -- without the length.
+  s.item(99101, "Glimmering Opal")
+  s.item(99105, "Gossamer Thread")
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows({ 99101 }))
+  NS.Database:Add({ itemID = 99105, quantity = 1 })
+  local black = spyWriter("AddBlacklist", function() typeInto(made, "Gossamer Thread") end)
+  assertEqual(table.concat(black, ","), "99105")
+end)
+
+suggestCase("Filters tab: a ledger table swapped with no message still reaches the candidates", function(s)
+  -- Same length, same message count, a different table: only its identity tells. red under a memo
+  -- keyed without the ledger table.
+  s.item(99101, "Glimmering Opal")
+  s.item(99105, "Gossamer Thread")
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist", nil, nil, s.rows({ 99101 }))
+  NS.db.global.ledger = s.rows({ 99105 })
+  local black = spyWriter("AddBlacklist", function() typeInto(made, "Gossamer Thread") end)
+  assertEqual(table.concat(black, ","), "99105")
+end)
+
+suggestCase("Filters tab: a list table swapped with no message still reaches the candidates", function(s)
+  -- Defaults and a profile change hand the lists new tables. red under a memo keyed without them.
+  s.item(99106, "Tarnished Locket")
+  s.notCarried()
+  local made
+  made, s.c = filtersTab("blacklist")
+  NS.db.global.whitelist = { [99106] = true }
+  local black = spyWriter("AddBlacklist", function() typeInto(made, "Tarnished Locket") end)
+  assertEqual(table.concat(black, ","), "99106")
+end)
+
 suggestCase("Filters tab: a shared name with one rank known here adds that rank", function(s)
   -- Characterization of the limit docs/settings-panel.md states: the client has no item-name
   -- search, so with only rank 3 in the ledger and none carried, nothing here knows ranks 1 and 2
