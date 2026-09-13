@@ -542,6 +542,36 @@ test("Filters tab: an uncached item is asked for, and the list redraws when it l
   leaveFilters(c)
 end)
 
+test("Filters tab: several uncached items cost one load check and one redraw", function()
+  -- LibKa0s v1.35.0 (re-cut) batches a render's asks: the first id carries the callback, the rest
+  -- only ask, so a blacklist of uncached items repaints the page once, not once per item.
+  -- red under: the pre-re-cut widget, which armed one callback per id and redrew on each.
+  mocks.addIdRecord("item", 99003, "Gilded Trinket", 134400, true)
+  mocks.addIdRecord("item", 99004, "Tarnished Locket", 134400, true)
+  local pending = {}
+  local savedAfter, savedRefresh = mocks.C_Timer.After, NS.Helpers.RefreshPanel
+  mocks.C_Timer.After = function(_, cb) pending[#pending + 1] = cb end
+  local ok, made, c = pcall(filtersTab, "blacklist", { [99003] = true, [99004] = true })
+  mocks.C_Timer.After = savedAfter
+  if not ok then error(made, 0) end
+  assertTrue(mocks.__loadRequests[99003] == true and mocks.__loadRequests[99004] == true,
+    "both items were asked for")
+  assertEqual(#pending, 1, "one load check for the whole render")
+
+  local redraws = 0
+  NS.Helpers.RefreshPanel = function(ctx, structural)
+    if ctx == c and structural then redraws = redraws + 1 end
+  end
+  mocks.addIdRecord("item", 99003, "Gilded Trinket", 134400)
+  mocks.addIdRecord("item", 99004, "Tarnished Locket", 134400)
+  local ran, err = pcall(function() for _, cb in ipairs(pending) do cb() end end)
+  NS.Helpers.RefreshPanel = savedRefresh
+  if not ran then error(err, 0) end
+  assertEqual(redraws, 1, "both loads landing redraw the list once")
+  mocks.__idRecords.item[99003], mocks.__idRecords.item[99004] = nil, nil
+  leaveFilters(c)
+end)
+
 --- How many EditBoxes `fn` created with the General page ON SCREEN: one per repaint of the Filters
 --- tab, which draws exactly one. Firing OnShow draws the page but never marks it shown, and a hidden
 --- page is only flagged dirty by a refresh, so without the Show the repaints this counts never run.
@@ -562,8 +592,9 @@ end
 
 test("Filters tab: one add redraws the page once, not twice", function()
   -- The writer fires LedgerChanged synchronously and the page's own listener repaints on it; the
-  -- widget then asks for its own redraw. Two full repaints per click is the anti-pattern #39 cost,
-  -- and the first one releases the edit box and status line the widget clears after onAdd returns.
+  -- widget then asks for its own redraw. Two full repaints per click is the anti-pattern #39 cost.
+  -- (Since the v1.35.0 re-cut the widget clears the box and the status line BEFORE onAdd, so an
+  -- onAdd that repaints no longer races the pool; the double repaint is still the waste.)
   -- red under: dropping the write guard that holds the LedgerChanged repaint off during an add.
   local made, c = filtersTab("blacklist")
   local boxes = editBoxesMadeBy(function() typeInto(made, "2589") end)

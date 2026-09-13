@@ -66,7 +66,9 @@
 --                         else, no production file called it, and the installer only fills a key
 --                         that is still missing, so keeping it would have made a name unresolvable.
 --                         The item database below is seeded as the kit's records, so the four items
---                         every suite knows by id are known by name too.
+--                         every suite knows by id are known by name too. They are seeded WITHOUT a
+--                         quality, so the kit's C_Item.GetItemQualityByID answers nil and IdList
+--                         draws their names plain (the v1.35.0 re-cut colors a name by quality).
 
 local base = dofile("tests/_kit/mock_base.lua")
 
