@@ -87,7 +87,7 @@ badge and any count quoted in the docs must agree with it.
 - Constants: every open-frame context has a Ledger store list
 - Constants: C.Context is its own axis, not a subset of C.Store
 
-### test_filters.lua (15)
+### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
 - Filters: adding the same id twice is a no-op the second time
@@ -95,8 +95,6 @@ badge and any count quoted in the docs must agree with it.
 - Filters: removing an id that is not on the list reports no change
 - Filters: a removed id is no longer blacklisted
 - Filters: a non-numeric id is rejected rather than stored
-- Filters: an item link is accepted as an id
-- Filters.ParseItemID accepts a bare number and rejects plain text
 - Filters: a write never mutates the previously stored table in place
 - Filters.SortedIDs returns the ids in ascending order
 - Filters.ClearList empties one list and reports how many went
@@ -1004,7 +1002,7 @@ badge and any count quoted in the docs must agree with it.
 | test_util.lua | 38 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
-| test_filters.lua | 15 |
+| test_filters.lua | 13 |
 | test_ledger.lua | 123 |
 | test_database.lua | 48 |
 | test_stats.lua | 52 |
@@ -1032,4 +1030,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **898** |
+| **Total** | **896** |

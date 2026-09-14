@@ -52,19 +52,6 @@ test("Filters: a non-numeric id is rejected rather than stored", function()
   clean()
 end)
 
-test("Filters: an item link is accepted as an id", function()
-  clean()
-  local id = NS.Filters:ParseItemID("|cffffffff|Hitem:4306::::::::::|h[Silk Cloth]|h|r")
-  assertEqual(id, 4306)
-  clean()
-end)
-
-test("Filters.ParseItemID accepts a bare number and rejects plain text", function()
-  assertEqual(NS.Filters:ParseItemID("2589"), 2589)
-  assertEqual(NS.Filters:ParseItemID(2589), 2589)
-  assertEqual(NS.Filters:ParseItemID("Linen Cloth"), nil)
-end)
-
 test("Filters: a write never mutates the previously stored table in place", function()
   -- Copy-on-write matters because AceDB hands out a SHARED default table: mutating it in place
   -- would poison the default for every later read in the session.

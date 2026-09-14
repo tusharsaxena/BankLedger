@@ -97,7 +97,9 @@ LT.COLUMNS = {
 local COLUMN_BY_KEY = {}
 for _, col in ipairs(LT.COLUMNS) do COLUMN_BY_KEY[col.key] = col end
 
--- Pure cell text for a column key + entry (unit-tested; the UI binds through the same path).
+-- Test seam: pure cell text for a column key + entry. No production caller -- the UI reads valueFn
+-- off the column spec directly (LT:PaintCell, and LT:Column for the session window); this is the
+-- one handle a suite has to pin every column's valueFn by key (tests/test_ledgertable.lua).
 function LT:CellText(key, entry)
   local col = COLUMN_BY_KEY[key]
   if not col then return "" end

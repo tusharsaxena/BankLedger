@@ -471,7 +471,7 @@ end)
 
 test("Filters tab: an item typed by NAME resolves to its id, whatever its case", function()
   -- The new capability: the old box took a number or a link and nothing else.
-  -- red under: kind omitted (the id-only kind resolves no name), or the old ParseItemID submit.
+  -- red under: kind omitted (the id-only kind resolves no name), or the old id-or-link submit.
   local made, c = filtersTab("blacklist")
   local calls = spyWriter("AddBlacklist", function() typeInto(made, "linen cloth") end)
   assertEqual(calls[1], 2589)
