@@ -708,7 +708,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (40)
+### test_panel.lua (67)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -727,6 +727,33 @@ badge and any count quoted in the docs must agree with it.
 - Panel: the General page draws a tab strip, one button per schema group
 - Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
+- Filters tab: an item id typed into the box goes through Filters:AddBlacklist
+- Filters tab: a shift-clicked item link adds the id inside it
+- Filters tab: an item typed by NAME resolves to its id, whatever its case
+- Filters tab: input that names no item adds nothing and says why on the tab
+- Filters tab: an entry's Remove goes through Filters:RemoveBlacklist
+- Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move, unchanged)
+- Filters tab: an entry reads its item name and id; an empty list reads (none)
+- Filters tab: an uncached item is asked for, and the list redraws when it lands
+- Filters tab: several uncached items cost one load check and one redraw
+- Filters tab: one add redraws the page once, not twice
+- Filters tab: one Remove redraws the page once, not twice
+- Filters tab: the list's own redraw repaints this page, never every rendered page
+- Filters tab: a list change from elsewhere still repaints the open tab
+- Filters tab: an entry's name is drawn in its item quality color
+- Filters tab: typing lists the items the ledger recorded and the other list holds
+- Filters tab: a name the client's lookup cannot find resolves through the ledger's ids
+- Filters tab: picking a suggestion adds it through the list's own writer, once
+- Filters tab: a name three ranks share lists every rank; Enter without a pick adds none
+- Filters tab: a name two ranks in the bags share is refused unpicked, with no ledger
+- Filters tab: Enter after retyping adds what was typed, not the old highlighted row
+- Filters tab: the name candidates walk the ledger once until it changes
+- Filters tab: a ledger change reaches the name candidates
+- Filters tab: an item recorded after the tab was drawn resolves by name
+- Filters tab: a ledger table swapped with no message still reaches the candidates
+- Filters tab: a list table swapped with no message still reaches the candidates
+- Filters tab: a shared name with one rank known here adds that rank
+- Filters tab: a name nothing knows is refused, saying where names come from
 - Panel: every renderable schema row reaches the page on ITS OWN tab
 - Panel: a boolean row is a CheckBox and a range row is a Slider
 - Panel: the Master controls tab closes with the two reset buttons
@@ -989,7 +1016,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 43 |
 | test_slash.lua | 40 |
-| test_panel.lua | 40 |
+| test_panel.lua | 67 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -1005,4 +1032,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **871** |
+| **Total** | **898** |

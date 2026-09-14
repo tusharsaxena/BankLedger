@@ -1,7 +1,6 @@
 local _, NS = ...
 NS.Panel = NS.Panel or {}
 local P = NS.Panel
-local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 
 -- The LibKa0s-Options-1.0 instance, built in settings/OptionsSetup.lua, which the TOC loads just
 -- above this file. Captured at file scope but never CALLED at file scope: everything below runs at
@@ -223,106 +222,35 @@ local GENERAL_AFTER_TAB = {
 -- and it is the one that scales — a third list here would otherwise be a third primary tab pushing
 -- Capture, Interface and History along the band for a subject that is not their peer.
 
--- Display name for an id: "Name  (id)" once cached, "Item <id>" until the client caches it (a
--- background load is kicked off so a later rebuild fills the name in).
-local function filterEntryLabel(id, onCached)
-  local name, quality = NS.Compat.ItemNameQuality(id)
-  if not name then
-    if NS.Item.LoadItem then NS.Item.LoadItem(id, onCached) end
-    return "|cffaaaaaaItem " .. id .. "|r"
-  end
-  local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality or 1]
-  local hex = c and c.color and c.color.GenerateHexColor and c.color:GenerateHexColor()
-  local shown = hex and ("|c" .. hex .. name .. "|r") or name
-  return shown .. "  |cff808080(" .. id .. ")|r"
+-- Each list's reader, its two writers and its Clear-all confirm, by STORED key. NS.Filters is the
+-- lists' one writer (architecture-§5), so the widget below only ever calls these: an add still goes
+-- through F:_move, which is what keeps the two lists exclusive.
+local FILTER_LISTS = {
+  blacklist = { read = "Blacklist", add = "AddBlacklist", remove = "RemoveBlacklist",
+                popup = "KA0S_BANKLEDGER_CLEAR_BLACKLIST" },
+  whitelist = { read = "Whitelist", add = "AddWhitelist", remove = "RemoveWhitelist",
+                popup = "KA0S_BANKLEDGER_CLEAR_WHITELIST" },
+}
+
+-- The ids on a list as IdList's entries, in the stable sorted order the old list drew.
+local function filterEntries(list)
+  local F = NS.Filters
+  local out = {}
+  for i, id in ipairs(F:SortedIDs(F[list.read](F))) do out[i] = { id = id } end
+  return out
 end
 
--- Rebuild `listGroup` from the ids currently on `listKey`. Each row: item label + Remove button.
-local function rebuildFilterList(ctx, listGroup, listKey)
-  listGroup:ReleaseChildren()
-  local set = (listKey == "blacklist") and NS.Filters:Blacklist() or NS.Filters:Whitelist()
-  local ids = NS.Filters:SortedIDs(set)
-  if #ids == 0 then
-    local empty = O.AceGUI:Create("Label")
-    empty:SetFullWidth(true)
-    empty:SetText("|cff808080(none)|r")
-    listGroup:AddChild(empty)
-  else
-    for _, id in ipairs(ids) do
-      local rowG = O.AceGUI:Create("SimpleGroup")
-      rowG:SetLayout("Flow"); rowG:SetFullWidth(true)
-      local lbl = O.AceGUI:Create("Label")
-      lbl:SetRelativeWidth(0.78)
-      lbl:SetText(filterEntryLabel(id, function()
-        if ctx.panel:IsShown() then rebuildFilterList(ctx, listGroup, listKey) end
-      end))
-      rowG:AddChild(lbl)
-      local rm = O.AceGUI:Create("Button")
-      rm:SetText("Remove"); rm:SetRelativeWidth(0.20)
-      rm:SetCallback("OnClick", function()
-        if listKey == "blacklist" then NS.Filters:RemoveBlacklist(id)
-        else NS.Filters:RemoveWhitelist(id) end
-        rebuildFilterList(ctx, listGroup, listKey)
-        if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
-      end)
-      rowG:AddChild(rm)
-      listGroup:AddChild(rowG)
-    end
-  end
-  if listGroup.DoLayout then listGroup:DoLayout() end
-end
-
--- One list (blacklist or whitelist): description, add-row, bulk clear, live list.
---
--- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
--- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
--- heading under a sub-tab labelled Blacklist would say the word twice — which is the same rule the
--- library applies to a tabbed schema page (RenderRows' `noHeadings`).
-local function makeFilterSection(ctx, listKey, desc)
+-- Clear all stays the HOST'S button: it is a bulk act behind a confirm, and IdList draws per-entry
+-- Remove only. Without StaticPopup_Show (a headless run) it clears directly, as it always has.
+local function makeClearAll(ctx, listKey, list)
   local scroll = O.EnsureScroll(ctx)
-
-  local descLabel = O.AceGUI:Create("Label")
-  descLabel:SetFullWidth(true); descLabel:SetText(desc)
-  scroll:AddChild(descLabel)
-  O.AddSpacer(scroll, 6)
-
-  local listGroup = O.AceGUI:Create("SimpleGroup")
-  listGroup:SetLayout("List"); listGroup:SetFullWidth(true)
-
-  local addRow = O.AceGUI:Create("SimpleGroup")
-  addRow:SetLayout("Flow"); addRow:SetFullWidth(true)
-  local box = O.AceGUI:Create("EditBox")
-  box:SetLabel("Add item id or link")
-  box:SetRelativeWidth(0.78)
-  local function submit()
-    local id = NS.Filters:ParseItemID(box:GetText())
-    if not id then
-      print("enter a numeric item id (or shift-click an item link).")
-      return
-    end
-    if listKey == "blacklist" then NS.Filters:AddBlacklist(id) else NS.Filters:AddWhitelist(id) end
-    box:SetText("")
-    rebuildFilterList(ctx, listGroup, listKey)
-    if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
-  end
-  box:SetCallback("OnEnterPressed", function() submit() end)
-  addRow:AddChild(box)
-  local addBtn = O.AceGUI:Create("Button")
-  addBtn:SetText("Add"); addBtn:SetRelativeWidth(0.20)
-  addBtn:SetCallback("OnClick", submit)
-  addRow:AddChild(addBtn)
-  scroll:AddChild(addRow)
-  O.AddSpacer(scroll, 4)
-
   local clearRow = O.AceGUI:Create("SimpleGroup")
   clearRow:SetLayout("Flow"); clearRow:SetFullWidth(true)
   local clearBtn = O.AceGUI:Create("Button")
   clearBtn:SetText("Clear all"); clearBtn:SetRelativeWidth(0.30)
   clearBtn:SetCallback("OnClick", function()
-    local popup = (listKey == "blacklist") and "KA0S_BANKLEDGER_CLEAR_BLACKLIST"
-      or "KA0S_BANKLEDGER_CLEAR_WHITELIST"
     if type(StaticPopup_Show) == "function" then
-      StaticPopup_Show(popup)
+      StaticPopup_Show(list.popup)
     elseif NS.Filters then
       NS.Filters:ClearList(listKey)
     end
@@ -330,15 +258,127 @@ local function makeFilterSection(ctx, listKey, desc)
   clearRow:AddChild(clearBtn)
   scroll:AddChild(clearRow)
   O.AddSpacer(scroll, 4)
+end
 
-  scroll:AddChild(listGroup)
+-- Call one NS.Filters writer with the Filters tab's LedgerChanged repaint held off.
+--
+-- The writer fires LedgerChanged SYNCHRONOUSLY, and the listener in buildFiltersTab repaints the page
+-- on it — releasing the very edit box and status line IdList clears once onAdd returns, just before
+-- IdList asks for its own redraw through ctx.rebuild anyway. Held off for the call, one click costs
+-- exactly one repaint: the widget's, after it has finished with its widgets (anti-pattern #39). A
+-- raise is re-raised, so IdList still keeps the typed text and reports the failure.
+local function filterWrite(ctx, verb, id)
+  ctx.__filterWrite = true
+  local ok, err = pcall(NS.Filters[verb], NS.Filters, id)
+  ctx.__filterWrite = nil
+  if not ok then error(err, 0) end
+end
 
-  -- Painted as part of the page render rather than through a separate rebuilder tier. The library's
-  -- registry now owns that distinction: a scalar write runs refreshers (RefreshScalars), a
-  -- structural change re-runs the whole renderer (RefreshAllPanels), and both skip a page that is
-  -- not on screen and mark it dirty instead. The id lists are structural, so their bus handler
-  -- calls RefreshAllPanels and this simply draws whatever the list holds right now.
-  rebuildFilterList(ctx, listGroup, listKey)
+-- Where a typed item NAME can come from, said once: the add box's refusal ends with it (IdList's
+-- `nameHint`, filling `{hint}` in its notFound) and its tooltip repeats it. The client has no
+-- item-name search — C_Item's name lookups answer only for an item the player carries or carried
+-- this session — so beyond that a name can only match an id this tab hands the widget as a
+-- candidate (filterCandidates below). The library's own default says "ones this list knows",
+-- which undersells this tab: the ledger's items count too.
+local ITEM_NAME_HINT = "Names work for items you carry (or carried this session), items on either "
+  .. "list and items your ledger has recorded; otherwise use the id or shift-click a link."
+
+-- The ids a typed name may match beyond the client's own lookup: both lists' ids, then every item
+-- the ledger has recorded, newest first, each once. Read-only over state that already exists —
+-- NS.Filters' two sets and the live ledger (NS.Database:Ledger(), not the `/bl test` dataset) — so
+-- it stores nothing. IdList calls it at every draw and every submit; it names the ids itself
+-- (pre-warming the uncached ones), lists them as the player types, and a name several of them
+-- share (an item's crafted-quality ranks) is listed rank by rank and refused unpicked.
+--
+-- MEMOIZED, because the walk grows with ledger ROWS, not distinct items. The list is kept until
+-- the state it read moves: a different ledger or list table (Delete, Purge and Defaults swap them),
+-- a longer or shorter ledger (Add appends in place, firing EntryAdded, not LedgerChanged), or any
+-- LedgerChanged (an in-place DeleteAt, a list write), which bumps `version` in buildFiltersTab's
+-- listener. With no listener (no bus target) nothing could say so, and the memo stays off. The
+-- library only reads the list it is handed, so sharing it is safe.
+local candidateMemo = { version = 0, listening = false }
+
+local function candidateState()
+  local F = NS.Filters
+  local ledger = NS.db and NS.Database and NS.Database:Ledger()
+  return {
+    ledger = ledger, n = type(ledger) == "table" and #ledger or 0, at = candidateMemo.version,
+    black = F and F:Blacklist(), white = F and F:Whitelist(),
+  }
+end
+
+local function sameState(a, b)
+  return a.ledger == b.ledger and a.n == b.n and a.at == b.at
+    and a.black == b.black and a.white == b.white
+end
+
+local function filterCandidates()
+  local state, memo = candidateState(), candidateMemo
+  if memo.listening and memo.state and sameState(memo.state, state) then return memo.ids end
+  local out, seen = {}, {}
+  local function take(id)
+    if type(id) == "number" and not seen[id] then
+      seen[id] = true
+      out[#out + 1] = id
+    end
+  end
+  local F = NS.Filters
+  if F then
+    for _, id in ipairs(F:SortedIDs(state.black)) do take(id) end
+    for _, id in ipairs(F:SortedIDs(state.white)) do take(id) end
+  end
+  local ledger = state.ledger
+  if type(ledger) == "table" then
+    for i = #ledger, 1, -1 do
+      local e = ledger[i]
+      if type(e) == "table" then take(e.itemID) end
+    end
+  end
+  memo.state, memo.ids = state, out
+  return out
+end
+
+-- One list (blacklist or whitelist): description, Clear all, then the LibKa0s id list — its add box
+-- and one line per id (icon, item name and id, Remove).
+--
+-- The add box takes an item id, a shift-clicked item link or an item's NAME (O.ResolveId, kind
+-- "item"). As the player types it lists the matching names — the bags' items and filterCandidates'
+-- — one row per crafted-quality rank; a click (or Up/Down and Enter) adds that row's id. A typed
+-- name resolves through the client's lookup or the candidates, and a name several ids share is
+-- refused until one is picked. Anything that resolves to nothing adds nothing and says why under
+-- the box, ending with ITEM_NAME_HINT. The widget never writes a path: onAdd / onRemove
+-- call the writers above (through filterWrite), and the list keeps its [itemID] = true shape. After
+-- an add or a remove IdList redraws through ctx.rebuild, which buildFiltersTab points at THIS page
+-- alone, and an entry the client cannot name yet is loaded through LibKa0s-Item-1.0 and redrawn the
+-- same way when it lands.
+--
+-- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
+-- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
+-- heading under a sub-tab labelled Blacklist would say the word twice — which is the same rule the
+-- library applies to a tabbed schema page (RenderRows' `noHeadings`).
+local function makeFilterSection(ctx, listKey, desc)
+  local scroll = O.EnsureScroll(ctx)
+  local list = FILTER_LISTS[listKey]
+
+  local descLabel = O.AceGUI:Create("Label")
+  descLabel:SetFullWidth(true); descLabel:SetText(desc)
+  scroll:AddChild(descLabel)
+  O.AddSpacer(scroll, 6)
+
+  makeClearAll(ctx, listKey, list)
+
+  O.IdList(ctx, {
+    kind      = "item",
+    label     = "Add an item by id, link or name",
+    tooltip   = "Type an item id or an item's name, or shift-click an item link into the box. "
+      .. ITEM_NAME_HINT,
+    candidates = filterCandidates,
+    strings   = { nameHint = ITEM_NAME_HINT },
+    entries   = function() return filterEntries(list) end,
+    onAdd     = function(id) filterWrite(ctx, list.add, id) end,
+    onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
+    emptyText = "|cff808080(none)|r",
+  })
 end
 
 -- The PRIMARY tab's key, spelled once: it is both this tab's `group` in settings/Schema.lua and the
@@ -411,10 +451,16 @@ local function buildFiltersTab(ctx)
     if tab.key == listKey then makeFilterSection(ctx, tab.key, tab.desc) end
   end
 
+  -- Where IdList redraws after an add, a remove, or an item load landing: this page, re-rendered
+  -- structurally, with the library's own shown / mark-dirty split. Left unset, the widget falls back
+  -- to O.RefreshAllPanels and repaints every rendered page to service this one.
+  ctx.rebuild = function() O.RefreshPanel(ctx, true) end
+
   -- Live-update both lists when they change from elsewhere (the ledger table's right-click menu),
   -- on a private bus target. While the page is on screen we repaint immediately; while it is hidden
   -- we only flag it dirty, so the next OnShow repaints once instead of every tab click paying an
-  -- O.AceGUI teardown+rebuild (options-ui-§11).
+  -- O.AceGUI teardown+rebuild (options-ui-§11). A change this page's own IdList made is skipped
+  -- here: the widget repaints for it once it is done with its widgets (filterWrite).
   if not P.__evFilters then
     local ev = NS.NewBusTarget()
     if ev then
@@ -423,7 +469,13 @@ local function buildFiltersTab(ctx)
       -- already does the on-screen / mark-dirty split this used to do by hand: a hidden page is
       -- flagged and repaints once on its next show, instead of every tab click paying an AceGUI
       -- teardown (options-ui-§11).
-      ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() O.RefreshAllPanels() end)
+      -- Every LedgerChanged also retires the add box's name candidates (filterCandidates' memo),
+      -- this page's own writes included.
+      ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function()
+        candidateMemo.version = candidateMemo.version + 1
+        if not ctx.__filterWrite then O.RefreshAllPanels() end
+      end)
+      candidateMemo.listening = true
       P.__evFilters = ev
     end
   end

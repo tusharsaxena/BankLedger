@@ -197,14 +197,43 @@ tolerance.
    *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
 2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
    there (blacklisting is point-in-time, it never rewrites history).
-3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the id is listed with its item name.
-   Remove it.
-4. Add an id by shift-clicking an item link into the Add box.
+3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the item is listed with its icon, its
+   name and its id in gray. Hover it: the game's own item tooltip shows. Remove it.
+4. The add box (LibKa0s `IdList`) takes three forms — add one item each way: shift-click an item
+   link into it, type a bare item id, and type an item's **name** in lower case (one in your bags).
+   Each lands on the list. An id the client has not cached reads `Unknown item <id>` at first and
+   fills in its name a moment later, with no reopen.
 5. Whitelist an item, set the minimum quality to Epic, and move the whitelisted item — it is still
    recorded.
 6. **Defaults** on the General page clears both lists (along with every setting) after a confirm.
    There is **no Filters page** in the sidebar any more — an entry still listed there would be one
    opening onto nothing.
+7. **The dropdown appears, and ranks are labeled.** Type two or more letters of an item your ledger
+   has recorded. A list drops down under the box, above the settings panel and not clipped by it:
+   each row shows the item's icon, its name in its quality color and its id in gray. An item made in
+   several crafted-quality ranks (a Dragonflight potion or reagent) shows one row for each rank you
+   carry or your ledger or lists hold, each labeled with its quality-tier icon. Only those ranks: a
+   rank nothing here has seen is not listed, and a name with just one known rank is added as that
+   rank on Enter. More than ten matches end in a gray `+N more` line.
+8. **Picking adds.** Click a row, or highlight one with Up/Down and press Enter — that exact id is
+   added once, the box clears, the dropdown closes, and the list shows the item. Escape, or clicking
+   elsewhere, closes the dropdown without adding anything. Type a name several ranks share in full
+   and press Enter **without** picking — nothing is added; the orange line reads
+   `Several items are named '<name>' — pick one from the list, or use the id.` and the ranks stay
+   listed to pick from.
+9. **A name you never had this session resolves.** `/reload`, make sure an item your ledger
+   recorded (or one on the other list) is **not** in your bags, then type its exact name and press
+   Enter. It is added. A gray `Looking up items…` line may show first, while the client loads names
+   it has not cached yet. On a large ledger whose items are uncached, or that holds items the game
+   has retired, the first name typed after a `/reload` can wait up to about ten seconds (five
+   windows of five asks, 0.4 s apart) before it resolves or is refused; later ones answer at once.
+10. **A name nothing knows is refused, honestly.** Type the exact name of a real item that you have
+    not carried this session, that is on neither list, and that your ledger never recorded, then press
+    Enter. Nothing is added, the text stays in the box, and the orange line reads
+    `No item named '<text>' that the game can find. Names work for items you carry (or carried this
+    session), items on either list and items your ledger has recorded; otherwise use the id or
+    shift-click a link.` Hover the box: its tooltip ends with the same sentence. The item's id, or
+    its link shift-clicked from chat, still adds it.
 
 ## S-12 · Settings panel
 
@@ -244,8 +273,8 @@ tolerance.
      is on Master controls.
    - **Filters** — a **secondary** strip inside the scroll (it scrolls with the content, and there
      is no second pinned chrome band), reading **Blacklist · Whitelist**, opening on Blacklist. The
-     selected list shows its own blurb, its own add box and its own **Clear all**, and never both
-     lists at once — one add box on screen, not two. Click Whitelist, leave for **Capture**, come
+     selected list shows its own blurb, its own **Clear all**, then its own add box and id list,
+     and never both lists at once — one add box on screen, not two. Click Whitelist, leave for **Capture**, come
      back: Filters is still on **Whitelist** (the sub-selection is per-tab session state). Reload:
      it opens on Blacklist again, because none of it is persisted.
    Click each tab in turn and then click back: the store grid, the read-out, the reset pair and both
