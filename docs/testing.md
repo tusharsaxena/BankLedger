@@ -19,12 +19,14 @@ luacheck .            # 0 errors, 0 warnings
 `M4c-06` this repo's `.luacheckrc` carried `ignore = { "212/self", "212/event" }` at the top level.
 It *looked* narrow -- both entries already name the variable, which is the form the rule steers
 towards -- and that is exactly why it survived so long. The problem is scope, not spelling: a
-top-level `ignore` reaches all 60 files however precisely it is written. `212/event` matched
-**nothing at all** in this tree, so the addon was carrying a live suppression for a warning it did
-not have, and the first handler to drop its event argument would have landed green.
+top-level `ignore` reaches every linted file (all 60 at the time) however precisely it is written.
+`212/event` matched **nothing at all** in this tree, so the addon was carrying a live suppression
+for a warning it did not have, and the first handler to drop its event argument would have landed
+green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files. Eighteen further suppressions were sitting inline, one per file --
+files linted at the time (61 today: `M4c-06` itself added `tests/test_lintconfig.lua`). Eighteen
+further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
 `local _, NS = ...` (which `core/CoreSetup.lua`, `core/ItemSetup.lua` and `core/PoolSetup.lua`
@@ -39,7 +41,9 @@ receiver. The receiver is still load-bearing, because every call site is a colon
 namespace (`NS.Browser:Show()`, `NS.Schema:Set(path, v)`) -- roughly 900 of them across the addon
 and the suites -- so deleting it would shift every argument one place to the left at all of them.
 Each of the 12 files therefore carries a `files[...]` stanza naming that one file and that one
-variable, with a comment saying which convention forces it.
+variable, with a comment saying which convention forces it. Re-measured 2026-09-14 with those
+stanzas stripped: still 119 `212/self` findings across the same 12 of the 61 linted files, and
+nothing else.
 
 That the narrowing is real was **measured, not assumed**: a method with an unread `self` added to
 `core/Util.lua` and an unread `event` parameter added to `core/Compat.lua` -- two files with no

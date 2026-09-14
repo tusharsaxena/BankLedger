@@ -12,12 +12,12 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit
 -- NO TOP-LEVEL `ignore`, and none is coming back (lint.md, `M4-11`). This file carried
 -- `ignore = { "212/self", "212/event" }` until `M4c-06`. Both entries were already spelled in the
 -- `<code>/<variable>` form, which made the blanket look narrow -- but the scope is the problem, not
--- the spelling: a top-level ignore reaches all 60 files, so it silenced those two names in every
--- file that has no business producing them too. That is the state `M4-11` calls "reads as coverage
--- and provides none", and it was literally true here. `212/event` matched NOTHING in this tree --
--- removing the blanket produced not one unused `event` -- so the addon carried a live suppression
--- for a warning it never had, and the day a handler did drop its event argument it would have
--- landed green under a 0/0 badge.
+-- the spelling: a top-level ignore reaches every linted file (60 at the time; 61 today), so it
+-- silenced those two names in every file that has no business producing them too. That is the state
+-- `M4-11` calls "reads as coverage and provides none", and it was literally true here. `212/event`
+-- matched NOTHING in this tree -- removing the blanket produced not one unused `event` -- so the
+-- addon carried a live suppression for a warning it never had, and the day a handler did drop its
+-- event argument it would have landed green under a 0/0 badge.
 --
 -- Removing the two lines reported 119 findings, every one of them `212/self`, across 12 of the 60
 -- files. What replaced the blanket is the 12 `files[...]` stanzas at the foot of this file, each
@@ -78,7 +78,7 @@ files["tests/"] = {
 -- Every stanza below names ONE file and ONE variable, in luacheck's `<code>/<variable>` form. That
 -- is the whole difference from the blanket this replaced: an unused argument under any OTHER name
 -- -- `event`, `entry`, `index`, `reason` -- still reports in these 12 files, and an unused `self`
--- still reports in the other 48. Measured, not assumed: a dead `unusedArg` parameter added to
+-- still reports in the other 49. Measured, not assumed: a dead `unusedArg` parameter added to
 -- `Database:Count` reports under this config and reported nothing under the old one.
 --
 -- All 119 are the SAME shape, and it is a shape the calling convention forces rather than one this
