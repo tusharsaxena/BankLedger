@@ -39,15 +39,17 @@ end
 function F:Blacklist() return currentSet("blacklist") end
 function F:Whitelist() return currentSet("whitelist") end
 
--- Membership predicates. No production caller — the capture path reads the cached list upvalues in
--- modules/Ledger.lua rather than querying per id. Exported as the tested seam for a list's meaning
--- (tests/test_filters.lua:14, :29, :30, :44), and the read half of the Add*/Remove* API.
+-- Test seams: the membership predicates. No production caller — the capture path reads the cached
+-- list upvalues in modules/Ledger.lua rather than querying per id, and routing it through here would
+-- put an AceDB read back on the per-item path. Kept on purpose (M4-07) as the tested statement of
+-- what a list means (tests/test_filters.lua:14, :29, :30, :44), and the read half of the
+-- Add*/Remove* API.
 function F:IsBlacklisted(id)
   id = tonumber(id)
   return id ~= nil and currentSet("blacklist")[id] == true
 end
 
--- No production caller; see F:IsBlacklisted above (tests/test_filters.lua:29).
+-- Test seam, no production caller; see F:IsBlacklisted above (tests/test_filters.lua:29).
 function F:IsWhitelisted(id)
   id = tonumber(id)
   return id ~= nil and currentSet("whitelist")[id] == true
@@ -133,19 +135,4 @@ function F:SortedIDs(set)
   for id in pairs(set or {}) do ids[#ids + 1] = id end
   table.sort(ids)
   return ids
-end
-
--- Extract an item id from free-form input: a bare number, or an item link / itemString the user
--- shift-clicked into the field. Returns a number, or nil when nothing parses.
---
--- No production caller since the Filters tab adopted LibKa0s IdList (v1.35.0), whose O.ResolveId
--- parses the same two forms and a name as well. Kept as the tested parse seam for an item-id input
--- (tests/test_filters.lua:57, :62) until a caller needs it or the next sweep retires it.
-function F:ParseItemID(input)
-  if type(input) == "number" then return input end
-  if type(input) ~= "string" then return nil end
-  input = input:match("^%s*(.-)%s*$")
-  local fromLink = input:match("|Hitem:(%d+)") or input:match("^item:(%d+)")
-  if fromLink then return tonumber(fromLink) end
-  return tonumber(input)
 end
