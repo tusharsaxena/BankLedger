@@ -181,7 +181,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- `__print` IS NO LONGER ON THIS LIST, and that is the whole reason this case moved to the by-name
   -- form. It joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
   -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
-  -- (libs/LibKa0s/Options.lua:392, read at OptionsWidgets.lua:763). Its own comment there calls it
+  -- (libs/LibKa0s/Options.lua:536, read at OptionsWidgets.lua:1347). Its own comment there calls it
   -- internal rather than surface and says a degradation stub does not mirror it, BECAUSE
   -- Kit.assertSurfaceParity skips the `__` prefix — which was true of the by-name form and not of
   -- the four-argument form this case used, so the exemption had to be typed here by hand and the

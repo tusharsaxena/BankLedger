@@ -16,8 +16,8 @@ local test, fail = T.test, T.fail
 -- WHY IT EXISTS, in this repo specifically. `.luacheckrc` carried
 -- `ignore = { "212/self", "212/event" }` through the whole 2026-09-07 remediation. That one looked
 -- narrow -- both entries were already in the `<code>/<variable>` form the rule steers towards --
--- and it is the reason this gate checks SCOPE rather than spelling. A top-level ignore reaches all
--- 60 files however precisely it is written, and `212/event` matched nothing whatever in this tree:
+-- and it is the reason this gate checks SCOPE rather than spelling. A top-level ignore reaches every
+-- linted file however precisely it is written, and `212/event` matched nothing whatever in this tree:
 -- the addon carried a live suppression for a warning it did not have, so the first handler to drop
 -- its event argument would have landed green under a 0/0 badge.
 --
@@ -134,7 +134,7 @@ test("lintconfig: .luacheckrc sets no top-level ignore", function()
       shown[1] = tostring(ignore)
     end
     fail(".luacheckrc sets a top-level `ignore` of { " .. table.concat(shown, ", ") .. " }. "
-      .. "A blanket ignore silences the code in all 60 files, including the ones with no "
+      .. "A blanket ignore silences the code in every linted file, including the ones with no "
       .. "business producing it, so it reads as coverage and provides none (lint.md, `M4-11`). "
       .. "Naming the variable does not save it: this repo's blanket was already `212/self`, and "
       .. "its `212/event` matched nothing at all. Move each code into a `files[...]` stanza naming "
