@@ -673,7 +673,7 @@ badge and any count quoted in the docs must agree with it.
 - Test mode: a combat edge with test mode off says nothing and starts nothing
 - Test mode: /bl session stays its own verb
 
-### test_slash.lua (40)
+### test_slash.lua (44)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -705,7 +705,11 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards
 - Slash: a row that raises mid-resetall logs ONE line marked as stopped, re-raises, and unmutes the seam
 - Slash: a resetall row raising nil logs the line without the marker (the library hands err = nil)
-- Slash: a bare /bl prints the help index
+- Slash: a bare /bl runs the config verb and prints nothing
+- Slash: whitespace-only input is a bare /bl too
+- Slash: a bare /bl opens the settings panel on its landing page, not a sub-page
+- Slash: with no config verb, a bare /bl falls back to the help index
+- Slash: /bl help prints the help index
 - Slash: the help index has one row per COMMANDS entry, plus the header
 - Slash: the help header names both the short verb and its alias
 - Slash: help rows are gold command, em-dash, white description, indented
@@ -881,7 +885,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (63)
+### test_libka0s.lua (65)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -940,6 +944,8 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
+- LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does
+- LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
 - LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one per row
@@ -1024,14 +1030,14 @@ badge and any count quoted in the docs must agree with it.
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
-| test_slash.lua | 40 |
+| test_slash.lua | 44 |
 | test_panel.lua | 68 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 63 |
+| test_libka0s.lua | 65 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
@@ -1041,4 +1047,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **907** |
+| **Total** | **913** |

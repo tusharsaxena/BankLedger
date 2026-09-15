@@ -847,6 +847,38 @@ test("LibKa0s-Slash degraded: the verbs that never needed the library still work
   ns.COMMANDS[#ns.COMMANDS] = nil
 end)
 
+test("LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does", function()
+  -- The stub mirrors Slash minor 11 (slash-commands-§4): bare and whitespace-only input run the
+  -- host's `config` verb with "", and print nothing.
+  local ns, m = loadDegraded()
+  local cmd
+  for _, c in ipairs(ns.COMMANDS) do if c[1] == "config" then cmd = c end end
+  assertTrue(cmd ~= nil, "the degraded arm still registers a config verb")
+  local orig, calls = cmd[3], {}
+  cmd[3] = function(rest) calls[#calls + 1] = rest end
+  local ok, out = pcall(captureChat, function()
+    ns.Slash:OnSlash("")
+    ns.Slash:OnSlash("  \t ")
+  end, m)
+  cmd[3] = orig
+  if not ok then error(out, 0) end
+  assertEqual(#calls, 2, "both a bare and a whitespace-only /bl must reach the config verb")
+  assertEqual(calls[1], "")
+  assertEqual(calls[2], "")
+  assertEqual(#out, 0, "and print nothing: " .. table.concat(out, "\n"))
+end)
+
+test("LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help", function()
+  local ns, m = loadDegraded()
+  for i = #ns.COMMANDS, 1, -1 do
+    if ns.COMMANDS[i][1] == "config" then table.remove(ns.COMMANDS, i) end
+  end
+  local out = captureChat(function() ns.Slash:OnSlash("") end, m)
+  assertEqual(out[#out], "|cff00ffff[BL]|r The LibKa0s library is missing from this installation "
+    .. "of Ka0s Bank Ledger (expected in libs/LibKa0s), so the slash help index and the settings "
+    .. "CLI (list/get/set/reset) are unavailable.")
+end)
+
 test("LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause", function()
   local ns, m = loadDegraded()
   local out = captureChat(function() ns.Slash:CliList() end, m)

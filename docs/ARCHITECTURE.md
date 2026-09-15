@@ -196,7 +196,9 @@ gets no close event either.
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
 page read one table. Fifteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
-seam. Verb table and the host/library split in **[slash-dispatch.md](slash-dispatch.md)**.
+seam. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
+prints the list (`slash-commands-§4`). Verb table and the host/library split in
+**[slash-dispatch.md](slash-dispatch.md)**.
 
 ## Event Subscriptions
 

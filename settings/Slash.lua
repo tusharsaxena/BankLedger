@@ -227,7 +227,15 @@ if not lib then
   -- Dispatch still has to work, so this is the library's loop reproduced at its smallest.
   function Sl:OnSlash(input)
     local raw = (input or ""):match("^%s*(.-)%s*$") or ""
-    if raw == "" then return Sl:PrintHelp() end
+    -- A bare /bl runs the `config` verb, as the library does from Slash minor 11
+    -- (slash-commands-§4): the settings panel on its landing page. `help` is the index. With no
+    -- `config` verb registered, bare input falls back to the index.
+    if raw == "" then
+      for _, cmd in ipairs(NS.COMMANDS) do
+        if cmd[1] == "config" then return cmd[3]("") end
+      end
+      return Sl:PrintHelp()
+    end
     local verb, rest = raw:match("^(%S+)%s*(.*)$")
     verb = (verb or ""):lower()
     for _, cmd in ipairs(NS.COMMANDS) do

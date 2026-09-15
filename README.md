@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-907%2F907_passing-green)
+![Tests](https://img.shields.io/badge/Tests-913%2F913_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -74,7 +74,8 @@ and both come back where you left them — until you tick **Lock frame** on the 
 controls tab, which pins every window the addon owns.
 
 Everything else is configuration, and it lives in two places: the addon's own page under
-Settings → AddOns in game, and `/bl` (or `/bankledger`), which prints the full command list.
+Settings → AddOns in game, which `/bl` (or `/bankledger`) opens on its own, and `/bl help`, which
+prints the full command list.
 
 ## How the ledger works
 

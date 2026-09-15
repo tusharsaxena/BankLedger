@@ -367,9 +367,76 @@ end)
 
 -- ── Dispatch and help ──────────────────────────────────────────────────────────
 
-test("Slash: a bare /bl prints the help index", function()
-  local out = captureChat(function() Sl:OnSlash("") end)
-  assertTrue(joined(out):find("slash commands", 1, true) ~= nil)
+-- slash-commands-§4 (LibKa0s Slash minor 11): a bare /bl runs the `config` verb, which opens the
+-- settings panel on its landing page, and `/bl help` is what prints the index. The degraded stub
+-- mirrors both branches; its cases are in tests/test_libka0s.lua.
+
+local function configEntry()
+  for _, cmd in ipairs(NS.COMMANDS) do
+    if cmd[1] == "config" then return cmd end
+  end
+end
+
+-- Swap the config handler for a probe, run fn, restore it even if fn raises.
+local function withConfigProbe(fn)
+  local cmd = configEntry()
+  local orig = cmd[3]
+  local calls = {}
+  cmd[3] = function(rest) calls[#calls + 1] = rest end
+  local ok, err = pcall(fn)
+  cmd[3] = orig
+  if not ok then error(err, 0) end
+  return calls
+end
+
+test("Slash: a bare /bl runs the config verb and prints nothing", function()
+  local out
+  local calls = withConfigProbe(function() out = captureChat(function() Sl:OnSlash("") end) end)
+  assertEqual(#calls, 1, "a bare /bl must reach the config handler once")
+  assertEqual(calls[1], "", "with an empty argument")
+  assertEqual(#out, 0, "and print no help index: " .. joined(out))
+end)
+
+test("Slash: whitespace-only input is a bare /bl too", function()
+  for _, input in ipairs({ " ", "   ", "\t", " \t  " }) do
+    local out
+    local calls = withConfigProbe(function() out = captureChat(function() Sl:OnSlash(input) end) end)
+    assertEqual(#calls, 1, ("input %q must reach the config handler"):format(input))
+    assertEqual(calls[1], "", ("input %q passes an empty argument"):format(input))
+    assertEqual(#out, 0, ("input %q prints nothing: %s"):format(input, joined(out)))
+  end
+end)
+
+test("Slash: a bare /bl opens the settings panel on its landing page, not a sub-page", function()
+  -- The real config handler, end to end: P:Open -> O.OpenOptionsPanel -> Settings.OpenToCategory.
+  -- The mock hands the main category id 1 and every subcategory id 2.
+  local S = T.mocks.Settings
+  local saved = S.OpenToCategory
+  local opened = {}
+  S.OpenToCategory = function(id) opened[#opened + 1] = id end
+  local ok, err = pcall(function() captureChat(function() Sl:OnSlash("") end) end)
+  S.OpenToCategory = saved
+  if not ok then error(err, 0) end
+  assertEqual(#opened, 1, "a bare /bl must open the settings panel once")
+  assertEqual(opened[1], 1, "on the main category (the landing page), not a subcategory")
+end)
+
+test("Slash: with no config verb, a bare /bl falls back to the help index", function()
+  local idx
+  for i, cmd in ipairs(NS.COMMANDS) do if cmd[1] == "config" then idx = i end end
+  local entry = table.remove(NS.COMMANDS, idx)
+  local ok, out = pcall(captureChat, function() Sl:OnSlash("") end)
+  table.insert(NS.COMMANDS, idx, entry)
+  if not ok then error(out, 0) end
+  assertTrue(joined(out):find("slash commands", 1, true) ~= nil, joined(out))
+end)
+
+test("Slash: /bl help prints the help index", function()
+  local out
+  local calls = withConfigProbe(function() out = captureChat(function() Sl:OnSlash("help") end) end)
+  assertEqual(#calls, 0, "help must not open the settings panel")
+  assertTrue(joined(out):find("slash commands", 1, true) ~= nil, joined(out))
+  assertEqual(#out, #NS.COMMANDS + 1, "the full index: the header plus one row per verb")
 end)
 
 test("Slash: the help index has one row per COMMANDS entry, plus the header", function()

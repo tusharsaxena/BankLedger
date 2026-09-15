@@ -9,6 +9,7 @@ settings landing page both read from one place.
 
 | Command | What it does |
 |---|---|
+| `/bl` | Open the settings panel on its landing page (runs `config`) |
 | `/bl show` / `hide` / `toggle` | Open, close or toggle the ledger window |
 | `/bl config` | Open the settings panel |
 | `/bl version` | Print the addon version |
@@ -19,7 +20,13 @@ settings landing page both read from one place.
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
 | `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console |
 | `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
-| `/bl help` | The help index |
+| `/bl help` | Print the command list (the help index) |
+
+A bare `/bl`, or one that is only whitespace, runs the `config` verb with an empty argument
+(`slash-commands-§4`, LibKa0s Slash minor 11). That opens the settings panel on its landing page,
+and in combat it gets the panel's own refusal line. `/bl help` is what prints the list. The
+library-absent stub in `settings/Slash.lua` does the same: it runs `config` if `NS.COMMANDS`
+registers one, and prints the help index only if it does not.
 
 `/bl test` is the renamed History-table sample data (`LT:IsTestMode`, `LT:ToggleTestMode`,
 `LT:BuildTestData`, badge `TEST MODE`) — matching the Ka0s house vocabulary set by LootHistory's

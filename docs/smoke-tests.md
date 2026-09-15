@@ -237,7 +237,9 @@ tolerance.
 
 ## S-12 · Settings panel
 
-1. `/bl config` opens the panel with the addon's entry already present in the list.
+1. `/bl config` opens the panel with the addon's entry already present in the list. Close it, then
+   type `/bl` with nothing after it: the panel opens on the same landing page, not on General, and
+   nothing prints in chat. `/bl help` prints the command list instead.
 2. The landing page shows the **logo**, the tagline and every slash command. The logo must actually
    be there and be crisp — a missing texture draws nothing and raises no error, so blank is a real
    failure mode, and a soft or jagged one means the `.tga` was regenerated at the wrong size (it
@@ -724,7 +726,7 @@ only a real login can produce, the second needs an item the client has genuinely
 `Widgets.CopyWindow`. Focus, selection and the Esc binding are the three things a headless suite
 cannot see, so they are checked here. **NOT YET RUN** — recorded when the adoption landed.
 
-1. `/bl` → open the ledger → **Export** → with **All Data** selected, click **Export to CSV**.
+1. `/bl show` → **Export** → with **All Data** selected, click **Export to CSV**.
 2. The copy window opens **centred on the ledger window**, above the modal, with the CSV **already
    selected**.
 3. Ctrl+C, paste into a text editor: the whole CSV, including the `\r\n` line breaks the exporter
