@@ -207,6 +207,10 @@ if not lib then
     IdList = function() return nil end,
     UnnamedCandidates = function() return {} end,
     ID_NAME_HINT = {},
+    -- SelectTab, new at LibKa0s v1.36.0: reached only from a tab click on an already-rendered
+    -- page. This addon does not adopt tab-scoped refresh; a no-op keeps the stub's surface
+    -- matching the live one.
+    SelectTab = function() end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
