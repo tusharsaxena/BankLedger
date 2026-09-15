@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-896%2F896_passing-green)
+![Tests](https://img.shields.io/badge/Tests-907%2F907_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -52,9 +52,10 @@ built by hand with the amount spelled out in full, because the Qty cell can trun
 Shift-left-click drops the item into chat, and right-click opens the row menu: link it, blacklist
 it, whitelist it, or delete that single line out of the book. The two lists are point-in-time, so
 they decide what gets recorded from now on and leave everything already stored alone. If you want a
-look around before you have any history of your own, `/bl test` puts a sample ledger on screen. Only
-**Link to chat** works on those rows. The others would be writing fake item ids into your real
-settings.
+look around before you have any history of your own, `/bl test` puts a sample ledger on screen, and
+so does the **Test mode** box on the Master controls tab. It stays on until you turn it off, or until
+you enter combat. Only **Link to chat** works on those rows. The others would be writing fake item
+ids into your real settings.
 
 The Insights tab swaps the table out for charts drawn through the same filter, so the two always
 describe the same slice. Fourteen headline figures come first, then seventeen charts, each of the

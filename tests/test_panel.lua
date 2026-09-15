@@ -1020,6 +1020,7 @@ test("Panel: a boolean row is a CheckBox and a range row is a Slider", function(
   assertEqual(widgetLabeled(master, "Master scale").type, "Slider")
   assertEqual(widgetLabeled(master, "Master alpha").type, "Slider")
   assertEqual(widgetLabeled(master, "General visibility").type, "Dropdown")
+  assertEqual(widgetLabeled(master, "Test mode").type, "CheckBox")
   local iface = renderTab("General", "Interface")
   assertEqual(widgetLabeled(iface, "Row stripe opacity").type, "Slider")
   assertEqual(widgetLabeled(iface, "Row hover opacity").type, "Slider")
@@ -1360,6 +1361,32 @@ test("Slash: the restored store does not ALIAS the defaults table", function()
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertEqual(NS.defaults.global.settings.__probeAlias, nil,
     "the store aliases the defaults table")
+end)
+
+test("Slash: both global resets end test mode, which no store wipe can reach", function()
+  -- options-ui-§15 (standard v2.47.0): test mode is ended by Reset all settings, which is why the
+  -- composed row declares `default = false`. `/bl resetall` and the Defaults button reach it through
+  -- CliResetAll's row walk. The Master controls button's wholesale wipe empties db.global, and test
+  -- mode was never in db.global, so ResetEverything ends it by name.
+  --
+  -- red under: dropping `testMode = false` from S.MASTER_SPEC's defaults, or the test-mode line in
+  -- Sl:ResetEverything.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local ok, err = pcall(function()
+    NS.Schema:Set("state.testMode", true)
+    assertTrue(NS.LedgerTable:IsTestMode(), "precondition: test mode is on")
+    NS.Slash:CliResetAll()
+    assertFalse(NS.LedgerTable:IsTestMode(), "/bl resetall left test mode on")
+    NS.Schema:Set("state.testMode", true)
+    assertTrue(NS.LedgerTable:IsTestMode(), "precondition: test mode is on again")
+    NS.Slash:ResetEverything()
+    assertFalse(NS.LedgerTable:IsTestMode(), "Reset all settings left test mode on")
+  end)
+  NS.State.testRecords = nil
+  NS.Browser:Hide()
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
 end)
 
 test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now", function()

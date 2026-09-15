@@ -92,7 +92,17 @@ end
 
 -- Both combat edges take the same route: NS.Util.ApplyVisibility re-reads the rule and hides or
 -- re-shows exactly the windows the rule itself took (core/State.lua's hiddenByVisibility).
-function addon:OnCombatChanged()
+--
+-- The pull also ENDS test mode (options-ui-§15, standard v2.47.0): no sample ledger covers real data
+-- in a fight. AceEvent hands the event name in, and only PLAYER_REGEN_DISABLED ends it. It goes first,
+-- so the visibility pass sees the real dataset, and it goes through LT:SetTestMode(false), which never
+-- opens a window and repaints the panel so the Test mode box unticks. One line says where it went.
+function addon:OnCombatChanged(event)
+  local LT = NS.LedgerTable
+  if event == "PLAYER_REGEN_DISABLED" and LT and LT.IsTestMode and LT:IsTestMode() then
+    LT:SetTestMode(false)
+    NS.Print("test mode off \226\128\148 combat started.")
+  end
   NS.Util.ApplyVisibility()
 end
 

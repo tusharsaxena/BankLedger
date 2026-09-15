@@ -335,7 +335,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (53)
+### test_ledgertable.lua (54)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -384,6 +384,7 @@ badge and any count quoted in the docs must agree with it.
 - BuildTestData spreads across many characters and zones
 - BuildTestData never carries vendor value
 - LedgerTable:ToggleTestMode publishes and clears the dataset
+- LedgerTable:SetTestMode sets a value rather than flipping one, and a stop opens nothing
 - LedgerTable:IsTestMode is derived from the published dataset, not a second flag
 - LedgerTable row menu offers the mutating actions on a real row
 - LedgerTable row menu disables every mutating action in test mode
@@ -617,7 +618,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (43)
+### test_schema.lua (52)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -662,6 +663,15 @@ badge and any count quoted in the docs must agree with it.
 - Schema: a row the library cannot draw is marked skipRender, not left to vanish
 - Schema: no row uses the pre-library field spellings
 - Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
+- Test mode: the composed row sits right below Debug console, session-only, on its own line
+- Test mode: the checkbox is never written to SavedVariables
+- Test mode: ticking it loads the sample ledger and opens the ledger window
+- Test mode: /bl test and the checkbox are one switch
+- Test mode: a start General visibility refuses leaves the box unticked
+- Test mode: a start in combat is refused
+- Test mode: combat ends it, says so once, and does not open the ledger window
+- Test mode: a combat edge with test mode off says nothing and starts nothing
+- Test mode: /bl session stays its own verb
 
 ### test_slash.lua (40)
 
@@ -706,7 +716,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (67)
+### test_panel.lua (68)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -768,6 +778,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
 - Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
 - Slash: the restored store does not ALIAS the defaults table
+- Slash: both global resets end test mode, which no store wipe can reach
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
 - Slash: ResetEverything traces the recorded entries it wiped, once
 - Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
@@ -1006,15 +1017,15 @@ badge and any count quoted in the docs must agree with it.
 | test_ledger.lua | 123 |
 | test_database.lua | 48 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 53 |
+| test_ledgertable.lua | 54 |
 | test_browser.lua | 43 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 43 |
+| test_schema.lua | 52 |
 | test_slash.lua | 40 |
-| test_panel.lua | 67 |
+| test_panel.lua | 68 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -1030,4 +1041,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **896** |
+| **Total** | **907** |

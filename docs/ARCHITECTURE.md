@@ -73,7 +73,7 @@ per row.
   already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
 
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
-the array's declaration order is the tab order, and the strip reads **Master controls** (6) ·
+the array's declaration order is the tab order, and the strip reads **Master controls** (7) ·
 **Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
@@ -207,7 +207,9 @@ guard, because none of their names can go away under it: `PLAYER_ENTERING_WORLD`
 object (`core/BankLedger.lua:45`, the one-shot retention prune), the combat pair
 `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the same object (`core/BankLedger.lua:49-50`
 → `addon:OnCombatChanged` → `NS.Util.ApplyVisibility`, the two edges the **General visibility** rule
-answers on — without them a window opened out of combat would simply stay up through a pull), and
+answers on — without them a window opened out of combat would simply stay up through a pull; the
+`PLAYER_REGEN_DISABLED` edge also ends test mode first, through `LT:SetTestMode(false)`, which opens
+no window, per `options-ui-§15`), and
 `PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1250`,
 `modules/SessionWindow.lua:673`, geometry flush).
 

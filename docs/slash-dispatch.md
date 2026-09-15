@@ -13,7 +13,7 @@ settings landing page both read from one place.
 | `/bl config` | Open the settings panel |
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` / `resetall` | Read and write settings |
-| `/bl test` | Toggle a sample ledger for previewing the window |
+| `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box) |
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
@@ -23,7 +23,10 @@ settings landing page both read from one place.
 
 `/bl test` is the renamed History-table sample data (`LT:IsTestMode`, `LT:ToggleTestMode`,
 `LT:BuildTestData`, badge `TEST MODE`) — matching the Ka0s house vocabulary set by LootHistory's
-`/lh test`. `/bl session`'s `previewSession` / `TogglePreview` on `NS.SessionWindow` **deliberately
+`/lh test`. It is one of two ways to flip one switch: `LT:ToggleTestMode` calls `LT:SetTestMode`,
+the same path the Master controls **Test mode** checkbox (`state.testMode`, `options-ui-§15`) and
+the combat ending take, and that path repaints an open panel so the box follows the verb. A start
+refused in combat, or by General visibility, prints its one reason line, never `test mode on`. `/bl session`'s `previewSession` / `TogglePreview` on `NS.SessionWindow` **deliberately
 keep the "preview" name**: it is a separate synthetic-data feature (placeholder movements for
 positioning the Current Banking Session window away from a bank) with no LootHistory counterpart to
 match, so it was left alone rather than folded into the rename.

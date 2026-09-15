@@ -138,6 +138,12 @@ function Sl:ResetEverything()
     for k in pairs(g) do g[k] = nil end
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
   end
+  -- Test mode is session state (options-ui-§15). It lives in NS.State, never in db.global, so the
+  -- wipe above cannot reach it, and that rule says Reset all settings ends it. So it is ended by
+  -- name, and NOT through the write seam, which would log a per-row [Set] line beside this act's one
+  -- summary (debug-logging-§10). LT:SetTestMode repaints the panel itself.
+  local LT = NS.LedgerTable
+  if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
   print("this addon reset to defaults.")
   if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "reset") end
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end

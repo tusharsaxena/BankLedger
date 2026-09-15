@@ -238,7 +238,7 @@ end)
 -- deliberately not a setting. S.Schema alone would report four tabs for a five-tab strip.
 local PARTITION = {
   general = {
-    { tab = "Master controls", rows = 6 },
+    { tab = "Master controls", rows = 7 },
     { tab = "Capture",         rows = 4 },
     { tab = "Interface",       rows = 4 },
     { tab = "History",         rows = 1 },
@@ -285,6 +285,7 @@ test("Schema: Master controls is the FIRST tab, and holds exactly the canonical 
     "settings.enabled", "settings.visibility",
     "settings.windowScale", "settings.alpha",
     "settings.locked", "state.debugConsole",
+    "state.testMode",
   }
   local got = {}
   for _, row in ipairs(S:PageRows()) do
@@ -598,4 +599,195 @@ test("Schema: a numeric row carrying values is an enum the panel must draw as a 
     assertTrue(row.min == nil and row.max == nil,
       path .. " is an enum; declaring min/max would make it look like a range")
   end
+end)
+
+-- ── Test mode (options-ui-§15, preview-mode; standard v2.47.0) ────────────────────────────────
+--
+-- Every addon with a positionable display ships a test mode, and its only panel switch is the
+-- composed `Test mode` checkbox on Master controls. Here it switches the SAMPLE LEDGER (`/bl test`),
+-- not the session-window preview (`/bl session`), which stays its own verb: the owner's call.
+
+local TEST_PATH = "state.testMode"
+local LTm = NS.LedgerTable
+
+local function browserShown()
+  local f = NS.Browser:GetWindow()
+  return f ~= nil and f:IsShown() or false
+end
+
+-- Run `fn` out of combat, with General visibility at `always` and the ledger window closed, and put
+-- the build back with test mode OFF whatever happened: State.testRecords is global to the suite, and
+-- a sample ledger leaking out of here would be what every later file reads.
+local function withTestModeClean(fn)
+  local savedLockdown = mocks.InCombatLockdown
+  local g = NS.db.global.settings
+  local savedVis = g.visibility
+  mocks.InCombatLockdown = function() return false end
+  g.visibility = "always"
+  NS.Browser:Hide()
+  local ok, err = pcall(fn)
+  mocks.InCombatLockdown = savedLockdown
+  g.visibility = savedVis
+  if LTm:IsTestMode() then
+    if LTm.SetTestMode then pcall(LTm.SetTestMode, LTm, false) end
+    NS.State.testRecords = nil
+  end
+  NS.Browser:Hide()
+  if not ok then error(err, 0) end
+end
+
+test("Test mode: the composed row sits right below Debug console, session-only, on its own line", function()
+  -- Emitted by the composer from `testModePath` (LibKa0s v1.37.0), never hand-written.
+  --
+  -- Dies under: dropping testModePath from S.MASTER_SPEC, dropping `testMode = false` from its
+  -- defaults (the composer emits the row with none), or losing the S.MASTER_DECOR entry.
+  local idx, consoleIdx
+  for i, row in ipairs(S.Schema) do
+    if row.path == TEST_PATH then idx = i end
+    if row.path == "state.debugConsole" then consoleIdx = i end
+  end
+  assertTrue(idx ~= nil, "no state.testMode row was composed")
+  assertEqual(idx, consoleIdx + 1, "Test mode must be the row directly below Debug console")
+  local row = S.Schema[idx]
+  assertEqual(row.label, "Test mode")
+  assertEqual(row.type, "bool")
+  assertEqual(row.widget, "CheckBox")
+  assertEqual(row.group, "Master controls")
+  assertTrue(row.sessionOnly == true, "test mode is session state, never a stored setting")
+  assertTrue(row.startsLine == true, "Test mode starts its own line")
+  assertEqual(row.default, false, "with no default, a reset cannot end it")
+  assertTrue(type(row.get) == "function" and type(row.set) == "function", "the host binds get/set")
+  assertTrue(type(row.tooltip) == "string" and row.tooltip:find("/bl test", 1, true) ~= nil,
+    "the tooltip is this addon's own and names the verb it mirrors: " .. tostring(row.tooltip))
+end)
+
+test("Test mode: the checkbox is never written to SavedVariables", function()
+  withTestModeClean(function()
+    S:Set(TEST_PATH, true)
+    assertEqual(NS.db.global.state, nil, "nothing was written under db.global")
+    S:Set(TEST_PATH, false)
+    assertEqual(NS.db.global.state, nil)
+  end)
+end)
+
+test("Test mode: ticking it loads the sample ledger and opens the ledger window", function()
+  withTestModeClean(function()
+    assertFalse(browserShown(), "precondition: the window starts closed")
+    S:Set(TEST_PATH, true)
+    assertTrue(LTm:IsTestMode(), "the sample ledger is not loaded")
+    assertTrue(NS.Database:ActiveLedger() == NS.State.testRecords,
+      "reads do not resolve against the sample")
+    assertTrue(browserShown(), "ticking it must open the ledger window")
+    assertTrue(S:Get(TEST_PATH), "the box reads unticked while test mode is on")
+    S:Set(TEST_PATH, false)
+    assertFalse(LTm:IsTestMode())
+    assertTrue(NS.Database:ActiveLedger() == NS.db.global.ledger,
+      "unticking must restore the real ledger")
+    assertFalse(S:Get(TEST_PATH))
+  end)
+end)
+
+test("Test mode: /bl test and the checkbox are one switch", function()
+  -- The box follows every start and stop, including the ones it did not make.
+  withTestModeClean(function()
+    local refreshes, savedRefresh = 0, NS.Panel.Refresh
+    NS.Panel.Refresh = function() refreshes = refreshes + 1 end
+    local ok, err = pcall(function()
+      captureChat(handlerFor("test"))
+      assertTrue(S:Get(TEST_PATH), "/bl test turned it on and the box reads unticked")
+      assertTrue(refreshes > 0, "/bl test must repaint an open panel so the box follows")
+      captureChat(handlerFor("test"))
+      assertFalse(S:Get(TEST_PATH), "/bl test turned it off and the box reads ticked")
+      S:Set(TEST_PATH, true)
+      local said = table.concat(captureChat(handlerFor("test")), "\n")
+      assertFalse(LTm:IsTestMode(), "/bl test after a tick must turn it off")
+      assertTrue(said:find("test mode off", 1, true) ~= nil, said)
+    end)
+    NS.Panel.Refresh = savedRefresh
+    if not ok then error(err, 0) end
+  end)
+end)
+
+test("Test mode: a start General visibility refuses leaves the box unticked", function()
+  -- Browser:Show refuses under the visibility rule; a sample ledger loaded behind a window that
+  -- will not open is test mode on with nothing to show for it.
+  withTestModeClean(function()
+    NS.db.global.settings.visibility = "never"
+    local said = table.concat(captureChat(function() S:Set(TEST_PATH, true) end), "\n")
+    assertFalse(LTm:IsTestMode(), "a start the window refused still loaded the sample")
+    assertFalse(S:Get(TEST_PATH), "the box reads ticked after a refused start")
+    assertTrue(said:find("visibility", 1, true) ~= nil, "the refusal must say why: " .. said)
+    said = table.concat(captureChat(handlerFor("test")), "\n")
+    assertFalse(LTm:IsTestMode())
+    assertTrue(said:find("test mode on", 1, true) == nil,
+      "/bl test confirmed a start that was refused: " .. said)
+  end)
+end)
+
+test("Test mode: a start in combat is refused", function()
+  -- Combat ends it, so a start inside combat would be the one test mode that covers a fight.
+  withTestModeClean(function()
+    mocks.InCombatLockdown = function() return true end
+    local said = table.concat(captureChat(function() S:Set(TEST_PATH, true) end), "\n")
+    assertFalse(LTm:IsTestMode(), "test mode started in combat")
+    assertFalse(S:Get(TEST_PATH))
+    assertTrue(said:find("combat", 1, true) ~= nil, "the refusal must say why: " .. said)
+  end)
+end)
+
+test("Test mode: combat ends it, says so once, and does not open the ledger window", function()
+  -- No placeholder covers real data in a fight. Ended at PLAYER_REGEN_DISABLED through
+  -- addon:OnCombatChanged, which AceEvent calls with the event name.
+  --
+  -- Dies under: ending it through ToggleTestMode's old body, which showed the window both ways.
+  withTestModeClean(function()
+    S:Set(TEST_PATH, true)
+    NS.Browser:Hide()
+    local refreshes, savedRefresh = 0, NS.Panel.Refresh
+    NS.Panel.Refresh = function() refreshes = refreshes + 1 end
+    local ok, out = pcall(captureChat, function()
+      NS.addon:OnCombatChanged("PLAYER_REGEN_DISABLED")
+    end)
+    NS.Panel.Refresh = savedRefresh
+    assertTrue(ok, tostring(out))
+    assertFalse(LTm:IsTestMode(), "combat did not end test mode")
+    assertFalse(S:Get(TEST_PATH), "the box still reads ticked")
+    assertFalse(browserShown(), "ending test mode for combat opened the ledger window")
+    assertTrue(refreshes > 0, "the panel was not repainted, so an open box stays ticked")
+    assertEqual(#out, 1, "one line, not " .. #out .. ": " .. table.concat(out, " | "))
+    assertTrue(out[1]:find("combat started", 1, true) ~= nil, out[1])
+  end)
+end)
+
+test("Test mode: a combat edge with test mode off says nothing and starts nothing", function()
+  withTestModeClean(function()
+    local out = captureChat(function()
+      NS.addon:OnCombatChanged("PLAYER_REGEN_DISABLED")
+      NS.addon:OnCombatChanged("PLAYER_REGEN_ENABLED")
+    end)
+    assertFalse(LTm:IsTestMode())
+    assertEqual(#out, 0, table.concat(out, " | "))
+  end)
+end)
+
+test("Test mode: /bl session stays its own verb", function()
+  -- The checkbox switches the sample ledger, never the session-window preview, and the reverse.
+  withTestModeClean(function()
+    local SW = NS.SessionWindow
+    local savedActive = NS.State.sessionActive
+    NS.State.sessionActive = nil
+    local ok, err = pcall(function()
+      assertFalse(SW.previewSession == true, "precondition: no session preview")
+      S:Set(TEST_PATH, true)
+      assertFalse(SW.previewSession == true, "ticking Test mode started the session preview")
+      captureChat(handlerFor("session"))
+      assertTrue(SW.previewSession == true, "precondition: /bl session previews")
+      assertTrue(LTm:IsTestMode(), "/bl session ended the sample ledger")
+      S:Set(TEST_PATH, false)
+      assertTrue(SW.previewSession == true, "unticking Test mode ended the session preview")
+    end)
+    if SW.previewSession then captureChat(handlerFor("session")) end
+    NS.State.sessionActive = savedActive
+    if not ok then error(err, 0) end
+  end)
 end)

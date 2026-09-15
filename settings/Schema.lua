@@ -158,9 +158,16 @@ S.MASTER_SPEC = {
   -- is session state and only the host knows what it starts as. False is what this addon has always
   -- shipped, and CliResetAll needs it: a session-only row is restored row by row, since a store
   -- reset cannot reach it (options-ui-§12).
-  defaults  = { debugConsole = false },
+  --
+  -- The same holds for test mode, which the composer emits with no default at all: `false` is what
+  -- lets a reset end it (options-ui-§15, standard v2.47.0).
+  defaults  = { debugConsole = false, testMode = false },
   -- Verbatim and unprefixed: session state lives outside the block's own prefix.
   debugConsolePath = "state.debugConsole",
+  -- The Test mode checkbox, on its own line below Lock frame / Debug console (LibKa0s v1.37.0). It
+  -- switches the SAMPLE LEDGER (`/bl test`), not the session-window preview: `/bl session` stays its
+  -- own verb. The owner decided that.
+  testModePath = "state.testMode",
 }
 
 -- The host half of each composed row: the widget name this addon's own suite and CLI read, the
@@ -208,6 +215,21 @@ S.MASTER_DECOR = {
     set = function(v)
       if not NS.DebugLog then return end
       if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
+    end },
+
+  ["state.testMode"] = { widget = "CheckBox",
+    -- Session-only like the console row: Schema:Set calls this set() and writes nothing. The same
+    -- switch as `/bl test`, through LT:SetTestMode, so a refused start prints why and the seam's
+    -- repaint draws the box unticked again. The composer's tooltip is generic; this one says what
+    -- test mode shows here.
+    tooltip = "Show the ledger window on a sample ledger, so you can look around before you have "
+      .. "any history of your own. Your real ledger is untouched. Combat ends it. The same as /bl test.",
+    get = function() return NS.LedgerTable ~= nil and NS.LedgerTable:IsTestMode() end,
+    set = function(v)
+      local LT = NS.LedgerTable
+      if not (LT and LT.SetTestMode) or LT:IsTestMode() == (v and true or false) then return end
+      local _, refusal = LT:SetTestMode(v)
+      if refusal then print(refusal) end
     end },
 }
 
@@ -518,17 +540,17 @@ NS.COMMANDS = {
       end
     end },
   { "test",     "Toggle a sample ledger",  function()
-      -- Three outcomes, not two, and the same shape the session verb above uses for exactly this:
-      -- ToggleTestMode returns IsTestMode(), always a boolean, so a nil here can only mean the
-      -- guard fell through and nothing was toggled. Folding that into `on and "on" or "off"`
-      -- confirms an act that never ran, which is worse than saying nothing.
-      local on = NS.LedgerTable and NS.LedgerTable.ToggleTestMode
-        and NS.LedgerTable:ToggleTestMode()
-      if on == nil then
+      -- Three outcomes, not two. A missing module toggled nothing, and a refused start (combat, or
+      -- General visibility keeping the window shut) did not start anything, so neither may be
+      -- reported as "test mode on/off": confirming an act that never ran is worse than saying
+      -- nothing. The same switch as the Master controls `Test mode` checkbox, which follows it.
+      local LT = NS.LedgerTable
+      if not (LT and LT.ToggleTestMode) then
         print("the ledger table is not loaded \226\128\148 there is no sample to toggle.")
-      else
-        print("test mode " .. (on and "on" or "off"))
+        return
       end
+      local on, refusal = LT:ToggleTestMode()
+      if refusal then print(refusal) else print("test mode " .. (on and "on" or "off")) end
     end },
   { "purge",    "Delete ALL ledger history (asks first)", function()
       if type(StaticPopup_Show) == "function" then

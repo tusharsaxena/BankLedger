@@ -135,3 +135,6 @@ writer.
 **Not settings:** the debug *logging* flag is `NS.State.debug` — session-only, off at login, never
 written to SavedVariables. The current banking session's movements are `NS.State.sessionEntries` —
 references to already-stored entries, held only while a bank frame is open and never persisted.
+The sample ledger is `NS.State.testRecords`, never persisted either. Its switch, `state.testMode`
+(the Master controls **Test mode** box), is a schema row but a **session-only** one: it answers
+through `LT:IsTestMode()` and writes nothing under `db.global`.

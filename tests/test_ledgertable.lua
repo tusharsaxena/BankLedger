@@ -465,6 +465,28 @@ test("LedgerTable:ToggleTestMode publishes and clears the dataset", function()
   assertEqual(NS.State.testRecords, nil)
 end)
 
+test("LedgerTable:SetTestMode sets a value rather than flipping one, and a stop opens nothing", function()
+  -- The one path the Master controls checkbox, `/bl test` and the combat ending share. A stop must
+  -- not open the ledger window: combat ends test mode, and a window popping up on the pull is the
+  -- behavior options-ui-§2 refuses.
+  local savedLockdown = mocks.InCombatLockdown
+  mocks.InCombatLockdown = function() return false end
+  local ok, err = pcall(function()
+    assertTrue(NS.LedgerTable:SetTestMode(true), "on")
+    local first = NS.State.testRecords
+    assertTrue(NS.LedgerTable:SetTestMode(true), "on again is still on")
+    assertTrue(NS.State.testRecords == first, "a second start rebuilt the dataset")
+    NS.Browser:Hide()
+    assertFalse(NS.LedgerTable:SetTestMode(false), "off")
+    assertFalse(NS.LedgerTable:SetTestMode(false), "off again is still off")
+    local f = NS.Browser:GetWindow()
+    assertFalse(f ~= nil and f:IsShown(), "stopping test mode opened the ledger window")
+  end)
+  NS.State.testRecords = nil
+  mocks.InCombatLockdown = savedLockdown
+  if not ok then error(err, 0) end
+end)
+
 -- ── Test mode is a read-only sandbox ───────────────────────────────────────────
 -- The sample rows carry synthetic item ids (190001+) and live only in State. Any menu action that
 -- WRITES would cross out of the sandbox: blacklisting one puts a fake id into the real, persisted

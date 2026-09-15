@@ -14,7 +14,7 @@ only. The finer tree is everything below it.
 
 | Tab | Covers |
 | --- | ------ |
-| Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put the windows back where they started, or return every setting to stock. |
+| Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), put the windows back where they started, or return every setting to stock. |
 | Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
 | Interface | What is on screen: the minimap button, whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor. |
 | History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
@@ -49,7 +49,7 @@ those are deliberately not suppressed (`options-ui-§7`).
 | Page | Tab strip, in order | Rows per tab |
 |---|---|---|
 | Landing page | — (exempt: the host's own `buildMain`, `options-ui-§13`) | — |
-| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** | 6 · 4 · 4 · 1 · 1 |
+| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** | 7 · 4 · 4 · 1 · 1 |
 
 Inside **Filters** a **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides **Blacklist**
 from **Whitelist**. Its selection is `ctx.activeSubTab["Filters"]` — a table keyed by the primary
@@ -108,6 +108,7 @@ emits the canonical set from one declaration, so nine addons cannot drift into n
 | Enable Bank Ledger | General visibility |
 | Master scale | Master alpha |
 | Lock frame | Debug console |
+| Test mode | |
 | Reset position | Reset all settings |
 
 Bank Ledger draws three movable frames — the ledger window (`modules/Browser.lua`), the session
@@ -141,6 +142,22 @@ frameless** and every frame-only row applies.
   took and never a window the player had closed themselves.
 - **Debug console** is the session-only row it always was (`state.debugConsole`, verbatim and
   unprefixed); what changed is only where it is declared. It moved off the Interface tab.
+- **Test mode** (`state.testMode`, session-only, on its own line; standard v2.47.0) is the one switch
+  for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
+  `/bl session` stays its own verb, which was the owner's call. The composer emits it from
+  `testModePath` with no default, so `S.MASTER_SPEC.defaults.testMode = false` is what lets a reset
+  end it. `S.MASTER_DECOR` binds `get` to `LT:IsTestMode()` and a `set` that acts only when the
+  value differs, and overrides the generic tooltip with this addon's own. Every start and stop runs
+  through `LT:SetTestMode`, which repaints an open panel, so the box follows `/bl test` and the
+  combat ending as well as its own clicks.
+  - **Ticking it** loads the sample and opens the ledger window. The start is **refused** in combat,
+    and when General visibility would keep the window shut. Either way one chat line says why and
+    the box goes back to unticked.
+  - **Combat ends it.** `addon:OnCombatChanged` stops it on `PLAYER_REGEN_DISABLED` and prints
+    `test mode off — combat started.`. A stop never opens the ledger window.
+  - **Both global resets end it.** `/bl resetall` and **Defaults** reach it through the row walk;
+    **Reset all settings** empties `db.global`, which test mode was never in, so
+    `Sl:ResetEverything` ends it by name.
 - **Reset position** is a real button now. The act existed only as a side effect folded into
   `P:RestoreDefaults`; both routes call `NS.Util.ResetWindowPositions()`, which is the one body.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
@@ -189,6 +206,7 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.alpha` | number | `1.0` | Master controls | — | `min` narrowed to `0.1`, the honored floor |
 | `settings.locked` | bool | `false` | Master controls | — | `startsLine`, pairs with `debugConsole` |
 | `state.debugConsole` | bool (session-only) | `false` | Master controls | — | |
+| `state.testMode` | bool (session-only) | `false` | Master controls | — | `startsLine`, alone on its line |
 | `settings.trackItems` | bool | `true` | Capture | — | pairs with `trackMoney` |
 | `settings.trackMoney` | bool | `true` | Capture | — | |
 | `settings.qualityThreshold` | number | `0` | Capture | — | |
@@ -250,7 +268,7 @@ Where `libs/LibKa0s` is missing entirely, `settings/OptionsSetup.lua` takes its 
 branch and there is no settings panel at all — which is the documented degradation. One consequence
 is worth stating because it is not obvious: the **Master controls rows are composed by the library**,
 so on that path they are absent from `NS.Schema.Schema` and `/bl list`, `/bl set` and `/bl reset`
-cannot reach those six paths. `/bl get` still can — `Schema:Get` falls through to the stored value —
-and every one of them is still read and honored by the drawing code, because the defaults live in
-`defaults/Global.lua`. The alternative would be a host copy of the canonical block in the stub, which
+cannot reach those seven paths. `/bl get` still can — `Schema:Get` falls through to the stored value —
+and every stored one is still read and honored by the drawing code, because the defaults live in
+`defaults/Global.lua`. The two session-only ones keep their verbs: `/bl debug` and `/bl test`. The alternative would be a host copy of the canonical block in the stub, which
 is exactly the drift the composer exists to end (anti-pattern #73).

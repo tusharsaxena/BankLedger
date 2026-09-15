@@ -253,9 +253,9 @@ tolerance.
    with **Ka0s Loot History**, whose strip is the same five plus **AH Price** after Capture — open
    both panels side by side and check they agree, because that agreement is the point.
    - **Master controls** — *Enable Bank Ledger · General visibility*, then *Master scale · Master
-     alpha*, then *Lock frame · Debug console*, then **Reset position** and **Reset all settings**
-     side by side. Exactly that order, three full lines and the button pair; no row may be renamed,
-     reordered or missing. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
+     alpha*, then *Lock frame · Debug console*, then *Test mode* alone on its own line, then
+     **Reset position** and **Reset all settings** side by side. Exactly that order, three full
+     lines, the Test mode line and the button pair; no row may be renamed, reordered or missing. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
      and the windows visibly fade to that and no further — the row's declared minimum IS the floor
      `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
      **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**;
@@ -405,6 +405,24 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    anything done in step 4.
 6. `/bl test` again returns to the real data and the badge disappears. Right-click a real row: all
    four entries are now available, and **Delete** removes the row and decrements the footer count.
+7. **The Master controls checkbox is the same switch.** Close the ledger window, then open Settings ▸
+   General ▸ **Master controls** and tick **Test mode**: the window opens on the sample with the
+   **TEST MODE** badge. Untick it: the real data comes back and the window stays where it is. Now run
+   `/bl test` with the panel still open. The box ticks itself, and `/bl test` again unticks it.
+   Nothing about the **Current Banking Session** window changes at any point; that preview is
+   `/bl session`'s, not this box's.
+8. **Combat ends it.** Tick **Test mode**, close the ledger window, then pull a training dummy. Chat
+   prints one line, `test mode off — combat started.`. The ledger window does **not** open, and the box
+   is unticked when you look. Then, still in combat, tick the box. It refuses with one line saying
+   test mode cannot start during combat, and it stays unticked.
+9. **A refused start leaves the box unticked.** Set **General visibility** to **Never** and tick
+   **Test mode**. One chat line says General visibility is keeping the window closed, and the box
+   is unticked again. `/bl test` gives the same answer and never prints `test mode on`. Set
+   visibility back to **Always**.
+10. **Reset ends it.** Tick **Test mode**, then click the page's **Defaults** button: the box unticks
+    and the real data is back. Tick it again and run `/bl resetall`: same result. Leave **Reset all
+    settings** out of this step unless you mean it, because it wipes the recorded ledger (S-16).
+    `/reload` with it ticked: it comes back off, because test mode is never saved.
 
 ## S-16 · Retention and purge
 

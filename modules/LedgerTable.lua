@@ -579,17 +579,51 @@ function LT:IsTestMode()
   return NS.State.testRecords ~= nil
 end
 
--- Toggle the test dataset (`/bl test`). Publishing it to State means every read-path query -- the
--- table AND Insights -- resolves against the same data, through the real render path (test-mode).
-function LT:ToggleTestMode()
-  NS.State.testRecords = (not self:IsTestMode()) and self:BuildTestData() or nil
-  if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
+-- Set test mode to a VALUE. The one path the Master controls `Test mode` checkbox, `/bl test` and the
+-- combat ending all take (options-ui-§15, standard v2.47.0). Publishing the dataset to State means
+-- every read-path query -- the table AND Insights -- resolves against the same data, through the real
+-- render path (test-mode).
+--
+-- Answers IsTestMode(), and on a refused start a second value: the one line saying why, for the
+-- caller to print. Asking for the state already in force changes nothing and builds nothing.
+--
+-- A START opens the ledger window, because the sample is only worth anything on screen. It is refused
+-- in combat (combat ends test mode, so one started inside a fight would be the one that covers it) and
+-- when General visibility would keep the window shut (B:Show refuses then, and a sample loaded behind
+-- a window that will not open is test mode on with nothing to show for it). A STOP never opens
+-- anything: the combat ending comes through here, and a window popping open on the pull is exactly
+-- what options-ui-§2 refuses.
+--
+-- Every change repaints an open settings panel, so the checkbox follows the starts and stops it did
+-- not make itself.
+function LT:SetTestMode(on)
+  on = on and true or false
+  if on == self:IsTestMode() then return on end
+  if on then
+    if InCombatLockdown and InCombatLockdown() then
+      return false, "cannot start test mode during combat."
+    end
+    if NS.Util.VisibilityAllows and not NS.Util.VisibilityAllows() then
+      return false, "cannot start test mode \226\128\148 General visibility is keeping the ledger "
+        .. "window closed."
+    end
+    NS.State.testRecords = self:BuildTestData()
+    if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
+  else
+    NS.State.testRecords = nil
+  end
   if NS.Browser and NS.Browser.OnDatasetChanged then
     NS.Browser:OnDatasetChanged()
   else
     self:Refresh()
   end
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
   return self:IsTestMode()
+end
+
+-- `/bl test`: flip it. Same answers as SetTestMode, refusal line included.
+function LT:ToggleTestMode()
+  return self:SetTestMode(not self:IsTestMode())
 end
 
 -- ── Pooled rows ─────────────────────────────────────────────────────────────────

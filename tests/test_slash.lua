@@ -230,16 +230,16 @@ end
 
 test("Slash: /bl resetall logs ONE [Set] reset all line counting the rows it CHANGED, and no per-row [Set]", function()
   -- N is the rows whose value actually changed, not every row walked: a row already at its default
-  -- is not counted (debug-logging-§10). The walk visits all fifteen rows and two of them move.
+  -- is not counted (debug-logging-§10). The walk visits all sixteen rows and two of them move.
   -- red under: dropping bulkBegin/bulkEnd from the descriptor (a `[Set] <path> = <value>` line per
   -- row), muting the seam without emitting the summary (none), or logging the library's `count`
-  -- (15, every row applyDefault returned from).
+  -- (16, every row applyDefault returned from).
   captureChat(function() Sl:CliResetAll() end)   -- baseline: every row at its default
   captureChat(function() Sl:CliSet("settings.qualityThreshold 4") end)
   captureChat(function() Sl:CliSet("settings.rowHoverAlpha 0.3") end)
   local lines
   captureChat(function() lines = setLines(function() Sl:OnSlash("resetall") end) end)
-  assertEqual(#NS.Schema.Schema, 15, "the walk visits every schema row")
+  assertEqual(#NS.Schema.Schema, 16, "the walk visits every schema row")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
   assertTrue(lines[1]:find("[Set] reset all: 2 rows", 1, true) ~= nil,
     "the line names the act, the scope and the rows changed, got: " .. tostring(lines[1]))
