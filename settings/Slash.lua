@@ -101,6 +101,17 @@ local function traceSettingsReset(g)
   NS.Debug("Set", "reset account-wide settings to defaults (%d rows)", n)
 end
 
+--- The post-wipe repaint, lifted out of `Sl:ResetEverything` so that function stays under the
+--- complexity ceiling the release gate enforces (`performance-§10`). It is a fan-out of guarded
+--- calls and nothing else. Each target is optional because a reset can land before a module has
+--- built its frame, and none of them touch stored data: they re-anchor live frames from what is now
+--- an empty store.
+local function refreshAfterReset()
+  if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
+  if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
+end
+
 --- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with
 --- NO PROFILE.
 ---
@@ -118,8 +129,8 @@ end
 --- between them happened to cover the whole table. AceDB ships no `ResetGlobal`, so it is written
 --- here.
 ---
---- The window resets that follow are not stored data: they re-anchor live frames from what is now an
---- empty store.
+--- The window resets live in `refreshAfterReset` above. They are not stored data: they re-anchor
+--- live frames from what is now an empty store.
 ---
 --- The broadcast is what tells the rest of the addon the store underneath it changed
 --- (`architecture-§4`). Every Schema row already sends one on a single-key edit; this rewrites
@@ -146,9 +157,7 @@ function Sl:ResetEverything()
   if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
   print("this addon reset to defaults.")
   if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "reset") end
-  if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
-  if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
-  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
+  refreshAfterReset()
 end
 
 function Sl:Register()

@@ -77,6 +77,14 @@ Everything else is configuration, and it lives in two places: the addon's own pa
 Settings → AddOns in game, which `/bl` (or `/bankledger`) opens on its own, and `/bl help`, which
 prints the full command list.
 
+If you'd rather read your settings than click through them, `/bl list` prints every one with its
+current value and `/bl get <setting>` answers for a single one; `/bl set <setting> <value>` changes
+one from chat. Going the other way, `/bl reset <setting>` puts one back to its default and
+`/bl resetall` puts all of them back — settings only, which is the important part: your ledger
+history is untouched by either. The command that does clear history is `/bl purge`, and because
+that cannot be undone it asks for confirmation first. `/bl version` prints the version to quote in
+a bug report.
+
 ## How the ledger works
 
 The game never announces "you deposited this", so the addon works it out by watching.
