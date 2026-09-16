@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-933%2F933_passing-green)
+![Tests](https://img.shields.io/badge/Tests-943%2F943_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -77,7 +77,9 @@ The minimap button wears the addon's own logo — the same picture the AddOns li
 name — and if you run Titan Panel, ElvUI's data texts or Bazooka, Bank Ledger turns up there too,
 clicking exactly the same way. The **Minimap button** box on the Master controls tab hides it and
 brings it back, and so does the button's own right-click menu; the two always agree, because they
-are one switch.
+are one switch. Neither **Defaults** nor **Reset all settings** touches it: whether the button is
+there, and the spot around the minimap you dragged it to, is part of how your screen is arranged
+rather than part of what the addon was told to do.
 
 Everything else is configuration, and it lives in two places: the addon's own page under
 Settings → AddOns in game, which `/bl` (or `/bankledger`) opens on its own, and `/bl help`, which
@@ -92,7 +94,10 @@ that cannot be undone it asks for confirmation first. `/bl version` prints the v
 a bug report. And if you want the addon out of the way without unticking it in the AddOns list,
 `/bl disable` stands it down and `/bl enable` brings it back — the same switch as the **Enable Bank
 Ledger** box on the Master controls tab, so whichever you use, the other agrees. The commands keep
-working while it is off, which is how you turn it back on.
+working while it is off, which is how you turn it back on — you can still read and change settings,
+open the panel and print the version. What a stood-down addon will not do is act: ask it to show the
+ledger, toggle the sample or purge your history and it says it is disabled and points you at
+`/bl enable`, rather than quietly doing nothing.
 
 ## How the ledger works
 

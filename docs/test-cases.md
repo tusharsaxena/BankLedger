@@ -439,7 +439,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (22)
+### test_launcher.lua (23)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -449,6 +449,7 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: it registers under the FOLDER name, against db.global.minimap
 - Launcher: Register is idempotent, so no second button is built over the first
 - Launcher: ONE object, of type launcher, wearing the addon's icon
+- Launcher: the broker label is the BRAND NAME in plain text, not the Title and not the folder
 - Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch
 - Launcher: RIGHT-click opens the settings panel, whatever the left button does
 - Launcher: a raising click is reported, not thrown at the player
@@ -699,7 +700,7 @@ badge and any count quoted in the docs must agree with it.
 - Test mode: a combat edge with test mode off says nothing and starts nothing
 - Test mode: /bl session stays its own verb
 
-### test_slash.lua (44)
+### test_slash.lua (50)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -740,13 +741,19 @@ badge and any count quoted in the docs must agree with it.
 - Slash: the help header names both the short verb and its alias
 - Slash: help rows are gold command, em-dash, white description, indented
 - Slash: an unknown verb says so and then prints the help index
+- Slash: every registered verb is either a feature verb or on the LIVE list, never neither
+- Slash: while disabled, every feature verb refuses on ONE line naming /bl enable, and does not act
+- Slash: /bl show while disabled leaves the ledger window shut, and opens it once enabled
+- Slash: /bl test while disabled does not start test mode
+- Slash: an unknown verb is never REFUSED while disabled -- it is still unknown
+- Slash: the live verbs keep answering while disabled, and none of them is refused
 - Slash: dispatch lower-cases only the verb, preserving the argument's case
 - Slash:CliVersion prints a single tagged version line
 - Slash: every chat line carries the cyan [BL] tag
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (30)
+### test_panel.lua (33)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -771,6 +778,9 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
 - Slash: the restored store does not ALIAS the defaults table
 - Slash: both global resets end test mode, which no store wipe can reach
+- Minimap row: the page Defaults button does not un-hide the button
+- Minimap row: Reset all settings does not un-hide the button, or move it
+- Minimap row: a TARGETED /bl reset minimap.hide is not a sweep, and still works
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
 - Slash: ResetEverything traces the recorded entries it wiped, once
 - Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
@@ -1055,14 +1065,14 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 22 |
+| test_launcher.lua | 23 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
-| test_slash.lua | 44 |
-| test_panel.lua | 30 |
+| test_slash.lua | 50 |
+| test_panel.lua | 33 |
 | test_panel_filters.lua | 38 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
@@ -1079,4 +1089,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **933** |
+| **Total** | **943** |

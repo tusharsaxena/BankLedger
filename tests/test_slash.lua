@@ -476,6 +476,155 @@ test("Slash: an unknown verb says so and then prints the help index", function()
   assertTrue(#out > 1, "followed by the help index")
 end)
 
+-- ── Feature verbs while the addon is DISABLED (slash-commands-§2, standard v2.54.0) ─────────────
+--
+-- A verb that DRIVES THE ADDON'S FEATURES answers on ONE tagged line naming `/bl enable` and does
+-- NOTHING ELSE. The gate is in the dispatcher, once, with the live set named as data -- a guard
+-- pasted into each verb is a dozen places to forget and a wrong default for the next verb added.
+--
+-- The cases below assert BOTH halves every time, because a case that only reads the message passes
+-- over a verb that printed the refusal and then went ahead and acted anyway.
+
+local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
+local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug",
+                     "get", "set", "list", "reset", "resetall" }
+
+local function disableAddon() captureChat(function() Sl:OnSlash("disable") end) end
+
+--- Run fn with the addon disabled, and put `settings.enabled` back however fn leaves it.
+local function withDisabled(fn)
+  local saved = NS.Schema:Get("settings.enabled")
+  disableAddon()
+  local ok, err = pcall(fn)
+  NS.Schema:Set("settings.enabled", saved)
+  if not ok then error(err, 0) end
+end
+
+local function entryFor(verb)
+  for _, cmd in ipairs(NS.COMMANDS) do if cmd[1] == verb then return cmd end end
+end
+
+test("Slash: every registered verb is either a feature verb or on the LIVE list, never neither", function()
+  -- The two lists in this file are the standard's, spelled out; the addon's live set is the table in
+  -- settings/Slash.lua. This case is what makes the three agree: a verb added to NS.COMMANDS and to
+  -- neither list below reddens here rather than quietly inheriting whichever behavior it happened to
+  -- get. `perf` is reserved but unregistered in this addon, so it is on the live table and not here.
+  local classified = {}
+  for _, v in ipairs(FEATURE_VERBS) do classified[v] = "feature" end
+  for _, v in ipairs(LIVE_VERBS) do
+    assertEqual(classified[v], nil, "`" .. v .. "` is on both lists")
+    classified[v] = "live"
+  end
+  for _, cmd in ipairs(NS.COMMANDS) do
+    assertTrue(classified[cmd[1]] ~= nil,
+      "`/bl " .. cmd[1] .. "` is on neither list: decide whether it drives this addon's FEATURES "
+      .. "(and so refuses while disabled) or belongs to the live set, and say so in both places")
+  end
+  for verb in pairs(classified) do
+    assertTrue(entryFor(verb) ~= nil, "`" .. verb .. "` is listed here but registers no verb")
+  end
+end)
+
+test("Slash: while disabled, every feature verb refuses on ONE line naming /bl enable, and does not act",
+function()
+  -- The handler is swapped for a probe, so "did not act" is proved at the strongest place there is:
+  -- the verb's body never ran at all. The tagged single line is the whole courtesy -- no second line
+  -- explaining the state, which is a lecture stapled to a command the player is about to re-run.
+  --
+  -- red under: moving the gate behind dispatch, dropping a verb from the refusal, printing a second
+  -- line, or naming anything other than `/bl enable`.
+  withDisabled(function()
+    for _, verb in ipairs(FEATURE_VERBS) do
+      local entry = entryFor(verb)
+      assertTrue(entry ~= nil, "no such verb: " .. verb)
+      local orig, ran = entry[3], 0
+      entry[3] = function() ran = ran + 1 end
+      local out
+      local ok, err = pcall(function() out = captureChat(function() Sl:OnSlash(verb) end) end)
+      entry[3] = orig
+      if not ok then error(err, 0) end
+      assertEqual(ran, 0, "`/bl " .. verb .. "` ran its handler while the addon was disabled")
+      assertEqual(#out, 1,
+        "`/bl " .. verb .. "` must answer on exactly one line, got:\n" .. joined(out))
+      assertTrue(out[1]:find("|cff00ffff[BL]|r", 1, true) ~= nil, "untagged: " .. out[1])
+      assertTrue(out[1]:find("/bl enable", 1, true) ~= nil,
+        "`/bl " .. verb .. "` refused without naming the way back: " .. out[1])
+    end
+  end)
+end)
+
+test("Slash: /bl show while disabled leaves the ledger window shut, and opens it once enabled",
+function()
+  -- The REAL handler this time, end to end, with the window read back. The control half is what
+  -- stops this passing on a `Show` that opens nothing under any circumstances.
+  --
+  -- red under: the gate letting `show` through, or refusing it while the addon is enabled.
+  NS.Browser:Hide()
+  withDisabled(function()
+    local out = captureChat(function() Sl:OnSlash("show") end)
+    local w = NS.Browser:GetWindow()
+    assertFalse(w ~= nil and w:IsShown(), "the ledger window opened while the addon was disabled")
+    assertEqual(#out, 1, "one line and no more: " .. joined(out))
+  end)
+  captureChat(function() Sl:OnSlash("enable") end)
+  captureChat(function() Sl:OnSlash("show") end)
+  local w = NS.Browser:GetWindow()
+  assertTrue(w ~= nil and w:IsShown(),
+    "the control failed: /bl show does not open the window even when the addon is on")
+  NS.Browser:Hide()
+end)
+
+test("Slash: /bl test while disabled does not start test mode", function()
+  -- A second real handler, on state rather than on a frame, so the refusal is not a property of one
+  -- module. Test mode is session state the Master controls checkbox shares.
+  assertFalse(NS.LedgerTable:IsTestMode(), "precondition: test mode is off")
+  withDisabled(function()
+    local out = captureChat(function() Sl:OnSlash("test") end)
+    assertFalse(NS.LedgerTable:IsTestMode(), "`/bl test` started a sample ledger while disabled")
+    assertEqual(#out, 1, "one line and no more: " .. joined(out))
+  end)
+end)
+
+test("Slash: an unknown verb is never REFUSED while disabled -- it is still unknown", function()
+  -- It is not a feature verb, and the dispatcher's own `unknown command` plus the help index is a
+  -- better answer than a line about a setting the player did not ask about.
+  withDisabled(function()
+    local out = captureChat(function() Sl:OnSlash("wibble") end)
+    assertTrue(out[1]:find("unknown command \'wibble\'", 1, true) ~= nil, joined(out))
+    assertTrue(joined(out):find("/bl enable turns it back on", 1, true) == nil,
+      "an unknown verb got the disabled refusal instead of the unknown-verb answer")
+  end)
+end)
+
+test("Slash: the live verbs keep answering while disabled, and none of them is refused", function()
+  -- slash-commands-§2 MUSTs these. A player must be able to read and repair settings, and reach the
+  -- panel, while the addon is off -- which is precisely when they are most likely to need to -- and
+  -- `enable` above all, or the pair is one-way.
+  --
+  -- Re-disabled before EACH verb, because two of them (`enable`, `resetall`) legitimately turn the
+  -- addon back on and the next verb must still be tested in the disabled state.
+  --
+  -- red under: any of these landing on the feature side of the gate.
+  local saved = NS.Schema:Get("settings.enabled")
+  local ok, err = pcall(function()
+    for _, verb in ipairs(LIVE_VERBS) do
+      disableAddon()
+      assertEqual(NS.Schema:Get("settings.enabled"), false, "precondition for `/bl " .. verb .. "`")
+      local out = captureChat(function() Sl:OnSlash(verb) end)
+      assertTrue(joined(out):find("/bl enable turns it back on", 1, true) == nil,
+        "`/bl " .. verb .. "` was refused, and the standard MUSTs that it answers: " .. joined(out))
+    end
+    -- And the one that matters most, read back from the store rather than from its echo.
+    disableAddon()
+    captureChat(function() Sl:OnSlash("enable") end)
+    assertEqual(NS.Schema:Get("settings.enabled"), true,
+      "/bl enable must work while the addon is disabled, or the switch only goes one way")
+  end)
+  if NS.DebugLog and NS.DebugLog.Hide then NS.DebugLog:Hide() end
+  NS.Schema:Set("settings.enabled", saved)
+  if not ok then error(err, 0) end
+end)
+
 test("Slash: dispatch lower-cases only the verb, preserving the argument's case", function()
   -- Schema paths are camelCase, so lower-casing the remainder would break every `set`.
   captureChat(function() Sl:OnSlash("SET settings.windowScale 1.15") end)

@@ -10,7 +10,7 @@ settings landing page both read from one place.
 | Command | What it does |
 |---|---|
 | `/bl` | Open the settings panel on its landing page (runs `config`) |
-| `/bl show` / `hide` / `toggle` | Open, close or toggle the ledger window |
+| `/bl show` / `hide` / `toggle` | Open, close or toggle the ledger window. **Feature verbs**: refused on one line while the addon is disabled (see below). |
 | `/bl config` | Open the settings panel |
 | `/bl enable` / `disable` | Turn the addon on or off. **Aliases**, not a second switch: both write `settings.enabled` — the path the Master controls **Enable Bank Ledger** checkbox writes — through `NS.Schema:Set`, and hold no state of their own (`slash-commands-§2`). `/bl set settings.enabled true|false` is the same write by its long name. The dispatcher keeps answering while the addon is disabled, so the pair is never one-way. |
 | `/bl version` | Print the addon version |
@@ -38,6 +38,38 @@ refused in combat, or by General visibility, prints its one reason line, never `
 keep the "preview" name**: it is a separate synthetic-data feature (placeholder movements for
 positioning the Current Banking Session window away from a bank) with no LootHistory counterpart to
 match, so it was left alone rather than folded into the rename.
+
+## While the addon is disabled
+
+`/bl` and every verb reachable from it stay registered while the addon is off — the dispatcher and
+the settings registration are **setup**, not features, so the pair is never one-way
+(`slash-commands-§2`). What changes is that a verb which **drives this addon's features** answers on
+**one** tagged line naming `/bl enable`, and does nothing else.
+
+| | Verbs |
+|---|---|
+| Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `session`, `test`, `purge` |
+| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, and the schema CLI — `get`, `set`, `list`, `reset`, `resetall` |
+
+The live set is the standard's, and its reasoning is that a player must be able to **read and repair
+settings**, and to **reach the panel**, while the addon is off — which is precisely when they are most
+likely to need to — and **`enable` above all**. `debug` and `perf` are diagnostics rather than
+features; the usual reason to reach for either is that the addon is misbehaving. `perf` is on the
+list although this addon registers no `perf` verb, so arming the harness later is a registration
+rather than a second edit.
+
+**The gate is in the dispatcher, in one place.** `Sl:OnSlash` in `settings/Slash.lua` is the single
+door both chat commands point at; it reads the verb, consults the `ALWAYS_LIVE` table, and either
+prints the refusal or hands off to `Sl:Dispatch` — which is the library's loop on the live arm and its
+smallest reproduction on the degraded one. A per-verb guard was rejected deliberately: it is a dozen
+places to forget, and the next verb added would forget it by default. Here the default runs the other
+way, so a new verb that belongs on the live list has to be put there on purpose.
+
+An **unknown** verb is never refused — it is not a feature verb, and `unknown command '<verb>'` plus
+the help index is a better answer than a line about a setting the player did not ask about. A bare
+`/bl` is the `config` verb, which is live.
+
+The refusal is the addon's only string routed through `NS.L` (`locales/enUS.lua`, `localization-§1`).
 
 ## What the host supplies to the library
 
