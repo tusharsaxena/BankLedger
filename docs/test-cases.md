@@ -103,7 +103,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 
-### test_ledger.lua (123)
+### test_ledger.lua (98)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -167,31 +167,6 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:Diagnose lists the BagIndex members the client exposes
 - Ledger:Diagnose probes containers and reports only the ones with slots
 - Ledger:Diagnose never raises when no container is reachable
-- reEnable leaves the addon's own event registrations standing
-- Ledger:Enable registers every event on a build that has them all
-- Ledger:Enable survives a retired event and still binds the rest
-- Ledger:Enable binds the capture events even when several are retired
-- Ledger:Enable never lets a rejected open event silence the others
-- Ledger:RegisterEventSafely reports whether the binding took
-- Ledger:Diagnose names the events this build rejected
-- Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
-- Ledger: a movement whose halves arrive in separate events is still recorded
-- Ledger: a withdrawal whose halves arrive separately is also recorded
-- Ledger: two separate actions stay two separate rows
-- Ledger:ScheduleReconcile does nothing when no frame is open
-- Ledger:CloseContext runs the pending pass instead of waiting out the debounce
-- Ledger.SnapshotsDiffer spots a change on any side
-- Ledger: a movement whose halves are SECONDS apart is still recorded
-- Ledger: gold spent at the bank window is not recorded as a warband deposit
-- Ledger: a real gold deposit still records when the store balance lands a pass later
-- Ledger: a one-sided change that never completes re-anchors after the timeout
-- Ledger: a re-anchored loot does not pair with a later unrelated deposit
-- Ledger: an unchanged world advances the baseline without waiting
-- Ledger: a completed movement clears the settle wait
-- Ledger: a deletion writes no row and arms ONE deadline, not a poll
-- Ledger: the deadline is armed for the REMAINING window, not a fixed retry
-- Ledger: the deadline never schedules a near-zero timer
-- Ledger: firing the deadline re-anchors and stops waiting
 - Ledger:ScanGuildBank sees nothing from a tab that was never queried
 - Ledger:QueryGuildBankTabs asks for every tab
 - Ledger:ScanGuildBank reads a tab once it has been queried
@@ -228,6 +203,34 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry takes the quality from the moved link, not the base item
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
+
+### test_ledger_settling.lua (25)
+
+- reEnable leaves the addon's own event registrations standing
+- Ledger:Enable registers every event on a build that has them all
+- Ledger:Enable survives a retired event and still binds the rest
+- Ledger:Enable binds the capture events even when several are retired
+- Ledger:Enable never lets a rejected open event silence the others
+- Ledger:RegisterEventSafely reports whether the binding took
+- Ledger:Diagnose names the events this build rejected
+- Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
+- Ledger: a movement whose halves arrive in separate events is still recorded
+- Ledger: a withdrawal whose halves arrive separately is also recorded
+- Ledger: two separate actions stay two separate rows
+- Ledger:ScheduleReconcile does nothing when no frame is open
+- Ledger:CloseContext runs the pending pass instead of waiting out the debounce
+- Ledger.SnapshotsDiffer spots a change on any side
+- Ledger: a movement whose halves are SECONDS apart is still recorded
+- Ledger: gold spent at the bank window is not recorded as a warband deposit
+- Ledger: a real gold deposit still records when the store balance lands a pass later
+- Ledger: a one-sided change that never completes re-anchors after the timeout
+- Ledger: a re-anchored loot does not pair with a later unrelated deposit
+- Ledger: an unchanged world advances the baseline without waiting
+- Ledger: a completed movement clears the settle wait
+- Ledger: a deletion writes no row and arms ONE deadline, not a poll
+- Ledger: the deadline is armed for the REMAINING window, not a fixed retry
+- Ledger: the deadline never schedules a near-zero timer
+- Ledger: firing the deadline re-anchors and stops waiting
 
 ### test_database.lua (48)
 
@@ -720,7 +723,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
-### test_panel.lua (68)
+### test_panel.lua (30)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -738,6 +741,23 @@ badge and any count quoted in the docs must agree with it.
 - Panel: every tab of the General page renders without the library reporting a failure
 - Panel: the General page draws a tab strip, one button per schema group
 - Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's
+- Panel:Diagnose says so and stops when no defaults button was ever built
+- Panel:Diagnose stops at a button with no frame
+- Panel:Diagnose dumps the frame, its parent chain and every scrap of its art
+- Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
+- Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
+- Slash: the restored store does not ALIAS the defaults table
+- Slash: both global resets end test mode, which no store wipe can reach
+- Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
+- Slash: ResetEverything traces the recorded entries it wiped, once
+- Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
+- Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
+- Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
+- Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
+- Slash: while the split stands, the button and the verb do NOT share a label
+
+### test_panel_filters.lua (38)
+
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Filters tab: an item id typed into the box goes through Filters:AddBlacklist
 - Filters tab: a shift-clicked item link adds the id inside it
@@ -776,20 +796,6 @@ badge and any count quoted in the docs must agree with it.
 - Panel: a tab's only headings are the SUBSECTION ones its rows declare
 - Panel: the storage read-out lands on the History tab and nowhere else
 - Panel: re-rendering a page releases the previous widgets and their refreshers
-- Panel:Diagnose says so and stops when no defaults button was ever built
-- Panel:Diagnose stops at a button with no frame
-- Panel:Diagnose dumps the frame, its parent chain and every scrap of its art
-- Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
-- Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
-- Slash: the restored store does not ALIAS the defaults table
-- Slash: both global resets end test mode, which no store wipe can reach
-- Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
-- Slash: ResetEverything traces the recorded entries it wiped, once
-- Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
-- Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
-- Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
-- Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
-- Slash: while the split stands, the button and the verb do NOT share a label
 
 ### test_harness.lua (7)
 
@@ -1020,7 +1026,8 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
-| test_ledger.lua | 123 |
+| test_ledger.lua | 98 |
+| test_ledger_settling.lua | 25 |
 | test_database.lua | 48 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
@@ -1031,7 +1038,8 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
 | test_slash.lua | 44 |
-| test_panel.lua | 68 |
+| test_panel.lua | 30 |
+| test_panel_filters.lua | 38 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
