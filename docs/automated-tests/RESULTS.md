@@ -23,6 +23,7 @@ The **Tests** cell reads `passed/skipped/total`.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260916-094506`](20260916-094506/) | 1.1.0 | 0/0 | 61 | 913/0/913 | skip | 15821 | 2401 | 5.9 | 2.0 | 17 | 1 | **green** |
 | [`20260910-234511`](20260910-234511/) | 1.0.0 → 1.1.0 | 0/0 | 61 | 849/0/849 | skip | 14669 | 2188 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260908-181253`](20260908-181253/) | 1.0.0 | 0/0 | 59 | 844/0/844 | skip | 14455 | 2181 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260825-103400`](20260825-103400/) | 1.0.0 | 0/0 | 28 | 791/791 | skip | 13409 | 2043 | 6.0 | 2.0 | 15 | 0 | **green** |
@@ -35,11 +36,11 @@ The **Tests** cell reads `passed/skipped/total`.
 
 ## Test suite
 
-**849 cases** — 849 passed, 0 failed, 0 skipped. The generated inventory
-[`20260910-234511/test-cases.md`](20260910-234511/test-cases.md) is the authority on which cases existed at this run;
+**913 cases** — 913 passed, 0 failed, 0 skipped. The generated inventory
+[`20260916-094506/test-cases.md`](20260916-094506/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **844 → 849** since the previous run.
+Moved **849 → 913** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
@@ -62,8 +63,8 @@ never asked.
 
 ## Complexity watch list
 
-Current as of [`20260910-234511`](20260910-234511/) — **this run's measurement, not its diff.** Max CCN **15** across 2188
-functions, **0** of them warned on; 3 file(s) in the 1000–1500 band and 0 over the 1500 cap
+Current as of [`20260916-094506`](20260916-094506/) — **this run's measurement, not its diff.** Max CCN **17** across 2401
+functions, **1** of them warned on; 2 file(s) in the 1000–1500 band and 2 over the 1500 cap
 (`layout-§1`).
 
 Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
@@ -73,15 +74,18 @@ cell is this file saying something crossed and nobody has ruled on it yet.
 
 ### Functions `lizard` warned on
 
-None.
+| Function | CCN | Location | Disposition |
+|---|---|---|---|
+| `Sl` | 17 | `settings/Slash.lua` | **Peel next — and it is a release-gate blocker.** This is `Sl:ResetEverything` (`settings/Slash.lua:132-152`), which lizard names for the file's `Sl` table. It was CCN 14 at the previous run and crossed on the two commits since: the `traceLedgerWipe`/`traceSettingsReset` calls and the Test-mode teardown (`if LT and LT.IsTestMode and LT:IsTestMode()`) added short-circuits, not branches. The whole function is dense **guarding**, a flat list of `if X and X.Y then X:Y() end` teardown lines with no nesting — the `performance-§10` reading, not tangled control flow. It is still owed a fix rather than an acceptance, because `automated-tests-§3`'s release gate is zero functions above CCN 15: the next `/wow-addon:bump-version` refuses while this row exists. The seam is the trailing run of optional-subsystem resets, which lifts into one `resetSubsystems()` helper. |
 
 ### Files by `layout-§1` band
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `modules/Browser.lua` | 1251 | **Already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`), with the peel seam named: the skin/close-button factory and the geometry persistence lift into a sibling file. 1245 at the previous run's commit, +6 when the Filters page folded into the master controls. The cell this replaces read 1358 — a figure last true three runs ago. |
-| 1000–1500 (on notice) | `modules/LedgerTable.lua` | 1096 | **Accepted.** Entered the band at `20260804-214843` and has moved 45 lines in the month since — 1091 at the previous run's commit, +5 when both settings pages became tab strips. The test-data generator (`makeTestEntry`/`seedCoverage`/`bulkMovements`/`goldMovements`) is a self-contained block and is still the peel seam if it grows. |
-| 1000–1500 (on notice) | `tests/test_ledger.lua` | 1478 | **Accepted, and the closest thing here to a trigger.** A suite grows with the cases it pins, and this one covers the addon's core mechanic — 1402 at the previous run's commit, +76 for the cases pinning the guild bank arming on its frame showing. That leaves 22 lines of headroom before `layout-§1`'s 1500 cap, and over the cap is a bug rather than a band entry. Split by concern at the next case, not at 1500. |
+| 1000–1500 (on notice) | `modules/Browser.lua` | 1252 | **Already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`), with the peel seam named: the skin/close-button factory and the geometry persistence lift into a sibling file. 1245 at the previous run's commit, +6 when the Filters page folded into the master controls. The cell this replaces read 1358 — a figure last true three runs ago. |
+| 1000–1500 (on notice) | `modules/LedgerTable.lua` | 1132 | **Accepted.** Entered the band at `20260804-214843` and has moved 45 lines in the month since — 1091 at the previous run's commit, +5 when both settings pages became tab strips. The test-data generator (`makeTestEntry`/`seedCoverage`/`bulkMovements`/`goldMovements`) is a self-contained block and is still the peel seam if it grows. |
+| > 1500 (over cap) | `tests/test_ledger.lua` | 1539 | **Over the `layout-§1` cap — split it, and this is the trigger the previous run named.** It was 1478 and on notice at `20260910-234511`, with 22 lines of headroom and a disposition that said *split by concern at the next case, not at 1500*; the next cases arrived and it is 61 lines past the cap. New here, and owned by nothing — `BL-24` is the on-notice **band** entry for `modules/Browser.lua`, not this. A suite file is inside what the cap binds, so the fix is a split by concern (capture-arming vs. entry shape), not a carve-out. |
+| > 1500 (over cap) | `tests/test_panel.lua` | 1580 | **Over the `layout-§1` cap — split it.** Newly crossed, and the sharpest move in this run: 840 LOC at the previous run's commit (`d4632ef`) to 1580 at this one, +740 for the settings-panel tab-strip and Master-controls cases that also carried the suite from 849 to 913. It skipped the 1000–1500 on-notice band entirely, so no earlier run warned about it. Not tracked anywhere yet. The seam is one file per page — the Master controls tab's cases are already a contiguous block. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN

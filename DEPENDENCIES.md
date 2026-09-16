@@ -100,12 +100,17 @@ trying to stop.
 
 ### git, `ls` and `find` — the suite shells out
 
-Two suites run external commands, so they are dependencies of `lua tests/run.lua` even though no
+Three suites run external commands, so they are dependencies of `lua tests/run.lua` even though no
 Lua code `require`s them:
 
 - **`git`** — `tests/_kit/vendor_sync.lua:195` runs `git -C <path> …` against the **sibling LibKa0s
   checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
   is one line of adoption over that shared gate; the implementation is vendored, not local.
+- **`git`, again and harder** — `tests/_kit/test_eol.lua` runs `git ls-files` and
+  `git check-attr --stdin` over the whole tracked set to hold the working tree to the terminator
+  `.gitattributes` declares (`line-endings-§2`). Unlike the vendor gate this one **fails rather
+  than skips** when it cannot look, so `git` is a hard requirement of `lua tests/run.lua`, not a
+  capability.
 - **`ls`** — `tests/test_harness.lua:24` runs `ls tests/test_*.lua` to prove the suite list and the
   files on disk agree in both directions.
 - **`find`** — `tests/_kit/vendor_sync.lua:126` runs `find . -type f` to list a vendored directory
