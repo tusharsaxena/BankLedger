@@ -191,9 +191,36 @@ test("Launcher: ONE object, of type launcher, wearing the addon's icon", functio
   local obj = NS.Launcher:Object()
   assertEqual(obj.type, "launcher")
   assertEqual(obj.icon, NS.LOGO_ICON)
-  assertEqual(obj.label, "Bank Ledger")
+  assertEqual(obj.label, "Ka0s Bank Ledger")
   assertTrue(type(obj.OnClick) == "function", "the one click implementation both surfaces dispatch into")
   assertTrue(type(obj.OnTooltipShow) == "function")
+end)
+
+test("Launcher: the broker label is the BRAND NAME in plain text, not the Title and not the folder",
+function()
+  -- launcher-§1 (standard v2.54.0). `label` is the string a broker display prints in its own row,
+  -- and it prints it beside the other ten, so it is the single field that decides whether the
+  -- collection reads as one collection in Titan Panel. Across the eleven adoptions it came out
+  -- three ways because nothing said what it was; this addon's was "Bank Ledger".
+  --
+  -- Dies under: reverting to "Bank Ledger", wiring the field to the TOC's `## Title`, or spelling
+  -- it with the folder name.
+  local label = NS.Launcher:Object().label
+  assertEqual(label, "Ka0s Bank Ledger", "`Ka0s <Name>`, the addon's brand name")
+  assertEqual(label:find("|c", 1, true), nil, "no colour escape: a display that draws the string "
+    .. "raw would splatter this row across a list of plain-text ones")
+  assertEqual(label:find("|r", 1, true), nil, "nor a colour terminator")
+  assertEqual(label:find("BankLedger", 1, true), nil,
+    "the FOLDER name is the registration `name`, which LibDBIcon keys the saved position by")
+
+  -- Not wired to the TOC's ## Title. They happen to read the same here, and the case still has to
+  -- prove the wire is absent -- a host that derived one from the other would break the moment a
+  -- Title grew an escape, which is exactly what happened to Ka0s Pretty Chat.
+  local src = readSource("core/LauncherSetup.lua")
+  assertEqual(src:find("GetAddOnMetadata", 1, true), nil,
+    "the label must be spelled out, never read from the TOC's ## Title")
+  assertTrue(src:find('label = "Ka0s Bank Ledger"', 1, true) ~= nil,
+    "spelled as a plain literal in the descriptor")
 end)
 
 -- ── The rung (launcher-§2) ───────────────────────────────────────────────────────────────────

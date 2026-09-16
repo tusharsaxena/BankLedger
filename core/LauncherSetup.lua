@@ -101,9 +101,24 @@ NS.Launcher = Launcher:New({
   name = addonName,
   icon = NS.LOGO_ICON,
 
-  -- What a broker display prints beside the icon. The TITLE's readable half, not the folder: the
-  -- folder is the KEY and this is the words, and a data-text bar is short.
-  label = "Bank Ledger",
+  -- What a broker display prints beside the icon, BESIDE THE OTHER TEN (launcher-§1). It is the
+  -- addon's BRAND NAME IN PLAIN TEXT -- `Ka0s <Name>` -- and that one field is what decides whether
+  -- the collection reads as one collection in Titan Panel or as eleven unrelated addons that
+  -- happen to be installed together. Nothing said what it was until v2.54.0, so across the eleven
+  -- adoptions it came out three ways ("Absorb Tracker", "Ka0s KickCD", "Ka0s Pretty Chat"), and a
+  -- display sorting its plugins alphabetically filed the odd one under a different letter from the
+  -- rest. THIS ONE SAID "Bank Ledger" and now says the brand.
+  --
+  -- DELIBERATELY NOT THE TOC'S `## Title`, and the two are NOT wired to each other. A Title MAY
+  -- carry colour escapes and one in the collection does -- Ka0s Pretty Chat's is
+  -- `Ka0s |cffff0000P|cffff9900r|cffffff00e|...` -- and handed to a display that draws the string
+  -- raw it splatters across a row in which every other row is plain text, handed to one that
+  -- strips escapes it arrives mangled instead. So NO escape sequence of any kind belongs here.
+  --
+  -- It is not the folder name either: that is the registration `name` above, which LibDBIcon keys
+  -- the saved position by and which a player reads nowhere as prose. `BankLedger` is an
+  -- identifier, `Ka0s Bank Ledger` is a name. Two fields, two jobs.
+  label = "Ka0s Bank Ledger",
 
   -- launcher-§3: LibDBIcon's OWN table, in the GLOBAL store. Resolved at Register time — see the
   -- header. This addon has stored it there since before the section existed, so unlike Multi
