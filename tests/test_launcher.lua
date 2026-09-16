@@ -336,6 +336,73 @@ test("Minimap row: the defaults ship the table, so nothing has to seed it", func
     "the seam must not seed a table the defaults already ship")
 end)
 
+-- ── The reserved verbs (slash-commands-§2) ───────────────────────────────────────────────────
+
+test("Verbs: /bl enable and /bl disable are registered, and described the same way", function()
+  local seen = {}
+  for _, cmd in ipairs(NS.COMMANDS) do seen[cmd[1]] = cmd[2] end
+  assertTrue(seen.enable ~= nil, "`enable` is a RESERVED verb and must exist")
+  assertTrue(seen.disable ~= nil, "`disable` is a RESERVED verb and must exist")
+end)
+
+test("Verbs: they write the Enable row's stored path, through the same write seam", function()
+  -- ALIASES, never a second switch: the checkbox and the verbs can never show the player two
+  -- different answers, and one onChange runs whichever surface was used.
+  local saved = S:Get("settings.enabled")
+
+  local out = captureChat(function() NS.Slash:OnSlash("disable") end)
+  assertEqual(NS.db.global.settings.enabled, false, "/bl disable must write settings.enabled")
+  assertEqual(S:Get("settings.enabled"), false)
+  -- slash-commands-§5's single-line `path = value` echo, from the shared formatter.
+  assertTrue(table.concat(out, "\n"):find("settings.enabled", 1, true) ~= nil,
+    "the verb echoes what it wrote: " .. table.concat(out, "\n"))
+
+  captureChat(function() NS.Slash:OnSlash("enable") end)
+  assertEqual(NS.db.global.settings.enabled, true, "/bl enable must write settings.enabled")
+
+  -- The long name is the same write.
+  captureChat(function() NS.Slash:OnSlash("set settings.enabled false") end)
+  assertEqual(S:Get("settings.enabled"), false)
+
+  S:Set("settings.enabled", saved)
+end)
+
+test("Verbs: they hold NO state of their own", function()
+  -- No second key, no session flag, no NS.enabled local. The store is the only record.
+  local saved = S:Get("settings.enabled")
+  captureChat(function() NS.Slash:OnSlash("disable") end)
+  assertEqual(NS.enabled, nil, "the verbs must not publish a flag of their own")
+  assertEqual(rawget(NS.State, "enabled"), nil, "nor a session one")
+  -- Written back through the schema alone, and the verb agrees with it.
+  S:Set("settings.enabled", true)
+  local out = captureChat(function() NS.Slash:OnSlash("get settings.enabled") end)
+  assertTrue(table.concat(out, "\n"):find("true", 1, true) ~= nil, table.concat(out, "\n"))
+  S:Set("settings.enabled", saved)
+end)
+
+test("Verbs: the dispatcher answers while DISABLED, so the pair is never one-way", function()
+  -- slash-commands-§2. A player who can turn the addon off and not back on has a switch that only
+  -- goes one way, and the only route left is the settings panel they were trying not to open. The
+  -- dispatcher and the settings registration are SETUP, not features: they come up on load in
+  -- either state and stay up.
+  --
+  -- Dies under: gating Sl:Register, NS.COMMANDS or the chat-command registration on the setting.
+  local saved = S:Get("settings.enabled")
+  captureChat(function() NS.Slash:OnSlash("disable") end)
+  assertEqual(S:Get("settings.enabled"), false, "the addon is disabled for the rest of this case")
+
+  for _, verb in ipairs({ "", "help", "version", "list" }) do
+    local out = captureChat(function() NS.Slash:OnSlash(verb) end)
+    assertTrue(#out > 0 or verb == "", "`/bl " .. verb .. "` answered nothing while disabled")
+  end
+
+  -- And the one that matters most.
+  captureChat(function() NS.Slash:OnSlash("enable") end)
+  assertEqual(S:Get("settings.enabled"), true, "/bl enable must work while the addon is disabled")
+
+  S:Set("settings.enabled", saved)
+end)
+
 -- ── The degraded arm ─────────────────────────────────────────────────────────────────────────
 
 test("LibKa0s-Launcher degraded: the stub answers every member the addon reaches", function()

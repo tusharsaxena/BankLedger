@@ -12,6 +12,7 @@ settings landing page both read from one place.
 | `/bl` | Open the settings panel on its landing page (runs `config`) |
 | `/bl show` / `hide` / `toggle` | Open, close or toggle the ledger window |
 | `/bl config` | Open the settings panel |
+| `/bl enable` / `disable` | Turn the addon on or off. **Aliases**, not a second switch: both write `settings.enabled` — the path the Master controls **Enable Bank Ledger** checkbox writes — through `NS.Schema:Set`, and hold no state of their own (`slash-commands-§2`). `/bl set settings.enabled true|false` is the same write by its long name. The dispatcher keeps answering while the addon is disabled, so the pair is never one-way. |
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` / `resetall` | Read and write settings |
 | `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box) |

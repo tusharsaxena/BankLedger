@@ -553,6 +553,14 @@ NS.COMMANDS = {
   { "config",   "Open settings",           function()
       if NS.Panel then NS.Panel:Open() end
     end },
+  -- RESERVED VERBS, AND ALIASES RATHER THAN A SECOND SWITCH (slash-commands-§2). Both write the
+  -- same stored path the Master-controls "Enable Bank Ledger" checkbox writes, through the same
+  -- single write seam, so the checkbox and the verbs can never show the player two answers and one
+  -- onChange runs whichever surface was used. They hold NO state of their own — no second key, no
+  -- session flag, no NS.enabled local — and `/bl set settings.enabled true|false` is the same
+  -- write by its long name.
+  { "enable",   "Turn this addon on",      function() NS.Slash:CliEnabled(true) end },
+  { "disable",  "Turn this addon off",     function() NS.Slash:CliEnabled(false) end },
   { "version",  "Print addon version",     function() NS.Slash:CliVersion() end },
   { "get",      "Get a setting value",     function(a) NS.Slash:CliGet(a) end },
   { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },

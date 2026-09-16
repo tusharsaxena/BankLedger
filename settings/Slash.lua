@@ -174,6 +174,24 @@ function Sl:ResetEverything()
   refreshAfterReset()
 end
 
+-- THE ONE STORED PATH `/bl enable`, `/bl disable` and the Master-controls "Enable Bank Ledger"
+-- checkbox all write (slash-commands-§2). Named once, here, so the verbs cannot drift onto a key
+-- of their own — which is the whole failure the reserved pair exists to prevent.
+local ENABLED_PATH = "settings.enabled"
+
+--- `/bl enable` and `/bl disable`, as ALIASES of one `set` and nothing more.
+---
+--- Routed through Sl:CliSet rather than through NS.Schema:Set directly, and the difference is the
+--- ECHO: CliSet reads the value back AFTER writing and prints it in slash-commands-§5's single-line
+--- `path = value` shape, from the same shared formatter every other verb prints through. Calling
+--- the seam here and printing our own line would be a second confirmation wording for one act.
+---
+--- Defined ABOVE the library branch on purpose: `Sl:CliSet` is resolved at CALL time, so this one
+--- definition serves both the live arm and the degraded one, and neither arm carries a copy.
+function Sl:CliEnabled(on)
+  return Sl:CliSet(ENABLED_PATH .. " " .. (on and "true" or "false"))
+end
+
 function Sl:Register()
   NS.addon:RegisterChatCommand("bl", function(input) Sl:OnSlash(input) end)
   NS.addon:RegisterChatCommand("bankledger", function(input) Sl:OnSlash(input) end)

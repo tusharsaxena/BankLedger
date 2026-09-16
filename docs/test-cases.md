@@ -439,7 +439,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (18)
+### test_launcher.lua (22)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -458,6 +458,10 @@ badge and any count quoted in the docs must agree with it.
 - Minimap row: writing it MOVES the button, not just the store
 - Minimap row: LibDBIcon's own minimapPos is never trampled
 - Minimap row: the defaults ship the table, so nothing has to seed it
+- Verbs: /bl enable and /bl disable are registered, and described the same way
+- Verbs: they write the Enable row's stored path, through the same write seam
+- Verbs: they hold NO state of their own
+- Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
 
 ### test_sessionwindow.lua (32)
@@ -1051,7 +1055,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 18 |
+| test_launcher.lua | 22 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1075,4 +1079,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **929** |
+| **Total** | **933** |

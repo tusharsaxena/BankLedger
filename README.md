@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-929%2F929_passing-green)
+![Tests](https://img.shields.io/badge/Tests-933%2F933_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -89,7 +89,10 @@ one from chat. Going the other way, `/bl reset <setting>` puts one back to its d
 `/bl resetall` puts all of them back — settings only, which is the important part: your ledger
 history is untouched by either. The command that does clear history is `/bl purge`, and because
 that cannot be undone it asks for confirmation first. `/bl version` prints the version to quote in
-a bug report.
+a bug report. And if you want the addon out of the way without unticking it in the AddOns list,
+`/bl disable` stands it down and `/bl enable` brings it back — the same switch as the **Enable Bank
+Ledger** box on the Master controls tab, so whichever you use, the other agrees. The commands keep
+working while it is off, which is how you turn it back on.
 
 ## How the ledger works
 
