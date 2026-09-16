@@ -268,7 +268,7 @@ object (`core/BankLedger.lua:45`, the one-shot retention prune), the combat pair
 answers on — without them a window opened out of combat would simply stay up through a pull; the
 `PLAYER_REGEN_DISABLED` edge also ends test mode first, through `LT:SetTestMode(false)`, which opens
 no window, per `options-ui-§15`), and
-`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1250`,
+`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1206`,
 `modules/SessionWindow.lua:673`, geometry flush).
 
 Change events are debounced into one reconcile pass per user action, and the baseline is held
@@ -344,7 +344,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 15 verbs in `NS.COMMANDS` (threshold is 8) |
+| `slash-dispatch.md` | Present | 17 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
