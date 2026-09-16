@@ -100,7 +100,11 @@ local function traceSettingsReset()
     -- (launcher-§3), and comparing the raw key against the row default would count it as changed
     -- on every reset. S:Get answers in the sense `row.default` is written in. `g` IS db.global,
     -- which is what S:Get reads, so this still reports the pre-wipe store.
-    if not row.sessionOnly and not S.SameValue(S:Get(row.path), row.default) then
+    -- An EXEMPT row is not reset, so it is not counted (launcher-§3). Without this the count is
+    -- wrong by one for every player who has hidden their minimap button: the row differs from its
+    -- default and the wipe below deliberately leaves it that way.
+    if not row.sessionOnly and not S.RESET_EXEMPT[row.path]
+      and not S.SameValue(S:Get(row.path), row.default) then
       n = n + 1
     end
   end
@@ -160,8 +164,26 @@ function Sl:ResetEverything()
     local g = db.global
     traceLedgerWipe(g)
     traceSettingsReset()
+    -- LIBDBICON'S OWN TABLE SURVIVES THE WIPE, WHOLE (launcher-§3, standard v2.54.0). Both keys in
+    -- it are per-installation display preferences rather than settings: `hide` is whether the player
+    -- wants the button at all, `minimapPos` is the angle they dragged it to, and no reset in the
+    -- collection has ever been meant to put a button back on a minimap at the default angle.
+    --
+    -- THIS ADDON IS ONE OF THE TWO SHAPES THAT RULE NAMES, and the reason the rule stopped being an
+    -- argument and became a property. The old reasoning -- Reset all settings is a PROFILE reset and
+    -- this table is GLOBAL, so it cannot be reached -- has no premise here: there is no profile at
+    -- all, so the reset is this wholesale wipe of the account-wide store, and `minimap = { hide =
+    -- false }` is a declared default that the merge below put straight back. A player who had hidden
+    -- their button got it back, at the default angle, from a button labelled *Reset all settings*.
+    --
+    -- Carved out by holding the TABLE and putting it back, rather than by reading `hide` and
+    -- re-writing it: `minimapPos` is in there too and is nobody's schema row, so a key-by-key
+    -- carve-out would be a list to keep current -- the exact failure the wholesale wipe exists to
+    -- avoid. The write seam's own sweep is exempted separately, through S.RESET_EXEMPT.
+    local minimap = g.minimap
     for k in pairs(g) do g[k] = nil end
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
+    if type(minimap) == "table" then g.minimap = minimap end
   end
   -- Test mode is session state (options-ui-§15). It lives in NS.State, never in db.global, so the
   -- wipe above cannot reach it, and that rule says Reset all settings ends it. So it is ended by
@@ -252,7 +274,9 @@ if not lib then
     local function walk()
       S.BulkBegin("reset", "all")
       local ok, err = pcall(function()
-        for _, row in ipairs(S.Schema) do S:Set(row.path, S:Default(row.path)) end
+        -- S:ApplyDefault, not S:Set: the same seam the live arm's descriptor hands the library, so
+        -- the Minimap button row is exempt from the sweep on BOTH arms (launcher-§3).
+        for _, row in ipairs(S.Schema) do S:ApplyDefault(row) end
       end)
       local failure = nil
       if not ok then failure = (err ~= nil and err ~= false) and err or "raised without a value" end
@@ -319,7 +343,11 @@ local cli = lib:New({
   set          = function(path, v) NS.Schema:Set(path, v) end,
   findRow      = function(path) return NS.Schema:FindRow(path) end,
   allRows      = function() return NS.Schema.Schema end,
-  applyDefault = function(row) NS.Schema:Set(row.path, NS.Schema:Default(row.path)) end,
+  -- NOT a bare `S:Set(row.path, S:Default(row.path))` any more: S:ApplyDefault is the seam that
+  -- honors S.RESET_EXEMPT, so the sweep this feeds cannot walk the Minimap button row back to
+  -- shown (launcher-§3). The library reaches this from CliReset (one named path) too, and the
+  -- veto there is inert by construction -- see the seam.
+  applyDefault = function(row) NS.Schema:ApplyDefault(row) end,
 
   -- The bulk bracket (Slash minor 8, debug-logging-§10). CliResetAll, which is `/bl resetall` and
   -- both Defaults controls, calls these around its row walk: the seam mutes its per-row [Set] line

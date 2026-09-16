@@ -489,6 +489,109 @@ test("Slash: both global resets end test mode, which no store wipe can reach", f
   if not ok then error(err, 0) end
 end)
 
+-- ── the minimap button survives BOTH resets (launcher-§3, standard v2.54.0) ────────────────────
+--
+-- A player's minimap-button choice is a per-installation DISPLAY PREFERENCE, in the same class as
+-- the angle they dragged the button to, and it survives a reset because of what kind of setting it
+-- is -- not because of where it is stored. Until v2.54.0 the standard argued the second thing: that
+-- *Reset all settings* is a profile reset and the table is global, so the reset cannot reach it.
+--
+-- BOTH HALVES OF THAT ARGUMENT FAIL IN THIS ADDON, which is one of the two shapes the amended rule
+-- names. It has no profile, so its Reset all settings is a wholesale wipe of the account-wide store
+-- that merged `minimap = { hide = false }` straight back. And the argument only ever spoke about
+-- that one control, so the page-scoped Defaults button -- which walks every schema row carrying a
+-- default -- reached the row from the other side. These two cases run the real acts and read the
+-- STORED byte back, in both directions, because a case that only proved the row was declared
+-- exempt would pass over a sweep that wrote it anyway.
+
+local function withHiddenButton(fn)
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local savedHide, savedPos = NS.db.global.minimap.hide, NS.db.global.minimap.minimapPos
+  local ok, err = pcall(fn)
+  NS.db.global.minimap.hide, NS.db.global.minimap.minimapPos = savedHide, savedPos
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+end
+
+test("Minimap row: the page Defaults button does not un-hide the button", function()
+  -- The button is P:RestoreDefaults -> Sl:CliResetAll -> the library's walk over every schema row,
+  -- and the Minimap button row IS a schema row (the Master controls composer emits it). So this
+  -- sweep reached it, in an addon where the profile reasoning would otherwise have held.
+  --
+  -- red under: dropping minimap.hide from S.RESET_EXEMPT, or pointing the descriptor's
+  -- applyDefault back at a bare S:Set.
+  withHiddenButton(function()
+    -- The player hid it, through the row's own sense: the checkbox says SHOWN, the key says hidden.
+    NS.Schema:Set("minimap.hide", false)
+    assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
+    -- A control row on the same sweep, so a green result cannot mean the sweep did nothing at all.
+    NS.Schema:Set("settings.qualityThreshold", 4)
+
+    NS.Panel:RestoreDefaults()
+
+    assertEqual(NS.db.global.minimap.hide, true,
+      "the Defaults button walked the player's hidden button back to shown")
+    assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0,
+      "the sweep did not run at all, so this case proves nothing")
+
+    -- And the other direction: a SHOWN button is not re-hidden either.
+    NS.Schema:Set("minimap.hide", true)
+    assertEqual(NS.db.global.minimap.hide, false, "precondition: the button is shown")
+    NS.Panel:RestoreDefaults()
+    assertEqual(NS.db.global.minimap.hide, false, "the Defaults button re-hid a shown button")
+  end)
+end)
+
+test("Minimap row: Reset all settings does not un-hide the button, or move it", function()
+  -- Sl:ResetEverything: the confirm-gated Master controls button, and the one options-ui-§12 calls
+  -- for in an addon with no profile -- empty db.global wholesale, merge the declared defaults back.
+  -- `minimap = { hide = false }` is one of those declared defaults.
+  --
+  -- LibDBIcon's `minimapPos` rides along in the same table and is asserted here for the same
+  -- reason it is exempt: it is the angle the player dragged the button to, and the carve-out holds
+  -- the TABLE rather than one key so a future key in it needs no second edit.
+  --
+  -- red under: removing the carve-out from Sl:ResetEverything, or narrowing it to `hide` alone.
+  withHiddenButton(function()
+    NS.Schema:Set("minimap.hide", false)
+    NS.db.global.minimap.minimapPos = 217.5
+    assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
+    NS.db.global.settings.qualityThreshold = 4
+
+    NS.Slash:ResetEverything()
+
+    assertEqual(NS.db.global.minimap.hide, true,
+      "the wholesale wipe put the button back on the player's minimap")
+    assertEqual(NS.db.global.minimap.minimapPos, 217.5,
+      "and back at the library's default angle")
+    assertEqual(NS.db.global.settings.qualityThreshold, 0,
+      "the wipe did not run at all, so this case proves nothing")
+  end)
+end)
+
+test("Minimap row: a TARGETED /bl reset minimap.hide is not a sweep, and still works", function()
+  -- launcher-§3 exempts the row from *Reset all settings* and from a page Defaults button. It says
+  -- nothing about the player naming that one row, and refusing them would be a carve-out that ate a
+  -- verb. The veto is bracket-scoped for exactly this reason.
+  --
+  -- red under: making S:ApplyDefault veto unconditionally.
+  withHiddenButton(function()
+    NS.Schema:Set("minimap.hide", false)
+    assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
+    local out = {}
+    local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+    mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+    local ok, err = pcall(function() NS.Slash:OnSlash("reset minimap.hide") end)
+    mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+    if not ok then error(err, 0) end
+    assertEqual(NS.db.global.minimap.hide, false,
+      "/bl reset minimap.hide must still put the row back to its default")
+    assertTrue(table.concat(out, "\n"):find("minimap.hide", 1, true) ~= nil,
+      "and echo what it wrote: " .. table.concat(out, "\n"))
+  end)
+end)
+
 test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now", function()
   -- BANKLEDGER-R-01. The reset empties db.global and merges the declared defaults back, which
   -- changes every setting the Ledger caches on its hot path -- and it changed them silently. The

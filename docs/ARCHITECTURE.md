@@ -168,8 +168,10 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
 
 `NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
-merges the defaults back, which replaces all four along with everything else; the standard does not
-count a wholesale replacement as a writer to name. Row table and panel structure are in
+merges the defaults back, which replaces the first three along with everything else; the standard
+does not count a wholesale replacement as a writer to name. **The fourth is the exception**: the
+whole `db.global.minimap` table is held across that wipe and put back, because both keys in it are
+per-installation display preferences rather than settings (`launcher-§3` — see **Launcher** below). Row table and panel structure are in
 **[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
 **[schema.md](schema.md)**.
 
@@ -191,6 +193,7 @@ re-enters it.
 | Right-click | Opens the settings panel, always, whatever the left button does |
 | Tooltip | The live movement count, and both click verbs |
 | Visibility | The **Minimap button** row on General ▸ Master controls, stored at `db.global.minimap.hide` |
+| Resets | **Neither reset reaches the row** (`launcher-§3`). Both did before the v2.54.0 amendment. |
 
 **The row's sense is the inverse of the key's**, and that inversion lives in exactly one place:
 `NS.Schema:Set` and `NS.Schema:Get`, the single write seam (`options-ui-§1`). The row says *shown*;
@@ -198,6 +201,28 @@ LibDBIcon's `hide` says hidden, and `hide` is the library's own field — it wri
 button's right-click menu, which is why there is one boolean and not a second one beside it
 (`launcher-§3`). The button follows the row from the row's `onChange`, so a slash write, a panel
 click and a reset all move it.
+
+### The button survives a reset, and that is a property of the setting
+
+Whether the button is shown is a **per-installation display preference**, in the same class as the
+angle the player dragged it to — which LibDBIcon keeps in the very same table, as
+`minimap.minimapPos`, and which no reset in the collection touches. `launcher-§3` therefore requires
+`minimap.hide` to survive **both** *Reset all settings* and a page-scoped **Defaults** button, and
+neither may re-hide a shown one either.
+
+Until standard v2.54.0 that section *derived* the conclusion — *Reset all settings* is a profile
+reset, the table is global, so the reset cannot reach it. **Neither half of that argument holds
+here, and both of this addon's resets reached the row:**
+
+| Reset | Route | Why it reached the row | The carve-out |
+|---|---|---|---|
+| *Reset all settings* (Master controls, confirm-gated) | `Sl:ResetEverything` | **This addon has no profile.** Everything it stores is `db.global`, so the rule's second form applies: empty the account-wide store wholesale and merge the declared defaults back — and `minimap = { hide = false }` is one of the declared defaults. A hidden button came back, at the default angle. | The `minimap` table is held and restored around the wipe. The **table**, not the `hide` key, so `minimapPos` rides with it and a future key in it needs no second edit. |
+| **Defaults** (the General page's own button, and `/bl resetall`) | `P:RestoreDefaults` → `Sl:CliResetAll` → the library's row walk | The Minimap button row **is** a schema row — the Master controls composer emits it — and the walk rewrites every row carrying a `default`. This reaches the row even where the profile reasoning does hold, which is why the amended rule names it. | `NS.Schema.RESET_EXEMPT`, honored in `S:ApplyDefault`, the one seam both the descriptor's `applyDefault` and the degraded arm's walk write through. |
+
+The veto is **bracket-scoped**: it fires only while a bulk bracket is open, which a sweep opens and a
+single-row reset does not. So a targeted `/bl reset minimap.hide` is still the player naming that
+exact row and still works. The three cases that pin all of it are in `tests/test_panel.lua`, beside
+the other destructive-reset cases, and they read the stored byte back after running the real act.
 
 `modules/Browser.lua` owned all of this until adoption (`B:SetupMinimap`, `B:SetMinimapHidden`);
 both are gone, and `tests/test_launcher.lua` fails if either comes back.

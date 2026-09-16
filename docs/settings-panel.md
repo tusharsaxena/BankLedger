@@ -233,6 +233,14 @@ button is moved from the row's `onChange` through `NS.Launcher:SetShown`. This r
 Interface tab's *Hide minimap button*, which said the opposite on the same path; nobody's stored
 choice moved.
 
+**And it is the one row no reset on this page reaches.** A player's minimap-button choice is a
+per-installation display preference, like the angle they dragged the button to, so `launcher-§3`
+requires it to survive both *Reset all settings* and this page's own **Defaults** button — and both
+reached it here until the standard's v2.54.0 amendment. `NS.Schema.RESET_EXEMPT` names the row once
+and `S:ApplyDefault` honors it; the wholesale reset holds the `minimap` table across its wipe.
+A targeted `/bl reset minimap.hide` is not a sweep and still works. See
+[ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher).
+
 **No color rows.** Nothing here is `type = "color"`, so `options-ui-§17`'s class-color companion has
 nothing to attach to and `settings/OptionsSetup.lua`'s descriptor carries no
 `colorDecode`/`colorEncode`. Adding a swatch means adding both, and reaching for `H.ColorPair` rather

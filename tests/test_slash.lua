@@ -295,20 +295,31 @@ end)
 test("Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards", function()
   -- Only the LOG collapses. A mute that also skipped onChange would leave the capture gate judging
   -- movements by settings the reset had replaced; a mute that stuck would silence every later write.
-  local fired, withOnChange = 0, 0
+  --
+  -- EVERY ROW THE SWEEP TOUCHES, which since v2.54.0 is every row but the exempt one: the Minimap
+  -- button row is carved out of a sweep by S.RESET_EXEMPT (launcher-§3), so its onChange -- the hook
+  -- that would move the button -- must NOT fire. Counted rather than assumed, and asserted from both
+  -- sides, so neither a sweep that skipped everything nor one that skipped nothing reads as green.
+  local fired, withOnChange, exemptFired = 0, 0, 0
   local wrapped = {}
   for _, row in ipairs(NS.Schema.Schema) do
     if row.onChange then
       local orig = row.onChange
       wrapped[row] = orig
-      withOnChange = withOnChange + 1
-      row.onChange = function(v) fired = fired + 1; return orig(v) end
+      if NS.Schema.RESET_EXEMPT[row.path] then
+        row.onChange = function(v) exemptFired = exemptFired + 1; return orig(v) end
+      else
+        withOnChange = withOnChange + 1
+        row.onChange = function(v) fired = fired + 1; return orig(v) end
+      end
     end
   end
+  assertTrue(withOnChange > 0, "no row carries an onChange, so this case proves nothing")
   local ok, err = pcall(function() captureChat(function() Sl:CliResetAll() end) end)
   for row, orig in pairs(wrapped) do row.onChange = orig end
   if not ok then error(err, 0) end
-  assertEqual(fired, withOnChange, "every row's onChange must fire once inside the bracket")
+  assertEqual(fired, withOnChange, "every swept row's onChange must fire once inside the bracket")
+  assertEqual(exemptFired, 0, "an exempt row's onChange fired, so the sweep reached it after all")
 
   local lines = setLines(function() NS.Schema:Set("settings.qualityThreshold", 2) end)
   NS.Schema:Set("settings.qualityThreshold", 0)

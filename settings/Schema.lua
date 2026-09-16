@@ -146,6 +146,31 @@ S.Schema = {
 -- boolean here and not a second one beside it (launcher-§3, anti-pattern #81).
 S.MINIMAP_PATH = "minimap.hide"
 
+-- ── The rows a RESET SWEEP must not reach (launcher-§3, standard v2.54.0) ───────────────────────
+--
+-- Named once, as data, so the two sweeps this addon ships consult one list rather than each
+-- carrying its own spelling of one carve-out.
+--
+-- WHY THE MINIMAP ROW IS ON IT, AND WHY THAT IS A PROPERTY RATHER THAN A DERIVATION. Whether the
+-- button is shown is a PER-INSTALLATION DISPLAY PREFERENCE, in the same class as the ANGLE the
+-- player dragged it to -- which LibDBIcon keeps in this very table, as `minimap.minimapPos`, and
+-- which no reset in the collection touches. Nobody has ever wanted *reset my settings* to mean
+-- *and put the button back on my minimap, at the default angle*.
+--
+-- Until v2.54.0 the standard ARGUED the conclusion instead of stating it: *Reset all settings* is a
+-- profile reset, the table is global, therefore the reset cannot reach it. THAT ARGUMENT WAS NEVER
+-- TRUE HERE. This addon has NO PROFILE -- everything it stores is `db.global` -- so its reset empties
+-- the account-wide store wholesale and merges the declared defaults back, and `minimap = { hide =
+-- false }` is one of them: the wipe walked a hidden button straight back to shown. And the argument
+-- only ever spoke about that one control, so the page-scoped **Defaults** button, which walks every
+-- schema row carrying a default, reached the row from the other side. BOTH of this addon's resets
+-- reached it; both are carved out now (settings/Slash.lua).
+--
+-- A TARGETED `/bl reset minimap.hide` IS NOT A SWEEP and still works. The player naming the one row
+-- is asking for exactly that row, which is what the veto below is careful not to refuse: it fires
+-- only inside a bulk bracket, which is what a wholesale act opens and a single-row reset does not.
+S.RESET_EXEMPT = { [S.MINIMAP_PATH] = true }
+
 S.MASTER_SPEC = {
   prefix    = "settings.",
   page      = "general",
@@ -534,6 +559,24 @@ end
 function S:Default(path)
   local row = S:FindRow(path)
   return row and deepcopy(row.default)
+end
+
+--- Restore ONE row to its declared default -- the seam every reset SWEEP writes through, and the one
+--- place S.RESET_EXEMPT is honored (launcher-§3).
+---
+--- The descriptor hands this to LibKa0s-Slash as `applyDefault`, and the degraded fallback's own walk
+--- calls it too, so `/bl resetall`, the page-scoped **Defaults** button and a host without the library
+--- all take the same route and none of them has to remember the carve-out a second time.
+---
+--- THE VETO IS BRACKET-SCOPED, DELIBERATELY. The library reaches `applyDefault` from BOTH `CliReset`
+--- (one named path) and `CliResetAll` (the sweep), and only the sweep opens the bulk bracket. Vetoing
+--- unconditionally would therefore also refuse `/bl reset minimap.hide`, which is the player naming
+--- that exact row -- a thing launcher-§3 never asked anyone to refuse. `bulkDepth > 0` is the one
+--- signal already in this file that says "a wholesale act is in progress".
+function S:ApplyDefault(row)
+  if type(row) ~= "table" or row.path == nil then return false end
+  if bulkDepth > 0 and S.RESET_EXEMPT[row.path] then return false end
+  return S:Set(row.path, S:Default(row.path))
 end
 
 -- Boot validation (architecture-§5): every schema path must resolve against the defaults table, so
