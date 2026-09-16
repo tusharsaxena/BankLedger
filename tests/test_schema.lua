@@ -238,9 +238,9 @@ end)
 -- deliberately not a setting. S.Schema alone would report four tabs for a five-tab strip.
 local PARTITION = {
   general = {
-    { tab = "Master controls", rows = 7 },
+    { tab = "Master controls", rows = 8 },
     { tab = "Capture",         rows = 4 },
-    { tab = "Interface",       rows = 4 },
+    { tab = "Interface",       rows = 3 },
     { tab = "History",         rows = 1 },
     { tab = "Filters",         rows = 1 },
   },
@@ -285,7 +285,9 @@ test("Schema: Master controls is the FIRST tab, and holds exactly the canonical 
     "settings.enabled", "settings.visibility",
     "settings.windowScale", "settings.alpha",
     "settings.locked", "state.debugConsole",
-    "state.testMode",
+    -- The fourth line, since LibKa0s v1.39.0 (compose minor 7): [Minimap button] [Test mode].
+    -- Minimap button takes column 1 because EVERY addon has one and only some have a test mode.
+    "minimap.hide", "state.testMode",
   }
   local got = {}
   for _, row in ipairs(S:PageRows()) do
@@ -398,8 +400,19 @@ test("Schema: rest and hover sit on ONE line, so they are read across and not do
   assertTrue(at ~= nil, "settings.rowStripeAlpha is not on the Interface tab")
   assertTrue(order[at + 1] ~= nil and order[at + 1].path == "settings.rowHoverAlpha",
     "the hover slider must follow the rest slider immediately")
-  -- An ODD number of rows before them would push the pair onto separate lines.
-  assertEqual((at - 1) % 2, 0, "an odd row count above the pair splits it across two lines")
+  -- An ODD number of rows before them WITHIN THEIR OWN SUBGROUP would push the pair onto separate
+  -- lines. Within the subgroup, and not within the tab, because a subgroup heading FLUSHES the
+  -- pending line before it draws (libs/LibKa0s/OptionsWidgets.lua, startSubgroup) -- so the pair
+  -- starts a fresh line under "Table rows" however many rows the "Windows" block above it holds.
+  -- This used to count from the top of the tab, which happened to agree while Windows held two
+  -- rows and went red when the minimap row left it for Master controls (launcher-§3) without the
+  -- pair having moved at all.
+  local since = 0
+  for i = at - 1, 1, -1 do
+    if order[i].subgroup ~= order[at].subgroup then break end
+    since = since + 1
+  end
+  assertEqual(since % 2, 0, "an odd row count above the pair splits it across two lines")
   for _, path in ipairs({ "settings.rowStripeAlpha", "settings.rowHoverAlpha" }) do
     local row = S:FindRow(path)
     assertFalse(row.solo == true, path .. " breaks the pair")
@@ -411,11 +424,18 @@ test("Schema: the Interface tab opens with the control most players reach for", 
   -- Master scale led this tab until it was promoted to Master controls (options-ui-§15), where it
   -- has always belonged: modules/Browser.lua and modules/SessionWindow.lua both read that one key,
   -- so it was never the "window scale" of any particular window.
+  --
+  -- "Hide minimap button" led it after that, and has now gone the same way for the same reason:
+  -- launcher-§3 puts the button's visibility on Master controls as the composed "Minimap button"
+  -- row, reading the other way round. It was REPLACED, not duplicated -- the path did not move.
+  -- What opens the tab now is the one window this addon can switch on.
   local first
   for _, row in ipairs(S.Schema) do
     if row.group == "Interface" then first = row; break end
   end
-  assertEqual(first.path, "minimap.hide")
+  assertEqual(first.path, "settings.showSessionWindow")
+  assertEqual(S:FindRow("minimap.hide").group, "Master controls",
+    "the minimap row must not be on the Interface tab as well")
 end)
 
 test("Schema: the Interface tab heads each KIND of control it mixes", function()
@@ -647,14 +667,19 @@ test("Test mode: the composed row sits right below Debug console, session-only, 
     if row.path == "state.debugConsole" then consoleIdx = i end
   end
   assertTrue(idx ~= nil, "no state.testMode row was composed")
-  assertEqual(idx, consoleIdx + 1, "Test mode must be the row directly below Debug console")
+  -- consoleIdx + 2, not + 1: Minimap button opens the line below Debug console and Test mode
+  -- pairs beside it (compose minor 7). The two are one line, in that column order.
+  assertEqual(idx, consoleIdx + 2, "Test mode must pair beside Minimap button, below Debug console")
   local row = S.Schema[idx]
   assertEqual(row.label, "Test mode")
   assertEqual(row.type, "bool")
   assertEqual(row.widget, "CheckBox")
   assertEqual(row.group, "Master controls")
   assertTrue(row.sessionOnly == true, "test mode is session state, never a stored setting")
-  assertTrue(row.startsLine == true, "Test mode starts its own line")
+  -- NO `startsLine` AT ALL, and that is the composer computing it rather than declaring it: a row
+  -- that pairs beside Minimap button carries no such key, which is the shape the flow engine's
+  -- `opensLine` reads. It would be `true` again for a host that passed no minimapPath.
+  assertTrue(row.startsLine == nil, "Test mode pairs beside Minimap button rather than opening a line")
   assertEqual(row.default, false, "with no default, a reset cannot end it")
   assertTrue(type(row.get) == "function" and type(row.set) == "function", "the host binds get/set")
   assertTrue(type(row.tooltip) == "string" and row.tooltip:find("/bl test", 1, true) ~= nil,

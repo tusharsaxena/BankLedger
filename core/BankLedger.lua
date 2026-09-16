@@ -48,6 +48,15 @@ function addon:OnEnable()
   -- unhonored without these: a window opened out of combat would simply stay up through a pull.
   self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatChanged")
   self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatChanged")
+  -- The launcher (launcher-§1). REGISTERED HERE rather than from a module's Enable, because it
+  -- is the addon's own entry point and not the ledger window's: its left click happens to toggle
+  -- that window (rung (a)), which is a fact about this addon, not about who owns the button.
+  --
+  -- AFTER OnInitialize, which is what makes it work at all: the descriptor answers
+  -- `db.global.minimap` through a closure and NS:InitDB is what materializes it. Idempotent by
+  -- the library's design, so the disable/enable cycle below cannot stand a second button up over
+  -- the first.
+  if NS.Launcher and NS.Launcher.Register then NS.Launcher:Register() end
   if NS.Ledger and NS.Ledger.Enable then NS.Ledger:Enable() end
   if NS.Browser and NS.Browser.Enable then NS.Browser:Enable() end
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not

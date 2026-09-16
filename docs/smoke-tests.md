@@ -11,7 +11,14 @@ tolerance.
 1. Enable the addon and log in.
 2. `/bl version` prints one cyan-tagged line, `[BL] v1.1.0`.
 3. No Lua errors on login (turn error display on first: `/console scriptErrors 1`).
-4. The minimap button is present and its tooltip shows the movement count.
+4. The minimap button is present, wearing **the addon's own logo** and not a Blizzard bag icon
+   (`launcher-§4`); the same art is beside **Ka0s Bank Ledger** in the client's AddOns list. Its
+   tooltip shows the movement count and names both click verbs.
+5. **Left-click** the button: the ledger window opens. Left-click again: it closes (rung (a),
+   `launcher-§2`). **Right-click** it: the settings panel opens on its landing page.
+6. If a broker display is installed (Titan Panel, ElvUI data texts, Bazooka), **Ka0s Bank Ledger**
+   appears in its plugin list wearing the same icon, and its clicks do exactly the same two things
+   — it is one object registered twice, not two features.
 
 ## S-2 · Character bank deposit and withdrawal
 
@@ -255,9 +262,13 @@ tolerance.
    with **Ka0s Loot History**, whose strip is the same five plus **AH Price** after Capture — open
    both panels side by side and check they agree, because that agreement is the point.
    - **Master controls** — *Enable Bank Ledger · General visibility*, then *Master scale · Master
-     alpha*, then *Lock frame · Debug console*, then *Test mode* alone on its own line, then
-     **Reset position** and **Reset all settings** side by side. Exactly that order, three full
-     lines, the Test mode line and the button pair; no row may be renamed, reordered or missing. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
+     alpha*, then *Lock frame · Debug console*, then *Minimap button · Test mode*, then
+     **Reset position** and **Reset all settings** side by side. Exactly that order, four full
+     lines and the button pair; no row may be renamed, reordered or missing.
+     **Untick *Minimap button***: the button vanishes from the minimap **immediately**, not at the
+     next reload. Tick it: it comes back **at the same angle** you had dragged it to. Now hide it
+     from the button's OWN right-click menu instead, and reopen this tab — the box is unticked,
+     because the checkbox and LibDBIcon are reading one boolean and not two (`launcher-§3`). Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
      and the windows visibly fade to that and no further — the row's declared minimum IS the floor
      `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
      **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**;
@@ -265,7 +276,7 @@ tolerance.
      ARCHITECTURE ▸ Documented deviations, `options-ui-§12`).
    - **Capture** — *Track items · Track gold*, then *Minimum quality*, then the full-width per-store
      grid.
-   - **Interface** — a **Windows** heading over *Hide minimap button · Session window*, then a
+   - **Interface** — a **Windows** heading over *Session window*, then a
      **Table rows** heading over *Row stripe opacity · Row hover opacity*. Both headings must be
      there (this tab mixes two kinds of control, `options-ui-§7`), and neither may read
      "Interface". The two opacity sliders must be side by side on one line, not stacked.

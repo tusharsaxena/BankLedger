@@ -18,7 +18,7 @@ local NS = {}
 local SUITES = {
   "test_util", "test_compat", "test_constants", "test_filters",
   "test_ledger", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
-  "test_browser", "test_sessionwindow", "test_insights",
+  "test_browser", "test_launcher", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_slash",
   "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",

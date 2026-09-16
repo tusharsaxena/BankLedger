@@ -104,9 +104,10 @@ no row addresses them, and each is written by its one owner module rather than t
 - `db.global.savedView`, the filter bar's saved baseline (owner `modules/Browser.lua`).
 
 `db.global.minimap.minimapPos` is the fourth, with a different writer: LibDBIcon stores the
-button's position there on a drag, in the table `B:SetupMinimap` hands it. That table also holds
-the `minimap.hide` row, so the addon never replaces it whole. It comes from the AceDB default, and
-`B:SetupMinimap` has no seed of its own. [ARCHITECTURE.md → Settings Schema](ARCHITECTURE.md#settings-schema)
+button's position there on a drag, in the table **`NS.Launcher`** (`core/LauncherSetup.lua`) hands
+it at `Register` time. That table also holds the `minimap.hide` row, so the addon never replaces it
+whole. It comes from the AceDB default, and the seam has no seed of its own. `B:SetupMinimap` did
+this until the launcher was adopted (`launcher-§1`). [ARCHITECTURE.md → Settings Schema](ARCHITECTURE.md#settings-schema)
 names every writer of all four and the act that reaches each. That naming is what makes them
 compliant, so none has a `Documented deviations` row. A new writer of any of them joins that list.
 

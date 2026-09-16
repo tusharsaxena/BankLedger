@@ -235,6 +235,11 @@ tests/
   test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
                            --   one module: the four _enabled latches released together, and
                            --   the private bus targets torn down with them
+  test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: the rung, the folder-name
+                           --   registration, the inverting Minimap button row, the two reserved
+                           --   verbs, and both degraded arms (no broker libraries; no LibKa0s).
+                           --   ITS CASE ORDER IS LOAD-BEARING — the no-broker case must run while
+                           --   the one live launcher is still unregistered
   test_marks.lua           -- the shared LibKa0s-Media marks on this addon's own windows: the PATH
                            --   and the ARGUMENT, never the appearance, and BOTH rungs of every
                            --   fallback ladder — a texture that does not load draws nothing and

@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 28 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 29 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,8 +34,8 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-28 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the six LibKa0s seams; `modules/` holds the capture engine
+29 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the seven LibKa0s seams; `modules/` holds the capture engine
 and every window; `settings/` holds the schema and the two panel pages.
 
 Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
@@ -73,8 +73,8 @@ per row.
   already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
 
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
-the array's declaration order is the tab order, and the strip reads **Master controls** (7) ·
-**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
+the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
+**Capture** (4) · **Interface** (3) · **History** (1) · **Filters**. The last carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
 `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
@@ -159,17 +159,47 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
   calls `B:ResetView`, and so does `Sl:CliResetAll`, which is `/bl resetall` and the *Defaults*
   button.
-- **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner `NS.Browser`, whose
-  `B:SetupMinimap` hands `db.global.minimap` to LibDBIcon. Writer: LibDBIcon itself, when the player
-  drags the button (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field.
-  The same table holds the `minimap.hide` row, so the addon never replaces the table whole either.
-  AceDB supplies it from `defaults/Global.lua`, and `B:SetupMinimap` has no seed of its own.
+- **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner **`NS.Launcher`**
+  (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
+  Writer: LibDBIcon itself, when the player drags the button
+  (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field. The same table
+  holds the `minimap.hide` row, so the addon never replaces the table whole either. AceDB supplies
+  it from `defaults/Global.lua`, and the seam has no seed of its own. It was `NS.Browser`'s
+  `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
 
 `NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
 merges the defaults back, which replaces all four along with everything else; the standard does not
 count a wholesale replacement as a writer to name. Row table and panel structure are in
 **[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
 **[schema.md](schema.md)**.
+
+## Launcher
+
+One object, registered twice (`launcher-§1`). `core/LauncherSetup.lua` is the
+**LibKa0s-Launcher-1.0 seam**: it builds a single LibDataBroker-1.1 launcher object and hands it to
+LibDBIcon-1.0, so the minimap button and any broker display the player runs draw from the same
+object with the same `OnClick`, the same icon and the same name. Owner **`NS.Launcher`**; registered
+once from `addon:OnEnable` (`core/BankLedger.lua`), idempotently, because the disable/enable cycle
+re-enters it.
+
+| | |
+|---|---|
+| Registration name | `BankLedger` — the **folder** name, for both registrations. LibDBIcon and a broker display key the identity by it. It was `Ka0s Bank Ledger` before adoption. |
+| Icon | `Interface\AddOns\BankLedger\media\logos\bankledger.logo.128.tga`, the same file `## IconTexture` names (`launcher-§4`, `layout-§4`): 128×128, uncompressed 32-bit |
+| Left-click | **Rung (a)** — toggles the ledger window, through `B:Toggle`, the same act `/bl toggle` runs. The rung is recorded against this addon in the standard's `ADDONS.md`. |
+| Right-click | Opens the settings panel, always, whatever the left button does |
+| Tooltip | The live movement count, and both click verbs |
+| Visibility | The **Minimap button** row on General ▸ Master controls, stored at `db.global.minimap.hide` |
+
+**The row's sense is the inverse of the key's**, and that inversion lives in exactly one place:
+`NS.Schema:Set` and `NS.Schema:Get`, the single write seam (`options-ui-§1`). The row says *shown*;
+LibDBIcon's `hide` says hidden, and `hide` is the library's own field — it writes it itself from the
+button's right-click menu, which is why there is one boolean and not a second one beside it
+(`launcher-§3`). The button follows the row from the row's `onChange`, so a slash write, a panel
+click and a reset all move it.
+
+`modules/Browser.lua` owned all of this until adoption (`B:SetupMinimap`, `B:SetMinimapHidden`);
+both are gone, and `tests/test_launcher.lua` fails if either comes back.
 
 ## Message bus
 

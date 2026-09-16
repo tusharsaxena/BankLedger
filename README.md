@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-913%2F913_passing-green)
+![Tests](https://img.shields.io/badge/Tests-929%2F929_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -72,6 +72,12 @@ it while a bank frame is in the way is a nuisance, so `/bl session` opens it on 
 away from one. Both windows drag by the title bar and size from the grip in the bottom-right corner,
 and both come back where you left them — until you tick **Lock frame** on the settings' Master
 controls tab, which pins every window the addon owns.
+
+The minimap button wears the addon's own logo — the same picture the AddOns list shows beside the
+name — and if you run Titan Panel, ElvUI's data texts or Bazooka, Bank Ledger turns up there too,
+clicking exactly the same way. The **Minimap button** box on the Master controls tab hides it and
+brings it back, and so does the button's own right-click menu; the two always agree, because they
+are one switch.
 
 Everything else is configuration, and it lives in two places: the addon's own page under
 Settings → AddOns in game, which `/bl` (or `/bankledger`) opens on its own, and `/bl help`, which

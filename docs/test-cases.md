@@ -395,7 +395,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 
-### test_browser.lua (43)
+### test_browser.lua (41)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -438,8 +438,27 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
-- the minimap table always exists: the defaults ship it and AceDB materializes it
-- Browser:SetupMinimap never replaces the table that holds the minimap.hide row
+
+### test_launcher.lua (18)
+
+- Launcher: the seam is published, and it is the library's instance
+- Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
+- Launcher: the hand-rolled launcher is gone from modules/Browser.lua
+- Launcher: a host with neither broker library reports it and does NOT raise
+- Launcher: LibDataBroker without LibDBIcon still gets the broker plugin
+- Launcher: it registers under the FOLDER name, against db.global.minimap
+- Launcher: Register is idempotent, so no second button is built over the first
+- Launcher: ONE object, of type launcher, wearing the addon's icon
+- Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch
+- Launcher: RIGHT-click opens the settings panel, whatever the left button does
+- Launcher: a raising click is reported, not thrown at the player
+- Launcher: the tooltip carries the live entry count and both click verbs
+- Minimap row: it is composed onto Master controls, stored, and SHOWN by default
+- Minimap row: the label says SHOWN and LibDBIcon's key says HIDDEN
+- Minimap row: writing it MOVES the button, not just the store
+- Minimap row: LibDBIcon's own minimapPos is never trampled
+- Minimap row: the defaults ship the table, so nothing has to seed it
+- LibKa0s-Launcher degraded: the stub answers every member the addon reaches
 
 ### test_sessionwindow.lua (32)
 
@@ -1031,7 +1050,8 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 48 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
-| test_browser.lua | 43 |
+| test_browser.lua | 41 |
+| test_launcher.lua | 18 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1055,4 +1075,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **913** |
+| **Total** | **929** |

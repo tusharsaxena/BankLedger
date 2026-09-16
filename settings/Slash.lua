@@ -88,13 +88,19 @@ end
 --- the wipe actually changes: a row already at its default is not counted, and neither is the
 --- session-only console row, which lives outside db.global where the wipe cannot reach it. So it is
 --- read BEFORE the wipe, beside the [Data] trace, while the old values are still there to compare.
+--- It takes no store argument any more: it reads through S:Get, which is where the minimap row's
+--- inversion lives, and S:Get reads db.global — the very table the caller was handing in.
 --- Worded apart from the [Data] line's "reset-all" on purpose: that line is the ledger purge, this
 --- one is the settings.
-local function traceSettingsReset(g)
+local function traceSettingsReset()
   if not (NS.State and NS.State.debug and NS.Debug) then return end
   local S, n = NS.Schema, 0
   for _, row in ipairs(S and S.Schema or {}) do
-    if not row.sessionOnly and not S.SameValue(S:ReadPath(g, row.path), row.default) then
+    -- S:Get, not S:ReadPath: the minimap row's stored boolean is the INVERSE of the row's own
+    -- (launcher-§3), and comparing the raw key against the row default would count it as changed
+    -- on every reset. S:Get answers in the sense `row.default` is written in. `g` IS db.global,
+    -- which is what S:Get reads, so this still reports the pre-wipe store.
+    if not row.sessionOnly and not S.SameValue(S:Get(row.path), row.default) then
       n = n + 1
     end
   end
@@ -107,6 +113,14 @@ end
 --- built its frame, and none of them touch stored data: they re-anchor live frames from what is now
 --- an empty store.
 local function refreshAfterReset()
+  -- The minimap button follows the store the wipe just replaced. NOT through the write seam: the
+  -- act has already logged its one [Set] summary line and a per-row line beside it would
+  -- contradict it (debug-logging-§10). The store already says what it should be — this only moves
+  -- the button to match, which is the half LibDBIcon cannot work out for itself.
+  if NS.Launcher and NS.Launcher.SetShown then
+    local t = NS.db and NS.db.global and NS.db.global.minimap
+    NS.Launcher:SetShown(not (type(t) == "table" and t.hide))
+  end
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
@@ -145,7 +159,7 @@ function Sl:ResetEverything()
   if db and db.global then
     local g = db.global
     traceLedgerWipe(g)
-    traceSettingsReset(g)
+    traceSettingsReset()
     for k in pairs(g) do g[k] = nil end
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
   end

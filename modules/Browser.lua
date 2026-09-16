@@ -6,9 +6,6 @@ local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)   -- the flat-skin dr
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 local frame
 
-local LDB_NAME = "Ka0s Bank Ledger"   -- LibDataBroker object + LibDBIcon registration key
-local minimapObject                   -- the LDB launcher, created once on first Enable
-local DBIcon                          -- LibDBIcon-1.0, resolved lazily in SetupMinimap
 
 -- The standalone ledger window (standalone-windows): a plain, non-secure, movable/resizable frame,
 -- so it touches nothing protected and needs no combat gate. It hosts two tabs — the History table
@@ -1161,54 +1158,13 @@ function B:SetScale(v)
   if frame then frame:SetScale(v) end
 end
 
+-- NOTHING ABOUT THE MINIMAP BUTTON HERE ANY MORE. This used to re-read
+-- `db.global.minimap.hide` on every settings change and push it at LibDBIcon, which was a second
+-- route to a state the row already owned. The button is NS.Launcher's now and moves from the
+-- write seam the moment the row is written (launcher-§3), so a broadcast is no longer how it
+-- finds out.
 function B:OnSettingsChanged()
   if frame then NS.Util.ApplyMasterFrame(frame) end
-  self:SetMinimapHidden(NS.db.global.minimap and NS.db.global.minimap.hide)
-end
-
--- ── Minimap button (LibDataBroker + LibDBIcon) ────────────────────────────────
--- A launcher data object: left-click toggles the window, right-click opens Settings, and the
--- tooltip shows the live entry count. Visibility lives in db.global.minimap — the same table the
--- "Hide minimap button" setting writes and LibDBIcon owns — so registration alone honors the
--- persisted hide state across a reload.
-
-function B:SetupMinimap()
-  if minimapObject then return end
-  local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
-  DBIcon = DBIcon or (LibStub and LibStub("LibDBIcon-1.0", true))
-  if not (LDB and DBIcon) then return end
-
-  minimapObject = LDB:NewDataObject(LDB_NAME, {
-    type  = "launcher",
-    label = "Bank Ledger",
-    icon  = "Interface\\Icons\\inv_misc_bag_15",
-    OnClick = function(_, button)
-      if button == "RightButton" then
-        if NS.Panel and NS.Panel.Open then NS.Panel:Open() end
-      else
-        B:Toggle()
-      end
-    end,
-    OnTooltipShow = function(tt)
-      tt:AddLine("Ka0s Bank Ledger", 1, 0.82, 0)
-      local n = (NS.Database and NS.Database.Count) and NS.Database:Count() or 0
-      tt:AddLine(n == 1 and "1 movement" or (n .. " movements"), 0.7, 0.7, 0.7)
-      tt:AddLine(" ")
-      tt:AddLine("Left-click: open the ledger", 0.5, 0.5, 0.5)
-      tt:AddLine("Right-click: open settings", 0.5, 0.5, 0.5)
-    end,
-  })
-
-  -- No seed. defaults/Global.lua ships `minimap = { hide = false }` and AceDB materializes it, so the
-  -- table is always there, and replacing it whole would be a write over the `minimap.hide` row
-  -- (architecture-§5, "a row wins"). LibDBIcon writes `minimapPos` into it on a button drag.
-  DBIcon:Register(LDB_NAME, minimapObject, NS.db.global.minimap)
-end
-
-function B:SetMinimapHidden(hide)
-  if DBIcon and DBIcon:IsRegistered(LDB_NAME) then
-    if hide then DBIcon:Hide(LDB_NAME) else DBIcon:Show(LDB_NAME) end
-  end
 end
 
 -- Keep the window current when the ledger changes underneath it. The shared filter bar and footer
@@ -1228,7 +1184,6 @@ function B:Enable()
   if self._enabled then return end
   self._enabled = true
   if NS.Insights and NS.Insights.Enable then NS.Insights:Enable() end
-  B:SetupMinimap()
 
   -- A private bus target, never the shared bus-as-self: CallbackHandler keys callbacks by
   -- (message, target), so sharing one would silently clobber the Ledger's SettingsChanged handler
@@ -1237,8 +1192,9 @@ function B:Enable()
   -- There is deliberately NO fallback to NS.bus. A nil here means AceEvent is missing, and
   -- registering on the shared bus is exactly the receiver-clobber this factory exists to prevent —
   -- the "safety" fallback would have caused the failure it was written to avoid (F-010). Live
-  -- refresh simply stays inert, as it already does in SessionWindow and Insights. The window itself,
-  -- the minimap button and the tabs above still work, which is why they are set up first.
+  -- refresh simply stays inert, as it already does in SessionWindow and Insights. The window itself
+  -- and the tabs above still work, which is why they are set up first. The minimap button is NOT in
+  -- this list any more -- core/LauncherSetup.lua owns it and core/BankLedger.lua registers it.
   B.__ev = NS.NewBusTarget()
   if not B.__ev then return end
   B.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() B:OnSettingsChanged() end)

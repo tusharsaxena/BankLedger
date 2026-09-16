@@ -77,13 +77,6 @@ S.Schema = {
   -- windows you can switch on, and the tint of a table row — so each block carries a `subgroup`
   -- heading (options-ui-§7). Master scale left this tab for Master controls: it was never a
   -- per-window setting, both windows have always read the one key (see S.MASTER_SPEC below).
-  { path = "minimap.hide", default = false, type = "bool", widget = "CheckBox",
-    group = "Interface", subgroup = "Windows", label = "Hide minimap button",
-    tooltip = "Hide the Bank Ledger minimap button.",
-    onChange = function(v)
-      if NS.Browser and NS.Browser.SetMinimapHidden then NS.Browser:SetMinimapHidden(v) end
-    end },
-
   { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
     group = "Interface", subgroup = "Windows", label = "Session window",
     tooltip = "Show a small live window listing what you move while a bank is open. "
@@ -147,6 +140,12 @@ S.Schema = {
 -- one key for a third surface as well. It has been addon-wide since it was added; the tab it sat on
 -- was the only thing suggesting otherwise. So this is a promotion with no second setting invented
 -- beside it, which is what options-ui-§15 asks for.
+-- The minimap row's stored path, named once because THREE places have to agree on it: the spec
+-- below, the decoration underneath, and the two inverting arms in the write seam. LibDBIcon owns
+-- the key and writes it itself from its own right-click menu, which is exactly why there is one
+-- boolean here and not a second one beside it (launcher-§3, anti-pattern #81).
+S.MINIMAP_PATH = "minimap.hide"
+
 S.MASTER_SPEC = {
   prefix    = "settings.",
   page      = "general",
@@ -164,6 +163,17 @@ S.MASTER_SPEC = {
   defaults  = { debugConsole = false, testMode = false },
   -- Verbatim and unprefixed: session state lives outside the block's own prefix.
   debugConsolePath = "state.debugConsole",
+  -- The Minimap button checkbox (launcher-§3, LibKa0s v1.39.0), FIRST column of the line below
+  -- Lock frame / Debug console, with Test mode pairing beside it. Verbatim and unprefixed for a
+  -- different reason than the console's: LibDBIcon's own table is GLOBAL, outside the block's
+  -- `settings.` prefix, and this addon has stored it at db.global.minimap since long before the
+  -- section existed — so unlike Multi Meters it owes no migration.
+  --
+  -- IT REPLACES A ROW RATHER THAN ADDING ONE. The Interface tab carried "Hide minimap button" on
+  -- this same path, with the opposite sense; it is gone, because two rows over one boolean is the
+  -- drift options-ui-§15 exists to end. The path did not move, so no player loses their choice —
+  -- what changes is the label, the tab, and which way round the box reads.
+  minimapPath = S.MINIMAP_PATH,
   -- The Test mode checkbox, on its own line below Lock frame / Debug console (LibKa0s v1.37.0). It
   -- switches the SAMPLE LEDGER (`/bl test`), not the session-window preview: `/bl session` stays its
   -- own verb. The owner decided that.
@@ -207,6 +217,21 @@ S.MASTER_DECOR = {
 
   ["settings.locked"] = { widget = "CheckBox",
     onChange = function() NS.Util.ApplyMasterChrome() end },
+
+  -- THE ONE ROW WHOSE STORED SENSE IS THE OPPOSITE OF ITS LABEL. The row says SHOWN and
+  -- LibDBIcon's key says hidden, so `get` inverts here and `S:Set` inverts on the way down — see
+  -- the seam. The button itself moves from this `onChange`, which is the seam's own reaction hook
+  -- and therefore the same route every other row's reaction takes: a slash write, a panel click
+  -- and a reset all reach it, and none of them has to remember the inversion a second time.
+  [S.MINIMAP_PATH] = { widget = "CheckBox",
+    get = function()
+      if NS.Launcher and NS.Launcher.IsShown then return NS.Launcher:IsShown() end
+      local t = NS.db and NS.db.global and NS.db.global.minimap
+      return not (type(t) == "table" and t.hide)
+    end,
+    onChange = function(v)
+      if NS.Launcher and NS.Launcher.SetShown then NS.Launcher:SetShown(v) end
+    end },
 
   ["state.debugConsole"] = { widget = "CheckBox",
     -- Session-only: Schema:Set skips the db.global write and calls this set() instead. Mirrors
@@ -437,9 +462,11 @@ function S.BulkEnd(act, scope, ...)
   end
 end
 
--- The value a write is about to replace: a session-only row answers through its own get().
+-- The value a write is about to replace, IN THE SENSE THE ROW SPEAKS. A session-only row answers
+-- through its own get(); so does the minimap row, whose stored boolean is the inverse of what the
+-- checkbox says (launcher-§3) and which would otherwise report every write as a change.
 local function storedValue(row, path)
-  if row.sessionOnly then return row.get and row.get() end
+  if row.get then return row.get() end
   return S:ReadPath(NS.db.global, path)
 end
 
@@ -455,6 +482,17 @@ function S:Set(path, value)
   if row.sessionOnly then
     -- Session-only rows never touch db.global; the row's own set() applies the value.
     if row.set then row.set(value) end
+  elseif path == S.MINIMAP_PATH then
+    -- THE ONE INVERTED PATH (launcher-§3). The row's boolean says SHOWN; LibDBIcon's key says
+    -- HIDDEN, and the key is the library's — it writes the same field itself when the player uses
+    -- the button's own right-click menu. Storing the row's sense instead would be a second copy of
+    -- one state, free to disagree with the library the first time either was used.
+    --
+    -- The inversion lives HERE, at the single write seam, and not in a caller: `/bl set`, the
+    -- checkbox, `/bl reset` and the resetall walk all arrive through this one function, so there
+    -- is exactly one place that knows which way round the boolean is. The button itself follows
+    -- from the row's onChange a few lines below.
+    S:WritePath(NS.db.global, path, not value)
   else
     S:WritePath(NS.db.global, path, deepcopy(value))
   end

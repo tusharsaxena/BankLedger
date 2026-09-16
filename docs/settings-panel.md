@@ -16,7 +16,7 @@ only. The finer tree is everything below it.
 | --- | ------ |
 | Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), put the windows back where they started, or return every setting to stock. |
 | Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
-| Interface | What is on screen: the minimap button, whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor. |
+| Interface | What is on screen: whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor. The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows the item's icon, name and id with a **Remove** button, and **Clear all** empties the list after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 
@@ -108,7 +108,7 @@ emits the canonical set from one declaration, so nine addons cannot drift into n
 | Enable Bank Ledger | General visibility |
 | Master scale | Master alpha |
 | Lock frame | Debug console |
-| Test mode | |
+| Minimap button | Test mode |
 | Reset position | Reset all settings |
 
 Bank Ledger draws three movable frames — the ledger window (`modules/Browser.lua`), the session
@@ -142,7 +142,14 @@ frameless** and every frame-only row applies.
   took and never a window the player had closed themselves.
 - **Debug console** is the session-only row it always was (`state.debugConsole`, verbatim and
   unprefixed); what changed is only where it is declared. It moved off the Interface tab.
-- **Test mode** (`state.testMode`, session-only, on its own line; standard v2.47.0) is the one switch
+- **Minimap button** (`minimap.hide`, stored, first column of the fourth line; LibKa0s v1.39.0,
+  compose minor 7) is the launcher's visibility row, emitted from `minimapPath`. Every addon has a
+  minimap button and only some have a test mode, so the always-present row takes column 1 and the
+  optional one pairs beside it. Its sense is inverted at the write seam — see the note under the
+  row table — and the button it drives is `NS.Launcher`'s
+  ([ARCHITECTURE.md ▸ Launcher](ARCHITECTURE.md#launcher)). It REPLACED the Interface tab's *Hide
+  minimap button*, on the same stored path.
+- **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from
   `testModePath` with no default, so `S.MASTER_SPEC.defaults.testMode = false` is what lets a reset
@@ -206,16 +213,25 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.alpha` | number | `1.0` | Master controls | — | `min` narrowed to `0.1`, the honored floor |
 | `settings.locked` | bool | `false` | Master controls | — | `startsLine`, pairs with `debugConsole` |
 | `state.debugConsole` | bool (session-only) | `false` | Master controls | — | |
-| `state.testMode` | bool (session-only) | `false` | Master controls | — | `startsLine`, alone on its line |
+| `minimap.hide` | bool | `false` (the row reads **shown**, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
+| `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.hide` |
 | `settings.trackItems` | bool | `true` | Capture | — | pairs with `trackMoney` |
 | `settings.trackMoney` | bool | `true` | Capture | — | |
 | `settings.qualityThreshold` | number | `0` | Capture | — | |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture | — | `wide`, `skipRender` — drawn by `renderStoreGrid` |
-| `minimap.hide` | bool | `false` | Interface | Windows | pairs with `showSessionWindow` |
-| `settings.showSessionWindow` | bool | `true` | Interface | Windows | |
+| `settings.showSessionWindow` | bool | `true` | Interface | Windows | alone under its heading |
 | `settings.rowStripeAlpha` | number | `0.03` | Interface | Table rows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
 | `settings.retentionDays` | number | `30` | History | — | |
+
+**The `minimap.hide` row reads backwards, and that is deliberate.** Its label says *Minimap
+button* — ticked means SHOWN — while the stored boolean is LibDBIcon's own `hide`. The key is the
+library's: it writes that same field itself when the player hides the button from its right-click
+menu, so a second boolean beside it would be a copy free to disagree (`launcher-§3`,
+anti-pattern #81). The inversion lives in **one** place, `NS.Schema:Set` / `NS.Schema:Get`, and the
+button is moved from the row's `onChange` through `NS.Launcher:SetShown`. This row REPLACED the
+Interface tab's *Hide minimap button*, which said the opposite on the same path; nobody's stored
+choice moved.
 
 **No color rows.** Nothing here is `type = "color"`, so `options-ui-§17`'s class-color companion has
 nothing to attach to and `settings/OptionsSetup.lua`'s descriptor carries no

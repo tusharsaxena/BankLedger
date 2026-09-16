@@ -500,13 +500,18 @@ test("marks: nothing under settings/ resolves a mark — that panel is the Optio
 test("marks: the art that is NOT a mark was left alone", function()
   -- The catalog is marks, not chrome, and not identity. Each of these was looked at and deliberately
   -- kept: a resize grip is a Blizzard control with a paired -Highlight state the catalog has no
-  -- companion for; the class circles are full-colour art that must not be tinted; the logo and the
-  -- launcher icon are this addon's face and the launcher one must match ## IconTexture.
+  -- companion for; the class circles are full-colour art that must not be tinted; the landing-page
+  -- logo and the launcher icon are this addon's face, two files doing two jobs (layout-§4).
+  --
+  -- modules/Browser.lua no longer names an icon at all. It used to carry `inv_misc_bag_15`, the
+  -- BLIZZARD path the hand-rolled launcher wore -- which launcher-§4 forbids outright
+  -- (anti-pattern #82) and which went with the launcher when core/LauncherSetup.lua took it over.
   local kept = {
-    ["modules/Browser.lua"]       = { "UI-ChatIM-SizeGrabber-Up", "inv_misc_bag_15" },
+    ["modules/Browser.lua"]       = { "UI-ChatIM-SizeGrabber-Up" },
     ["modules/SessionWindow.lua"] = { "UI-ChatIM-SizeGrabber-Up" },
     ["core/Util.lua"]             = { "UI-Classes-Circles" },
     ["core/Constants.lua"]        = { "bankledger.logo.tga" },
+    ["core/LauncherSetup.lua"]    = { ".logo.128.tga" },
   }
   for file, paths in pairs(kept) do
     local src = readSource(file)
