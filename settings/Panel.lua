@@ -712,10 +712,11 @@ function P:Register()
     if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
   end)
 
-  -- General = the whole panel now, on six tabs: Master controls (the addon as a whole), Capture
+  -- General = the whole panel now, on five tabs: Master controls (the addon as a whole), Capture
   -- (what is recorded, with the store grid hanging off it), Interface (what is on screen), History
-  -- (how much is kept, plus the storage read-out and Purge), and Blacklist / Whitelist (the item-id
-  -- lists that were their own page until R3). Every bespoke block is an afterGroup hook, because a
+  -- (how much is kept, plus the storage read-out and Purge), and Filters (the two item-id lists,
+  -- which were their own page until R3 and were two top-level tabs until 1.1.0 folded them behind
+  -- one tab with a secondary strip). Every bespoke block is an afterGroup hook, because a
   -- tab click re-renders the schema alone.
   O.RegisterOptionsPage("general", "General", function(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then return end
