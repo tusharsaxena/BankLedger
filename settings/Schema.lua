@@ -470,6 +470,27 @@ local function storedValue(row, path)
   return S:ReadPath(NS.db.global, path)
 end
 
+--- Write one stored row's value into db.global, IN THE SENSE THE STORE SPEAKS.
+---
+--- Lifted out of S:Set so that function stays under the complexity ceiling the release gate
+--- enforces (performance-§10); it was already at it before the inverted path arrived.
+---
+--- THE ONE INVERTED PATH (launcher-§3): the Minimap button row's boolean says SHOWN and
+--- LibDBIcon's key says HIDDEN, and the key is the library's — it writes that same field itself
+--- when the player hides the button from its own right-click menu. Storing the row's sense instead
+--- would be a second copy of one state, free to disagree with the library the first time either
+--- was used (anti-pattern #81).
+---
+--- The inversion lives HERE, under the single write seam, and not in a caller: `/bl set`, the
+--- checkbox, `/bl reset` and the resetall walk all arrive through S:Set, so there is exactly one
+--- place that knows which way round the boolean is. S:Get is the other half, and it answers
+--- through the row's own `get` rather than repeating the `not` here. The button itself follows
+--- from the row's onChange.
+local function writeStored(path, value)
+  if path == S.MINIMAP_PATH then return S:WritePath(NS.db.global, path, not value) end
+  S:WritePath(NS.db.global, path, deepcopy(value))
+end
+
 -- The single write seam. Panel widgets and the slash `set` both route through here, so validation,
 -- the debug trace and the onChange reaction can never be skipped by one caller.
 function S:Set(path, value)
@@ -482,19 +503,8 @@ function S:Set(path, value)
   if row.sessionOnly then
     -- Session-only rows never touch db.global; the row's own set() applies the value.
     if row.set then row.set(value) end
-  elseif path == S.MINIMAP_PATH then
-    -- THE ONE INVERTED PATH (launcher-§3). The row's boolean says SHOWN; LibDBIcon's key says
-    -- HIDDEN, and the key is the library's — it writes the same field itself when the player uses
-    -- the button's own right-click menu. Storing the row's sense instead would be a second copy of
-    -- one state, free to disagree with the library the first time either was used.
-    --
-    -- The inversion lives HERE, at the single write seam, and not in a caller: `/bl set`, the
-    -- checkbox, `/bl reset` and the resetall walk all arrive through this one function, so there
-    -- is exactly one place that knows which way round the boolean is. The button itself follows
-    -- from the row's onChange a few lines below.
-    S:WritePath(NS.db.global, path, not value)
   else
-    S:WritePath(NS.db.global, path, deepcopy(value))
+    writeStored(path, value)
   end
   -- Every settings mutation is logged ONCE, here at the write seam (debug-logging-§10). Downstream
   -- reactors must not re-echo the same value. Inside a bulk bracket the act logs its one summary
