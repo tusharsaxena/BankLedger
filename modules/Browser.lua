@@ -544,6 +544,18 @@ end
 
 -- The active filter as a plain copy, for Insights. It shares the exact field shape
 -- Database:QueryList consumes, so the two views can never filter by different criteria.
+--- The stand-down's uniform name (core/BankLedger.lua): drop both debounce handles so the next
+--- stand-up can schedule again. The handles are file locals, so AceTimer's own cancel-all cannot
+--- reach them and a handle left behind is a debounce that never fires for the rest of the session.
+function B:CancelPending()
+  local addon = NS.addon
+  if addon and addon.CancelTimer then
+    if pendingFilterTimer then addon:CancelTimer(pendingFilterTimer) end
+    if pendingRefreshTimer then addon:CancelTimer(pendingRefreshTimer) end
+  end
+  pendingFilterTimer, pendingRefreshTimer = nil, nil
+end
+
 function B:CurrentFilter()
   local out = {}
   for k, v in pairs(self.activeFilter or {}) do out[k] = v end

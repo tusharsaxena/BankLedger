@@ -473,6 +473,11 @@ test("Browser: a 20-stack deposit repaints the window once, not twenty times", f
   -- F-005: EntryAdded is one message per moved stack, and each one drove a full OnLedgerChanged.
   local calls, saved = 0, B.OnLedgerChanged
   B.OnLedgerChanged = function() calls = calls + 1 end
+  -- The precondition, stated rather than inherited: the debounce refuses to arm while a handle is
+  -- outstanding, and an earlier case in the run can leave one queued on a timer list this line is
+  -- about to discard. B:CancelPending is the stand-down's own seam for dropping it
+  -- (core/BankLedger.lua), which is exactly the act wanted here.
+  B:CancelPending()
   mocks.__timers = {}
   for _ = 1, 20 do B:ScheduleLedgerRefresh() end
   local duringDeposit = calls

@@ -219,8 +219,15 @@ function()
   local src = readSource("core/LauncherSetup.lua")
   assertEqual(src:find("GetAddOnMetadata", 1, true), nil,
     "the label must be spelled out, never read from the TOC's ## Title")
-  assertTrue(src:find('label = "Ka0s Bank Ledger"', 1, true) ~= nil,
-    "spelled as a plain literal in the descriptor")
+  assertTrue(src:find('NS.BRAND_NAME = "Ka0s Bank Ledger"', 1, true) ~= nil,
+    "spelled as a plain literal in this file, once")
+  assertTrue(src:find("label = NS.BRAND_NAME", 1, true) ~= nil,
+    "and the descriptor reads that one spelling")
+  -- ONE SPELLING, TWO READERS. The disabled refusal line (slash-commands-§7) renders the same brand
+  -- name, and the standard requires it to be the SAME string this field carries -- launcher-§1
+  -- forbids escapes here, which is what makes it safe to drop into a colored line. A second literal
+  -- would be a second brand spelling waiting to drift.
+  assertEqual(NS.BRAND_NAME, label, "the refusal line and the broker row read one brand name")
 end)
 
 -- ── The rung (launcher-§2) ───────────────────────────────────────────────────────────────────

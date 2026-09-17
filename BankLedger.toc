@@ -55,6 +55,11 @@ core\CoreSetup.lua
 # (NS.LIBKA0S_MISSING). Everything else it touches is reached through a closure, so it no
 # longer has to sit after modules/Browser.lua the way modules/DebugLog.lua did.
 core\DebugLogSetup.lua
+# The LibKa0s-Lifecycle seam (slash-commands-§7). Beside core/BankLedger.lua, which defines the
+# NS.StandDown / NS.StandUp bodies the latch calls -- each is resolved through NS at CALL time, so
+# this position is conventional rather than load-bearing. It must be before settings/Schema.lua,
+# whose `settings.enabled` onChange drives the latch, and that is true of anything in core/.
+core\LifecycleSetup.lua
 core\State.lua
 core\Util.lua
 core\BankLedger.lua

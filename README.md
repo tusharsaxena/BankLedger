@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-943%2F943_passing-green)
+![Tests](https://img.shields.io/badge/Tests-955%2F955_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -93,11 +93,19 @@ history is untouched by either. The command that does clear history is `/bl purg
 that cannot be undone it asks for confirmation first. `/bl version` prints the version to quote in
 a bug report. And if you want the addon out of the way without unticking it in the AddOns list,
 `/bl disable` stands it down and `/bl enable` brings it back — the same switch as the **Enable Bank
-Ledger** box on the Master controls tab, so whichever you use, the other agrees. The commands keep
-working while it is off, which is how you turn it back on — you can still read and change settings,
-open the panel and print the version. What a stood-down addon will not do is act: ask it to show the
-ledger, toggle the sample or purge your history and it says it is disabled and points you at
-`/bl enable`, rather than quietly doing nothing.
+Ledger** box on the Master controls tab, so whichever you use, the other agrees.
+
+**Off means off.** Nothing is watched, nothing is timed, nothing is drawn and nothing is recorded:
+every event the capture engine listens for is unregistered rather than ignored, so the game stops
+handing this addon work altogether. It is the same result as unticking it in Blizzard's own AddOns
+list, without the reload.
+
+What stays up is the way back in. Every command keeps working — you can read and change settings,
+open the panel, print the version, run the debug console — and a bare `/bl` still opens the
+settings window. What a stood-down addon will not do is **act**: ask it to show the ledger, toggle
+the sample or purge your history, or left-click the minimap button, and it says it is disabled and
+points you at `/bl enable` rather than quietly doing nothing. Right-click on the minimap button
+still opens the settings.
 
 ## How the ledger works
 

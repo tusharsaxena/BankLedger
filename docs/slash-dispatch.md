@@ -41,6 +41,10 @@ match, so it was left alone rather than folded into the rename.
 
 ## While the addon is disabled
 
+**Disabled means the addon is not running** - every registration gone, every timer cancelled, every
+window shut (`slash-commands-§7`; see [ARCHITECTURE.md](ARCHITECTURE.md) ▸ *The stand-down*). This
+page is about the other half of that ruling: the command surface, which is **not** the addon.
+
 `/bl` and every verb reachable from it stay registered while the addon is off — the dispatcher and
 the settings registration are **setup**, not features, so the pair is never one-way
 (`slash-commands-§2`). What changes is that a verb which **drives this addon's features** answers on
@@ -49,27 +53,48 @@ the settings registration are **setup**, not features, so the pair is never one-
 | | Verbs |
 |---|---|
 | Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `session`, `test`, `purge` |
-| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, and the schema CLI — `get`, `set`, `list`, `reset`, `resetall` |
+| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — and the bare `/bl`, which opens the settings panel |
 
 The live set is the standard's, and its reasoning is that a player must be able to **read and repair
 settings**, and to **reach the panel**, while the addon is off — which is precisely when they are most
 likely to need to — and **`enable` above all**. `debug` and `perf` are diagnostics rather than
 features; the usual reason to reach for either is that the addon is misbehaving. `perf` is on the
-list although this addon registers no `perf` verb, so arming the harness later is a registration
-rather than a second edit.
+list although this addon registers no `perf` verb (the `performance-§12` exemption): a verb is
+reserved always and registered when wired, so arming the harness later is a registration rather
+than a rename. Typed today, `/bl perf` answers `unknown command 'perf'` and the index **in either
+state**: from `LibKa0s-Slash-1.0` minor 14 (LibKa0s v1.42.0) the gate refuses only a verb the host
+ships, so a reserved verb with no `COMMANDS` entry behind it is not made to look as though the
+disabled state swallowed it.
 
-**The gate is in the dispatcher, in one place.** `Sl:OnSlash` in `settings/Slash.lua` is the single
-door both chat commands point at; it reads the verb, consults the `ALWAYS_LIVE` table, and either
-prints the refusal or hands off to `Sl:Dispatch` — which is the library's loop on the live arm and its
-smallest reproduction on the degraded one. A per-verb guard was rejected deliberately: it is a dozen
-places to forget, and the next verb added would forget it by default. Here the default runs the other
-way, so a new verb that belongs on the live list has to be put there on purpose.
+**The gate is the library's, and the host's copy is gone.** `settings/Slash.lua` used to carry its
+own `ALWAYS_LIVE` table, its own stored-path read and its own refusal wording. From
+`LibKa0s-Slash-1.0` minor 14 the whole adoption is two descriptor fields — `isEnabled`, asked at
+dispatch time and never cached, and `brandName`, the plain-text brand the broker row already wears
+(spelled once, in `core/LauncherSetup.lua`). The library keeps `lib.LIVE_VERBS` and renders the line
+from `lib.DISABLED_LINE_FORMAT`.
 
-An **unknown** verb is never refused — it is not a feature verb, and `unknown command '<verb>'` plus
-the help index is a better answer than a line about a setting the player did not ask about. A bare
-`/bl` is the `config` verb, which is live.
+**No `liveVerbs` is passed, deliberately.** That field narrows or widens the live set, and this
+addon wants neither. Standard v2.56.0 *did* narrow the disabled surface to `enable` and `help`, and
+v2.57.0 reversed it the same day: the bare `/bl` on a disabled addon answered with a refusal instead
+of opening the settings panel, which is the one surface a player uses to switch it back on by hand.
+Passing nothing is what keeps this addon on the restored side of that reversal.
 
-The refusal is the addon's only string routed through `NS.L` (`locales/enUS.lua`, `localization-§1`).
+An **unknown** verb is never refused: the gate sits **after** the `COMMANDS` lookup, so a word this
+addon does not ship still gets `unknown command '<verb>'` and the index. Telling a player who
+mistyped that the addon is disabled is a true sentence and the wrong answer — it says their spelling
+was fine. `/bl help` prints its index **in full**, with the refusal line under the header: that line
+is a statement about the feature rows below it, not a refusal of `help`, and the player has to be
+able to see `enable` in the list. A bare `/bl` is the `config` verb, which is live.
+
+**The wording is the collection's, not this addon's.** It reads
+`[BL] Ka0s Bank Ledger is disabled — enable it with /bl enable`, one line, the command in gold. It
+is **not** routed through `NS.L`: the standard says in as many words that the `L` override does not
+reach it, and the entry that used to sit in `locales/enUS.lua` was deleted rather than translated.
+
+**The minimap button takes the same refusal.** Bank Ledger is launcher rung (a), so its left click
+drives the ledger window — a feature — and while the addon is disabled it prints that same line,
+built by the same member, and writes nothing. Right-click opens the settings panel in either state
+(`launcher-§2`).
 
 ## What the host supplies to the library
 

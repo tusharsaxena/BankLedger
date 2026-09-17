@@ -20,6 +20,15 @@ What the exemption does **not** suspend, and what this repo therefore still does
 
 - `libs/LibKa0s/` is vendored **whole**, `Perf.lua` and `PerfPanel.lua` included (`library-stack-§7`,
   anti-pattern #48). Dropping the two files this addon does not wire is partial vendoring.
+- **The `perf` HOLD exists in the key space and nothing takes it.** `slash-commands-§7`'s latch has
+  two named holds, `disabled` and `perf`, and this addon wires the latch (`core/LifecycleSetup.lua`)
+  because `disabled` needs it. `LibKa0s-Perf-1.0` takes the other hold itself, and there is no Perf
+  instance here to take it — so in production the hold set is only ever empty or `{ disabled }`.
+  That is not a shortfall: the key space is the library's, a host never writes `Hold("perf")`, and
+  the day this exemption's re-check trigger fires the wiring is already correct.
+  `tests/test_disabled.lua` exercises both holds together anyway, because the invariant that matters
+  — releasing one hold must not stand the addon up while the other is held — is the library's, and a
+  host that never tested it would find out the first time both were taken.
 - **`perf` stays a reserved verb** (`slash-commands-§2`). It is not registered here, and it may never
   come to mean anything else.
 - The release notes still say `perf: skip` out loud (`automated-tests-§3`) — a skip is never a pass,

@@ -5,6 +5,22 @@ local C = NS.Constants
 function NS:InitDB()
   NS.db = LibStub("AceDB-3.0"):New(addonName .. "DB", NS.defaults, true)
   NS:RunMigrations()   -- normalize the persisted schema before any ledger read
+  -- THE PROFILE CALLBACKS SURVIVE THE DISABLED STATE (slash-commands-§7), and this is why they
+  -- have to: `enabled` is a stored setting like any other and a profile switch can flip it with no
+  -- verb and no checkbox being touched, so the addon re-reads the path and re-runs the latch's
+  -- decision. NS.ReevaluateEnabled fires a callback only on a real edge.
+  --
+  -- REGISTERED THOUGH THIS ADDON HAS NO PROFILES. Everything it stores is account-wide --
+  -- NS.defaults carries only `global` -- so AceDB never fires these today. They are wired anyway
+  -- because the cost is three lines and the failure they prevent is silent: the day a `profile`
+  -- section is added, an addon that never registered them comes up in the wrong state with no
+  -- error anywhere.
+  if NS.db.RegisterCallback then
+    local function onProfile() NS.ReevaluateEnabled() end
+    NS.db.RegisterCallback(NS, "OnProfileChanged", onProfile)
+    NS.db.RegisterCallback(NS, "OnProfileCopied",  onProfile)
+    NS.db.RegisterCallback(NS, "OnProfileReset",   onProfile)
+  end
 end
 
 -- Schema-migration runner (toc-file-§2 / savedvariables-§1). Seeds and advances

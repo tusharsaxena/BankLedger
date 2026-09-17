@@ -22,7 +22,7 @@ local SUITES = {
   "test_export", "test_debuglog", "test_schema", "test_slash",
   "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
-  "test_lifecycle", "test_surface_parity", "test_register", "test_docs",
+  "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
   "test_lintconfig",
 }
 
@@ -34,6 +34,7 @@ local SUITES = {
 local LIBKA0S_FILES = {
   "libs/LibKa0s/Core.lua",
   "libs/LibKa0s/Env.lua",
+  "libs/LibKa0s/Lifecycle.lua",
   "libs/LibKa0s/Pool.lua",
   "libs/LibKa0s/Item.lua",
   "libs/LibKa0s/Media.lua",

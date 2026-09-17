@@ -77,6 +77,17 @@ local Launcher = LibStub and LibStub("LibKa0s-Launcher-1.0", true)
 NS.LOGO_ICON = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.128.tga")
   :format(addonName, addonName:lower())
 
+-- THE BRAND NAME, IN THE ONE PLACE IT IS SPELLED. `Ka0s <Name>`, plain text, no escape sequence of
+-- any kind. Two surfaces read it and they MUST agree: the LDB object's `label` below
+-- (launcher-§1), and the disabled refusal line the slash gate renders (slash-commands-§7), which
+-- drops it into a colored line and can only do so safely because §1 forbids escapes here.
+--
+-- Declared ABOVE the degradation stub's early return, beside NS.LOGO_ICON and for the same reason:
+-- the slash surface exists on both arms, so a brand name that only the live arm carried would
+-- leave the degraded arm rendering `nil is disabled` at the one moment a confused player is
+-- reading the line.
+NS.BRAND_NAME = "Ka0s Bank Ledger"
+
 if not Launcher then
   NS.Launcher = {
     __degraded = true,
@@ -118,7 +129,7 @@ NS.Launcher = Launcher:New({
   -- It is not the folder name either: that is the registration `name` above, which LibDBIcon keys
   -- the saved position by and which a player reads nowhere as prose. `BankLedger` is an
   -- identifier, `Ka0s Bank Ledger` is a name. Two fields, two jobs.
-  label = "Ka0s Bank Ledger",
+  label = NS.BRAND_NAME,
 
   -- launcher-§3: LibDBIcon's OWN table, in the GLOBAL store. Resolved at Register time — see the
   -- header. This addon has stored it there since before the section existed, so unlike Multi
@@ -132,7 +143,17 @@ NS.Launcher = Launcher:New({
 
   -- THE LEFT CLICK, AND THE RUNG. B:Toggle, the same act `/bl toggle` runs, so the button and the
   -- verb can never disagree about what "open the ledger" means.
+  -- REFUSED WHILE DISABLED (launcher-§2, slash-commands-§7). This addon is rung (a), and a rung-(a)
+  -- left click drives a primary window, which is a feature: it prints the collection's one refusal
+  -- line and does NOTHING else — in particular it writes no SavedVariables, which is what a minimap
+  -- button with no disabled gate does every time it is clicked. The RIGHT click is unchanged in
+  -- either state: it opens the settings panel, which slash-commands-§7 keeps standing, and the
+  -- owner's ruling is about the slash surface — a mouse click is not a slash command.
+  --
+  -- Through NS.Slash, which renders the line from the library's own format string. The wording is
+  -- the collection's, not this addon's, and re-spelling it here is exactly what that rule forbids.
   onClick = function()
+    if NS.Slash and NS.Slash.RefuseIfDisabled and NS.Slash:RefuseIfDisabled() then return end
     if NS.Browser and NS.Browser.Toggle then NS.Browser:Toggle() end
   end,
 

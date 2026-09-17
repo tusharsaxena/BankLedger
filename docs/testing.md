@@ -235,6 +235,18 @@ tests/
   test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
                            --   one module: the four _enabled latches released together, and
                            --   the private bus targets torn down with them
+  test_disabled.lua        -- THE STAND-DOWN CONFORMANCE SUITE (slash-commands-7). Every
+                           --   assertion reads the kit's recording registry -- registrations,
+                           --   timers, shown frames, SavedVariables writes, printed lines --
+                           --   and NONE reads a handler's return value, because an early
+                           --   return is exactly what a draw gate does. Eleven cases: baseline
+                           --   and empty registration set (through the one write seam), no
+                           --   armed timer, no shown frame, fire everything at it anyway
+                           --   (registered and unconditionally), the CONTROL proving the write
+                           --   and print surveys can see a survivor, the slash surface walked
+                           --   over every NS.COMMANDS entry, the feature-verb refusal, the
+                           --   launcher click, restore-from-current-state, the two-hold latch,
+                           --   and the `disabled` hold re-taken at load from the store
   test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: the rung, the folder-name
                            --   registration, the inverting Minimap button row, the two reserved
                            --   verbs, and both degraded arms (no broker libraries; no LibKa0s).
@@ -247,9 +259,10 @@ tests/
   test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; docs/test-cases.md
                            --   counts three cases: the two payload cases, plus the runner-mode
                            --   case kit revision 16 adds with no host change
-  test_surface_parity.lua  -- the four degradation stubs against the surfaces they stand in for,
-                           --   collected in one file so a fifth seam growing a stub with no case
-                           --   beside it is an obvious hole (M4-09)
+  test_surface_parity.lua  -- the five degradation arms (Core, DebugLog, Lifecycle, Slash,
+                           --   Options) against the surfaces they stand in for, collected in one
+                           --   file so a seam growing a stub with no case beside it is an
+                           --   obvious hole (M4-09)
 ```
 
 - `run.lua` builds the addon environment once by loading every source **in TOC order** — derived

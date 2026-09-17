@@ -1,18 +1,18 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- The addon adopts eight LibKa0s seams, and four of them carry a hand-written degradation stub for
+-- The addon adopts nine LibKa0s seams, and five of them carry a hand-written degradation arm for
 -- the install where libs/LibKa0s is missing: core/CoreSetup.lua, core/DebugLogSetup.lua,
--- settings/Slash.lua and settings/OptionsSetup.lua. A stub is a second implementation of somebody
+-- core/LifecycleSetup.lua, settings/Slash.lua and settings/OptionsSetup.lua. A stub is a second implementation of somebody
 -- else's surface, so it drifts the moment the library grows a member the host starts calling: the
 -- live path stays green and the degraded path raises in exactly the install the stub exists for.
 --
--- These four cases lived in tests/test_libka0s.lua until M4-09, mixed in among that file's byte,
+-- Four of these cases lived in tests/test_libka0s.lua until M4-09, mixed in among that file's byte,
 -- wiring and load-order cases for the same seams. Collecting them here is what the collection does
--- — nine addons, one file name, one grep — and it makes the set visible as a set: a fifth seam
--- growing a stub with no case beside it is now an obvious hole rather than four scattered
--- precedents nobody counted.
+-- — nine addons, one file name, one grep — and it makes the set visible as a set: the fifth, the
+-- Lifecycle seam, arrived with its case beside it rather than as a scattered precedent nobody
+-- counted.
 --
--- Two rules all four follow, both from testing-§8:
+-- Two rules all five follow, both from testing-§8:
 --
 --   * The degraded arm comes from a REAL load with a partial file list (tests/degraded_env.lua
 --     loads the TOC with libs/LibKa0s/*.lua left out), never from a hand-written table. A hand-stub
@@ -20,8 +20,8 @@
 --   * Where a member is live-only on purpose, it is named in `ignore` WITH THE REASON, because
 --     otherwise a deliberate omission and a bug read identically.
 --
--- TWO OF THE FOUR USE THE KIT'S BY-NAME FORM — assertSurfaceParity(stub, major, ignore), new at kit
--- 15 and vendored by M4-01 — and two deliberately do not. The split is not stylistic:
+-- TWO OF THE FIVE USE THE KIT'S BY-NAME FORM — assertSurfaceParity(stub, major, ignore), new at kit
+-- 15 and vendored by M4-01 — and three deliberately do not. The split is not stylistic:
 --
 --   * DebugLog and Options stub a LIBRARY MAJOR'S INSTANCE. `NS.DebugLog` and `NS.Helpers` are what
 --     `lib:New(descriptor)` returned, so there is a major name to look up, and the by-name form
@@ -30,9 +30,9 @@
 --     and a stub is obliged to carry none of them. libs/LibKa0s/Options.lua's own comment at
 --     O.__print says so and cites this filter by name; under the four-argument form that member had
 --     to be exempted here BY HAND, and so would every internal the next re-vendor adds.
---   * Core and Slash stub NOTHING THAT HAS A MAJOR NAME. The Core seam publishes onto NS rather
---     than returning an object, so its two arms are two blocks of core/CoreSetup.lua compared at
---     the namespace. The Slash seam keeps the library instance as a file-scope local `cli` in
+--   * Core, Lifecycle and Slash stub NOTHING THAT HAS A MAJOR NAME. The Core and Lifecycle seams
+--     publish onto NS rather than handing callers an object, so their two arms are two blocks of
+--     one setup file compared at the namespace. The Slash seam keeps the library instance as a file-scope local `cli` in
 --     settings/Slash.lua and publishes host methods on NS.Slash that forward to it, so both arms
 --     are this addon's own table and the library's surface is not the thing under test. There is no
 --     name to resolve in either case, and the four-argument form is the right one. This is where
@@ -73,6 +73,43 @@ test("LibKa0s-Core degraded: the fallback carries the whole live seam surface", 
   assertTrue(dm.LibStub("LibKa0s-Core-1.0", true) == nil,
     "the degraded arm still has the library — this case would prove nothing")
   T.assertSurfaceParity(live, degraded, "the Core seam's namespace")
+end)
+
+-- ── LibKa0s-Lifecycle-1.0 ────────────────────────────────────────────────────────────────────
+
+test("LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface", function()
+  -- The fifth degradation arm, and the newest (slash-commands-§7). Like Core, it is compared at the
+  -- NAMESPACE with the four-argument form, because that is where this seam's surface lives: every
+  -- caller in the addon -- the schema's onChange, both verbs, the slash gate, the show ladder, the
+  -- profile callbacks -- reaches the latch through NS.SetDisabledHold, NS.IsDisabled,
+  -- NS.IsStoodDown, NS.EnabledStored and NS.ReevaluateEnabled, never through the instance.
+  --   Members from: grep -nE "^function NS\.|^NS\.[A-Za-z_]+ *=" core/LifecycleSetup.lua
+  --
+  -- `Lifecycle` is the one live-only member, and it is live-only BY DESIGN rather than by omission:
+  -- it is the library instance itself. The degraded arm does not mirror it with a hand-written hold
+  -- set -- a second implementation of the edge logic is the parallel lifecycle mechanism the major
+  -- exists to prevent -- it drives the same NS.StandDown / NS.StandUp bodies off the one reason to
+  -- be down that exists without the library. So the case also proves that arm WORKS, not merely
+  -- that its names exist.
+  --
+  -- Dies under: a new NS latch helper defined only inside the `if Lifecycle` branch.
+  local live = loadUpTo("core/LifecycleSetup.lua", true)
+  local degraded, dm = loadUpTo("core/LifecycleSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-Lifecycle-1.0", true) == nil,
+    "the degraded arm still has the library — this case would prove nothing")
+  assertTrue(live.Lifecycle ~= nil, "the live arm did not build the latch instance")
+  assertTrue(degraded.Lifecycle == nil, "the degraded arm published a latch it has no library for")
+  T.assertSurfaceParity(live, degraded, "the Lifecycle seam's namespace", { "Lifecycle" })
+
+  local downs, ups = 0, 0
+  degraded.StandDown = function() downs = downs + 1 end
+  degraded.StandUp = function() ups = ups + 1 end
+  degraded.SetDisabledHold(true)
+  degraded.SetDisabledHold(true)
+  assertTrue(downs == 1 and degraded.IsDisabled() and degraded.IsStoodDown(),
+    "the degraded arm did not stand down exactly once on the edge")
+  degraded.SetDisabledHold(false)
+  assertTrue(ups == 1 and not degraded.IsStoodDown(), "the degraded arm did not stand back up")
 end)
 
 -- ── LibKa0s-DebugLog-1.0 ─────────────────────────────────────────────────────────────────────

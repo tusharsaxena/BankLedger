@@ -678,6 +678,11 @@ function L:ScheduleReconcile(delay)
   end, delay or L.DEBOUNCE_SECONDS)
 end
 
+--- The stand-down's uniform name for "drop the handle you are holding" (core/BankLedger.lua).
+--- Every module that debounces answers to it, so the teardown walks a list of module names rather
+--- than a list of per-module spellings that goes stale on the next debounce added.
+function L:CancelPending() return self:CancelPendingReconcile() end
+
 function L:CancelPendingReconcile()
   local addon = NS.addon
   if L._pendingTimer and addon and addon.CancelTimer then
@@ -710,11 +715,17 @@ function L:HookGuildBankFrame()
   local frame = GuildBankFrame
   if not (frame and type(frame.HookScript) == "function") then return false end
   L._guildHooked = true
+  -- THE ONE SANCTIONED GATE (slash-commands-§7). `HookScript` has no un-hook, so these two bodies
+  -- cannot be taken off the frame on a stand-down the way every registration above can — the only
+  -- move available is for each to check the latch and return. That carve-out exists because the API
+  -- is one-way, and it MUST NOT be generalized to anything that has a real unregister.
   frame:HookScript("OnShow", function()
+    if NS.IsStoodDown and NS.IsStoodDown() then return end
     -- Never steal the context from a frame that is already open; that one has its own events.
     if not NS.State.openContext then L:OpenContext(C.Context.GUILD_BANK) end
   end)
   frame:HookScript("OnHide", function()
+    if NS.IsStoodDown and NS.IsStoodDown() then return end
     -- Only ever ends the GUILD BANK's own session. The guild frame also hides whenever it is simply
     -- not the window on screen, and closing the character bank's context on that basis would throw
     -- away a baseline that is still in use.

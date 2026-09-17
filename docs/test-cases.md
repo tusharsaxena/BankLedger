@@ -1025,9 +1025,24 @@ badge and any count quoted in the docs must agree with it.
 - addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
 - NS.addon carries the kit's Printf and records its own events
 
-### test_surface_parity.lua (4)
+### test_disabled.lua (11)
+
+- disabled: the baseline is non-empty, and the disable empties the registration set
+- disabled: no timer, ticker or OnUpdate is left armed
+- disabled: every frame that was shown is hidden, and the show ladder keeps it shut
+- disabled: firing every baseline event writes nothing, prints nothing and shows nothing
+- disabled: the CONTROL -- the write and print surveys really would catch a survivor
+- disabled: every reserved verb and the bare /bl still answer normally
+- disabled: every feature verb answers ONE refusal line and reaches no write seam
+- disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel
+- disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
+- disabled: releasing one hold does not stand up an addon the other still holds down
+- disabled: the `disabled` hold is taken at LOAD from the stored path
+
+### test_surface_parity.lua (5)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
+- LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Slash degraded: the stub carries the whole live surface
 - LibKa0s-Options degraded: the stub carries the live surface the addon reaches
@@ -1084,9 +1099,10 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 6 |
-| test_surface_parity.lua | 4 |
+| test_disabled.lua | 11 |
+| test_surface_parity.lua | 5 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **943** |
+| **Total** | **955** |

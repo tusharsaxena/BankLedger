@@ -280,8 +280,22 @@ FRAME_METHODS.GetStringWidth = function(f)
   return function() return #(f.__text or "") * 6 end
 end
 
-function stubFrame()
-  local f = { __shown = true, __points = {}, __w = 0, __h = 0, __scripts = {} }
+-- `adopt`, when given, is a frame the KIT already built and is therefore already in its weak
+-- frame set -- the set `mocks.__shownFrames()`, `mocks.__registrations()` and `mocks.__timers()`
+-- survey. This stub is re-pointed onto that very table rather than onto a fresh one, so a window
+-- this addon draws is surveyable like any other frame.
+--
+-- WITHOUT IT THE STAND-DOWN SUITE CANNOT SEE THIS ADDON'S WINDOWS AT ALL. The kit's own note says
+-- as much: a consumer that reaches the frame stub through some older path gets frames that "are
+-- then simply not surveyed", and tests/test_disabled.lua's whole subject is what is on screen and
+-- what is registered. Every raw key the kit's stub left behind is cleared first, `__seq` excepted,
+-- because that is what the surveys sort on; the metatable below then replaces the kit's.
+function stubFrame(adopt)
+  local f = adopt or {}
+  if adopt then
+    for k in pairs(f) do if k ~= "__seq" then f[k] = nil end end
+  end
+  f.__shown, f.__points, f.__w, f.__h, f.__scripts = true, {}, 0, 0, {}
   setmetatable(f, { __index = function(_, k)
     -- The table lookup comes FIRST: a named method always wins over the catch-all, or IsShown would
     -- resolve to the no-op and be permanently truthy.
@@ -326,9 +340,16 @@ return function()
 
   -- Overrides 1 and 2. __stubFrame is re-pointed too, so anything the addon's own suites build with
   -- it gets the geometry-modeling stub rather than the base's.
-  M.__stubFrame = stubFrame
-  M.UIParent    = stubFrame()
-  M.CreateFrame = function() return stubFrame() end
+  --
+  -- THE KIT'S BUILDER IS KEPT AND CALLED THROUGH, not discarded: it is what puts a frame into the
+  -- build's weak frame set, which is what every survey in tests/_kit/mock_record.lua reads. A
+  -- CreateFrame that handed back a table the kit had never seen made this addon's windows invisible
+  -- to `mocks.__shownFrames()` -- so a suite asking "is anything still on screen" got a confident
+  -- "no" about frames it could not see.
+  local trackedNew = M.__stubFrame
+  M.__stubFrame = function() return stubFrame(trackedNew()) end
+  M.UIParent    = stubFrame(trackedNew())
+  M.CreateFrame = function() return stubFrame(trackedNew()) end
 
   -- The client's own default font, which every Ka0s fallback ladder ends on. Absent from the kit's
   -- base because nothing needed it until core/Constants.lua stopped naming a font file of its own:
@@ -561,9 +582,12 @@ return function()
   M.FauxScrollFrame_GetOffset = function() return 0 end
   M.FauxScrollFrame_OnVerticalScroll = function() end
   M.IsShiftKeyDown = function() return false end
-  -- Override 7. Chat sink for NS.Print. No-op by default; tests override AddMessage to capture, and
-  -- a plain table keeps that save/replace/restore idiom exactly idempotent.
-  M.DEFAULT_CHAT_FRAME = { AddMessage = function() end }
+  -- Override 7. Chat sink for NS.Print. A plain table, so the tests' save/replace/restore idiom on
+  -- AddMessage stays exactly idempotent -- but its default AddMessage still hands the line to the
+  -- kit's print survey. A bare no-op here made `mocks.__printed()` answer an empty list for every
+  -- line this addon printed, so tests/test_disabled.lua's "printed nothing" was a statement about
+  -- the harness rather than the addon.
+  M.DEFAULT_CHAT_FRAME = { AddMessage = function(_, text) M.__recordPrint(text) end }
   -- Override 6. Every canvas frame handed to the Settings framework, keyed by the name it was
   -- registered under. options-ui-§1 makes the frame's OnCommit/OnDefault/OnRefresh a contract with
   -- Blizzard, and the only way to assert on a contract is to keep what was actually handed over.

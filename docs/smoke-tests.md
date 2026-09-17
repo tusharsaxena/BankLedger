@@ -501,9 +501,9 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
 
 ## S-18 · LibKa0s — the degraded install
 
-The eight LibKa0s seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
-`core/ItemSetup.lua`, `core/MediaSetup.lua`, `core/PoolSetup.lua`, `settings/OptionsSetup.lua` and
-`settings/Slash.lua`) each degrade rather than error when the
+The nine LibKa0s seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
+`core/ItemSetup.lua`, `core/LifecycleSetup.lua`, `core/MediaSetup.lua`, `core/PoolSetup.lua`,
+`settings/OptionsSetup.lua` and `settings/Slash.lua`) each degrade rather than error when the
 vendored library is absent. Nothing headless can prove what the client
 actually draws, and an install missing `libs/LibKa0s` is exactly the install those branches exist
 for.
@@ -873,3 +873,44 @@ touch these paths (`test_database`'s analytics grouping, `test_export`'s column 
 English strings come back, which is the answer they are asking for. Step 4 alone is covered by the
 rest of this file on English. Until the pass runs, the honest state of this section is unrun, and it
 is recorded that way rather than as coverage.
+
+## S-28 · The stand-down — disabled means not running (`slash-commands-§7`)
+
+`tests/test_disabled.lua` proves the registration set empties, and that is the substance. What it
+cannot prove is what the **client** does with a stood-down addon, and the whole point of the rule is
+a cost that is invisible from every surface a player can see. These steps are where you look.
+
+Run every step with `/console scriptErrors 1`.
+
+1. `/bl show` and `/bl session` so both windows are up. `/bl debug on`, then `/bl debug` to open the
+   console and leave it open — it is the one window that stays, and it is where the evidence lands.
+2. **Untick *Enable Bank Ledger*** on **Master controls** (or run `/bl disable`; the two are one
+   write). Both windows go away **at once**, in the same turn as the click — not on the next zone,
+   not on a `/reload`.
+3. **Open your bank and move a stack in and out.** Nothing is recorded: reopen the settings panel
+   and the **Database size** line on **History** has not moved. The session window does not appear.
+   This is the step that fails against a draw gate whose windows are merely hidden.
+4. **Pull a mob and drop combat.** **Pass** — nothing at all in chat, and no new line in the debug
+   console. **Fail** — any line, because a disabled addon that says something on a combat edge is
+   still registered for that edge.
+5. **Left-click the minimap button.** One line: `Ka0s Bank Ledger is disabled — enable it with
+   /bl enable`, the command in gold, and the ledger window does **not** open. **Right-click it** —
+   the settings panel opens, exactly as it does when the addon is running.
+6. **The command surface is untouched.** `/bl` alone opens the settings panel. `/bl version`,
+   `/bl list`, `/bl get settings.qualityThreshold`, `/bl set settings.qualityThreshold 3`,
+   `/bl reset settings.qualityThreshold` all answer normally — reading and repairing settings is
+   precisely what you need from an addon you have switched off. `/bl help` prints the **whole**
+   index with the refusal line under its header; `/bl wibble` answers `unknown command 'wibble'`
+   and the index, **not** the refusal, because the addon did not understand rather than decline.
+   `/bl perf` answers the same way: it is reserved but this addon registers no `perf` verb, and
+   from `LibKa0s-Slash-1.0` minor 14 an unshipped verb is never refused.
+7. **A feature verb is refused, on one line and once.** `/bl show`, `/bl toggle`, `/bl test`,
+   `/bl purge` — each prints exactly the same line as step 5 and does nothing else. `/bl purge`
+   raises **no confirm dialog**.
+8. `/reload` with the addon still disabled. It comes back disabled, still silent, still answering
+   every command — the stored setting is what survives, and the latch itself persists nothing.
+9. **Tick the box again.** Capture resumes with no reload: open the bank, move a stack, and the
+   session window appears with the row in it. Then change one setting **while disabled** and
+   re-enable — set `/bl disable`, `/bl set settings.trackMoney false`, `/bl enable`, and move gold
+   in: it is **not** recorded. The rebuild reads the settings as they are now, never a snapshot
+   taken on the way down.

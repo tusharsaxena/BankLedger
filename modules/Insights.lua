@@ -976,6 +976,16 @@ function I:ScheduleRefresh()
   end, 0)
 end
 
+--- The stand-down's uniform name (core/BankLedger.lua). The handle is a file local, out of reach
+--- of AceTimer's cancel-all, and ScheduleRefresh refuses to arm while one is outstanding.
+function I.CancelPending()
+  local addon = NS.addon
+  if pendingRefreshTimer and addon and addon.CancelTimer then
+    addon:CancelTimer(pendingRefreshTimer)
+  end
+  pendingRefreshTimer = nil
+end
+
 function I:Enable()
   if self._enabled then return end
   self._enabled = true

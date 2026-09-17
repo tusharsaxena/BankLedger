@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 29 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 30 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,8 +34,8 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-29 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the seven LibKa0s seams; `modules/` holds the capture engine
+30 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the eight LibKa0s seams; `modules/` holds the capture engine
 and every window; `settings/` holds the schema and the two panel pages.
 
 Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
@@ -256,9 +256,75 @@ seam. A bare `/bl` runs `config`, which opens the settings panel on its landing 
 prints the list (`slash-commands-§4`). Verb table and the host/library split in
 **[slash-dispatch.md](slash-dispatch.md)**.
 
+## The stand-down — what *disabled* means
+
+**Disabled means the addon is not running.** Not hidden, not quiet, not skipping a repaint
+(`slash-commands-§7`). A player who unticks *Enable Bank Ledger* has asked for the same outcome they
+would get by unticking the addon in Blizzard's own AddOns list, minus the `/reload`.
+
+**This addon used to ship the draw gate** (anti-pattern #85), and the correction is recent.
+`settings.enabled` was one rung of the show ladder and one rung of `Ledger:GateReason`: the windows
+went away, every one of the registrations below stayed registered, and the client went on walking
+that list and entering Lua on each bag update to run the comparison that decided to leave. An early
+return is not a stand-down — the addon did not stop watching, it stopped **reacting**, and it still
+paid the dispatch, which is precisely the cost a player switching it off is trying to stop paying.
+
+### One latch, named holds
+
+`core/LifecycleSetup.lua` builds a single `LibKa0s-Lifecycle-1.0` instance. The addon is stood down
+whenever **at least one hold** is taken and stood up only when the **last** one is released, so
+releasing one hold can never resurrect an addon another is still holding down. There is deliberately
+no `:StandUp()` member to call: the only route out is releasing the hold that put it down.
+
+| Hold | Taken from | Lifetime |
+|---|---|---|
+| `disabled` | the stored `settings.enabled` path | persisted — surviving a `/reload` is the whole point of the setting |
+| `perf` | `LibKa0s-Perf-1.0`'s suspended arm | session-only — **never taken here**: this addon holds the `performance-§12` no-combat-path exemption and runs no harness |
+
+`NS.SetDisabledHold` is the one entry point. The Master-controls checkbox's `onChange`,
+`/bl enable`, `/bl disable`, `/bl set settings.enabled`, the load-time read in `addon:OnEnable` and
+AceDB's three profile callbacks all land there, so no surface can drive the teardown by another
+route and none of them holds a state of its own.
+
+### What stands down, and what survives
+
+`NS.StandDown` in `core/BankLedger.lua` is the **one** teardown body, reached from two arms — the
+latch's edge, and AceAddon's own `OnDisable`. Two arms onto one body is not the parallel-lifecycle
+anti-pattern; two bodies would be.
+
+| Stood down | How |
+|---|---|
+| Every timer | `addon:CancelAllTimers()`, plus each debouncing module's `CancelPending` — the handles are file locals AceTimer's cancel-all cannot reach, and a handle left behind is a debounce that never fires again |
+| Every event on the addon object | `addon:UnregisterAllEvents()` — the three below plus the capture engine's whole set, which is registered there too. Not a list to keep current |
+| The four private bus targets | `UnregisterAllMessages` / `UnregisterAllEvents` on each, and the module's `_enabled` latch released with it |
+| The capture gate's cached upvalues | `Ledger:RefreshUpvalues()`, before the target that carries the refresh is dropped |
+| Both windows | hidden, and held shut **at the source**: `NS.Util.VisibilityAllows` answers no while the latch is down, and every `Show` in this addon consults it. A hidden frame otherwise comes back on a combat transition or a settings change |
+
+**What survives, because it is setup and not a feature**: the chat command registration, the
+dispatcher and `NS.COMMANDS`; the settings category and the panel body, including its own two
+live-refresh bus targets; the AceDB handle, the single write seam and the profile callbacks; the
+launcher's registration. See [slash-dispatch.md](slash-dispatch.md) for what the command surface
+answers while the addon is off — **every reserved verb**, and the bare `/bl` opens the panel.
+
+**The guild-bank frame hooks are the one sanctioned gate.** `HookScript` has no un-hook, so those
+two bodies check the latch and return (`modules/Ledger.lua`). The carve-out exists because the API
+is one-way and does not generalize to anything with a real unregister.
+
+**No secure work is deferred**, and the absence is a fact about this addon rather than an omission:
+it registers no state driver, writes no secure attribute and owns no protected frame, so nothing
+here can be refused under combat lockdown. That is also why a disabled Bank Ledger keeps **no**
+event registration at all — the `PLAYER_REGEN_ENABLED` a disabled addon is permitted to keep exists
+to finish pending secure work, and there is none to finish.
+
+`tests/test_disabled.lua` is the conformance suite (`slash-commands-§7`). Every assertion in it
+reads the kit's recording registry — registrations, timers, shown frames, SavedVariables writes,
+printed lines — and none reads a handler's return value, because an early return is exactly what a
+draw gate does.
+
 ## Event Subscriptions
 
-Fourteen registrations. **Nine** are the capture engine's and all go through
+Fourteen registrations **while the addon is enabled**; **none** while it is disabled (see *The
+stand-down* above). **Nine** are the capture engine's and all go through
 `Ledger:RegisterEventSafely` — modern retail **raises** on an unknown event name, so a bare loop turns
 one retired event into a silently deaf addon. The other five sit outside the engine and outside that
 guard, because none of their names can go away under it: `PLAYER_ENTERING_WORLD` on the AceEvent addon
@@ -385,7 +451,7 @@ with no re-check trigger is a permanent exemption granted by accident.
 |---|---|---|---|---|
 | `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and the three events that *can* fire in combat do a single `NS.State.openContext` nil check and return. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. |
 | `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. |
-| `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and exactly **one** user-facing string routes through `NS.L` — the disabled-verb refusal (`slash-commands-§2`, added 2026-09-16) — while every other label, tooltip and message is a hardcoded English literal. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The one wrapped string does not narrow the row: it is routed and listed because it was written after the seam existed, and it is what a later pass extends rather than a second scheme beside the literals. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. |
+| `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and **no** user-facing string routes through `NS.L` — every label, tooltip and message is a hardcoded English literal. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. |
 | `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `modules/Browser.lua:98`'s `B:MakeCloseButton`, 24×24, class-colored on hover — rather than a one-line wrapper over `lib.MakeCloseButton`, which `core/CoreSetup.lua:117-129` deliberately does not republish. | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`modules/Browser.lua:1047`), the session window (`modules/SessionWindow.lua:485`) and the export modal (`modules/Export.lua:362`) are this addon's; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon` (`modules/Browser.lua:104`) with the documented fallback ladder beneath it, so the two implementations agree on the art and differ only in size and hover tint. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its three callers and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change four visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. |
 | `options-ui-§12` | The global reset is **three routes over two implementations**, not one act. The General page's **Reset all settings** button raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose `OnAccept` runs `Sl:ResetEverything` — `db.global` emptied wholesale, **including the recorded ledger**. The header/footer **Defaults** button (`P:RestoreDefaults`) and `/bl resetall` both run `Sl:CliResetAll`, which clears the two filter lists, resets the saved view and defers to the library's schema walk, leaving the ledger alone. §12 requires all three behind **one** implementation, and requires the account-wide form to empty the store wholesale rather than enumerate it — so the *non-destructive* pair is the half that diverges. | **Not argued for — recorded because it is shipping and was not ratified.** The split predates the settings revamp; that pass only moved the destructive button onto the Master controls tab and, in doing so, gave it §12's canonical *name*. Closing it means choosing which act wins, and both choices are user-visible: unifying **up** makes `/bl resetall` and Blizzard's own **Defaults** control destroy a player's entire recorded history (§12 accepts this — its second canonical wording already says *"or recorded"* — but it is a data-loss change no case in `tests/` covers today); unifying **down** leaves the addon with no §12-compliant wholesale reset at all. That is a maintainer's call, not an implementer's, so the divergence is **reported and named** rather than silently widened. What this pass *did* do is stop the two acts sharing a label: the button is *Reset all settings*, `/bl resetall` is *Reset every setting to defaults* (`slash-commands-§3`'s reference wording), so today a player is at least not told two different blast radii have one name. **A second cost surfaced on 2026-09-16**: `launcher-§3` exempts `minimap.hide` from every reset, and because the two acts are two implementations the carve-out had to be made twice — `NS.Schema.RESET_EXEMPT` honored in `S:ApplyDefault` for the schema walk, and the held-and-restored `minimap` table in `Sl:ResetEverything`. Unified, it would be one. | 2026-09-02 | **The decision itself — this row is a placeholder for a resolution, not an exemption.** Re-check at the next release, or the moment a player reports losing history to *Reset all settings*, whichever comes first. Closing it means pointing `P:RestoreDefaults` and the `resetall` verb at the same confirm-gated body as the button (and extending `Sl:ResetEverything` to sweep the session-only rows a store wipe cannot reach, per §12), then deleting this row. |
 

@@ -489,6 +489,14 @@ local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
 local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug",
                      "get", "set", "list", "reset", "resetall" }
 
+--- The collection's one refusal line (slash-commands-§7), matched by SHAPE rather than by its
+--- words: LibKa0s-Slash-1.0 builds it from lib.DISABLED_LINE_FORMAT, and a suite that hard-coded
+--- the sentence would be a second copy of the wording the format string exists to keep single.
+local function isRefusal(line)
+  return line:find("is disabled", 1, true) ~= nil
+    and line:find("|cFFFFFF00/bl enable|r", 1, true) ~= nil
+end
+
 local function disableAddon() captureChat(function() Sl:OnSlash("disable") end) end
 
 --- Run fn with the addon disabled, and put `settings.enabled` back however fn leaves it.
@@ -505,10 +513,11 @@ local function entryFor(verb)
 end
 
 test("Slash: every registered verb is either a feature verb or on the LIVE list, never neither", function()
-  -- The two lists in this file are the standard's, spelled out; the addon's live set is the table in
-  -- settings/Slash.lua. This case is what makes the three agree: a verb added to NS.COMMANDS and to
-  -- neither list below reddens here rather than quietly inheriting whichever behavior it happened to
-  -- get. `perf` is reserved but unregistered in this addon, so it is on the live table and not here.
+  -- The two lists in this file are the standard's, spelled out; the live set itself is the
+  -- library's (lib.LIVE_VERBS, Slash minor 14), because this addon passes no `liveVerbs`. This case
+  -- is what makes them agree: a verb added to NS.COMMANDS and to neither list below reddens here
+  -- rather than quietly inheriting whichever behavior it happened to get. `perf` is reserved but
+  -- unregistered in this addon (the performance-§12 exemption), so it appears on neither list.
   local classified = {}
   for _, v in ipairs(FEATURE_VERBS) do classified[v] = "feature" end
   for _, v in ipairs(LIVE_VERBS) do
@@ -547,7 +556,7 @@ function()
       assertEqual(#out, 1,
         "`/bl " .. verb .. "` must answer on exactly one line, got:\n" .. joined(out))
       assertTrue(out[1]:find("|cff00ffff[BL]|r", 1, true) ~= nil, "untagged: " .. out[1])
-      assertTrue(out[1]:find("/bl enable", 1, true) ~= nil,
+      assertTrue(isRefusal(out[1]),
         "`/bl " .. verb .. "` refused without naming the way back: " .. out[1])
     end
   end)
@@ -590,9 +599,12 @@ test("Slash: an unknown verb is never REFUSED while disabled -- it is still unkn
   -- better answer than a line about a setting the player did not ask about.
   withDisabled(function()
     local out = captureChat(function() Sl:OnSlash("wibble") end)
+    -- The FIRST line is the whole of it. The index that follows carries the refusal line under its
+    -- own header, as it does whenever `help` renders while the addon is off, and that line is a
+    -- statement about the rows below it rather than an answer to what was typed.
+    assertFalse(isRefusal(out[1]),
+      "an unknown verb got the disabled refusal instead of the unknown-verb answer: " .. out[1])
     assertTrue(out[1]:find("unknown command \'wibble\'", 1, true) ~= nil, joined(out))
-    assertTrue(joined(out):find("/bl enable turns it back on", 1, true) == nil,
-      "an unknown verb got the disabled refusal instead of the unknown-verb answer")
   end)
 end)
 
@@ -611,8 +623,17 @@ test("Slash: the live verbs keep answering while disabled, and none of them is r
       disableAddon()
       assertEqual(NS.Schema:Get("settings.enabled"), false, "precondition for `/bl " .. verb .. "`")
       local out = captureChat(function() Sl:OnSlash(verb) end)
-      assertTrue(joined(out):find("/bl enable turns it back on", 1, true) == nil,
-        "`/bl " .. verb .. "` was refused, and the standard MUSTs that it answers: " .. joined(out))
+      -- `help` is the one exception in SHAPE and not in substance: the index prints in full, with
+      -- the refusal line under its header, because the player has to be able to SEE `enable` in
+      -- the list. It is a statement about the rows below it, not a refusal of `help`.
+      if verb == "help" then
+        assertTrue(#out > 2, "the help index was refused rather than printed")
+      else
+        for _, line in ipairs(out) do
+          assertFalse(isRefusal(line),
+            "`/bl " .. verb .. "` was refused, and the standard MUSTs that it answers: " .. line)
+        end
+      end
     end
     -- And the one that matters most, read back from the store rather than from its echo.
     disableAddon()

@@ -214,75 +214,61 @@ function Sl:CliEnabled(on)
   return Sl:CliSet(ENABLED_PATH .. " " .. (on and "true" or "false"))
 end
 
--- ── A DISABLED ADDON REFUSES ITS FEATURE VERBS (slash-commands-§2) ────────────────────────
+-- ── A DISABLED ADDON REFUSES ITS FEATURE VERBS (slash-commands-§2, §7) ────────────────────────
 --
 -- Acting is the wrong answer twice over: the player asked for something the addon is currently
 -- standing down from doing, and a silent no-op leaves them with no clue why nothing happened. So a
 -- verb that DRIVES THE ADDON'S FEATURES answers on ONE tagged line naming `/bl enable`, and does
 -- nothing else -- no partial work, no side effect, no second line. One line is the whole courtesy.
 --
--- THE LIVE SET IS NAMED ONCE, AS DATA, AND THE GATE SITS IN THE DISPATCHER. A guard pasted into
--- each feature verb would be a dozen places to forget, and -- worse -- the next verb added forgets
--- it by default, which is the wrong default for a rule nobody re-reads. Here it is the other way
--- round: a new verb is refused while disabled unless somebody puts its name on the list below, and
--- putting a name there is a deliberate act with this comment beside it.
+-- THE GATE IS THE LIBRARY'S NOW, AND THE HOST'S COPY IS GONE. This file used to carry a twelve-name
+-- ALWAYS_LIVE table, a stored-path read and a refusal printer of its own -- the collection's rule
+-- re-implemented per addon, with the wording re-spelled per addon along with it. Against Slash minor
+-- 14 (LibKa0s v1.42.0) the descriptor's `isEnabled` and `brandName` are the whole adoption: the library keeps its own
+-- lib.LIVE_VERBS (the standard's twelve reserved verbs), refuses what is left, and renders the line
+-- from lib.DISABLED_LINE_FORMAT so eleven addons cannot each word it differently.
 --
--- WHY THESE TWELVE STAY LIVE. A player must be able to READ AND REPAIR SETTINGS, and to REACH THE
--- PANEL, while the addon is off -- which is precisely when they are most likely to need to -- and
--- `enable` above all, or the pair is one-way and the only route back is the settings panel they were
--- trying not to open. `debug` and `perf` are diagnostics rather than features: the usual reason to
--- reach for either is that the addon is misbehaving. `perf` is on the list although this addon does
--- not register it, because the verb is RESERVED everywhere (slash-commands-§2) and arming the
--- harness later must be a registration rather than a rename plus a second edit here.
+-- NO `liveVerbs` IS PASSED, deliberately. That field NARROWS or WIDENS the live set, and this addon
+-- wants neither: every reserved verb answers while disabled, and the bare `/bl` opens the settings
+-- panel. An earlier pass against Slash minor 12 cut the disabled surface to `enable` and `help`;
+-- standard v2.57.0 reversed that, minor 13 implemented the reversal and minor 14 stopped refusing a
+-- reserved verb the host never registered, so the right host-side change is to pass nothing and let
+-- the library's default set stand.
 --
--- Read literally, "refuse while disabled" takes the entire command surface down with it. It does
--- not: the rule MUSTs that these keep answering, and this table is that MUST written as code.
-local ALWAYS_LIVE = {
-  help = true, config = true, version = true, enable = true, disable = true,
-  debug = true, perf = true,
-  get = true, set = true, list = true, reset = true, resetall = true,
-}
+-- WHAT THE GATE DOES NOT REACH. A TYPO is not refused: the gate sits AFTER the COMMANDS lookup, so
+-- a word this addon does not ship still gets `unknown command '<verb>'` and the index -- and from
+-- minor 14 that includes a RESERVED verb it does not ship, which today is `perf`. The addon
+-- understood perfectly well and is off is a true sentence about `show`; said about a misspelling it
+-- tells a player their spelling was fine.
 
---- Is the addon standing its features down right now?
----
---- Through NS.Schema:Get, which is the same read the Master-controls checkbox and `/bl get` take, so
---- the gate can never disagree with what the panel shows. Guarded rather than assumed: this runs on
---- the degraded arm too, where there is no composed `settings.enabled` row and no store at all, and
---- `no answer` is not `off`.
-local function addonIsDisabled()
-  if not (NS.db and NS.db.global and NS.Schema and NS.Schema.Get) then return false end
-  return NS.Schema:Get(ENABLED_PATH) == false
-end
-
---- The gate. Returns true when it has printed the refusal and the verb must NOT run.
----
---- An UNKNOWN verb is never refused: it is not a feature verb, and the dispatcher's own
---- `unknown command '<verb>'` plus the help index is a better answer than a line about a setting the
---- player did not ask about.
-local function refuseWhileDisabled(verb)
-  if ALWAYS_LIVE[verb] or not addonIsDisabled() then return false end
-  local known = false
-  for _, cmd in ipairs(NS.COMMANDS or {}) do
-    if cmd[1] == verb then known = true break end
-  end
-  if not known then return false end
-  print(NS.L["this addon is disabled \226\128\148 /bl enable turns it back on."])
-  return true
+--- Has the PLAYER switched the addon off? Asked at DISPATCH time and never cached, so the command
+--- after an `/bl enable` works. Resolved through NS.IsDisabled, which reads the latch's `disabled`
+--- hold -- the same hold the Master-controls checkbox drives -- so the gate can never disagree with
+--- what the panel shows, and a perf-suspended addon (a different hold) is not treated as disabled.
+local function addonIsEnabled()
+  return not (NS.IsDisabled and NS.IsDisabled())
 end
 
 --- THE ONE DOOR EVERY VERB COMES THROUGH, on both arms.
 ---
 --- `Sl:Register` points both chat commands here, and `Sl:Dispatch` is what each arm defines for
 --- itself -- the library's loop on the live arm, its smallest reproduction on the degraded one.
---- Defined ABOVE the library branch for the same reason `Sl:CliEnabled` is: `Sl:Dispatch` resolves at
---- CALL time, so one definition serves both arms and neither carries a copy of the gate.
+--- Defined ABOVE the library branch on purpose: `Sl:Dispatch` resolves at CALL time, so one
+--- definition serves both arms and neither carries a copy.
 function Sl:OnSlash(input)
-  local raw = (input or ""):match("^%s*(.-)%s*$") or ""
-  -- A bare /bl IS the `config` verb (slash-commands-§4), which is on the live list. Spelled out
-  -- rather than left to fall through, so the two readings of empty input cannot drift apart.
-  local verb = raw == "" and "config" or (raw:match("^(%S+)") or ""):lower()
-  if refuseWhileDisabled(verb) then return end
   return Sl:Dispatch(input)
+end
+
+--- The refusal, for a caller that is not a slash command: the launcher's LEFT click
+--- (launcher-§2, slash-commands-§7). Answers true when it refused and the click must not act.
+---
+--- The line itself comes from `Sl:DisabledLine`, which is the library's builder on the live arm.
+--- launcher-§2 and slash-commands-§7 are one wording, so the button and the verb can never word the
+--- same refusal two ways.
+function Sl:RefuseIfDisabled()
+  if addonIsEnabled() then return false end
+  print(Sl:DisabledLine())
+  return true
 end
 
 function Sl:Register()
@@ -360,8 +346,29 @@ if not lib then
     print("All settings reset to defaults")
   end
 
-  -- Dispatch still has to work, so this is the library's loop reproduced at its smallest. It is
-  -- `Dispatch`, not `OnSlash`: the disabled-verb gate above is the door, and this is what it opens.
+  -- The refusal line with no library to build it. The FORMAT is the collection's, copied from
+  -- lib.DISABLED_LINE_FORMAT rather than re-worded: on this arm there is no library to ask, and a
+  -- second wording invented for the degraded case is still a second wording a player can meet.
+  function Sl:DisabledLine()
+    return ("%s is disabled \226\128\148 enable it with |cFFFFFF00%s|r")
+      :format(tostring(NS.BRAND_NAME or "/bl"), "/bl enable")
+  end
+
+  -- The gate, reproduced for this arm alone. The live set is the standard's twelve reserved verbs,
+  -- which is lib.LIVE_VERBS written out: every one of them answers while the addon is off, because
+  -- a player must be able to read and repair settings and to reach the panel -- which is precisely
+  -- when they are most likely to need to -- and `enable` above all, or the pair is one-way.
+  -- `perf` is on the list although this addon registers no such verb (it holds the
+  -- performance-§12 no-combat-path exemption), because the verb is RESERVED everywhere and arming
+  -- the harness later must be a registration rather than a second edit here.
+  local LIVE_VERBS = {
+    help = true, config = true, version = true, enable = true, disable = true,
+    debug = true, perf = true,
+    get = true, set = true, list = true, reset = true, resetall = true,
+  }
+
+  -- Dispatch still has to work, so this is the library's loop reproduced at its smallest, gate and
+  -- all. `Dispatch`, not `OnSlash`: Sl:OnSlash is the one door, defined once above the branch.
   function Sl:Dispatch(input)
     local raw = (input or ""):match("^%s*(.-)%s*$") or ""
     -- A bare /bl runs the `config` verb, as the library does from Slash minor 11
@@ -376,7 +383,14 @@ if not lib then
     local verb, rest = raw:match("^(%S+)%s*(.*)$")
     verb = (verb or ""):lower()
     for _, cmd in ipairs(NS.COMMANDS) do
-      if cmd[1] == verb then return cmd[3](rest or "") end
+      if cmd[1] == verb then
+        -- THE GATE, AFTER THE LOOKUP, as the library places it: a verb this addon SHIPS and is
+        -- standing down from is refused, and a typo falls through to the unknown-verb answer below.
+        if not LIVE_VERBS[verb] and NS.IsDisabled and NS.IsDisabled() then
+          return print(Sl:DisabledLine())
+        end
+        return cmd[3](rest or "")
+      end
     end
     print(("unknown command '%s'"):format(verb))
     Sl:PrintHelp()
@@ -405,6 +419,14 @@ local cli = lib:New({
   slash        = "/bl",
   slashAliases = { "/bankledger" },
   commands     = NS.COMMANDS,
+
+  -- THE DISABLED GATE (Slash minor 12, reversed to the twelve reserved verbs at minor 13, refusing
+  -- only verbs the host ships from minor 14). Asked at
+  -- dispatch time, never cached. `brandName` is required alongside it and is the plain-text brand
+  -- the LDB object already wears, spelled once in core/LauncherSetup.lua. No `liveVerbs`: see the
+  -- block above the dispatcher on why passing one would be the wrong half of the reversal.
+  isEnabled    = addonIsEnabled,
+  brandName    = NS.BRAND_NAME,
   print        = function(line) print(line) end,
   version      = function() return Sl:Version() end,
 
@@ -465,6 +487,10 @@ function Sl:CliGet(rest) return cli:CliGet(rest) end
 function Sl:CliSet(rest) return cli:CliSet(rest) end
 function Sl:CliReset(rest) return cli:CliReset(rest) end
 function Sl:CliVersion() return cli:CliVersion() end
+
+-- The collection's one refusal wording, built by the library from lib.DISABLED_LINE_FORMAT. Read by
+-- the launcher's left click through Sl:RefuseIfDisabled; MUST NOT be re-spelled host-side.
+function Sl:DisabledLine() return cli:DisabledLine() end
 
 -- The settings landing page renders the same verbs, through the same one row formatter, in the help
 -- colors — un-indented, because there each row is its own label. This is the convergence: the panel

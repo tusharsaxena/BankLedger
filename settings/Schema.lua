@@ -212,7 +212,16 @@ S.MASTER_SPEC = {
 -- a copy of the block.
 S.MASTER_DECOR = {
   ["settings.enabled"] = { widget = "CheckBox",
-    onChange = function()
+    -- THE ADDON-WIDE SWITCH, AND THE ONLY PLACE THE LATCH IS DRIVEN (slash-commands-§7). The
+    -- checkbox, `/bl enable`, `/bl disable` and `/bl set settings.enabled` are four surfaces onto
+    -- ONE stored path and one write seam, and this onChange is what that one write runs — so the
+    -- stand-down happens in the same turn as the write, whichever surface caused it, and none of
+    -- them can hold a state of its own.
+    --
+    -- It is NOT a draw gate: NS.SetDisabledHold takes or releases the `disabled` hold, and the
+    -- latch's edge is what unregisters every event, cancels every timer and shuts every window.
+    onChange = function(v)
+      NS.SetDisabledHold(v == false)
       if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
     end },
 

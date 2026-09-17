@@ -41,35 +41,70 @@ function addon:OnInitialize()
   if NS.Panel and NS.Panel.Register then NS.Panel:Register() end
 end
 
+-- ── THE LATCH, AND WHAT SURVIVES IT (slash-commands-§7) ────────────────────────────────────────
+--
+-- `addon:OnEnable` is now SETUP ONLY. The chat command, the dispatcher, the settings category and
+-- the launcher registration come up on load in EITHER state, because the switch has to go both
+-- ways: without them `/bl enable` does not exist and the player's only route back is the panel
+-- they were trying not to open.
+--
+-- Everything that is a FEATURE — the capture events, the addon's own three registrations, the four
+-- bus targets, the windows — comes up in `NS.StandUp` and goes away in `NS.StandDown`, and the
+-- only thing that calls either is the latch in core/LifecycleSetup.lua.
 function addon:OnEnable()
+  -- The launcher (launcher-§1). SETUP, so it is registered in either state: the minimap button
+  -- stays on the minimap and the broker row stays in the display while the addon is off, because
+  -- `minimap.hide` is a per-installation display preference (launcher-§3) and says nothing about
+  -- whether the addon is running. What the LEFT click does while disabled is core/LauncherSetup's
+  -- business, and it is refused there.
+  --
+  -- AFTER OnInitialize, which is what makes it work at all: the descriptor answers
+  -- `db.global.minimap` through a closure and NS:InitDB is what materializes it. Idempotent by
+  -- the library's design.
+  if NS.Launcher and NS.Launcher.Register then NS.Launcher:Register() end
+
+  -- Take the `disabled` hold from the stored path. NOT a special case: it is the same call the
+  -- checkbox and the two verbs make, and it is how the setting survives a /reload — the latch
+  -- itself persists nothing.
+  NS.SetDisabledHold(not NS.EnabledStored())
+  -- The latch is born believing the addon is UP and fires a callback only on an edge, so a load in
+  -- the enabled state produces no edge and nothing would be registered. This is the bring-up for
+  -- that case, and it is guarded on the hold set rather than on the stored path so it can never
+  -- stand up an addon a hold is holding down.
+  if not NS.IsStoodDown() then NS.StandUp() end
+  -- No [Init] line here: the debug flag is session-only and off at login, so a boot-time summary
+  -- would always be gated off and never render. It rides the DebugLog:SetEnabled seam instead,
+  -- emitted when capture is actually enabled (debug-logging-§5/§8).
+end
+
+--- Bring the FEATURES up, from the settings AS THEY ARE NOW.
+---
+--- Never from a snapshot taken on the way down (performance-§6): a setting can be changed while the
+--- addon is disabled, and each module's Enable re-reads what it needs, so the rebuilt registration
+--- set reflects the new value rather than the old one.
+function NS.StandUp()
+  local self = NS.addon
   self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEnterWorld")
   -- The General visibility rule's two transitions (options-ui-§15). `Only in combat` and `Only
   -- out of combat` are answers that CHANGE without anything being clicked, so the setting is
   -- unhonored without these: a window opened out of combat would simply stay up through a pull.
   self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatChanged")
   self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatChanged")
-  -- The launcher (launcher-§1). REGISTERED HERE rather than from a module's Enable, because it
-  -- is the addon's own entry point and not the ledger window's: its left click happens to toggle
-  -- that window (rung (a)), which is a fact about this addon, not about who owns the button.
-  --
-  -- AFTER OnInitialize, which is what makes it work at all: the descriptor answers
-  -- `db.global.minimap` through a closure and NS:InitDB is what materializes it. Idempotent by
-  -- the library's design, so the disable/enable cycle below cannot stand a second button up over
-  -- the first.
-  if NS.Launcher and NS.Launcher.Register then NS.Launcher:Register() end
   if NS.Ledger and NS.Ledger.Enable then NS.Ledger:Enable() end
   if NS.Browser and NS.Browser.Enable then NS.Browser:Enable() end
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
   -- the main ledger window has ever been built.
   if NS.SessionWindow and NS.SessionWindow.Enable then NS.SessionWindow:Enable() end
-  -- No [Init] line here: the debug flag is session-only and off at login, so a boot-time summary
-  -- would always be gated off and never render. It rides the DebugLog:SetEnabled seam instead,
-  -- emitted when capture is actually enabled (debug-logging-§5/§8).
 end
 
--- The other half of the cycle, and it has to exist: each module below gates its Enable behind a
--- private `_enabled` latch, so with nothing to release it a disable then re-enable brings all four
--- back inert — no error, no capture, no windows.
+-- ── THE STAND-DOWN (slash-commands-§7) ─────────────────────────────────────────────────────────
+--
+-- ONE teardown body, reached from two arms: the latch's `disabled` hold, and AceAddon's own
+-- `OnDisable`. Two arms onto ONE body is not the parallel-lifecycle anti-pattern — two BODIES
+-- would be, and that is what this addon used to have, because "disabled" tore nothing down at all.
+--
+-- Each module gates its Enable behind a private `_enabled` latch, so with nothing to release it a
+-- stand-down then stand-up brings all four back inert — no error, no capture, no windows.
 --
 -- AceAddon does not do this for us. Its AceEvent embed unregisters what was registered on the ADDON
 -- object, which is where the Ledger's capture events live, but every module's live-refresh
@@ -79,12 +114,60 @@ end
 -- unconditionally (modules/SessionWindow.lua:149-154) — one moved stack, two rows. So the targets
 -- go with the latch.
 --
--- `_guildHooked` deliberately stays set. It is not part of this cycle: it records a hook installed
--- on GuildBankFrame's OnShow, which nothing here takes off again, so clearing it would let the next
--- Enable hook the same frame a second time.
+-- `_guildHooked` deliberately stays set. It is not part of this cycle: it records a `HookScript`
+-- hook installed on GuildBankFrame's OnShow, which nothing here takes off again, so clearing it
+-- would let the next stand-up hook the same frame a second time. The hook's own body is gated on
+-- the stand-down (modules/Ledger.lua) — the sanctioned shape for a hook that cannot be undone.
 local BUS_MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
 
-function addon:OnDisable()
+-- Every module that arms a debounce timer, and therefore has a handle to drop. Cancelling at the
+-- AceTimer level alone is not enough: each module remembers its own handle and refuses to schedule
+-- while one is outstanding, so a handle left behind a stand-down is a debounce that never fires
+-- again after the stand-up.
+local TIMER_MODULES = { "Ledger", "Browser", "Insights" }
+
+--- Make the addon INERT. Every registration gone, every timer cancelled, every window shut.
+---
+--- NOT a draw gate (anti-pattern #85). Nothing here sets a flag for a handler to consult: the
+--- handlers are unregistered, so the client stops walking this addon's registration list, stops
+--- building the argument frame and stops entering Lua — which is the cost the player was trying to
+--- stop paying and the only part of it they cannot see.
+---
+--- WHAT IS NOT TORN DOWN, because it is SETUP and not a feature: the chat command registration, the
+--- dispatcher and NS.COMMANDS; the settings category and the panel body with its own live-refresh
+--- target; the AceDB handle, the single write seam and the profile callbacks; the launcher's
+--- registration.
+---
+--- NO SECURE WORK IS DEFERRED HERE, and the absence is a fact about this addon rather than an
+--- omission: it registers no state driver, writes no secure attribute and owns no protected frame,
+--- so there is nothing that combat lockdown could refuse. That is also why it keeps NO event
+--- registration at all while disabled — the PLAYER_REGEN_ENABLED a disabled addon is permitted to
+--- keep exists to finish pending secure work, and there is none to finish.
+function NS.StandDown()
+  local ad = NS.addon
+
+  -- 1. EVERY TIMER. AceTimer's own cancel-all takes the handles, and each module drops the handle
+  --    it remembers so the next stand-up can schedule again.
+  if ad and ad.CancelAllTimers then ad:CancelAllTimers() end
+  for _, name in ipairs(TIMER_MODULES) do
+    local module = NS[name]
+    if module and module.CancelPending then module:CancelPending() end
+  end
+
+  -- 2. EVERY EVENT ON THE ADDON OBJECT — the three this file registers, and the Ledger's entire
+  --    bank/bag/mail/guild capture set, which is registered there too. UnregisterAllEvents rather
+  --    than a list to keep current: a list is what goes stale on the first event added to
+  --    modules/Ledger.lua, and this addon has exactly one AceEvent target of its own.
+  if ad and ad.UnregisterAllEvents then ad:UnregisterAllEvents() end
+  if NS.Ledger then NS.Ledger.registeredEvents, NS.Ledger.unavailableEvents = {}, {} end
+
+  -- 3. THE CAPTURE GATE'S CACHED ANSWER, refreshed before the bus target that carries the refresh
+  --    is dropped below. The gate is a BELT behind unregistered events rather than the mechanism —
+  --    it is unreachable once step 2 has run — but a belt reading a cache from before the switch
+  --    was thrown is a belt that says "capture is on" about an addon that is off.
+  if NS.Ledger and NS.Ledger.RefreshUpvalues then NS.Ledger:RefreshUpvalues() end
+
+  -- 4. THE FOUR PRIVATE BUS TARGETS, and the latches that would otherwise refuse to rebuild them.
   for _, name in ipairs(BUS_MODULES) do
     local module = NS[name]
     if module then
@@ -97,6 +180,20 @@ function addon:OnDisable()
       module._enabled = nil
     end
   end
+
+  -- 5. THE WINDOWS. Hidden here, but held shut AT THE SOURCE — NS.Util.VisibilityAllows answers no
+  --    while the latch is down, and every Show in this addon consults it. Hiding imperatively and
+  --    stopping there is the other half of the draw gate: a hidden frame comes back on a combat
+  --    transition, a target swap or a settings change, and the addon is then visibly running while
+  --    it claims to be off.
+  if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
+  if NS.SessionWindow and NS.SessionWindow.Hide then NS.SessionWindow:Hide() end
+end
+
+-- AceAddon's arm onto the same body. It can disable and re-enable an addon at any point in a
+-- session, and when it does the addon must end up in exactly the state the latch would produce.
+function addon:OnDisable()
+  NS.StandDown()
 end
 
 -- Both combat edges take the same route: NS.Util.ApplyVisibility re-reads the rule and hides or
@@ -121,6 +218,11 @@ function addon:OnEnterWorld()
   NS.State.cleanupDone = true
   if C_Timer and C_Timer.After then
     C_Timer.After(5, function()
+      -- The one timer that can outlive the stand-down: it is armed BEFORE the disable and fires
+      -- five seconds later, and PruneOld writes SavedVariables. A write from a game event while
+      -- disabled is the failure slash-commands-§7 names in its purest form, so the body checks the
+      -- latch rather than trusting the cancel to have caught it.
+      if NS.IsStoodDown and NS.IsStoodDown() then return end
       if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end)
   end

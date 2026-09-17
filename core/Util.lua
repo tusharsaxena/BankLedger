@@ -258,6 +258,14 @@ end
 --- UNKNOWN stored string answers TRUE: a value nobody recognises is a reason to show the addon and
 --- let the player fix it, never a reason to hide every window with no way back.
 function Util.VisibilityAllows()
+  -- THE STAND-DOWN'S FIRST RUNG (slash-commands-§7). Held shut AT THE SOURCE rather than by
+  -- imperatively hiding the frames and hoping: a hidden frame comes back on a combat transition, a
+  -- target swap or a settings change, and the addon would then be visibly running while it claims
+  -- to be off. Every Show in this addon consults this one function, so this is the whole ladder.
+  --
+  -- IsStoodDown, not "is the player's switch off": a perf-suspended addon draws nothing either,
+  -- and the show ladder is about whether the addon is RUNNING rather than about why it is not.
+  if NS.IsStoodDown and NS.IsStoodDown() then return false end
   local g = (NS.db and NS.db.global and NS.db.global.settings) or {}
   local mode = g.visibility or "always"
   if mode == "never" then return false end
