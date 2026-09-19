@@ -160,11 +160,22 @@ test("Filters tab: input that names no item adds nothing and says why on the tab
   leaveFilters(c)
 end)
 
-test("Filters tab: an entry's Remove goes through Filters:RemoveBlacklist", function()
+test("Filters tab: an entry draws an X on the left (removeStyle = \"icon\", LibKa0s v1.44.0)", function()
+  -- red under: removeStyle omitted from the O.IdList spec (the library draws the old right-hand
+  -- Remove button instead), or the library drawing the X with the wrong atlas.
+  local made, c = filtersTab("blacklist", { [2589] = true })
+  local x = firstOf(made, "Icon")
+  assertTrue(x ~= nil, "the entry has an X icon")
+  assertEqual(x.__removeAtlas, "transmog-icon-remove", "the X wears the library's remove atlas")
+  assertTrue(firstOf(made, "Button", "Remove") == nil, "no right-hand Remove button is drawn")
+  leaveFilters(c)
+end)
+
+test("Filters tab: an entry's X goes through Filters:RemoveBlacklist", function()
   -- red under: onRemove not wired, or pointed at the other list's writer.
   local made, c = filtersTab("blacklist", { [2589] = true })
-  local rm = firstOf(made, "Button", "Remove")
-  assertTrue(rm ~= nil, "the entry has a Remove button")
+  local rm = firstOf(made, "Icon")
+  assertTrue(rm ~= nil, "the entry has an X icon")
   local calls = spyWriter("RemoveBlacklist", function() rm:__fire("OnClick") end)
   assertEqual(calls[1], 2589)
   assertEqual(next(NS.db.global.blacklist), nil, "the id is gone from the store")
@@ -283,10 +294,10 @@ test("Filters tab: one add redraws the page once, not twice", function()
   leaveFilters(c)
 end)
 
-test("Filters tab: one Remove redraws the page once, not twice", function()
+test("Filters tab: one X-click redraws the page once, not twice", function()
   -- red under: the write guard wrapping onAdd but not onRemove.
   local made, c = filtersTab("blacklist", { [2589] = true })
-  local rm = firstOf(made, "Button", "Remove")
+  local rm = firstOf(made, "Icon")
   local boxes = editBoxesMadeBy(function() rm:__fire("OnClick") end)
   assertEqual(boxes, 1, "exactly one repaint follows one remove")
   assertEqual(next(NS.db.global.blacklist), nil, "the remove landed")

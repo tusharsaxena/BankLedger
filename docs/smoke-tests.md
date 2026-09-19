@@ -204,8 +204,9 @@ tolerance.
    *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
 2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
    there (blacklisting is point-in-time, it never rewrites history).
-3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the item is listed with its icon, its
-   name and its id in gray. Hover it: the game's own item tooltip shows. Remove it.
+3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the item is listed with an **X on the
+   left**, then its icon, its name and its id in gray, and no right-hand Remove button. Hover it:
+   the game's own item tooltip shows. Click the X to remove it.
 4. The add box (LibKa0s `IdList`) takes three forms — add one item each way: shift-click an item
    link into it, type a bare item id, and type an item's **name** in lower case (one in your bags).
    Each lands on the list. An id the client has not cached reads `Unknown item <id>` at first and
