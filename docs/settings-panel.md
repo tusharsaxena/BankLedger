@@ -39,6 +39,14 @@ Opening **refuses** under combat lockdown with a gray notice and never defers:
 `Settings.OpenToCategory` is protected, and calling it under lockdown taints the panel for the rest
 of the session.
 
+A page that is **already on screen** when combat starts, or is reached in combat through Blizzard's
+AddOns sidebar, is **locked** by the library (LibKa0s v1.46.1, `options-ui-§2`/`§13`): a gray cover
+reading *Settings are locked during combat.* goes over the whole canvas, every write, Defaults
+click and tab switch is refused and put back, and chat gets one gray line per combat.
+`PLAYER_REGEN_ENABLED` lifts the cover and re-renders or refreshes the page; nothing is re-opened,
+and nothing touches Blizzard's settings window in combat. This addon keeps no combat guard of its own
+on a page or the tab strip beside that one.
+
 ## The tab strip (`options-ui-§13`)
 
 General is **tabbed**: a strip pinned in the page's chrome band, between the header and the scroll.

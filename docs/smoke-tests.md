@@ -362,6 +362,10 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
 2. `/bl config` prints a gray "cannot open settings during combat" notice and does **not** open.
 3. Leave combat. The panel does **not** pop itself open — you re-run `/bl config` when you choose.
 4. The ledger window still opens, refreshes and filters in combat (it is a non-secure frame).
+5. Open the settings panel out of combat, leave it on General, then pull a training dummy. A gray
+   *Settings are locked during combat.* cover goes over the page; a click on a checkbox or a tab does
+   nothing and chat prints one gray line for the combat. Blizzard's settings window stays open and
+   usable (no `ADDON_ACTION_BLOCKED`). Leave combat: the cover lifts and the page shows current values.
 
 ## S-14 · Debug console
 

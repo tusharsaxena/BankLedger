@@ -364,7 +364,9 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
   confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
 - Opening the settings panel **refuses** under combat lockdown with a gray notice and never defers:
   `Settings.OpenToCategory` is protected, and calling it under lockdown taints the panel for the
-  rest of the session.
+  rest of the session. A page already on screen in combat is covered and refuses every write,
+  Defaults and tab switch until `PLAYER_REGEN_ENABLED` — the library's combat lock (LibKa0s v1.46.1,
+  `options-ui-§2`/`§13`), which never touches Blizzard's settings window in combat.
 - Every chat and debug line funnels through one secret-safe printer, whose detector probes
   `table.concat` rather than `..` — the operator propagates secretness without raising, so a
   `..`-based probe would let a combat "secret" through to the real concat and crash.
