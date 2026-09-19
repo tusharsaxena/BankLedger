@@ -789,20 +789,21 @@ badge and any count quoted in the docs must agree with it.
 - Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
 - Slash: while the split stands, the button and the verb do NOT share a label
 
-### test_panel_filters.lua (38)
+### test_panel_filters.lua (39)
 
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Filters tab: an item id typed into the box goes through Filters:AddBlacklist
 - Filters tab: a shift-clicked item link adds the id inside it
 - Filters tab: an item typed by NAME resolves to its id, whatever its case
 - Filters tab: input that names no item adds nothing and says why on the tab
-- Filters tab: an entry's Remove goes through Filters:RemoveBlacklist
+- Filters tab: an entry draws an X on the left (removeStyle = "icon", LibKa0s v1.44.0)
+- Filters tab: an entry's X goes through Filters:RemoveBlacklist
 - Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move, unchanged)
 - Filters tab: an entry reads its item name and id; an empty list reads (none)
 - Filters tab: an uncached item is asked for, and the list redraws when it lands
 - Filters tab: several uncached items cost one load check and one redraw
 - Filters tab: one add redraws the page once, not twice
-- Filters tab: one Remove redraws the page once, not twice
+- Filters tab: one X-click redraws the page once, not twice
 - Filters tab: the list's own redraw repaints this page, never every rendered page
 - Filters tab: a list change from elsewhere still repaints the open tab
 - Filters tab: an entry's name is drawn in its item quality color
@@ -1088,7 +1089,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 52 |
 | test_slash.lua | 50 |
 | test_panel.lua | 33 |
-| test_panel_filters.lua | 38 |
+| test_panel_filters.lua | 39 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -1105,4 +1106,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **955** |
+| **Total** | **956** |

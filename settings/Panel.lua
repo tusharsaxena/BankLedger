@@ -378,6 +378,7 @@ local function makeFilterSection(ctx, listKey, desc)
     onAdd     = function(id) filterWrite(ctx, list.add, id) end,
     onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
     emptyText = "|cff808080(none)|r",
+    removeStyle = "icon",
   })
 end
 
