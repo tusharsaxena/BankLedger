@@ -693,9 +693,11 @@ end
 -- The library owns the shell and the TIMING of every body — first show, and again
 -- after a refresh marked the page dirty while it was hidden, because those are the two moments only
 -- its registry can see. It builds each page's Defaults button on that first show (the O.AceGUI
--- skinning race) and refuses to render under combat while closing the Settings window, which is a
--- guard this addon previously had only on the `/bl config` route and not on the Blizzard AddOns
--- sidebar.
+-- skinning race) and owns the combat lock: a page shown in combat, whichever route reached it
+-- (the Blizzard AddOns sidebar included), is covered with "Settings are locked during combat.",
+-- every write, Defaults press and tab switch is refused, and the Settings window is never closed;
+-- PLAYER_REGEN_ENABLED draws the page from current state. `/bl config` still refuses to open in
+-- combat, through O.OpenOptionsPanel.
 --
 -- Every renderer starts with O.ClearScroll. A re-render releases the previous widgets and, with
 -- them, the refresher closures that captured them; keeping those would pcall an ever-growing pile
