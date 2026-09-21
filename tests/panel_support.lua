@@ -90,8 +90,51 @@ local function widgetLabeled(made, label)
 end
 
 
+--- Widen the canvas every list drawn inside `fn` is laid out against.
+---
+--- The kit's AceGUI fake gives a ScrollFrame's content a flat `original_width = 400`
+--- (tests/_kit/mock_base.lua) and LibKa0s's always-shown-scrollbar patch then takes its 20px
+--- gutter off it, so every list in this suite measures 380px of content. Nothing in the kit
+--- claims that is what Blizzard's settings canvas hands a page; it is a number a fake made up.
+---
+--- It matters from LibKa0s v1.50.0, which made `columns` a MAXIMUM: O.IdList measures the content
+--- width at draw time and drops toward one column when the count cannot be paid for -- 520px for
+--- two entries in the icon style. At 380 every multi-column list collapses to one, which is the
+--- library being right about a number the harness invented. So a case asserting how a list PACKS
+--- has to say what canvas it packs into, or it is asserting the fixture.
+---
+--- Both the scrolls already handed out and any handed out inside `fn` are widened, and every one
+--- is restored afterwards -- this module is a singleton shared with every other panel suite, so a
+--- case that left them wide would hand the next suite a canvas it never asked for. `fn`'s error is
+--- re-raised after the restore.
+local function withCanvas(px, fn)
+  local saved = {}
+  local function widen(w)
+    if w.type == "ScrollFrame" and type(w.content) == "table" then
+      saved[#saved + 1] = { content = w.content, original = w.content.original_width, width = w.content.width }
+      w.content.original_width = px
+      w.content.width = px
+    end
+  end
+  for _, w in ipairs(AceGUI.__created) do widen(w) end
+  local create = AceGUI.Create
+  AceGUI.Create = function(self, wtype, ...)
+    local w = create(self, wtype, ...)
+    widen(w)
+    return w
+  end
+  local ok, err = pcall(fn)
+  AceGUI.Create = create
+  for _, s in ipairs(saved) do
+    s.content.original_width = s.original
+    s.content.width = s.width
+  end
+  if not ok then error(err, 0) end
+end
+
 local M = {
   AceGUI          = AceGUI,
+  withCanvas      = withCanvas,
   panel           = panel,
   ctxFor          = ctxFor,
   renderPage      = renderPage,

@@ -919,3 +919,34 @@ Run every step with `/console scriptErrors 1`.
    re-enable — set `/bl disable`, `/bl set settings.trackMoney false`, `/bl enable`, and move gold
    in: it is **not** recorded. The rebuild reads the settings as they are now, never a snapshot
    taken on the way down.
+
+## S-29 · The filter lists pack two to a row (LibKa0s v1.47.0 `columns`)
+
+The Blacklist and the Whitelist draw **two entries per row** now. The count is a MAXIMUM -- since
+LibKa0s v1.50.0 the list measures the width it actually has and drops back to one column when two
+cannot be paid for -- so part of this is checking the fallback as well as the packing. Only the
+client can show either.
+
+**Setup:** a Blacklist with at least **five** items, so a full row and an odd trailing one are both
+visible.
+
+1. **Settings > General > Filters > Blacklist** -> entries lay out **two to a row**, reading left to
+   right then down. The X, the icon and the name line up **across** the two columns as well as down
+   each one.
+2. With an **odd** count, the last row has one entry in the **left** column and empty space to the
+   right -- not one entry stretched across the width.
+3. **Whitelist** -> the same.
+4. **The truncation trade.** Blacklist an item with a long name. At two columns the name is cut from
+   the tail rather than wrapped, and a long enough one loses its gray `(id)` entirely -- a wrapped
+   name would push the column beside it out of alignment. **Hovering the entry still names the
+   item**, which is where the full name lives.
+5. **Remove** an entry with its X -> the list rebuilds, stays a grid, and the remaining entries
+   repack left-to-right. **Add** one -> the same.
+6. **The fallback.** Narrow the settings canvas -- windowed mode at a small width, and/or a higher
+   UI scale (`/console uiScale 1`). Below roughly **580px of panel** the lists should draw **one
+   column**, full width, still correctly formed. What must NOT happen: icons stacked over wrapped
+   names, or an entry's X on a row of its own.
+7. Widen it back and reopen the panel -> two columns return.
+
+> On a normal setup you may not be able to get narrow enough to trigger step 6; the column cap was
+> chosen conservatively. If you cannot, step 1 passing is still the meaningful result.

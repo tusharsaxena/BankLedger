@@ -367,8 +367,26 @@ local function makeFilterSection(ctx, listKey, desc)
 
   makeClearAll(ctx, listKey, list)
 
+  -- TWO ENTRIES TO A LINE (`columns`, LibKa0s v1.47.0 / OptionsWidgets minor 24; fitted to the
+  -- canvas since v1.50.0, minor 27). Both lists this call draws are ITEM lists fed one id at a
+  -- time out of a long ledger, so one entry per line is a scroll the player re-reads on every
+  -- visit; two a line halves it. Ka0s Loot History took the same option on the same shape of
+  -- page.
+  --
+  -- WHAT IT COSTS, so the trade is stated where it is taken. Above one column the library turns
+  -- word wrap OFF on an entry's label, because one name wrapping in the left column pushes the
+  -- whole right column down and the grid stops lining up. The client truncates the TAIL instead,
+  -- and an entry's name and its gray `(id)` are ONE FontString -- so an entry too long for its
+  -- column loses the id ENTIRELY rather than shortening it. The entry's tooltip still carries the
+  -- full name, which is where a cut one is read.
+  --
+  -- IT IS A MAXIMUM, NOT A COUNT. From v1.50.0 the list measures the content width it actually has
+  -- and drops back toward one column when two cannot be paid for (520px of content in the icon
+  -- style), so a narrow settings canvas returns the old layout on its own and nothing here has to
+  -- know how wide Blizzard's canvas is.
   O.IdList(ctx, {
     kind      = "item",
+    columns   = 2,
     label     = "Add an item by id, link or name",
     tooltip   = "Type an item id or an item's name, or shift-click an item link into the box. "
       .. ITEM_NAME_HINT,

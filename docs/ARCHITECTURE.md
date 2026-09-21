@@ -85,7 +85,14 @@ name and calls back into `NS.Filters`, which stays the lists' only writer. The c
 item-name search (its name lookup answers only for items carried this session), so the list passes
 `candidates`: both lists' ids plus every item id the ledger recorded, read from existing state. The
 widget names them, suggests matches as the player types (one row per crafted-quality rank), and
-refuses a shared name until one is picked. That write fires
+refuses a shared name until one is picked. The lines are drawn **two to a row** (`columns = 2`,
+LibKa0s v1.47.0): both lists are fed one id at a time out of a long ledger, so one entry per line
+made a scroll re-read on every visit. It is a **maximum**, not a count -- since v1.50.0 the widget
+measures the content width it has and falls back toward one column when two cannot be paid for, so
+a narrow settings canvas returns the old layout with nothing here having to know its width. The
+cost, taken knowingly: above one column word wrap goes off, so an entry too long for its column is
+cut from the tail and loses its gray `(id)` rather than shortening it; the entry's tooltip still
+carries the full name. That write fires
 `LedgerChanged` synchronously, so the tab's own listener is held off for it (`filterWrite`'s
 `ctx.__filterWrite`) and the widget's redraw goes through `ctx.rebuild` = `O.RefreshPanel(ctx, true)`:
 one add or Remove repaints this page once, rather than twice across every rendered page.

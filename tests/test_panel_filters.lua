@@ -871,3 +871,58 @@ test("Panel: re-rendering a page releases the previous widgets and their refresh
   renderPage("General")
   assertEqual(#ctx.refreshers, first, "the refresher list must be replaced, not appended to")
 end)
+
+
+-- ── the id list packs two entries to a line (LibKa0s v1.47.0 `columns`) ──────────────────────
+--
+-- `columns` is OptionsWidgets minor 24; the canvas fit that makes it a MAXIMUM rather than a count
+-- is v1.50.0, minor 27. Both lists this page draws are item lists and both take two, so unlike Loot
+-- History's Filters tab there is no per-list distinction to pin -- what is pinned is the packing
+-- itself, which is ROW-MAJOR (1 2 / 3 4). A column-major library would put the same ids on screen
+-- in an order no reader could follow and the flat order alone would not notice.
+
+--- Every drawn entry, with the row it landed in and its position across that row.
+---
+--- `line` is the entry's ROW's index within the created slice, not a row count: two entries packed
+--- into one Flow row share the row object and therefore the index, and an entry on the next row
+--- down has a larger one, because the library creates each row before the widgets that go into it.
+--- So it is an ORDER, and only ever compared as one.
+local function packedEntries(ws)
+  local out = {}
+  for line, w in ipairs(ws) do
+    local kids = type(w.children) == "table" and w.children or {}
+    local col = 0
+    for _, kid in ipairs(kids) do
+      if type(kid) == "table" and kid.type == "InteractiveLabel" and type(kid.text) == "string" then
+        local id = kid.text:match("%((%d+)%)|r") or kid.text:match("^Unknown %a+ (%d+)")
+        if id then
+          col = col + 1
+          out[#out + 1] = { id = tonumber(id), line = line, col = col }
+        end
+      end
+    end
+  end
+  return out
+end
+
+test("Filters tab: the id list packs two entries to a line, row-major", function()
+  -- SAY WHAT CANVAS THIS PACKS INTO. `columns` is a maximum fitted to the measured content width,
+  -- and the kit's ScrollFrame fixture is 400 (380 of content once the scrollbar patch takes its
+  -- gutter) -- under the icon style's 520px floor for two columns. Unarmed, the library would
+  -- correctly draw ONE column and this case would assert the fixture rather than the packing.
+  -- 700 pays for two in either style; see S.withCanvas.
+  S.withCanvas(700, function()
+    local made = filtersTab("blacklist", { [11111] = true, [22222] = true, [33333] = true })
+    local drawn = packedEntries(made)
+    assertEqual(#drawn, 3, "the three blacklisted ids are drawn")
+    -- red under no `columns` (each entry takes a line of its own), and red under column-major.
+    assertEqual(drawn[1].line, drawn[2].line, "the first two share one line")
+    assertEqual(drawn[1].col, 1, "the first is the left column")
+    assertEqual(drawn[2].col, 2, "the second is beside it, not under it")
+    assertTrue(drawn[3].line > drawn[2].line, "the third starts the next line down")
+    assertEqual(drawn[3].col, 1, "and is the left column of that line")
+  end)
+  local c = ctxFor("General")
+  c.activeSubTab = nil
+  c.activeTab = GENERAL_TABS[1]
+end)
