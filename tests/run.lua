@@ -26,30 +26,15 @@ local SUITES = {
   "test_lintconfig",
 }
 
--- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. Spelled out because
--- Loader.tocFiles deliberately skips `libs\` lines — the TOC pulls these in through an XML it
--- cannot see inside. All of them load, not just the adopted majors, because that is what the client
--- does: a load-time error in a module this addon does not yet use is still a broken install.
--- tests/test_libka0s.lua asserts this list against LibKa0s.xml so the two cannot drift.
-local LIBKA0S_FILES = {
-  "libs/LibKa0s/Core.lua",
-  "libs/LibKa0s/Env.lua",
-  "libs/LibKa0s/Lifecycle.lua",
-  "libs/LibKa0s/Pool.lua",
-  "libs/LibKa0s/Item.lua",
-  "libs/LibKa0s/Media.lua",
-  "libs/LibKa0s/Widgets.lua",
-  "libs/LibKa0s/DebugLog.lua",
-  "libs/LibKa0s/Slash.lua",
-  "libs/LibKa0s/Launcher.lua",
-  "libs/LibKa0s/Options.lua",
-  "libs/LibKa0s/OptionsWidgets.lua",
-  "libs/LibKa0s/OptionsTabs.lua",
-  "libs/LibKa0s/OptionsCompose.lua",
-  "libs/LibKa0s/OptionsScroll.lua",
-  "libs/LibKa0s/Perf.lua",
-  "libs/LibKa0s/PerfPanel.lua",
-}
+-- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
+-- rather than re-typed: Loader.tocFiles deliberately skips `libs\` lines, because the TOC pulls
+-- these in through an XML it cannot see inside, and a hand-kept copy of that XML is a second list
+-- that has to agree with the first by hand. It stopped agreeing at LibKa0s v1.48.0, which added
+-- WidgetsDragHandle.lua: the list was short by one and tests/_kit's drift check is what caught it.
+-- All of them load, not just the adopted majors, because that is what the client does -- a
+-- load-time error in a module this addon does not yet use is still a broken install.
+-- Loader.xmlFiles returns XML order, directory-prefixed, and raises on a missing XML.
+local LIBKA0S_FILES = Loader.xmlFiles("libs/LibKa0s/LibKa0s.xml")
 Loader.loadAll(LIBKA0S_FILES, NS, mocks)
 
 -- The addon's own files come from the SHIPPED TOC rather than from a list maintained here. Two load
