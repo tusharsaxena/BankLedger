@@ -789,7 +789,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
 - Slash: while the split stands, the button and the verb do NOT share a label
 
-### test_panel_filters.lua (39)
+### test_panel_filters.lua (40)
 
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Filters tab: an item id typed into the box goes through Filters:AddBlacklist
@@ -830,6 +830,7 @@ badge and any count quoted in the docs must agree with it.
 - Panel: a tab's only headings are the SUBSECTION ones its rows declare
 - Panel: the storage read-out lands on the History tab and nowhere else
 - Panel: re-rendering a page releases the previous widgets and their refreshers
+- Filters tab: the id list packs two entries to a line, row-major
 
 ### test_harness.lua (7)
 
@@ -1089,7 +1090,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 52 |
 | test_slash.lua | 50 |
 | test_panel.lua | 33 |
-| test_panel_filters.lua | 39 |
+| test_panel_filters.lua | 40 |
 | test_harness.lua | 7 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
@@ -1106,4 +1107,4 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 1 |
-| **Total** | **956** |
+| **Total** | **957** |
