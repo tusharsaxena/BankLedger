@@ -25,12 +25,12 @@ This is **not a deviation**: `debug-logging-§2` sanctions the vendored mono fon
 glyph the default font lacks, naming ▲/▼ direction markers in a table cell as the example, and states
 that an audit must not flag it.
 
-**This is the one arrow pair that stayed a character, and the reason is colour, not alignment.** The
+**This is the one arrow pair that stayed a character, and the reason is color, not alignment.** The
 History column-header sort arrows and the group-header expanders are TEXTURES now — the collection's
 `sort-up` / `sort-down` and `chevron-right` / `chevron-down` marks, listed in the table below. The
 direction glyph does not follow them because it sits inline in the cell and takes the direction's red
 or green from the same `SetTextColor` call that paints the label beside it. Those four marks are ONE
-colour, written down once and spelled into the long `|T…|t` form as a vertex-colour tail; a mark in
+color, written down once and spelled into the long `|T…|t` form as a vertex-color tail; a mark in
 that cell would need a second tail rebuilt per row and kept in step with the label by hand. The face is already in the
 payload, so this costs no new asset. Scope is two glyphs; no body text anywhere uses the mono font
 outside the console. See [midnight-quirks.md](midnight-quirks.md).
@@ -38,7 +38,7 @@ outside the console. See [midnight-quirks.md](midnight-quirks.md).
 ## The shared marks
 
 The collection's icon set ships in the LibKa0s payload, under `libs/LibKa0s/media/icons/` — 113
-white 64×64 TGAs, catalogued by name in `lib.ICONS`. `core/MediaSetup.lua` publishes `NS.Icon(name)`
+white 64×64 TGAs, cataloged by name in `lib.ICONS`. `core/MediaSetup.lua` publishes `NS.Icon(name)`
 over it and `NS.ICON_NAMES` lists the eight this addon actually draws.
 
 | Mark | Where it draws | Replaces | The rung below it |
@@ -60,7 +60,7 @@ Four rules govern every one of them, and each cost the collection something to l
   they saw before. Nothing builds a path by concatenation to route around a nil.
 - **A wide button keeps its label and gains a mark BESIDE it — where a mark belongs at all.** The
   word says what the action does, the mark says where it lands. Width is a veto, not a reason: the
-  filter bar's Save · Reset · Clear cluster is 51px a button, which is a centred label and no room,
+  filter bar's Save · Reset · Clear cluster is 51px a button, which is a centered label and no room,
   and **Export** beside them is wide enough but does not wear one either, because one marked button
   in a row of four reads as an inconsistency rather than an affordance. The modal's **Export to
   CSV** does wear one: it is alone in its window with no unmarked siblings to be odd against.
@@ -73,8 +73,8 @@ mark on a *widget* is tinted down through `SetVertexColor`.
 **The four marks in `modules/LedgerTable.lua` are tinted to the HEADER GOLD, and because they are
 inline `|T…|t` they carry the LONG form of the escape.** Both sort arrows sit inside the column
 header's label and both group expanders inside the group header's row, and both of those are drawn
-in 1/0.82/0 — art left near-white in front of them read as a second colour inside one string. Vertex
-colour is the last three arguments (0-255) of the full sequence, so all eleven in front of them are
+in 1/0.82/0 — art left near-white in front of them read as a second color inside one string. Vertex
+color is the last three arguments (0-255) of the full sequence, so all eleven in front of them are
 spelled: `0:0:0:0` keeps the auto-size the short `:0` gave, `64:64:0:64:0:64` is the whole texture
 uncropped, and `255:209:0` is the gold. One `HEADER_RGB` constant feeds the tint and both
 `SetTextColor` calls, so a mark cannot drift off the word beside it. The tint rides on the escape

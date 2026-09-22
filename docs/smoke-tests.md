@@ -330,7 +330,7 @@ the History window and the Current Banking Session window.
 
 ## S-12b · Master controls — the three rows the revamp added
 
-`General visibility`, `Master alpha` and `Lock frame` are new settings, not relabelled old ones.
+`General visibility`, `Master alpha` and `Lock frame` are new settings, not relabeled old ones.
 Nothing headless can prove a frame is actually dimmed, undraggable or gone, so this is the only place
 these are observable. All three are on **Settings ▸ General ▸ Master controls**.
 
@@ -342,8 +342,8 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    Put it back to `1.00`.
 3. Tick **Lock frame**. Try to drag the ledger window by its title bar: it does not move. The session
    window and the export modal are equally stuck. Untick it — all three drag again.
-4. Move the ledger window well off centre, drag the session window somewhere odd, then click **Reset
-   position**. Both snap back to centre at their default size. Nothing else changes — your settings,
+4. Move the ledger window well off center, drag the session window somewhere odd, then click **Reset
+   position**. Both snap back to center at their default size. Nothing else changes — your settings,
    your filter lists and your recorded history are all untouched. (The page's **Defaults** button
    does this too, as part of a wider reset; this button does *only* this.)
 5. Set **General visibility** to **Never**. Every window closes. `/bl show` does nothing — the addon
@@ -609,7 +609,7 @@ is about the path and the argument; this is where somebody actually looks at the
    `LibKa0s-Widgets-1.0` through `B:MakeDropdown` stopped resolving and fell to its rung, which is
    the same art the menu used before the marks landed.
    **The tick is FULL WHITE and that is correct** — it is the one inline mark left untinted, because
-   the menu row beside it is plain white text with no colour for it to match. It reads a shade
+   the menu row beside it is plain white text with no color for it to match. It reads a shade
    brighter than that label. Recorded in [media.md](media.md); not a regression to file.
 4. Click a **column header** in History. The sort arrow beside the label is a chevron-weight
    **sort-up / sort-down** mark, and it flips when you click again. Group by **Day**: each group
@@ -617,20 +617,20 @@ is about the path and the argument; this is where somebody actually looks at the
    to be Blizzard's boxed `+` / `-`. Click one; the chevron turns.
    **All four are the SAME GOLD as the words they sit beside** — the arrows against the column
    label, the chevrons against the group label, both of which are drawn in 1/0.82/0. Hold your eye
-   on each pair: a near-white mark against a gold word means the vertex-colour tail came off the
+   on each pair: a near-white mark against a gold word means the vertex-color tail came off the
    inline escape, and it is the one failure in this section that still draws, still sizes and still
    points the right way. Check the group chevron as carefully as the arrow — it is drawn in a
    different function and is the half that gets forgotten. The gray `(count)` on the same line is
    *not* gold and is not part of this check. Every mark drawn on a *widget* — close, the dropdown
    chevron, the magnifier, the modal's export mark — is toned to 0.7–0.85 gray instead.
 5. **The filter bar carries no marks at all** — **Export**, **Save**, **Reset** and **Clear** are
-   four plain centred words. Export used to wear one and does not any more: one marked button in a
+   four plain centered words. Export used to wear one and does not any more: one marked button in a
    row of four read as an odd one out. A mark that has come back on any of them is a regression.
    **Export to CSV** in the modal is the one action button that keeps its mark: a small mark on its
-   LEFT with the words still **centred** — not shifted. If the words have moved off centre, the
+   LEFT with the words still **centered** — not shifted. If the words have moved off center, the
    label was anchored to the art instead of to the button.
    **Measure the modal's button against the Data set dropdown directly above it.** It must be about
-   *two-fifths* as wide and centred under it, with the mark and the words close enough to read as one
+   *two-fifths* as wide and centered under it, with the mark and the words close enough to read as one
    control. If it spans the modal edge to edge like the dropdown does, its 150px width was overridden
    by a left-and-right anchor pair — the mark is then pinned at the far-left edge with the label
    floating ~150px away, which reads as an unrelated decoration rather than as a mark BESIDE a label.
@@ -648,7 +648,7 @@ is about the path and the argument; this is where somebody actually looks at the
    **The four header marks are GOLD on this rung too** —
    the tint rides on the escape rather than on the art, so a gold `Arrow-Up-Up` and a gold boxed `+`
    are correct here; a near-white one means the fallback path lost the tail the resolved path keeps.
-   Nothing blank, nothing off-centre, no error.
+   Nothing blank, nothing off-center, no error.
 
    **The export modal is NOT on this rung, and that is not a gap in the check.** This step used to
    ask for "**Export to CSV** with its words and no art", and it could not be performed: the
@@ -722,15 +722,15 @@ only a real login can produce, the second needs an item the client has genuinely
    `core/Constants.lua` here means `core\ItemSetup.lua` has slipped below `core\Constants.lua` in
    the TOC.
 2. `/bl config` → **General** ▸ **Capture**. The **Minimum quality** dropdown lists six rows, each the quality's
-   own name in its own colour followed by " and above": *Poor*, *Common*, *Uncommon*, *Rare*,
-   *Epic*, *Legendary*. A row reading a bare number, or a row with no colour, is the seam failing.
+   own name in its own color followed by " and above": *Poor*, *Common*, *Uncommon*, *Rare*,
+   *Epic*, *Legendary*. A row reading a bare number, or a row with no color, is the seam failing.
    On a non-English client the names are the client's own, never English.
 3. `/bl show` — the **Quality** column and the Quality filter still read the same words they did
    before this change, and `/bl export` writes the same quality names into its rows.
 4. **The refusal survives (F-006).** Set Minimum quality to *Rare*. Move an item the client has not
    cached this session — the reliable way is `/reload` and then immediately move something unusual
    from a bank tab you have not opened. `/bl debug` shows the movement recorded as skipped with
-   cause `uncached`, **not** captured and **not** guessed at from the link's colour. The addon also
+   cause `uncached`, **not** captured and **not** guessed at from the link's color. The addon also
    asks the client to cache the id, so repeating the same movement a few seconds later judges it
    properly and either captures it or skips it on quality. A row that appears immediately at a
    quality nothing resolved is the regression this step exists to catch: that is LootHistory's
@@ -743,7 +743,7 @@ only a real login can produce, the second needs an item the client has genuinely
 cannot see, so they are checked here. **NOT YET RUN** — recorded when the adoption landed.
 
 1. `/bl show` → **Export** → with **All Data** selected, click **Export to CSV**.
-2. The copy window opens **centred on the ledger window**, above the modal, with the CSV **already
+2. The copy window opens **centered on the ledger window**, above the modal, with the CSV **already
    selected**.
 3. Ctrl+C, paste into a text editor: the whole CSV, including the `\r\n` line breaks the exporter
    writes.
@@ -752,7 +752,7 @@ cannot see, so they are checked here. **NOT YET RUN** — recorded when the adop
 5. Esc closes the copy window and leaves the modal open.
 6. Drag the ledger window somewhere else and export again: the copy window follows it.
 7. **The close glyph is the library's now** — 18x18 with a red hover, where this addon's own close
-   is 24x24 with a class-coloured hover. Confirm it still reads as a close button in the title bar
+   is 24x24 with a class-colored hover. Confirm it still reads as a close button in the title bar
    and is not clipped by the 26px bar. This is the one deliberate visual difference in the change.
 
 ## S-25 · The v1 → v2 ladder actually runs on a real store

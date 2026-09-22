@@ -41,7 +41,7 @@ match, so it was left alone rather than folded into the rename.
 
 ## While the addon is disabled
 
-**Disabled means the addon is not running** - every registration gone, every timer cancelled, every
+**Disabled means the addon is not running** - every registration gone, every timer canceled, every
 window shut (`slash-commands-§7`; see [ARCHITECTURE.md](ARCHITECTURE.md) ▸ *The stand-down*). This
 page is about the other half of that ruling: the command surface, which is **not** the addon.
 
