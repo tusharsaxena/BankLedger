@@ -289,7 +289,7 @@ test("Util.VisibilityAllows answers all four modes against the combat state", fu
   assertTrue(allows("inCombat"))
   assertFalse(allows("outOfCombat"), "in combat, 'Only out of combat' hides")
   assertTrue(allows("always"))
-  -- A value nobody recognises shows the addon, so a corrupt key never costs the player the panel.
+  -- A value nobody recognizes shows the addon, so a corrupt key never costs the player the panel.
   assertTrue(allows("whenever"))
 
   mocks.InCombatLockdown = savedLockdown

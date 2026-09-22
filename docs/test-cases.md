@@ -1014,7 +1014,7 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: ItemIDFromLink accepts a bare itemString
 - ItemSetup: ItemIDFromLink returns nil for anything that is not a link
 - ItemSetup: QualityLabel maps a quality id to its English name
-- ItemSetup: this addon now HAS the colour fallback it lacked
+- ItemSetup: this addon now HAS the color fallback it lacked
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
@@ -1064,6 +1064,11 @@ badge and any count quoted in the docs must agree with it.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
+### test_prose.lua (2)
+
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
+
 ### test_eol.lua (1)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1106,5 +1111,6 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
+| test_prose.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **957** |
+| **Total** | **959** |

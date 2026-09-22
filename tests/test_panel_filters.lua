@@ -803,7 +803,7 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
 end)
 
 test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", function()
-  -- RenderTabbedSchema renders the active group with `noHeadings`, because a tab labelled Capture
+  -- RenderTabbedSchema renders the active group with `noHeadings`, because a tab labeled Capture
   -- over a section headed Capture says the same word twice. A SUBSECTION heading is the exception
   -- and is deliberately not suppressed (options-ui-§7): it names a kind of control the tab mixes,
   -- and it is declared by the row's `subgroup`, never drawn by a builder.

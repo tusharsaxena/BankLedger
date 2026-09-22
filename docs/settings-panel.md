@@ -215,7 +215,7 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 
 | Path | Type | Default | Tab | Subsection | Layout |
 |---|---|---|---|---|---|
-| `settings.enabled` | bool | `true` | Master controls | — | `startsLine`, pairs with `visibility`. **The master switch.** Its `onChange` drives the `disabled` hold on the lifecycle latch (`core/LifecycleSetup.lua`), so unticking it actually stands the addon down — every registration unregistered, every timer cancelled, both windows down — rather than hiding it (`slash-commands-§7`). `/bl enable` and `/bl disable` are aliases onto this same write. |
+| `settings.enabled` | bool | `true` | Master controls | — | `startsLine`, pairs with `visibility`. **The master switch.** Its `onChange` drives the `disabled` hold on the lifecycle latch (`core/LifecycleSetup.lua`), so unticking it actually stands the addon down — every registration unregistered, every timer canceled, both windows down — rather than hiding it (`slash-commands-§7`). `/bl enable` and `/bl disable` are aliases onto this same write. |
 | `settings.visibility` | string | `"always"` | Master controls | — | |
 | `settings.windowScale` | number | `1.0` | Master controls | — | `startsLine`, pairs with `alpha` |
 | `settings.alpha` | number | `1.0` | Master controls | — | `min` narrowed to `0.1`, the honored floor |

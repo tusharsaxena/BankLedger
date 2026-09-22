@@ -600,7 +600,7 @@ end
 function SW:BindRow(row, entry, absIndex)
   row.entry = entry
   -- Tint AND banding in one call: a recycled row may have been built before the slider
-  -- moved, so the colour is re-read here rather than trusted from construction.
+  -- moved, so the color is re-read here rather than trusted from construction.
   NS.Util.ApplyRowTint(row, absIndex % 2 == 0)
   -- Text AND color come from LedgerTable's shared seam, so a cell can never read one way in the
   -- History window and another here.

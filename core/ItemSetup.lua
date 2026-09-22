@@ -6,7 +6,7 @@ local _, NS = ...
 --
 -- Four primitives moved: ItemIDFromLink, QualityFromLink, QualityLabel, LoadItem. Two of them were
 -- byte-identical to LootHistory's and two were written by only one of the two addons — this one had
--- ItemIDFromLink, that one had QualityFromLink, and the missing colour fallback is the primitive
+-- ItemIDFromLink, that one had QualityFromLink, and the missing color fallback is the primitive
 -- whose absence once let an upgrade-track drop record at its base quality.
 --
 -- THE RESOLVER DID NOT MOVE, and that is a decision rather than an oversight. Compat.GetItemDetails

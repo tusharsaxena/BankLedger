@@ -120,13 +120,13 @@ end
 -- the stand-down (modules/Ledger.lua) — the sanctioned shape for a hook that cannot be undone.
 local BUS_MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
 
--- Every module that arms a debounce timer, and therefore has a handle to drop. Cancelling at the
+-- Every module that arms a debounce timer, and therefore has a handle to drop. Canceling at the
 -- AceTimer level alone is not enough: each module remembers its own handle and refuses to schedule
 -- while one is outstanding, so a handle left behind a stand-down is a debounce that never fires
 -- again after the stand-up.
 local TIMER_MODULES = { "Ledger", "Browser", "Insights" }
 
---- Make the addon INERT. Every registration gone, every timer cancelled, every window shut.
+--- Make the addon INERT. Every registration gone, every timer canceled, every window shut.
 ---
 --- NOT a draw gate (anti-pattern #85). Nothing here sets a flag for a handler to consult: the
 --- handlers are unregistered, so the client stops walking this addon's registration list, stops

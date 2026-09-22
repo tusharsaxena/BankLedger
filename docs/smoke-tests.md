@@ -798,7 +798,7 @@ every automated check in this repo.**
 2. Cycle every tab of the strip three times, ending back on the first.
 3. Watch three things on each pass: the **label** is that tab's own, the **selected** tab is the one
    you pressed, and the strip's **band height** does not move as you go through it.
-4. **Pass:** every tab labelled and selected correctly on all three passes, no band that grows or
+4. **Pass:** every tab labeled and selected correctly on all three passes, no band that grows or
    shrinks. **Fail:** a label carried over from the previously-dressed tab, a highlight on the wrong
    button, a body drawn under the wrong tab, or a strip whose height moves between passes — each of
    which is the pool handing back a frame it did not finish dressing.
@@ -844,7 +844,7 @@ byte-identical to the enUS header — it is a key another tool parses, not prose
    items of different classes — a piece of armor and a trade good, say. Open **Insights** and read
    the **Movements By Item Type** and sub-type facets.
    **Pass** — the facet labels are the client's own words (`Rüstung`, `Handelswaren`), the counts
-   are right, and the type × sub-type pivot pairs them correctly. **Fail** — a facet labelled with a
+   are right, and the type × sub-type pivot pairs them correctly. **Fail** — a facet labeled with a
    number, an empty label, or two facets counted separately for what is plainly one category.
    Then, if this account has rows captured on an **English** client (or capture some, switch the
    client language, and come back), look for **both** spellings in the same facet list: one category

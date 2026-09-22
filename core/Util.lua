@@ -255,7 +255,7 @@ end
 --- Is this addon's display allowed on screen right now (`settings.visibility`)?
 ---
 --- A dropdown and not a boolean, because a boolean can only ever answer two of the four. An
---- UNKNOWN stored string answers TRUE: a value nobody recognises is a reason to show the addon and
+--- UNKNOWN stored string answers TRUE: a value nobody recognizes is a reason to show the addon and
 --- let the player fix it, never a reason to hide every window with no way back.
 function Util.VisibilityAllows()
   -- THE STAND-DOWN'S FIRST RUNG (slash-commands-§7). Held shut AT THE SOURCE rather than by
@@ -296,7 +296,7 @@ function Util.ApplyVisibility()
   end
 end
 
---- Re-centre both persistent windows at their default size. The Master controls tab's "Reset
+--- Re-center both persistent windows at their default size. The Master controls tab's "Reset
 --- position" button and the General page's Defaults button share this one body — the button was
 --- previously only ever reachable as a side effect of the second.
 function Util.ResetWindowPositions()

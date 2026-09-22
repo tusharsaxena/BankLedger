@@ -121,7 +121,7 @@ NS.Launcher = Launcher:New({
   -- rest. THIS ONE SAID "Bank Ledger" and now says the brand.
   --
   -- DELIBERATELY NOT THE TOC'S `## Title`, and the two are NOT wired to each other. A Title MAY
-  -- carry colour escapes and one in the collection does -- Ka0s Pretty Chat's is
+  -- carry color escapes and one in the collection does -- Ka0s Pretty Chat's is
   -- `Ka0s |cffff0000P|cffff9900r|cffffff00e|...` -- and handed to a display that draws the string
   -- raw it splatters across a row in which every other row is plain text, handed to one that
   -- strips escapes it arrives mangled instead. So NO escape sequence of any kind belongs here.

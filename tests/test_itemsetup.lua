@@ -48,7 +48,7 @@ test("ItemSetup: QualityLabel maps a quality id to its English name", function()
   assertEqual(NS.Item.QualityLabel(4), "Epic")
 end)
 
-test("ItemSetup: this addon now HAS the colour fallback it lacked", function()
+test("ItemSetup: this addon now HAS the color fallback it lacked", function()
   -- QualityFromLink was LootHistory-only before the library. It is the primitive whose absence let
   -- an upgrade-track drop read back at its base quality; having it here does not change the gate's
   -- policy, it just means the addon can see the quality when it chooses to.

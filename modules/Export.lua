@@ -294,9 +294,9 @@ end
 -- `mark` is OPTIONAL and is a RESOLVED PATH — `NS.Icon("export")` — for a LibKa0s-Media mark drawn
 -- BESIDE the label. THE MARK IS BESIDE THE LABEL, NEVER INSTEAD OF IT: this button opens a copy
 -- window full of CSV, and a modal whose only control is a wordless glyph is a modal you have to
--- click to understand. The label stays centred whether or not the art resolves, so a nil mark — no
+-- click to understand. The label stays centered whether or not the art resolves, so a nil mark — no
 -- LibKa0s, or a catalog without that name — leaves the button exactly as it was rather than
--- off-centre. No tooltip on the mark.
+-- off-center. No tooltip on the mark.
 --
 -- Resolved at the CALL SITE for the same reason modules/Browser.lua's makeBarButton is: it keeps
 -- every icon name in this addon spelled inside a literal `NS.Icon("…")`, the one shape the catalog
@@ -390,7 +390,7 @@ local function EnsureFrame()
   --
   -- ANCHORED BY ITS TOP EDGE ALONE, deliberately. A TOPLEFT/TOPRIGHT pair here would override the
   -- 150 against a 372-wide modal and stretch the button to 340 — leaving the mark pinned at LEFT+10
-  -- and the centred label a clear 150px away from it, which reads as an unrelated decoration rather
+  -- and the centered label a clear 150px away from it, which reads as an unrelated decoration rather
   -- than as a mark BESIDE a label. The mark suite asserts the anchor set for exactly that reason.
   local csvBtn = makeButton(frame, "Export to CSV", 150, function()
     local serialize = config.csv or function(d) return E:CSV(d) end

@@ -57,7 +57,7 @@ end
 --
 -- The TOC is the one list that cannot go stale, because it is the same list the CLIENT loads: a file
 -- this addon ships and does not name here would not run in game either. `Loader.tocFiles` already
--- drops `libs/` and normalises the separators, so what comes back is exactly the addon's own source
+-- drops `libs/` and normalizes the separators, so what comes back is exactly the addon's own source
 -- and nothing else -- defaults/ and locales/ included, and any directory added later covered from
 -- the commit that makes its files load.
 --
@@ -210,7 +210,7 @@ local function groupHeaderText(LT, collapsed)
   return header:GetText()
 end
 
--- The vertex-colour tail EVERY inline mark in the header carries — both sort arrows and both group
+-- The vertex-color tail EVERY inline mark in the header carries — both sort arrows and both group
 -- expanders: the header gold (1/0.82/0) in the 0-255 the escape sequence takes, behind the eleven
 -- positional arguments that have to be spelled to reach it. Written out in full HERE rather than
 -- composed from the same helper the source uses, because a mirror built by the code under test
@@ -228,9 +228,9 @@ end)
 
 test("marks: every inline header mark is TINTED to the gold of the word it sits beside", function()
   -- The arrow art is near-white, and drawn untinted beside a gold column label it read as a second
-  -- colour inside one string. The tail is the whole fix and it is invisible to every other case
+  -- color inside one string. The tail is the whole fix and it is invisible to every other case
   -- here: an arrow that lost it still resolves the right path, still sizes to the line, and still
-  -- draws — just in the wrong colour, which is the failure mode no headless instrument catches
+  -- draws — just in the wrong color, which is the failure mode no headless instrument catches
   -- unless it is spelled out.
   --
   -- 255/209/0 is 1/0.82/0 rounded, and 1/0.82/0 is what LT:MakeHeaderButton sets on the label and
@@ -240,9 +240,9 @@ test("marks: every inline header mark is TINTED to the gold of the word it sits 
   assertTrue(src:find("local HEADER_RGB = { 1, 0.82, 0 }", 1, true) ~= nil,
     "the one place the header gold is written down is gone")
   assertTrue(src:find("fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true) ~= nil,
-    "the column header stopped taking its colour from HEADER_RGB, so the arrow can drift off it")
+    "the column header stopped taking its color from HEADER_RGB, so the arrow can drift off it")
   assertTrue(src:find("header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true)
-    ~= nil, "the group header stopped taking its colour from HEADER_RGB")
+    ~= nil, "the group header stopped taking its color from HEADER_RGB")
   for _, dir in ipairs({ "up", "down" }) do
     assertTrue(headerLabel(NS.LedgerTable, "date", dir == "up"):find(HEADER_TINT, 1, true) ~= nil,
       "the sort-" .. dir .. " arrow lost its tint and draws near-white beside gold text")
@@ -260,7 +260,7 @@ test("marks: the group header's expander is a chevron, at the site that draws it
   -- Collapsed points right, expanded points down, and the two-space gap and the gray `(count)` the
   -- header has always carried are untouched: the mark changed and the layout did not. The tint is
   -- the header's own gold, the same as the sort arrows' — this row is drawn in 1/0.82/0 too, and a
-  -- near-white chevron in front of a gold label reads as two colours in one string.
+  -- near-white chevron in front of a gold label reads as two colors in one string.
   assertEqual(groupHeaderText(NS.LedgerTable, true),
     "|T" .. ICONS .. "chevron-right" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
   assertEqual(groupHeaderText(NS.LedgerTable, false),
@@ -284,7 +284,7 @@ end)
 -- ── marks BESIDE a label, never instead of one ───────────────────────────────────────────────
 
 test("marks: the filter bar is WORDS ONLY — its Export button carries no mark", function()
-  -- Export did wear one, as the only button on the bar wide enough for art beside a centred label.
+  -- Export did wear one, as the only button on the bar wide enough for art beside a centered label.
   -- Four buttons sit in that row and one marked among four unmarked read as an odd one out, so the
   -- mark came off. This is the case that keeps it off: a mark added back to one of these belongs on
   -- all four or none, and the bare `if mark then` branch it used to hang from is gone from the
@@ -319,7 +319,7 @@ test("marks: BESIDE means beside — the modal's button keeps the width its mark
     -- The width and the anchors are ONE decision and this is the assertion that keeps them so. The
     -- button asks for 150 against a 372-wide modal; a TOPLEFT/TOPRIGHT pair (the shape every other
     -- control in this modal uses) silently overrides it to 340 and strands the mark at LEFT+10 with
-    -- the centred label 150px away. Nothing errors, nothing is missing, and `btn.icon:GetPoint(1)`
+    -- the centered label 150px away. Nothing errors, nothing is missing, and `btn.icon:GetPoint(1)`
     -- still answers "LEFT" — so the gap is invisible to every other case here. The anchor SET is
     -- what carries it: one point, by the top edge, is a button that stays 150 wide.
     --
@@ -349,7 +349,7 @@ test("marks: both button factories still draw the label unconditionally", functi
   for _, file in ipairs({ "modules/Browser.lua", "modules/Export.lua" }) do
     local src = readSource(file)
     assertTrue(src:find('fs:SetPoint("CENTER")', 1, true) ~= nil,
-      file .. " no longer centres a button label")
+      file .. " no longer centers a button label")
     assertTrue(src:find("fs:SetText(text)", 1, true) ~= nil,
       file .. " no longer sets a button label from its own argument")
   end
@@ -500,7 +500,7 @@ test("marks: nothing under settings/ resolves a mark — that panel is the Optio
 test("marks: the art that is NOT a mark was left alone", function()
   -- The catalog is marks, not chrome, and not identity. Each of these was looked at and deliberately
   -- kept: a resize grip is a Blizzard control with a paired -Highlight state the catalog has no
-  -- companion for; the class circles are full-colour art that must not be tinted; the landing-page
+  -- companion for; the class circles are full-color art that must not be tinted; the landing-page
   -- logo and the launcher icon are this addon's face, two files doing two jobs (layout-§4).
   --
   -- modules/Browser.lua no longer names an icon at all. It used to carry `inv_misc_bag_15`, the

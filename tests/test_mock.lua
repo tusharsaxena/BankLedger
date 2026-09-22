@@ -319,5 +319,5 @@ test("Mock bus: UnregisterAllMessages drops one target and leaves the rest subsc
   a:UnregisterAllMessages()
   a:SendMessage("Ka0s_Scratch_Ping")
   assertEqual(seenA, 1, "the torn-down target hears nothing further")
-  assertEqual(seenB, 2, "and the other target is untouched by its neighbour's teardown")
+  assertEqual(seenB, 2, "and the other target is untouched by its neighbor's teardown")
 end)

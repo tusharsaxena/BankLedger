@@ -537,9 +537,9 @@ return function()
   M.__loadRequests = {}
 
   -- strings / helpers
-  -- The client's real per-quality colours, id by id, because a consumer may read this table
+  -- The client's real per-quality colors, id by id, because a consumer may read this table
   -- BACKWARDS: NS.Item.QualityFromLink inverts it into hex -> quality so an uncached link can
-  -- still be classified by its colour prefix. A blanket __index that answered one colour for
+  -- still be classified by its color prefix. A blanket __index that answered one color for
   -- every id made that inversion collapse to a single entry, and the fallback silently answered
   -- nil for every real link. The metatable stays for ids outside 0-8 (cosmetic there).
   --

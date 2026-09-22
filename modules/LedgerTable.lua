@@ -157,10 +157,10 @@ end
 --
 -- ALL FOUR ARE TINTED, because all four sit inside gold text — the two sort arrows in the column
 -- header's label, the two expanders in the group header's. The art ships near-white by contract,
--- and near-white beside gold reads as a second colour inside one string rather than as one control.
+-- and near-white beside gold reads as a second color inside one string rather than as one control.
 --
 -- The tint is why they carry the LONG form of the escape. ":0" alone is "size to the line and draw
--- the art as it is". Vertex colour is the LAST three arguments of the full sequence, so all eleven
+-- the art as it is". Vertex color is the LAST three arguments of the full sequence, so all eleven
 -- in front of them have to be spelled: height and width 0 keep the auto-size that ":0" gave, and
 -- 64:64 with 0:64:0:64 is the whole texture uncropped (the numbers are a ratio, so they hold
 -- whatever the file's real dimensions are).
@@ -1006,7 +1006,7 @@ end
 function LT:BindRow(row, item, absIndex)
   row.item = item
   -- Tint AND banding in one call: a recycled row may have been built before the slider
-  -- moved, so the colour is re-read here rather than trusted from construction.
+  -- moved, so the color is re-read here rather than trusted from construction.
   NS.Util.ApplyRowTint(row, absIndex % 2 == 0)
 
   if item.kind == "header" then

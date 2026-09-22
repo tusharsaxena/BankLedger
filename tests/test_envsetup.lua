@@ -43,7 +43,7 @@ test("EnvSetup: NS.Meta asks about THIS addon's folder, not its title or its fra
 end)
 
 test("EnvSetup: NS.Meta degrades to nil when the client exposes no manifest reader", function()
-  -- The behaviour the deleted Compat.GetAddOnMetadata was pinned on: nil, never a raise.
+  -- The behavior the deleted Compat.GetAddOnMetadata was pinned on: nil, never a raise.
   assertEqual(NS.Meta("Version"), nil)
 end)
 

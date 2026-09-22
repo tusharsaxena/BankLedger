@@ -512,7 +512,7 @@ end)
 
 -- ── The dropdown forwarder ────────────────────────────────────────
 --
--- The widget itself is LibKa0s-Widgets-1.0's now, and its behaviour is asserted in that repo's
+-- The widget itself is LibKa0s-Widgets-1.0's now, and its behavior is asserted in that repo's
 -- tests/test_widgets.lua -- the cases that used to sit here moved there verbatim. What is still this
 -- addon's is the INJECTION: three resolved paths that only a host can produce, because the library
 -- builds a path from an addon name it does not have. Getting one of them wrong draws nothing and

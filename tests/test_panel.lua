@@ -737,7 +737,7 @@ end)
 -- These two cases exist so the divergence cannot drift: the first PINS the blast radii that are
 -- actually shipping, so unifying them is a deliberate, visible change to this file rather than a
 -- silent one; the second holds the mitigation the register row promises, which is that the two acts
--- are at least labelled apart while the split stands.
+-- are at least labeled apart while the split stands.
 
 test("Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one", function()
   -- Dies under: pointing CliResetAll at ResetEverything (or the reverse) without also deleting the

@@ -174,7 +174,7 @@ function Sl:ResetEverything()
     -- this table is GLOBAL, so it cannot be reached -- has no premise here: there is no profile at
     -- all, so the reset is this wholesale wipe of the account-wide store, and `minimap = { hide =
     -- false }` is a declared default that the merge below put straight back. A player who had hidden
-    -- their button got it back, at the default angle, from a button labelled *Reset all settings*.
+    -- their button got it back, at the default angle, from a button labeled *Reset all settings*.
     --
     -- Carved out by holding the TABLE and putting it back, rather than by reading `hide` and
     -- re-writing it: `minimapPos` is in there too and is nobody's schema row, so a key-by-key

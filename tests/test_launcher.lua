@@ -207,9 +207,9 @@ function()
   -- it with the folder name.
   local label = NS.Launcher:Object().label
   assertEqual(label, "Ka0s Bank Ledger", "`Ka0s <Name>`, the addon's brand name")
-  assertEqual(label:find("|c", 1, true), nil, "no colour escape: a display that draws the string "
+  assertEqual(label:find("|c", 1, true), nil, "no color escape: a display that draws the string "
     .. "raw would splatter this row across a list of plain-text ones")
-  assertEqual(label:find("|r", 1, true), nil, "nor a colour terminator")
+  assertEqual(label:find("|r", 1, true), nil, "nor a color terminator")
   assertEqual(label:find("BankLedger", 1, true), nil,
     "the FOLDER name is the registration `name`, which LibDBIcon keys the saved position by")
 

@@ -284,7 +284,7 @@ end
 -- WORDS ONLY, and that is a decision rather than an omission. This factory did take an optional
 -- RESOLVED PATH for a mark drawn BESIDE the label, and the filter bar's Export button was the one
 -- caller wide enough to pass one. It does not any more: four buttons sit in a row here, three of
--- them too narrow for art beside a centred label (see the note in BuildFilterBar), and one marked
+-- them too narrow for art beside a centered label (see the note in BuildFilterBar), and one marked
 -- button among four unmarked ones read as an odd one out rather than as an affordance. The MODAL's
 -- "Export to CSV" keeps its mark — that button is alone in its window, where the mark is the only
 -- art on the surface and has nothing to be inconsistent with.
@@ -848,7 +848,7 @@ function B:BuildFilterBar(bar)
   -- It carries NO mark, and neither does anything else on this bar. Export briefly did, on the
   -- arithmetic that it was the only button wide enough: it is exportW wide (166 at the window's
   -- floor) while the Save · Reset · Clear cluster below splits exportW - 12 three ways, 51px a
-  -- button, and "Clear" in GameFontHighlightSmall is most of thirty of those CENTRED pixels — a
+  -- button, and "Clear" in GameFontHighlightSmall is most of thirty of those CENTERED pixels — a
   -- 12px mark at an 8px inset would sit under its first letter. But "the only one that fits" is not
   -- the same as "the one that should have it", and a single marked button in a row of four read as
   -- an inconsistency rather than an affordance. Words for all four.

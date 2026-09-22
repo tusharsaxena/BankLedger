@@ -354,7 +354,7 @@ end
 --
 -- It draws NO heading. It used to, because both lists were stacked down one scroll and the heading
 -- was the only thing telling them apart; the sub-strip above IS the heading now, so a "Blacklist"
--- heading under a sub-tab labelled Blacklist would say the word twice — which is the same rule the
+-- heading under a sub-tab labeled Blacklist would say the word twice — which is the same rule the
 -- library applies to a tabbed schema page (RenderRows' `noHeadings`).
 local function makeFilterSection(ctx, listKey, desc)
   local scroll = O.EnsureScroll(ctx)
@@ -751,7 +751,7 @@ function P:Register()
       -- only "every setting" understated the button — and it understates it by more since the two
       -- filter tabs moved onto this page.
       defaultsTooltip = "Restore every Bank Ledger setting to its default, clear the item "
-        .. "blacklist and whitelist, and recentre the ledger and session windows at their default "
+        .. "blacklist and whitelist, and recenter the ledger and session windows at their default "
         .. "size. Your recorded history is never touched.",
     })
     P.general = ctx

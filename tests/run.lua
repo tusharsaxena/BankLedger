@@ -23,7 +23,7 @@ local SUITES = {
   "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
-  "test_lintconfig",
+  "test_lintconfig", "test_prose",
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
