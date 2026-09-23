@@ -308,9 +308,10 @@ tests/
   cases.
 - `wow_mock.lua` layers Bank Ledger's own container, guild-bank, item and money model over
   `_kit/mock_base.lua`, plus a short list of decisions of its own, numbered in the file's header
-  with the suite that depends on each: the frame stub, frames shown by default, the no-op
-  `C_Timer.After`, the defaulted-store AceDB, `__settingsPanels`, the plain-table
-  `DEFAULT_CHAT_FRAME`, and the nil `StaticPopup_Show` and `GameTooltip`. Two more are documented at
+  with the suite that depends on each: the frame stub, frames shown by default, the defaulted-store
+  AceDB, `__settingsPanels`, the plain-table `DEFAULT_CHAT_FRAME`, and the nil `StaticPopup_Show`
+  and `GameTooltip`. `C_Timer.After` is the kit's recording one: the no-op override that once hid
+  the retention prune from `test_disabled.lua` is retired, and must not come back. Two more are documented at
   their own sites: the AceGUI `SetTitle` wrap and `LibStub.minors`. Those are deliberate
   divergence, not drift: read the header before "simplifying" one away. **The Ace fakes are the
   kit's**: AceAddon, AceEvent, AceTimer, AceConsole and AceGUI are taken from the base as they stand

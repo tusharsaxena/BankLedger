@@ -115,3 +115,32 @@ test("NS.addon carries the kit's Printf and records its own events", function()
   assertTrue(mocks.LibStub("AceAddon-3.0"):GetAddon("BankLedger") == NS.addon,
     "and registers it for GetAddon")
 end)
+
+-- The retention prune is deferred off the login spike and runs once per session. Every PEW (a
+-- zone, a /reload's loading screen) reaches OnEnterWorld, so the pending handle is what keeps a
+-- second PEW inside the window from queuing a second prune, and the latch keeps every PEW after
+-- the prune from queuing any.
+test("OnEnterWorld arms the retention prune once per session", function()
+  -- red under: dropping the cleanupPending check from addon:OnEnterWorld (core/BankLedger.lua).
+  local st, db = NS.State, NS.Database
+  local savedDone, savedPending, savedPrune = st.cleanupDone, st.cleanupPending, db.PruneOld
+  local pruned = 0
+  db.PruneOld = function() pruned = pruned + 1 end
+  st.cleanupDone, st.cleanupPending = false, nil
+  mocks.__timers = setmetatable({}, getmetatable(mocks.__timers))
+  local ok, err = pcall(function()
+    NS.addon:OnEnterWorld()
+    NS.addon:OnEnterWorld()
+    assertEqual(#mocks.__timers, 1, "two PEWs inside the window queued more than one prune")
+    assertEqual(mocks.__timers[1].delay, 5, "the prune is deferred five seconds off the login spike")
+    mocks.__fireTimers()
+    assertEqual(pruned, 1, "the queued prune did not run")
+    NS.addon:OnEnterWorld()
+    assertEqual(#mocks.__timers, 0, "a PEW after the prune ran queued another")
+  end)
+  if st.cleanupPending and NS.addon.CancelTimer then NS.addon:CancelTimer(st.cleanupPending) end
+  db.PruneOld = savedPrune
+  st.cleanupDone, st.cleanupPending = savedDone, savedPending
+  mocks.__timers = setmetatable({}, getmetatable(mocks.__timers))
+  if not ok then error(err, 0) end
+end)

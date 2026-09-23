@@ -1050,7 +1050,7 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
-### test_lifecycle.lua (6)
+### test_lifecycle.lua (7)
 
 - addon:OnDisable releases the _enabled latch on every module OnEnable arms
 - a disable then enable cycle leaves all four modules live again
@@ -1058,11 +1058,13 @@ badge and any count quoted in the docs must agree with it.
 - a disable then enable cycle does not subscribe the session window twice
 - addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
 - NS.addon carries the kit's Printf and records its own events
+- OnEnterWorld arms the retention prune once per session
 
-### test_disabled.lua (11)
+### test_disabled.lua (12)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
+- disabled: a stand-down inside the prune window postpones the prune rather than canceling it
 - disabled: every frame that was shown is hidden, and the show ladder keeps it shut
 - disabled: firing every baseline event writes nothing, prints nothing and shows nothing
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
@@ -1174,8 +1176,8 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| test_lifecycle.lua | 6 |
-| test_disabled.lua | 11 |
+| test_lifecycle.lua | 7 |
+| test_disabled.lua | 12 |
 | test_surface_parity.lua | 10 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
@@ -1183,4 +1185,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1017** |
+| **Total** | **1019** |

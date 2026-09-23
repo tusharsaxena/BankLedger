@@ -147,8 +147,10 @@ function NS.StandDown()
   local ad = NS.addon
 
   -- 1. EVERY TIMER. AceTimer's own cancel-all takes the handles, and each module drops the handle
-  --    it remembers so the next stand-up can schedule again.
+  --    it remembers so the next stand-up can schedule again. The retention prune's handle is the
+  --    addon object's own, so it is dropped here: the next PEW after a stand-up re-arms it.
   if ad and ad.CancelAllTimers then ad:CancelAllTimers() end
+  if NS.State then NS.State.cleanupPending = nil end
   for _, name in ipairs(TIMER_MODULES) do
     local module = NS[name]
     if module and module.CancelPending then module:CancelPending() end
@@ -214,16 +216,18 @@ end
 
 -- Retention cleanup runs once per session, deferred off the login/zone spike.
 function addon:OnEnterWorld()
-  if NS.State.cleanupDone then return end
-  NS.State.cleanupDone = true
-  if C_Timer and C_Timer.After then
-    C_Timer.After(5, function()
-      -- The one timer that can outlive the stand-down: it is armed BEFORE the disable and fires
-      -- five seconds later, and PruneOld writes SavedVariables. A write from a game event while
-      -- disabled is the failure slash-commands-§7 names in its purest form, so the body checks the
-      -- latch rather than trusting the cancel to have caught it.
-      if NS.IsStoodDown and NS.IsStoodDown() then return end
-      if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
-    end)
-  end
+  local st = NS.State
+  if st.cleanupDone or st.cleanupPending then return end
+  if not self.ScheduleTimer then return end
+  -- An AceTimer handle, so NS.StandDown's CancelAllTimers cancels it (slash-commands-§7: every
+  -- timer is canceled, not left armed to find a flag). StandDown also drops the handle, and the
+  -- latch is set only when the prune actually runs, so a stand-down inside the five seconds
+  -- POSTPONES the prune to the next PLAYER_ENTERING_WORLD rather than skipping it for the session.
+  -- PruneOld writes SavedVariables, so the body still checks the latch as a belt behind the cancel.
+  st.cleanupPending = self:ScheduleTimer(function()
+    st.cleanupPending = nil
+    if NS.IsStoodDown and NS.IsStoodDown() then return end
+    st.cleanupDone = true
+    if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+  end, 5)
 end

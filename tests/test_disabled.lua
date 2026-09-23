@@ -181,23 +181,80 @@ end)
 
 -- ── 4. Nothing left to wake up ────────────────────────────────────────────────
 
+--- Empty the kit's timer queue while keeping it CALLABLE: `mocks.__timers()` answers the live set
+--- through the queue's metatable, so a bare `{}` would take that answer away. An earlier suite can
+--- leave a plain C_Timer.After entry queued (the options panel's 0.4 s LoadItem check), and a case
+--- that asserts "nothing is armed" has to start from a queue that holds only what it armed itself.
+local function clearTimerQueue()
+  mocks.__timers = setmetatable({}, getmetatable(mocks.__timers))
+end
+
+--- Run `fn` with the retention prune's session state reset and PruneOld swapped for a counter, and
+--- put both back afterwards whatever `fn` did. Answers the counter's reader.
+local function withPruneWindow(fn)
+  local st, db = NS.State, NS.Database
+  local savedDone, savedPending, savedPrune = st.cleanupDone, st.cleanupPending, db.PruneOld
+  local pruned = 0
+  db.PruneOld = function() pruned = pruned + 1 end
+  st.cleanupDone, st.cleanupPending = false, nil
+  clearTimerQueue()
+  local ok, err = pcall(fn, function() return pruned end)
+  if st.cleanupPending and NS.addon.CancelTimer then NS.addon:CancelTimer(st.cleanupPending) end
+  db.PruneOld = savedPrune
+  st.cleanupDone, st.cleanupPending = savedDone, savedPending
+  clearTimerQueue()
+  if not ok then error(err, 0) end
+end
+
 test("disabled: no timer, ticker or OnUpdate is left armed", function()
   -- red under: dropping the CancelAllTimers or the per-module CancelPending walk in NS.StandDown.
   -- A coalescing repaint timer that re-arms and then discovers it has nothing to paint is the most
   -- expensive shape slash-commands-§7 names.
-  local R_on = baseline()
-  NS.Browser:ScheduleLedgerRefresh()
-  NS.Ledger:ScheduleReconcile()
-  disable()
-  assertEqual(#mocks.__timers(), 0, "something is still going to wake up")
+  --
+  -- red under: arming the retention prune through C_Timer.After (core/BankLedger.lua's
+  -- OnEnterWorld). A bare After returns no handle, so CancelAllTimers cannot reach it and it wakes
+  -- five seconds later to find the latch. The login PEW is driven here, inside the window.
+  withPruneWindow(function()
+    local R_on = baseline()
+    NS.Browser:ScheduleLedgerRefresh()
+    NS.Ledger:ScheduleReconcile()
+    NS.addon:OnEnterWorld()
+    disable()
+    assertEqual(#mocks.__timers(), 0, "something is still going to wake up")
 
-  -- And nothing re-arms for the rest of the run. Driven the way the client would drive it: every
-  -- event the enabled addon was registered for, fired at the mock. Nothing reaches a handler,
-  -- because nothing is registered -- which is the point.
-  for _, r in ipairs(R_on) do if r.event then mocks.__fire(r.event) end end
-  mocks.__fire("PLAYER_REGEN_DISABLED")
-  assertEqual(#mocks.__timers(), 0, "a stood-down addon armed a fresh timer")
-  enable()
+    -- And nothing re-arms for the rest of the run. Driven the way the client would drive it: every
+    -- event the enabled addon was registered for, fired at the mock. Nothing reaches a handler,
+    -- because nothing is registered -- which is the point.
+    for _, r in ipairs(R_on) do if r.event then mocks.__fire(r.event) end end
+    mocks.__fire("PLAYER_REGEN_DISABLED")
+    assertEqual(#mocks.__timers(), 0, "a stood-down addon armed a fresh timer")
+    enable()
+  end)
+end)
+
+test("disabled: a stand-down inside the prune window postpones the prune rather than canceling it",
+function()
+  -- The login PEW arms the retention prune five seconds out; the player disables inside those five
+  -- seconds. The prune must not run while disabled -- it writes SavedVariables -- but the session
+  -- must not lose it either: the next PEW after the stand-up arms it again, and it runs once.
+  --
+  -- red under: setting NS.State.cleanupDone BEFORE the timer (the latch-before-timer shape), which
+  -- skipped retention for the rest of the session; and under a C_Timer.After that the stand-down
+  -- cannot cancel.
+  withPruneWindow(function(prunedCount)
+    local st = NS.State
+    NS.addon:OnEnterWorld()
+    disable()
+    assertEqual(#mocks.__timers(), 0, "the prune timer outlived the stand-down")
+    assertEqual(st.cleanupDone, false, "a canceled prune latched the session as pruned")
+    assertEqual(prunedCount(), 0, "the prune ran while disabled")
+
+    enable()
+    NS.addon:OnEnterWorld()
+    mocks.__fireTimers()
+    assertEqual(prunedCount(), 1, "the next PEW after the stand-up did not prune exactly once")
+    assertEqual(st.cleanupDone, true, "the prune ran but the session latch was not set")
+  end)
 end)
 
 -- ── 5. Nothing on screen ──────────────────────────────────────────────────────

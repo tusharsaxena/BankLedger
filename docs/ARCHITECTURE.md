@@ -165,7 +165,9 @@ compliance. It has no `Documented deviations` row.
     button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
   - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
     from that row's `onChange` and once per session, five seconds after `PLAYER_ENTERING_WORLD`
-    (`addon:OnEnterWorld`).
+    (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. The session latch is set when
+    the prune runs, so a disable inside those five seconds postpones it to the next
+    `PLAYER_ENTERING_WORLD` rather than skipping it.
 - **Why none of those is a player choice.** Deleting entries, purging the log and pruning it by the
   retention row are the owner's operations on recorded data. The rule allows all three.
 - **Load pass.** `NS:RunMigrations` may rewrite entries in place, as its v1 → v2 step does when it
@@ -341,7 +343,7 @@ anti-pattern; two bodies would be.
 
 | Stood down | How |
 |---|---|
-| Every timer | `addon:CancelAllTimers()`, plus each debouncing module's `CancelPending` — the handles are file locals AceTimer's cancel-all cannot reach, and a handle left behind is a debounce that never fires again |
+| Every timer | `addon:CancelAllTimers()`, plus each debouncing module's `CancelPending` — the handles are file locals AceTimer's cancel-all cannot reach, and a handle left behind is a debounce that never fires again. The retention prune is the addon object's own AceTimer, so the cancel-all takes it, and `NS.StandDown` drops `NS.State.cleanupPending` so the next `PLAYER_ENTERING_WORLD` re-arms it |
 | Every event on the addon object | `addon:UnregisterAllEvents()` — the three below plus the capture engine's whole set, which is registered there too. Not a list to keep current |
 | The four private bus targets | `UnregisterAllMessages` / `UnregisterAllEvents` on each, and the module's `_enabled` latch released with it |
 | The capture gate's cached upvalues | `Ledger:RefreshUpvalues()`, before the target that carries the refresh is dropped |

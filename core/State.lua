@@ -22,6 +22,8 @@ State.lastSnapshot = nil
 
 -- Session flags.
 State.cleanupDone = false   -- retention prune runs once per session
+State.cleanupPending = nil  -- session-only AceTimer handle for the deferred prune; set while it
+                            -- is armed, dropped by NS.StandDown so the next PEW re-arms it.
 State.debug = false         -- session-only logging flag, independent of the console window's
                             -- visibility. /bl debug on|off; default off, never in SavedVariables.
 State.testRecords = nil     -- session-only synthetic dataset published by /bl test; when set,
