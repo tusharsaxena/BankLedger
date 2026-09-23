@@ -832,11 +832,12 @@ badge and any count quoted in the docs must agree with it.
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Filters tab: the id list packs two entries to a line, row-major
 
-### test_harness.lua (7)
+### test_harness.lua (8)
 
 - Harness: every suite the runner lists exists on disk
 - Harness: every suite on disk is listed in the runner
 - Harness: the runner's suite list has no duplicates
+- Harness: the suite-list reader takes both entry shapes
 - Harness: the TOC is what the headless runner loads, and it is non-empty
 - Harness: Compat loads before everything else in core/
 - Harness: Filters loads before Ledger — the capture gate reads the lists
@@ -1096,7 +1097,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 50 |
 | test_panel.lua | 33 |
 | test_panel_filters.lua | 40 |
-| test_harness.lua | 7 |
+| test_harness.lua | 8 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
@@ -1113,4 +1114,4 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_prose.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **959** |
+| **Total** | **960** |
