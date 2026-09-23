@@ -11,7 +11,8 @@ Baseline, at `4310368` before either candidate: `lua tests/run.lua` 987 passed, 
 
 ## C1 — `LibKa0s-Bus-1.0` `Catalog` -> `f14c9df`
 
-**Files.** `core/Constants.lua` (the `Bus` resolution, the one-member stub, `NS.__busLib`, `NS.MSG`);
+**Files.** `core/Constants.lua` (the `Bus` resolution, the one-member stub, `NS.__busLib`, `NS.MSG`;
+the stub became the untracked-target shape in `f4e8fd9`, see `03_DECISIONS.md` C1);
 the 25 literal lines in `core/Database.lua`, `core/Util.lua`, `modules/Browser.lua`,
 `modules/Insights.lua`, `modules/Ledger.lua`, `modules/SessionWindow.lua`, `settings/Panel.lua`,
 `settings/Schema.lua`, `settings/Slash.lua`; `tests/run.lua` (the suite and the surface source);
@@ -32,7 +33,8 @@ the 25 literal lines in `core/Database.lua`, `core/Util.lua`, `modules/Browser.l
 strict live (an undeclared read raises `no bus message named <KEY>`, an added key raises); on a
 library-less load it is the same four as a plain table with no metatable; no TOC-loaded file but
 `core/Constants.lua` carries a quoted `Ka0s_BankLedger_` literal, and that file carries four; and the
-stub is held to the live major by name, with `New` named as live-only.
+stub is held to the live major by name, with `New` named as live-only (withdrawn in `f4e8fd9`: the
+stub now carries `New` and the case ignores nothing).
 
 **Gate at the commit:** 998 passed, 0 failed, 0 skipped; lint 0/0 in 70 files.
 

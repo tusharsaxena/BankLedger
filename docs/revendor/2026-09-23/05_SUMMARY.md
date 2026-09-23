@@ -63,6 +63,7 @@ None. Every candidate was decided. The class-C Perf major stays on its settled d
 | C2 first attempt | 1008 passed, 3 failed (the degraded `[Set]`-line pins) | — |
 | C2 commit `0d9d1e6` | 1015 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
 | Bundle commit | 1015 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
+| Review fix `f4e8fd9` (Bus stub to the untracked-target shape) | 1016 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
 
 Complexity: `ka0s-bounded lizard -C 15 -w` over the touched source files and the two new suites
 reported nothing above CCN 15. Not run: the full automated-test battery (`tests/_kit/run-automated-tests.sh`) and the

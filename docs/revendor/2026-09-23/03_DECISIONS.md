@@ -24,6 +24,16 @@ here as it landed. A decline is filed as a GitHub issue on this repo, labeled wi
   (`architecture-§4`: "`core/Bus.lua` where the addon has a bus file and `core/Constants.lua` where it
   does not").
 - **Landed:** `f14c9df`, green (998 passed, 0 failed; lint 0/0 in 70 files).
+- **Corrected after review (`f4e8fd9`).** The *Scope* bullet above misclassified the stub. A
+  `Catalog`-only stub is none of the shapes v2.64.0 allows: `options-ui-§1` (`options-ui.md:64`) names
+  the untracked-target stub as `New` + `NewTarget` + `StandDown` + `StandUp` + `Catalog`,
+  `library-stack-§7` (`library-stack.md:104`) allows that shape or the member-answering default, and
+  the Bus API document's *Worked example* says the stub owes `New` and `Catalog`. The `{ "New" }`
+  ignore in the parity case was the stub drift anti-pattern #56 exists to catch. The fix conforms
+  rather than ratifying a deviation: the stub is now the Worked example verbatim, the parity case
+  holds it with no ignore list, and a new case pins its answers (1016 passed, 0 failed; lint 0/0 in
+  71 files). No player-visible change: nothing calls `Bus:New`, and `NS.MSG` is the same plain table
+  on the degraded load.
 
 ## C3 — `LibKa0s-Compat-1.0`: **decline, never** (`state:will-not-do`, `severity:low`)
 
