@@ -467,3 +467,16 @@ with no re-check trigger is a permanent exemption granted by accident.
 Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
 namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — it is simply unused, so
 the switch to a per-profile setting is a defaults-file addition rather than a database migration.
+
+### Files over the 1500-line cap
+
+`layout-§1` caps every authored `.lua` file this repo tracks at 1500 lines -- `tests/` included,
+`libs/` and `tests/_kit/` carved out as vendored code. A file over the cap is listed here, one row
+per file, with its terminal state: an open issue naming the seam a peel would follow, a ratified
+deviation row above, or a scheduled peel.
+
+Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1220 lines,
+measured 2026-09-23 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
+wc -l | sort -n`. The figure is prose, not a pin; `tests/_kit/test_layout_cap.lua` asserts membership
+in both directions -- an over-cap file missing from this census, or a row here naming a file that
+is no longer over the cap -- and the dated number is not what it checks.
