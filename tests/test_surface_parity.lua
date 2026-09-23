@@ -1,8 +1,9 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- The addon adopts nine LibKa0s seams, and five of them carry a hand-written degradation arm for
--- the install where libs/LibKa0s is missing: core/CoreSetup.lua, core/DebugLogSetup.lua,
--- core/LifecycleSetup.lua, settings/Slash.lua and settings/OptionsSetup.lua. A stub is a second implementation of somebody
+-- Six of the addon's LibKa0s seams carry a hand-written degradation arm for the install where
+-- libs/LibKa0s is missing: core/CoreSetup.lua, core/DebugLogSetup.lua, core/LifecycleSetup.lua,
+-- settings/Slash.lua, settings/OptionsSetup.lua and, since LibKa0s v1.55.0, the Bus catalog in
+-- core/Constants.lua. A stub is a second implementation of somebody
 -- else's surface, so it drifts the moment the library grows a member the host starts calling: the
 -- live path stays green and the degraded path raises in exactly the install the stub exists for.
 --
@@ -232,4 +233,23 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")
   assertTrue(degraded.Helpers.__degraded == true, "the degraded arm is not the fallback branch")
   T.assertSurfaceParity(degraded.Helpers, "LibKa0s-Options-1.0", IGNORE)
+end)
+
+-- ── LibKa0s-Bus-1.0 ──────────────────────────────────────────────────────────────────────────
+
+test("LibKa0s-Bus degraded: the stub carries the live surface the addon reaches", function()
+  -- The sixth degradation arm. core/Constants.lua adopts Bus.Catalog alone and publishes the
+  -- resolved library, or its stub, as NS.__busLib. The degraded arm is that stub from a real load
+  -- with libs/LibKa0s/*.lua left out; the live arm is the library table, by name, through the
+  -- source tests/run.lua registers.
+  --
+  -- `New` is the one live-only member, and it is live-only BY DESIGN: it builds the stand-down
+  -- record for tracked receivers, and this addon keeps its own untracked factory
+  -- (core/BankLedger.lua, NS.NewBusTarget) -- nothing in the addon calls Bus:New. A stub `New` would
+  -- be host code no path reaches. The day a file calls it, this list is the line that has to go.
+  --   Callers from: grep -rn "__busLib\|Bus:New\|Bus.New" core modules settings
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Bus-1.0", true) == nil, "the degraded arm still has the library")
+  assertTrue(degraded.__busLib ~= nil, "the degraded arm published no Bus stub")
+  T.assertSurfaceParity(degraded.__busLib, "LibKa0s-Bus-1.0", { "New" })
 end)

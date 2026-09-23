@@ -1209,9 +1209,9 @@ function B:Enable()
   -- this list any more -- core/LauncherSetup.lua owns it and core/BankLedger.lua registers it.
   B.__ev = NS.NewBusTarget()
   if not B.__ev then return end
-  B.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() B:OnSettingsChanged() end)
-  B.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() B:OnLedgerChanged() end)
-  B.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() B:ScheduleLedgerRefresh() end)
+  B.__ev:RegisterMessage(NS.MSG.SETTINGS_CHANGED, function() B:OnSettingsChanged() end)
+  B.__ev:RegisterMessage(NS.MSG.LEDGER_CHANGED, function() B:OnLedgerChanged() end)
+  B.__ev:RegisterMessage(NS.MSG.ENTRY_ADDED, function() B:ScheduleLedgerRefresh() end)
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if B.__ev.RegisterEvent then

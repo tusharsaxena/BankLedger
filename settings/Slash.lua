@@ -192,7 +192,7 @@ function Sl:ResetEverything()
   local LT = NS.LedgerTable
   if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
   print("this addon reset to defaults.")
-  if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "reset") end
+  if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "reset") end
   refreshAfterReset()
 end
 

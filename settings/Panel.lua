@@ -167,8 +167,8 @@ local function renderStorage(ctx)
       local onChange = function()
         if ctx.panel:IsShown() and P.__storageRefresh then P.__storageRefresh() end
       end
-      ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", onChange)
-      ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", onChange)
+      ev:RegisterMessage(NS.MSG.LEDGER_CHANGED, onChange)
+      ev:RegisterMessage(NS.MSG.ENTRY_ADDED, onChange)
       P.__ev = ev
     end
   end
@@ -490,7 +490,7 @@ local function buildFiltersTab(ctx)
       -- teardown (options-ui-§11).
       -- Every LedgerChanged also retires the add box's name candidates (filterCandidates' memo),
       -- this page's own writes included.
-      ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function()
+      ev:RegisterMessage(NS.MSG.LEDGER_CHANGED, function()
         candidateMemo.version = candidateMemo.version + 1
         if not ctx.__filterWrite then O.RefreshAllPanels() end
       end)

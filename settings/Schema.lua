@@ -37,7 +37,7 @@ S.Schema = {
     group = "Capture", label = "Track items",
     tooltip = "Record items moving between your bags and a bank.",
     onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "trackItems") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "trackItems") end
     end },
 
   { path = "settings.trackMoney", default = true, type = "bool", widget = "CheckBox",
@@ -45,14 +45,14 @@ S.Schema = {
     tooltip = "Record gold deposited to or withdrawn from the guild and warband banks. "
       .. "The character bank has no gold slot, so it is never counted.",
     onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "trackMoney") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "trackMoney") end
     end },
 
   { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
     group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
     tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
     onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "quality") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "quality") end
     end },
 
   -- Stored as the set of MUTED stores (excludedStores); the panel renders it inverted
@@ -69,7 +69,7 @@ S.Schema = {
     tooltip = "Tick a store to RECORD movements to and from it. Unticking mutes that store; "
       .. "capture for every other store is unaffected.",
     onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "stores") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "stores") end
     end },
 
   -- ── Interface ──
@@ -82,7 +82,7 @@ S.Schema = {
     tooltip = "Show a small live window listing what you move while a bank is open. "
       .. "Turning this off never stops capture \226\128\148 only the window.",
     onChange = function()
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "sessionWindow") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "sessionWindow") end
     end },
 
   -- The row tint pair. Both were hardcoded in TWO files each — modules/LedgerTable.lua and
@@ -222,7 +222,7 @@ S.MASTER_DECOR = {
     -- latch's edge is what unregisters every event, cancels every timer and shuts every window.
     onChange = function(v)
       NS.SetDisabledHold(v == false)
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "enabled") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "enabled") end
     end },
 
   ["settings.visibility"] = { widget = "Dropdown",
@@ -236,7 +236,7 @@ S.MASTER_DECOR = {
     -- latency; the broadcast is what reaches everything ELSE that scales.
     onChange = function(v)
       if NS.Browser and NS.Browser.SetScale then NS.Browser:SetScale(v) end
-      if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "windowScale") end
+      if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "windowScale") end
     end },
 
   -- `min` is the ONE decoration here that overrides a value a player sees, and it narrows the

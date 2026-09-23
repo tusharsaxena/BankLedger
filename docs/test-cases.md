@@ -753,6 +753,19 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
 
+### test_bus.lua (10)
+
+- bus: each module's receiver subscribes to exactly the wire names it always has
+- bus: no live registration names an addon message outside the four
+- bus: Database:Add sends EntryAdded with the entry and its index
+- bus: Database:FireLedgerChanged sends LedgerChanged with no payload
+- bus: a settings write and the row-tint refresh send SettingsChanged with their reason
+- bus: opening and closing the bank frame sends SessionChanged true, then false
+- bus: NS.MSG declares exactly the four wire names
+- bus: NS.MSG is LibKa0s-Bus-1.0's strict catalog, so a mistyped key raises
+- bus: without LibKa0s, NS.MSG is the same four names as a plain table
+- bus: no addon file but core/Constants.lua types a message's wire name
+
 ### test_panel.lua (33)
 
 - Panel: every registered canvas frame is handed to the Settings framework
@@ -1042,13 +1055,14 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (5)
+### test_surface_parity.lua (6)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Slash degraded: the stub carries the whole live surface
 - LibKa0s-Options degraded: the stub carries the live surface the addon reaches
+- LibKa0s-Bus degraded: the stub carries the live surface the addon reaches
 
 ### test_register.lua (1)
 
@@ -1125,6 +1139,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
 | test_slash.lua | 50 |
+| test_bus.lua | 10 |
 | test_panel.lua | 33 |
 | test_panel_filters.lua | 40 |
 | test_harness.lua | 8 |
@@ -1138,11 +1153,11 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 6 |
 | test_disabled.lua | 11 |
-| test_surface_parity.lua | 5 |
+| test_surface_parity.lua | 6 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **987** |
+| **Total** | **998** |

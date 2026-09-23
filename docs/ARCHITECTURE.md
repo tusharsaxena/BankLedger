@@ -240,12 +240,23 @@ Four messages, one sender each. Consumers **must** register on their own `NS.New
 target, never on the shared bus-as-self: CallbackHandler keys callbacks by `(message, target)`, so
 two consumers sharing a target silently clobber each other.
 
-| Message | Sender | Payload | Consumers |
+**Declared once, in `core/Constants.lua`, as `NS.MSG`** (`architecture-§4`). Every `SendMessage` and
+`RegisterMessage` names the constant; the wire name is typed nowhere else in the addon
+(`tests/test_bus.lua` gates it). The table goes through **`LibKa0s-Bus-1.0`'s `Catalog`**
+(`docs/api/Bus/version-1-docs.md` in LibKa0s), which checks the `Ka0s_BankLedger_<PascalCase>` shape
+at load and answers a strict copy: reading an undeclared key raises at the call site, for a publisher
+as well as a subscriber. Only `Catalog` is adopted. The receivers keep this addon's own **untracked**
+factory, `NS.NewBusTarget` in `core/BankLedger.lua`, and are torn down by the modules' own disable
+paths (`## The stand-down`); nothing calls `Bus:New`. Without the library, a one-member stub hands
+back the declared table itself, so the names, sends and receives are unchanged and only the
+strictness is lost.
+
+| Message (`NS.MSG` key) | Sender | Payload | Consumers |
 |---|---|---|---|
-| `Ka0s_BankLedger_EntryAdded` | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
-| `Ka0s_BankLedger_LedgerChanged` | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
-| `Ka0s_BankLedger_SettingsChanged` | `Schema` row `onChange` handlers, and `Slash:ResetEverything` once at the end of the confirm-gated full reset | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `reset`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
-| `Ka0s_BankLedger_SessionChanged` | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
+| `Ka0s_BankLedger_EntryAdded` (`ENTRY_ADDED`) | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
+| `Ka0s_BankLedger_LedgerChanged` (`LEDGER_CHANGED`) | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
+| `Ka0s_BankLedger_SettingsChanged` (`SETTINGS_CHANGED`) | `Schema` row `onChange` handlers, and `Slash:ResetEverything` once at the end of the confirm-gated full reset | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `reset`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SessionChanged` (`SESSION_CHANGED`) | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
 `openContext` for, instead of re-deriving it from the open/close events — which would have missed the
