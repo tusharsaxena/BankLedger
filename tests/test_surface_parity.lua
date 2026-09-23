@@ -49,7 +49,7 @@
 
 local T = _G.BL_TEST
 local NS = T.NS
-local test, assertTrue = T.test, T.assertTrue
+local test, assertTrue, assertEqual = T.test, T.assertTrue, T.assertEqual
 
 local Env = dofile("tests/degraded_env.lua")
 local loadDegraded, loadUpTo = Env.loadDegraded, Env.loadUpTo
@@ -237,21 +237,43 @@ end)
 
 -- ── LibKa0s-Bus-1.0 ──────────────────────────────────────────────────────────────────────────
 
-test("LibKa0s-Bus degraded: the stub carries the live surface the addon reaches", function()
+test("LibKa0s-Bus degraded: the stub carries the whole live surface", function()
   -- The sixth degradation arm. core/Constants.lua adopts Bus.Catalog alone and publishes the
   -- resolved library, or its stub, as NS.__busLib. The degraded arm is that stub from a real load
   -- with libs/LibKa0s/*.lua left out; the live arm is the library table, by name, through the
   -- source tests/run.lua registers.
   --
-  -- `New` is the one live-only member, and it is live-only BY DESIGN: it builds the stand-down
-  -- record for tracked receivers, and this addon keeps its own untracked factory
-  -- (core/BankLedger.lua, NS.NewBusTarget) -- nothing in the addon calls Bus:New. A stub `New` would
-  -- be host code no path reaches. The day a file calls it, this list is the line that has to go.
+  -- The stub is the untracked-target shape (options-ui-§1), verbatim from the Bus API document's
+  -- Worked example, so it owes the whole live surface -- New and Catalog (members-1.json) -- and
+  -- nothing is ignored. No BankLedger file calls Bus:New today; an ignore list here would be the
+  -- stub drift anti-pattern #56 exists to catch.
   --   Callers from: grep -rn "__busLib\|Bus:New\|Bus.New" core modules settings
   local degraded, dm = loadDegraded()
   assertTrue(dm.LibStub("LibKa0s-Bus-1.0", true) == nil, "the degraded arm still has the library")
   assertTrue(degraded.__busLib ~= nil, "the degraded arm published no Bus stub")
-  T.assertSurfaceParity(degraded.__busLib, "LibKa0s-Bus-1.0", { "New" })
+  T.assertSurfaceParity(degraded.__busLib, "LibKa0s-Bus-1.0")
+end)
+
+test("LibKa0s-Bus degraded: the stub answers as the untracked-target shape names", function()
+  -- options-ui-§1: New answers a record whose NewTarget hands each receiver a private AceEvent
+  -- target, untracked, and answers nil only when AceEvent-3.0 itself is absent; StandDown and
+  -- StandUp answer 0 and 0, {}; Catalog hands back the host's own table.
+  local degraded, dm = loadDegraded()
+  local Bus = degraded.__busLib
+  assertTrue(dm.LibStub("AceEvent-3.0", true) ~= nil, "the degraded arm lost AceEvent-3.0")
+  local rec = Bus:New{ name = "BankLedger" }
+  assertEqual(rec.name, "BankLedger", "the record carries the descriptor's name")
+  local a, b = rec:NewTarget(), rec:NewTarget()
+  assertTrue(type(a) == "table" and type(a.RegisterMessage) == "function",
+    "NewTarget answered no AceEvent target while AceEvent is present")
+  assertTrue(a ~= b, "NewTarget handed two receivers the same target")
+  assertEqual(rec:StandDown(), 0, "StandDown answers 0")
+  local replayed, rejected = rec:StandUp()
+  assertEqual(replayed, 0, "StandUp answers 0 replayed")
+  assertTrue(type(rejected) == "table" and next(rejected) == nil, "StandUp answers an empty rejected list")
+  local declared = { X = "Ka0s_BankLedger_X" }
+  assertTrue(Bus.Catalog("BankLedger", declared) == declared, "Catalog hands back the host's own table")
+  assertTrue(degraded.MSG.ENTRY_ADDED == "Ka0s_BankLedger_EntryAdded", "NS.MSG lost a name on the degraded load")
 end)
 
 -- ── LibKa0s-Schema-1.0 ───────────────────────────────────────────────────────────────────────

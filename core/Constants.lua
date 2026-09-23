@@ -247,13 +247,32 @@ NS.Kind = C.Kind
 -- SendMessage(nil) would otherwise return quietly and send nothing. Only Catalog is adopted: the
 -- receivers keep this addon's own untracked factory, so nothing here calls Bus:New.
 --
--- Degraded (the payload missing): the stub hands back the declared table itself. The names and
--- every send and receive are unchanged; only the strictness is lost. It copies nothing of the
--- library (options-ui-§1). Published as NS.__busLib so tests/test_surface_parity.lua can hold the
--- stub to the live major.
+-- Degraded (the payload missing): the untracked-target stub (options-ui-§1, library-stack-§7),
+-- verbatim from the Bus API document's Worked example. Its Catalog hands back the declared table
+-- itself: the names and every send and receive are unchanged; only the strictness is lost. Its New
+-- answers a record whose NewTarget hands out a private AceEvent target, untracked, and answers nil
+-- only when AceEvent-3.0 itself is absent; StandDown and StandUp answer 0 and 0, {}. It records
+-- nothing, prints nothing and copies nothing of the library. No BankLedger path calls New today;
+-- the stub carries it because the named shape does, and so that a later Bus:New adopter inherits a
+-- degraded arm that already works. Published as NS.__busLib so tests/test_surface_parity.lua holds
+-- the stub to the live major with no ignore list.
 local Bus = LibStub and LibStub("LibKa0s-Bus-1.0", true)
 if not Bus then
-  Bus = { Catalog = function(_, messages) return messages end }
+  Bus = {
+    New = function(_, d)
+      return {
+        name = d and d.name,
+        NewTarget = function()
+          local AceEvent = LibStub and LibStub("AceEvent-3.0", true)
+          if not AceEvent then return nil end
+          local t = {}; AceEvent:Embed(t); return t
+        end,
+        StandDown = function() return 0 end,
+        StandUp   = function() return 0, {} end,
+      }
+    end,
+    Catalog = function(_, messages) return messages end,
+  }
 end
 NS.__busLib = Bus
 

@@ -274,9 +274,11 @@ two consumers sharing a target silently clobber each other.
 at load and answers a strict copy: reading an undeclared key raises at the call site, for a publisher
 as well as a subscriber. Only `Catalog` is adopted. The receivers keep this addon's own **untracked**
 factory, `NS.NewBusTarget` in `core/BankLedger.lua`, and are torn down by the modules' own disable
-paths (`## The stand-down`); nothing calls `Bus:New`. Without the library, a one-member stub hands
-back the declared table itself, so the names, sends and receives are unchanged and only the
-strictness is lost.
+paths (`## The stand-down`); nothing calls `Bus:New`. Without the library, the **untracked-target**
+stub (`options-ui-§1`), verbatim from the Bus API document's *Worked example*, stands in: its
+`Catalog` hands back the declared table itself, so the names, sends and receives are unchanged and
+only the strictness is lost, and its `New`, `NewTarget`, `StandDown` and `StandUp` answer as that
+shape names them. `tests/test_surface_parity.lua` holds it to the live major with no ignore list.
 
 | Message (`NS.MSG` key) | Sender | Payload | Consumers |
 |---|---|---|---|
