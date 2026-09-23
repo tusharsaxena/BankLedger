@@ -24,7 +24,7 @@ local SUITES = {
   "test_util", "test_compat", "test_constants", "test_filters",
   "test_ledger", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_launcher", "test_sessionwindow", "test_insights",
-  "test_export", "test_debuglog", "test_schema", "test_slash", "test_bus",
+  "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
   "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
@@ -67,14 +67,17 @@ Loader.loadAll(Loader.tocFiles("BankLedger.toc"), NS, mocks)
 -- The Core and Slash stubs are deliberately absent from this table -- neither mirrors a major's
 -- instance, so neither has a name to resolve; tests/test_surface_parity.lua's header says why.
 --
--- The Bus stub is the one that mirrors a LIBRARY TABLE (core/Constants.lua calls Bus.Catalog on the
--- library itself, never an instance), so its live half is the mock LibStub's answer for the major.
--- A table map is all-or-nothing, which is why that answer is written into it here rather than left
--- to the auto-wiring.
+-- The Bus and Schema stubs mirror a LIBRARY TABLE (core/Constants.lua calls Bus.Catalog on the
+-- library itself; settings/Schema.lua resolves the Schema library or its stub library and builds its
+-- instance from that), so their live half is the mock LibStub's answer for the major. The Schema
+-- INSTANCE has no member manifest to resolve by name, and tests/test_surface_parity.lua compares it
+-- two-table. A table map is all-or-nothing, which is why those answers are written into it here
+-- rather than left to the auto-wiring.
 Kit.setSurfaceSource{
   ["LibKa0s-Options-1.0"]  = NS.Helpers,
   ["LibKa0s-DebugLog-1.0"] = NS.DebugLog,
   ["LibKa0s-Bus-1.0"]      = mocks.LibStub("LibKa0s-Bus-1.0", true),
+  ["LibKa0s-Schema-1.0"]   = mocks.LibStub("LibKa0s-Schema-1.0", true),
 }
 
 _G.BL_TEST = Kit.expose{

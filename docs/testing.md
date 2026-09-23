@@ -259,13 +259,18 @@ tests/
   test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; docs/test-cases.md
                            --   counts three cases: the two payload cases, plus the runner-mode
                            --   case kit revision 16 adds with no host change
+  test_schema_runtime.lua  -- the settings write seam as a caller sees it: the order of store,
+                           --   [Set] line, onChange and repaint; exact answers and arity; the
+                           --   refusals; the inverted Minimap path; the sweep veto; the same seam
+                           --   degraded; and what adopting LibKa0s-Schema-1.0 changed on purpose
   test_bus.lua             -- the closed bus's wire contract: every receiver's subscriptions and
                            --   every sender's name and payload, pinned against the four wire
                            --   names typed there once; NS.MSG strict live and plain degraded;
                            --   and the declare-once gate (no quoted wire name outside
                            --   core/Constants.lua)
-  test_surface_parity.lua  -- the six degradation arms (Core, DebugLog, Lifecycle, Slash,
-                           --   Options, the Bus catalog) against the surfaces they stand in for, collected in one
+  test_surface_parity.lua  -- the seven degradation arms (Core, DebugLog, Lifecycle, Slash,
+                           --   Options, the Bus catalog, the schema runtime) against the surfaces
+                           --   they stand in for, collected in one
                            --   file so a seam growing a stub with no case beside it is an
                            --   obvious hole (M4-09)
 ```
@@ -285,6 +290,8 @@ tests/
   makes the earlier line stick. The map also names `LibKa0s-Bus-1.0`, whose stub mirrors the
   LIBRARY table (`Bus.Catalog` is called on the library, never on an instance), so its live half is
   the mock `LibStub`'s own answer, written into the map because a table source is all-or-nothing.
+  `LibKa0s-Schema-1.0` is in it for the same reason: its stub LIBRARY is compared by name, while its
+  stub INSTANCE, which has no member manifest, is compared two-table against `NS.SchemaRuntime`.
 - `_kit/loader.lua` reproduces the addon's two-vararg header by calling each chunk as
   `chunk("BankLedger", NS)` under an environment where WoW globals resolve to the mock table first
   and fall back to real `_G`. It also provides `Loader.tocFiles`, which is what removed the

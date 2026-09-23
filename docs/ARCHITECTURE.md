@@ -48,10 +48,34 @@ derives from the TOC. File-by-file table, load-order notes and the locale seam i
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
-**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). `NS.Schema:Set` logs one
-`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, which
-`settings/Slash.lua` hands to the Slash descriptor as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
-Inside the bracket the seam mutes that line, and it counts each write whose stored value actually
+**The runtime is `LibKa0s-Schema-1.0`** (adopted at LibKa0s v1.55.0; its contract is LibKa0s
+`docs/api/Schema/version-1-docs.md`). The rows are this addon's; the path walk, the row index, the
+write seam, the bulk bracket and the load-time check are the library's. `settings/Schema.lua` builds
+one instance, `NS.SchemaRuntime`, over `S.Schema`, and binds every name callers already used to it:
+`S:Set`, `S:Get`, `S:Default`, `S:ApplyDefault`, `S:FindRow`, `S:ReadPath`, `S:WritePath`,
+`S.SameValue`, `S.BulkBegin`, `S.BulkEnd` and `S:Register` (now the library's `Validate`). The
+Options and Slash descriptors take the instance's members directly, as values; there is no gate in
+front of the seam for that to bypass. The descriptor supplies what is ours: every stored path
+resolves against `NS.db.global`, the post-write tail is the panel repaint (`options-ui-§11`), the
+`[Set]` line goes to `NS.Debug` only while logging is on, the sweep veto is `S.RESET_EXEMPT`
+(`launcher-§3`), and `L` keeps this addon's refusal wording (`unknown path: <path>`,
+`invalid value`). Each write runs refuse unknown path, `validate`, store (a table value is copied
+in), tally or log, `onChange`, repaint, in that order. The Minimap button row's inversion is the
+row's own `set`, so no other code knows which way round its boolean is. `S:Register` now reports a
+row whose path is missing from `defaults/Global.lua` even when the row carries a `default` of its own;
+before the adoption that row passed, although AceDB would still have read it as nil.
+
+Without the library, `settings/Schema.lua` builds the same instance from a **runtime-completing,
+log-silent** stub (`options-ui-§1`), the shape the major's document prescribes, trimmed to what this
+addon calls: reads, writes, reactions, the repaint and the sweep veto work, so the host verbs and the
+degraded `CliResetAll` keep writing. It writes no `[Set]` line, keeps no tally and runs no check; the
+degraded DebugLog stub would discard the line anyway. `tests/test_surface_parity.lua` holds the stub
+to the live instance and the stub library to the major.
+
+**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). The seam logs one
+`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, the
+instance's pair, which both descriptors take as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
+Inside the bracket the seam mutes that line, and it counts each write whose read-back value actually
 changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
 per row.
 - `/bl resetall` and both Defaults controls (`P:RestoreDefaults`) reach the library's `CliResetAll`,
@@ -62,12 +86,15 @@ per row.
   with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
   still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
   raise of nil or false (documented upstream), so that raise gets no marker.
-- The degraded fallback `CliResetAll` brackets its own walk the same way. It owns its pcall, so it
-  marks every caught error, a nil or false raise included.
+- The degraded fallback `CliResetAll` brackets its own walk the same way, which is what holds the
+  sweep veto there. It owns its pcall, so it tells a raise of nil or false from success and re-raises
+  it; the log-silent stub writes no line for it.
 - Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
   the line. `P:Batch` coalesces repaints and is not a bracket.
-- The Options descriptor carries no pair, because nothing here calls `O.RestoreDefaults` or
-  `O.RestoreAllDefaults`.
+- The Options descriptor carries the same pair and `applyDefault`, so `O.RestoreDefaults` would skip
+  the Minimap button row and log `[Set] reset general: N rows`. Nothing here calls it or
+  `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`
+  with no bracket and would have swept the Minimap row.
 - `Sl:ResetEverything` is a wholesale wipe, not a walk through the seam. It logs one
   `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
   already at their default, beside its `[Data] reset-all wiped N ledger entries` line.

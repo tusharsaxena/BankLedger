@@ -6,11 +6,9 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (38)
+### test_util.lua (36)
 
 - Util.PlayerKey joins name and realm with spaces stripped
-- Util.SplitPath splits a dotted settings path
-- Util.SplitPath returns a single component for a bare key
 - Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
 - Util.FormatClock renders HH:MM
 - Util.PlainMoney always renders gold, silver and copper parts
@@ -700,6 +698,26 @@ badge and any count quoted in the docs must agree with it.
 - Test mode: a combat edge with test mode off says nothing and starts nothing
 - Test mode: /bl session stays its own verb
 
+### test_schema_runtime.lua (17)
+
+- Schema:Set stores, then logs one [Set] line, then reacts, then repaints -- once each
+- Schema:Set answers exactly `true` on success, and `false, reason` on a refusal
+- Schema:Set refuses a value its row's validate rejects, and stores and calls nothing
+- Schema:Set on an unknown path stores nothing, anywhere
+- Schema:Set on a session-only row calls its own set, reacts and repaints, stores nothing
+- Minimap row: the seam writes LibDBIcon's hide flag inverted, into the table LibDBIcon holds
+- Schema:ApplyDefault restores one row and answers `true`; a pathless row answers `false`
+- Schema:ApplyDefault leaves the Minimap row alone inside a bracket, and resets it outside one
+- Schema:Default answers a fresh copy of the row's default, and nil for an unknown path
+- Schema.SameValue compares tables by content and tells false from absent
+- Schema degraded: a write lands, reads back, reacts and answers as the live seam does
+- Schema degraded: a table value is stored as a copy, and the default stays whole
+- Schema degraded: the resetall sweep writes every row back and closes its bracket
+- Schema runtime: the seam is a LibKa0s-Schema-1.0 instance, and the host names are bound to it
+- Schema:Register reports a path missing from the defaults even when the row has a default
+- Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
+- Options: the page Defaults act skips the Minimap button row and logs one [Set] line
+
 ### test_slash.lua (50)
 
 - Slash: a set renders as a sorted brace list, through the format hook
@@ -1003,9 +1021,9 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
-- LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one per row
-- LibKa0s-Slash degraded: a raising resetall logs ONE line marked as stopped, re-raises, and unmutes
-- LibKa0s-Slash degraded: a resetall raising nil is still marked, since the fallback owns its pcall
+- LibKa0s-Slash degraded: resetall writes every changed row back, and logs no [Set] line
+- LibKa0s-Slash degraded: a raising resetall re-raises unchanged and closes its bracket
+- LibKa0s-Slash degraded: a resetall raising nil still reaches the caller and closes its bracket
 - LibKa0s-Slash: the seam loads after the schema it reads
 
 ### test_vendor_sync.lua (3)
@@ -1055,7 +1073,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (6)
+### test_surface_parity.lua (8)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
@@ -1063,6 +1081,8 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: the stub carries the whole live surface
 - LibKa0s-Options degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Bus degraded: the stub carries the live surface the addon reaches
+- LibKa0s-Schema degraded: the stub instance carries every member the addon reaches
+- LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS
 
 ### test_register.lua (1)
 
@@ -1122,7 +1142,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 38 |
+| test_util.lua | 36 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
@@ -1138,6 +1158,7 @@ badge and any count quoted in the docs must agree with it.
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
+| test_schema_runtime.lua | 17 |
 | test_slash.lua | 50 |
 | test_bus.lua | 10 |
 | test_panel.lua | 33 |
@@ -1153,11 +1174,11 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 6 |
 | test_disabled.lua | 11 |
-| test_surface_parity.lua | 6 |
+| test_surface_parity.lua | 8 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **998** |
+| **Total** | **1015** |

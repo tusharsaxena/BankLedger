@@ -11,15 +11,6 @@ function Util.PlayerKey()
   return name .. "-" .. realm
 end
 
--- Split a dotted settings path ("settings.retentionDays") into components.
-function Util.SplitPath(path)
-  local parts = {}
-  for p in tostring(path):gmatch("[^.]+") do
-    parts[#parts + 1] = p
-  end
-  return parts
-end
-
 -- Clock-only (HH:MM) for the Time column.
 function Util.FormatClock(ts)
   return date("%H:%M", ts or 0)

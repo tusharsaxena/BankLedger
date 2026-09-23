@@ -40,13 +40,24 @@ local descriptor = {
   print = function(line) print(line) end,
   debug = function(tag, fmt, ...) if NS.Debug then NS.Debug(tag, fmt, ...) end end,
 
-  -- The schema seams. NS.Schema:Set is this addon's SINGLE write seam (options-ui-§1), so a panel
-  -- widget takes exactly the path `/bl set` takes: the same validation, the same [Set] debug line,
-  -- the same row onChange, and the same panel repaint.
-  get          = function(path) return NS.Schema:Get(path) end,
-  set          = function(path, value) NS.Schema:Set(path, value) end,
-  applyDefault = function(row) NS.Schema:Set(row.path, NS.Schema:Default(row.path)) end,
-  allRows      = function() return NS.Schema.Schema end,
+  -- The schema seams: the LibKa0s-Schema-1.0 instance's own members, handed over as values
+  -- (settings/Schema.lua builds it; the TOC loads that file first). Its Set is this addon's SINGLE
+  -- write seam (options-ui-§1), so a panel widget takes exactly the path `/bl set` takes: the same
+  -- validation, the same [Set] debug line, the same row onChange, and the same panel repaint. There
+  -- is no gate in front of the seam to bypass, which is what makes binding the members directly
+  -- safe (the Schema document's "A gate in front of the seam").
+  --
+  -- applyDefault is the instance's ApplyDefault, with the bracket pair beside it, so the page
+  -- Defaults act -- O.RestoreDefaults, which this addon does not call today (see below) -- would
+  -- skip the Minimap button row (launcher-§3) and log one `[Set] reset general: N rows` line, as
+  -- /bl resetall does. Before LibKa0s v1.55.0 this field wrote `S:Set(path, S:Default(path))`
+  -- and carried no pair, so that act would have swept the minimap row back to shown.
+  get          = NS.SchemaRuntime.Get,
+  set          = NS.SchemaRuntime.Set,
+  applyDefault = NS.SchemaRuntime.ApplyDefault,
+  allRows      = NS.SchemaRuntime.AllRows,
+  bulkBegin    = NS.SchemaRuntime.BulkBegin,
+  bulkEnd      = NS.SchemaRuntime.BulkEnd,
 
   -- Every schema row lives on the General page. `filter` is ctx.unit, which this addon never sets —
   -- it has no per-unit pages — so it is ignored rather than threaded through.

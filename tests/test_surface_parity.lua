@@ -1,9 +1,9 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- Six of the addon's LibKa0s seams carry a hand-written degradation arm for the install where
+-- Seven of the addon's LibKa0s seams carry a hand-written degradation arm for the install where
 -- libs/LibKa0s is missing: core/CoreSetup.lua, core/DebugLogSetup.lua, core/LifecycleSetup.lua,
 -- settings/Slash.lua, settings/OptionsSetup.lua and, since LibKa0s v1.55.0, the Bus catalog in
--- core/Constants.lua. A stub is a second implementation of somebody
+-- core/Constants.lua and the schema runtime in settings/Schema.lua. A stub is a second implementation of somebody
 -- else's surface, so it drifts the moment the library grows a member the host starts calling: the
 -- live path stays green and the degraded path raises in exactly the install the stub exists for.
 --
@@ -252,4 +252,35 @@ test("LibKa0s-Bus degraded: the stub carries the live surface the addon reaches"
   assertTrue(dm.LibStub("LibKa0s-Bus-1.0", true) == nil, "the degraded arm still has the library")
   assertTrue(degraded.__busLib ~= nil, "the degraded arm published no Bus stub")
   T.assertSurfaceParity(degraded.__busLib, "LibKa0s-Bus-1.0", { "New" })
+end)
+
+-- ── LibKa0s-Schema-1.0 ───────────────────────────────────────────────────────────────────────
+
+-- The seventh arm, and the one a player's settings ride on: settings/Schema.lua resolves the major
+-- or its runtime-completing stub (docs/api/Schema/version-1-docs.md, "The degradation stub"), builds
+-- NS.SchemaRuntime from whichever it got, and publishes the resolved library as NS.__schemaLib. The
+-- stub is TRIMMED to what this addon calls, and the trimmed members are named here as live-only,
+-- each for the same reason: no BankLedger file calls it.
+--   Callers from: grep -rnE "SchemaRuntime[.:][A-Za-z]+|S\.Bulk[A-Za-z]+|Schema[.:](Set|Get|Default|ApplyDefault|FindRow|ReadPath|WritePath|SameValue|Register)\b" core modules settings
+--   * BulkRun, BulkAdd, InBulk -- the addon brackets with the BulkBegin/BulkEnd pair and nothing else.
+--   * Reindex -- the one head splice goes through AddRows, which re-indexes on its own.
+--   * CountOffDefault, ResetCounted, ConsumeResetCount -- the profile reset's count. This addon has
+--     no profile (the savedvariables-§2 row), so nothing resets one.
+local SCHEMA_LIVE_ONLY = {
+  "BulkAdd", "BulkRun", "ConsumeResetCount", "CountOffDefault", "InBulk", "Reindex", "ResetCounted",
+}
+
+test("LibKa0s-Schema degraded: the stub instance carries every member the addon reaches", function()
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Schema-1.0", true) == nil, "the degraded arm still has the library")
+  assertTrue(degraded.SchemaRuntime ~= nil, "the degraded arm built no schema runtime")
+  T.assertSurfaceParity(NS.SchemaRuntime, degraded.SchemaRuntime, "schema instance vs host stub",
+    SCHEMA_LIVE_ONLY)
+end)
+
+test("LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS", function()
+  -- STRINGS is the one lib member the stub does not carry, as the document prescribes: its refusals
+  -- are this addon's own words (the descriptor's `L`), not a copy of the library's constants.
+  local degraded = loadDegraded()
+  T.assertSurfaceParity(degraded.__schemaLib, "LibKa0s-Schema-1.0", { "STRINGS" })
 end)
