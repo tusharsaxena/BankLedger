@@ -455,7 +455,9 @@ if not SchemaLib then
   --
   -- Trimmed: BulkRun, BulkAdd, InBulk, Reindex and the profile-reset count (CountOffDefault,
   -- ResetCounted, ConsumeResetCount) have no caller in this addon, which has no profile.
-  -- tests/test_surface_parity.lua names each one as live-only.
+  -- tests/test_surface_parity.lua names each one as live-only. SetMany is the other way round: it
+  -- has no caller in this addon either, and it is CARRIED, for parity -- Schema minor 2 (LibKa0s
+  -- v1.56.0) adds it to the instance, and the version-2 document puts it in the stub table.
   local stub = {}
   local function copy(v)
     if type(v) ~= "table" then return v end
@@ -522,8 +524,10 @@ if not SchemaLib then
       if type(path) ~= "string" or (row and row.sessionOnly) then return nil end
       return stub.Read(d.resolveRoot(), path)
     end
-    -- The seam's order without its log and tally: refuse, validate, store, react, announce.
-    function R.Set(path, value)
+    -- Steps 1-3 of the seam, storing nothing: refuse an unknown path, validate, refuse a missing
+    -- root. Answers the row and its root, or false and the refusal. Set and SetMany both prepare
+    -- through it, so a batch refuses on exactly the rules a single write does.
+    local function prepare(path, value)
       local row = R.FindRow(path)
       if not row then return false, words("NOT_FOUND", path) end
       local stored = type(row.set) ~= "function" and not row.sessionOnly
@@ -533,13 +537,54 @@ if not SchemaLib then
         if not ok then return false, words("INVALID", path), why end
       end
       if stored and type(root) ~= "table" then return false, words("NO_ROOT", path) end
+      return row, root
+    end
+    -- The store alone: the row's own set, nothing for a sessionOnly row without one, else a copy.
+    local function store(row, root, path, value)
       if type(row.set) == "function" then
         row.set(value)
-      elseif stored then
+      elseif type(root) == "table" then
         stub.Write(root, path, copy(value))
       end
+    end
+    -- The seam's order without its log and tally: refuse, validate, store, react, announce.
+    function R.Set(path, value)
+      local row, root, why = prepare(path, value)
+      if not row then return false, root, why end
+      store(row, root, path, value)
       if type(row.onChange) == "function" then row.onChange(value) end
       d.announce(row, path, value)
+      return true
+    end
+    -- Phases 2-4 of the batch: every store, then every onChange, then the one announce.
+    local function commit(writes)
+      for _, w in ipairs(writes) do store(w.row, w.root, w.path, w.value) end
+      for _, w in ipairs(writes) do
+        if type(w.row.onChange) == "function" then w.row.onChange(w.value) end
+      end
+      if #writes == 0 then return end
+      if type(d.announceBatch) == "function" then return d.announceBatch(writes) end
+      for _, w in ipairs(writes) do d.announce(w.row, w.path, w.value) end
+    end
+    -- All or nothing: every entry is prepared before any is stored, and the first refusal answers
+    -- `false, err, why, index` with nothing stored and nothing called. With opts.act the stores and
+    -- reactions run inside the bracket depth, so the sweep veto reads it as the library's BulkRun.
+    function R.SetMany(entries, opts)
+      if type(entries) ~= "table" then entries = {} end
+      if type(opts) ~= "table" then opts = {} end
+      local writes = {}
+      for i, e in ipairs(entries) do
+        local path = type(e) == "table" and e.path or nil
+        local value = type(e) == "table" and e.value or nil
+        local row, root, why = prepare(path, value)
+        if not row then return false, root, why, i end
+        writes[#writes + 1] = { row = row, root = root, path = path, value = value }
+      end
+      if not opts.act then commit(writes); return true end
+      depth = depth + 1
+      local ok, err = pcall(commit, writes)
+      if depth > 0 then depth = depth - 1 end
+      if not ok then error(err, 0) end
       return true
     end
     function R.Default(path)

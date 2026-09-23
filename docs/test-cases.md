@@ -1075,7 +1075,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (10)
+### test_surface_parity.lua (11)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
@@ -1087,6 +1087,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil
 - LibKa0s-Schema degraded: the stub instance carries every member the addon reaches
 - LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS
+- LibKa0s-Schema degraded: the stub SetMany is all-or-nothing
 
 ### test_register.lua (1)
 
@@ -1178,11 +1179,11 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 7 |
 | test_disabled.lua | 12 |
-| test_surface_parity.lua | 10 |
+| test_surface_parity.lua | 11 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1019** |
+| **Total** | **1020** |

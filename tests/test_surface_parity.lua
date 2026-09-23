@@ -326,3 +326,53 @@ test("LibKa0s-Schema degraded: the stub library carries the whole lib-level surf
   local degraded = loadDegraded()
   T.assertSurfaceParity(degraded.__schemaLib, "LibKa0s-Schema-1.0", { "STRINGS" })
 end)
+
+test("LibKa0s-Schema degraded: the stub SetMany is all-or-nothing", function()
+  -- Schema minor 2 (LibKa0s v1.56.0) adds SetMany to the instance surface, and its version-2
+  -- document puts it in the stub table: all-or-nothing, log-silent. The stub carries it ahead of
+  -- the re-vendor so the parity case above stays green across it. BankLedger calls it nowhere; this
+  -- case holds its semantics so a carried member is not an untested one. No row in S.Schema carries
+  -- a `validate`, so the refusing row is spliced into the degraded arm's own rows through AddRows.
+  local degraded = loadDegraded()
+  local R = degraded.SchemaRuntime
+  local ticks, repaints = 0, 0
+  degraded.Util.RefreshRowTint = function() ticks = ticks + 1 end
+  degraded.Panel = { Refresh = function() repaints = repaints + 1 end }
+  R.AddRows({ { path = "settings.refused", default = 1, group = "Capture",
+    validate = function(v) return v == 1, "only one" end } })
+
+  degraded.db = { global = { settings = { rowStripeAlpha = 0.03, rowHoverAlpha = 0.10 } } }
+  local store = degraded.db.global.settings
+  local ok, err, why, index = R.SetMany({
+    { path = "settings.rowStripeAlpha", value = 0.2 }, { path = "settings.nope", value = 1 } })
+  assertEqual(ok, false, "an unknown path let the batch through")
+  assertEqual(err, "unknown path: settings.nope", "the NOT_FOUND refusal is the host's words")
+  assertEqual(why, nil, "a NOT_FOUND refusal carries no why")
+  assertEqual(index, 2, "the refusal names the refused entry")
+
+  ok, err, why, index = R.SetMany({
+    { path = "settings.rowStripeAlpha", value = 0.2 }, { path = "settings.refused", value = 2 } })
+  assertEqual(ok, false, "a refusing validate let the batch through")
+  assertEqual(err, "invalid value", "the INVALID refusal is the host's words")
+  assertEqual(why, "only one", "the validate's own why is handed on")
+  assertEqual(index, 2, "the refusal names the refused entry")
+  assertEqual(store.rowStripeAlpha, 0.03, "a refused batch stored its first entry")
+  assertEqual(ticks + repaints, 0, "a refused batch ran a reaction or an announce")
+
+  assertEqual(R.SetMany({ { path = "settings.rowStripeAlpha", value = 0.2 },
+    { path = "settings.rowHoverAlpha", value = 0.3 } }, { act = "reset" }), true,
+    "a valid batch was refused")
+  assertEqual(store.rowStripeAlpha, 0.2, "the first entry was not stored")
+  assertEqual(store.rowHoverAlpha, 0.3, "the second entry was not stored")
+  assertEqual(ticks, 2, "each row's onChange runs once")
+  assertEqual(repaints, 2, "with no announceBatch, announce runs once per write")
+  assertEqual(R.SetMany({}), true, "the empty batch is a success")
+  assertEqual(ticks + repaints, 4, "the empty batch reacted or announced")
+
+  degraded.db = nil
+  ok, err, why, index = R.SetMany({ { path = "settings.rowStripeAlpha", value = 0.5 } })
+  assertEqual(ok, false, "a batch stored with no root")
+  assertEqual(err, "no settings store yet: settings.rowStripeAlpha", "the NO_ROOT refusal")
+  assertEqual(why, nil, "a NO_ROOT refusal carries no why")
+  assertEqual(index, 1, "the NO_ROOT refusal names its entry")
+end)
