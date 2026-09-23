@@ -35,7 +35,7 @@ Library: none. Kit: one, the bare `"test_prose"` entry shadowing the kit's gate,
 
 | Candidate | Commit | Tests added |
 |---|---|---|
-| C1 `LibKa0s-Bus-1.0` `Catalog`: `NS.MSG` declared once in `core/Constants.lua`, 25 literals replaced | `f14c9df` | `tests/test_bus.lua` (10 cases: 6 characterization, 4 for the catalog), 1 parity case in `tests/test_surface_parity.lua` |
+| C1 `LibKa0s-Bus-1.0` `Catalog`: `NS.MSG` declared once in `core/Constants.lua`, 25 literals replaced | `f14c9df` | `tests/test_bus.lua` (10 cases: 6 characterization, 4 for the catalog), 3 Bus cases in `tests/test_surface_parity.lua`: the surface-parity case (`f14c9df`, its ignore list dropped in `f4e8fd9`), the untracked-target shape case with AceEvent present (`f4e8fd9`), and its AceEvent-absent arm, where `NewTarget` answers nil (the follow-up after `f4e8fd9`) |
 | C2 `LibKa0s-Schema-1.0` full adopter: `NS.SchemaRuntime`, host names bound, runtime-completing stub | `0d9d1e6` | `tests/test_schema_runtime.lua` (17 cases: 13 characterization, 4 for the intended changes), 2 parity cases; 3 degraded cases in `tests/test_libka0s.lua` re-pinned; 2 `Util.SplitPath` cases removed with the function |
 
 `docs/ARCHITECTURE.md` names each major in its section (`## Message bus`, `## Settings Schema`).
@@ -64,6 +64,7 @@ None. Every candidate was decided. The class-C Perf major stays on its settled d
 | C2 commit `0d9d1e6` | 1015 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
 | Bundle commit | 1015 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
 | Review fix `f4e8fd9` (Bus stub to the untracked-target shape) | 1016 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
+| Follow-up (the stub's AceEvent-absent arm pinned) | 1017 passed, 0 failed, 0 skipped | 0 / 0 in 71 files |
 
 Complexity: `ka0s-bounded lizard -C 15 -w` over the touched source files and the two new suites
 reported nothing above CCN 15. Not run: the full automated-test battery (`tests/_kit/run-automated-tests.sh`) and the

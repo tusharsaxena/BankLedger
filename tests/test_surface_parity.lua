@@ -276,6 +276,26 @@ test("LibKa0s-Bus degraded: the stub answers as the untracked-target shape names
   assertTrue(degraded.MSG.ENTRY_ADDED == "Ka0s_BankLedger_EntryAdded", "NS.MSG lost a name on the degraded load")
 end)
 
+test("LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil", function()
+  -- The other arm of the same options-ui-§1 sentence: nil is the stub's answer ONLY when
+  -- AceEvent-3.0 is missing too. The fixture is a real degraded load with AceEvent then taken out
+  -- of the mock LibStub's registry (M.__libs, the seam tests/_kit/mock_base.lua exposes); the stub
+  -- looks AceEvent up at call time, so it sees the removal. Its no-AceEvent answers for the rest of
+  -- the record stay what they were, because none of them reaches AceEvent.
+  local degraded, dm = loadDegraded()
+  local Bus = degraded.__busLib
+  assertTrue(dm.LibStub("AceEvent-3.0", true) ~= nil, "the fixture had no AceEvent to take out")
+  dm.__libs["AceEvent-3.0"] = nil
+  assertTrue(dm.LibStub("AceEvent-3.0", true) == nil, "the fixture failed to take AceEvent out")
+  local rec = Bus:New{ name = "BankLedger" }
+  assertTrue(rec ~= nil, "New answered no record with AceEvent absent")
+  assertEqual(rec:NewTarget(), nil, "NewTarget answered a target with AceEvent-3.0 absent")
+  assertEqual(rec:StandDown(), 0, "StandDown answers 0 with AceEvent absent")
+  local replayed, rejected = rec:StandUp()
+  assertEqual(replayed, 0, "StandUp answers 0 replayed with AceEvent absent")
+  assertTrue(type(rejected) == "table" and next(rejected) == nil, "StandUp answers an empty rejected list")
+end)
+
 -- ── LibKa0s-Schema-1.0 ───────────────────────────────────────────────────────────────────────
 
 -- The seventh arm, and the one a player's settings ride on: settings/Schema.lua resolves the major
