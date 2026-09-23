@@ -112,13 +112,15 @@ built by the same member, and writes nothing. Right-click opens the settings pan
   The saved ledger view, a carve-out, goes back to its stock state. The library only knows about schema
   rows.
 - **The bulk bracket** (`bulkBegin` / `bulkEnd`, Slash minor 8), so a reset logs one line
-  (`debug-logging-§10`). Both are `settings/Schema.lua`'s `S.BulkBegin` / `S.BulkEnd`. While the
+  (`debug-logging-§10`). Both are the `LibKa0s-Schema-1.0` instance's pair, which
+  `settings/Schema.lua` publishes as `S.BulkBegin` / `S.BulkEnd`. While the
   library's `CliResetAll` walks the rows, the write seam mutes its per-row `[Set]` line and counts the
   rows whose value changed. The walk then logs exactly `[Set] reset all: N rows`, which is `0 rows`
   when everything was already at its default. A walk that raises part-way logs the same line once
   with ` (stopped by an error)` appended, then the error is re-raised. The library hands `bulkEnd`
   `err = nil` for a raise of nil or false, so that raise gets no marker. The degraded fallback
-  `CliResetAll` brackets its own walk the same way, and marks every error it catches.
+  `CliResetAll` brackets its own walk the same way, which keeps the Minimap row's sweep veto, and
+  re-raises every error it catches; the degraded schema stub is log-silent, so it writes no line.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
 landing page both read from that one table.

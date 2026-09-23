@@ -18,6 +18,27 @@ local Loader = T.Loader
 
 -- ── the suite list ───────────────────────────────────────────────────────────────────────────
 
+-- The runner's suite list carries two entry shapes, and this file has to read both. A bare string
+-- is a suite in tests/ by its basename. A `{ name = ..., dir = ... }` pair is a suite declared
+-- against its own directory -- the shape testing-§9 prescribes for every suite the vendored kit
+-- ships (tests/_kit/test_eol.lua and its siblings), because kit revision 25 keys the suite
+-- inventory by (basename, directory) and reads a bare name as a claim on tests/. This file
+-- understood only the bare form until 2026-09-23, so the kit's own remedy crashed it with
+-- "attempt to concatenate local 'suite' (a table value)" before a single case could say why.
+local OWN_DIR = "tests/"
+
+--- The directory and the basename one suite-list entry declares.
+local function entryParts(entry)
+  if type(entry) == "table" then return entry.dir or OWN_DIR, tostring(entry.name) end
+  return OWN_DIR, tostring(entry)
+end
+
+--- The file one suite-list entry names, as a repo-relative path.
+local function entryPath(entry)
+  local dir, name = entryParts(entry)
+  return dir .. name .. ".lua"
+end
+
 -- `ls tests/test_*.lua`, portably enough for the two platforms this runs on.
 local function suiteFilesOnDisk()
   local names = {}
@@ -33,7 +54,7 @@ end
 
 test("Harness: every suite the runner lists exists on disk", function()
   for _, suite in ipairs(T.suites) do
-    local path = "tests/" .. suite .. ".lua"
+    local path = entryPath(suite)
     local f = io.open(path, "r")
     assertTrue(f ~= nil, path .. " is listed in tests/run.lua but is not on disk — the kit SKIPS a "
       .. "missing suite, so this would be a green run with fewer cases")
@@ -42,8 +63,13 @@ test("Harness: every suite the runner lists exists on disk", function()
 end)
 
 test("Harness: every suite on disk is listed in the runner", function()
+  -- Only entries declared against tests/ itself answer for a file in tests/: a pair naming
+  -- tests/_kit/ is a claim on the kit's copy, and a same-named file here would be a second gate.
   local listed = {}
-  for _, suite in ipairs(T.suites) do listed[suite] = true end
+  for _, suite in ipairs(T.suites) do
+    local dir, name = entryParts(suite)
+    if dir == OWN_DIR then listed[name] = true end
+  end
   local disk = suiteFilesOnDisk()
   assertTrue(#disk > 0, "could not enumerate tests/test_*.lua")
   for _, base in ipairs(disk) do
@@ -55,9 +81,22 @@ end)
 test("Harness: the runner's suite list has no duplicates", function()
   local seen = {}
   for _, suite in ipairs(T.suites) do
-    assertTrue(not seen[suite], "duplicate suite in tests/run.lua: " .. suite)
-    seen[suite] = true
+    local path = entryPath(suite)
+    assertTrue(not seen[path], "duplicate suite in tests/run.lua: " .. path)
+    seen[path] = true
   end
+end)
+
+test("Harness: the suite-list reader takes both entry shapes", function()
+  assertTrue(entryPath("test_util") == "tests/test_util.lua", "a bare name must resolve under tests/")
+  assertTrue(entryPath({ name = "test_eol", dir = "tests/_kit/" }) == "tests/_kit/test_eol.lua",
+    "a { name, dir } pair must resolve under its own directory")
+  local sawPair = false
+  for _, suite in ipairs(T.suites) do
+    if type(suite) == "table" then sawPair = true end
+  end
+  assertTrue(sawPair, "tests/run.lua declares no { name, dir } pair, so the kit's own suites are "
+    .. "not in the list this file walks")
 end)
 
 -- ── the TOC ──────────────────────────────────────────────────────────────────────────────────

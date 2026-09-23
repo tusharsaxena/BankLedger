@@ -15,15 +15,26 @@ local NS = {}
 -- The kit takes suite BASENAMES and appends the extension itself, and it SKIPS a name with no file
 -- on disk rather than raising. A typo is therefore a silently green run with fewer cases — so
 -- tests/test_harness.lua asserts this list against `tests/test_*.lua` on disk, in both directions.
+--
+-- A bare name is a suite in tests/. A suite the vendored kit ships is declared by the pair
+-- (basename, directory) -- `{ name = ..., dir = "tests/_kit/" }`, the form testing-§9 prescribes --
+-- because the kit's inventory keys on that pair and reads a bare name as a claim on tests/. One list
+-- carries both shapes, so the list the harness walks is the list that runs.
 local SUITES = {
   "test_util", "test_compat", "test_constants", "test_filters",
   "test_ledger", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_launcher", "test_sessionwindow", "test_insights",
-  "test_export", "test_debuglog", "test_schema", "test_slash",
+  "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
   "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
-  "test_lintconfig", "test_prose",
+  "test_lintconfig",
+  -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
+  -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
+  -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
+  { name = "test_eol",        dir = "tests/_kit/" },
+  { name = "test_prose",      dir = "tests/_kit/" },
+  { name = "test_layout_cap", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
@@ -55,9 +66,18 @@ Loader.loadAll(Loader.tocFiles("BankLedger.toc"), NS, mocks)
 --
 -- The Core and Slash stubs are deliberately absent from this table -- neither mirrors a major's
 -- instance, so neither has a name to resolve; tests/test_surface_parity.lua's header says why.
+--
+-- The Bus and Schema stubs mirror a LIBRARY TABLE (core/Constants.lua calls Bus.Catalog on the
+-- library itself; settings/Schema.lua resolves the Schema library or its stub library and builds its
+-- instance from that), so their live half is the mock LibStub's answer for the major. The Schema
+-- INSTANCE has no member manifest to resolve by name, and tests/test_surface_parity.lua compares it
+-- two-table. A table map is all-or-nothing, which is why those answers are written into it here
+-- rather than left to the auto-wiring.
 Kit.setSurfaceSource{
   ["LibKa0s-Options-1.0"]  = NS.Helpers,
   ["LibKa0s-DebugLog-1.0"] = NS.DebugLog,
+  ["LibKa0s-Bus-1.0"]      = mocks.LibStub("LibKa0s-Bus-1.0", true),
+  ["LibKa0s-Schema-1.0"]   = mocks.LibStub("LibKa0s-Schema-1.0", true),
 }
 
 _G.BL_TEST = Kit.expose{
@@ -75,13 +95,4 @@ NS.Ledger:Enable()
 -- its suite exercises the real bus wiring rather than calling its handlers by hand.
 NS.SessionWindow:Enable()
 
--- The kit has shipped one suite of its own since revision 15 -- tests/_kit/test_eol.lua, the
--- working-tree line-ending gate -- and Kit.assertSuiteInventory fails the run until the runner
--- declares it, so it cannot arrive with a re-vendor and then quietly run nothing. It is appended
--- here rather than written into SUITES because SUITES is also what tests/test_harness.lua walks,
--- as plain basenames under tests/.
-local RUN_SUITES = {}
-for i, name in ipairs(SUITES) do RUN_SUITES[i] = name end
-RUN_SUITES[#RUN_SUITES + 1] = { name = "test_eol", dir = "tests/_kit/" }
-
-Kit.run{ dir = "tests/", suites = RUN_SUITES }
+Kit.run{ dir = "tests/", suites = SUITES }

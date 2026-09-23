@@ -1,8 +1,9 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- The addon adopts nine LibKa0s seams, and five of them carry a hand-written degradation arm for
--- the install where libs/LibKa0s is missing: core/CoreSetup.lua, core/DebugLogSetup.lua,
--- core/LifecycleSetup.lua, settings/Slash.lua and settings/OptionsSetup.lua. A stub is a second implementation of somebody
+-- Seven of the addon's LibKa0s seams carry a hand-written degradation arm for the install where
+-- libs/LibKa0s is missing: core/CoreSetup.lua, core/DebugLogSetup.lua, core/LifecycleSetup.lua,
+-- settings/Slash.lua, settings/OptionsSetup.lua and, since LibKa0s v1.55.0, the Bus catalog in
+-- core/Constants.lua and the schema runtime in settings/Schema.lua. A stub is a second implementation of somebody
 -- else's surface, so it drifts the moment the library grows a member the host starts calling: the
 -- live path stays green and the degraded path raises in exactly the install the stub exists for.
 --
@@ -48,7 +49,7 @@
 
 local T = _G.BL_TEST
 local NS = T.NS
-local test, assertTrue = T.test, T.assertTrue
+local test, assertTrue, assertEqual = T.test, T.assertTrue, T.assertEqual
 
 local Env = dofile("tests/degraded_env.lua")
 local loadDegraded, loadUpTo = Env.loadDegraded, Env.loadUpTo
@@ -232,4 +233,96 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")
   assertTrue(degraded.Helpers.__degraded == true, "the degraded arm is not the fallback branch")
   T.assertSurfaceParity(degraded.Helpers, "LibKa0s-Options-1.0", IGNORE)
+end)
+
+-- ── LibKa0s-Bus-1.0 ──────────────────────────────────────────────────────────────────────────
+
+test("LibKa0s-Bus degraded: the stub carries the whole live surface", function()
+  -- The sixth degradation arm. core/Constants.lua adopts Bus.Catalog alone and publishes the
+  -- resolved library, or its stub, as NS.__busLib. The degraded arm is that stub from a real load
+  -- with libs/LibKa0s/*.lua left out; the live arm is the library table, by name, through the
+  -- source tests/run.lua registers.
+  --
+  -- The stub is the untracked-target shape (options-ui-§1), verbatim from the Bus API document's
+  -- Worked example, so it owes the whole live surface -- New and Catalog (members-1.json) -- and
+  -- nothing is ignored. No BankLedger file calls Bus:New today; an ignore list here would be the
+  -- stub drift anti-pattern #56 exists to catch.
+  --   Callers from: grep -rn "__busLib\|Bus:New\|Bus.New" core modules settings
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Bus-1.0", true) == nil, "the degraded arm still has the library")
+  assertTrue(degraded.__busLib ~= nil, "the degraded arm published no Bus stub")
+  T.assertSurfaceParity(degraded.__busLib, "LibKa0s-Bus-1.0")
+end)
+
+test("LibKa0s-Bus degraded: the stub answers as the untracked-target shape names", function()
+  -- options-ui-§1: New answers a record whose NewTarget hands each receiver a private AceEvent
+  -- target, untracked, and answers nil only when AceEvent-3.0 itself is absent; StandDown and
+  -- StandUp answer 0 and 0, {}; Catalog hands back the host's own table.
+  local degraded, dm = loadDegraded()
+  local Bus = degraded.__busLib
+  assertTrue(dm.LibStub("AceEvent-3.0", true) ~= nil, "the degraded arm lost AceEvent-3.0")
+  local rec = Bus:New{ name = "BankLedger" }
+  assertEqual(rec.name, "BankLedger", "the record carries the descriptor's name")
+  local a, b = rec:NewTarget(), rec:NewTarget()
+  assertTrue(type(a) == "table" and type(a.RegisterMessage) == "function",
+    "NewTarget answered no AceEvent target while AceEvent is present")
+  assertTrue(a ~= b, "NewTarget handed two receivers the same target")
+  assertEqual(rec:StandDown(), 0, "StandDown answers 0")
+  local replayed, rejected = rec:StandUp()
+  assertEqual(replayed, 0, "StandUp answers 0 replayed")
+  assertTrue(type(rejected) == "table" and next(rejected) == nil, "StandUp answers an empty rejected list")
+  local declared = { X = "Ka0s_BankLedger_X" }
+  assertTrue(Bus.Catalog("BankLedger", declared) == declared, "Catalog hands back the host's own table")
+  assertTrue(degraded.MSG.ENTRY_ADDED == "Ka0s_BankLedger_EntryAdded", "NS.MSG lost a name on the degraded load")
+end)
+
+test("LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil", function()
+  -- The other arm of the same options-ui-§1 sentence: nil is the stub's answer ONLY when
+  -- AceEvent-3.0 is missing too. The fixture is a real degraded load with AceEvent then taken out
+  -- of the mock LibStub's registry (M.__libs, the seam tests/_kit/mock_base.lua exposes); the stub
+  -- looks AceEvent up at call time, so it sees the removal. Its no-AceEvent answers for the rest of
+  -- the record stay what they were, because none of them reaches AceEvent.
+  local degraded, dm = loadDegraded()
+  local Bus = degraded.__busLib
+  assertTrue(dm.LibStub("AceEvent-3.0", true) ~= nil, "the fixture had no AceEvent to take out")
+  dm.__libs["AceEvent-3.0"] = nil
+  assertTrue(dm.LibStub("AceEvent-3.0", true) == nil, "the fixture failed to take AceEvent out")
+  local rec = Bus:New{ name = "BankLedger" }
+  assertTrue(rec ~= nil, "New answered no record with AceEvent absent")
+  assertEqual(rec:NewTarget(), nil, "NewTarget answered a target with AceEvent-3.0 absent")
+  assertEqual(rec:StandDown(), 0, "StandDown answers 0 with AceEvent absent")
+  local replayed, rejected = rec:StandUp()
+  assertEqual(replayed, 0, "StandUp answers 0 replayed with AceEvent absent")
+  assertTrue(type(rejected) == "table" and next(rejected) == nil, "StandUp answers an empty rejected list")
+end)
+
+-- ── LibKa0s-Schema-1.0 ───────────────────────────────────────────────────────────────────────
+
+-- The seventh arm, and the one a player's settings ride on: settings/Schema.lua resolves the major
+-- or its runtime-completing stub (docs/api/Schema/version-1-docs.md, "The degradation stub"), builds
+-- NS.SchemaRuntime from whichever it got, and publishes the resolved library as NS.__schemaLib. The
+-- stub is TRIMMED to what this addon calls, and the trimmed members are named here as live-only,
+-- each for the same reason: no BankLedger file calls it.
+--   Callers from: grep -rnE "SchemaRuntime[.:][A-Za-z]+|S\.Bulk[A-Za-z]+|Schema[.:](Set|Get|Default|ApplyDefault|FindRow|ReadPath|WritePath|SameValue|Register)\b" core modules settings
+--   * BulkRun, BulkAdd, InBulk -- the addon brackets with the BulkBegin/BulkEnd pair and nothing else.
+--   * Reindex -- the one head splice goes through AddRows, which re-indexes on its own.
+--   * CountOffDefault, ResetCounted, ConsumeResetCount -- the profile reset's count. This addon has
+--     no profile (the savedvariables-§2 row), so nothing resets one.
+local SCHEMA_LIVE_ONLY = {
+  "BulkAdd", "BulkRun", "ConsumeResetCount", "CountOffDefault", "InBulk", "Reindex", "ResetCounted",
+}
+
+test("LibKa0s-Schema degraded: the stub instance carries every member the addon reaches", function()
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Schema-1.0", true) == nil, "the degraded arm still has the library")
+  assertTrue(degraded.SchemaRuntime ~= nil, "the degraded arm built no schema runtime")
+  T.assertSurfaceParity(NS.SchemaRuntime, degraded.SchemaRuntime, "schema instance vs host stub",
+    SCHEMA_LIVE_ONLY)
+end)
+
+test("LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS", function()
+  -- STRINGS is the one lib member the stub does not carry, as the document prescribes: its refusals
+  -- are this addon's own words (the descriptor's `L`), not a copy of the library's constants.
+  local degraded = loadDegraded()
+  T.assertSurfaceParity(degraded.__schemaLib, "LibKa0s-Schema-1.0", { "STRINGS" })
 end)

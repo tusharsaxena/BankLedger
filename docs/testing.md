@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 today: `M4c-06` itself added `tests/test_lintconfig.lua`). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 71 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
@@ -259,8 +259,18 @@ tests/
   test_vendor_sync.lua     -- one line of adoption over _kit/vendor_sync.lua; docs/test-cases.md
                            --   counts three cases: the two payload cases, plus the runner-mode
                            --   case kit revision 16 adds with no host change
-  test_surface_parity.lua  -- the five degradation arms (Core, DebugLog, Lifecycle, Slash,
-                           --   Options) against the surfaces they stand in for, collected in one
+  test_schema_runtime.lua  -- the settings write seam as a caller sees it: the order of store,
+                           --   [Set] line, onChange and repaint; exact answers and arity; the
+                           --   refusals; the inverted Minimap path; the sweep veto; the same seam
+                           --   degraded; and what adopting LibKa0s-Schema-1.0 changed on purpose
+  test_bus.lua             -- the closed bus's wire contract: every receiver's subscriptions and
+                           --   every sender's name and payload, pinned against the four wire
+                           --   names typed there once; NS.MSG strict live and plain degraded;
+                           --   and the declare-once gate (no quoted wire name outside
+                           --   core/Constants.lua)
+  test_surface_parity.lua  -- the seven degradation arms (Core, DebugLog, Lifecycle, Slash,
+                           --   Options, the Bus catalog, the schema runtime) against the surfaces
+                           --   they stand in for, collected in one
                            --   file so a seam growing a stub with no case beside it is an
                            --   obvious hole (M4-09)
 ```
@@ -277,7 +287,11 @@ tests/
   MODULE table for those names; both of this addon's by-name stubs mirror the object
   `lib:New(descriptor)` returned, so the auto-wired source reports six divergences that are all
   correct omissions. `expose` registers a source only when none is registered yet, which is what
-  makes the earlier line stick.
+  makes the earlier line stick. The map also names `LibKa0s-Bus-1.0`, whose stub mirrors the
+  LIBRARY table (`Bus.Catalog` is called on the library, never on an instance), so its live half is
+  the mock `LibStub`'s own answer, written into the map because a table source is all-or-nothing.
+  `LibKa0s-Schema-1.0` is in it for the same reason: its stub LIBRARY is compared by name, while its
+  stub INSTANCE, which has no member manifest, is compared two-table against `NS.SchemaRuntime`.
 - `_kit/loader.lua` reproduces the addon's two-vararg header by calling each chunk as
   `chunk("BankLedger", NS)` under an environment where WoW globals resolve to the mock table first
   and fall back to real `_G`. It also provides `Loader.tocFiles`, which is what removed the

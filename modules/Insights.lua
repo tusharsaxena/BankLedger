@@ -997,6 +997,6 @@ function I:Enable()
   -- LedgerChanged is already one message per bulk operation, so it refreshes synchronously.
   -- EntryAdded is one message per moved stack, and a Refresh here is a full Database:Stats pass —
   -- so a 20-slot deposit would aggregate the whole ledger twenty times. Collapse the burst.
-  I.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", onChange)
-  I.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() I:ScheduleRefresh() end)
+  I.__ev:RegisterMessage(NS.MSG.LEDGER_CHANGED, onChange)
+  I.__ev:RegisterMessage(NS.MSG.ENTRY_ADDED, function() I:ScheduleRefresh() end)
 end

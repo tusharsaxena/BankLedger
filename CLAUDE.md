@@ -43,7 +43,7 @@ push and never bump the version without an explicit instruction.
 
 ## Vendored LibKa0s — the provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.54.2 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.55.0 (MIT).
 
 That line is the single answer to "which LibKa0s does this build carry?", and it is machine-read:
 `tests/test_vendor_sync.lua` greps it out of **this file** (kit revision 9 moved it here from
@@ -56,9 +56,12 @@ after. Re-vendor, edit this line, regenerate `docs/test-cases.md`, then run the 
 
 ## The `docs/` set — there is no `agent-context.md`
 
-The canonical `docs/` set is exactly three files: **`ARCHITECTURE.md`** (what this addon is),
-**`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks) — plus the generated
-`test-cases.md` and the topic-detail docs.
+The canonical `docs/` trio is **`ARCHITECTURE.md`** (what this addon is), **`testing.md`** (how to
+verify) and **`smoke-tests.md`** (in-game checks). Beside it sit the five verification-and-record
+docs — the generated `test-cases.md`, `performance.md`, `perf-analysis/README.md`,
+`automated-tests/README.md` and `automated-tests/RESULTS.md` (`perf-analysis/README.md` is
+conditional; `## Documentation map` records it as not applicable here) — and the topic-detail docs,
+whose Tier 1 six are listed above (`documentation-§3`).
 
 **`docs/agent-context.md` does not exist in this repo and MUST NOT be created.** The standard
 deleted it in **v2.17.0**; shipping it is **anti-pattern #49**. It held `NEW_ADDON_CONTEXT.md` —

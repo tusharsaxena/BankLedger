@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 NS.Constants = NS.Constants or {}
 local C = NS.Constants
 
@@ -233,3 +233,58 @@ C.LOGO_PATH = "Interface\\AddOns\\BankLedger\\media\\logos\\bankledger.logo.tga"
 NS.Store = C.Store
 NS.Direction = C.Direction
 NS.Kind = C.Kind
+
+-- ── The bus message catalog (architecture-§4) ───────────────────────────────────
+--
+-- Every bus message this addon sends, declared ONCE, here: every SendMessage and RegisterMessage in
+-- the addon names the constant, never the literal. Here rather than in a core/Bus.lua because this
+-- addon has no bus file -- the publisher is the addon object (core/BankLedger.lua) and each
+-- receiver's private target comes from NS.NewBusTarget beside it. docs/ARCHITECTURE.md ▸ Message
+-- bus carries the payloads and every consumer.
+--
+-- LibKa0s-Bus-1.0's Catalog (docs/api/Bus/version-1-docs.md) validates the names at load and hands
+-- back a STRICT copy, so a mistyped key raises at the call site -- for a publisher too, whose
+-- SendMessage(nil) would otherwise return quietly and send nothing. Only Catalog is adopted: the
+-- receivers keep this addon's own untracked factory, so nothing here calls Bus:New.
+--
+-- Degraded (the payload missing): the untracked-target stub (options-ui-§1, library-stack-§7),
+-- verbatim from the Bus API document's Worked example. Its Catalog hands back the declared table
+-- itself: the names and every send and receive are unchanged; only the strictness is lost. Its New
+-- answers a record whose NewTarget hands out a private AceEvent target, untracked, and answers nil
+-- only when AceEvent-3.0 itself is absent; StandDown and StandUp answer 0 and 0, {}. It records
+-- nothing, prints nothing and copies nothing of the library. No BankLedger path calls New today;
+-- the stub carries it because the named shape does, and so that a later Bus:New adopter inherits a
+-- degraded arm that already works. Published as NS.__busLib so tests/test_surface_parity.lua holds
+-- the stub to the live major with no ignore list.
+local Bus = LibStub and LibStub("LibKa0s-Bus-1.0", true)
+if not Bus then
+  Bus = {
+    New = function(_, d)
+      return {
+        name = d and d.name,
+        NewTarget = function()
+          local AceEvent = LibStub and LibStub("AceEvent-3.0", true)
+          if not AceEvent then return nil end
+          local t = {}; AceEvent:Embed(t); return t
+        end,
+        StandDown = function() return 0 end,
+        StandUp   = function() return 0, {} end,
+      }
+    end,
+    Catalog = function(_, messages) return messages end,
+  }
+end
+NS.__busLib = Bus
+
+NS.MSG = Bus.Catalog(addonName, {
+  -- Sender: core/Database.lua (Database:Add). Payload: entry, index.
+  ENTRY_ADDED      = "Ka0s_BankLedger_EntryAdded",
+  -- Sender: core/Database.lua (delete, purge, prune, FireLedgerChanged). Payload: none.
+  LEDGER_CHANGED   = "Ka0s_BankLedger_LedgerChanged",
+  -- Sender: modules/Ledger.lua (OpenContext, CloseContext, the guild-bank disarm).
+  -- Payload: active (boolean), context.
+  SESSION_CHANGED  = "Ka0s_BankLedger_SessionChanged",
+  -- Sender: the settings write path -- the settings/Schema.lua row reactions (core/Util.lua's
+  -- row-tint refresh is one) and settings/Slash.lua's full reset. Payload: a short reason string.
+  SETTINGS_CHANGED = "Ka0s_BankLedger_SettingsChanged",
+})

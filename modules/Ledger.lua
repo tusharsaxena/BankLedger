@@ -507,7 +507,7 @@ end
 -- every session boundary in this file can reach it — including the guild bank's self-disarm.
 local function fireSessionChanged(active, context)
   if NS.bus then
-    NS.bus:SendMessage("Ka0s_BankLedger_SessionChanged", active and true or false, context)
+    NS.bus:SendMessage(NS.MSG.SESSION_CHANGED, active and true or false, context)
   end
 end
 
@@ -885,6 +885,6 @@ function L:Enable()
   -- message (architecture-§4).
   L.__ev = NS.NewBusTarget()
   if L.__ev then
-    L.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() L:RefreshUpvalues() end)
+    L.__ev:RegisterMessage(NS.MSG.SETTINGS_CHANGED, function() L:RefreshUpvalues() end)
   end
 end

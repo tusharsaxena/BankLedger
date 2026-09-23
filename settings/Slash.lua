@@ -192,7 +192,7 @@ function Sl:ResetEverything()
   local LT = NS.LedgerTable
   if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
   print("this addon reset to defaults.")
-  if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "reset") end
+  if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "reset") end
   refreshAfterReset()
 end
 
@@ -433,24 +433,25 @@ local cli = lib:New({
   -- The schema seam. Every one of these is the SINGLE write/read path the settings panel already
   -- uses, so a slash change and a panel change take the same route: same validation, same debug
   -- trace, same onChange reaction.
-  get          = function(path) return NS.Schema:Get(path) end,
-  set          = function(path, v) NS.Schema:Set(path, v) end,
-  findRow      = function(path) return NS.Schema:FindRow(path) end,
-  allRows      = function() return NS.Schema.Schema end,
-  -- NOT a bare `S:Set(row.path, S:Default(row.path))` any more: S:ApplyDefault is the seam that
-  -- honors S.RESET_EXEMPT, so the sweep this feeds cannot walk the Minimap button row back to
-  -- shown (launcher-§3). The library reaches this from CliReset (one named path) too, and the
-  -- veto there is inert by construction -- see the seam.
-  applyDefault = function(row) NS.Schema:ApplyDefault(row) end,
+  -- The LibKa0s-Schema-1.0 instance's own members, handed over as values (settings/Schema.lua,
+  -- which the TOC loads first). No gate stands in front of the seam, so nothing is bypassed.
+  get          = NS.SchemaRuntime.Get,
+  set          = NS.SchemaRuntime.Set,
+  findRow      = NS.SchemaRuntime.FindRow,
+  allRows      = NS.SchemaRuntime.AllRows,
+  -- ApplyDefault honors S.RESET_EXEMPT, so the sweep this feeds cannot walk the Minimap button row
+  -- back to shown (launcher-§3). The library reaches this from CliReset (one named path) too, and
+  -- the veto there is inert by construction: it binds only inside the bracket below.
+  applyDefault = NS.SchemaRuntime.ApplyDefault,
 
   -- The bulk bracket (Slash minor 8, debug-logging-§10). CliResetAll, which is `/bl resetall` and
   -- both Defaults controls, calls these around its row walk: the seam mutes its per-row [Set] line
-  -- and S.BulkEnd emits the one `[Set] reset all: N rows`, N the rows whose value changed. Always
-  -- the pair, never one without the other. The Options descriptor gets no pair: this
-  -- addon never calls O.RestoreDefaults or O.RestoreAllDefaults (settings/OptionsSetup.lua).
-  -- Direct references are safe because the TOC loads settings/Schema.lua first.
-  bulkBegin    = NS.Schema.BulkBegin,
-  bulkEnd      = NS.Schema.BulkEnd,
+  -- and the outermost BulkEnd emits the one `[Set] reset all: N rows`, N the rows whose value
+  -- changed. Always the pair, never one without the other. The Options descriptor carries the same
+  -- pair (settings/OptionsSetup.lua), though this addon never calls O.RestoreDefaults or
+  -- O.RestoreAllDefaults. Direct references are safe because the TOC loads settings/Schema.lua first.
+  bulkBegin    = NS.SchemaRuntime.BulkBegin,
+  bulkEnd      = NS.SchemaRuntime.BulkEnd,
 
   -- This addon's schema groups its rows under `group`, which names the TAB it draws on; the
   -- library defaults to `row.page`. Without this every row collapses under one "[settings]" heading

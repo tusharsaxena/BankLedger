@@ -6,11 +6,9 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (38)
+### test_util.lua (36)
 
 - Util.PlayerKey joins name and realm with spaces stripped
-- Util.SplitPath splits a dotted settings path
-- Util.SplitPath returns a single component for a bare key
 - Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
 - Util.FormatClock renders HH:MM
 - Util.PlainMoney always renders gold, silver and copper parts
@@ -700,6 +698,26 @@ badge and any count quoted in the docs must agree with it.
 - Test mode: a combat edge with test mode off says nothing and starts nothing
 - Test mode: /bl session stays its own verb
 
+### test_schema_runtime.lua (17)
+
+- Schema:Set stores, then logs one [Set] line, then reacts, then repaints -- once each
+- Schema:Set answers exactly `true` on success, and `false, reason` on a refusal
+- Schema:Set refuses a value its row's validate rejects, and stores and calls nothing
+- Schema:Set on an unknown path stores nothing, anywhere
+- Schema:Set on a session-only row calls its own set, reacts and repaints, stores nothing
+- Minimap row: the seam writes LibDBIcon's hide flag inverted, into the table LibDBIcon holds
+- Schema:ApplyDefault restores one row and answers `true`; a pathless row answers `false`
+- Schema:ApplyDefault leaves the Minimap row alone inside a bracket, and resets it outside one
+- Schema:Default answers a fresh copy of the row's default, and nil for an unknown path
+- Schema.SameValue compares tables by content and tells false from absent
+- Schema degraded: a write lands, reads back, reacts and answers as the live seam does
+- Schema degraded: a table value is stored as a copy, and the default stays whole
+- Schema degraded: the resetall sweep writes every row back and closes its bracket
+- Schema runtime: the seam is a LibKa0s-Schema-1.0 instance, and the host names are bound to it
+- Schema:Register reports a path missing from the defaults even when the row has a default
+- Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
+- Options: the page Defaults act skips the Minimap button row and logs one [Set] line
+
 ### test_slash.lua (50)
 
 - Slash: a set renders as a sorted brace list, through the format hook
@@ -752,6 +770,19 @@ badge and any count quoted in the docs must agree with it.
 - Slash: every chat line carries the cyan [BL] tag
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
+
+### test_bus.lua (10)
+
+- bus: each module's receiver subscribes to exactly the wire names it always has
+- bus: no live registration names an addon message outside the four
+- bus: Database:Add sends EntryAdded with the entry and its index
+- bus: Database:FireLedgerChanged sends LedgerChanged with no payload
+- bus: a settings write and the row-tint refresh send SettingsChanged with their reason
+- bus: opening and closing the bank frame sends SessionChanged true, then false
+- bus: NS.MSG declares exactly the four wire names
+- bus: NS.MSG is LibKa0s-Bus-1.0's strict catalog, so a mistyped key raises
+- bus: without LibKa0s, NS.MSG is the same four names as a plain table
+- bus: no addon file but core/Constants.lua types a message's wire name
 
 ### test_panel.lua (33)
 
@@ -832,11 +863,12 @@ badge and any count quoted in the docs must agree with it.
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Filters tab: the id list packs two entries to a line, row-major
 
-### test_harness.lua (7)
+### test_harness.lua (8)
 
 - Harness: every suite the runner lists exists on disk
 - Harness: every suite on disk is listed in the runner
 - Harness: the runner's suite list has no duplicates
+- Harness: the suite-list reader takes both entry shapes
 - Harness: the TOC is what the headless runner loads, and it is non-empty
 - Harness: Compat loads before everything else in core/
 - Harness: Filters loads before Ledger — the capture gate reads the lists
@@ -989,9 +1021,9 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
-- LibKa0s-Slash degraded: resetall logs ONE [Set] reset all line, not one per row
-- LibKa0s-Slash degraded: a raising resetall logs ONE line marked as stopped, re-raises, and unmutes
-- LibKa0s-Slash degraded: a resetall raising nil is still marked, since the fallback owns its pcall
+- LibKa0s-Slash degraded: resetall writes every changed row back, and logs no [Set] line
+- LibKa0s-Slash degraded: a raising resetall re-raises unchanged and closes its bracket
+- LibKa0s-Slash degraded: a resetall raising nil still reaches the caller and closes its bracket
 - LibKa0s-Slash: the seam loads after the schema it reads
 
 ### test_vendor_sync.lua (3)
@@ -1041,13 +1073,18 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (5)
+### test_surface_parity.lua (10)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Slash degraded: the stub carries the whole live surface
 - LibKa0s-Options degraded: the stub carries the live surface the addon reaches
+- LibKa0s-Bus degraded: the stub carries the whole live surface
+- LibKa0s-Bus degraded: the stub answers as the untracked-target shape names
+- LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil
+- LibKa0s-Schema degraded: the stub instance carries every member the addon reaches
+- LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS
 
 ### test_register.lua (1)
 
@@ -1064,20 +1101,50 @@ badge and any count quoted in the docs must agree with it.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
-### test_prose.lua (2)
-
-- prose: no authored file carries a British spelling from localization-§5's published list
-- prose: the gate carries localization-§5's two lists whole, and nothing of its own
-
-### test_eol.lua (1)
+### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
+- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+
+### test_prose.lua (15)
+
+- prose: no authored file carries a British spelling from localization-5's published list
+- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose self-test: the carve-out suppresses the named generated folder, and only it
+- prose self-test: a path the carve-out does not name is not covered by one that looks like it
+- prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
+- prose self-test: a TOC's file lines are read as paths, and its directives and comments are not
+- prose self-test: a .pkgmeta's ignore block is read, and the keys around it are not
+- prose self-test: an ignore entry covers a path exactly, by folder, and by wildcard
+- prose self-test: the carve-out admits a generated dump and refuses a file the TOC loads
+- prose self-test: a waiver-file exclusion meets the same two refusals as the carve-out
+- prose self-test: each list is refused on the matching rule its own scan uses
+- prose self-test: the scan and the refusals read the added exclusions through one reader
+- prose self-test: a narrowing is refused by what it suppresses, not by how it is written
+- prose self-test: the disclosure names what each entry suppressed, and says when it is bounded
+- prose self-test: a malformed waived is a failure, not a silence
+
+### test_layout_cap.lua (13)
+
+- layoutcap: every authored file over the 1500-line cap is named in the census
+- layoutcap: no census row outlives the breach it records
+- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: the census and the exempt set agree about which paths were exempted
+- layoutcap: an empty census is written as a result rather than left standing empty
+- layoutcap self-test: the parser reads the census nested under the register, and stops there
+- layoutcap self-test: a census outside its register, or at the wrong level, is not read
+- layoutcap self-test: an over-cap file missing from the census is reported, and an exempt one is not
+- layoutcap self-test: a census row that outlives its breach is reported
+- layoutcap self-test: an over-cap row that names no terminal state is reported
+- layoutcap self-test: the census and the exempt set are held to naming the same paths
+- layoutcap self-test: a census that states nothing is told apart from one that states none
+- layoutcap self-test: the exempt set takes folders as well as paths
 
 ## Totals
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 38 |
+| test_util.lua | 36 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
@@ -1093,10 +1160,12 @@ badge and any count quoted in the docs must agree with it.
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
+| test_schema_runtime.lua | 17 |
 | test_slash.lua | 50 |
+| test_bus.lua | 10 |
 | test_panel.lua | 33 |
 | test_panel_filters.lua | 40 |
-| test_harness.lua | 7 |
+| test_harness.lua | 8 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
@@ -1107,10 +1176,11 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 6 |
 | test_disabled.lua | 11 |
-| test_surface_parity.lua | 5 |
+| test_surface_parity.lua | 10 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
-| test_prose.lua | 2 |
-| test_eol.lua | 1 |
-| **Total** | **959** |
+| test_eol.lua | 2 |
+| test_prose.lua | 15 |
+| test_layout_cap.lua | 13 |
+| **Total** | **1017** |

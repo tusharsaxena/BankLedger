@@ -659,14 +659,14 @@ function SW:Enable()
   -- handlers for the same messages (architecture-§4).
   SW.__ev = NS.NewBusTarget()
   if not SW.__ev then return end
-  SW.__ev:RegisterMessage("Ka0s_BankLedger_SessionChanged", function(_, active, context)
+  SW.__ev:RegisterMessage(NS.MSG.SESSION_CHANGED, function(_, active, context)
     if active then SW:StartSession(context) else SW:EndSession() end
   end)
-  SW.__ev:RegisterMessage("Ka0s_BankLedger_EntryAdded", function(_, entry)
+  SW.__ev:RegisterMessage(NS.MSG.ENTRY_ADDED, function(_, entry)
     SW:OnEntryAdded(entry)
   end)
-  SW.__ev:RegisterMessage("Ka0s_BankLedger_LedgerChanged", function() SW:PruneMissing() end)
-  SW.__ev:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function() SW:OnSettingsChanged() end)
+  SW.__ev:RegisterMessage(NS.MSG.LEDGER_CHANGED, function() SW:PruneMissing() end)
+  SW.__ev:RegisterMessage(NS.MSG.SETTINGS_CHANGED, function() SW:OnSettingsChanged() end)
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if SW.__ev.RegisterEvent then

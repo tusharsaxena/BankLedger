@@ -11,15 +11,6 @@ function Util.PlayerKey()
   return name .. "-" .. realm
 end
 
--- Split a dotted settings path ("settings.retentionDays") into components.
-function Util.SplitPath(path)
-  local parts = {}
-  for p in tostring(path):gmatch("[^.]+") do
-    parts[#parts + 1] = p
-  end
-  return parts
-end
-
 -- Clock-only (HH:MM) for the Time column.
 function Util.FormatClock(ts)
   return date("%H:%M", ts or 0)
@@ -205,7 +196,7 @@ end
 function Util.RefreshRowTint()
   if NS.LedgerTable and NS.LedgerTable.Bind then NS.LedgerTable:Bind() end
   if NS.SessionWindow and NS.SessionWindow.Bind then NS.SessionWindow:Bind() end
-  if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_SettingsChanged", "rowTint") end
+  if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "rowTint") end
 end
 
 -- ── Master controls: the addon-wide chrome (options-ui-§15) ─────────────────────

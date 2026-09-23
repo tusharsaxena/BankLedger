@@ -103,7 +103,7 @@ function Database:Add(entry)
   ledger[#ledger + 1] = entry
   local index = #ledger
   if NS.bus then
-    NS.bus:SendMessage("Ka0s_BankLedger_EntryAdded", entry, index)
+    NS.bus:SendMessage(NS.MSG.ENTRY_ADDED, entry, index)
   end
   return index
 end
@@ -566,7 +566,7 @@ function Database:Stats(filter)
 end
 
 local function fireLedgerChanged()
-  if NS.bus then NS.bus:SendMessage("Ka0s_BankLedger_LedgerChanged") end
+  if NS.bus then NS.bus:SendMessage(NS.MSG.LEDGER_CHANGED) end
 end
 
 -- Public LedgerChanged emitter for non-Database owners of a visible-ledger change (NS.Filters calls
