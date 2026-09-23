@@ -100,8 +100,8 @@ trying to stop.
 
 ### git, `ls` and `find` — the suite shells out
 
-Three suites run external commands, so they are dependencies of `lua tests/run.lua` even though no
-Lua code `require`s them:
+Several suites run external commands, so they are dependencies of `lua tests/run.lua` even though
+no Lua code `require`s them:
 
 - **`git`** — `tests/_kit/vendor_sync.lua:195` runs `git -C <path> …` against the **sibling LibKa0s
   checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
@@ -111,8 +111,12 @@ Lua code `require`s them:
   `.gitattributes` declares (`line-endings-§2`). Unlike the vendor gate this one **fails rather
   than skips** when it cannot look, so `git` is a hard requirement of `lua tests/run.lua`, not a
   capability.
-- **`ls`** — `tests/test_harness.lua:24` runs `ls tests/test_*.lua` to prove the suite list and the
-  files on disk agree in both directions.
+- **`git`, over the tracked set** — the kit's `tests/_kit/test_prose.lua` (`localization-§5`) and
+  `tests/_kit/test_layout_cap.lua` (`layout-§1`, from kit revision 25) each run `git ls-files -z`,
+  as does this repo's own `tests/test_lintconfig.lua:219`. All three fail rather than skip when git
+  is absent.
+- **`ls`** — `tests/test_harness.lua:45` runs `ls tests/test_*.lua` to prove the suite list and the
+  files on disk agree in both directions, and `tests/test_register.lua:22` globs with `ls -1`.
 - **`find`** — `tests/_kit/vendor_sync.lua:126` runs `find . -type f` to list a vendored directory
   (Lua 5.1 has no directory API and this repo deliberately does not depend on LuaFileSystem —
   `tests/_kit/vendor_sync.lua:107`). A `dir /b /s` fallback at `:129` covers cmd.exe only; under

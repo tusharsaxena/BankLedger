@@ -28,8 +28,13 @@ local SUITES = {
   "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
-  "test_lintconfig", "test_prose",
-  { name = "test_eol", dir = "tests/_kit/" },
+  "test_lintconfig",
+  -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
+  -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
+  -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
+  { name = "test_eol",        dir = "tests/_kit/" },
+  { name = "test_prose",      dir = "tests/_kit/" },
+  { name = "test_layout_cap", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
