@@ -410,6 +410,12 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
     be **indistinguishable**: same border, same inner highlight, same gold title, same divider, and
     the same three marks in the same order. Any difference means the shared edge has drifted in one
     of them, and the fix belongs in `../LibKa0s`, never in `libs/`.
+13. **The two addon-owned dumps.** With logging **off**, run `/bl debug scan` at a bank and then
+    `/bl debug panel` after `/bl config` has been opened once. Both open the console and write their
+    lines anyway, tagged `[Scan]` and `[Panel]`: they use the raw append, not the gated sink. The
+    scan ends with the `events registered` / `events UNAVAILABLE` pair. What each line means, and
+    when to paste which into an issue, is in [debug.md](debug.md). An empty console after either
+    verb with logging off means a dump went through the gated sink.
 
 ## S-15 · Test mode
 

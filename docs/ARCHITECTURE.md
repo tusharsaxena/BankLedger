@@ -262,7 +262,8 @@ stand-up that never reaches the module Enables after it. The helper asks
 `C_EventUtils.IsEventValid` first, so a name the client refuses never reaches `RegisterEvent` at all,
 and `pcall`s what gets past that gate; without the library its degraded arm keeps the `pcall` alone.
 Every outcome lands in one record, `NS.EventRecord` (`registered` / `unavailable`), which
-`/bl debug scan` prints as `events registered` / `events UNAVAILABLE` and `NS.StandDown` empties.
+`/bl debug scan` prints as `events registered` / `events UNAVAILABLE` and `NS.StandDown` empties
+(see **[debug.md](debug.md)**).
 
 **Seven** are the capture engine's (`modules/Ledger.lua`, `L:Enable`). The other five sit outside the
 engine: `PLAYER_ENTERING_WORLD` on the AceEvent addon object (`NS.StandUp` in `core/BankLedger.lua`,
@@ -358,7 +359,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
 | `profiles.md` | Not applicable | No AceDB profiles are user-visible — the addon is account-wide by design and the profile namespace is unused |
-| `debug.md` | Not applicable | The console is `LibKa0s-DebugLog-1.0`'s, with no debug surface of the addon's own beyond `/bl debug scan` and `/bl debug panel` |
+| `debug.md` | Present | Addon-owned debug verbs beyond the LibKa0s console: `/bl debug scan` and `/bl debug panel` |
 | `perf-analysis/README.md` | Not applicable | The `performance-§12` no-combat-path exemption is held — see `## Documented deviations` |
 
 ### Verification and record
