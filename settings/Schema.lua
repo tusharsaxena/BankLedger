@@ -395,9 +395,10 @@ end
 -- console WINDOW's visibility IS the `state.debugConsole` row the Master controls composer emits.
 -- NOTE: four storage carve-outs are architecture-§5 named non-setting state, written by their owner
 -- rather than through Schema:Set. None is a schema row, so none has a widget, a default or an
--- onChange. None has a `Documented deviations` row either: docs/ARCHITECTURE.md ▸ Settings Schema
--- names each one's owner and every writer, and that naming is the compliance. Check that list
--- before writing a key under db.global directly, and add any new writer to it. The four are:
+-- onChange. None has a `Documented deviations` row either: docs/schema.md ▸ Registry, recorded data
+-- and named-state writers names each one's owner and every writer, and that naming is the
+-- compliance. Check that list before writing a key under db.global directly, and add any new writer
+-- to it. The four are:
 --   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
 --      (modules/Browser.lua:147) on four occasions: drag-stop, resize-grip mouse-up (:1099), hide
 --      and logout. Emptied by B:ResetWindow (:185).
