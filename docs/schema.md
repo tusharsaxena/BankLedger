@@ -58,20 +58,35 @@ deriving, capturing and persisting it entirely: `Util.EntryValue`/`Util.SignedVa
 price), and a ledger entry never carries `vendorPrice`. Gold is unaffected — a `MONEY` row's amount
 lives in `quantity` and was never vendor-priced.
 
-`NS:RunMigrations` is no longer a bare seam: the v1 → v2 step walks `db.global.ledger` once, sets
-`e.vendorPrice = nil` on every entry, bumps `schemaVersion` to 2, and emits the standard `[Migrate]`
-debug line via `NS.MigrationSummary`. It is idempotent — a v2 database is skipped entirely, and
-clearing an already-absent field on a partially-migrated one is a no-op.
+The v1 → v2 step is `NS.MIGRATIONS[2]` in `core/Database.lua`: it walks `db.global.ledger` once,
+sets `e.vendorPrice = nil` on every entry and returns the rows it touched. `NS:RunMigrations` runs it,
+stamps `schemaVersion = 2`, and emits the standard `[Migrate]` debug line via `NS.MigrationSummary`.
+It is idempotent — a v2 database is skipped entirely, and clearing an already-absent field on a
+partially-migrated one is a no-op.
 
-**The stamp is not an AceDB default, and must never become one again.** It was one until
-`BANKLEDGER-R-02`, and that is why the ladder above had never actually run on a player's store:
-AceDB's logout handler re-registers `nil` defaults, which strips every stored key still equal to its
-default, so the stamp left the file at logout and came back at the next login as whatever the current
-default said. The runner read its own target and the `< NS.SCHEMA_VERSION` arm was never true. The
-stamp is now seeded by `NS:RunMigrations` as an ordinary stored value. An unstamped store is a fresh
-install when its ledger is empty (or absent) and a pre-stamp v1 database when it is not — the ledger
-is the discriminator, and it is a safe one, because a migration over an empty ledger is a no-op
-whichever way it is read.
+#### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
+
+`defaults/Global.lua` declares `schemaVersion = 0`, and **0 is never a real version**. That is the
+point. AceDB's logout handler re-registers `nil` defaults, which strips every stored key still equal
+to its default. Until `BANKLEDGER-R-02` the default read `NS.SCHEMA_VERSION`, so the stamp left the
+file at logout and came back at the next login as the runner's own target, and the v1 → v2 ladder
+never once ran on a player's store. A real stamp (1, 2, …) never equals 0, so the strip cannot remove
+it. The 0 AceDB backfills onto a legacy, unstamped store reads as "unstamped" rather than hiding it.
+
+`NS:RunMigrations` reads `tonumber(g.schemaVersion) or 0` and returns when it is already at or above
+`NS.SCHEMA_VERSION` (a future version is never downgraded). It treats 0 and nil alike, as v1, and
+then runs `NS.MIGRATIONS[target]` for each version above that, **stamping after each step returns**.
+A step that raises propagates, and the stamp stays at the last completed version, so the next login
+retries that step. Reading an unstamped store as v1 covers a legacy pre-stamp store (which is v1) and
+a fresh install alike: every step over an empty ledger is a no-op, so a fresh install costs one loop
+and ends stamped current.
+
+`Sl:ResetEverything` runs the runner again after its wipe, because the merged-back defaults carry the
+declared 0. Without that, a reset store would read v0 until the next login.
+
+There is **no profile scope** to walk. `savedvariables-§1`'s per-profile rule has nothing to act on
+here: this addon stores only `db.global` (the `savedvariables-§2` register row), so every step takes
+`db.global`.
 
 #### Accepted deviation — the CSV export contract broke
 

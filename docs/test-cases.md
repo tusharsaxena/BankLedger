@@ -231,7 +231,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
-### test_database.lua (48)
+### test_database.lua (51)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -273,12 +273,15 @@ badge and any count quoted in the docs must agree with it.
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
 - RunMigrations announces the v1->v2 pass the smoke step reads
-- RunMigrations stamps a stamp-less EMPTY store at the current version without replaying v1->v2
-- RunMigrations seeds a stamp-less store whose ledger is nil, without raising
+- RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
+- RunMigrations stamps a stamp-less store whose ledger is nil, without raising
+- RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
+- RunMigrations leaves the stamp at the last completed step when a step raises
+- ResetEverything leaves the store stamped at NS.SCHEMA_VERSION
 - RunMigrations survives a database with no ledger at all
 - RunMigrations never downgrades a future schema version
 - Database:Export never emits a vendorPrice field
-- Database: schemaVersion is NOT a shipped AceDB default
+- Database: defaults declare schemaVersion = 0 (savedvariables-§1)
 - Database: a fresh database needs no migration
 - Database: an older database is migrated up to the current version
 
@@ -1179,7 +1182,7 @@ badge and any count quoted in the docs must agree with it.
 | test_filters.lua | 13 |
 | test_ledger.lua | 98 |
 | test_ledger_settling.lua | 26 |
-| test_database.lua | 48 |
+| test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
 | test_browser.lua | 41 |
@@ -1213,4 +1216,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1043** |
+| **Total** | **1046** |

@@ -207,7 +207,9 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
 
 `NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
-merges the defaults back, which replaces the first three along with everything else; the standard
+merges the defaults back, then re-runs `NS:RunMigrations` so the declared `schemaVersion = 0` is
+re-stamped to the current version at once (the stamp is in [schema.md](schema.md)). The wipe
+replaces the first three along with everything else; the standard
 does not count a wholesale replacement as a writer to name. **The fourth is the exception**: the
 whole `db.global.minimap` table is held across that wipe and put back, because both keys in it are
 per-installation display preferences rather than settings (`launcher-§3` — see **Launcher** below). Row table and panel structure are in

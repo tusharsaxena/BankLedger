@@ -216,6 +216,10 @@ function Sl:ResetEverything()
     for k in pairs(g) do g[k] = nil end
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
     if type(minimap) == "table" then g.minimap = minimap end
+    -- The merge put the declared `schemaVersion = 0` back. Re-stamp now (savedvariables-§1), so a
+    -- wiped store reads the current version rather than v0 until the next login. Every step over
+    -- the empty ledger is a no-op.
+    NS:RunMigrations()
   end
   endSessionState()
   print("this addon reset to defaults.")

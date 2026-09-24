@@ -23,40 +23,52 @@ function NS:InitDB()
   end
 end
 
--- Schema-migration runner (toc-file-§2 / savedvariables-§1). Seeds and advances
--- db.global.schemaVersion, and ships even with an effectively empty body — the *seam* is the
--- requirement: future schema changes get a single, idempotent upgrade path invoked once at init,
--- before any read of db.global.ledger. Safe no-op when the DB isn't ready yet.
-function NS:RunMigrations()
-  local g = NS.db and NS.db.global
-  if not g then return end
-  -- Seeding the stamp is this runner's job because the stamp is NOT an AceDB default. A default
-  -- equal to the stored value is stripped from the file at logout, so a defaulted stamp always read
-  -- back as this function's own target and the arm below never fired — defaults/Global.lua carries
-  -- the long version.
-  --
-  -- An unstamped store is one of two things and they want opposite answers: a FRESH install, which
-  -- has nothing to migrate and should start at the current shape, or a PRE-STAMP database from
-  -- before the field existed, which is v1 and must be walked. The ledger is the discriminator, and
-  -- it is an honest one — a migration over an empty ledger is definitionally a no-op, so reading a
-  -- fresh install as v1 would cost a wasted walk, never a wrong result. `g.ledger == nil` is a real
-  -- state rather than defensive decoration, and tests/test_database.lua pins it.
-  if g.schemaVersion == nil then
-    g.schemaVersion = (g.ledger == nil or next(g.ledger) == nil) and NS.SCHEMA_VERSION or 1
-  end
+-- The migration steps, keyed by the version each one PRODUCES: NS.MIGRATIONS[n] takes a v(n-1)
+-- store to vn and returns the number of rows it touched (for the [Migrate] line). Every step MUST be
+-- idempotent -- a re-run over an already-migrated store is a no-op -- because a step that raises
+-- leaves the stamp at the last completed version and the next login runs it again. Adding one:
+-- bump NS.SCHEMA_VERSION (core/Namespace.lua) and add NS.MIGRATIONS[<new version>].
+NS.MIGRATIONS = {
   -- v1 -> v2: the addon no longer derives, captures or persists vendor value, so the field leaves
-  -- the SavedVariables file rather than merely going unread. Idempotent: clearing an absent field
-  -- is a no-op, so a partially-migrated database converges on a second run.
-  if g.schemaVersion < NS.SCHEMA_VERSION then
+  -- the SavedVariables file rather than merely going unread. Clearing an absent field is a no-op.
+  [2] = function(g)
     local n = 0
     for _, e in ipairs(g.ledger or {}) do
       if e.vendorPrice ~= nil then e.vendorPrice = nil; n = n + 1 end
     end
-    local from = g.schemaVersion
-    g.schemaVersion = NS.SCHEMA_VERSION
-    if NS.State.debug and NS.Debug then
-      NS.Debug("Migrate", "%s", NS.MigrationSummary(from, NS.SCHEMA_VERSION, n))
-    end
+    return n
+  end,
+}
+
+-- Schema-migration runner (toc-file-§2 / savedvariables-§1, standard v2.65.0). Invoked once at init,
+-- before any read of db.global.ledger, and again by Sl:ResetEverything after its wipe. Safe no-op
+-- when the DB isn't ready yet.
+--
+-- THE STAMP. defaults/Global.lua declares `schemaVersion = 0`, which is never a real version: AceDB's
+-- logout strip can never remove a real stamp, and the 0 it backfills onto an unstamped store reads
+-- as "unstamped". 0 and nil are both walked from v1. That covers a legacy pre-stamp store (which IS
+-- v1) and a fresh install alike: a step over an empty ledger touches nothing, so a fresh install
+-- costs one loop and is stamped current. A future version (> NS.SCHEMA_VERSION) is left alone.
+--
+-- STAMPED AFTER EACH STEP, never up front and never once at the end. A step that raises propagates,
+-- and the stamp stays at the last version that completed, so the next run retries that step rather
+-- than skipping it.
+--
+-- NO PROFILE SCOPE. savedvariables-§1's per-profile walk has nothing to walk here: NS.defaults
+-- carries only `global` (the savedvariables-§2 register row), so every step takes db.global.
+function NS:RunMigrations()
+  local g = NS.db and NS.db.global
+  if not g then return end
+  local from = tonumber(g.schemaVersion) or 0
+  if from >= NS.SCHEMA_VERSION then return end
+  local v = math.max(from, 1)
+  local rows = 0
+  for target = v + 1, NS.SCHEMA_VERSION do
+    rows = rows + NS.MIGRATIONS[target](g)
+    g.schemaVersion = target   -- reached only when the step returned
+  end
+  if NS.State.debug and NS.Debug then
+    NS.Debug("Migrate", "%s", NS.MigrationSummary(v, NS.SCHEMA_VERSION, rows))
   end
 end
 

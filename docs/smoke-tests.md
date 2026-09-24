@@ -771,9 +771,12 @@ cannot see, so they are checked here. **NOT YET RUN** — recorded when the adop
 `NS.defaults.global`, because as a declared default it was stripped from the SavedVariables file at
 every logout and re-supplied at the next login as the runner's own target — so `NS:RunMigrations`
 read v2, `< NS.SCHEMA_VERSION` was never true, and the v1 → v2 pass had never once run against a
-player's store. The headless suite now pins the seeding, the discriminator and the `[Migrate]` line,
-but only the client can prove that a stamp the runner wrote **survives a logout**, which is the exact
-thing the defaults declaration broke. That is what this step is for.
+player's store. Since standard v2.65.0 (`BL-11`) the key is declared again, but as
+`schemaVersion = 0`, never a real version (`savedvariables-§1`): the strip cannot remove a real
+stamp, and a store with its stamp deleted is backfilled with 0 and walked from v1. The headless suite
+pins the declared 0, the walk and the `[Migrate]` line, but only the client can prove that a stamp
+the runner wrote **survives a logout**, which is the exact thing the old default broke. That is what
+this step is for.
 
 **Back up `WTF/` before you start, and do every edit on the copy.** This is the one step in this
 document that touches a real ledger.
@@ -788,7 +791,7 @@ document that touches a real ledger.
 5. Log out fully (exit to desktop; the strip runs on `PLAYER_LOGOUT`). Reopen the file.
 6. **Pass:** `["schemaVersion"] = 2,` is present under `["global"]`, and the `vendorPrice` key is
    gone from the entry you edited. **Fail:** the stamp is missing again, which would mean something
-   reinstated it as a default and the next schema bump is already disarmed.
+   declared a default equal to a real version and the next schema bump is already disarmed.
 7. Log back in once more and confirm the console shows **no** migration line the second time — the
    runner is idempotent and a stamped store is left alone.
 

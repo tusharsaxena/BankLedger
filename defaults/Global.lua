@@ -5,21 +5,14 @@ local _, NS = ...
 -- profile would split the very history the addon exists to join up.
 NS.defaults = NS.defaults or {}
 NS.defaults.global = {
-  -- schemaVersion is DELIBERATELY NOT DECLARED HERE, and this comment is the whole reason the key
-  -- is missing rather than forgotten. It used to sit here reading NS.SCHEMA_VERSION, on the theory
-  -- that a shipped default equal to the runner's target could not drift from it. It cannot — and
-  -- that identity is exactly what disarmed the runner. AceDB's logoutHandler calls
-  -- RegisterDefaults(nil) at PLAYER_LOGOUT, which runs removeDefaults and strips every stored key
-  -- whose value still equals its default; the stamp therefore left the SavedVariables file on the
-  -- way out and was re-supplied at the next login as whatever the CURRENT default said. The runner
-  -- read its own target back, `< NS.SCHEMA_VERSION` was never true, and the upgrade pass it guards
-  -- could not run against a real store. Every future migration would be pre-disarmed the same way.
-  --
-  -- NS:RunMigrations (core/Database.lua) seeds it instead, as an ordinary stored value that AceDB
-  -- has no default to compare against and so cannot strip. The requirement this key was originally
-  -- written for — a fresh install starts at the current shape rather than replaying v1->v2 over an
-  -- empty ledger — is met there, off the ledger's own emptiness. Do not put it back
-  -- (savedvariables-§1); tests/test_database.lua asserts its absence.
+  -- The migration stamp, declared as 0 (savedvariables-§1, standard v2.65.0). 0 is never a real
+  -- version, which is the whole point. AceDB's logoutHandler strips every stored value still equal
+  -- to its default, so a default equal to NS.SCHEMA_VERSION (what this key once read) left the file
+  -- at every logout and came back as the runner's own target, disarming it. A real stamp (1, 2, ...)
+  -- never equals 0, so it is never stripped; and the 0 AceDB backfills onto a legacy unstamped store
+  -- reads as "unstamped" rather than masking it. NS:RunMigrations (core/Database.lua) walks 0 from
+  -- v1 and writes the real stamp; tests/test_database.lua pins the 0.
+  schemaVersion = 0,
 
   ledger = {},   -- array of movement entries, oldest first
 
