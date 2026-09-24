@@ -99,20 +99,23 @@ end)
 
 -- ── Degradation (this case must run BEFORE the launcher is registered) ───────────────────────
 
-test("Launcher: a host with neither broker library reports it and does NOT raise", function()
+test("Launcher: a host with neither broker library degrades and does NOT raise", function()
   -- The library resolves both with LibStub(..., true) at REGISTER time and degrades by name. The
   -- harness never loads either — tests/run.lua's loader skips the TOC's `libs\` lines — so this is
   -- the truly unregistered state rather than a simulated one.
+  --
+  -- WHAT IS NOT ASSERTED HERE, AND WHY: the notice. Since Launcher minor 2 (LibKa0s v1.56.0) the
+  -- library prints a missing-library notice ONCE per instance, and this live instance has already
+  -- been through Register before this suite runs (tests/test_ledger_settling.lua drives the real
+  -- addon:OnEnable, which registers it), so a capture here is empty by design. The report is pinned
+  -- by the next case, against a fresh load whose notice is still unspent.
   assertFalse(NS.Launcher:IsRegistered(), "this case must run before the registration case")
   assertEqual(mocks.__libs["LibDataBroker-1.1"], nil, "the harness ships neither broker library")
 
-  local out
   local ok, err = pcall(function()
-    out = captureChat(function() assertFalse(NS.Launcher:Register()) end)
+    captureChat(function() assertFalse(NS.Launcher:Register()) end)
   end)
   assertTrue(ok, "a host with no LibDataBroker must not raise: " .. tostring(err))
-  assertTrue(table.concat(out, "\n"):find("LibDataBroker", 1, true) ~= nil,
-    "the absence is reported on one line rather than swallowed: " .. table.concat(out, "\n"))
   assertFalse(NS.Launcher:IsRegistered())
   assertEqual(NS.Launcher:Object(), nil, "nothing was built")
 
@@ -123,6 +126,40 @@ test("Launcher: a host with neither broker library reports it and does NOT raise
   assertFalse(NS.Launcher:IsShown(), "IsShown reads the store, not the button")
   NS.db.global.minimap.hide = saved
 end)
+
+test("Launcher: the missing-broker notice prints once across two Register calls, without a [LibKa0s] tag",
+  function()
+    -- A FRESH load of the library and the whole addon, so this instance has never been through
+    -- Register and its once-per-instance notice is still unspent. Its descriptor is the addon's own
+    -- (core/LauncherSetup.lua, as the TOC loads it), so the line goes out through the addon's real
+    -- printer rather than a stand-in.
+    --
+    -- Launcher minor 2: one missing library is ONE line in chat however many times Register is
+    -- reached (OnEnable, then again from any later login path), and the line is UNTAGGED by the
+    -- library, so the host printer's [BL] is the only tag on it. Before minor 2 it printed on every
+    -- call and carried a [LibKa0s] tag inside the [BL] one.
+    --
+    -- Dies under: a re-vendor that loses the once-per-instance latch, a library tag coming back, or
+    -- the descriptor's `print` no longer routing through NS.Print.
+    local m = T.makeMocks()
+    local ns = {}
+    T.Loader.loadAll(T.libka0sFiles, ns, m)
+    T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+    assertEqual(m.__libs["LibDataBroker-1.1"], nil, "the fresh load ships neither broker library")
+    assertFalse(ns.Launcher.__degraded == true, "the fresh load must build the live instance")
+
+    local out = {}
+    m.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+    assertFalse(ns.Launcher:Register(), "first Register")
+    assertFalse(ns.Launcher:Register(), "second Register")
+
+    assertEqual(#out, 1, "one missing library is one line, not one per call: " .. table.concat(out, " || "))
+    local line = out[1]
+    assertTrue(line:find("LibDataBroker-1.1", 1, true) ~= nil, "the line names the missing library: " .. line)
+    assertEqual(line:find("[LibKa0s]", 1, true), nil, "the library no longer tags its own line: " .. line)
+    assertEqual(line:find("|cff00ffff[BL]|r ", 1, true), 1, "the host printer's [BL] is the one tag: " .. line)
+    assertFalse(ns.Launcher:IsRegistered())
+  end)
 
 test("Launcher: LibDataBroker without LibDBIcon still gets the broker plugin", function()
   -- The honest half-answer: the display row exists, the minimap button does not, and Register says

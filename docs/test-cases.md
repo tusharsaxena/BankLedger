@@ -437,12 +437,13 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (23)
+### test_launcher.lua (24)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
 - Launcher: the hand-rolled launcher is gone from modules/Browser.lua
-- Launcher: a host with neither broker library reports it and does NOT raise
+- Launcher: a host with neither broker library degrades and does NOT raise
+- Launcher: the missing-broker notice prints once across two Register calls, without a [LibKa0s] tag
 - Launcher: LibDataBroker without LibDBIcon still gets the broker plugin
 - Launcher: it registers under the FOLDER name, against db.global.minimap
 - Launcher: Register is idempotent, so no second button is built over the first
@@ -1107,12 +1108,12 @@ badge and any count quoted in the docs must agree with it.
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
-- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
 
 ### test_prose.lua (15)
 
-- prose: no authored file carries a British spelling from localization-5's published list
-- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 - prose self-test: the carve-out suppresses the named generated folder, and only it
 - prose self-test: a path the carve-out does not name is not covered by one that looks like it
 - prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
@@ -1131,7 +1132,7 @@ badge and any count quoted in the docs must agree with it.
 
 - layoutcap: every authored file over the 1500-line cap is named in the census
 - layoutcap: no census row outlives the breach it records
-- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
 - layoutcap: the census and the exempt set agree about which paths were exempted
 - layoutcap: an empty census is written as a result rather than left standing empty
 - layoutcap self-test: the parser reads the census nested under the register, and stops there
@@ -1157,7 +1158,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 23 |
+| test_launcher.lua | 24 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1186,4 +1187,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1020** |
+| **Total** | **1021** |
