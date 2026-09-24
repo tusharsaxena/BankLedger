@@ -394,6 +394,28 @@ test("LibKa0s-Core: the seam loads before every file that captures NS.Print at l
   assertTrue(captured >= 5, "expected at least five load-time printer captures; found " .. captured)
 end)
 
+test("TOC: InsightsWidgets loads before Insights, and Schema before Slash, each annotated LOAD-BEARING", function()
+  -- Both are file-scope captures (toc-file-§5): modules/Insights.lua takes NS.InsightsWidgets as
+  -- an upvalue, settings/Slash.lua hands NS.SchemaRuntime's members to LibKa0s-Slash at load. A
+  -- swap fails only in the client, so the order is pinned and the TOC line above says why.
+  loadsBefore("modules/InsightsWidgets.lua", "modules/Insights.lua")
+  loadsBefore("settings/Schema.lua", "settings/Slash.lua")
+  local lines = {}
+  for line in (Loader.readFile("BankLedger.toc") .. "\n"):gmatch("([^\n]*)\n") do
+    lines[#lines + 1] = (line:gsub("\r$", ""))
+  end
+  for _, entry in ipairs({ "modules\\Insights.lua", "settings\\Slash.lua" }) do
+    local found
+    for i, line in ipairs(lines) do
+      if line == entry then found = i end
+    end
+    assertTrue(found ~= nil, entry .. " is not a line of BankLedger.toc")
+    local above = found and lines[found - 1] or ""
+    assertTrue(above:find("^# LOAD%-BEARING:") ~= nil,
+      "the line above " .. entry .. " must be a '# LOAD-BEARING:' comment; found '" .. above .. "'")
+  end
+end)
+
 -- ── LibKa0s-DebugLog-1.0 ─────────────────────────────────────────────────────────────────────
 --
 -- The console. tests/test_debuglog.lua already asserts the behavior — its 18 cases were written

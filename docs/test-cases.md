@@ -986,7 +986,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (63)
+### test_libka0s.lua (64)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -1014,6 +1014,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
 - LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
 - LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+- TOC: InsightsWidgets loads before Insights, and Schema before Slash, each annotated LOAD-BEARING
 - LibKa0s-DebugLog: the vendored major registered and the console is running on it
 - LibKa0s-DebugLog: the module needs the minor that carries the chrome hooks
 - LibKa0s-DebugLog: NS.Debug is bound and still gates on the session-only flag
@@ -1212,7 +1213,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 63 |
+| test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
@@ -1225,4 +1226,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1055** |
+| **Total** | **1056** |
