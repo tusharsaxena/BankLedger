@@ -234,10 +234,17 @@ function Util.ApplyMasterFrame(frame)
   if frame.SetMovable then frame:SetMovable(not locked) end
 end
 
+-- The NS keys of the window owners each pass walks. Module-level NAME lists, resolved against NS at
+-- call time (an owner module may not have loaded yet when this file runs), so neither pass builds a
+-- table on each call: ApplyVisibility runs on every combat edge. Order is fixed: Browser first.
+local CHROME_OWNERS = { "Browser", "SessionWindow", "Export" }
+local VISIBILITY_OWNERS = { "Browser", "SessionWindow" }
+
 --- Re-apply the master chrome to every window this addon owns. The write seam's onChange for
 --- `settings.alpha` and `settings.locked`.
 function Util.ApplyMasterChrome()
-  for _, owner in ipairs({ NS.Browser, NS.SessionWindow, NS.Export }) do
+  for _, key in ipairs(CHROME_OWNERS) do
+    local owner = NS[key]
     local frame = owner and owner.GetWindow and owner:GetWindow()
     if frame then Util.ApplyMasterFrame(frame) end
   end
@@ -274,7 +281,8 @@ end
 function Util.ApplyVisibility()
   local allowed = Util.VisibilityAllows()
   local hidden = NS.State.hiddenByVisibility
-  for key, owner in pairs({ Browser = NS.Browser, SessionWindow = NS.SessionWindow }) do
+  for _, key in ipairs(VISIBILITY_OWNERS) do
+    local owner = NS[key]
     local frame = owner and owner.GetWindow and owner:GetWindow()
     if not allowed then
       -- Only a window that is actually up is remembered, so the transition back cannot open one

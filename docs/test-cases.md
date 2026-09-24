@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (36)
+### test_util.lua (38)
 
 - Util.PlayerKey joins name and realm with spaces stripped
 - Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
@@ -44,6 +44,8 @@ badge and any count quoted in the docs must agree with it.
 - Util.ApplyVisibility hides only what was up, and re-shows only what IT hid
 - Browser:Show refuses while General visibility says no
 - Util.ResetWindowPositions clears BOTH windows' stored geometry
+- ApplyVisibility hides only open windows and re-shows exactly those on the way back
+- ApplyVisibility and ApplyMasterChrome build no table literal per call
 
 ### test_compat.lua (13)
 
@@ -1182,7 +1184,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 36 |
+| test_util.lua | 38 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
@@ -1222,4 +1224,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1052** |
+| **Total** | **1054** |
