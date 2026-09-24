@@ -441,7 +441,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (24)
+### test_launcher.lua (30)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -461,6 +461,12 @@ badge and any count quoted in the docs must agree with it.
 - Minimap row: the label says SHOWN and LibDBIcon's key says HIDDEN
 - Minimap row: writing it MOVES the button, not just the store
 - Minimap row: LibDBIcon's own minimapPos is never trampled
+- Minimap row: /bl get minimap.shown answers true while db.global.minimap.hide is false
+- Minimap row: /bl set minimap.shown false stores minimap.hide = true, hides the button and writes no shown key
+- Minimap row: a targeted /bl reset minimap.shown restores shown
+- Minimap row: the old path minimap.hide answers unknown setting
+- Minimap row: a legacy store keeps its choice with no migration
+- Minimap row: S:Register reports 0 failures with the renamed path
 - Minimap row: the defaults ship the table, so nothing has to seed it
 - Verbs: /bl enable and /bl disable are registered, and described the same way
 - Verbs: they write the Enable row's stored path, through the same write seam
@@ -820,7 +826,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: both global resets end test mode, which no store wipe can reach
 - Minimap row: the page Defaults button does not un-hide the button
 - Minimap row: Reset all settings does not un-hide the button, or move it
-- Minimap row: a TARGETED /bl reset minimap.hide is not a sweep, and still works
+- Minimap row: a TARGETED /bl reset minimap.shown is not a sweep, and still works
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
 - Slash: ResetEverything while disabled stands the addon back up
 - Slash: ResetEverything announces LedgerChanged exactly once
@@ -1186,7 +1192,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 24 |
+| test_launcher.lua | 30 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1216,4 +1222,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1046** |
+| **Total** | **1052** |

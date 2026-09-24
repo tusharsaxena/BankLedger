@@ -530,7 +530,7 @@ test("Minimap row: the page Defaults button does not un-hide the button", functi
   -- red under: removing the carve-out from Sl:ResetEverything.
   withHiddenButton(function()
     -- The player hid it, through the row's own sense: the checkbox says SHOWN, the key says hidden.
-    NS.Schema:Set("minimap.hide", false)
+    NS.Schema:Set("minimap.shown", false)
     assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
     -- A control row on the same sweep, so a green result cannot mean the sweep did nothing at all.
     NS.Schema:Set("settings.qualityThreshold", 4)
@@ -543,7 +543,7 @@ test("Minimap row: the page Defaults button does not un-hide the button", functi
       "the sweep did not run at all, so this case proves nothing")
 
     -- And the other direction: a SHOWN button is not re-hidden either.
-    NS.Schema:Set("minimap.hide", true)
+    NS.Schema:Set("minimap.shown", true)
     assertEqual(NS.db.global.minimap.hide, false, "precondition: the button is shown")
     NS.Panel:RestoreDefaults()
     assertEqual(NS.db.global.minimap.hide, false, "the Defaults button re-hid a shown button")
@@ -561,7 +561,7 @@ test("Minimap row: Reset all settings does not un-hide the button, or move it", 
   --
   -- red under: removing the carve-out from Sl:ResetEverything, or narrowing it to `hide` alone.
   withHiddenButton(function()
-    NS.Schema:Set("minimap.hide", false)
+    NS.Schema:Set("minimap.shown", false)
     NS.db.global.minimap.minimapPos = 217.5
     assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
     NS.db.global.settings.qualityThreshold = 4
@@ -577,24 +577,24 @@ test("Minimap row: Reset all settings does not un-hide the button, or move it", 
   end)
 end)
 
-test("Minimap row: a TARGETED /bl reset minimap.hide is not a sweep, and still works", function()
+test("Minimap row: a TARGETED /bl reset minimap.shown is not a sweep, and still works", function()
   -- launcher-§3 exempts the row from *Reset all settings* and from a page Defaults button. It says
   -- nothing about the player naming that one row, and refusing them would be a carve-out that ate a
   -- verb. The veto is bracket-scoped for exactly this reason.
   --
   -- red under: making S:ApplyDefault veto unconditionally.
   withHiddenButton(function()
-    NS.Schema:Set("minimap.hide", false)
+    NS.Schema:Set("minimap.shown", false)
     assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
     local out = {}
     local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
     mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
-    local ok, err = pcall(function() NS.Slash:OnSlash("reset minimap.hide") end)
+    local ok, err = pcall(function() NS.Slash:OnSlash("reset minimap.shown") end)
     mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
     if not ok then error(err, 0) end
     assertEqual(NS.db.global.minimap.hide, false,
-      "/bl reset minimap.hide must still put the row back to its default")
-    assertTrue(table.concat(out, "\n"):find("minimap.hide", 1, true) ~= nil,
+      "/bl reset minimap.shown must still put the row back to its default")
+    assertTrue(table.concat(out, "\n"):find("minimap.shown", 1, true) ~= nil,
       "and echo what it wrote: " .. table.concat(out, "\n"))
   end)
 end)

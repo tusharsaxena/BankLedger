@@ -127,7 +127,7 @@ test("Schema:ApplyDefault restores one row and answers `true`; a pathless row an
 end)
 
 test("Schema:ApplyDefault leaves the Minimap row alone inside a bracket, and resets it outside one", function()
-  -- launcher-§3's carve-out is scoped to a sweep: `/bl reset minimap.hide` is the player naming
+  -- launcher-§3's carve-out is scoped to a sweep: `/bl reset minimap.shown` is the player naming
   -- that exact row, and it applies.
   local row = S:FindRow(S.MINIMAP_PATH)
   S:Set(S.MINIMAP_PATH, false)

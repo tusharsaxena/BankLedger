@@ -150,7 +150,7 @@ frameless** and every frame-only row applies.
   took and never a window the player had closed themselves.
 - **Debug console** is the session-only row it always was (`state.debugConsole`, verbatim and
   unprefixed); what changed is only where it is declared. It moved off the Interface tab.
-- **Minimap button** (`minimap.hide`, stored, first column of the fourth line; LibKa0s v1.39.0,
+- **Minimap button** (`minimap.shown`, stored as LibDBIcon's `minimap.hide`, first column of the fourth line; LibKa0s v1.39.0,
   compose minor 7) is the launcher's visibility row, emitted from `minimapPath`. Every addon has a
   minimap button and only some have a test mode, so the always-present row takes column 1 and the
   optional one pairs beside it. Its sense is inverted at the write seam — see the note under the
@@ -218,8 +218,8 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.alpha` | number | `1.0` | Master controls | — | `min` narrowed to `0.1`, the honored floor |
 | `settings.locked` | bool | `false` | Master controls | — | `startsLine`, pairs with `debugConsole` |
 | `state.debugConsole` | bool (session-only) | `false` | Master controls | — | |
-| `minimap.hide` | bool | `false` (the row reads **shown**, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
-| `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.hide` |
+| `minimap.shown` | bool | `true` (stored inverted as `minimap.hide = false`, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
+| `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.shown` |
 | `settings.trackItems` | bool | `true` | Capture | — | pairs with `trackMoney` |
 | `settings.trackMoney` | bool | `true` | Capture | — | |
 | `settings.qualityThreshold` | number | `0` | Capture | — | |
@@ -229,21 +229,24 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
 | `settings.retentionDays` | number | `30` | History | — | |
 
-**The `minimap.hide` row reads backwards, and that is deliberate.** Its label says *Minimap
-button* — ticked means SHOWN — while the stored boolean is LibDBIcon's own `hide`. The key is the
+**The `minimap.shown` row is stored backwards, and that is deliberate.** Its label and its CLI
+path say SHOWN — ticked, or `/bl set minimap.shown true`, means the button is on the minimap —
+while the stored boolean is LibDBIcon's own `hide`. The key is the
 library's: it writes that same field itself when the player hides the button from its right-click
 menu, so a second boolean beside it would be a copy free to disagree (`launcher-§3`,
 anti-pattern #81). The inversion lives in **one** place, `NS.Schema:Set` / `NS.Schema:Get`, and the
 button is moved from the row's `onChange` through `NS.Launcher:SetShown`. This row REPLACED the
-Interface tab's *Hide minimap button*, which said the opposite on the same path; nobody's stored
-choice moved.
+Interface tab's *Hide minimap button*, which said the opposite over the same key; nobody's stored
+choice moved. The CLI path was `minimap.hide` until standard v2.65.0 renamed it to read in the
+row's own sense (`launcher-§3`); the stored key did not move, so there was no SavedVariables change
+and no migration, and the old path now answers `Setting not found`.
 
 **And it is the one row no reset on this page reaches.** A player's minimap-button choice is a
 per-installation display preference, like the angle they dragged the button to, so `launcher-§3`
 requires it to survive both *Reset all settings* and this page's own **Defaults** button — and both
 reached it here until the standard's v2.54.0 amendment. `NS.Schema.RESET_EXEMPT` names the row once
 and `S:ApplyDefault` honors it; the wholesale reset holds the `minimap` table across its wipe.
-A targeted `/bl reset minimap.hide` is not a sweep and still works. See
+A targeted `/bl reset minimap.shown` is not a sweep and still works. See
 [ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher).
 
 **No color rows.** Nothing here is `type = "color"`, so `options-ui-§17`'s class-color companion has

@@ -22,7 +22,9 @@ local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
 local S = NS.Schema
-local MINIMAP_PATH = "minimap.hide"
+-- The row's CLI path reads in its own sense (launcher-§3, standard v2.65.0); the STORED key is still
+-- LibDBIcon's db.global.minimap.hide, which every assertion on storage below reads directly.
+local MINIMAP_PATH = "minimap.shown"
 
 local function readSource(path)
   local f = assert(io.open(path, "rb"))
@@ -394,6 +396,91 @@ test("Minimap row: LibDBIcon's own minimapPos is never trampled", function()
   S:Set(MINIMAP_PATH, true)
   assertEqual(NS.db.global.minimap.minimapPos, 217.5, "the dragged angle survived a write of hide")
   NS.db.global.minimap.hide, NS.db.global.minimap.minimapPos = saved, savedPos
+end)
+
+-- ── The CLI path reads in the row's own sense (launcher-§3, standard v2.65.0) ─────────────────
+--
+-- `minimap.shown` is the name a player types; `db.global.minimap.hide` is still where the boolean
+-- lives, because LibDBIcon owns that key and writes it from its own right-click menu. So the rename
+-- is a CLI rename only: no SavedVariables change, no migration, and a stored `shown` key would be
+-- the second copy of one state anti-pattern #81 forbids.
+
+--- Whether any `shown` key sits in the RAW minimap table (rawget, so an AceDB default cannot hide one).
+local function hasStoredShown()
+  local t = rawget(NS.db.global, "minimap")
+  return type(t) == "table" and rawget(t, "shown") ~= nil
+end
+
+test("Minimap row: /bl get minimap.shown answers true while db.global.minimap.hide is false", function()
+  local saved = NS.db.global.minimap.hide
+  NS.db.global.minimap.hide = false
+  local out = captureChat(function() NS.Slash:CliGet("minimap.shown") end)
+  NS.db.global.minimap.hide = saved
+  local line = table.concat(out, "\n")
+  assertTrue(line:find("minimap.shown", 1, true) ~= nil, "the get names the path: " .. line)
+  assertTrue(line:find("true", 1, true) ~= nil, "a shown button reads true: " .. line)
+  assertTrue(line:find("unknown", 1, true) == nil, "the renamed path is known: " .. line)
+end)
+
+test("Minimap row: /bl set minimap.shown false stores minimap.hide = true, hides the button and writes no shown key", function()
+  local saved = NS.db.global.minimap.hide
+  button.shown = nil
+  captureChat(function() NS.Slash:CliSet("minimap.shown false") end)
+  assertEqual(NS.db.global.minimap.hide, true, "the stored key is still LibDBIcon's hide")
+  assertEqual(button.shown, false, "the button was hidden")
+  assertFalse(hasStoredShown(), "a stored `shown` key is a second copy of one state (anti-pattern #81)")
+  captureChat(function() NS.Slash:CliSet("minimap.shown true") end)
+  assertEqual(NS.db.global.minimap.hide, false)
+  assertFalse(hasStoredShown())
+  NS.db.global.minimap.hide = saved
+end)
+
+test("Minimap row: a targeted /bl reset minimap.shown restores shown", function()
+  local saved = NS.db.global.minimap.hide
+  NS.db.global.minimap.hide = true
+  button.shown = nil
+  captureChat(function() NS.Slash:CliReset("minimap.shown") end)
+  assertEqual(NS.db.global.minimap.hide, false, "the row's default is SHOWN")
+  assertEqual(button.shown, true, "the reset moved the button")
+  assertEqual(S:Default(MINIMAP_PATH), true, "S:Default reads the row's own sense")
+  assertFalse(hasStoredShown())
+  NS.db.global.minimap.hide = saved
+end)
+
+test("Minimap row: the old path minimap.hide answers unknown setting", function()
+  assertEqual(S:FindRow("minimap.hide"), nil, "no row answers the retired CLI path")
+  local ok = S:Set("minimap.hide", false)
+  assertFalse(ok, "the seam refuses the retired path")
+  local out = captureChat(function() NS.Slash:CliGet("minimap.hide") end)
+  assertTrue(table.concat(out, "\n"):find("not found", 1, true) ~= nil,
+    "/bl get minimap.hide answers Setting not found: " .. table.concat(out, "\n"))
+end)
+
+test("Minimap row: a legacy store keeps its choice with no migration", function()
+  -- A player who hid the button before the rename: the store carries hide = true and a dragged
+  -- angle. The renamed path reads it as NOT shown, the button stays hidden, the angle is untouched,
+  -- and a write never leaves a `shown` key behind.
+  local g = NS.db.global
+  local savedHide, savedPos = g.minimap.hide, g.minimap.minimapPos
+  g.minimap.hide, g.minimap.minimapPos = true, 200
+  local out = captureChat(function() NS.Slash:CliGet("minimap.shown") end)
+  assertTrue(table.concat(out, "\n"):find("false", 1, true) ~= nil, "a hidden button reads false")
+  assertEqual(S:Get(MINIMAP_PATH), false)
+  assertEqual(g.minimap.hide, true, "the stored choice did not move")
+  S:Set(MINIMAP_PATH, false)
+  assertEqual(g.minimap.hide, true)
+  assertEqual(button.shown, false, "the button stays hidden")
+  assertEqual(g.minimap.minimapPos, 200, "the dragged angle is untouched")
+  assertFalse(hasStoredShown(), "no `shown` key is ever written to the raw store")
+  g.minimap.hide, g.minimap.minimapPos = savedHide, savedPos
+end)
+
+test("Minimap row: S:Register reports 0 failures with the renamed path", function()
+  -- The row's path is not a stored path, so Validate must resolve it against the declared hide
+  -- default rather than against a `shown` key the defaults deliberately do not ship.
+  local out = captureChat(function() assertEqual(S:Register(), 0) end)
+  assertEqual(#out, 0, "Register printed: " .. table.concat(out, " | "))
+  assertEqual(NS.defaults.global.minimap.shown, nil, "the defaults ship no `shown` key")
 end)
 
 test("Minimap row: the defaults ship the table, so nothing has to seed it", function()

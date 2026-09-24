@@ -140,11 +140,15 @@ S.Schema = {
 -- one key for a third surface as well. It has been addon-wide since it was added; the tab it sat on
 -- was the only thing suggesting otherwise. So this is a promotion with no second setting invented
 -- beside it, which is what options-ui-§15 asks for.
--- The minimap row's stored path, named once because THREE places have to agree on it: the spec
--- below, the decoration underneath, and the two inverting arms in the write seam. LibDBIcon owns
--- the key and writes it itself from its own right-click menu, which is exactly why there is one
--- boolean here and not a second one beside it (launcher-§3, anti-pattern #81).
-S.MINIMAP_PATH = "minimap.hide"
+-- The minimap row's CLI path, named once because FOUR places have to agree on it: the spec below,
+-- the decoration underneath, the reset carve-out, and S:Register's defaults resolution. It reads in
+-- the row's own sense -- `/bl set minimap.shown false` hides the button -- since standard v2.65.0
+-- (launcher-§3). The PATH IS THE CLI NAME ONLY: the stored key is still db.global.minimap.hide,
+-- which LibDBIcon owns and writes itself from its own right-click menu, so the decoration's get/set
+-- invert onto it and nothing is ever stored at `minimap.shown`. A stored `shown` key would be a
+-- second boolean beside the library's one (anti-pattern #81). The rename moved no SavedVariables
+-- and needs no migration; the old CLI path `minimap.hide` now answers `Setting not found`.
+S.MINIMAP_PATH = "minimap.shown"
 
 -- ── The rows a RESET SWEEP must not reach (launcher-§3, standard v2.54.0) ───────────────────────
 --
@@ -166,7 +170,7 @@ S.MINIMAP_PATH = "minimap.hide"
 -- schema row carrying a default, reached the row from the other side. BOTH of this addon's resets
 -- reached it; both are carved out now (settings/Slash.lua).
 --
--- A TARGETED `/bl reset minimap.hide` IS NOT A SWEEP and still works. The player naming the one row
+-- A TARGETED `/bl reset minimap.shown` IS NOT A SWEEP and still works. The player naming the one row
 -- is asking for exactly that row, which is what the veto below is careful not to refuse: it fires
 -- only inside a bulk bracket, which is what a wholesale act opens and a single-row reset does not.
 S.RESET_EXEMPT = { [S.MINIMAP_PATH] = true }
@@ -208,10 +212,11 @@ S.MASTER_SPEC = {
   -- `settings.` prefix, and this addon has stored it at db.global.minimap since long before the
   -- section existed — so unlike Multi Meters it owes no migration.
   --
-  -- IT REPLACES A ROW RATHER THAN ADDING ONE. The Interface tab carried "Hide minimap button" on
-  -- this same path, with the opposite sense; it is gone, because two rows over one boolean is the
-  -- drift options-ui-§15 exists to end. The path did not move, so no player loses their choice —
-  -- what changes is the label, the tab, and which way round the box reads.
+  -- IT REPLACES A ROW RATHER THAN ADDING ONE. The Interface tab carried "Hide minimap button" over
+  -- this same stored key, with the opposite sense; it is gone, because two rows over one boolean is
+  -- the drift options-ui-§15 exists to end. The stored key did not move, so no player loses their
+  -- choice — what changed is the label, the tab, the CLI name (`minimap.shown` since standard
+  -- v2.65.0) and which way round the box reads.
   minimapPath = S.MINIMAP_PATH,
   -- The Test mode checkbox, on its own line below Lock frame / Debug console (LibKa0s v1.37.0). It
   -- switches the SAMPLE LEDGER (`/bl test`), not the session-window preview: `/bl session` stays its
@@ -401,7 +406,8 @@ end
 --   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
 --      (modules/Browser.lua:748), cleared by B:ResetView (:757).
 --   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table B:SetupMinimap
---      hands it. That table also holds the `minimap.hide` row, so nothing here replaces it whole.
+--      hands it. That table also holds `hide`, the Minimap button row's stored key (CLI path
+--      `minimap.shown`), so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
 -- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
 -- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.
@@ -426,7 +432,7 @@ end
 --   * debug / debugEnabled -- the [Set] line goes to NS.Debug, read at call time, and only while the
 --     session logging flag is on, so nothing is formatted with logging off.
 --   * resetExempt -- launcher-§3's Minimap button row. The library honors it inside a bracket only,
---     so the sweep skips the row while `/bl reset minimap.hide`, the player naming it, still applies.
+--     so the sweep skips the row while `/bl reset minimap.shown`, the player naming it, still applies.
 --   * L -- this addon's own refusal wording, kept from before the adoption.
 --
 -- WHAT THE LIBRARY DOES ON EVERY WRITE, IN THIS ORDER (the order is its contract): refuse an unknown
@@ -676,7 +682,7 @@ function S:Default(path) return inst.Default(path) end
 --- reaches `applyDefault` from BOTH CliReset (one named path) and its own CliResetAll (the sweep,
 --- which this addon's `/bl resetall` no longer runs -- that verb is the wholesale reset), and only
 --- the sweep opens the bulk bracket. Vetoing unconditionally would also refuse
---- `/bl reset minimap.hide`, which is the player naming that exact row.
+--- `/bl reset minimap.shown`, which is the player naming that exact row.
 function S:ApplyDefault(row) return inst.ApplyDefault(row) end
 
 -- Boot validation (architecture-§5), through the library's Validate: every row's shape (a path,
@@ -690,10 +696,25 @@ function S:ApplyDefault(row) return inst.ApplyDefault(row) end
 -- the defaults table, not from the rows, so its stored value would still read nil.
 local VALID_TYPES = { bool = true, number = true, string = true, color = true, table = true }
 
+--
+-- THE MINIMAP ROW IS THE ONE PATH THAT IS NOT A STORED KEY. `minimap.shown` is the CLI name; the
+-- store holds LibDBIcon's `minimap.hide` (S.MINIMAP_PATH above). So Validate resolves that one row
+-- against a root derived from the declared hide default, rather than against a `shown` key the
+-- defaults deliberately do not ship -- which keeps the check honest for the row without inventing
+-- a second stored boolean to satisfy it.
+local function defaultsRoot(_, row)
+  local global = NS.defaults and NS.defaults.global
+  if row and row.path == S.MINIMAP_PATH then
+    local mm = global and global.minimap
+    return { minimap = { shown = not (type(mm) == "table" and mm.hide) } }, 1
+  end
+  return global, 1
+end
+
 function S:Register()
   local errors, _, missing = inst.Validate({
     types        = VALID_TYPES,
-    defaultsRoot = function() return NS.defaults and NS.defaults.global, 1 end,
+    defaultsRoot = defaultsRoot,
   })
   return errors + missing
 end

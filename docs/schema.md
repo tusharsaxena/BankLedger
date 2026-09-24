@@ -136,7 +136,8 @@ no row addresses them, and each is written by its one owner module rather than t
 
 `db.global.minimap.minimapPos` is the fourth, with a different writer: LibDBIcon stores the
 button's position there on a drag, in the table **`NS.Launcher`** (`core/LauncherSetup.lua`) hands
-it at `Register` time. That table also holds the `minimap.hide` row, so the addon never replaces it
+it at `Register` time. That table also holds `hide`, the Minimap button row's stored key (CLI path
+`minimap.shown`), so the addon never replaces it
 whole — and it is the one part of `db.global` the wholesale *Reset all settings* holds back and
 puts back, because both keys in it are per-installation display preferences rather than settings
 (`launcher-§3`). It comes from the AceDB default, and the seam has no seed of its own. `B:SetupMinimap` did

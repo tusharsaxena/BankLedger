@@ -287,7 +287,7 @@ test("Schema: Master controls is the FIRST tab, and holds exactly the canonical 
     "settings.locked", "state.debugConsole",
     -- The fourth line, since LibKa0s v1.39.0 (compose minor 7): [Minimap button] [Test mode].
     -- Minimap button takes column 1 because EVERY addon has one and only some have a test mode.
-    "minimap.hide", "state.testMode",
+    "minimap.shown", "state.testMode",
   }
   local got = {}
   for _, row in ipairs(S:PageRows()) do
@@ -434,7 +434,7 @@ test("Schema: the Interface tab opens with the control most players reach for", 
     if row.group == "Interface" then first = row; break end
   end
   assertEqual(first.path, "settings.showSessionWindow")
-  assertEqual(S:FindRow("minimap.hide").group, "Master controls",
+  assertEqual(S:FindRow("minimap.shown").group, "Master controls",
     "the minimap row must not be on the Interface tab as well")
 end)
 

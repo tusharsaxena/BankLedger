@@ -269,7 +269,10 @@ tolerance.
      **Untick *Minimap button***: the button vanishes from the minimap **immediately**, not at the
      next reload. Tick it: it comes back **at the same angle** you had dragged it to. Now hide it
      from the button's OWN right-click menu instead, and reopen this tab — the box is unticked,
-     because the checkbox and LibDBIcon are reading one boolean and not two (`launcher-§3`). Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
+     because the checkbox and LibDBIcon are reading one boolean and not two (`launcher-§3`).
+     `/bl get minimap.shown` answers **false** now; `/bl set minimap.shown true` brings the button
+     back, `/reload` keeps whichever state you left, and `/bl get minimap.hide` answers `Setting
+     not found` — the CLI path reads in the row's own sense, the stored key is still LibDBIcon's. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
      and the windows visibly fade to that and no further — the row's declared minimum IS the floor
      `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
      **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**.

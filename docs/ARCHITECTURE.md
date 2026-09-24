@@ -202,7 +202,8 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
   Writer: LibDBIcon itself, when the player drags the button
   (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field. The same table
-  holds the `minimap.hide` row, so the addon never replaces the table whole either. AceDB supplies
+  holds `hide`, the Minimap button row's stored key (CLI path `minimap.shown`), so the addon never
+  replaces the table whole either. AceDB supplies
   it from `defaults/Global.lua`, and the seam has no seed of its own. It was `NS.Browser`'s
   `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
 
@@ -233,7 +234,7 @@ re-enters it.
 | Left-click | **Rung (a)** — toggles the ledger window, through `B:Toggle`, the same act `/bl toggle` runs. While disabled the **library** refuses it (Launcher minor 2, fed the descriptor's `isEnabled` and `disabledLine`): one line, the same one `/bl` prints, and no toggle. The rung is recorded against this addon in the standard's `ADDONS.md`. |
 | Right-click | Opens the settings panel, always, whatever the left button does |
 | Tooltip | The live movement count, and both click verbs |
-| Visibility | The **Minimap button** row on General ▸ Master controls, stored at `db.global.minimap.hide` |
+| Visibility | The **Minimap button** row on General ▸ Master controls: CLI path `minimap.shown` (`/bl get minimap.shown`), stored at LibDBIcon's `db.global.minimap.hide` |
 | Resets | **Neither reset reaches the row** (`launcher-§3`). Both did before the v2.54.0 amendment. |
 
 **The row's sense is the inverse of the key's**, and that inversion lives in exactly one place:
@@ -243,12 +244,19 @@ button's right-click menu, which is why there is one boolean and not a second on
 (`launcher-§3`). The button follows the row from the row's `onChange`, so a slash write, a panel
 click and a reset all move it.
 
+**The CLI path reads in the row's own sense** since standard v2.65.0 (`launcher-§3`):
+`/bl set minimap.shown false` hides the button. The path is the name a player types and nothing
+more — the stored key is still `db.global.minimap.hide`, so the rename moved no SavedVariables and
+needed no migration, and nothing is ever stored at `minimap.shown` (a stored `shown` key would be the
+second boolean anti-pattern #81 forbids). The old CLI path `minimap.hide` answers `Setting not found`.
+`S:Register` resolves this one row against the declared `hide` default rather than a `shown` key.
+
 ### The button survives a reset, and that is a property of the setting
 
 Whether the button is shown is a **per-installation display preference**, in the same class as the
 angle the player dragged it to — which LibDBIcon keeps in the very same table, as
 `minimap.minimapPos`, and which no reset in the collection touches. `launcher-§3` therefore requires
-`minimap.hide` to survive **both** *Reset all settings* and a page-scoped **Defaults** button, and
+the row (`minimap.shown`, stored as `minimap.hide`) to survive **both** *Reset all settings* and a page-scoped **Defaults** button, and
 neither may re-hide a shown one either.
 
 Until standard v2.54.0 that section *derived* the conclusion — *Reset all settings* is a profile
@@ -263,7 +271,7 @@ route runs:
 | The library's row walk (**Defaults** and `/bl resetall` until BankLedger-A-02; `O.RestoreDefaults` if ever called) | `applyDefault` over every schema row | The Minimap button row **is** a schema row — the Master controls composer emits it — and the walk rewrites every row carrying a `default`. This reaches the row even where the profile reasoning does hold, which is why the amended rule names it. | `NS.Schema.RESET_EXEMPT`, honored in `S:ApplyDefault`, the one seam the Slash and Options descriptors' `applyDefault` write through, so any library walk inherits the veto. |
 
 The veto is **bracket-scoped**: it fires only while a bulk bracket is open, which a sweep opens and a
-single-row reset does not. So a targeted `/bl reset minimap.hide` is still the player naming that
+single-row reset does not. So a targeted `/bl reset minimap.shown` is still the player naming that
 exact row and still works. The cases that pin all of it are in `tests/test_panel.lua` and
 `tests/test_reset_routes.lua`, beside the other destructive-reset cases, and they read the stored byte back after running the real act.
 
