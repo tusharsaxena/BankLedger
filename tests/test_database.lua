@@ -37,9 +37,9 @@ test("Database:Add fires EntryAdded on the bus", function()
   withLedger({}, function()
     local seen = 0
     local target = NS.NewBusTarget()
-    target:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() seen = seen + 1 end)
+    target:RegisterMessage(NS.MSG.ENTRY_ADDED, function() seen = seen + 1 end)
     NS.Database:Add(entry())
-    target:UnregisterMessage("Ka0s_BankLedger_EntryAdded")
+    target:UnregisterMessage(NS.MSG.ENTRY_ADDED)
     assertEqual(seen, 1)
   end)
 end)
@@ -50,11 +50,11 @@ test("Database: two consumers of one message both receive it", function()
   withLedger({}, function()
     local a, b = 0, 0
     local ta, tb = NS.NewBusTarget(), NS.NewBusTarget()
-    ta:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() a = a + 1 end)
-    tb:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() b = b + 1 end)
+    ta:RegisterMessage(NS.MSG.ENTRY_ADDED, function() a = a + 1 end)
+    tb:RegisterMessage(NS.MSG.ENTRY_ADDED, function() b = b + 1 end)
     NS.Database:Add(entry())
-    ta:UnregisterMessage("Ka0s_BankLedger_EntryAdded")
-    tb:UnregisterMessage("Ka0s_BankLedger_EntryAdded")
+    ta:UnregisterMessage(NS.MSG.ENTRY_ADDED)
+    tb:UnregisterMessage(NS.MSG.ENTRY_ADDED)
     assertEqual(a, 1)
     assertEqual(b, 1)
   end)
@@ -273,7 +273,7 @@ test("Database:PruneOld broadcasts LedgerChanged only when a row actually went",
   NS.db.global.settings.retentionDays = 30
   local sent, savedSend = 0, NS.bus.SendMessage
   NS.bus.SendMessage = function(self, msg, ...)
-    if msg == "Ka0s_BankLedger_LedgerChanged" then sent = sent + 1 end
+    if msg == NS.MSG.LEDGER_CHANGED then sent = sent + 1 end
     return savedSend(self, msg, ...)
   end
   withLedger({ entry({ ts = MOCK_NOW }) }, function()

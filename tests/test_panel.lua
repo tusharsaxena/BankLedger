@@ -618,11 +618,11 @@ test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches n
 
   local seen = {}
   local target = NS.NewBusTarget()
-  target:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function(_, reason)
+  target:RegisterMessage(NS.MSG.SETTINGS_CHANGED, function(_, reason)
     seen[#seen + 1] = reason
   end)
   NS.Slash:ResetEverything()
-  target:UnregisterMessage("Ka0s_BankLedger_SettingsChanged")
+  target:UnregisterMessage(NS.MSG.SETTINGS_CHANGED)
 
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertEqual(#seen, 1, "one reset, one broadcast")

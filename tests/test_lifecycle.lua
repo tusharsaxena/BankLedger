@@ -61,7 +61,7 @@ test("a disable then enable cycle does not subscribe the session window twice", 
   NS.addon:OnEnable()
   NS.State.sessionActive = true
   NS.State.sessionEntries = {}
-  NS.bus:SendMessage("Ka0s_BankLedger_EntryAdded", entry())
+  NS.bus:SendMessage(NS.MSG.ENTRY_ADDED, entry())
   assertEqual(#NS.State.sessionEntries, 1,
     "one moved stack must be recorded once, not once per surviving subscription")
   NS.State.sessionActive = false
@@ -83,13 +83,13 @@ test("addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow tar
     assertEqual(type(ev.__events and ev.__events.PLAYER_LOGOUT), "function",
       name .. "'s target did not record PLAYER_LOGOUT")
   end
-  assertTrue(mocks.__msgRegistry["Ka0s_BankLedger_LedgerChanged"][targets.SessionWindow] ~= nil,
+  assertTrue(mocks.__msgRegistry[NS.MSG.LEDGER_CHANGED][targets.SessionWindow] ~= nil,
     "the session window's target is subscribed before the disable")
 
   NS.addon:OnDisable()
   for name, ev in pairs(targets) do
     assertTrue(ev.__events.PLAYER_LOGOUT == nil, name .. "'s PLAYER_LOGOUT survived OnDisable")
-    assertTrue(mocks.__msgRegistry["Ka0s_BankLedger_LedgerChanged"][ev] == nil,
+    assertTrue(mocks.__msgRegistry[NS.MSG.LEDGER_CHANGED][ev] == nil,
       name .. "'s LedgerChanged subscription survived OnDisable")
   end
   NS.addon:OnEnable()

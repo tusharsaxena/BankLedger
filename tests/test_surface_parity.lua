@@ -291,9 +291,9 @@ test("LibKa0s-Bus degraded: the stub answers as the untracked-target shape names
   local replayed, rejected = rec:StandUp()
   assertEqual(replayed, 0, "StandUp answers 0 replayed")
   assertTrue(type(rejected) == "table" and next(rejected) == nil, "StandUp answers an empty rejected list")
-  local declared = { X = "Ka0s_BankLedger_X" }
+  local declared = { X = NS.MSG.ENTRY_ADDED }
   assertTrue(Bus.Catalog("BankLedger", declared) == declared, "Catalog hands back the host's own table")
-  assertTrue(degraded.MSG.ENTRY_ADDED == "Ka0s_BankLedger_EntryAdded", "NS.MSG lost a name on the degraded load")
+  assertTrue(degraded.MSG.ENTRY_ADDED == NS.MSG.ENTRY_ADDED, "NS.MSG lost a name on the degraded load")
 end)
 
 test("LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil", function()

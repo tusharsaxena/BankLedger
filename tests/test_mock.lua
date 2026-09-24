@@ -305,19 +305,22 @@ end)
 -- the whole registry would make that case pass while a real teardown silenced every module that
 -- was still enabled, so the narrow behavior is pinned here rather than assumed there.
 
+-- A scratch wire name, spelled once: the fake is exercised apart from BankLedger's own catalog.
+local SCRATCH_PING = "Ka0s_Scratch_Ping"
+
 test("Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed", function()
   local AceEvent = mocks.__libs["AceEvent-3.0"]
   local a, b = AceEvent:Embed({}), AceEvent:Embed({})
   local seenA, seenB = 0, 0
-  a:RegisterMessage("Ka0s_Scratch_Ping", function() seenA = seenA + 1 end)
-  b:RegisterMessage("Ka0s_Scratch_Ping", function() seenB = seenB + 1 end)
+  a:RegisterMessage(SCRATCH_PING, function() seenA = seenA + 1 end)
+  b:RegisterMessage(SCRATCH_PING, function() seenB = seenB + 1 end)
 
-  a:SendMessage("Ka0s_Scratch_Ping")
+  a:SendMessage(SCRATCH_PING)
   assertEqual(seenA, 1, "both targets hear a message before anything is torn down")
   assertEqual(seenB, 1)
 
   a:UnregisterAllMessages()
-  a:SendMessage("Ka0s_Scratch_Ping")
+  a:SendMessage(SCRATCH_PING)
   assertEqual(seenA, 1, "the torn-down target hears nothing further")
   assertEqual(seenB, 2, "and the other target is untouched by its neighbor's teardown")
 end)

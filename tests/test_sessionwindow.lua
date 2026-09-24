@@ -140,9 +140,9 @@ end)
 
 test("SessionChanged from the Ledger opens and closes a session", function()
   reset()
-  NS.bus:SendMessage("Ka0s_BankLedger_SessionChanged", true, "BANK_FRAME")
+  NS.bus:SendMessage(NS.MSG.SESSION_CHANGED, true, "BANK_FRAME")
   assertTrue(NS.State.sessionActive, "an open frame starts a session")
-  NS.bus:SendMessage("Ka0s_BankLedger_SessionChanged", false, "BANK_FRAME")
+  NS.bus:SendMessage(NS.MSG.SESSION_CHANGED, false, "BANK_FRAME")
   assertFalse(NS.State.sessionActive, "a closed frame ends it")
 end)
 

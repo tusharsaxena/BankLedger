@@ -33,11 +33,11 @@ end
 local function reasonsFrom(fn)
   local seen = {}
   local target = NS.NewBusTarget()
-  target:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function(_, reason)
+  target:RegisterMessage(NS.MSG.SETTINGS_CHANGED, function(_, reason)
     seen[#seen + 1] = reason
   end)
   local ok, err = pcall(fn)
-  target:UnregisterMessage("Ka0s_BankLedger_SettingsChanged")
+  target:UnregisterMessage(NS.MSG.SETTINGS_CHANGED)
   if not ok then error(err, 0) end
   return seen
 end
