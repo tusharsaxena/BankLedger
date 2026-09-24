@@ -295,6 +295,75 @@ implementation rather than two kept in step. That action is `P:RestoreDefaults()
 *Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
 nothing without the player's Yes, and Yes is the wholesale reset, recorded history included.
 
+## The General page's tabs and the Filters tab
+
+The sixteen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
+**Capture** (4) · **Interface** (3) · **History** (1) · **Filters**. The last carries no settings at
+all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
+renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
+`NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
+**secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
+selection is `ctx.activeSubTab["Filters"]`, session state and never persisted. Each list is one
+LibKa0s `O.IdList` (`kind = "item"`, v1.35.0): the widget resolves an item id, a link or an item's
+name and calls back into `NS.Filters`, which stays the lists' only writer. The client has no
+item-name search (its name lookup answers only for items carried this session), so the list passes
+`candidates`: both lists' ids plus every item id the ledger recorded, read from existing state. The
+widget names them, suggests matches as the player types (one row per crafted-quality rank), and
+refuses a shared name until one is picked. The lines are drawn **two to a row** (`columns = 2`,
+LibKa0s v1.47.0): both lists are fed one id at a time out of a long ledger, so one entry per line
+made a scroll re-read on every visit. It is a **maximum**, not a count -- since v1.50.0 the widget
+measures the content width it has and falls back toward one column when two cannot be paid for, so
+a narrow settings canvas returns the old layout with nothing here having to know its width. The
+cost, taken knowingly: above one column word wrap goes off, so an entry too long for its column is
+cut from the tail and loses its gray `(id)` rather than shortening it; the entry's tooltip still
+carries the full name. That write fires
+`LedgerChanged` synchronously, so the tab's own listener is held off for it (`filterWrite`'s
+`ctx.__filterWrite`) and the widget's redraw goes through `ctx.rebuild` = `O.RefreshPanel(ctx, true)`:
+one add or Remove repaints this page once, rather than twice across every rendered page.
+
+Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
+five with **AH Price** after Capture. The two addons keep the same shape of record and a player
+compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
+was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
+rename and carried no migration (`options-ui-§15`).
+
+The **Master controls** tab is composed by the library (`H.MasterControls`, `options-ui-§15`) and
+spliced at the head of the array; `keys = { scale = "windowScale" }` is what keeps this addon's
+stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
+`settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
+chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
+`settings.rowHoverAlpha`, each defaulting to the number it replaced.
+
+## Bulk writes and the reset routes
+
+**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). The seam logs one
+`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, the
+instance's pair, which both descriptors take as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
+Inside the bracket the seam mutes that line, and it counts each write whose read-back value actually
+changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
+per row.
+- The library's own `CliResetAll` walk logs exactly `[Set] reset all: N rows`. N is the rows whose
+  value changed, so a walk with every row already at its default logs `0 rows`. The library's own
+  `count` is not used, because it includes rows already at their default. **No host route runs that
+  walk any more**: `/bl resetall` and both Defaults controls are the one global reset below
+  (`options-ui-§12`). The Slash descriptor still hands the library the pair, and
+  `tests/test_slash.lua` drives the walk on an instance built from the same seam members.
+- A walk that raises part-way still logs its one line, counting the rows changed before the raise,
+  with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
+  still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
+  raise of nil or false (documented upstream), so that raise gets no marker.
+- Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
+  the line. `P:Batch` coalesces repaints and is not a bracket.
+- The Options descriptor carries the same pair and `applyDefault`, so `O.RestoreDefaults` would skip
+  the Minimap button row and log `[Set] reset general: N rows`. Nothing here calls it or
+  `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`
+  with no bracket and would have swept the Minimap row.
+- `Sl:ResetEverything`, the one global reset that Reset all settings, both Defaults controls and
+  `/bl resetall` reach through `Sl:RequestResetAll`, is a wholesale wipe, not a walk through the
+  seam. It logs one `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
+  already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
+
 ## In a degraded install
 
 Where `libs/LibKa0s` is missing entirely, `settings/OptionsSetup.lua` takes its load-completing stub

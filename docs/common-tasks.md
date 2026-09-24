@@ -41,11 +41,11 @@ for a path that already has a row.
    directly from a new code path.
 
 If the value is window geometry or a remembered view, it is a **carve-out**, not a row. That is
-`architecture-§5` named non-setting state, and ARCHITECTURE.md → Settings Schema must name its
+`architecture-§5` named non-setting state, and [schema.md](schema.md) → *Registry, recorded data and named-state writers* must name its
 storage key, its one owner and every writer with the act that reaches it. See
 [schema.md](schema.md) → *Storage carve-outs*. If it is a collection the player adds to and removes
 from, like the filter id-sets, it is a **structural registry** (`architecture-§5`). One module is its
-only writer, and ARCHITECTURE.md → Settings Schema names its storage keys, that writer and its load
+only writer, and [schema.md](schema.md) → *Registry, recorded data and named-state writers* names its storage keys, that writer and its load
 pass. Either way, keep it under `db.global` so the global reset (`Sl:ResetEverything`, which empties
 the store wholesale) reaches it with no extra line; if its owner also holds an in-memory copy, add
 the owner's refresh to that reset's `refreshAfterReset` fan-out, the way `NS.Browser:ResetView` is.

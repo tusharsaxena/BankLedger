@@ -48,174 +48,30 @@ derives from the TOC. File-by-file table, load-order notes and the locale seam i
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
-**The runtime is `LibKa0s-Schema-1.0`** (adopted at LibKa0s v1.55.0; its contract is LibKa0s
-`docs/api/Schema/version-1-docs.md`). The rows are this addon's; the path walk, the row index, the
-write seam, the bulk bracket and the load-time check are the library's. `settings/Schema.lua` builds
-one instance, `NS.SchemaRuntime`, over `S.Schema`, and binds every name callers already used to it:
-`S:Set`, `S:Get`, `S:Default`, `S:ApplyDefault`, `S:FindRow`, `S:ReadPath`, `S:WritePath`,
-`S.SameValue`, `S.BulkBegin`, `S.BulkEnd` and `S:Register` (now the library's `Validate`). The
-Options and Slash descriptors take the instance's members directly, as values; there is no gate in
-front of the seam for that to bypass. The descriptor supplies what is ours: every stored path
-resolves against `NS.db.global`, the post-write tail is the panel repaint (`options-ui-§11`), the
-`[Set]` line goes to `NS.Debug` only while logging is on, the sweep veto is `S.RESET_EXEMPT`
-(`launcher-§3`), and `L` keeps this addon's refusal wording (`unknown path: <path>`,
-`invalid value`). Each write runs refuse unknown path, `validate`, store (a table value is copied
-in), tally or log, `onChange`, repaint, in that order. The Minimap button row's inversion is the
-row's own `set`, so no other code knows which way round its boolean is. `S:Register` now reports a
-row whose path is missing from `defaults/Global.lua` even when the row carries a `default` of its own;
-before the adoption that row passed, although AceDB would still have read it as nil.
+The runtime is `LibKa0s-Schema-1.0` (adopted at LibKa0s v1.55.0); without the library,
+`settings/Schema.lua` builds the same instance from a runtime-completing, log-silent stub
+(`options-ui-§1`). A bulk reset logs one line (`debug-logging-§10`), and every reset control reaches
+the one confirm-gated global reset, `Sl:ResetEverything` (`options-ui-§12`). The rows live on the
+tabbed **General** page (`options-ui-§13`): **Master controls** · **Capture** · **Interface** ·
+**History** · **Filters**. The bulk bracket, the reset routes and the tab strip are in
+`settings-panel.md`.
 
-Without the library, `settings/Schema.lua` builds the same instance from a **runtime-completing,
-log-silent** stub (`options-ui-§1`), the shape the major's document prescribes, trimmed to what this
-addon calls: reads, writes, reactions, the repaint and the sweep veto work, so the host verbs keep
-writing. It also honors the descriptor's `writeThrough` (`S.WRITE_THROUGH`, today `settings.enabled`
-alone), so `/bl enable` and `/bl disable` keep working with the composed row absent
-([schema.md](schema.md#without-the-library-the-degradation-stub-and-write-through)). It writes no `[Set]` line, keeps no tally and runs no check; the
-degraded DebugLog stub would discard the line anyway. `tests/test_surface_parity.lua` holds the stub
-to the live instance and the stub library to the major.
+What is stored outside the rows is named per `architecture-§5`:
+- **One structural registry** — the filter id-sets, `db.global.blacklist` and
+  `db.global.whitelist`, whose only writer is `NS.Filters` (`modules/Filters.lua`).
+- **The movement log is recorded data** — `db.global.ledger`, written only by `NS.Database`
+  (`core/Database.lua`): `Add`, `Delete`, `DeleteAt`, `Purge` and `PruneOld`.
+- **Named non-setting state** — four storage carve-outs written outside `NS.Schema:Set`, none with a
+  `Documented deviations` row:
+  - **Main window geometry**, `db.global.settings.window`, owned by `NS.Browser`.
+  - **Session window geometry**, `db.global.settings.sessionWindow`, owned by `NS.SessionWindow`.
+  - **Saved ledger view**, `db.global.savedView`, owned by `NS.Browser`.
+  - **Minimap button position**, `db.global.minimap.minimapPos`, written by LibDBIcon into the table
+    `NS.Launcher` hands it; the global reset holds that table back (`launcher-§3`, see **Launcher**
+    below).
 
-**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). The seam logs one
-`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, the
-instance's pair, which both descriptors take as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
-Inside the bracket the seam mutes that line, and it counts each write whose read-back value actually
-changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
-per row.
-- The library's own `CliResetAll` walk logs exactly `[Set] reset all: N rows`. N is the rows whose
-  value changed, so a walk with every row already at its default logs `0 rows`. The library's own
-  `count` is not used, because it includes rows already at their default. **No host route runs that
-  walk any more**: `/bl resetall` and both Defaults controls are the one global reset below
-  (`options-ui-§12`). The Slash descriptor still hands the library the pair, and
-  `tests/test_slash.lua` drives the walk on an instance built from the same seam members.
-- A walk that raises part-way still logs its one line, counting the rows changed before the raise,
-  with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
-  still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
-  raise of nil or false (documented upstream), so that raise gets no marker.
-- Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
-  the line. `P:Batch` coalesces repaints and is not a bracket.
-- The Options descriptor carries the same pair and `applyDefault`, so `O.RestoreDefaults` would skip
-  the Minimap button row and log `[Set] reset general: N rows`. Nothing here calls it or
-  `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`
-  with no bracket and would have swept the Minimap row.
-- `Sl:ResetEverything`, the one global reset that Reset all settings, both Defaults controls and
-  `/bl resetall` reach through `Sl:RequestResetAll`, is a wholesale wipe, not a walk through the
-  seam. It logs one `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
-  already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
-
-They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
-the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
-**Capture** (4) · **Interface** (3) · **History** (1) · **Filters**. The last carries no settings at
-all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
-renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
-`NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
-**secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
-selection is `ctx.activeSubTab["Filters"]`, session state and never persisted. Each list is one
-LibKa0s `O.IdList` (`kind = "item"`, v1.35.0): the widget resolves an item id, a link or an item's
-name and calls back into `NS.Filters`, which stays the lists' only writer. The client has no
-item-name search (its name lookup answers only for items carried this session), so the list passes
-`candidates`: both lists' ids plus every item id the ledger recorded, read from existing state. The
-widget names them, suggests matches as the player types (one row per crafted-quality rank), and
-refuses a shared name until one is picked. The lines are drawn **two to a row** (`columns = 2`,
-LibKa0s v1.47.0): both lists are fed one id at a time out of a long ledger, so one entry per line
-made a scroll re-read on every visit. It is a **maximum**, not a count -- since v1.50.0 the widget
-measures the content width it has and falls back toward one column when two cannot be paid for, so
-a narrow settings canvas returns the old layout with nothing here having to know its width. The
-cost, taken knowingly: above one column word wrap goes off, so an entry too long for its column is
-cut from the tail and loses its gray `(id)` rather than shortening it; the entry's tooltip still
-carries the full name. That write fires
-`LedgerChanged` synchronously, so the tab's own listener is held off for it (`filterWrite`'s
-`ctx.__filterWrite`) and the widget's redraw goes through `ctx.rebuild` = `O.RefreshPanel(ctx, true)`:
-one add or Remove repaints this page once, rather than twice across every rendered page.
-
-Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
-five with **AH Price** after Capture. The two addons keep the same shape of record and a player
-compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
-was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
-rename and carried no migration (`options-ui-§15`).
-
-The **Master controls** tab is composed by the library (`H.MasterControls`, `options-ui-§15`) and
-spliced at the head of the array; `keys = { scale = "windowScale" }` is what keeps this addon's
-stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
-`settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
-chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
-`settings.rowHoverAlpha`, each defaulting to the number it replaced.
-
-**One structural registry** (`architecture-§5`): the filter id-sets, which the player adds item ids
-to and removes them from.
-- **Storage keys.** `db.global.blacklist` and `db.global.whitelist`, both shipped empty in
-  `defaults/Global.lua`.
-- **Writer.** `NS.Filters` in `modules/Filters.lua`: `F:_move`, `F:_remove`, `F:ClearList` and
-  `F:ClearAll`, with `AddBlacklist` / `AddWhitelist` / `RemoveBlacklist` / `RemoveWhitelist` over the
-  first two. The Filters tab, the ledger's right-click menu and the two clear popups call it, and
-  nothing else writes either key.
-- **Load pass.** There is none. AceDB supplies the empty defaults, and `NS:RunMigrations`
-  (`core/Database.lua`), the only load-time pass, never touches them. `Sl:ResetEverything` empties the
-  whole store, which is not a registry write.
-
-**The movement log is recorded data**, `architecture-§5` named non-setting state. The addon records
-every entry, and the player authors none, so it is not a registry, and naming it is the
-compliance. It has no `Documented deviations` row.
-- **Storage key.** `db.global.ledger`, an array of entries, shipped empty in `defaults/Global.lua`.
-- **Owner.** `NS.Database` (`core/Database.lua`). Every runtime write is one of its five functions,
-  and nothing outside it writes the key:
-  - `Database:Add` appends each movement the capture engine derives (`modules/Ledger.lua`) and
-    fires `EntryAdded`.
-  - `Database:Delete` removes the entries a predicate matches, reached from the History table's
-    right-click *Delete* (`modules/LedgerTable.lua`).
-  - `Database:DeleteAt` removes one entry by index. It has no production caller; the tests use it
-    as the index-delete seam.
-  - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
-    button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
-  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
-    from that row's `onChange` and once per session, five seconds after `PLAYER_ENTERING_WORLD`
-    (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. The session latch is set when
-    the prune runs, so a disable inside those five seconds postpones it to the next
-    `PLAYER_ENTERING_WORLD` rather than skipping it.
-- **Why none of those is a player choice.** Deleting entries, purging the log and pruning it by the
-  retention row are the owner's operations on recorded data. The rule allows all three.
-- **Load pass.** `NS:RunMigrations` may rewrite entries in place, as its v1 → v2 step does when it
-  strips `vendorPrice`, and is not a writer to name. `Sl:ResetEverything` empties `db.global`
-  wholesale, ledger included, which is not a writer either. Test mode reads `NS.State.testRecords`
-  and never writes the log.
-
-**Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
-and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That
-naming is what makes them compliant, so none has a `Documented deviations` row. A reset below only
-empties the state or puts back the shipped default, and *Save* captures what is on screen, so
-neither chooses a value. The Master controls tab's *Reset position* is one of those resets.
-- **Main window geometry.** Storage key `db.global.settings.window` (`point`, `x`, `y`, `w`, `h`).
-  Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
-  drag-stop, on the resize grip's mouse-up, on every `OnHide`, and at `PLAYER_LOGOUT` through
-  `B:OnLogout`. `B:ResetWindow` empties it. Two routes reach that reset: `NS.Util.ResetWindowPositions`
-  (the Master controls tab's *Reset position*), and `Sl:ResetEverything` once its wholesale reset is
-  done — which is where *Reset all settings*, the General page's *Defaults* and `/bl resetall` all
-  land after the confirm.
-- **Session window geometry.** Storage key `db.global.settings.sessionWindow`, same shape. Owner
-  `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
-  occasions (drag-stop, grip mouse-up, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and
-  `SW:ResetWindow`, which empties it and is reached by the same two routes as `B:ResetWindow`.
-- **Saved ledger view.** Storage key `db.global.savedView`, absent until the player saves. Owner
-  `NS.Browser`. Writers: `B:SaveView`, from the filter bar's **Save** button, which stores the view on
-  screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
-  calls `B:ResetView`. `Sl:ResetEverything` empties the key with the rest of `db.global`, then calls
-  `B:ResetView` silently so the view still painted on the bar goes back to stock too.
-- **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner **`NS.Launcher`**
-  (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
-  Writer: LibDBIcon itself, when the player drags the button
-  (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field. The same table
-  holds `hide`, the Minimap button row's stored key (CLI path `minimap.shown`), so the addon never
-  replaces the table whole either. AceDB supplies
-  it from `defaults/Global.lua`, and the seam has no seed of its own. It was `NS.Browser`'s
-  `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
-
-`NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
-merges the defaults back, then re-runs `NS:RunMigrations` so the declared `schemaVersion = 0` is
-re-stamped to the current version at once (the stamp is in [schema.md](schema.md)). The wipe
-replaces the first three along with everything else; the standard
-does not count a wholesale replacement as a writer to name. **The fourth is the exception**: the
-whole `db.global.minimap` table is held across that wipe and put back, because both keys in it are
-per-installation display preferences rather than settings (`launcher-§3` — see **Launcher** below). Row table and panel structure are in
-**[settings-panel.md](settings-panel.md)**; the stored shape and the carve-out rules are in
-**[schema.md](schema.md)**.
+The runtime and its stub, and every writer of each with the act that reaches it, are in
+**[schema.md](schema.md#registry-recorded-data-and-named-state-writers)**.
 
 ## Launcher
 
@@ -487,8 +343,8 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `ARCHITECTURE.md` | This file — the hub: at-a-glance facts, module map, schema, bus, slash, events, deviations |
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
-| `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, carve-outs, migrations |
-| `settings-panel.md` | The two pages, the five-tab strip, the sixteen rows, and the single `Schema:Set` write seam |
+| `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
+| `settings-panel.md` | The two pages, the five-tab strip, the sixteen rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 
