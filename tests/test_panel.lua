@@ -74,22 +74,30 @@ test("Panel: OnDefault runs the same action as the header Defaults button", func
   end
 end)
 
--- Blizzard's footer control is NOT confirm-gated the way the body's "Reset all" button is, so the
--- General page's defaults action must stay non-destructive: settings and window geometry only, never
--- the ledger. The destructive path stays behind KA0S_BANKLEDGER_RESETALL.
-test("Panel: the General defaults action resets settings but never the ledger", function()
-  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+-- Blizzard's footer control is NOT confirm-gated by Blizzard, so the General page's defaults action
+-- must gate itself: it is the one global reset (options-ui-§12), and on the footer route it only
+-- raises KA0S_BANKLEDGER_RESETALL. Nothing changes until the player says Yes.
+test("Panel: the General defaults action only asks, and changes nothing before the confirm", function()
+  -- Before BankLedger-A-02 this case pinned a non-destructive schema walk that ran on the click.
+  -- red under: P:RestoreDefaults resetting on the click instead of raising the popup.
+  local shown = {}
+  local saved, savedShow = mocks.DEFAULT_CHAT_FRAME.AddMessage, mocks.StaticPopup_Show
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  mocks.StaticPopup_Show = function(name) shown[#shown + 1] = name end
 
   NS.Schema:Set("settings.qualityThreshold", 4)
   local before = NS.Database:Count()
 
   local ok, err = pcall(function() panel("General").OnDefault() end)
-  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  mocks.DEFAULT_CHAT_FRAME.AddMessage, mocks.StaticPopup_Show = saved, savedShow
+  local quality = NS.Schema:Get("settings.qualityThreshold")
+  NS.Schema:Set("settings.qualityThreshold", 0)
   if not ok then error(err, 0) end
 
-  assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0, "settings returned to stock")
-  assertEqual(NS.Database:Count(), before, "the ledger is untouched")
+  assertEqual(#shown, 1, "one popup")
+  assertEqual(shown[1], "KA0S_BANKLEDGER_RESETALL")
+  assertEqual(quality, 4, "a setting changed before the confirm")
+  assertEqual(NS.Database:Count(), before, "the ledger changed before the confirm")
 end)
 
 test("Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes", function()
@@ -465,12 +473,11 @@ end)
 
 test("Slash: both global resets end test mode, which no store wipe can reach", function()
   -- options-ui-§15 (standard v2.47.0): test mode is ended by Reset all settings, which is why the
-  -- composed row declares `default = false`. `/bl resetall` and the Defaults button reach it through
-  -- CliResetAll's row walk. The Master controls button's wholesale wipe empties db.global, and test
-  -- mode was never in db.global, so ResetEverything ends it by name.
+  -- composed row declares `default = false`. Every control is one act now (options-ui-§12):
+  -- `/bl resetall` reaches Sl:ResetEverything through the same request as the button. The wipe
+  -- empties db.global, and test mode was never in db.global, so ResetEverything ends it by name.
   --
-  -- red under: dropping `testMode = false` from S.MASTER_SPEC's defaults, or the test-mode line in
-  -- Sl:ResetEverything.
+  -- red under: dropping the test-mode line from Sl:ResetEverything.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
   local ok, err = pcall(function()
@@ -515,12 +522,12 @@ local function withHiddenButton(fn)
 end
 
 test("Minimap row: the page Defaults button does not un-hide the button", function()
-  -- The button is P:RestoreDefaults -> Sl:CliResetAll -> the library's walk over every schema row,
-  -- and the Minimap button row IS a schema row (the Master controls composer emits it). So this
-  -- sweep reached it, in an addon where the profile reasoning would otherwise have held.
+  -- The button is P:RestoreDefaults -> Sl:RequestResetAll -> (no popup API in the mock, so
+  -- straight to) Sl:ResetEverything, the wholesale wipe (options-ui-§12). Before BankLedger-A-02
+  -- it was the library's walk over every schema row, which S.RESET_EXEMPT held off the row; now it
+  -- is the wipe's carve-out of the whole `minimap` table that holds it.
   --
-  -- red under: dropping minimap.hide from S.RESET_EXEMPT, or pointing the descriptor's
-  -- applyDefault back at a bare S:Set.
+  -- red under: removing the carve-out from Sl:ResetEverything.
   withHiddenButton(function()
     -- The player hid it, through the row's own sense: the checkbox says SHOWN, the key says hidden.
     NS.Schema:Set("minimap.hide", false)
@@ -733,26 +740,29 @@ local function withTag(lines, tag)
   return out
 end
 
-test("Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]", function()
-  -- The header/footer Defaults button is P:RestoreDefaults, which runs the library's CliResetAll
-  -- inside its bracket. The window re-anchoring after it writes geometry, a carve-out outside the
-  -- seam, so it adds no [Set] line of its own.
-  -- P:Batch wraps that walk, and it is not a bracket, so it adds no second line.
-  -- red under: dropping bulkBegin/bulkEnd from the Slash descriptor.
+test("Panel: Defaults logs ONE [Set] line, and no per-row [Set]", function()
+  -- The header/footer Defaults button is P:RestoreDefaults, which is the one global reset
+  -- (options-ui-§12): with no popup API in the mock it runs Sl:ResetEverything straight away, whose
+  -- one [Set] line is worded by the act. Before BankLedger-A-02 it was the library's walk and
+  -- logged `[Set] reset all: 2 rows`.
+  -- red under: routing Defaults back to the walk, or the wipe logging per row.
   actLines(function() P:RestoreDefaults() end)   -- baseline: every row at its default
   NS.Schema:Set("settings.rowHoverAlpha", 0.3)
   NS.Schema:Set("settings.rowStripeAlpha", 0.2)
   local set = withTag(actLines(function() P:RestoreDefaults() end), "[Set]")
   assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
-  assertTrue(set[1]:find("[Set] reset all: 2 rows", 1, true) ~= nil, "got: " .. tostring(set[1]))
+  assertTrue(set[1]:find("[Set] reset account-wide settings to defaults (2 rows)", 1, true) ~= nil,
+    "got: " .. tostring(set[1]))
   assertEqual(NS.Schema:Get("settings.rowHoverAlpha"), 0.10, "the reset still happened")
 end)
 
 test("Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row", function()
+  -- red under: the same routing as the case above.
   actLines(function() P:RestoreDefaults() end)
   local set = withTag(actLines(function() P:RestoreDefaults() end), "[Set]")
   assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
-  assertTrue(set[1]:find("[Set] reset all: 0 rows", 1, true) ~= nil, "got: " .. tostring(set[1]))
+  assertTrue(set[1]:find("[Set] reset account-wide settings to defaults (0 rows)", 1, true) ~= nil,
+    "got: " .. tostring(set[1]))
 end)
 
 test("Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line", function()
@@ -779,57 +789,37 @@ test("Slash: ResetEverything logs its settings reset as ONE [Set] line, beside t
   assertTrue(set[1]:find("reset-all", 1, true) == nil, "must not collide with the [Data] line's word")
 end)
 
--- ── The two resets are two acts, and they must not wear one name ────────────────────────────────
+-- ── Every reset control is ONE act (options-ui-§12) ─────────────────────────────────────────────
 --
--- options-ui-§12 requires the General page's Reset all settings control, the header/footer Defaults
--- button and `/bl resetall` to sit behind ONE implementation, "so a player MUST NOT have to
--- discover which of the two does more". This addon has three routes over TWO implementations, and
--- that divergence is a ratified row in docs/ARCHITECTURE.md ▸ Documented deviations.
---
--- These two cases exist so the divergence cannot drift: the first PINS the blast radii that are
--- actually shipping, so unifying them is a deliberate, visible change to this file rather than a
--- silent one; the second holds the mitigation the register row promises, which is that the two acts
--- are at least labeled apart while the split stands.
+-- Reset all settings, the header/footer Defaults button and `/bl resetall` sit behind one
+-- implementation (BankLedger-A-02, Option A). The routes, the confirm and what Yes does are pinned in
+-- tests/test_reset_routes.lua; the case below holds the blast radius, which used to be two.
 
-test("Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one", function()
-  -- Dies under: pointing CliResetAll at ResetEverything (or the reverse) without also deleting the
-  -- options-ui-§12 row from the deviation register and rewriting this case to match.
+test("Slash: every reset route has the SAME blast radius — the ledger survives none of them", function()
+  -- Before, this case pinned two blast radii: /bl resetall and Defaults kept recorded history and
+  -- the button did not. The label case that stood beside it (the two acts must not share a name)
+  -- has no subject any more; tests/test_reset_routes.lua pins the verb's new words instead.
+  -- red under: pointing Sl:CliResetAll or P:RestoreDefaults anywhere but Sl:RequestResetAll.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
   -- Dated NOW on purpose: resetting settings.retentionDays re-runs the retention cleanup, and a
   -- 1970-stamped row would be dropped as ancient rather than as part of a reset.
   local entry = { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 }
-
-  NS.db.global.ledger = { entry }
-  NS.Slash:CliResetAll()
-  local afterCli = #NS.db.global.ledger
-
-  NS.db.global.ledger = { entry }
-  NS.Slash:ResetEverything()
-  local afterEverything = #NS.db.global.ledger
-
+  local left = {}
+  local ok, err = pcall(function()
+    for _, route in ipairs({
+      function() NS.Slash:CliResetAll() end,
+      function() P:RestoreDefaults() end,
+      function() NS.Slash:ResetEverything() end,
+    }) do
+      NS.db.global.ledger = { entry }
+      route()
+      left[#left + 1] = #NS.db.global.ledger
+    end
+  end)
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
-  assertEqual(afterCli, 1, "/bl resetall and the Defaults button must leave recorded history alone")
-  assertEqual(afterEverything, 0, "the confirm-gated button must empty the store wholesale")
-end)
-
-test("Slash: while the split stands, the button and the verb do NOT share a label", function()
-  -- Two controls whose names are identical and whose blast radii are not is precisely what §12
-  -- exists to prevent. The button keeps §12's canonical name because it is §12's act; the verb
-  -- takes slash-commands-§3's own reference wording instead.
-  --
-  -- Dies under: restoring "Reset all settings" as the resetall verb's description.
-  local button
-  for _, w in ipairs(renderTab("General", "Master controls")) do
-    if w.type == "Button" and w.text == "Reset all settings" then button = w.text end
-  end
-  assertTrue(button ~= nil, "the Master controls tab lost its Reset all settings button")
-
-  local verb
-  for _, cmd in ipairs(NS.COMMANDS) do
-    if cmd[1] == "resetall" then verb = cmd[2] end
-  end
-  assertTrue(verb ~= nil, "the resetall verb is missing from NS.COMMANDS")
-  assertTrue(verb ~= button,
-    "two acts with two blast radii are advertised under one name: " .. tostring(verb))
+  if not ok then error(err, 0) end
+  assertEqual(left[1], 0, "/bl resetall kept recorded history")
+  assertEqual(left[2], 0, "the Defaults button kept recorded history")
+  assertEqual(left[3], 0, "Reset all settings kept recorded history")
 end)

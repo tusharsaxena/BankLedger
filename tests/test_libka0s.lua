@@ -756,19 +756,20 @@ test("LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN 
     NS.Schema:Set("settings.excludedStores", saved or {})
   end)
 
-test("LibKa0s-Slash: CliResetAll also resets the filter registry and the saved view", function()
-  -- The library's CliResetAll walks the schema and acknowledges; it cannot know about state that
-  -- has no Schema row: the filter id-sets (an architecture-§5 registry, cleared through NS.Filters)
-  -- and the saved view (named non-setting state). A reset reaches both though neither has a widget, so
-  -- the host wraps the library call rather than forking it — and the wrap runs BEFORE it, because
-  -- that call is what prints the single acknowledgment.
+test("LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk", function()
+  -- The library's CliResetAll walks the schema and acknowledges; it cannot know about state that has
+  -- no Schema row (the filter id-sets, the saved view, the recorded ledger). The host used to wrap
+  -- that walk with the missing pieces. Now `/bl resetall` is the one global reset (options-ui-§12):
+  -- the popup's Sl:ResetEverything, which empties db.global wholesale and so reaches all of it with
+  -- no list to keep. The mock has no popup API, so the request runs the act directly.
+  -- red under: Sl:CliResetAll calling cli:CliResetAll again (the library's line comes back).
   NS.Filters:AddBlacklist(2589)
   NS.db.global.savedView = { tab = "insights" }
   local out = chat(function() Sl:CliResetAll() end)
   assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0, "the filter lists are cleared")
   assertTrue(NS.db.global.savedView == nil, "the saved ledger view is cleared")
   assertEqual(#out, 1, "still exactly one confirmation line")
-  assertEqual(out[1], NS.PREFIX .. " All settings reset to defaults")
+  assertEqual(out[1], NS.PREFIX .. " this addon reset to defaults.")
 end)
 
 test("LibKa0s-Slash: the landing page and the chat help render the SAME rows", function()
@@ -888,27 +889,31 @@ test("LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause c
 end)
 
 test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself", function()
-  -- It is the body the panel's Defaults button and `/bl resetall` share — neither is confirm-gated,
-  -- because neither is destructive; the confirm-gated act is the Master controls button's
-  -- Sl:ResetEverything, which is a different implementation (docs/ARCHITECTURE.md's deviation
-  -- register, options-ui-§12). A reset that silently did nothing is worse than a missing help index.
+  -- A reset that silently did nothing is worse than a missing help index. The degraded arm needs no
+  -- library for it: `/bl resetall` is the same confirm-gated request as the live arm
+  -- (options-ui-§12), and the popup's Yes is the host's own Sl:ResetEverything. Before
+  -- BankLedger-A-02 this arm carried its own bracketed schema walk, which kept the ledger.
+  -- red under: restoring the degraded walk (the ledger survives, the library-shaped line returns).
   local ns, m = loadDegraded()
   ns:InitDB()
   ns.Schema:Set("settings.qualityThreshold", 4)
+  ns.db.global.ledger = {
+    { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
+  }
   local out = captureChat(function() ns.Slash:CliResetAll() end, m)
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0)
-  assertEqual(out[#out], "|cff00ffff[BL]|r All settings reset to defaults")
+  assertEqual(#ns.db.global.ledger, 0, "the degraded reset kept recorded history")
+  assertEqual(out[#out], "|cff00ffff[BL]|r this addon reset to defaults.")
 end)
 
-test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs no [Set] line", function()
-  -- The fallback walk is this addon's own, and it still brackets itself the way the library's
-  -- CliResetAll does (debug-logging-§10) -- the bracket is what holds the Minimap row's sweep veto.
-  -- Degraded, the schema runtime is settings/Schema.lua's log-silent stub (LibKa0s-Schema-1.0's
-  -- document, "The degradation stub"): the writes land and no [Set] line is written, per row or for
-  -- the act. Before the adoption this case pinned the one `[Set] reset all: 2 rows` line; the
-  -- degraded DebugLog stub discards every line, so no player ever saw it, and the case installs a
-  -- recorder in NS.Debug's place to prove the absence rather than assume it.
-  -- red under: the fallback walk writing nothing, or the stub logging per row.
+test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line", function()
+  -- The degraded schema runtime is settings/Schema.lua's log-silent stub, so a row walk through it
+  -- would log nothing. The wholesale reset is not a walk: it logs its own one line, counted before
+  -- the wipe (debug-logging-§10), on this arm as on the live one. The case installs a recorder in
+  -- NS.Debug's place, because the degraded DebugLog stub discards every line. Before BankLedger-A-02
+  -- the degraded walk logged nothing here, and the two raising-walk cases that followed it pinned a
+  -- bracket this arm no longer opens; they went with the walk.
+  -- red under: the reset writing nothing back, or logging per row.
   local ns, m = loadDegraded()
   ns:InitDB()
   captureChat(function() ns.Slash:CliResetAll() end, m)   -- baseline: every row at its default
@@ -922,58 +927,8 @@ test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs n
   captureChat(function() ns.Slash:CliResetAll() end, m)
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
   assertEqual(ns.Schema:Get("settings.trackItems"), true, "every changed row was written back")
-  assertEqual(#lines, 0, "the log-silent stub wrote:\n" .. table.concat(lines, "\n"))
-end)
-
--- The fallback resetall with retentionDays' onChange raising `raised`; returns pcall's ok and err,
--- the [Set] lines written, the stored qualityThreshold after the raise, and whether the sweep veto
--- had been lifted again by the time the act returned.
-local function degradedRaisingReset(raised)
-  local ns, m = loadDegraded()
-  ns:InitDB()
-  captureChat(function() ns.Slash:CliResetAll() end, m)   -- baseline: every row at its default
-  ns.Schema:Set("settings.qualityThreshold", 4)
-  local lines = {}
-  ns.Debug = function(tag, fmt, ...)
-    if tag == "Set" then lines[#lines + 1] = ("[%s] " .. fmt):format(tag, ...) end
-  end
-  ns.State.debug = true
-  local row = ns.Schema:FindRow("settings.retentionDays")
-  local orig = row.onChange
-  row.onChange = function() error(raised, 0) end
-  local ok, err = pcall(function() captureChat(function() ns.Slash:CliResetAll() end, m) end)
-  row.onChange = orig
-  -- The bracket closed on the raising path: a row made exempt NOW is reset by a named
-  -- ApplyDefault, which a still-open bracket would refuse.
-  local probe = ns.Schema:FindRow("settings.trackItems")
-  ns.Schema:Set("settings.trackItems", false)
-  ns.Schema.RESET_EXEMPT[probe.path] = true
-  local lifted = ns.Schema:ApplyDefault(probe)
-  ns.Schema.RESET_EXEMPT[probe.path] = nil
-  return ok, err, #lines, ns.Schema:Get("settings.qualityThreshold"), lifted
-end
-
-test("LibKa0s-Slash degraded: a raising resetall re-raises unchanged and closes its bracket", function()
-  -- qualityThreshold comes before retentionDays in schema order, so it is written back before the
-  -- raise. Before the adoption this also pinned a `(stopped by an error)` [Set] line; the log-silent
-  -- stub writes none (see the case above), so what stays pinned is what a player can observe.
-  -- red under: the fallback swallowing the error, or a bracket left open by the raise.
-  local ok, err, logged, quality, lifted = degradedRaisingReset("boom")
-  assertTrue(not ok, "the raising row's error must reach the caller")
-  assertEqual(err, "boom", "the error is re-raised unchanged")
-  assertEqual(quality, 0, "the row before the raise was written back")
-  assertEqual(logged, 0, "the log-silent stub wrote a line")
-  assertEqual(lifted, true, "the bracket stayed open after the raise, so the veto still binds")
-end)
-
-test("LibKa0s-Slash degraded: a resetall raising nil still reaches the caller and closes its bracket", function()
-  -- The fallback owns its pcall, so it tells a raise of nil from success and re-raises the nil.
-  local ok, err, logged, quality, lifted = degradedRaisingReset(nil)
-  assertTrue(not ok, "the raise must reach the caller")
-  assertEqual(err, nil, "the original nil is re-raised")
-  assertEqual(quality, 0, "the row before the raise was written back")
-  assertEqual(logged, 0, "the log-silent stub wrote a line")
-  assertEqual(lifted, true, "the bracket stayed open after the raise, so the veto still binds")
+  assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
+  assertEqual(lines[1], "[Set] reset account-wide settings to defaults (2 rows)")
 end)
 
 test("LibKa0s-Slash: the seam loads after the schema it reads", function()

@@ -186,13 +186,21 @@ test("Schema degraded: a table value is stored as a copy, and the default stays 
   assertEqual(ns.Schema:Default("settings.excludedStores").BANK, nil, "the default was poisoned")
 end)
 
-test("Schema degraded: the resetall sweep writes every row back and closes its bracket", function()
+test("Schema degraded: a bracketed sweep writes every row back and closes its bracket", function()
+  -- Driven through the stub's own bracket and ApplyDefault, the shape any sweep takes. It used to
+  -- ride on the degraded `/bl resetall`, which carried its own walk; that verb is the wholesale
+  -- Sl:ResetEverything now (options-ui-§12), so the stub's bracket is pinned directly.
+  -- red under: the stub's ApplyDefault writing nothing, or a BulkEnd that leaves the bracket open.
   local ns, m = degraded()
   ns.Schema:Set(PATH, 4)
   ns.Schema:Set("settings.trackItems", false)
   local saved = m.DEFAULT_CHAT_FRAME.AddMessage
   m.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  local ok, err = pcall(function() ns.Slash:CliResetAll() end)
+  local ok, err = pcall(function()
+    ns.Schema.BulkBegin("reset", "all")
+    for _, row in ipairs(ns.Schema.Schema) do ns.Schema:ApplyDefault(row) end
+    ns.Schema.BulkEnd("reset", "all", nil, nil, { profileReset = false })
+  end)
   m.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertTrue(ok, tostring(err))
   assertEqual(ns.Schema:Get(PATH), 0)

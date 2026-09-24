@@ -416,7 +416,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
 - Browser: a saved date range is stored as the OPTION, not a resolved timestamp
 - Browser:ApplyView tolerates a scalar filter value in a stored view
-- Slash:CliResetAll also discards the saved view
+- Slash:CliResetAll (the wholesale reset) also discards the saved view
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -713,13 +713,13 @@ badge and any count quoted in the docs must agree with it.
 - Schema.SameValue compares tables by content and tells false from absent
 - Schema degraded: a write lands, reads back, reacts and answers as the live seam does
 - Schema degraded: a table value is stored as a copy, and the default stays whole
-- Schema degraded: the resetall sweep writes every row back and closes its bracket
+- Schema degraded: a bracketed sweep writes every row back and closes its bracket
 - Schema runtime: the seam is a LibKa0s-Schema-1.0 instance, and the host names are bound to it
 - Schema:Register reports a path missing from the defaults even when the row has a default
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (50)
+### test_slash.lua (51)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -743,14 +743,15 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliReset echoes a table default through the shared formatter
 - Slash:CliReset echoes the colored key = value shape, like get and set
 - Slash:CliReset echoes the stored value, not the requested one
-- Slash:CliResetAll restores the schema AND clears the filter lists
-- Slash: /bl resetall logs ONE [Set] reset all line counting the rows it CHANGED, and no per-row [Set]
+- Slash: /bl resetall is the wholesale reset — the schema, the filter lists AND the ledger
+- Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and no per-row [Set]
 - Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
+- Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED
 - Slash: a reset nested inside another bracket logs ONE line, for the outermost act
 - Slash: a bracket reporting profileReset logs nothing, even around a nested reset
-- Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards
-- Slash: a row that raises mid-resetall logs ONE line marked as stopped, re-raises, and unmutes the seam
-- Slash: a resetall row raising nil logs the line without the marker (the library hands err = nil)
+- Slash: the library's sweep still runs every row's onChange, and the seam logs again afterwards
+- Slash: a row that raises mid-sweep logs ONE line marked as stopped, re-raises, and unmutes the seam
+- Slash: a sweep row raising nil logs the line without the marker (the library hands err = nil)
 - Slash: a bare /bl runs the config verb and prints nothing
 - Slash: whitespace-only input is a bare /bl too
 - Slash: a bare /bl opens the settings panel on its landing page, not a sub-page
@@ -785,13 +786,13 @@ badge and any count quoted in the docs must agree with it.
 - bus: without LibKa0s, NS.MSG is the same four names as a plain table
 - bus: no addon file but core/Constants.lua types a message's wire name
 
-### test_panel.lua (35)
+### test_panel.lua (34)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
 - Panel: the landing page's OnDefault is inert — it manages no settings
 - Panel: OnDefault runs the same action as the header Defaults button
-- Panel: the General defaults action resets settings but never the ledger
+- Panel: the General defaults action only asks, and changes nothing before the confirm
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
 - Panel: a schema write refreshes an open page
 - Panel: a schema write does NOT refresh a hidden page
@@ -817,11 +818,10 @@ badge and any count quoted in the docs must agree with it.
 - Slash: ResetEverything while disabled stands the addon back up
 - Slash: ResetEverything announces LedgerChanged exactly once
 - Slash: ResetEverything traces the recorded entries it wiped, once
-- Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
+- Panel: Defaults logs ONE [Set] line, and no per-row [Set]
 - Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
 - Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
-- Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
-- Slash: while the split stands, the button and the verb do NOT share a label
+- Slash: every reset route has the SAME blast radius — the ledger survives none of them
 
 ### test_panel_filters.lua (40)
 
@@ -865,6 +865,15 @@ badge and any count quoted in the docs must agree with it.
 - Panel: the storage read-out lands on the History tab and nowhere else
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Filters tab: the id list packs two entries to a line, row-major
+
+### test_reset_routes.lua (6)
+
+- Reset routes: every reset control raises the one confirm popup and changes nothing before accept
+- Reset routes: RequestResetAll is the single entry point, and the popup's Yes is ResetEverything
+- Reset routes: accepting the popup empties the ledger, both filter lists and savedView, ends test mode, closes the debug console and keeps db.global.minimap whole
+- Reset routes: accepting the popup puts the ledger window's live view back to stock
+- Reset routes: the resetall verb and the Defaults tooltip say history goes, and that it asks first
+- Reset routes degraded: library-absent /bl resetall raises the same popup
 
 ### test_harness.lua (8)
 
@@ -961,7 +970,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (65)
+### test_libka0s.lua (63)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -1015,7 +1024,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
 - LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
 - LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
-- LibKa0s-Slash: CliResetAll also resets the filter registry and the saved view
+- LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk
 - LibKa0s-Slash: the landing page and the chat help render the SAME rows
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
@@ -1024,9 +1033,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
-- LibKa0s-Slash degraded: resetall writes every changed row back, and logs no [Set] line
-- LibKa0s-Slash degraded: a raising resetall re-raises unchanged and closes its bracket
-- LibKa0s-Slash degraded: a resetall raising nil still reaches the caller and closes its bracket
+- LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line
 - LibKa0s-Slash: the seam loads after the schema it reads
 
 ### test_vendor_sync.lua (3)
@@ -1169,16 +1176,17 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
 | test_schema_runtime.lua | 17 |
-| test_slash.lua | 50 |
+| test_slash.lua | 51 |
 | test_bus.lua | 10 |
-| test_panel.lua | 35 |
+| test_panel.lua | 34 |
 | test_panel_filters.lua | 40 |
+| test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 65 |
+| test_libka0s.lua | 63 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
@@ -1191,4 +1199,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1025** |
+| **Total** | **1029** |

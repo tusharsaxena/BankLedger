@@ -272,9 +272,11 @@ tolerance.
      because the checkbox and LibDBIcon are reading one boolean and not two (`launcher-§3`). Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
      and the windows visibly fade to that and no further — the row's declared minimum IS the floor
      `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
-     **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**;
-     `/bl resetall` and the header **Defaults** button are a different, non-destructive act (see
-     ARCHITECTURE ▸ Documented deviations, `options-ui-§12`).
+     **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**.
+     `/bl resetall`, the header **Defaults** button and Blizzard's footer **Defaults** raise the SAME
+     popup (`options-ui-§12`): **No** leaves everything as it was; **Yes** empties History and both
+     filter lists, turns test mode off, closes the debug console and leaves a hidden minimap button
+     hidden.
    - **Capture** — *Track items · Track gold*, then *Minimum quality*, then the full-width per-store
      grid.
    - **Interface** — a **Windows** heading over *Session window*, then a

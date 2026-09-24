@@ -281,7 +281,9 @@ test("Browser:ApplyView tolerates a scalar filter value in a stored view", funct
   end)
 end)
 
-test("Slash:CliResetAll also discards the saved view", function()
+test("Slash:CliResetAll (the wholesale reset) also discards the saved view", function()
+  -- `/bl resetall` is Sl:ResetEverything now (options-ui-§12), and the wipe takes savedView with
+  -- the rest of db.global. red under: a reset that keeps savedView.
   withFakeBar(function(dd)
     dd.store:SetSelected({ BANK = true })
     B:SaveView()

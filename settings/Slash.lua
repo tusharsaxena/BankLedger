@@ -66,8 +66,9 @@ if type(StaticPopupDialogs) == "table" then
   }
   -- NO "clear both filters" popup any more. It existed for the Filters subcategory's own top-right
   -- Defaults button, and that page is gone (R3) — the two lists are tabs of the General page now,
-  -- whose Defaults button is P:RestoreDefaults and already clears both through CliResetAll. A
-  -- confirm dialog with no caller is one nobody can reach, so it was deleted rather than parked.
+  -- whose Defaults button raises KA0S_BANKLEDGER_RESETALL above, and the wholesale wipe behind it
+  -- empties both lists with the rest of db.global. A confirm dialog with no caller is one nobody can
+  -- reach, so it was deleted rather than parked.
 end
 
 --- debug-logging-§8: the wholesale reset below takes the recorded ledger with the rest of the store,
@@ -126,12 +127,30 @@ local function refreshAfterReset()
     NS.Launcher:SetShown(not (type(t) == "table" and t.hide))
   end
   if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
+  -- The wipe emptied db.global.savedView, but the ledger window still holds the view it last
+  -- painted (B.activeFilter, the dropdowns, the table's sort). Its owner repaints it to stock,
+  -- SILENTLY, because this act prints its own one line.
+  if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
   if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
 end
 
+--- The session-only rows a store wipe cannot reach, ended BY NAME (options-ui-§12, §15). Neither
+--- lives in db.global: test mode is NS.State, and the debug console row reads the window itself.
+--- NOT through the write seam, which would log a per-row [Set] line beside the act's one summary
+--- (debug-logging-§10). Each lands on its row's declared default, which S.MASTER_SPEC gives as false
+--- for both. LT:SetTestMode repaints the panel itself.
+local function endSessionState()
+  local LT = NS.LedgerTable
+  if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
+  local D = NS.DebugLog
+  if D and D.IsShown and D:IsShown() then D:Hide() end
+end
+
 --- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with
---- NO PROFILE.
+--- NO PROFILE. It is the ONE reset: the popup's OnAccept runs it, and every control -- Reset all
+--- settings, the page and footer Defaults, `/bl resetall` -- reaches the popup through
+--- Sl:RequestResetAll below.
 ---
 --- Everything this addon stores is account-wide: `NS.defaults.global` carries the ledger, the filter
 --- lists AND the settings, and there is no `profile` section at all. `db:ResetProfile()` -- what the
@@ -198,17 +217,26 @@ function Sl:ResetEverything()
     for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
     if type(minimap) == "table" then g.minimap = minimap end
   end
-  -- Test mode is session state (options-ui-§15). It lives in NS.State, never in db.global, so the
-  -- wipe above cannot reach it, and that rule says Reset all settings ends it. So it is ended by
-  -- name, and NOT through the write seam, which would log a per-row [Set] line beside this act's one
-  -- summary (debug-logging-§10). LT:SetTestMode repaints the panel itself.
-  local LT = NS.LedgerTable
-  if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
+  endSessionState()
   print("this addon reset to defaults.")
   if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "reset") end
   if NS.Database and NS.Database.FireLedgerChanged then NS.Database:FireLedgerChanged() end
   if NS.ReevaluateEnabled then NS.ReevaluateEnabled() end
   refreshAfterReset()
+end
+
+--- THE SINGLE ENTRY POINT to the global reset (options-ui-§12). Reset all settings, the General
+--- page's Defaults button, Blizzard's footer control (which forwards to it) and `/bl resetall` all
+--- call this, and it only ASKS: the confirm popup's OnAccept is Sl:ResetEverything. With no popup
+--- API it runs the reset directly, the arm the headless harness takes.
+---
+--- Defined ABOVE the library branch on purpose, so both arms' CliResetAll resolve the same one.
+--- History goes with the rest of the store, after the confirm; `/bl purge` deletes history alone.
+function Sl:RequestResetAll()
+  if type(StaticPopup_Show) == "function" then
+    return StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
+  end
+  return Sl:ResetEverything()
 end
 
 -- THE ONE STORED PATH `/bl enable`, `/bl disable` and the Master-controls "Enable Bank Ledger"
@@ -331,35 +359,11 @@ if not lib then
   function Sl:CliVersion() print("v" .. tostring(Sl:Version())) end
   function Sl:LandingRows() return { UNAVAILABLE } end
 
-  -- The one verb that must keep WORKING rather than merely explaining itself: it is the body the
-  -- settings panel's Defaults button and the confirm-gated `/bl resetall` both share, and a reset
-  -- that silently did nothing is worse than a missing help index.
-  --
-  -- Bracketed like the library's walk (debug-logging-§10): the seam mutes its per-row [Set] line,
-  -- tallies the rows whose value changed, and S.BulkEnd logs the one `[Set] reset all: N rows`.
-  -- BulkEnd runs on the raising path too, so the mute cannot stick, and the error is re-raised
-  -- unchanged. Every caught error marks the line ` (stopped by an error)`. This walk has its own
-  -- pcall, so unlike the library it can mark a raise of nil or false too: BulkEnd gets a stand-in
-  -- `err`, and the re-raise still carries the original value.
-  function Sl:CliResetAll()
-    local S = NS.Schema
-    local function walk()
-      S.BulkBegin("reset", "all")
-      local ok, err = pcall(function()
-        -- S:ApplyDefault, not S:Set: the same seam the live arm's descriptor hands the library, so
-        -- the Minimap button row is exempt from the sweep on BOTH arms (launcher-§3).
-        for _, row in ipairs(S.Schema) do S:ApplyDefault(row) end
-      end)
-      local failure = nil
-      if not ok then failure = (err ~= nil and err ~= false) and err or "raised without a value" end
-      S.BulkEnd("reset", "all", nil, failure, { profileReset = false })
-      if not ok then error(err, 0) end
-    end
-    if NS.Panel and NS.Panel.Batch then NS.Panel:Batch(walk) else walk() end
-    if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
-    if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
-    print("All settings reset to defaults")
-  end
+  -- The one verb that must keep WORKING rather than merely explaining itself, because a reset that
+  -- silently did nothing is worse than a missing help index. It needs no library: it is the same
+  -- confirm-gated request as the live arm (options-ui-§12), whose OnAccept is the host's own
+  -- Sl:ResetEverything. The member name is kept for NS.Slash parity with the live arm.
+  function Sl:CliResetAll() return Sl:RequestResetAll() end
 
   -- The refusal line with no library to build it. The FORMAT is the collection's, copied from
   -- lib.DISABLED_LINE_FORMAT rather than re-worded: on this arm there is no library to ask, and a
@@ -459,12 +463,14 @@ local cli = lib:New({
   -- the veto there is inert by construction: it binds only inside the bracket below.
   applyDefault = NS.SchemaRuntime.ApplyDefault,
 
-  -- The bulk bracket (Slash minor 8, debug-logging-§10). CliResetAll, which is `/bl resetall` and
-  -- both Defaults controls, calls these around its row walk: the seam mutes its per-row [Set] line
-  -- and the outermost BulkEnd emits the one `[Set] reset all: N rows`, N the rows whose value
-  -- changed. Always the pair, never one without the other. The Options descriptor carries the same
-  -- pair (settings/OptionsSetup.lua), though this addon never calls O.RestoreDefaults or
-  -- O.RestoreAllDefaults. Direct references are safe because the TOC loads settings/Schema.lua first.
+  -- The bulk bracket (Slash minor 8, debug-logging-§10). The library's own CliResetAll calls these
+  -- around its row walk: the seam mutes its per-row [Set] line and the outermost BulkEnd emits the
+  -- one `[Set] reset all: N rows`, N the rows whose value changed. NOTHING HERE CALLS THAT WALK any
+  -- more -- `/bl resetall` and both Defaults controls are the confirm-gated Sl:RequestResetAll
+  -- (options-ui-§12) -- but the descriptor keeps the pair so the library's seam stays whole. The
+  -- Options descriptor carries the same pair (settings/OptionsSetup.lua), though this addon never
+  -- calls O.RestoreDefaults or O.RestoreAllDefaults. Direct references are safe because the TOC
+  -- loads settings/Schema.lua first.
   bulkBegin    = NS.SchemaRuntime.BulkBegin,
   bulkEnd      = NS.SchemaRuntime.BulkEnd,
 
@@ -514,25 +520,8 @@ function Sl:DisabledLine() return cli:DisabledLine() end
 -- dash and a bare description, and the two drifted apart the moment either was touched.
 function Sl:LandingRows() return cli:LandingRows() end
 
--- Reset every user setting to its default. The library's CliResetAll walks the schema rows and
--- acknowledges; it cannot know about this addon's two pieces of state with no Schema widget: the
--- filter id-sets, an architecture-§5 registry cleared through its one writer NS.Filters, and the
--- saved ledger view, named non-setting state its owner Browser clears. So they are wrapped around the
--- library's call rather than forked from it. ResetView is called SILENTLY so this path still emits
--- exactly ONE confirmation line.
---
--- Order matters: those two run BEFORE the library's call, because that call is what prints the
--- acknowledgment and a line claiming everything was reset must not precede half the reset.
--- Non-destructive: the ledger and the window geometry are left alone (the confirm-gated
--- Sl:ResetEverything handles those).
-function Sl:CliResetAll()
-  if NS.Filters and NS.Filters.ClearAll then NS.Filters:ClearAll() end
-  if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
-  -- Batched: the library's CliResetAll walks every schema row and each one goes through the write
-  -- seam, which now repaints. Ten rows would otherwise be ten refreshes, and one of General's
-  -- refreshers walks the whole ledger.
-  if NS.Panel and NS.Panel.Batch then
-    return NS.Panel:Batch(function() cli:CliResetAll() end)
-  end
-  return cli:CliResetAll()
-end
+-- `/bl resetall` is the ONE global reset (options-ui-§12), not the library's schema walk: it asks
+-- through the same confirm popup as Reset all settings and both Defaults controls, and Yes empties
+-- db.global wholesale -- recorded history, the filter lists and the saved view with the settings.
+-- The member name stays CliResetAll for NS.Slash parity with the degraded arm.
+function Sl:CliResetAll() return Sl:RequestResetAll() end

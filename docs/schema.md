@@ -124,7 +124,7 @@ supplies the empty defaults, and `NS:RunMigrations` never writes them. See
 five multi-select column filters, captured by the filter bar's **Save** button. It is *absent* until
 the user saves: no key is what "nothing saved" means, so an empty table stays available to mean a
 deliberately all-cleared save. **Clear** returns to it (or to `STOCK_VIEW` when absent); **Reset**
-discards it, as does `Slash:CliResetAll` and therefore the Panel's Defaults button. The character
+discards it, as does the global reset (`Sl:ResetEverything`, behind every reset control). The character
 scope is deliberately *not* part of a view — it is a per-session default of Current that widens on
 demand, so a stale save can never pin the window to one alt. Applied once, at frame build, so
 closing and reopening the window mid-session keeps whatever you were working with.

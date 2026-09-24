@@ -761,7 +761,7 @@ function B:SaveView()
 end
 
 -- Drop the saved baseline back to stock and apply it now. `silent` suppresses the chat line for
--- programmatic callers (Slash:CliResetAll prints its own single confirmation); the bar's Reset
+-- programmatic callers (Sl:ResetEverything prints its own single confirmation); the bar's Reset
 -- button passes nothing and keeps the message.
 function B:ResetView(silent)
   if NS.db and NS.db.global then NS.db.global.savedView = nil end

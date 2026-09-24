@@ -1,8 +1,9 @@
 # Slash dispatch
 
 `/bl`, aliased `/bankledger`. `settings/Slash.lua` is the **LibKa0s-Slash-1.0 seam**: the dispatcher,
-the help renderer and the `list`/`get`/`set`/`reset`/`resetall` CLI are the library's; what stays the
-host's is AceConsole registration, the four confirm dialogs, `Sl:Version`, and the full reset.
+the help renderer and the `list`/`get`/`set`/`reset` CLI are the library's; what stays the host's is
+AceConsole registration, the four confirm dialogs, `Sl:Version`, and the full reset, which is what
+`resetall` reaches (after its confirm).
 
 `/bl`, aliased `/bankledger`. The table below is generated from `NS.COMMANDS`, so `/bl help` and the
 settings landing page both read from one place.
@@ -14,7 +15,8 @@ settings landing page both read from one place.
 | `/bl config` | Open the settings panel |
 | `/bl enable` / `disable` | Turn the addon on or off. **Aliases**, not a second switch: both write `settings.enabled` — the path the Master controls **Enable Bank Ledger** checkbox writes — through `NS.Schema:Set`, and hold no state of their own (`slash-commands-§2`). `/bl set settings.enabled true|false` is the same write by its long name. The dispatcher keeps answering while the addon is disabled, so the pair is never one-way. |
 | `/bl version` | Print the addon version |
-| `/bl get` / `set` / `list` / `reset` / `resetall` | Read and write settings |
+| `/bl get` / `set` / `list` / `reset` | Read and write settings |
+| `/bl resetall` | Reset everything to defaults, **including recorded history**. Asks first: the same confirm popup, and the same act, as *Reset all settings* and both **Defaults** controls (`options-ui-§12`) |
 | `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box) |
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
@@ -107,20 +109,26 @@ built by the same member, and writes nothing. Right-click opens the settings pan
 - **A `format` hook** for the set-typed `settings.excludedStores` row, which has no scalar rendering.
 - **A `parse` override** that refuses a chat edit of that same row by name — a muted-store set is not
   something a `set` line can express unambiguously.
-- **A `CliResetAll` wrapper**, so the two pieces of state with no Schema widget are still reset. The
-  filter lists, an `architecture-§5` registry, are reset through their writer, `NS.Filters:ClearAll`.
-  The saved ledger view, a carve-out, goes back to its stock state. The library only knows about schema
-  rows.
-- **The bulk bracket** (`bulkBegin` / `bulkEnd`, Slash minor 8), so a reset logs one line
+- **`CliResetAll` is the host's, not the library's walk.** `/bl resetall` is the ONE global reset
+  (`options-ui-§12`): `Sl:CliResetAll` returns `Sl:RequestResetAll()`, the single entry point that
+  the Master controls tab's *Reset all settings*, the General page's **Defaults** and Blizzard's
+  footer **Defaults** share too. It raises the confirm popup `KA0S_BANKLEDGER_RESETALL`, whose
+  `OnAccept` is `Sl:ResetEverything` — `db.global` emptied wholesale, recorded history, both filter
+  lists and the saved view included, then the defaults merged back with the `minimap` table held
+  across the wipe (`launcher-§3`), test mode ended and the debug console closed by name. With no
+  popup API it runs the reset directly. The degraded arm defines the same one-line member, so
+  `NS.Slash` keeps its shape with or without the library. `/bl purge` deletes history alone.
+- **The bulk bracket** (`bulkBegin` / `bulkEnd`, Slash minor 8), so a library row walk logs one line
   (`debug-logging-§10`). Both are the `LibKa0s-Schema-1.0` instance's pair, which
   `settings/Schema.lua` publishes as `S.BulkBegin` / `S.BulkEnd`. While the
   library's `CliResetAll` walks the rows, the write seam mutes its per-row `[Set]` line and counts the
   rows whose value changed. The walk then logs exactly `[Set] reset all: N rows`, which is `0 rows`
   when everything was already at its default. A walk that raises part-way logs the same line once
   with ` (stopped by an error)` appended, then the error is re-raised. The library hands `bulkEnd`
-  `err = nil` for a raise of nil or false, so that raise gets no marker. The degraded fallback
-  `CliResetAll` brackets its own walk the same way, which keeps the Minimap row's sweep veto, and
-  re-raises every error it catches; the degraded schema stub is log-silent, so it writes no line.
+  `err = nil` for a raise of nil or false, so that raise gets no marker. **No host route runs that
+  walk any more** — `/bl resetall` is the wholesale reset above, which logs its own one
+  `[Set] reset account-wide settings to defaults (N rows)` line — but the descriptor keeps the pair
+  so the library's seam stays whole, and `tests/test_slash.lua` drives the walk directly.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
 landing page both read from that one table.

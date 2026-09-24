@@ -67,8 +67,8 @@ before the adoption that row passed, although AceDB would still have read it as 
 
 Without the library, `settings/Schema.lua` builds the same instance from a **runtime-completing,
 log-silent** stub (`options-ui-§1`), the shape the major's document prescribes, trimmed to what this
-addon calls: reads, writes, reactions, the repaint and the sweep veto work, so the host verbs and the
-degraded `CliResetAll` keep writing. It writes no `[Set]` line, keeps no tally and runs no check; the
+addon calls: reads, writes, reactions, the repaint and the sweep veto work, so the host verbs keep
+writing. It writes no `[Set]` line, keeps no tally and runs no check; the
 degraded DebugLog stub would discard the line anyway. `tests/test_surface_parity.lua` holds the stub
 to the live instance and the stub library to the major.
 
@@ -78,25 +78,25 @@ instance's pair, which both descriptors take as `bulkBegin` / `bulkEnd` (LibKa0s
 Inside the bracket the seam mutes that line, and it counts each write whose read-back value actually
 changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
 per row.
-- `/bl resetall` and both Defaults controls (`P:RestoreDefaults`) reach the library's `CliResetAll`,
-  which logs exactly `[Set] reset all: N rows`. N is the rows whose value changed, so a press with
-  every row already at its default logs `0 rows`. The library's own `count` is not used, because it
-  includes rows already at their default.
+- The library's own `CliResetAll` walk logs exactly `[Set] reset all: N rows`. N is the rows whose
+  value changed, so a walk with every row already at its default logs `0 rows`. The library's own
+  `count` is not used, because it includes rows already at their default. **No host route runs that
+  walk any more**: `/bl resetall` and both Defaults controls are the one global reset below
+  (`options-ui-§12`). The Slash descriptor still hands the library the pair, and
+  `tests/test_slash.lua` drives the walk on an instance built from the same seam members.
 - A walk that raises part-way still logs its one line, counting the rows changed before the raise,
   with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
   still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
   raise of nil or false (documented upstream), so that raise gets no marker.
-- The degraded fallback `CliResetAll` brackets its own walk the same way, which is what holds the
-  sweep veto there. It owns its pcall, so it tells a raise of nil or false from success and re-raises
-  it; the log-silent stub writes no line for it.
 - Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
   the line. `P:Batch` coalesces repaints and is not a bracket.
 - The Options descriptor carries the same pair and `applyDefault`, so `O.RestoreDefaults` would skip
   the Minimap button row and log `[Set] reset general: N rows`. Nothing here calls it or
   `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`
   with no bracket and would have swept the Minimap row.
-- `Sl:ResetEverything` is a wholesale wipe, not a walk through the seam. It logs one
-  `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
+- `Sl:ResetEverything`, the one global reset that Reset all settings, both Defaults controls and
+  `/bl resetall` reach through `Sl:RequestResetAll`, is a wholesale wipe, not a walk through the
+  seam. It logs one `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
   already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
 
 They all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
@@ -143,8 +143,8 @@ to and removes them from.
   `defaults/Global.lua`.
 - **Writer.** `NS.Filters` in `modules/Filters.lua`: `F:_move`, `F:_remove`, `F:ClearList` and
   `F:ClearAll`, with `AddBlacklist` / `AddWhitelist` / `RemoveBlacklist` / `RemoveWhitelist` over the
-  first two. The Filters tab, the ledger's right-click menu, the two clear popups and
-  `Sl:CliResetAll` call it, and nothing else writes either key.
+  first two. The Filters tab, the ledger's right-click menu and the two clear popups call it, and
+  nothing else writes either key.
 - **Load pass.** There is none. AceDB supplies the empty defaults, and `NS:RunMigrations`
   (`core/Database.lua`), the only load-time pass, never touches them. `Sl:ResetEverything` empties the
   whole store, which is not a registry write.
@@ -183,18 +183,19 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
 - **Main window geometry.** Storage key `db.global.settings.window` (`point`, `x`, `y`, `w`, `h`).
   Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
   drag-stop, on the resize grip's mouse-up, on every `OnHide`, and at `PLAYER_LOGOUT` through
-  `B:OnLogout`. `B:ResetWindow` empties it. Three routes reach that reset: `NS.Util.ResetWindowPositions`
-  (the Master controls tab's *Reset position*, and the General page's *Defaults* button through
-  `P:RestoreDefaults`), and `Sl:ResetEverything` once its wholesale reset is done.
+  `B:OnLogout`. `B:ResetWindow` empties it. Two routes reach that reset: `NS.Util.ResetWindowPositions`
+  (the Master controls tab's *Reset position*), and `Sl:ResetEverything` once its wholesale reset is
+  done — which is where *Reset all settings*, the General page's *Defaults* and `/bl resetall` all
+  land after the confirm.
 - **Session window geometry.** Storage key `db.global.settings.sessionWindow`, same shape. Owner
   `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
   occasions (drag-stop, grip mouse-up, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and
-  `SW:ResetWindow`, which empties it and is reached by the same three routes as `B:ResetWindow`.
+  `SW:ResetWindow`, which empties it and is reached by the same two routes as `B:ResetWindow`.
 - **Saved ledger view.** Storage key `db.global.savedView`, absent until the player saves. Owner
   `NS.Browser`. Writers: `B:SaveView`, from the filter bar's **Save** button, which stores the view on
   screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
-  calls `B:ResetView`, and so does `Sl:CliResetAll`, which is `/bl resetall` and the *Defaults*
-  button.
+  calls `B:ResetView`. `Sl:ResetEverything` empties the key with the rest of `db.global`, then calls
+  `B:ResetView` silently so the view still painted on the bar goes back to stock too.
 - **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner **`NS.Launcher`**
   (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
   Writer: LibDBIcon itself, when the player drags the button
@@ -248,17 +249,19 @@ neither may re-hide a shown one either.
 
 Until standard v2.54.0 that section *derived* the conclusion — *Reset all settings* is a profile
 reset, the table is global, so the reset cannot reach it. **Neither half of that argument holds
-here, and both of this addon's resets reached the row:**
+here, and both of this addon's reset implementations reached the row.** Since BankLedger-A-02 there
+is one global reset (`options-ui-§12`); the walk below survives as the library's, which no host
+route runs:
 
 | Reset | Route | Why it reached the row | The carve-out |
 |---|---|---|---|
-| *Reset all settings* (Master controls, confirm-gated) | `Sl:ResetEverything` | **This addon has no profile.** Everything it stores is `db.global`, so the rule's second form applies: empty the account-wide store wholesale and merge the declared defaults back — and `minimap = { hide = false }` is one of the declared defaults. A hidden button came back, at the default angle. | The `minimap` table is held and restored around the wipe. The **table**, not the `hide` key, so `minimapPos` rides with it and a future key in it needs no second edit. |
-| **Defaults** (the General page's own button, and `/bl resetall`) | `P:RestoreDefaults` → `Sl:CliResetAll` → the library's row walk | The Minimap button row **is** a schema row — the Master controls composer emits it — and the walk rewrites every row carrying a `default`. This reaches the row even where the profile reasoning does hold, which is why the amended rule names it. | `NS.Schema.RESET_EXEMPT`, honored in `S:ApplyDefault`, the one seam both the descriptor's `applyDefault` and the degraded arm's walk write through. |
+| *Reset all settings*, **Defaults** and `/bl resetall` (all confirm-gated) | `Sl:ResetEverything` | **This addon has no profile.** Everything it stores is `db.global`, so the rule's second form applies: empty the account-wide store wholesale and merge the declared defaults back — and `minimap = { hide = false }` is one of the declared defaults. A hidden button came back, at the default angle. | The `minimap` table is held and restored around the wipe. The **table**, not the `hide` key, so `minimapPos` rides with it and a future key in it needs no second edit. |
+| The library's row walk (**Defaults** and `/bl resetall` until BankLedger-A-02; `O.RestoreDefaults` if ever called) | `applyDefault` over every schema row | The Minimap button row **is** a schema row — the Master controls composer emits it — and the walk rewrites every row carrying a `default`. This reaches the row even where the profile reasoning does hold, which is why the amended rule names it. | `NS.Schema.RESET_EXEMPT`, honored in `S:ApplyDefault`, the one seam both the descriptor's `applyDefault` and the degraded arm's walk write through. |
 
 The veto is **bracket-scoped**: it fires only while a bulk bracket is open, which a sweep opens and a
 single-row reset does not. So a targeted `/bl reset minimap.hide` is still the player naming that
-exact row and still works. The three cases that pin all of it are in `tests/test_panel.lua`, beside
-the other destructive-reset cases, and they read the stored byte back after running the real act.
+exact row and still works. The cases that pin all of it are in `tests/test_panel.lua` and
+`tests/test_reset_routes.lua`, beside the other destructive-reset cases, and they read the stored byte back after running the real act.
 
 `modules/Browser.lua` owned all of this until adoption (`B:SetupMinimap`, `B:SetMinimapHidden`);
 both are gone, and `tests/test_launcher.lua` fails if either comes back.
@@ -335,8 +338,8 @@ no `:StandUp()` member to call: the only route out is releasing the hold that pu
 AceDB's three profile callbacks all land there, so no surface can drive the teardown by another
 route and none of them holds a state of its own.
 
-**Reset all settings re-runs the latch too, and so re-enables a disabled addon.** The Master-controls
-button (`Sl:ResetEverything`) wipes `db.global` in place and merges the defaults back, which restores
+**Reset all settings re-runs the latch too, and so re-enables a disabled addon.** The global reset
+(`Sl:ResetEverything`, behind every reset control) wipes `db.global` in place and merges the defaults back, which restores
 `settings.enabled = true` behind the row's `onChange`. So after its `SettingsChanged("reset")` and a
 `LedgerChanged` sent through `Database:FireLedgerChanged` (the wipe emptied the ledger; Database stays
 the one sender), it calls `NS.ReevaluateEnabled`, exactly as the profile callbacks do. That releases
@@ -418,9 +421,9 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
   (nothing is staged), and the library's renderer already owns re-show. `OnDefault` **forwards** to
   whatever the page parked as `defaultsOnClick` (`setDefaultsAction`), so the framework's footer
   control and the addon's own header button are one implementation by construction rather than two
-  that have to be kept in step. On General that action is `P:RestoreDefaults()`, which is
-  non-destructive — settings and window geometry only; wiping the ledger stays behind the
-  confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
+  that have to be kept in step. On General that action is `P:RestoreDefaults()`, which only raises
+  the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup (`options-ui-§12`): Blizzard's un-gated footer
+  control can therefore change nothing without the player's Yes.
 - Opening the settings panel **refuses** under combat lockdown with a gray notice and never defers:
   `Settings.OpenToCategory` is protected, and calling it under lockdown taints the panel for the
   rest of the session. A page already on screen in combat is covered and refuses every write,
@@ -514,7 +517,6 @@ with no re-check trigger is a permanent exemption granted by accident.
 | `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. |
 | `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and **no** user-facing string routes through `NS.L` — every label, tooltip and message is a hardcoded English literal. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. |
 | `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `modules/Browser.lua:98`'s `B:MakeCloseButton`, 24×24, class-colored on hover — rather than a one-line wrapper over `lib.MakeCloseButton`, which `core/CoreSetup.lua:117-129` deliberately does not republish. | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`modules/Browser.lua:1047`), the session window (`modules/SessionWindow.lua:485`) and the export modal (`modules/Export.lua:362`) are this addon's; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon` (`modules/Browser.lua:104`) with the documented fallback ladder beneath it, so the two implementations agree on the art and differ only in size and hover tint. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its three callers and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change four visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. |
-| `options-ui-§12` | The global reset is **three routes over two implementations**, not one act. The General page's **Reset all settings** button raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose `OnAccept` runs `Sl:ResetEverything` — `db.global` emptied wholesale, **including the recorded ledger**. The header/footer **Defaults** button (`P:RestoreDefaults`) and `/bl resetall` both run `Sl:CliResetAll`, which clears the two filter lists, resets the saved view and defers to the library's schema walk, leaving the ledger alone. §12 requires all three behind **one** implementation, and requires the account-wide form to empty the store wholesale rather than enumerate it — so the *non-destructive* pair is the half that diverges. | **Not argued for — recorded because it is shipping and was not ratified.** The split predates the settings revamp; that pass only moved the destructive button onto the Master controls tab and, in doing so, gave it §12's canonical *name*. Closing it means choosing which act wins, and both choices are user-visible: unifying **up** makes `/bl resetall` and Blizzard's own **Defaults** control destroy a player's entire recorded history (§12 accepts this — its second canonical wording already says *"or recorded"* — but it is a data-loss change no case in `tests/` covers today); unifying **down** leaves the addon with no §12-compliant wholesale reset at all. That is a maintainer's call, not an implementer's, so the divergence is **reported and named** rather than silently widened. What this pass *did* do is stop the two acts sharing a label: the button is *Reset all settings*, `/bl resetall` is *Reset every setting to defaults* (`slash-commands-§3`'s reference wording), so today a player is at least not told two different blast radii have one name. **A second cost surfaced on 2026-09-16**: `launcher-§3` exempts `minimap.hide` from every reset, and because the two acts are two implementations the carve-out had to be made twice — `NS.Schema.RESET_EXEMPT` honored in `S:ApplyDefault` for the schema walk, and the held-and-restored `minimap` table in `Sl:ResetEverything`. Unified, it would be one. | 2026-09-02 | **The decision itself — this row is a placeholder for a resolution, not an exemption.** Re-check at the next release, or the moment a player reports losing history to *Reset all settings*, whichever comes first. Closing it means pointing `P:RestoreDefaults` and the `resetall` verb at the same confirm-gated body as the button (and extending `Sl:ResetEverything` to sweep the session-only rows a store wipe cannot reach, per §12), then deleting this row. |
 
 Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
 namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — it is simply unused, so

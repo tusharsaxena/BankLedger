@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1025%2F1025_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1029%2F1029_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -87,10 +87,13 @@ prints the full command list.
 
 If you'd rather read your settings than click through them, `/bl list` prints every one with its
 current value and `/bl get setting` answers for a single one; `/bl set setting value` changes
-one from chat. Going the other way, `/bl reset setting` puts one back to its default and
-`/bl resetall` puts all of them back — settings only, which is the important part: your ledger
-history is untouched by either. The command that does clear history is `/bl purge`, and because
-that cannot be undone it asks for confirmation first. `/bl version` prints the version to quote in
+one from chat. Going the other way, `/bl reset setting` puts one back to its default. Every
+*reset everything* control is one and the same act: `/bl resetall`, the **Defaults** button at the
+top of Settings ▸ General (and Blizzard's own Defaults at the foot of the Settings window), and
+**Reset all settings** on the Master controls tab all ask first, and saying Yes returns the addon
+to a fresh install — your settings, both filter lists, your saved view **and your recorded
+history** are discarded. Export first if you want to keep it. To delete history alone, use
+`/bl purge`, which asks for confirmation too and leaves your settings be. `/bl version` prints the version to quote in
 a bug report. And if you want the addon out of the way without unticking it in the AddOns list,
 `/bl disable` stands it down and `/bl enable` brings it back — the same switch as the **Enable Bank
 Ledger** box on the Master controls tab, so whichever you use, the other agrees.
@@ -145,7 +148,7 @@ questing, never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Filters ▸ Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all settings** button on the Master controls tab also recenters them, but it deletes your history too — export first if you want to keep it.) |
+| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control — **Defaults**, **Reset all settings** and `/bl resetall` — recenters them too, but it asks first and then discards your settings, filter lists and recorded history as well; export first if you want to keep it. `/bl purge` deletes history only. |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
 | The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns everything to a fresh install, and a fresh install is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. Add the output of `/bl debug scan`, which writes to the console whether logging is on or not and reports which container ids and money readers your client actually exposes. |

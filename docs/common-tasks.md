@@ -46,8 +46,9 @@ storage key, its one owner and every writer with the act that reaches it. See
 [schema.md](schema.md) → *Storage carve-outs*. If it is a collection the player adds to and removes
 from, like the filter id-sets, it is a **structural registry** (`architecture-§5`). One module is its
 only writer, and ARCHITECTURE.md → Settings Schema names its storage keys, that writer and its load
-pass. Either way it needs a line in `Slash:CliResetAll`'s wrapper so a reset still reaches it. For a
-registry, that line calls the writer.
+pass. Either way, keep it under `db.global` so the global reset (`Sl:ResetEverything`, which empties
+the store wholesale) reaches it with no extra line; if its owner also holds an in-memory copy, add
+the owner's refresh to that reset's `refreshAfterReset` fan-out, the way `NS.Browser:ResetView` is.
 
 If the row needs a **bespoke widget** beside it — a picker, a grid, a button pair — draw it from the
 tab's `afterGroup` hook (`GENERAL_AFTER_TAB` in `settings/Panel.lua`), never from the page renderer

@@ -180,8 +180,8 @@ S.MASTER_SPEC = {
   keys      = { scale = "windowScale" },
   -- The composer leaves the console toggle's default to the host, because "was the console open"
   -- is session state and only the host knows what it starts as. False is what this addon has always
-  -- shipped, and CliResetAll needs it: a session-only row is restored row by row, since a store
-  -- reset cannot reach it (options-ui-§12).
+  -- shipped, and the global reset lands on it: a session-only row is restored by name, since a
+  -- store wipe cannot reach it (options-ui-§12) -- Sl:ResetEverything closes the console.
   --
   -- The same holds for test mode, which the composer emits with no default at all: `false` is what
   -- lets a reset end it (options-ui-§15, standard v2.47.0).
@@ -320,23 +320,10 @@ function S:ComposeMaster(O)
   spec.onResetPosition = function() NS.Util.ResetWindowPositions() end
   -- options-ui-§12's global reset for an addon with NO PROFILE, verbatim: the confirm-gated
   -- KA0S_BANKLEDGER_RESETALL popup (whose text is that rule's second canonical wording, byte for
-  -- byte), never the deed on the click. EXACTLY the act the History tab's "Reset all…" button used
-  -- to raise — the button moved here rather than being copied.
-  --
-  -- Note for whoever reads this next: `/bl resetall` does NOT reach this, and neither does the
-  -- header/footer Defaults button. Both run Sl:CliResetAll, which walks the schema, clears the
-  -- filter registry through NS.Filters, discards the saved view and leaves the ledger alone, while
-  -- this raises Sl:ResetEverything, which empties db.global wholesale. options-ui-§12 wants all
-  -- three behind ONE implementation; they are not.
-  -- The divergence predates this tab and is now a RATIFIED ROW in docs/ARCHITECTURE.md's
-  -- `## Documented deviations` register, which also carries what closing it costs. Reported and
-  -- named, not quietly widened here.
+  -- byte), never the deed on the click. Through NS.Slash:RequestResetAll, the single entry point
+  -- the page and footer Defaults and `/bl resetall` share, so every control is one act.
   spec.onResetAll = function()
-    if type(StaticPopup_Show) == "function" then
-      StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
-    elseif NS.Slash and NS.Slash.ResetEverything then
-      NS.Slash:ResetEverything()
-    end
+    if NS.Slash and NS.Slash.RequestResetAll then NS.Slash:RequestResetAll() end
   end
 
   local rows, tail = O.MasterControls(spec)
@@ -635,7 +622,8 @@ S.SameValue = SchemaLib.SameValue
 -- library's `count`, which counts a row already at its default. A bracket that reports
 -- `info.profileReset` logs nothing (this addon has no profile, so none does), and a walk that
 -- raised part-way still logs its line, marked ` (stopped by an error)`. Dot-called values, handed
--- to the LibKa0s-Slash descriptor (settings/Slash.lua) and called by its degraded CliResetAll.
+-- to the LibKa0s-Slash and LibKa0s-Options descriptors. No host route opens one today: the global
+-- reset is the wholesale Sl:ResetEverything, which logs its own one line.
 S.BulkBegin = inst.BulkBegin
 S.BulkEnd = inst.BulkEnd
 
@@ -653,10 +641,11 @@ function S:Default(path) return inst.Default(path) end
 
 --- Restore ONE row to its declared default -- the seam every reset SWEEP writes through, and the one
 --- place S.RESET_EXEMPT is honored (launcher-§3). Both the Slash and the Options descriptors hand it
---- over as `applyDefault`, and the degraded CliResetAll calls it too.
+--- over as `applyDefault`.
 ---
 --- THE VETO IS BRACKET-SCOPED, DELIBERATELY, and that is the library's rule too: the Slash library
---- reaches `applyDefault` from BOTH CliReset (one named path) and CliResetAll (the sweep), and only
+--- reaches `applyDefault` from BOTH CliReset (one named path) and its own CliResetAll (the sweep,
+--- which this addon's `/bl resetall` no longer runs -- that verb is the wholesale reset), and only
 --- the sweep opens the bulk bracket. Vetoing unconditionally would also refuse
 --- `/bl reset minimap.hide`, which is the player naming that exact row.
 function S:ApplyDefault(row) return inst.ApplyDefault(row) end
@@ -703,15 +692,12 @@ NS.COMMANDS = {
   { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },
   { "list",     "List all settings",       function() NS.Slash:CliList() end },
   { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
-  -- NOT the same act as the Master controls tab's "Reset all settings" button, and therefore NOT
-  -- the same words: this walks the schema, the filter registry and the saved view, and leaves the
-  -- recorded ledger alone, while the button raises KA0S_BANKLEDGER_RESETALL and empties db.global
-  -- wholesale. The description is slash-commands-§3's own reference wording. options-ui-§12 wants
-  -- the two behind ONE implementation; they are not, and that divergence is a ratified row in
-  -- docs/ARCHITECTURE.md ▸ Documented deviations. Until it is closed, the two MUST NOT wear an
-  -- identical label — a player who cannot tell which of two controls does more is exactly the
-  -- failure that rule spends its length preventing.
-  { "resetall", "Reset every setting to defaults", function() NS.Slash:CliResetAll() end },
+  -- THE SAME ACT as the Master controls tab's "Reset all settings" button and both Defaults
+  -- controls (options-ui-§12): it raises KA0S_BANKLEDGER_RESETALL, and Yes empties db.global
+  -- wholesale. The words say both halves a player needs before typing it — history goes, and it
+  -- asks first — the way `purge` says it.
+  { "resetall", "Reset everything to defaults, including recorded history (asks first)",
+    function() NS.Slash:CliResetAll() end },
   { "session",  "Toggle the banking-session window (sample data outside a bank)",
     function()
       if not NS.SessionWindow then return end

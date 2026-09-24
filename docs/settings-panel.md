@@ -170,34 +170,31 @@ frameless** and every frame-only row applies.
     the box goes back to unticked.
   - **Combat ends it.** `addon:OnCombatChanged` stops it on `PLAYER_REGEN_DISABLED` and prints
     `test mode off — combat started.`. A stop never opens the ledger window.
-  - **Both global resets end it.** `/bl resetall` and **Defaults** reach it through the row walk;
-    **Reset all settings** empties `db.global`, which test mode was never in, so
-    `Sl:ResetEverything` ends it by name.
+  - **The global reset ends it.** Test mode lives in `NS.State`, never in `db.global`, so the wipe
+    cannot reach it; `Sl:ResetEverything` ends it by name, and closes the debug console the same
+    way (`state.debugConsole` defaults to false).
 - **Reset position** is a real button now. The act existed only as a side effect folded into
-  `P:RestoreDefaults`; both routes call `NS.Util.ResetWindowPositions()`, which is the one body.
+  `P:RestoreDefaults`; it calls `NS.Util.ResetWindowPositions()`, which is the one body.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
   `options-ui-§12`'s second canonical wording byte for byte (the one for an addon with no profile).
   `OnAccept` runs `NS.Slash:ResetEverything`, which empties `db.global` **wholesale** — every
-  setting, both filter lists, both windows' geometry **and the recorded ledger** — then merges
-  `NS.defaults.global` back and re-anchors the windows. It used to be the right half of History's
-  button pair and **moved rather than being duplicated**.
+  setting, both filter lists, the saved view, both windows' geometry **and the recorded ledger** —
+  then merges `NS.defaults.global` back (holding the `minimap` table across the wipe,
+  `launcher-§3`), ends the session-only rows by name and re-anchors the windows. It used to be the
+  right half of History's button pair and **moved rather than being duplicated**.
 
-  **It is NOT the act `/bl resetall` takes.** That verb runs `NS.Slash:CliResetAll`, which clears the
-  two filter lists, resets the saved view and defers to the library's schema walk; your history
-  survives it. The header/footer **Defaults** button is the same non-destructive body, through
-  `P:RestoreDefaults`. So this addon has **three routes over two implementations**, where
-  `options-ui-§12` requires one — a **MUST divergence** that predates this pass, ratified as a row
-  in [`ARCHITECTURE.md` ▸ Documented deviations](ARCHITECTURE.md#documented-deviations). Until that
-  row is closed the two acts deliberately do **not** share a label: the button is *Reset all
-  settings*, and `/bl resetall` is described as *Reset every setting to defaults*
-  (`slash-commands-§3`'s own reference wording).
+  **It is the ONE global reset (`options-ui-§12`).** The header **Defaults** button, Blizzard's
+  footer **Defaults** (which forwards to it) and `/bl resetall` all reach the same popup through
+  `NS.Slash:RequestResetAll`, the single entry point; with no popup API it runs the reset directly.
+  Nothing changes before the player says Yes, and Yes discards recorded history on every route.
+  `/bl purge` is the act that deletes history alone. The `resetall` verb is described as *Reset
+  everything to defaults, including recorded history (asks first)*. Until BankLedger-A-02 the
+  Defaults pair and `/bl resetall` ran a non-destructive schema walk instead — three routes over
+  two implementations, carried as a register row that is now closed.
 
-  With logging on, each act writes one settings line (`debug-logging-§10`), never a line per row.
-  **Defaults** and `/bl resetall` log `[Set] reset all: N rows`, N the rows whose value changed. A
-  reset that raises part-way logs `[Set] reset all: N rows (stopped by an error)`, still once, and
-  re-raises the error.
-  *Reset all settings* logs `[Set] reset account-wide settings to defaults (N rows)` beside its
-  `[Data] reset-all wiped N ledger entries` line.
+  With logging on, the act writes one settings line (`debug-logging-§10`), never a line per row:
+  `[Set] reset account-wide settings to defaults (N rows)`, N the stored rows that changed, beside
+  its `[Data] reset-all wiped N ledger entries` line.
 
 ## Rows
 
@@ -288,11 +285,12 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
   `NS.Util.RefreshRowTint` is the `onChange`: it rebinds both tables directly and broadcasts
   `SettingsChanged` beside it, the same shape `settings.windowScale` uses.
 
-**Defaults is non-destructive.** On General, `OnDefault` forwards to whatever the page parked as
+**Defaults asks first.** On General, `OnDefault` forwards to whatever the page parked as
 `defaultsOnClick`, so Blizzard's footer control and the addon's own header button are one
-implementation rather than two kept in step. That action is `P:RestoreDefaults()` — settings, the two
-id-lists, the saved view and window geometry, never the ledger. Wiping recorded history stays behind
-the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
+implementation rather than two kept in step. That action is `P:RestoreDefaults()`, which only calls
+`NS.Slash:RequestResetAll()` — the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, the same one
+*Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
+nothing without the player's Yes, and Yes is the wholesale reset, recorded history included.
 
 ## In a degraded install
 

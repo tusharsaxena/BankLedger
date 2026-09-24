@@ -115,7 +115,8 @@ end
 --
 -- "Reset all" IS NO LONGER HERE. It is the Master controls tab's closing button pair
 -- (options-ui-§15), which the composer draws, and it was the SAME ACT this button used to raise —
--- the KA0S_BANKLEDGER_RESETALL popup. Two controls over one act is what this pass exists to remove,
+-- the KA0S_BANKLEDGER_RESETALL popup, which the page's Defaults button and `/bl resetall` raise
+-- too (options-ui-§12). Two controls over one act is what this pass exists to remove,
 -- so the button moved rather than being duplicated, and Purge is now alone in its pair. Purge stays
 -- confirm-gated; the button only raises a StaticPopup.
 local function renderStorage(ctx)
@@ -693,15 +694,12 @@ function P:Batch(fn)
   if not ok then error(err, 0) end
 end
 
+--- The General page's Defaults action, from the header button and Blizzard's footer control alike.
+--- It is the ONE global reset (options-ui-§12): it asks through the confirm popup, and Yes runs
+--- Sl:ResetEverything, whose refresh fan-out recenters both windows and repaints this panel. Nothing
+--- happens on the click itself, which is what makes it safe behind the un-gated footer control.
 function P:RestoreDefaults()
-  if NS.Slash and NS.Slash.CliResetAll then NS.Slash:CliResetAll() end
-  -- CliResetAll already batches its own row walk; this call is what repaints after the window
-  -- resets, which are not schema writes and so never reach the write seam.
-  -- Defaults also recenters both windows (position is part of the stock state); the ledger is left
-  -- alone. Through NS.Util.ResetWindowPositions, which is the SAME body the Master controls tab's
-  -- "Reset position" button calls — that button used to exist only as this side effect.
-  NS.Util.ResetWindowPositions()
-  P:Refresh()
+  if NS.Slash and NS.Slash.RequestResetAll then NS.Slash:RequestResetAll() end
 end
 
 -- ── Registration ───────────────────────────────────────────────────────────────
@@ -744,20 +742,18 @@ function P:Register()
     local ctx = O.CreatePanel("BankLedgerGeneralPanel", "General", {
       pageKey = "general",
       defaultsButton = true,
-      -- Names the window resets and the id-lists too: P:RestoreDefaults goes through CliResetAll,
-      -- which clears both filter lists and the saved view, and through
-      -- NS.Util.ResetWindowPositions, which clears the stored geometry of the ledger and session
-      -- windows (a storage carve-out, not a schema row) and recenters them. A tooltip that promised
-      -- only "every setting" understated the button — and it understates it by more since the two
-      -- filter tabs moved onto this page.
-      defaultsTooltip = "Restore every Bank Ledger setting to its default, clear the item "
-        .. "blacklist and whitelist, and recenter the ledger and session windows at their default "
-        .. "size. Your recorded history is never touched.",
+      -- Names everything the one global reset takes (options-ui-§12): P:RestoreDefaults raises the
+      -- same confirm popup as Reset all settings, and Yes empties db.global wholesale -- the
+      -- settings, both filter lists, the saved view and the recorded history -- then recenters
+      -- both windows. A tooltip that named less would understate the button.
+      defaultsTooltip = "Reset Bank Ledger to a fresh install: every setting, the item blacklist "
+        .. "and whitelist, and your recorded history, and recenter the ledger and session windows. "
+        .. "Asks first.",
     })
     P.general = ctx
-    -- Non-destructive on both routes, so it is safe behind Blizzard's own un-gated footer control.
-    -- The destructive path stays behind the confirm-gated KA0S_BANKLEDGER_RESETALL popup, which is
-    -- what the Master controls tab's "Reset all settings" button raises.
+    -- Confirm-gated on both routes: the action only raises KA0S_BANKLEDGER_RESETALL, the same popup
+    -- the Master controls tab's "Reset all settings" button raises, so it is safe behind Blizzard's
+    -- own un-gated footer control.
     setDefaultsAction(ctx.panel, function() P:RestoreDefaults() end)
 
     -- ONE LINE of adoption (options-ui-§13). The schema's `group` field already declared the

@@ -49,8 +49,7 @@ local descriptor = {
   --
   -- applyDefault is the instance's ApplyDefault, with the bracket pair beside it, so the page
   -- Defaults act -- O.RestoreDefaults, which this addon does not call today (see below) -- would
-  -- skip the Minimap button row (launcher-§3) and log one `[Set] reset general: N rows` line, as
-  -- /bl resetall does. Before LibKa0s v1.55.0 this field wrote `S:Set(path, S:Default(path))`
+  -- skip the Minimap button row (launcher-§3) and log one `[Set] reset general: N rows` line. Before LibKa0s v1.55.0 this field wrote `S:Set(path, S:Default(path))`
   -- and carried no pair, so that act would have swept the minimap row back to shown.
   get          = NS.SchemaRuntime.Get,
   set          = NS.SchemaRuntime.Set,
@@ -101,9 +100,10 @@ local descriptor = {
   -- No `skipRestoreAll`: every row here is a plain setting and a global reset should touch all of
   -- them. This addon has no profiles page whose rows are user data.
   --
-  -- No `afterRestoreAll` and no use of the library's RestoreAllDefaults — see settings/Panel.lua's
-  -- P:RestoreDefaults, and LIBKA0S-22 (closed issue #10), for why the reset stays one
-  -- host-owned implementation shared with `/bl resetall`.
+  -- No `afterRestoreAll` and no use of the library's RestoreAllDefaults. The global reset is one
+  -- host-owned implementation (options-ui-§12, LIBKA0S-22, closed issue #10): Sl:ResetEverything,
+  -- behind the confirm popup Sl:RequestResetAll raises for Reset all settings, both Defaults
+  -- controls and `/bl resetall` alike. See settings/Panel.lua's P:RestoreDefaults.
   --
   -- No `getLSM`: no row is LSM-backed. The vendored console font is a Constants path, not a media
   -- picker.
