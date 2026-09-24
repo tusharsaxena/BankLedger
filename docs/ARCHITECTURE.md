@@ -226,7 +226,7 @@ re-enters it.
 | Registration name | `BankLedger` — the **folder** name, for both registrations. LibDBIcon and a broker display key the identity by it. It was `Ka0s Bank Ledger` before adoption. |
 | Broker label | `Ka0s Bank Ledger` — the **brand name in plain text** (`launcher-§1`), which is what a broker display prints in its row beside the collection's other ten. Deliberately **not** the TOC's `## Title` (a Title may carry color escapes) and **not** the folder name (that is the registration name above). It read `Bank Ledger` until the v2.54.0 amendment. |
 | Icon | `Interface\AddOns\BankLedger\media\logos\bankledger.logo.128.tga`, the same file `## IconTexture` names (`launcher-§4`, `layout-§4`): 128×128, uncompressed 32-bit |
-| Left-click | **Rung (a)** — toggles the ledger window, through `B:Toggle`, the same act `/bl toggle` runs. The rung is recorded against this addon in the standard's `ADDONS.md`. |
+| Left-click | **Rung (a)** — toggles the ledger window, through `B:Toggle`, the same act `/bl toggle` runs. While disabled the **library** refuses it (Launcher minor 2, fed the descriptor's `isEnabled` and `disabledLine`): one line, the same one `/bl` prints, and no toggle. The rung is recorded against this addon in the standard's `ADDONS.md`. |
 | Right-click | Opens the settings panel, always, whatever the left button does |
 | Tooltip | The live movement count, and both click verbs |
 | Visibility | The **Minimap button** row on General ▸ Master controls, stored at `db.global.minimap.hide` |

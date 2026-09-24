@@ -577,12 +577,19 @@ test("disabled: the launcher's LEFT click is refused and its RIGHT click opens t
   -- not reach this addon: that rung's left click opens the settings panel and nothing else, which
   -- slash-commands-§7 keeps standing.
   --
-  -- red under: dropping the RefuseIfDisabled guard from the onClick in core/LauncherSetup.lua,
-  -- which is the minimap button with no disabled gate the audit found.
+  -- THE GATE IS THE LIBRARY'S (Launcher minor 2): the descriptor hands over `isEnabled` and
+  -- `disabledLine`, and the library refuses the left click before `onClick` is ever called. So the
+  -- Browser:Toggle spy is the proof: never called while disabled, called once after enable.
+  --
+  -- red under: dropping `isEnabled` from the descriptor in core/LauncherSetup.lua, which is the
+  -- minimap button with no disabled gate the audit found.
   local object = NS.Launcher:Object()
   assertTrue(object ~= nil and type(object.OnClick) == "function", "no launcher object to click")
 
   local saved = S:Get(ENABLED_PATH)
+  local toggles = 0
+  local savedToggle = NS.Browser.Toggle
+  NS.Browser.Toggle = function() toggles = toggles + 1 end
   disable()
   watchStore()
   local shownBefore = #mocks.__shownFrames()
@@ -590,6 +597,7 @@ test("disabled: the launcher's LEFT click is refused and its RIGHT click opens t
     local out = captureChat(function() object.OnClick(object, "LeftButton") end)
     assertEqual(#out, 1, "the left click must answer on exactly one line")
     assertTrue(isRefusal(out[1]), "not the collection's refusal line: " .. out[1])
+    assertEqual(toggles, 0, "the left click reached Browser:Toggle while disabled")
     assertEqual(#mocks.__svWrites(), 0, "the click wrote the stored tree of a disabled addon")
     assertEqual(#mocks.__shownFrames(), shownBefore, "the click put a frame on screen")
 
@@ -599,9 +607,28 @@ test("disabled: the launcher's LEFT click is refused and its RIGHT click opens t
     captureChat(function() object.OnClick(object, "RightButton") end)
     NS.Panel.Open = savedOpen
     assertEqual(opened, 1, "the right click opens the panel in EITHER state")
+
+    enable()
+    local after = captureChat(function() object.OnClick(object, "LeftButton") end)
+    assertEqual(#after, 0, "an enabled left click printed: " .. table.concat(after, "\n"))
+    assertEqual(toggles, 1, "an enabled left click must toggle the ledger exactly once")
   end)
+  NS.Browser.Toggle = savedToggle
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
+end)
+
+test("disabled: the launcher's left click carries no host gate", function()
+  -- The refusal is the library's rung (a)/(b) gate now, fed by the descriptor's `isEnabled` and
+  -- `disabledLine`. A host-side RefuseIfDisabled inside onClick would be the collection's rule
+  -- written twice, so the anti-regression is a source read.
+  local fh = assert(io.open("core/LauncherSetup.lua", "rb"))
+  local src = fh:read("*a")
+  fh:close()
+  assertEqual(src:find("RefuseIfDisabled", 1, true), nil,
+    "core/LauncherSetup.lua still gates the left click host-side")
+  assertTrue(src:find("isEnabled%s*=") ~= nil, "the descriptor does not hand over isEnabled")
+  assertTrue(src:find("disabledLine%s*=") ~= nil, "the descriptor does not hand over disabledLine")
 end)
 
 -- ── 9. Restoration, from CURRENT state ────────────────────────────────────────

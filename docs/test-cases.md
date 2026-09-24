@@ -1074,7 +1074,7 @@ badge and any count quoted in the docs must agree with it.
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
 
-### test_disabled.lua (14)
+### test_disabled.lua (15)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1087,6 +1087,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: every reserved verb and the bare /bl still answer normally
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel
+- disabled: the launcher's left click carries no host gate
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
@@ -1196,7 +1197,7 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
-| test_disabled.lua | 14 |
+| test_disabled.lua | 15 |
 | test_surface_parity.lua | 12 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
@@ -1204,4 +1205,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1034** |
+| **Total** | **1035** |

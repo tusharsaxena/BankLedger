@@ -95,7 +95,9 @@ reach it, and the entry that used to sit in `locales/enUS.lua` was deleted rathe
 
 **The minimap button takes the same refusal.** Bank Ledger is launcher rung (a), so its left click
 drives the ledger window — a feature — and while the addon is disabled it prints that same line,
-built by the same member, and writes nothing. Right-click opens the settings panel in either state
+built by the same member, and writes nothing. The gate is the launcher library's (Launcher minor 2):
+the descriptor hands over `isEnabled` and `disabledLine` (`NS.Slash:DisabledLine`), and the library
+refuses the left click before `onClick` runs, so the host carries no gate of its own. Right-click opens the settings panel in either state
 (`launcher-§2`).
 
 ## What the host supplies to the library

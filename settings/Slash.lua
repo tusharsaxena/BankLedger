@@ -302,18 +302,6 @@ function Sl:OnSlash(input)
   return Sl:Dispatch(input)
 end
 
---- The refusal, for a caller that is not a slash command: the launcher's LEFT click
---- (launcher-§2, slash-commands-§7). Answers true when it refused and the click must not act.
----
---- The line itself comes from `Sl:DisabledLine`, which is the library's builder on the live arm.
---- launcher-§2 and slash-commands-§7 are one wording, so the button and the verb can never word the
---- same refusal two ways.
-function Sl:RefuseIfDisabled()
-  if addonIsEnabled() then return false end
-  print(Sl:DisabledLine())
-  return true
-end
-
 function Sl:Register()
   NS.addon:RegisterChatCommand("bl", function(input) Sl:OnSlash(input) end)
   NS.addon:RegisterChatCommand("bankledger", function(input) Sl:OnSlash(input) end)
@@ -511,7 +499,7 @@ function Sl:CliReset(rest) return cli:CliReset(rest) end
 function Sl:CliVersion() return cli:CliVersion() end
 
 -- The collection's one refusal wording, built by the library from lib.DISABLED_LINE_FORMAT. Read by
--- the launcher's left click through Sl:RefuseIfDisabled; MUST NOT be re-spelled host-side.
+-- the launcher's descriptor as `disabledLine` (Launcher minor 2); MUST NOT be re-spelled host-side.
 function Sl:DisabledLine() return cli:DisabledLine() end
 
 -- The settings landing page renders the same verbs, through the same one row formatter, in the help

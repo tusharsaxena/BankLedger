@@ -141,19 +141,27 @@ NS.Launcher = Launcher:New({
     if NS.Panel and NS.Panel.Open then NS.Panel:Open() end
   end,
 
-  -- THE LEFT CLICK, AND THE RUNG. B:Toggle, the same act `/bl toggle` runs, so the button and the
-  -- verb can never disagree about what "open the ledger" means.
-  -- REFUSED WHILE DISABLED (launcher-§2, slash-commands-§7). This addon is rung (a), and a rung-(a)
-  -- left click drives a primary window, which is a feature: it prints the collection's one refusal
-  -- line and does NOTHING else — in particular it writes no SavedVariables, which is what a minimap
-  -- button with no disabled gate does every time it is clicked. The RIGHT click is unchanged in
-  -- either state: it opens the settings panel, which slash-commands-§7 keeps standing, and the
-  -- owner's ruling is about the slash surface — a mouse click is not a slash command.
+  -- REFUSED WHILE DISABLED (launcher-§2, slash-commands-§7), BY THE LIBRARY. This addon is rung (a),
+  -- and a rung-(a) left click drives a primary window, which is a feature. From Launcher minor 2
+  -- the library owns that gate: handed `isEnabled`, it asks it on every LEFT click and, while it
+  -- answers false, prints `disabledLine` and never calls `onClick` — so the click writes no
+  -- SavedVariables, which is what a minimap button with no disabled gate does every time. The RIGHT
+  -- click is never gated: it opens the settings panel, which slash-commands-§7 keeps standing and
+  -- where the addon is re-enabled.
   --
-  -- Through NS.Slash, which renders the line from the library's own format string. The wording is
-  -- the collection's, not this addon's, and re-spelling it here is exactly what that rule forbids.
+  -- `isEnabled` reads the latch's `disabled` hold through NS.IsDisabled, the same hold the slash
+  -- gate and the Master-controls checkbox read, so the three cannot disagree. `disabledLine` is
+  -- NS.Slash's, which renders the library's own format string: the button and `/bl` refuse in one
+  -- wording, and the host prints nothing of its own.
+  isEnabled = function() return not (NS.IsDisabled and NS.IsDisabled()) end,
+  disabledLine = function()
+    return NS.Slash and NS.Slash.DisabledLine and NS.Slash:DisabledLine()
+  end,
+
+  -- THE LEFT CLICK, AND THE RUNG. B:Toggle, the same act `/bl toggle` runs, so the button and the
+  -- verb can never disagree about what "open the ledger" means. No gate here: the library's
+  -- leftAction has already refused a disabled click before this runs.
   onClick = function()
-    if NS.Slash and NS.Slash.RefuseIfDisabled and NS.Slash:RefuseIfDisabled() then return end
     if NS.Browser and NS.Browser.Toggle then NS.Browser:Toggle() end
   end,
 
