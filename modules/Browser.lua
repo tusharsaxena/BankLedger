@@ -75,7 +75,8 @@ end
 -- The close control every window this addon draws wears: the collection's `close` mark where the
 -- shared art is there, and the thin × glyph it has always drawn where it is not. Light gray at
 -- rest, the player's class color on hover, either way. Shared by the ledger window (Browser.lua),
--- the session window (SessionWindow.lua) and both export popups (Export.lua). NOT by the debug
+-- the session window (SessionWindow.lua) and the export modal (Export.lua); the export COPY window
+-- is LibKa0s-Widgets-1.0's CopyWindow and wears the library's close. NOT by the debug
 -- console: that is the LIBRARY's window and wears Core's own 18x18 close — the edge is shared
 -- across every Ka0s window, but the close control on a library-drawn window is the library's
 -- (standalone-windows). The library draws that one for itself, once core/DebugLogSetup.lua hands it
