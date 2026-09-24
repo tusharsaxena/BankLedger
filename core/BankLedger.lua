@@ -56,8 +56,9 @@ function addon:OnEnable()
   -- stays on the minimap and the broker row stays in the display while the addon is off, because
   -- the minimap button's visibility (`minimap.shown`, stored as LibDBIcon's `minimap.hide`) is a
   -- per-installation display preference (launcher-§3) and says nothing about whether the addon is
-  -- running. What the LEFT click does while disabled is core/LauncherSetup's business, and it is
-  -- refused there.
+  -- running. What its clicks reach while disabled is the library's business (Launcher minor 4):
+  -- the left click opens the settings panel either way, and the right-click menu grays every
+  -- entry but Enabled.
   --
   -- AFTER OnInitialize, which is what makes it work at all: the descriptor answers
   -- `db.global.minimap` through a closure and NS:InitDB is what materializes it. Idempotent by

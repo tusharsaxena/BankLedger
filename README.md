@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1064%2F1064_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1068%2F1068_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -35,9 +35,10 @@ reads from it.
 
 ## Usage
 
-`/bl show` opens the ledger and `/bl hide` closes it; `/bl toggle`, or a left-click on the minimap
-button, does whichever the window is not already doing, and Escape and the X in the top corner close
-it. A right-click on the minimap button, or `/bl config`, lands you in the settings instead. The
+`/bl show` opens the ledger and `/bl hide` closes it; `/bl toggle`, or **Show window** in the
+minimap button's right-click menu, does whichever the window is not already doing, and Escape and the
+X in the top corner close it. A left-click on the minimap button, or `/bl config`, lands you in the
+settings instead. The
 window opens on History, one line per movement, newest first, already scoped to whoever you are
 logged in as. The bar above the table is how you narrow that: a search box for item names, dropdowns
 for date, direction, store, quality, type, sub-type and character, and a Group dropdown that folds
@@ -75,12 +76,15 @@ controls tab, which pins every window the addon owns.
 
 The minimap button wears the addon's own logo — the same picture the AddOns list shows beside the
 name — and if you run Titan Panel, ElvUI's data texts or Bazooka, Bank Ledger turns up there too,
-clicking exactly the same way. Hover it for a status card: the version, whether the addon is
-enabled, whether the windows are locked, whether test mode is on, how many movements the ledger
-holds, and what each click does. It shows while the addon is disabled too, and then tells you to
-type `/bl enable`. The **Minimap button** box on the Master controls tab hides it and
-brings it back, and so does the button's own right-click menu; the two always agree, because they
-are one switch. Neither **Defaults** nor **Reset all settings** touches it: whether the button is
+clicking exactly the same way. A left-click opens the settings. A right-click opens a small menu of
+checkboxes: **Enabled**, **Locked** (the Master controls tab's *Lock frame*), **Test mode** (the
+sample ledger) and **Show window** (the ledger itself). Each one does exactly what its command does
+(`/bl enable` or `/bl disable`, `/bl set settings.locked`, `/bl test`, `/bl toggle`), messages
+included, and each tick shows the state as it is when the menu opens. Hover the button for a status
+card: the version, whether the addon is enabled, whether the windows are locked, whether test mode
+is on, how many movements the ledger holds, and what each click does. It shows while the addon is
+disabled too. The **Minimap button** box on the Master controls tab hides the button and brings it
+back. Neither **Defaults** nor **Reset all settings** touches it: whether the button is
 there, and the spot around the minimap you dragged it to, is part of how your screen is arranged
 rather than part of what the addon was told to do.
 
@@ -109,9 +113,10 @@ list, without the reload.
 What stays up is the way back in. Every command keeps working — you can read and change settings,
 open the panel, print the version, run the debug console — and a bare `/bl` still opens the
 settings window. What a stood-down addon will not do is **act**: ask it to show the ledger, toggle
-the sample or purge your history, or left-click the minimap button, and it says it is disabled and
-points you at `/bl enable` rather than quietly doing nothing. Right-click on the minimap button
-still opens the settings.
+the sample or purge your history, and it says it is disabled and points you at `/bl enable` rather
+than quietly doing nothing. A left-click on the minimap button still opens the settings, and in its
+right-click menu **Enabled** still works while the other three entries are grayed out with the note
+"enable the addon first".
 
 ## How the ledger works
 

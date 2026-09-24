@@ -538,8 +538,9 @@ function Sl:CliSet(rest) return cli:CliSet(rest) end
 function Sl:CliReset(rest) return cli:CliReset(rest) end
 function Sl:CliVersion() return cli:CliVersion() end
 
--- The collection's one refusal wording, built by the library from lib.DISABLED_LINE_FORMAT. Read by
--- the launcher's descriptor as `disabledLine` (Launcher minor 2); MUST NOT be re-spelled host-side.
+-- The collection's one refusal wording, built by the library from lib.DISABLED_LINE_FORMAT. MUST NOT
+-- be re-spelled host-side. The launcher's descriptor read it as `disabledLine` until Launcher minor 4
+-- retired the field along with the left-click refusal it fed.
 function Sl:DisabledLine() return cli:DisabledLine() end
 
 -- The settings landing page renders the same verbs, through the same one row formatter, in the help

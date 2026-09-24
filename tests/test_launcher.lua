@@ -2,9 +2,9 @@
 --
 -- The library's own suite covers the launcher's semantics; duplicating them here is the
 -- consumer-side copy testing-§8 forbids. What only this repo can assert is that the seam is wired,
--- that the RUNG is the one the standard's ADDONS.md records against this addon, that the inverting
--- get/set at the write seam is the right way round, and that a host missing either broker library
--- degrades rather than raises.
+-- that the MENU ENTRIES are the ones the standard's ADDONS.md records for this addon and each runs
+-- its slash verb's own handler, that the inverting get/set at the write seam is the right way
+-- round, and that a host missing either broker library degrades rather than raises.
 --
 -- ── THE ORDER OF THE CASES IS LOAD-BEARING ───────────────────────────────────────────────────
 --
@@ -303,49 +303,181 @@ function()
     ~= nil, "the options parent title reads the constant")
 end)
 
--- ── The rung (launcher-§2) ───────────────────────────────────────────────────────────────────
+-- ── The two buttons (launcher-§2, standard v2.67.0; Launcher minor 4) ────────────────────────
+--
+-- LEFT opens the settings panel, on every addon and in either state. RIGHT opens the client's own
+-- context menu, one checkbox per toggle this addon really has, each wired to the handler its slash
+-- verb already runs. The drawing, the order and the graying are the library's suite; what only this
+-- repo can assert is WHICH entries it supplies and WHERE each click lands.
 
-test("Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch", function()
-  -- ADDONS.md records this addon as rung (a): it HAS a primary window, so the left button spends
-  -- itself on that window and not on the settings panel, which is already on the right button. And
-  -- it drives B:Toggle, the same act `/bl toggle` runs, rather than a second copy of it.
+local menuMock = dofile("tests/menu_mock.lua")(mocks)
+
+-- Open the options menu through the one click both surfaces share, with the fake MenuUtil installed
+-- for exactly as long as the case needs it. Answers the opened menu.
+local OWNER = {}
+local function openMenu()
+  menuMock.install()
+  menuMock.reset()
+  local ok, err = pcall(NS.Launcher:Object().OnClick, OWNER, "RightButton")
+  menuMock.remove()
+  if not ok then error(err, 0) end
+  return menuMock.last
+end
+
+-- Swap `tbl[key]` for a counting spy for the length of `fn`, and answer the calls it saw.
+local function spyOn(tbl, key, fn)
+  local calls = {}
+  local saved = tbl[key]
+  tbl[key] = function(...) calls[#calls + 1] = { ... } end
+  local ok, err = pcall(fn)
+  tbl[key] = saved
+  if not ok then error(err, 0) end
+  return calls
+end
+
+test("Launcher: LEFT-click opens the settings panel and nothing else", function()
+  -- launcher-§2 as of v2.67.0: the three left-click rungs are retired. Bank Ledger was rung (a) —
+  -- its left click toggled the ledger — and that toggle is the menu's Show window entry now.
   --
-  -- Dies under: dropping onClick from the descriptor (which would silently demote this addon to
-  -- rung (c)), or pointing it at anything but the Browser's own toggle.
-  local toggled, opened = 0, 0
-  local savedToggle, savedOpen = NS.Browser.Toggle, NS.Panel.Open
-  NS.Browser.Toggle = function() toggled = toggled + 1 end
-  NS.Panel.Open = function() opened = opened + 1 end
-  NS.Launcher:Object().OnClick(nil, "LeftButton")
-  NS.Browser.Toggle, NS.Panel.Open = savedToggle, savedOpen
-  assertEqual(toggled, 1, "left-click must toggle the ledger browser")
-  assertEqual(opened, 0, "a rung (a) addon whose left click opens the panel has skipped the rule")
+  -- Dies under: a host `onClick` the library still honored, or openSettings pointing anywhere but
+  -- the panel.
+  local toggled = spyOn(NS.Browser, "Toggle", function()
+    local opened = spyOn(NS.Panel, "Open", function()
+      NS.Launcher:Object().OnClick(OWNER, "LeftButton")
+    end)
+    assertEqual(#opened, 1, "left-click opens the settings panel")
+  end)
+  assertEqual(#toggled, 0, "left-click no longer toggles the ledger window")
 end)
 
-test("Launcher: RIGHT-click opens the settings panel, whatever the left button does", function()
-  local toggled, opened = 0, 0
-  local savedToggle, savedOpen = NS.Browser.Toggle, NS.Panel.Open
-  NS.Browser.Toggle = function() toggled = toggled + 1 end
-  NS.Panel.Open = function() opened = opened + 1 end
-  NS.Launcher:Object().OnClick(nil, "RightButton")
-  NS.Browser.Toggle, NS.Panel.Open = savedToggle, savedOpen
-  assertEqual(opened, 1, "right-click ALWAYS opens the settings panel")
-  assertEqual(toggled, 0)
+test("Launcher: RIGHT-click opens the options menu: Enabled, Locked, Test mode, Show window", function()
+  -- The four entries the standard's ADDONS.md records against this addon (WS-11): it has the
+  -- addon-wide switch, the Master-controls Lock frame row, the sample-ledger test mode, and a
+  -- primary window, the ledger browser. The title is the brand, the same `label` the tooltip draws.
+  --
+  -- Dies under: dropping any accessor/toggle pair from core/LauncherSetup.lua (half a pair draws
+  -- nothing), or the right click opening the panel instead.
+  local opened = spyOn(NS.Panel, "Open", function()
+    local menu = openMenu()
+    assertTrue(menu ~= nil, "right-click opened no menu")
+    assertEqual(menu.owner, OWNER, "the menu anchors to the frame that was clicked")
+    assertEqual(menu.titles[1], "Ka0s Bank Ledger", "the menu's title is the brand name")
+    assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked / Test mode / Show window")
+  end)
+  assertEqual(#opened, 0, "the right click opened the panel as well as the menu")
 end)
 
-test("Launcher: a raising click is reported, not thrown at the player", function()
-  -- The click runs inside the client's own dispatch, where a raise is a red error box over the
-  -- minimap with nothing saying which addon caused it. The library pcalls it; this case is here
-  -- because the guard is only worth anything if the host's printer is wired, and ours is.
+test("Launcher: with no MenuUtil the right click falls back to the settings panel", function()
+  -- A client without the 11.0 menu API: the library degrades to the panel, which holds every toggle
+  -- the menu would have. The case is here because it is the state every OTHER suite runs in.
+  local opened = spyOn(NS.Panel, "Open", function()
+    NS.Launcher:Object().OnClick(OWNER, "RightButton")
+  end)
+  assertEqual(#opened, 1, "no menu API, so the right click opens the panel")
+end)
+
+test("Launcher: each menu entry runs the SAME handler its slash verb runs", function()
+  -- Enabled -> `/bl enable|disable` (Sl:CliEnabled); Locked -> `/bl set settings.locked`, the only
+  -- verb that writes the Lock frame row (Sl:CliSet); Test mode -> `/bl test` (LT:ToggleTestMode);
+  -- Show window -> `/bl toggle` (B:Toggle). Each pair below drives the verb AND the entry into one
+  -- spy, so a menu that grew its own copy of any of them goes red.
+  local LT = NS.LedgerTable
+  local savedLocked = S:Get("settings.locked")
+  S:Set("settings.locked", false)
+  local ok, err = pcall(function()
+    local calls = spyOn(NS.Slash, "CliEnabled", function()
+      NS.Slash:OnSlash("disable")
+      openMenu():Click("Enabled")
+    end)
+    assertEqual(#calls, 2, "/bl disable and the Enabled entry reach Sl:CliEnabled once each")
+    assertEqual(calls[1][2], false)
+    assertEqual(calls[2][2], false, "an enabled addon's Enabled entry moves it to disabled")
+
+    calls = spyOn(NS.Slash, "CliSet", function()
+      NS.Slash:OnSlash("set settings.locked true")
+      openMenu():Click("Locked")
+    end)
+    assertEqual(#calls, 2, "/bl set settings.locked and the Locked entry reach Sl:CliSet once each")
+    assertEqual(calls[1][2], "settings.locked true")
+    assertEqual(calls[2][2], "settings.locked true", "an unlocked addon's Locked entry locks it")
+
+    calls = spyOn(LT, "ToggleTestMode", function()
+      captureChat(function() NS.Slash:OnSlash("test") end)
+      captureChat(function() openMenu():Click("Test mode") end)
+    end)
+    assertEqual(#calls, 2, "/bl test and the Test mode entry reach LT:ToggleTestMode once each")
+
+    calls = spyOn(NS.Browser, "Toggle", function()
+      NS.Slash:OnSlash("toggle")
+      openMenu():Click("Show window")
+    end)
+    assertEqual(#calls, 2, "/bl toggle and the Show window entry reach B:Toggle once each")
+  end)
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
+end)
+
+test("Launcher: the Locked entry really locks, through the Lock frame row's own seam", function()
+  -- The spy above proves the route; this proves the route arrives. Clicking Locked on an unlocked
+  -- addon stores settings.locked = true, which the row and the tooltip then both read.
+  local savedLocked = S:Get("settings.locked")
+  S:Set("settings.locked", false)
+  local ok, err = pcall(function()
+    captureChat(function() openMenu():Click("Locked") end)
+    assertEqual(S:Get("settings.locked"), true, "the Locked entry did not lock")
+    captureChat(function() openMenu():Click("Locked") end)
+    assertEqual(S:Get("settings.locked"), false, "a second click unlocks")
+  end)
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
+end)
+
+test("Launcher: each checkmark reads the live state, on every open", function()
+  -- Never cached: flip each state and reopen. Show window reads the ledger frame itself.
+  local LT = NS.LedgerTable
+  local savedLocked = S:Get("settings.locked")
+  local savedIsTest = LT.IsTestMode
+  local testOn = false
+  LT.IsTestMode = function() return testOn end
+  local ok, err = pcall(function()
+    NS.Browser:Hide()
+    S:Set("settings.locked", false)
+    local menu = openMenu()
+    assertTrue(menu:Checked("Enabled"), "an enabled addon's Enabled entry is checked")
+    assertFalse(menu:Checked("Locked"))
+    assertFalse(menu:Checked("Test mode"))
+    assertFalse(menu:Checked("Show window"), "the ledger window is closed")
+
+    S:Set("settings.locked", true)
+    testOn = true
+    NS.Browser:Show()
+    menu = openMenu()
+    assertTrue(menu:Checked("Locked"))
+    assertTrue(menu:Checked("Test mode"))
+    assertTrue(menu:Checked("Show window"), "the ledger window is open")
+  end)
+  NS.Browser:Hide()
+  LT.IsTestMode = savedIsTest
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
+end)
+
+test("Launcher: a raising menu handler is reported, not thrown at the player", function()
+  -- The click runs inside the client's menu dispatch, where a raise is a red error box with nothing
+  -- saying which addon caused it. The library pcalls it; this case is here because the guard is only
+  -- worth anything if the host's printer is wired, and ours is.
   local saved = NS.Browser.Toggle
   NS.Browser.Toggle = function() error("boom", 0) end
-  local out = captureChat(function() NS.Launcher:Object().OnClick(nil, "LeftButton") end)
+  local ok, err = pcall(function()
+    local out = captureChat(function() openMenu():Click("Show window") end)
+    assertTrue(table.concat(out, "\n"):find("boom", 1, true) ~= nil,
+      "the raise is named on one line: " .. table.concat(out, "\n"))
+  end)
   NS.Browser.Toggle = saved
-  assertTrue(table.concat(out, "\n"):find("boom", 1, true) ~= nil,
-    "the raise is named on one line: " .. table.concat(out, "\n"))
+  if not ok then error(err, 0) end
 end)
 
--- ── The status tooltip (launcher-§1, standard v2.66.0; Launcher minor 3) ─────────────────────
+-- ── The status tooltip (launcher-§1, standard v2.66.0; Launcher minor 3, hints since minor 4) ─
 --
 -- The LIBRARY draws the tooltip now, in one shape across the eleven addons: title and version,
 -- Enabled, Locked and Test mode where the addon has them, the host's own lines, then the two click
@@ -363,23 +495,23 @@ local function tooltipLines()
   return lines
 end
 
-test("Launcher: the descriptor hands the tooltip this addon's version, lock, test mode and rung label",
+test("Launcher: the descriptor passes this addon's state pairs, and none of the retired fields",
 function()
-  -- Bank Ledger HAS both states the tooltip reports: the Master-controls "Lock frame" row
-  -- (settings.locked, which core/Util.lua's ApplyMasterFrame honors) and the sample-ledger test
-  -- mode (state.testMode, LT:IsTestMode). So it passes both accessors, and a left-click label for
-  -- its rung (a) window.
+  -- Bank Ledger HAS every state the library asks about: the addon-wide switch (isEnabled /
+  -- setEnabled), the Master-controls "Lock frame" row (isLocked / toggleLock), the sample-ledger
+  -- test mode (isTestMode / toggleTestMode) and a primary window, the ledger browser
+  -- (isWindowShown / toggleWindow). Launcher minor 4 retired four fields; passing them is dead
+  -- configuration (launcher-§5).
   --
-  -- Dies under: dropping any of the four fields from core/LauncherSetup.lua, or the label drifting
-  -- off the locale seam.
+  -- Dies under: dropping any field from core/LauncherSetup.lua, or a retired one coming back.
   local src = readSource("core/LauncherSetup.lua")
-  for _, field in ipairs({ "version", "isLocked", "isTestMode", "leftClickLabel" }) do
+  for _, field in ipairs({ "version", "isEnabled", "setEnabled", "isLocked", "toggleLock",
+      "isTestMode", "toggleTestMode", "isWindowShown", "toggleWindow", "openSettings" }) do
     assertTrue(src:find("\n  " .. field .. "%s*=") ~= nil, "the descriptor does not pass `" .. field .. "`")
   end
-  assertTrue(src:find('leftClickLabel = NS.L["Toggle ledger window"]', 1, true) ~= nil,
-    "the rung label reads through the addon's locale seam")
-  assertEqual(src:find("\n  slash%s*="), nil,
-    "no `slash` field: the library reads /bl out of disabledLine(), which is the dispatcher's own")
+  for _, field in ipairs({ "onClick", "leftClickLabel", "disabledLine", "slash" }) do
+    assertEqual(src:find("\n  " .. field .. "%s*="), nil, "the descriptor still passes the retired `" .. field .. "`")
+  end
 end)
 
 test("Launcher: the tooltip draws the library's block around this addon's one extra line", function()
@@ -395,8 +527,8 @@ test("Launcher: the tooltip draws the library's block around this addon's one ex
   assertEqual(lines[3], "Locked: No")
   assertEqual(lines[4], "Test mode: Off")
   assertTrue(lines[5]:match("^%d+ movements?$") ~= nil, "the host's own line is the entry count: " .. lines[5])
-  assertEqual(lines[6], "Left-click: Toggle ledger window")
-  assertEqual(lines[7], "Right-click: Open settings")
+  assertEqual(lines[6], "Left-click: Open settings")
+  assertEqual(lines[7], "Right-click: Options menu")
   assertEqual(#lines, 7, "exactly seven lines, one title and one pair of hints: "
     .. table.concat(lines, " / "))
 end)

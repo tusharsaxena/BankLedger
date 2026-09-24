@@ -94,8 +94,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.57.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.57.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.58.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.58.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -230,6 +230,9 @@ tests/
   degraded_env.lua         -- builds a SECOND environment with libs/LibKa0s left out of the load
                            --   list, so the degradation stubs are exercised as a LOAD rather than
                            --   hand-stubbed. Not a suite, so run.lua does not list it
+  menu_mock.lua            -- a fake of the client's MenuUtil context-menu API, modeled on
+                           --   LibKa0s's repo-local tests/mock_menu.lua; installed per case by
+                           --   test_launcher.lua and test_disabled.lua. Not a suite
   test_<module>.lua        -- one suite per module
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
   test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
@@ -245,9 +248,11 @@ tests/
                            --   (registered and unconditionally), the CONTROL proving the write
                            --   and print surveys can see a survivor, the slash surface walked
                            --   over every NS.COMMANDS entry, the feature-verb refusal, the
-                           --   launcher click, restore-from-current-state, the two-hold latch,
+                           --   launcher's clicks and grayed menu, restore-from-current-state, the two-hold latch,
                            --   and the `disabled` hold re-taken at load from the store
-  test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: the rung, the folder-name
+  test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: left-click settings, the options
+                           --   menu's four entries and the verb each runs (through
+                           --   tests/menu_mock.lua, a fake MenuUtil), the folder-name
                            --   registration, the inverting Minimap button row, the two reserved
                            --   verbs, and both degraded arms (no broker libraries; no LibKa0s).
                            --   ITS CASE ORDER IS LOAD-BEARING — the no-broker case must run while

@@ -571,61 +571,77 @@ end)
 
 -- ── 8. The launcher ───────────────────────────────────────────────────────────
 
-test("disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel", function()
-  -- launcher-§2. Bank Ledger is rung (a) -- the left click drives a primary window, which is a
-  -- feature -- so it prints the one refusal line and does nothing else. Rung (c)'s carve-out does
-  -- not reach this addon: that rung's left click opens the settings panel and nothing else, which
-  -- slash-commands-§7 keeps standing.
+local menuMock = dofile("tests/menu_mock.lua")(mocks)
+
+test("disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled",
+function()
+  -- launcher-§2 as of v2.67.0 (Launcher minor 4). The left click opens the settings panel in
+  -- EITHER state: the panel is setup, not a feature, and it is where a disabled addon is re-enabled
+  -- (slash-commands-§7). The right-click menu keeps Enabled live and grays Locked, Test mode and
+  -- Show window with the note "enable the addon first", because every one of those is a feature
+  -- that refuses while disabled.
   --
-  -- THE GATE IS THE LIBRARY'S (Launcher minor 2): the descriptor hands over `isEnabled` and
-  -- `disabledLine`, and the library refuses the left click before `onClick` is ever called. So the
-  -- Browser:Toggle spy is the proof: never called while disabled, called once after enable.
-  --
-  -- red under: dropping `isEnabled` from the descriptor in core/LauncherSetup.lua, which is the
-  -- minimap button with no disabled gate the audit found.
+  -- red under: dropping `isEnabled` from the descriptor in core/LauncherSetup.lua (nothing would
+  -- gray), or wiring an entry to anything but the handler its verb runs.
   local object = NS.Launcher:Object()
   assertTrue(object ~= nil and type(object.OnClick) == "function", "no launcher object to click")
 
   local saved = S:Get(ENABLED_PATH)
-  local toggles = 0
-  local savedToggle = NS.Browser.Toggle
+  local toggles, testToggles, opened = 0, 0, 0
+  local savedToggle, savedTest, savedOpen = NS.Browser.Toggle, NS.LedgerTable.ToggleTestMode, NS.Panel.Open
   NS.Browser.Toggle = function() toggles = toggles + 1 end
+  NS.LedgerTable.ToggleTestMode = function() testToggles = testToggles + 1 end
+  NS.Panel.Open = function() opened = opened + 1 end
   disable()
   watchStore()
   local shownBefore = #mocks.__shownFrames()
   local ok, err = pcall(function()
     local out = captureChat(function() object.OnClick(object, "LeftButton") end)
-    assertEqual(#out, 1, "the left click must answer on exactly one line")
-    assertTrue(isRefusal(out[1]), "not the collection's refusal line: " .. out[1])
-    assertEqual(toggles, 0, "the left click reached Browser:Toggle while disabled")
-    assertEqual(#mocks.__svWrites(), 0, "the click wrote the stored tree of a disabled addon")
-    assertEqual(#mocks.__shownFrames(), shownBefore, "the click put a frame on screen")
+    assertEqual(#out, 0, "the left click printed: " .. table.concat(out, "\n"))
+    assertEqual(opened, 1, "the left click opens the panel in EITHER state")
 
-    local opened = 0
-    local savedOpen = NS.Panel.Open
-    NS.Panel.Open = function() opened = opened + 1 end
-    captureChat(function() object.OnClick(object, "RightButton") end)
-    NS.Panel.Open = savedOpen
-    assertEqual(opened, 1, "the right click opens the panel in EITHER state")
+    menuMock.install()
+    menuMock.reset()
+    out = captureChat(function() object.OnClick(object, "RightButton") end)
+    menuMock.remove()
+    local menu = menuMock.last
+    assertTrue(menu ~= nil, "the right click opened no menu while disabled")
+    assertEqual(#out, 0, "opening the menu printed: " .. table.concat(out, "\n"))
+    assertEqual(opened, 1, "the right click opened the panel instead of the menu")
+    assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked (enable the addon first) / "
+      .. "Test mode (enable the addon first) / Show window (enable the addon first)")
+    assertTrue(menu:Find("Enabled").enabled, "Enabled stays live while disabled")
+    assertFalse(menu:Checked("Enabled"), "a disabled addon's Enabled entry is unchecked")
+    for _, entry in ipairs({ "Locked", "Test mode", "Show window" }) do
+      assertFalse(menu:Find(entry).enabled, entry .. " is not grayed while disabled")
+      -- The library's own gate behind the gray: a client that dispatched it anyway reaches nothing.
+      captureChat(function() menu:ForceClick(entry) end)
+    end
+    assertEqual(toggles, 0, "Show window reached Browser:Toggle while disabled")
+    assertEqual(testToggles, 0, "Test mode reached LT:ToggleTestMode while disabled")
+    assertEqual(#mocks.__svWrites(), 0, "the clicks wrote the stored tree of a disabled addon")
+    assertEqual(#mocks.__shownFrames(), shownBefore, "the clicks put a frame on screen")
 
-    enable()
-    local after = captureChat(function() object.OnClick(object, "LeftButton") end)
-    assertEqual(#after, 0, "an enabled left click printed: " .. table.concat(after, "\n"))
-    assertEqual(toggles, 1, "an enabled left click must toggle the ledger exactly once")
+    -- Enabled is the way back, through /bl enable's own handler.
+    captureChat(function() menu:Click("Enabled") end)
+    assertFalse(NS.IsDisabled(), "the Enabled entry did not re-enable the addon")
+    assertEqual(S:Get(ENABLED_PATH), true)
   end)
-  NS.Browser.Toggle = savedToggle
+  menuMock.remove()
+  NS.Browser.Toggle, NS.LedgerTable.ToggleTestMode, NS.Panel.Open = savedToggle, savedTest, savedOpen
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
 end)
 
-test("disabled: the launcher's tooltip still shows, says Enabled: No and points at /bl enable",
+test("disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints",
 function()
   -- launcher-§1 (standard v2.66.0): the tooltip is ALWAYS drawn, disabled included, since that is
-  -- when a player hovers to ask why the button does nothing. The library draws it; this case pins
-  -- that the host's isEnabled and disabledLine feed it, and that the hover writes and prints nothing.
+  -- when a player hovers to ask why the addon is quiet. The library draws it; this case pins that
+  -- the host's isEnabled feeds it, and that the hover writes and prints nothing. Since Launcher
+  -- minor 4 the hints are the same in both states: the left click opens the panel either way.
   --
-  -- red under: dropping `isEnabled` (the line would read Yes) or `disabledLine` (the hint would lose
-  -- its /bl) from the descriptor in core/LauncherSetup.lua.
+  -- red under: dropping `isEnabled` from the descriptor in core/LauncherSetup.lua (the line would
+  -- read Yes).
   local object = NS.Launcher:Object()
   local saved = S:Get(ENABLED_PATH)
   local function hover()
@@ -647,29 +663,30 @@ function()
     assertEqual(lines[2], "Enabled: No")
     assertTrue(all:find("\nLocked: ", 1, true) ~= nil, all)
     assertTrue(all:find("\nTest mode: ", 1, true) ~= nil, all)
-    assertEqual(lines[#lines - 1], "Left-click: disabled \226\128\148 /bl enable")
-    assertEqual(lines[#lines], "Right-click: Open settings")
+    assertEqual(lines[#lines - 1], "Left-click: Open settings")
+    assertEqual(lines[#lines], "Right-click: Options menu")
 
     enable()
     lines = hover()
     assertEqual(lines[2], "Enabled: Yes")
-    assertEqual(lines[#lines - 1], "Left-click: Toggle ledger window")
+    assertEqual(lines[#lines - 1], "Left-click: Open settings")
   end)
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
 end)
 
-test("disabled: the launcher's left click carries no host gate", function()
-  -- The refusal is the library's rung (a)/(b) gate now, fed by the descriptor's `isEnabled` and
-  -- `disabledLine`. A host-side RefuseIfDisabled inside onClick would be the collection's rule
-  -- written twice, so the anti-regression is a source read.
+test("disabled: the launcher carries no host gate and no retired refusal field", function()
+  -- The graying is the library's (Launcher minor 4), fed by the descriptor's `isEnabled`. A
+  -- host-side RefuseIfDisabled inside a toggle would be the collection's rule written twice, and
+  -- `disabledLine` fed only the left-click refusal minor 4 retired, so the anti-regression is a
+  -- source read.
   local fh = assert(io.open("core/LauncherSetup.lua", "rb"))
   local src = fh:read("*a")
   fh:close()
   assertEqual(src:find("RefuseIfDisabled", 1, true), nil,
-    "core/LauncherSetup.lua still gates the left click host-side")
+    "core/LauncherSetup.lua gates a launcher action host-side")
   assertTrue(src:find("isEnabled%s*=") ~= nil, "the descriptor does not hand over isEnabled")
-  assertTrue(src:find("disabledLine%s*=") ~= nil, "the descriptor does not hand over disabledLine")
+  assertEqual(src:find("\n  disabledLine%s*="), nil, "the descriptor still passes the retired disabledLine")
 end)
 
 -- ── 9. Restoration, from CURRENT state ────────────────────────────────────────

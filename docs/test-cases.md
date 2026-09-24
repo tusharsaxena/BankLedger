@@ -445,7 +445,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (33)
+### test_launcher.lua (37)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -458,10 +458,14 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: ONE object, of type launcher, wearing the addon's icon
 - Launcher: the broker label is the BRAND NAME in plain text, not the Title and not the folder
 - Launcher: the brand literal is spelled at NS.BRAND_NAME and the missing-library clause only
-- Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch
-- Launcher: RIGHT-click opens the settings panel, whatever the left button does
-- Launcher: a raising click is reported, not thrown at the player
-- Launcher: the descriptor hands the tooltip this addon's version, lock, test mode and rung label
+- Launcher: LEFT-click opens the settings panel and nothing else
+- Launcher: RIGHT-click opens the options menu: Enabled, Locked, Test mode, Show window
+- Launcher: with no MenuUtil the right click falls back to the settings panel
+- Launcher: each menu entry runs the SAME handler its slash verb runs
+- Launcher: the Locked entry really locks, through the Lock frame row's own seam
+- Launcher: each checkmark reads the live state, on every open
+- Launcher: a raising menu handler is reported, not thrown at the player
+- Launcher: the descriptor passes this addon's state pairs, and none of the retired fields
 - Launcher: the tooltip draws the library's block around this addon's one extra line
 - Launcher: the tooltip's Locked and Test mode lines read what the panel reads, on every show
 - Minimap row: it is composed onto Master controls, stored, and SHOWN by default
@@ -1107,9 +1111,9 @@ badge and any count quoted in the docs must agree with it.
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
 - disabled: every reserved verb and the bare /bl still answer normally
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
-- disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel
-- disabled: the launcher's tooltip still shows, says Enabled: No and points at /bl enable
-- disabled: the launcher's left click carries no host gate
+- disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
+- disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
+- disabled: the launcher carries no host gate and no retired refusal field
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
@@ -1204,7 +1208,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 55 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 33 |
+| test_launcher.lua | 37 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1234,4 +1238,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1064** |
+| **Total** | **1068** |

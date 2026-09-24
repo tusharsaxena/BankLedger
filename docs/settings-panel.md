@@ -159,7 +159,12 @@ frameless** and every frame-only row applies.
   minimap button*, on the same stored path. The button's hover tooltip (drawn by LibKa0s-Launcher
   minor 3, enabled or disabled) reports this block's states back: `Enabled` from the *Enable* row's
   latch, `Locked` from *Lock frame*'s stored `settings.locked`, and `Test mode` from the *Test mode*
-  row's own `get`, each read on every hover.
+  row's own `get`, each read on every hover. The button's **left** click opens this panel, and its
+  **right** click opens the options menu (LibKa0s-Launcher minor 4, standard v2.67.0), whose checkboxes
+  are three of this block's rows plus the ledger window: *Enabled* runs `/bl enable|disable` (the
+  *Enable* row's path), *Locked* runs `/bl set settings.locked` (the *Lock frame* row), *Test mode*
+  runs `/bl test` (the *Test mode* row's switch), and *Show window* runs `/bl toggle`. While the addon
+  is disabled only *Enabled* is live.
 - **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from

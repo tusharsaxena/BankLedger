@@ -104,12 +104,15 @@ able to see `enable` in the list. A bare `/bl` is the `config` verb, which is li
 is **not** routed through `NS.L`: the standard says in as many words that the `L` override does not
 reach it, and the entry that used to sit in `locales/enUS.lua` was deleted rather than translated.
 
-**The minimap button takes the same refusal.** Bank Ledger is launcher rung (a), so its left click
-drives the ledger window — a feature — and while the addon is disabled it prints that same line,
-built by the same member, and writes nothing. The gate is the launcher library's (Launcher minor 2):
-the descriptor hands over `isEnabled` and `disabledLine` (`NS.Slash:DisabledLine`), and the library
-refuses the left click before `onClick` runs, so the host carries no gate of its own. Right-click opens the settings panel in either state
-(`launcher-§2`).
+**The minimap button runs these same verbs.** Since Launcher minor 4 (LibKa0s v1.58.0,
+`launcher-§2` as of standard v2.67.0) its left click opens the settings panel in either state, and
+its right click opens an options menu whose four checkboxes call the handlers in `NS.COMMANDS`
+directly: *Enabled* → `enable` / `disable`, *Locked* → `set settings.locked <bool>`, *Test mode* →
+`test`, *Show window* → `toggle` (`core/LauncherSetup.lua`'s `verb`). The menu does not go through
+`Sl:OnSlash`, so it does not meet this gate: while the addon is disabled the **library** grays
+Locked, Test mode and Show window instead, and a grayed entry calls nothing. *Enabled* stays live,
+the way `enable` does here. Until v1.58.0 the left click was rung (a)'s ledger toggle and printed
+this refusal line while disabled; that refusal and the `disabledLine` field that fed it are retired.
 
 ## What the host supplies to the library
 
