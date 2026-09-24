@@ -814,6 +814,28 @@ function L:CloseContext()
   fireSessionChanged(false, context)
 end
 
+--- The stand-down's teardown of the capture context (core/BankLedger.lua, NS.StandDown step 3b).
+---
+--- Clears the open context, its baseline snapshot and the settle window, cancels the pending pass,
+--- and ends the banking session when one was open. It is the only path besides `CloseContext` and
+--- `disarmGuildBankIfGone` that clears these fields, and the only one that needs no event: both of
+--- the others are reached from events the stand-down has just unregistered, so without this the
+--- context would outlive the switch and the stand-up would diff against a pre-disable baseline.
+---
+--- There is deliberately NO Reconcile here, unlike `CloseContext`: whatever is in flight at the
+--- moment of disabling belongs to a period the player asked not to have captured.
+function L:DropContext()
+  local context = NS.State.openContext
+  self:CancelPendingReconcile()
+  NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
+  if context then
+    if NS.State.debug and NS.Debug then
+      NS.Debug("Store", "%s dropped (stand-down)", tostring(context))
+    end
+    fireSessionChanged(false, context)
+  end
+end
+
 -- Which FRAME an open-event belongs to. There is deliberately no event for the warband tabs,
 -- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
 local OPEN_EVENTS = {

@@ -257,6 +257,76 @@ function()
   end)
 end)
 
+-- ── 4b. The capture context ───────────────────────────────────────────────────
+--
+-- The fields a bank visit arms -- the open context, its baseline snapshot, the settle window and the
+-- banking session -- are cleared only by events (a close, or the guild-bank disarm), and every one of
+-- those events is unregistered while the addon is down. So the stand-down drops them itself. Without
+-- that, the stand-up diffs against a baseline taken before the switch was thrown and records what
+-- the player did while the addon was off.
+
+local LS = dofile("tests/ledger_support.lua")
+local ITEM = 171276
+
+--- Put the capture context and the banking session back to "no visit", whatever the case left.
+local function clearVisit()
+  NS.State.openContext, NS.State.lastSnapshot, NS.Ledger._settleSince = nil, nil, nil
+  if NS.State.sessionActive and NS.SessionWindow.EndSession then NS.SessionWindow:EndSession() end
+  NS.Database:Delete(function(e) return e.itemID == ITEM end)
+  clearTimerQueue()
+end
+
+test("disabled at the bank: a movement made while disabled is not recorded after re-enable",
+function()
+  -- red under: removing the DropContext call from NS.StandDown (core/BankLedger.lua). The context
+  -- and its pre-disable baseline survive, the stand-up re-registers BAG_UPDATE_DELAYED, and the
+  -- next pass diffs the deposit made while the addon was off into a row.
+  baseline()
+  local ok, err = pcall(LS.withContainers, {
+    [LS.BAG_ID]  = { slots = 1, [1] = { itemID = ITEM, count = 5 } },
+    [LS.BANK_ID] = { slots = 1 },
+  }, function()
+    mocks.__fire("BANKFRAME_OPENED")
+    assertTrue(NS.State.openContext ~= nil, "the bank open did not arm a context")
+    local before = #NS.db.global.ledger
+    disable()
+    mocks.__containers[LS.BAG_ID][1] = nil
+    mocks.__containers[LS.BANK_ID][1] = { itemID = ITEM, count = 5 }
+    enable()
+    mocks.__fire("BAG_UPDATE_DELAYED")
+    mocks.__fireTimers()
+    assertEqual(#NS.db.global.ledger, before, "a movement made while disabled was recorded")
+  end)
+  clearVisit()
+  if not ok then error(err, 0) end
+end)
+
+test("disabled at the bank: the stand-down disarms the context and ends the session", function()
+  -- red under: removing the DropContext call from NS.StandDown (core/BankLedger.lua). The context
+  -- stays armed across the stand-down, so away from any bank every PLAYER_MONEY after the stand-up
+  -- queues a full rescan, and the banking session never ends.
+  baseline()
+  local ok, err = pcall(LS.withContainers, {
+    [LS.BAG_ID]  = { slots = 1, [1] = { itemID = ITEM, count = 5 } },
+    [LS.BANK_ID] = { slots = 1 },
+  }, function()
+    mocks.__fire("BANKFRAME_OPENED")
+    assertTrue(NS.State.sessionActive == true, "the bank open did not start a session")
+    disable()
+    assertEqual(NS.State.openContext, nil, "the open context survived the stand-down")
+    assertEqual(NS.State.lastSnapshot, nil, "the baseline survived the stand-down")
+    assertEqual(NS.Ledger._settleSince, nil, "the settle window survived the stand-down")
+    assertEqual(NS.State.sessionActive, false, "the banking session survived the stand-down")
+    mocks.__fire("BANKFRAME_CLOSED")   -- walked away while off; nothing is registered to hear it
+    enable()
+    clearTimerQueue()
+    mocks.__fire("PLAYER_MONEY")
+    assertEqual(#mocks.__timers(), 0, "a stood-up addon away from any bank queued a rescan")
+  end)
+  clearVisit()
+  if not ok then error(err, 0) end
+end)
+
 -- ── 5. Nothing on screen ──────────────────────────────────────────────────────
 
 test("disabled: every frame that was shown is hidden, and the show ladder keeps it shut", function()

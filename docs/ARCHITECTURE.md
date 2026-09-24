@@ -287,7 +287,7 @@ shape names them. `tests/test_surface_parity.lua` holds it to the live major wit
 | `Ka0s_BankLedger_EntryAdded` (`ENTRY_ADDED`) | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
 | `Ka0s_BankLedger_LedgerChanged` (`LEDGER_CHANGED`) | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
 | `Ka0s_BankLedger_SettingsChanged` (`SETTINGS_CHANGED`) | `Schema` row `onChange` handlers, and `Slash:ResetEverything` once at the end of the confirm-gated full reset | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `reset`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
-| `Ka0s_BankLedger_SessionChanged` (`SESSION_CHANGED`) | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm) | `active` (boolean), `context` | SessionWindow |
+| `Ka0s_BankLedger_SessionChanged` (`SESSION_CHANGED`) | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm / the stand-down's `DropContext`) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
 `openContext` for, instead of re-deriving it from the open/close events — which would have missed the
@@ -347,6 +347,7 @@ anti-pattern; two bodies would be.
 | Every event on the addon object | `addon:UnregisterAllEvents()` — the three below plus the capture engine's whole set, which is registered there too. Not a list to keep current |
 | The four private bus targets | `UnregisterAllMessages` / `UnregisterAllEvents` on each, and the module's `_enabled` latch released with it |
 | The capture gate's cached upvalues | `Ledger:RefreshUpvalues()`, before the target that carries the refresh is dropped |
+| The capture context — the open context, its baseline snapshot, the settle window and the banking session | `Ledger:DropContext()`, before the bus targets are dropped so the session window still hears `SessionChanged(false)` and ends the session. Every other path that clears these fields (`CloseContext`, the guild-bank disarm) runs off an event the stand-down has just unregistered, so without it the stand-up would diff against a pre-disable baseline. No flush: nothing moved at the moment of disabling is captured |
 | Both windows | hidden, and held shut **at the source**: `NS.Util.VisibilityAllows` answers no while the latch is down, and every `Show` in this addon consults it. A hidden frame otherwise comes back on a combat transition or a settings change |
 
 **What survives, because it is setup and not a feature**: the chat command registration, the

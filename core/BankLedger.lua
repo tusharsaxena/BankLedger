@@ -169,6 +169,14 @@ function NS.StandDown()
   --    was thrown is a belt that says "capture is on" about an addon that is off.
   if NS.Ledger and NS.Ledger.RefreshUpvalues then NS.Ledger:RefreshUpvalues() end
 
+  -- 3b. THE CAPTURE CONTEXT — the open context, its baseline, the settle window and the banking
+  --    session. Every path that normally clears them is an event step 2 just unregistered, so left
+  --    alone they outlive the switch and the stand-up diffs against a pre-disable baseline. Before
+  --    step 4, because SessionWindow's bus target must still be subscribed to hear
+  --    SessionChanged(false) and end the session. No flush: nothing moved at the moment of
+  --    disabling is captured.
+  if NS.Ledger and NS.Ledger.DropContext then NS.Ledger:DropContext() end
+
   -- 4. THE FOUR PRIVATE BUS TARGETS, and the latches that would otherwise refuse to rebuild them.
   for _, name in ipairs(BUS_MODULES) do
     local module = NS[name]
