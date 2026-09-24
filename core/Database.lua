@@ -589,8 +589,9 @@ function Database:FireLedgerChanged()
 end
 
 -- Delete a single entry by index. Compacts the array. No production caller: the table's row menu
--- deletes by identity through Database:Delete (modules/LedgerTable.lua:1085). Exported as the
--- index-delete seam the tests use to undo a recorded row (tests/test_ledger.lua:572).
+-- deletes by identity through Database:Delete (LT:RowMenuItems' Delete entry, in
+-- modules/LedgerTable.lua). Exported as the index-delete seam the tests use to undo a recorded row
+-- (tests/test_ledger.lua, the case "Ledger:Record appends a gated-in movement to the ledger").
 function Database:DeleteAt(index)
   local ledger = NS.db.global.ledger
   if type(index) ~= "number" or index < 1 or index > #ledger then return false end

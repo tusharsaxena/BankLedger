@@ -68,7 +68,7 @@ local SOURCE_FILES = Loader.tocFiles("BankLedger.toc")
 assertTrue(#SOURCE_FILES > 0,
   "the TOC listed no source files; the scan could not look and would have passed over everything")
 
--- ── the close control: one edit, four title bars ─────────────────────────────────────────────
+-- ── the close control: one edit, three title bars ────────────────────────────────────────────
 
 test("marks: the close control on every window this addon draws is the collection's close", function()
   local btn = B:MakeCloseButton(mocks.__stubFrame(), function() end)
@@ -95,10 +95,11 @@ test("marks degraded: with no library the close button is still the × it always
   assertTrue(clicked, "the degraded close button does not close anything")
 end)
 
-test("marks: the × is DRAWN in exactly one place, so one edit reached all four title bars", function()
-  -- The ledger window, the session window and both export popups all reach the close control
-  -- through B:MakeCloseButton. A second hand-rolled × anywhere in modules/ is a window that would
-  -- silently keep the old glyph while the other three moved on.
+test("marks: the × is DRAWN in exactly one place, so one edit reached the three host title bars", function()
+  -- The ledger window, the session window and the export modal all reach the close control
+  -- through B:MakeCloseButton; the export COPY window is LibKa0s-Widgets-1.0's CopyWindow and wears
+  -- the library's close. A second hand-rolled × anywhere in modules/ is a window that would
+  -- silently keep the old glyph while the other two moved on.
   --
   -- SetText lines only, deliberately: modules/Insights.lua spells six chart titles "By Character ×
   -- Store", and that × is prose in a heading, not a control anybody clicks.

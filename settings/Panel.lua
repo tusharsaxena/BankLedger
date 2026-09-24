@@ -760,8 +760,8 @@ function P:Register()
     -- sections; RenderTabbedSchema partitions on it in declaration order and pins a tab strip in
     -- the page's chrome band instead of stacking headed sections down one scroll. Every bespoke
     -- block is in GENERAL_AFTER_TAB above, because a tab click re-renders only what this call
-    -- draws. `rowsForPage` (settings/OptionsSetup.lua) is what adds the two host-drawn filter tabs
-    -- to the partition.
+    -- draws. `rowsForPage` (settings/OptionsSetup.lua) is what adds the one host-drawn Filters tab
+    -- (its blacklist and whitelist sub-lists) to the partition.
     O.SetRenderer(ctx, function(c)
       O.ClearScroll(c)
       O.RenderTabbedSchema(c, "general", GENERAL_AFTER_TAB)

@@ -43,7 +43,8 @@ over it and `NS.ICON_NAMES` lists the eight this addon actually draws.
 
 | Mark | Where it draws | Replaces | The rung below it |
 |---|---|---|---|
-| `close` | `B:MakeCloseButton` — the ledger, session, export-modal and export-copy title bars | the 24pt `×` (U+00D7) | the `×`, unchanged |
+| `close` | `B:MakeCloseButton` — the ledger, session and export-modal title bars (three) | the 24pt `×` (U+00D7) | the `×`, unchanged |
+| `close` | `LibKa0s-Widgets-1.0`'s `CopyWindow` — the export-copy title bar, the library's own factory (the mark is on four windows; the host factory draws three) | the library's own close | the library's own rung |
 | `chevron-down` | `MakeDropdown`'s affordance — every dropdown on the filter bar (eight today: Group by, plus the seven filters) and the export modal's Data Set | `Interface\Buttons\Arrow-Down-Up` | that texture |
 | `chevron-down` / `chevron-right` | the History group header's expander, inline `\|T…\|t` | `UI-MinusButton-Up` / `UI-PlusButton-Up` | those textures |
 | `sort-up` / `sort-down` | the History column-header sort arrow, inline `\|T…\|t` | `Arrow-Up-Up` / `Arrow-Down-Up` | those textures |

@@ -607,11 +607,14 @@ is about the path and the argument; this is where somebody actually looks at the
 1. `/bl show`. The title bar's close control is an **outlined ×**, not a font character: thinner,
    evenly weighted, and the same shape you see on every other Ka0s window. Hover it — it takes your
    class color, exactly as the old glyph did. Click it; the window closes.
-2. Reopen, then check the other three title bars the same way: `/bl session`, then **Export**, then
-   **Export to CSV** on the modal. All four wear the same mark, because all four go through
-   `B:MakeCloseButton`. A window whose × still looks like a font character means one of them stopped
-   using that factory. The **debug console** and its **Copy** box are the two windows this factory
-   does *not* draw — they are the library's, and S-14 steps 9–11 are where you check them.
+2. Reopen, then check the other two host title bars the same way: `/bl session`, then **Export**.
+   All three wear the same mark, because all three go through `B:MakeCloseButton`. A window whose ×
+   still looks like a font character means one of them stopped using that factory.
+   Then **Export to CSV** on the modal, and check the copy window **separately**: it is
+   `LibKa0s-Widgets-1.0`'s `CopyWindow`, so its close is the library's, not this factory's. It wears
+   the same outlined `close` mark; a font-character × there is a library regression, not a host one.
+   The **debug console** and its **Copy** box are two more windows this factory does *not* draw —
+   they are the library's too, and S-14 steps 9–11 are where you check them.
 3. **Every dropdown on the filter bar** ends in a **chevron**, not Blizzard's filled arrow — that is
    eight today: **Group by** on row 1, then Date, Direction, Store, Quality, Type, Sub-type and
    Character on row 2. Count them; Group by is the one a "seven filters" habit skips. The modal's

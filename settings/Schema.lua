@@ -136,7 +136,8 @@ S.Schema = {
 -- WHY `windowScale` IS THE MASTER SCALE and not a per-window one: both of this addon's scalable
 -- surfaces already read that single key. Before the promotion each read it for itself, at frame
 -- construction and again on a settings change; they read it through NS.Util.ApplyMasterFrame now
--- (modules/Browser.lua:1123 and :1165, modules/SessionWindow.lua:554 and :648), which is the same
+-- (each window's frame builder and its OnSettingsChanged: EnsureFrame and B:OnSettingsChanged in
+-- modules/Browser.lua, ensureFrame and SW:OnSettingsChanged in modules/SessionWindow.lua), the same
 -- one key for a third surface as well. It has been addon-wide since it was added; the tab it sat on
 -- was the only thing suggesting otherwise. So this is a promotion with no second setting invented
 -- beside it, which is what options-ui-§15 asks for.
@@ -193,8 +194,9 @@ S.MASTER_SPEC = {
   prefix    = "settings.",
   page      = "general",
   addonName = "Bank Ledger",
-  -- NOT frameless: modules/Browser.lua:1007, modules/SessionWindow.lua:449 and modules/Export.lua:347
-  -- all call SetMovable(true), so every frame-only row applies.
+  -- NOT frameless: each window's frame builder (EnsureFrame in modules/Browser.lua, ensureFrame in
+  -- modules/SessionWindow.lua, EnsureFrame in modules/Export.lua) calls SetMovable(true), so every
+  -- frame-only row applies.
   keys      = { scale = "windowScale" },
   -- The composer leaves the console toggle's default to the host, because "was the console open"
   -- is session state and only the host knows what it starts as. False is what this addon has always
@@ -400,13 +402,14 @@ end
 -- compliance. Check that list before writing a key under db.global directly, and add any new writer
 -- to it. The four are:
 --   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
---      (modules/Browser.lua:147) on four occasions: drag-stop, resize-grip mouse-up (:1099), hide
---      and logout. Emptied by B:ResetWindow (:185).
+--      (modules/Browser.lua) on four occasions: drag-stop, resize-grip mouse-up (the grip's OnMouseUp
+--      in EnsureFrame), hide and logout. Emptied by B:ResetWindow.
 --   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written on the
---      same four by SW:SaveGeometry (modules/SessionWindow.lua:252, grip :533); emptied by SW:ResetWindow (:289).
+--      same four by SW:SaveGeometry (modules/SessionWindow.lua; the grip's in ensureFrame); emptied by
+--      SW:ResetWindow.
 --   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
---      (modules/Browser.lua:748), cleared by B:ResetView (:757).
---   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table B:SetupMinimap
+--      (modules/Browser.lua), cleared by B:ResetView.
+--   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table core/LauncherSetup.lua
 --      hands it. That table also holds `hide`, the Minimap button row's stored key (CLI path
 --      `minimap.shown`), so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5

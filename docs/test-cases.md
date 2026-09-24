@@ -969,7 +969,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: the close control on every window this addon draws is the collection's close
 - marks: the close path is EXTENSIONLESS, which is the half that fails silently
 - marks degraded: with no library the close button is still the × it always was
-- marks: the × is DRAWN in exactly one place, so one edit reached all four title bars
+- marks: the × is DRAWN in exactly one place, so one edit reached the three host title bars
 - marks: every filter dropdown wears chevron-down, through the shared factory
 - marks degraded: MakeDropdown answers nil rather than a half-built widget, with no library
 - marks: a chosen row of a multi-select menu wears the collection's tick

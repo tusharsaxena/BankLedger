@@ -60,9 +60,9 @@ test("LibKa0s-Core: this addon does NOT republish the library's close factory", 
     -- argument — the addon FOLDER the library builds its texture path from — and a wrapper that
     -- forwarded only two would draw a multiplication sign, green in every suite and visible only in
     -- a screenshot (anti-pattern #64). This addon avoids that class entirely by not consuming the
-    -- factory: all four of its title bars go through modules/Browser.lua's own B:MakeCloseButton,
+    -- factory: all three of its own title bars go through modules/Browser.lua's B:MakeCloseButton,
     -- which resolves the same shared `close` mark through NS.Icon. A wrapper published here would
-    -- have had exactly one caller — a spy test — and would read as coverage of those four bars while
+    -- have had exactly one caller — a spy test — and would read as coverage of those three bars while
     -- covering nothing on screen.
     --
     -- The "tell the library which folder is asking" argument still ships, on the windows that ARE

@@ -61,8 +61,8 @@ local descriptor = {
   -- Every schema row lives on the General page. `filter` is ctx.unit, which this addon never sets —
   -- it has no per-unit pages — so it is ignored rather than threaded through.
   --
-  -- NS.Schema:PageRows(), not NS.Schema.Schema: the page also draws the two item-id filter tabs,
-  -- whose bodies are host-drawn and whose `group` is declared by a renderer-only row that is
+  -- NS.Schema:PageRows(), not NS.Schema.Schema: the page also draws the one Filters tab, whose two
+  -- item-id lists are host-drawn and whose `group` is declared by a renderer-only row that is
   -- deliberately NOT a setting (settings/Schema.lua, S.BespokeRows). `allRows` above still hands
   -- back the stored schema alone, so the CLI and every reset see exactly the settings.
   rowsForPage = function(pageKey)

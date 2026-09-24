@@ -296,7 +296,8 @@ end)
 
 test("Schema: Master controls is the FIRST tab, and holds exactly the canonical rows", function()
   -- options-ui-§15. The set is canonical, not a menu: this addon draws three movable frames
-  -- (modules/Browser.lua:1007, modules/SessionWindow.lua:449, modules/Export.lua:347) so it is not
+  -- (the SetMovable(true) call in each frame builder: EnsureFrame in modules/Browser.lua,
+  -- ensureFrame in modules/SessionWindow.lua, EnsureFrame in modules/Export.lua) so it is not
   -- frameless and every frame-only row applies. The ORDER is the standard's table read across then
   -- down, and it must not be reordered, renamed or split.
   --

@@ -14,12 +14,12 @@ ignore:
   # Agent tooling, and untracked — the directory holds one entry, sdd, and
   # `git ls-files .superpowers` returns nothing — so no packager clone has ever
   # carried it and this line changes no downloaded byte. It is listed because
-  # packaging.md:28 MUSTs every root dot-entry present in the repo be named or
+  # packaging (its strong-form ignore rule) MUSTs every root dot-entry present in the repo be named or
   # justified, tracked or not: the check is about an enumeration going stale,
   # not about a package growing. There is deliberately no .claude line, because
   # no such directory exists at this root, and naming one that does not is how
   # the identical filing was rejected in two sibling repos this cycle.
-  - .superpowers   # untracked; listed under packaging.md:28
+  - .superpowers   # untracked; listed under packaging (its strong-form ignore rule)
   # Tracked, and the only entries added here that change a download. CLAUDE.md
   # and DEPENDENCIES.md are developer documentation; README.md and LICENSE stay,
   # because players do read those.
