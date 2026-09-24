@@ -93,7 +93,7 @@ top of Settings ▸ General (and Blizzard's own Defaults at the foot of the Sett
 **Reset all settings** on the Master controls tab all ask first, and saying Yes returns the addon
 to a fresh install — your settings, both filter lists, your saved view **and your recorded
 history** are discarded. Export first if you want to keep it. To delete history alone, use
-`/bl purge`, which asks for confirmation too and leaves your settings be. `/bl version` prints the version to quote in
+`/bl purge`, which asks for confirmation too and leaves your settings be. Purging is not the only way history goes: by default, movements older than 30 days are removed at login, and Settings ▸ History ▸ **Keep history for** changes that (**Always** keeps everything). `/bl version` prints the version to quote in
 a bug report. And if you want the addon out of the way without unticking it in the AddOns list,
 `/bl disable` stands it down and `/bl enable` brings it back — the same switch as the **Enable Bank
 Ledger** box on the Master controls tab, so whichever you use, the other agrees.
@@ -138,6 +138,7 @@ questing, never ends up in the book.
 | What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |
 | Why does the session window forget everything when I reopen the bank? | Because it covers the visit you are on and nothing else. Anything older is in the main window. |
 | Does it slow the game down? | It only does anything while a bank window is open, and both windows build rows only for what fits on screen. |
+| Why did old history disappear? | By default, movements older than 30 days are removed at login. Keep them longer under Settings ▸ History ▸ **Keep history for**; **Always** keeps everything. |
 | Where is my data kept? | In the addon's SavedVariables file, on your own machine. Nothing is sent anywhere. |
 
 ## Troubleshooting
