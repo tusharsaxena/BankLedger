@@ -156,7 +156,10 @@ frameless** and every frame-only row applies.
   optional one pairs beside it. Its sense is inverted at the write seam — see the note under the
   row table — and the button it drives is `NS.Launcher`'s
   ([ARCHITECTURE.md ▸ Launcher](ARCHITECTURE.md#launcher)). It REPLACED the Interface tab's *Hide
-  minimap button*, on the same stored path.
+  minimap button*, on the same stored path. The button's hover tooltip (drawn by LibKa0s-Launcher
+  minor 3, enabled or disabled) reports this block's states back: `Enabled` from the *Enable* row's
+  latch, `Locked` from *Lock frame*'s stored `settings.locked`, and `Test mode` from the *Test mode*
+  row's own `get`, each read on every hover.
 - **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from

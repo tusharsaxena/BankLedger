@@ -5,11 +5,12 @@ local _, NS = ...
 -- `if GetLocale() ~= "<locale>" then return end` at the top of the file.
 NS.L = setmetatable(NS.L or {}, { __index = function(_, k) return k end })
 
--- English-only and entirely UNWRAPPED: every label, tooltip and message is hardcoded English (an
--- accepted scope decision for the first release, not an oversight). The NS.L seam is what a later
--- localization pass wraps them through, dropping its enUS overrides here without touching a call
--- site. There is deliberately no `local L` alias while nothing is wrapped, so this file stays
--- luacheck-clean.
+-- English-only and all but UNWRAPPED: every label, tooltip and message is hardcoded English (an
+-- accepted scope decision for the first release, not an oversight), save the launcher's left-click
+-- label (core/LauncherSetup.lua), which reads NS.L["Toggle ledger window"] and needs no override
+-- here. The NS.L seam is what a later localization pass wraps the rest through, dropping its enUS
+-- overrides here without touching a call site. There is deliberately no `local L` alias while no
+-- override is listed, so this file stays luacheck-clean.
 --
 -- Keys are the English source strings (localization-§2); only overrides need listing, e.g.:
 -- NS.L["Enable capture"] = "Enable capture"

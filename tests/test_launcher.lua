@@ -295,8 +295,10 @@ function()
   assertTrue(where:find("core/CoreSetup.lua:", 1, true) ~= nil, where)
   assertTrue(where:find("core/LauncherSetup.lua:", 1, true) ~= nil, where)
   local src = readSource("core/LauncherSetup.lua")
-  assertTrue(src:find("tt:AddLine(NS.BRAND_NAME, 1, 0.82, 0)", 1, true) ~= nil,
-    "the tooltip title reads the constant")
+  -- The tooltip title is the library's since Launcher minor 3, drawn from `label`, so the host hook
+  -- must not spell a title of its own (anti-pattern #89).
+  assertEqual(src:find("tt:AddLine(NS.BRAND_NAME", 1, true), nil,
+    "the tooltip title is the library's, drawn from label = NS.BRAND_NAME")
   assertTrue(readSource("settings/OptionsSetup.lua"):find("local PARENT_TITLE = NS.BRAND_NAME", 1, true)
     ~= nil, "the options parent title reads the constant")
 end)
@@ -343,14 +345,90 @@ test("Launcher: a raising click is reported, not thrown at the player", function
     "the raise is named on one line: " .. table.concat(out, "\n"))
 end)
 
-test("Launcher: the tooltip carries the live entry count and both click verbs", function()
+-- ── The status tooltip (launcher-§1, standard v2.66.0; Launcher minor 3) ─────────────────────
+--
+-- The LIBRARY draws the tooltip now, in one shape across the eleven addons: title and version,
+-- Enabled, Locked and Test mode where the addon has them, the host's own lines, then the two click
+-- hints. What only this repo can assert is WHICH fields it hands over and that each one reads the
+-- same state the settings panel reads -- the drawing itself is the library's suite.
+
+-- The tooltip's lines as the library draws them, with its green/red value escapes stripped so a
+-- case compares words. The mock is the same `AddLine` shape GameTooltip offers.
+local function tooltipLines()
   local lines = {}
   NS.Launcher:Object().OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = text end })
-  local all = table.concat(lines, "\n")
-  assertTrue(all:find("Ka0s Bank Ledger", 1, true) ~= nil, all)
-  assertTrue(all:find("movement", 1, true) ~= nil, all)
-  assertTrue(all:find("Left%-click: open the ledger") ~= nil, all)
-  assertTrue(all:find("Right%-click: open settings") ~= nil, all)
+  for i, line in ipairs(lines) do
+    lines[i] = tostring(line):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+  end
+  return lines
+end
+
+test("Launcher: the descriptor hands the tooltip this addon's version, lock, test mode and rung label",
+function()
+  -- Bank Ledger HAS both states the tooltip reports: the Master-controls "Lock frame" row
+  -- (settings.locked, which core/Util.lua's ApplyMasterFrame honors) and the sample-ledger test
+  -- mode (state.testMode, LT:IsTestMode). So it passes both accessors, and a left-click label for
+  -- its rung (a) window.
+  --
+  -- Dies under: dropping any of the four fields from core/LauncherSetup.lua, or the label drifting
+  -- off the locale seam.
+  local src = readSource("core/LauncherSetup.lua")
+  for _, field in ipairs({ "version", "isLocked", "isTestMode", "leftClickLabel" }) do
+    assertTrue(src:find("\n  " .. field .. "%s*=") ~= nil, "the descriptor does not pass `" .. field .. "`")
+  end
+  assertTrue(src:find('leftClickLabel = NS.L["Toggle ledger window"]', 1, true) ~= nil,
+    "the rung label reads through the addon's locale seam")
+  assertEqual(src:find("\n  slash%s*="), nil,
+    "no `slash` field: the library reads /bl out of disabledLine(), which is the dispatcher's own")
+end)
+
+test("Launcher: the tooltip draws the library's block around this addon's one extra line", function()
+  -- Dies under: the host hook drawing a title or a click hint again (anti-pattern #89 -- the
+  -- library draws both, so the hook's copy is a second one), or losing the movement count.
+  local savedLocked = S:Get("settings.locked")
+  S:Set("settings.locked", false)
+  local lines = tooltipLines()
+  S:Set("settings.locked", savedLocked)
+
+  assertEqual(lines[1], "Ka0s Bank Ledger  v" .. NS.Version(), "title: the brand, then the TOC's version")
+  assertEqual(lines[2], "Enabled: Yes")
+  assertEqual(lines[3], "Locked: No")
+  assertEqual(lines[4], "Test mode: Off")
+  assertTrue(lines[5]:match("^%d+ movements?$") ~= nil, "the host's own line is the entry count: " .. lines[5])
+  assertEqual(lines[6], "Left-click: Toggle ledger window")
+  assertEqual(lines[7], "Right-click: Open settings")
+  assertEqual(#lines, 7, "exactly seven lines, one title and one pair of hints: "
+    .. table.concat(lines, " / "))
+end)
+
+test("Launcher: the tooltip's Locked and Test mode lines read what the panel reads, on every show",
+function()
+  -- Never cached: flip each state through the surface a player uses and hover again.
+  --
+  -- Dies under: isLocked reading anything but the store the Lock frame row writes, isTestMode
+  -- reading anything but LT:IsTestMode (the Test mode row's own get), or either being captured once.
+  local savedLocked = S:Get("settings.locked")
+  local LT = NS.LedgerTable
+  local savedIsTest = LT.IsTestMode
+  local testOn = false
+  LT.IsTestMode = function() return testOn end
+  local ok, err = pcall(function()
+    S:Set("settings.locked", true)
+    testOn = true
+    local lines = tooltipLines()
+    assertEqual(lines[3], "Locked: Yes")
+    assertEqual(lines[4], "Test mode: On")
+    assertEqual(S:Get("state.testMode"), true, "the row and the tooltip read one switch")
+
+    S:Set("settings.locked", false)
+    testOn = false
+    lines = tooltipLines()
+    assertEqual(lines[3], "Locked: No")
+    assertEqual(lines[4], "Test mode: Off")
+  end)
+  LT.IsTestMode = savedIsTest
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
 end)
 
 -- ── The Minimap button row (launcher-§3) ─────────────────────────────────────────────────────

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1061%2F1061_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1064%2F1064_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -75,7 +75,10 @@ controls tab, which pins every window the addon owns.
 
 The minimap button wears the addon's own logo — the same picture the AddOns list shows beside the
 name — and if you run Titan Panel, ElvUI's data texts or Bazooka, Bank Ledger turns up there too,
-clicking exactly the same way. The **Minimap button** box on the Master controls tab hides it and
+clicking exactly the same way. Hover it for a status card: the version, whether the addon is
+enabled, whether the windows are locked, whether test mode is on, how many movements the ledger
+holds, and what each click does. It shows while the addon is disabled too, and then tells you to
+type `/bl enable`. The **Minimap button** box on the Master controls tab hides it and
 brings it back, and so does the button's own right-click menu; the two always agree, because they
 are one switch. Neither **Defaults** nor **Reset all settings** touches it: whether the button is
 there, and the spot around the minimap you dragged it to, is part of how your screen is arranged

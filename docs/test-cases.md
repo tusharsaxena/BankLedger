@@ -445,7 +445,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (31)
+### test_launcher.lua (33)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -461,7 +461,9 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch
 - Launcher: RIGHT-click opens the settings panel, whatever the left button does
 - Launcher: a raising click is reported, not thrown at the player
-- Launcher: the tooltip carries the live entry count and both click verbs
+- Launcher: the descriptor hands the tooltip this addon's version, lock, test mode and rung label
+- Launcher: the tooltip draws the library's block around this addon's one extra line
+- Launcher: the tooltip's Locked and Test mode lines read what the panel reads, on every show
 - Minimap row: it is composed onto Master controls, stored, and SHOWN by default
 - Minimap row: the label says SHOWN and LibDBIcon's key says HIDDEN
 - Minimap row: writing it MOVES the button, not just the store
@@ -1093,7 +1095,7 @@ badge and any count quoted in the docs must agree with it.
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
 
-### test_disabled.lua (15)
+### test_disabled.lua (16)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1106,6 +1108,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: every reserved verb and the bare /bl still answer normally
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel
+- disabled: the launcher's tooltip still shows, says Enabled: No and points at /bl enable
 - disabled: the launcher's left click carries no host gate
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
 - disabled: releasing one hold does not stand up an addon the other still holds down
@@ -1201,7 +1204,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 55 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 31 |
+| test_launcher.lua | 33 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1223,7 +1226,7 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
-| test_disabled.lua | 15 |
+| test_disabled.lua | 16 |
 | test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
@@ -1231,4 +1234,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1061** |
+| **Total** | **1064** |

@@ -79,11 +79,11 @@ NS.LOGO_ICON = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.128.tga")
 
 -- THE BRAND NAME, in the one place it is spelled after core/CoreSetup.lua's load-time
 -- missing-library clause (NS.LIBKA0S_MISSING loads before this file). `Ka0s <Name>`, plain text,
--- no escape sequence of any kind. Every later surface reads it: the tooltip title, the options
--- parent title, both window titles and the purge popup. Two of them MUST agree: the LDB object's
--- `label` below (launcher-§1), and the disabled refusal line the slash gate renders
--- (slash-commands-§7), which drops it into a colored line and can only do so safely because §1
--- forbids escapes here.
+-- no escape sequence of any kind. Every later surface reads it: the tooltip title (the library
+-- draws it from `label`), the options parent title, both window titles and the purge popup. Two of
+-- them MUST agree: the LDB object's `label` below (launcher-§1), and the disabled refusal line the
+-- slash gate renders (slash-commands-§7), which drops it into a colored line and can only do so
+-- safely because §1 forbids escapes here.
 --
 -- Declared ABOVE the degradation stub's early return, beside NS.LOGO_ICON and for the same reason:
 -- the slash surface exists on both arms, so a brand name that only the live arm carried would
@@ -168,15 +168,40 @@ NS.Launcher = Launcher:New({
     if NS.Browser and NS.Browser.Toggle then NS.Browser:Toggle() end
   end,
 
-  -- Ours entirely; the library passes it straight through and binds nothing about it. The live
-  -- entry count is the one number worth reading without opening anything.
+  -- ── THE STATUS TOOLTIP (launcher-§1, standard v2.66.0; Launcher minor 3) ──────────────────
+  --
+  -- THE LIBRARY DRAWS IT, on every hover and while the addon is disabled too, in the one shape all
+  -- eleven addons share: `<label>  v<version>`, Enabled, Locked, Test mode, this addon's own lines,
+  -- then `Left-click:` and `Right-click:`. The fields below only answer its questions, and each is
+  -- asked on every show, never cached, so the tooltip cannot disagree with the panel.
+  --
+  -- The version the TOC stamps, through NS.Version (core/EnvSetup.lua): the same string `/bl
+  -- version` prints, falling back to NS.version only where the manifest cannot be read.
+  version = function() return NS.Version and NS.Version() end,
+
+  -- BOTH states are real here, so both lines draw. The lock is the Master-controls "Lock frame" row,
+  -- stored at settings.locked, which core/Util.lua's ApplyMasterFrame honors; this reads the same
+  -- stored key the row's seam writes. Test mode is the sample ledger (`/bl test`), and this is the
+  -- Test mode row's own `get` (settings/Schema.lua), LT:IsTestMode.
+  isLocked = function()
+    local s = NS.db and NS.db.global and NS.db.global.settings
+    return type(s) == "table" and s.locked == true
+  end,
+  isTestMode = function() return NS.LedgerTable ~= nil and NS.LedgerTable:IsTestMode() end,
+
+  -- Rung (a)'s window, as ADDONS.md records it: "the ledger browser". Through the locale seam, so a
+  -- later localization pass reaches it without touching this line. While disabled the library
+  -- draws `disabled — /bl enable` in its place, reading `/bl` out of disabledLine() above, so no
+  -- `slash` field is passed.
+  leftClickLabel = NS.L["Toggle ledger window"],
+
+  -- THIS ADDON'S OWN LINES, and only those. The library draws the title, the version, the status
+  -- lines and both click hints, so drawing any of them here would be a second copy (anti-pattern
+  -- #89) — which is exactly what this hook drew through Launcher minor 2, when it WAS the tooltip.
+  -- The live entry count is the one number worth reading without opening anything.
   onTooltipShow = function(tt)
-    tt:AddLine(NS.BRAND_NAME, 1, 0.82, 0)
     local n = (NS.Database and NS.Database.Count) and NS.Database:Count() or 0
     tt:AddLine(n == 1 and "1 movement" or (n .. " movements"), 0.7, 0.7, 0.7)
-    tt:AddLine(" ")
-    tt:AddLine("Left-click: open the ledger", 0.5, 0.5, 0.5)
-    tt:AddLine("Right-click: open settings", 0.5, 0.5, 0.5)
   end,
 
   -- The shared, secret-safe, [BL]-prefixed printer, so the library's own reports read like every

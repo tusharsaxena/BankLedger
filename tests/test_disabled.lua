@@ -618,6 +618,47 @@ test("disabled: the launcher's LEFT click is refused and its RIGHT click opens t
   if not ok then error(err, 0) end
 end)
 
+test("disabled: the launcher's tooltip still shows, says Enabled: No and points at /bl enable",
+function()
+  -- launcher-§1 (standard v2.66.0): the tooltip is ALWAYS drawn, disabled included, since that is
+  -- when a player hovers to ask why the button does nothing. The library draws it; this case pins
+  -- that the host's isEnabled and disabledLine feed it, and that the hover writes and prints nothing.
+  --
+  -- red under: dropping `isEnabled` (the line would read Yes) or `disabledLine` (the hint would lose
+  -- its /bl) from the descriptor in core/LauncherSetup.lua.
+  local object = NS.Launcher:Object()
+  local saved = S:Get(ENABLED_PATH)
+  local function hover()
+    local lines = {}
+    object.OnTooltipShow({ AddLine = function(_, text)
+      lines[#lines + 1] = tostring(text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    end })
+    return lines
+  end
+  disable()
+  watchStore()
+  local ok, err = pcall(function()
+    local lines
+    local out = captureChat(function() lines = hover() end)
+    assertEqual(#out, 0, "a hover printed: " .. table.concat(out, "\n"))
+    assertEqual(#mocks.__svWrites(), 0, "a hover wrote the stored tree of a disabled addon")
+    local all = table.concat(lines, "\n")
+    assertTrue(lines[1]:find(NS.BRAND_NAME, 1, true) == 1, "the title still draws: " .. all)
+    assertEqual(lines[2], "Enabled: No")
+    assertTrue(all:find("\nLocked: ", 1, true) ~= nil, all)
+    assertTrue(all:find("\nTest mode: ", 1, true) ~= nil, all)
+    assertEqual(lines[#lines - 1], "Left-click: disabled \226\128\148 /bl enable")
+    assertEqual(lines[#lines], "Right-click: Open settings")
+
+    enable()
+    lines = hover()
+    assertEqual(lines[2], "Enabled: Yes")
+    assertEqual(lines[#lines - 1], "Left-click: Toggle ledger window")
+  end)
+  S:Set(ENABLED_PATH, saved)
+  if not ok then error(err, 0) end
+end)
+
 test("disabled: the launcher's left click carries no host gate", function()
   -- The refusal is the library's rung (a)/(b) gate now, fed by the descriptor's `isEnabled` and
   -- `disabledLine`. A host-side RefuseIfDisabled inside onClick would be the collection's rule
