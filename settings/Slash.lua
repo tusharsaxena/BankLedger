@@ -16,7 +16,7 @@ end
 -- Confirm dialogs for the destructive actions. Registered once; in-game only.
 if type(StaticPopupDialogs) == "table" then
   StaticPopupDialogs["KA0S_BANKLEDGER_PURGE"] = {
-    text = "Delete ALL Ka0s Bank Ledger history? This cannot be undone.",
+    text = "Delete ALL " .. NS.BRAND_NAME .. " history? This cannot be undone.",
     button1 = YES or "Yes",
     button2 = NO or "No",
     OnAccept = function()

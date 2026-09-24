@@ -31,6 +31,10 @@ local Util = NS.Util
 -- thing about WHY at every site and a different thing about WHAT at each one. Set OUTSIDE the branch
 -- below because the later seams read it on both paths, and set HERE because core/CoreSetup.lua is
 -- the first of the four the TOC loads.
+--
+-- THE ONE EARLY BRAND LITERAL. NS.BRAND_NAME is declared in core/LauncherSetup.lua, which the TOC
+-- loads after this file, so the clause spells the brand itself. Every other surface reads the
+-- constant; tests/test_launcher.lua fails on a third spelling in code.
 NS.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of Ka0s Bank Ledger " ..
   "(expected in libs/LibKa0s)"
 

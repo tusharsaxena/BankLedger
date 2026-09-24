@@ -21,7 +21,7 @@ local print = NS.Print
 
 -- The brand. Reaches the library as descriptor.parentTitle, which builds both the main page's title
 -- and every sub-page's "Ka0s Bank Ledger ▸ <page>" breadcrumb.
-local PARENT_TITLE = "Ka0s Bank Ledger"
+local PARENT_TITLE = NS.BRAND_NAME
 
 local lib = LibStub and LibStub("LibKa0s-Options-1.0", true)
 

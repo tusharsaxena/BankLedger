@@ -445,7 +445,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (30)
+### test_launcher.lua (31)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -457,6 +457,7 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: Register is idempotent, so no second button is built over the first
 - Launcher: ONE object, of type launcher, wearing the addon's icon
 - Launcher: the broker label is the BRAND NAME in plain text, not the Title and not the folder
+- Launcher: the brand literal is spelled at NS.BRAND_NAME and the missing-library clause only
 - Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch
 - Launcher: RIGHT-click opens the settings panel, whatever the left button does
 - Launcher: a raising click is reported, not thrown at the player
@@ -1200,7 +1201,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 55 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 30 |
+| test_launcher.lua | 31 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
@@ -1230,4 +1231,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1060** |
+| **Total** | **1061** |

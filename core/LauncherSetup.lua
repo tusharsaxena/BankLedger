@@ -77,10 +77,13 @@ local Launcher = LibStub and LibStub("LibKa0s-Launcher-1.0", true)
 NS.LOGO_ICON = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.128.tga")
   :format(addonName, addonName:lower())
 
--- THE BRAND NAME, IN THE ONE PLACE IT IS SPELLED. `Ka0s <Name>`, plain text, no escape sequence of
--- any kind. Two surfaces read it and they MUST agree: the LDB object's `label` below
--- (launcher-§1), and the disabled refusal line the slash gate renders (slash-commands-§7), which
--- drops it into a colored line and can only do so safely because §1 forbids escapes here.
+-- THE BRAND NAME, in the one place it is spelled after core/CoreSetup.lua's load-time
+-- missing-library clause (NS.LIBKA0S_MISSING loads before this file). `Ka0s <Name>`, plain text,
+-- no escape sequence of any kind. Every later surface reads it: the tooltip title, the options
+-- parent title, both window titles and the purge popup. Two of them MUST agree: the LDB object's
+-- `label` below (launcher-§1), and the disabled refusal line the slash gate renders
+-- (slash-commands-§7), which drops it into a colored line and can only do so safely because §1
+-- forbids escapes here.
 --
 -- Declared ABOVE the degradation stub's early return, beside NS.LOGO_ICON and for the same reason:
 -- the slash surface exists on both arms, so a brand name that only the live arm carried would
@@ -168,7 +171,7 @@ NS.Launcher = Launcher:New({
   -- Ours entirely; the library passes it straight through and binds nothing about it. The live
   -- entry count is the one number worth reading without opening anything.
   onTooltipShow = function(tt)
-    tt:AddLine("Ka0s Bank Ledger", 1, 0.82, 0)
+    tt:AddLine(NS.BRAND_NAME, 1, 0.82, 0)
     local n = (NS.Database and NS.Database.Count) and NS.Database:Count() or 0
     tt:AddLine(n == 1 and "1 movement" or (n .. " movements"), 0.7, 0.7, 0.7)
     tt:AddLine(" ")

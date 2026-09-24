@@ -1037,7 +1037,7 @@ local function EnsureFrame()
 
   local title = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   title:SetPoint("CENTER")
-  title:SetText("Ka0s Bank Ledger")
+  title:SetText(NS.BRAND_NAME)
   frame.title = title
 
   local testBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")

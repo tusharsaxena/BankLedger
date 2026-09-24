@@ -269,6 +269,38 @@ function()
   assertEqual(NS.BRAND_NAME, label, "the refusal line and the broker row read one brand name")
 end)
 
+test("Launcher: the brand literal is spelled at NS.BRAND_NAME and the missing-library clause only",
+function()
+  -- BankLedger-R-10. Every surface that shows the brand (the tooltip title, the options parent
+  -- title, the window titles, the purge popup) reads NS.BRAND_NAME. The one other literal is
+  -- core/CoreSetup.lua's NS.LIBKA0S_MISSING, which loads before core/LauncherSetup.lua declares the
+  -- constant. Comments are stripped first: prose may name the brand, code may not re-spell it.
+  --
+  -- Dies under: any core/, settings/ or modules/ file putting "Ka0s Bank Ledger" back in code.
+  local BRAND = "Ka0s Bank Ledger"
+  local hits = {}
+  for _, path in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
+    local rel = path:gsub("\\", "/")
+    if rel:match("^core/") or rel:match("^settings/") or rel:match("^modules/") then
+      local n = 0
+      for line in (readSource(rel) .. "\n"):gmatch("([^\n]*)\n") do
+        n = n + 1
+        local code = line:gsub("%-%-.*$", "")
+        if code:find(BRAND, 1, true) then hits[#hits + 1] = rel .. ":" .. n end
+      end
+    end
+  end
+  local where = table.concat(hits, ", ")
+  assertEqual(#hits, 2, "expected exactly two code spellings, got: " .. where)
+  assertTrue(where:find("core/CoreSetup.lua:", 1, true) ~= nil, where)
+  assertTrue(where:find("core/LauncherSetup.lua:", 1, true) ~= nil, where)
+  local src = readSource("core/LauncherSetup.lua")
+  assertTrue(src:find("tt:AddLine(NS.BRAND_NAME, 1, 0.82, 0)", 1, true) ~= nil,
+    "the tooltip title reads the constant")
+  assertTrue(readSource("settings/OptionsSetup.lua"):find("local PARENT_TITLE = NS.BRAND_NAME", 1, true)
+    ~= nil, "the options parent title reads the constant")
+end)
+
 -- ── The rung (launcher-§2) ───────────────────────────────────────────────────────────────────
 
 test("Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch", function()
