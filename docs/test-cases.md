@@ -87,7 +87,7 @@ badge and any count quoted in the docs must agree with it.
 - Constants: every open-frame context has a Ledger store list
 - Constants: C.Context is its own axis, not a subset of C.Store
 
-### test_filters.lua (13)
+### test_filters.lua (14)
 
 - Filters: an added id reads back as blacklisted
 - Filters: adding the same id twice is a no-op the second time
@@ -102,6 +102,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearList ignores an unknown list name
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
+- Filters: the Clear all confirms report the count as printer arguments
 
 ### test_ledger.lua (98)
 
@@ -342,7 +343,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (54)
+### test_ledgertable.lua (55)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -398,6 +399,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable row menu still disables item actions on a money row
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
+- LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
 ### test_browser.lua (41)
 
@@ -1108,7 +1110,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (17)
+### test_surface_parity.lua (19)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
@@ -1127,6 +1129,8 @@ badge and any count quoted in the docs must agree with it.
 - degraded: /bl disable with no settings store prints the refusal and acknowledges nothing
 - Schema stub: a writeThrough path with no row is stored raw and announced; a path outside the list still answers unknown path
 - Slash stub DisabledLine format is the library's bytes
+- Slash stub: /bl version prints the live arm's bytes
+- Slash stub: an unknown verb is answered in the live arm's words
 
 ### test_register.lua (1)
 
@@ -1189,12 +1193,12 @@ badge and any count quoted in the docs must agree with it.
 | test_util.lua | 38 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
-| test_filters.lua | 13 |
+| test_filters.lua | 14 |
 | test_ledger.lua | 98 |
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 54 |
+| test_ledgertable.lua | 55 |
 | test_browser.lua | 41 |
 | test_launcher.lua | 30 |
 | test_sessionwindow.lua | 32 |
@@ -1219,11 +1223,11 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
 | test_disabled.lua | 15 |
-| test_surface_parity.lua | 17 |
+| test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1056** |
+| **Total** | **1060** |

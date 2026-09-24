@@ -477,3 +477,40 @@ test("Slash stub DisabledLine format is the library's bytes", function()
   local degraded = loadDegraded()
   T.assertLibraryConstant(degraded.Slash.__DISABLED_LINE_FORMAT, "LibKa0s-Slash-1.0", "DISABLED_LINE_FORMAT")
 end)
+
+-- ── The degraded Slash arm speaks the live arm's bytes (BL-17) ────────────────────────────────────
+--
+-- `/bl version` and the unknown-verb answer are two lines a player meets on either arm. The degraded
+-- arm passes the value to the printer (events-frames-taint-§8) and must still print exactly what the
+-- live library prints, or a degraded install reads differently from a working one.
+
+--- The one line a degraded verb prints, the once-only missing-library notice spent beforehand.
+local function degradedLines(fn)
+  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  fn(degraded.Slash)
+  return dm.__printed()
+end
+
+local function liveLines(fn)
+  T.mocks.__resetPrinted()
+  fn(NS.Slash)
+  local out = T.mocks.__printed()
+  T.mocks.__resetPrinted()
+  return out
+end
+
+test("Slash stub: /bl version prints the live arm's bytes", function()
+  local want = liveLines(function(Sl) Sl:CliVersion() end)
+  local got = degradedLines(function(Sl) Sl:CliVersion() end)
+  assertEqual(#want, 1, "the live arm printed " .. #want .. " lines")
+  assertEqual(#got, 1, "the degraded arm printed " .. #got .. " lines")
+  assertEqual(got[1], want[1])
+end)
+
+test("Slash stub: an unknown verb is answered in the live arm's words", function()
+  -- Only the first line: the help index after it differs by design (the degraded arm has none).
+  local want = liveLines(function(Sl) Sl:OnSlash("wibble") end)
+  local got = degradedLines(function(Sl) Sl:OnSlash("wibble") end)
+  assertEqual(got[1], want[1])
+  assertEqual(got[1], "|cff00ffff[BL]|r unknown command 'wibble'")
+end)

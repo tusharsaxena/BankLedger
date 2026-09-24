@@ -755,7 +755,7 @@ NS.COMMANDS = {
       if on == nil then
         print("a real banking session is open \226\128\148 showing what you actually moved.")
       else
-        print("session window sample " .. (on and "on" or "off"))
+        print("session window sample", on and "on" or "off")
       end
     end },
   { "test",     "Toggle a sample ledger",  function()
@@ -769,7 +769,7 @@ NS.COMMANDS = {
         return
       end
       local on, refusal = LT:ToggleTestMode()
-      if refusal then print(refusal) else print("test mode " .. (on and "on" or "off")) end
+      if refusal then print(refusal) else print("test mode", on and "on" or "off") end
     end },
   { "purge",    "Delete ALL ledger history (asks first)", function()
       if type(StaticPopup_Show) == "function" then

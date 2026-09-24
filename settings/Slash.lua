@@ -48,7 +48,7 @@ if type(StaticPopupDialogs) == "table" then
     button2 = NO or "No",
     OnAccept = function()
       local n = (NS.Filters and NS.Filters:ClearList("blacklist")) or 0
-      print(("blacklist cleared (%d %s)."):format(n, n == 1 and "id" or "ids"))
+      print("blacklist cleared:", n, n == 1 and "id." or "ids.")
     end,
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
     preferredIndex = 3,
@@ -59,7 +59,7 @@ if type(StaticPopupDialogs) == "table" then
     button2 = NO or "No",
     OnAccept = function()
       local n = (NS.Filters and NS.Filters:ClearList("whitelist")) or 0
-      print(("whitelist cleared (%d %s)."):format(n, n == 1 and "id" or "ids"))
+      print("whitelist cleared:", n, n == 1 and "id." or "ids.")
     end,
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
     preferredIndex = 3,
@@ -357,6 +357,9 @@ if not lib then
   function Sl:CliGet() print(UNAVAILABLE) end
   function Sl:CliSet() print(UNAVAILABLE) end
   function Sl:CliReset() print(UNAVAILABLE) end
+  -- The live library's VERSION is "v%s": the prefix abuts the value with no separator, so the one
+  -- join stays a concat of addon-owned, secret-free text (the TOC version) rather than a printer
+  -- argument, which would put a space between them (events-frames-taint-§8).
   function Sl:CliVersion() print("v" .. tostring(Sl:Version())) end
   function Sl:LandingRows() return { UNAVAILABLE } end
 
@@ -377,7 +380,7 @@ if not lib then
     local ok, err = NS.Schema:Set(ENABLED_PATH, on)
     if not ok then return print(err) end
     NS.ReevaluateEnabled()
-    print(("%s = %s"):format(ENABLED_PATH, tostring(on)))
+    print(ENABLED_PATH, "=", tostring(on))   -- the same bytes, as printer arguments
   end
 
   -- The refusal line with no library to build it. The FORMAT is the collection's, copied from
@@ -429,7 +432,10 @@ if not lib then
         return cmd[3](rest or "")
       end
     end
-    print(("unknown command '%s'"):format(verb))
+    -- The live library's UNKNOWN_COMMAND wording, `unknown command '<verb>'`. The verb is a
+    -- separate printer argument (events-frames-taint-§8); only its quotes abut it, and the verb is
+    -- the player's own slash text, already lower-cased above, so that join is secret-free.
+    print("unknown command", "'" .. verb .. "'")
     Sl:PrintHelp()
   end
   return

@@ -117,3 +117,26 @@ test("Filters: a list change re-caches the capture gate's upvalues", function()
   clean()
   NS.Ledger:RefreshUpvalues()
 end)
+
+test("Filters: the Clear all confirms report the count as printer arguments", function()
+  -- BL-17 (events-frames-taint-§8): `blacklist cleared: <n> id(s).`, the count passed to the
+  -- printer rather than formatted into the string first. red under the old
+  -- `blacklist cleared (%d %s).` wording.
+  local dialogs = T.mocks.StaticPopupDialogs
+  local function accept(popup)
+    local out = {}
+    local saved = T.mocks.DEFAULT_CHAT_FRAME.AddMessage
+    T.mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+    local ok, err = pcall(dialogs[popup].OnAccept)
+    T.mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+    if not ok then error(err, 0) end
+    return table.concat(out, "\n")
+  end
+  clean()
+  NS.Filters:AddBlacklist(2589)
+  assertEqual(accept("KA0S_BANKLEDGER_CLEAR_BLACKLIST"), "|cff00ffff[BL]|r blacklist cleared: 1 id.")
+  NS.Filters:AddWhitelist(2589)
+  NS.Filters:AddWhitelist(4306)
+  assertEqual(accept("KA0S_BANKLEDGER_CLEAR_WHITELIST"), "|cff00ffff[BL]|r whitelist cleared: 2 ids.")
+  clean()
+end)

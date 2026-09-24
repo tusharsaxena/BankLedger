@@ -199,7 +199,7 @@ tolerance.
 ## S-11 · Filters (blacklist / whitelist)
 
 1. Right-click a ledger row → **Blacklist item**. The chat line reads
-   `[BL] blacklisted <name>. Manage in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
+   `[BL] blacklisted <name> — manage it in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
    **tab and its sub-tab**, not the deregistered *Filters* page and not the retired top-level
    *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
 2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
