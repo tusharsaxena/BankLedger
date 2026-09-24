@@ -656,7 +656,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (52)
+### test_schema.lua (53)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -680,6 +680,7 @@ badge and any count quoted in the docs must agree with it.
 - COMMANDS: a test verb exists (test-mode)
 - COMMANDS: /bl test says the module is missing rather than reporting it off
 - Schema: the page partitions into the designed tabs, in the designed order
+- schema: the live and library-absent row counts, and the composed delta
 - Schema: Master controls is the FIRST tab, and holds exactly the canonical rows
 - Schema: every row on every tab of the page carries a group
 - Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice
@@ -1199,7 +1200,7 @@ badge and any count quoted in the docs must agree with it.
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 52 |
+| test_schema.lua | 53 |
 | test_schema_runtime.lua | 18 |
 | test_slash.lua | 53 |
 | test_bus.lua | 10 |
@@ -1224,4 +1225,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1054** |
+| **Total** | **1055** |

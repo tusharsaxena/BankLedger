@@ -273,6 +273,27 @@ test("Schema: the page partitions into the designed tabs, in the designed order"
   end
 end)
 
+test("schema: the live and library-absent row counts, and the composed delta", function()
+  -- options-ui-§1 (when the missing content is COMPOSED): without LibKa0s, the OptionsSetup stub's
+  -- O.MasterControls is hollow, so S:ComposeMaster adds nothing and the whole Master-controls block
+  -- is absent from both S.Schema and S:PageRows(). PageRows carries one row more than the registry
+  -- on each arm (the renderer-only Filters row in S.BespokeRows), so the delta is 8 on both.
+  --
+  -- Red under a composer that stops being hollow, or a host row added or removed.
+  local Env = dofile("tests/degraded_env.lua")
+  local DS = Env.loadDegraded().Schema
+  local live = { schema = #S.Schema, page = #S:PageRows() }
+  local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
+  assertEqual(live.schema, 16, "live #S.Schema")
+  assertEqual(degraded.schema, 8, "library-absent #S.Schema")
+  assertEqual(live.page, 17, "live #S:PageRows()")
+  assertEqual(degraded.page, 9, "library-absent #S:PageRows()")
+  local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
+    .. "O.MasterControls, which composes nothing without the library"
+  assertEqual(live.schema - degraded.schema, 8, "S.Schema live minus degraded" .. why)
+  assertEqual(live.page - degraded.page, 8, "S:PageRows() live minus degraded" .. why)
+end)
+
 test("Schema: Master controls is the FIRST tab, and holds exactly the canonical rows", function()
   -- options-ui-§15. The set is canonical, not a menu: this addon draws three movable frames
   -- (modules/Browser.lua:1007, modules/SessionWindow.lua:449, modules/Export.lua:347) so it is not
