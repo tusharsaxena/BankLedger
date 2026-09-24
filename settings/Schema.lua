@@ -171,6 +171,20 @@ S.MINIMAP_PATH = "minimap.hide"
 -- only inside a bulk bracket, which is what a wholesale act opens and a single-row reset does not.
 S.RESET_EXEMPT = { [S.MINIMAP_PATH] = true }
 
+-- ── The rows a host verb writes when the composer that declares them is absent (WS-02 route a) ──
+--
+-- `settings.enabled` is a COMPOSED row: LibKa0s-Options' MasterControls declares it, so a load
+-- without that library has no row for it, and `/bl enable` / `/bl disable` -- the reserved pair,
+-- which must work on every install (slash-commands-§2) -- would meet an unknown path. Listing it
+-- here is options-ui-§1's route (a): the seam still stores the path, raw, through a synthetic row
+-- with no validate and no onChange, so the degraded verbs re-run the latch themselves
+-- (settings/Slash.lua). A path WITH a row always takes the row, so the full load is unaffected.
+--
+-- It is the ONE composed row a host verb writes. `settings.locked` has no verb. Test mode and the
+-- debug console are session state, switched through LT:SetTestMode and NS.DebugLog, never through
+-- this seam, so neither belongs here.
+S.WRITE_THROUGH = { "settings.enabled" }
+
 S.MASTER_SPEC = {
   prefix    = "settings.",
   page      = "general",
@@ -491,6 +505,16 @@ if not SchemaLib then
   function stub:New(d)
     local R, depth, rows = {}, 0, d.rows
     local function words(key, path) return (d.L[key]):format(tostring(path)) end
+    -- The writeThrough rows, as the library builds them: one synthetic `{ path =, writeThrough =
+    -- true }` per listed path, read ONCE here and handed out by identity. No validate, no set, no
+    -- onChange, so prepare/store below treat it as a plain stored row: NO_ROOT without a store,
+    -- else a raw copy, then the announce.
+    local throughRows = {}
+    for _, p in ipairs(type(d.writeThrough) == "table" and d.writeThrough or {}) do
+      if type(p) == "string" and p ~= "" and not throughRows[p] then
+        throughRows[p] = { path = p, writeThrough = true }
+      end
+    end
     function R.AllRows() return rows end
     function R.FindRow(path)
       if type(path) ~= "string" then return nil end
@@ -511,11 +535,13 @@ if not SchemaLib then
       if type(path) ~= "string" or (row and row.sessionOnly) then return nil end
       return stub.Read(d.resolveRoot(), path)
     end
-    -- Steps 1-3 of the seam, storing nothing: refuse an unknown path, validate, refuse a missing
-    -- root. Answers the row and its root, or false and the refusal. Set and SetMany both prepare
-    -- through it, so a batch refuses on exactly the rules a single write does.
+    -- Steps 1-3 of the seam, storing nothing: refuse an unknown path (a listed writeThrough path is
+    -- not unknown), validate, refuse a missing root. Answers the row and its root, or false and the
+    -- refusal. Set and SetMany both prepare through it, so a batch refuses on exactly the rules a
+    -- single write does.
     local function prepare(path, value)
-      local row = R.FindRow(path)
+      -- A path with a row always takes the row; a row-less path is refused unless it is listed.
+      local row = R.FindRow(path) or (type(path) == "string" and throughRows[path]) or nil
       if not row then return false, words("NOT_FOUND", path) end
       local stored = type(row.set) ~= "function" and not row.sessionOnly
       local root = stored and d.resolveRoot() or nil
@@ -603,6 +629,7 @@ local inst = SchemaLib:New({
   debugEnabled = function() return NS.State ~= nil and NS.State.debug == true end,
   print        = function(line) print(line) end,
   resetExempt  = S.RESET_EXEMPT,
+  writeThrough = S.WRITE_THROUGH,
   L = {
     NOT_FOUND = "unknown path: %s",
     INVALID   = "invalid value",

@@ -94,6 +94,22 @@ existing column keeps its index and a sheet keyed on position is unaffected. Gro
 what the stable-column-set promise allows.
 
 
+## Without the library: the degradation stub and write-through
+
+With `libs/LibKa0s` missing, `settings/Schema.lua` builds `NS.SchemaRuntime` from its
+runtime-completing stub ([ARCHITECTURE.md](ARCHITECTURE.md) says what it carries), and the composed
+Master controls rows do not exist, because their composer is `LibKa0s-Options-1.0`. One of them is a
+path a host verb writes: `settings.enabled`, written by `/bl enable` and `/bl disable`. So it is
+listed in **`S.WRITE_THROUGH`** and handed to the seam as the descriptor's `writeThrough`
+(`options-ui-§1` route (a)). A row-less listed path is stored raw (a copy), announced, and refused
+only on a missing store; every other row-less path still answers `unknown path`. A path that has a
+row always takes the row, so on a full load the checkbox's validate and `onChange` run as before.
+The live `LibKa0s-Schema-1.0` minor 2 honors the same field on a partial load (Schema present,
+Options absent). A write-through row runs no `onChange`, so both `/bl enable` and `/bl disable` re-run
+the latch themselves (`NS.ReevaluateEnabled`; see [slash-dispatch.md](slash-dispatch.md)).
+`settings.locked` is not listed because no verb writes it; test mode and the debug console are
+session state switched through `LT:SetTestMode` and `NS.DebugLog`, never through the seam.
+
 ## Storage carve-outs
 
 **Storage carve-outs** are `architecture-§5` **named non-setting state**. No control sets them and

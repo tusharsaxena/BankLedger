@@ -700,11 +700,12 @@ badge and any count quoted in the docs must agree with it.
 - Test mode: a combat edge with test mode off says nothing and starts nothing
 - Test mode: /bl session stays its own verb
 
-### test_schema_runtime.lua (17)
+### test_schema_runtime.lua (18)
 
 - Schema:Set stores, then logs one [Set] line, then reacts, then repaints -- once each
 - Schema:Set answers exactly `true` on success, and `false, reason` on a refusal
 - Schema:Set refuses a value its row's validate rejects, and stores and calls nothing
+- the live seam takes the row, not writeThrough, when settings.enabled has one
 - Schema:Set on an unknown path stores nothing, anywhere
 - Schema:Set on a session-only row calls its own set, reacts and repaints, stores nothing
 - Minimap row: the seam writes LibDBIcon's hide flag inverted, into the table LibDBIcon holds
@@ -1094,7 +1095,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (12)
+### test_surface_parity.lua (17)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
@@ -1108,6 +1109,11 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Schema degraded: the stub instance carries every member the addon reaches
 - LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS
 - LibKa0s-Schema degraded: the stub SetMany is all-or-nothing
+- degraded: /bl disable writes settings.enabled through and stands the addon down, without a Lua error
+- degraded: /bl enable reverses it
+- degraded: /bl disable with no settings store prints the refusal and acknowledges nothing
+- Schema stub: a writeThrough path with no row is stored raw and announced; a path outside the list still answers unknown path
+- Slash stub DisabledLine format is the library's bytes
 
 ### test_register.lua (1)
 
@@ -1183,7 +1189,7 @@ badge and any count quoted in the docs must agree with it.
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
-| test_schema_runtime.lua | 17 |
+| test_schema_runtime.lua | 18 |
 | test_slash.lua | 53 |
 | test_bus.lua | 10 |
 | test_panel.lua | 34 |
@@ -1200,11 +1206,11 @@ badge and any count quoted in the docs must agree with it.
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
 | test_disabled.lua | 15 |
-| test_surface_parity.lua | 12 |
+| test_surface_parity.lua | 17 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1037** |
+| **Total** | **1043** |

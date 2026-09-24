@@ -396,3 +396,84 @@ test("LibKa0s-Schema degraded: the stub SetMany is all-or-nothing", function()
   assertEqual(why, nil, "a NO_ROOT refusal carries no why")
   assertEqual(index, 1, "the NO_ROOT refusal names its entry")
 end)
+
+-- ── The master switch without the library (WS-02 route a) ────────────────────────────────────
+--
+-- `settings.enabled` is a COMPOSED row: LibKa0s-Options' MasterControls declares it, so a load with
+-- no library has no row for it, and the reserved pair `/bl enable` / `/bl disable` used to meet the
+-- CLI-unavailable line and leave the store where it was. settings/Schema.lua lists the path in
+-- S.WRITE_THROUGH, the stub stores it raw through a synthetic row, and the degraded Sl:CliEnabled
+-- writes it through the seam and re-runs the latch itself (a write-through row has no onChange).
+
+--- A degraded load with a settings store, the addon enabled and the print survey emptied. The
+--- degraded NS.Print leads its first line with the once-only missing-library notice (BL-00), so
+--- one throwaway print spends it here and the cases below count only what the verb said.
+local function degradedEnabled(store)
+  local degraded, dm = loadDegraded()
+  degraded.db = store
+  degraded.Print("fixture")
+  dm.__resetPrinted()
+  return degraded, dm
+end
+
+test("degraded: /bl disable writes settings.enabled through and stands the addon down, without a Lua error", function()
+  -- red under: a degraded Sl:CliEnabled that goes through Sl:CliSet (the CLI-unavailable line).
+  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "disable")
+  assertTrue(ok, err)
+  assertEqual(degraded.db.global.settings.enabled, false, "the store did not take the write")
+  assertTrue(degraded.IsStoodDown() == true, "the addon did not stand down")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("settings.enabled = false", 1, true) ~= nil, lines[1])
+end)
+
+test("degraded: /bl enable reverses it", function()
+  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  degraded.Slash.OnSlash(degraded.Slash, "disable")
+  dm.__resetPrinted()
+  local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "enable")
+  assertTrue(ok, err)
+  assertEqual(degraded.db.global.settings.enabled, true, "the store did not take the write")
+  assertTrue(degraded.IsStoodDown() == false, "the addon did not stand back up")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("settings.enabled = true", 1, true) ~= nil, lines[1])
+end)
+
+test("degraded: /bl disable with no settings store prints the refusal and acknowledges nothing", function()
+  local degraded, dm = degradedEnabled(nil)
+  local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "disable")
+  assertTrue(ok, err)
+  assertTrue(degraded.IsStoodDown() == false, "a refused write stood the addon down")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("no settings store yet: settings.enabled", 1, true) ~= nil, lines[1])
+end)
+
+test("Schema stub: a writeThrough path with no row is stored raw and announced; a path outside the list still answers unknown path", function()
+  local degraded = loadDegraded()
+  local R = degraded.SchemaRuntime
+  assertTrue(R.FindRow("settings.enabled") == nil, "the degraded arm has a settings.enabled row")
+  local repaints = 0
+  degraded.Panel = { Refresh = function() repaints = repaints + 1 end }
+  degraded.db = { global = { settings = { enabled = true } } }
+  assertEqual(R.Set("settings.enabled", false), true, "the writeThrough path was refused")
+  assertEqual(degraded.db.global.settings.enabled, false, "the writeThrough path was not stored")
+  assertEqual(repaints, 1, "the writeThrough write was not announced once")
+  assertEqual(R.SetMany({ { path = "settings.enabled", value = true } }), true,
+    "SetMany refused the writeThrough path")
+  assertEqual(degraded.db.global.settings.enabled, true, "SetMany did not store the writeThrough path")
+  local ok, err = R.Set("settings.locked", true)
+  assertEqual(ok, false, "a row-less path outside the list was stored")
+  assertEqual(err, "unknown path: settings.locked")
+  degraded.db = nil
+  ok, err = R.Set("settings.enabled", false)
+  assertEqual(ok, false, "a writeThrough write with no root was stored")
+  assertEqual(err, "no settings store yet: settings.enabled")
+end)
+
+test("Slash stub DisabledLine format is the library's bytes", function()
+  local degraded = loadDegraded()
+  T.assertLibraryConstant(degraded.Slash.__DISABLED_LINE_FORMAT, "LibKa0s-Slash-1.0", "DISABLED_LINE_FORMAT")
+end)

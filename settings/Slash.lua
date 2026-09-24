@@ -252,9 +252,18 @@ local ENABLED_PATH = "settings.enabled"
 --- the seam here and printing our own line would be a second confirmation wording for one act.
 ---
 --- Defined ABOVE the library branch on purpose: `Sl:CliSet` is resolved at CALL time, so this one
---- definition serves both the live arm and the degraded one, and neither arm carries a copy.
+--- definition serves the live arm. The degraded arm overrides it below, because its CliSet can
+--- only print the CLI-unavailable line.
+---
+--- THEN THE LATCH IS RE-RUN. On a full load the write went through the composed row, whose
+--- onChange already drove it, and NS.ReevaluateEnabled fires only on a real edge, so this is a
+--- no-op there. On a partial load (Schema present, Options absent) the path has no row and the
+--- seam stores it through S.WRITE_THROUGH, which runs no onChange -- this call is what stands the
+--- addon down or back up in that case.
 function Sl:CliEnabled(on)
-  return Sl:CliSet(ENABLED_PATH .. " " .. (on and "true" or "false"))
+  local r = Sl:CliSet(ENABLED_PATH .. " " .. (on and "true" or "false"))
+  if NS.ReevaluateEnabled then NS.ReevaluateEnabled() end
+  return r
 end
 
 -- ── A DISABLED ADDON REFUSES ITS FEATURE VERBS (slash-commands-§2, §7) ────────────────────────
@@ -353,12 +362,29 @@ if not lib then
   -- Sl:ResetEverything. The member name is kept for NS.Slash parity with the live arm.
   function Sl:CliResetAll() return Sl:RequestResetAll() end
 
+  -- `/bl enable` and `/bl disable` keep WORKING on this arm too (slash-commands-§2: the reserved
+  -- pair is never one-way), which is why this arm carries its own body instead of the shared one
+  -- above: that one routes through Sl:CliSet, which here prints the CLI-unavailable line and writes
+  -- nothing. The seam stores `settings.enabled` through S.WRITE_THROUGH even though the composer
+  -- that declares its row is absent (WS-02 route a); a write-through row runs no onChange, so the
+  -- latch is re-run here. A refusal (no store yet) prints the seam's own words, never raises and
+  -- never acknowledges. The echo is the `path = value` line the live CliSet prints.
+  function Sl:CliEnabled(on)
+    local ok, err = NS.Schema:Set(ENABLED_PATH, on)
+    if not ok then return print(err) end
+    NS.ReevaluateEnabled()
+    print(("%s = %s"):format(ENABLED_PATH, tostring(on)))
+  end
+
   -- The refusal line with no library to build it. The FORMAT is the collection's, copied from
   -- lib.DISABLED_LINE_FORMAT rather than re-worded: on this arm there is no library to ask, and a
   -- second wording invented for the degraded case is still a second wording a player can meet.
+  -- Published as Sl.__DISABLED_LINE_FORMAT so tests/test_surface_parity.lua can hold the copy to
+  -- the library's bytes; the `__` prefix keeps it out of the public surface parity compares.
+  local DISABLED_LINE_FORMAT = "%s is disabled \226\128\148 enable it with |cFFFFFF00%s|r"
+  Sl.__DISABLED_LINE_FORMAT = DISABLED_LINE_FORMAT
   function Sl:DisabledLine()
-    return ("%s is disabled \226\128\148 enable it with |cFFFFFF00%s|r")
-      :format(tostring(NS.BRAND_NAME or "/bl"), "/bl enable")
+    return DISABLED_LINE_FORMAT:format(tostring(NS.BRAND_NAME or "/bl"), "/bl enable")
   end
 
   -- The gate, reproduced for this arm alone. The live set is the standard's twelve reserved verbs,

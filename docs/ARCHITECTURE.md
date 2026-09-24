@@ -68,7 +68,9 @@ before the adoption that row passed, although AceDB would still have read it as 
 Without the library, `settings/Schema.lua` builds the same instance from a **runtime-completing,
 log-silent** stub (`options-ui-§1`), the shape the major's document prescribes, trimmed to what this
 addon calls: reads, writes, reactions, the repaint and the sweep veto work, so the host verbs keep
-writing. It writes no `[Set]` line, keeps no tally and runs no check; the
+writing. It also honors the descriptor's `writeThrough` (`S.WRITE_THROUGH`, today `settings.enabled`
+alone), so `/bl enable` and `/bl disable` keep working with the composed row absent
+([schema.md](schema.md#without-the-library-the-degradation-stub-and-write-through)). It writes no `[Set]` line, keeps no tally and runs no check; the
 degraded DebugLog stub would discard the line anyway. `tests/test_surface_parity.lua` holds the stub
 to the live instance and the stub library to the major.
 

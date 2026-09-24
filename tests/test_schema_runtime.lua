@@ -77,6 +77,18 @@ test("Schema:Set refuses a value its row's validate rejects, and stores and call
   assertEqual(#log, 0, "no line, no reaction, no repaint: " .. table.concat(log, " | "))
 end)
 
+test("the live seam takes the row, not writeThrough, when settings.enabled has one", function()
+  -- settings.enabled is on S.WRITE_THROUGH, and a full load composes its row. The library's
+  -- writeRow answers the indexed row first, so the write validates and runs the row's onChange --
+  -- the latch -- rather than being stored raw.
+  local row = S:FindRow("settings.enabled")
+  assertTrue(row ~= nil, "the full load composed no settings.enabled row")
+  assertFalse(row.writeThrough == true, "FindRow answered the synthetic writeThrough row")
+  local log = observed(row, function() S:Set("settings.enabled", true) end)
+  assertTrue(table.concat(log, " | "):find("onChange:true", 1, true) ~= nil,
+    "the row's onChange did not run: " .. table.concat(log, " | "))
+end)
+
 test("Schema:Set on an unknown path stores nothing, anywhere", function()
   S:Set("settings.nonesuch", 1)
   S:Set("nonesuch", 1)

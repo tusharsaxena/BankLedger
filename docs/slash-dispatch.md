@@ -31,6 +31,17 @@ and in combat it gets the panel's own refusal line. `/bl help` is what prints th
 library-absent stub in `settings/Slash.lua` does the same: it runs `config` if `NS.COMMANDS`
 registers one, and prints the help index only if it does not.
 
+**`/bl enable` and `/bl disable` keep working without the library.** `settings.enabled` is a
+composed row, so a library-absent load has no row for it, but `settings/Schema.lua` lists the path
+in `S.WRITE_THROUGH` (`options-ui-§1` route (a)) and the seam still stores it, raw. The degraded arm
+carries its own `Sl:CliEnabled`, because its `Sl:CliSet` can only print the CLI-unavailable line: it
+writes through `NS.Schema:Set`, re-runs the latch with `NS.ReevaluateEnabled` (a write-through row
+has no `onChange`), and echoes `settings.enabled = <value>`. With no settings store yet it prints
+the seam's refusal and acknowledges nothing. The shared live `Sl:CliEnabled` re-runs the latch too,
+which is a no-op on a full load and is what stands the addon down on a partial one (Schema present,
+Options absent). The degraded refusal line is built from `Sl.__DISABLED_LINE_FORMAT`, which
+`tests/test_surface_parity.lua` holds to `LibKa0s-Slash-1.0`'s `DISABLED_LINE_FORMAT` byte for byte.
+
 `/bl test` is the renamed History-table sample data (`LT:IsTestMode`, `LT:ToggleTestMode`,
 `LT:BuildTestData`, badge `TEST MODE`) — matching the Ka0s house vocabulary set by LootHistory's
 `/lh test`. It is one of two ways to flip one switch: `LT:ToggleTestMode` calls `LT:SetTestMode`,
