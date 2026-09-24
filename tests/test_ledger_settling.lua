@@ -132,7 +132,7 @@ test("Ledger:Enable binds the capture events even when several are retired", fun
   reEnable({
     PLAYERBANKSLOTS_CHANGED = true,
     GUILDBANKBAGSLOTS_CHANGED = true,
-    GUILDBANKFRAME_CLOSED = true,
+    BANKFRAME_CLOSED = true,
   })
   assertEqual(#NS.EventRecord.unavailable, 3)
   assertTrue(listHas(NS.EventRecord.registered, "BAG_UPDATE_DELAYED"))
@@ -141,9 +141,20 @@ test("Ledger:Enable binds the capture events even when several are retired", fun
 end)
 
 test("Ledger:Enable never lets a rejected open event silence the others", function()
-  reEnable({ GUILDBANKFRAME_OPENED = true })
-  assertTrue(listHas(NS.EventRecord.registered, "BANKFRAME_OPENED"))
-  assertTrue(listHas(NS.EventRecord.unavailable, "GUILDBANKFRAME_OPENED"))
+  -- Re-pinned from GUILDBANKFRAME_OPENED (BL-07): that name is no longer asked for at all, so the
+  -- open event that still ships stands in for it.
+  reEnable({ BANKFRAME_OPENED = true })
+  assertTrue(listHas(NS.EventRecord.unavailable, "BANKFRAME_OPENED"))
+  assertTrue(listHas(NS.EventRecord.registered, "BANKFRAME_CLOSED"))
+  assertTrue(listHas(NS.EventRecord.registered, "BAG_UPDATE_DELAYED"))
+end)
+
+test("Ledger:Enable registers no GUILDBANKFRAME_* event", function()
+  -- Both names register without complaint and never fire on 12.0.7; the guild bank's open and close
+  -- are GuildBankFrame's OnShow/OnHide hooks. Asking for them only inflated /bl debug scan.
+  reEnable(nil)
+  assertFalse(listHas(NS.EventRecord.registered, "GUILDBANKFRAME_OPENED"))
+  assertFalse(listHas(NS.EventRecord.registered, "GUILDBANKFRAME_CLOSED"))
 end)
 
 test("NS.RegisterEventSafely reports whether the binding took", function()

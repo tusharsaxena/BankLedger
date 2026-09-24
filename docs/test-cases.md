@@ -202,13 +202,14 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
 
-### test_ledger_settling.lua (25)
+### test_ledger_settling.lua (26)
 
 - reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
 - Ledger:Enable survives a retired event and still binds the rest
 - Ledger:Enable binds the capture events even when several are retired
 - Ledger:Enable never lets a rejected open event silence the others
+- Ledger:Enable registers no GUILDBANKFRAME_* event
 - NS.RegisterEventSafely reports whether the binding took
 - Ledger:Diagnose names the events this build rejected
 - Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
@@ -1168,7 +1169,7 @@ badge and any count quoted in the docs must agree with it.
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 98 |
-| test_ledger_settling.lua | 25 |
+| test_ledger_settling.lua | 26 |
 | test_database.lua | 48 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 54 |
@@ -1203,4 +1204,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1033** |
+| **Total** | **1034** |

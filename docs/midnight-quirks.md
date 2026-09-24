@@ -7,8 +7,9 @@ exactly why it needs writing down rather than rediscovering.
 ## The guild bank has no usable open event, and no usable close event either
 
 `GUILDBANKFRAME_OPENED` is a **valid name that registers without complaint and never fires** on
-12.0.7. So is `GUILDBANKFRAME_CLOSED`. Registering them costs nothing and buys nothing, and an addon
-that trusts them tracks the guild bank not at all.
+12.0.7. So is `GUILDBANKFRAME_CLOSED`. Registering them bought nothing but two dead rows in
+`/bl debug scan`, so the addon no longer asks for them, and an addon that trusts them tracks the
+guild bank not at all.
 
 - **Open** is stood in for by `GuildBankFrame`'s own `OnShow` (`Ledger:HookGuildBankFrame`). It fires
   when the player is demonstrably looking at the vault, before anything can be moved, which is

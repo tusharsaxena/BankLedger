@@ -72,8 +72,8 @@ warband movement, because no event announces one.
 |---|---|
 | `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune |
 | `PLAYER_REGEN_DISABLED`, `PLAYER_REGEN_ENABLED` | Re-evaluate **General visibility** at each combat edge (`addon:OnCombatChanged` → `NS.Util.ApplyVisibility`). `PLAYER_REGEN_DISABLED` first ends test mode (`LT:SetTestMode(false)`, no window opened, one chat line). Outside the capture pipeline entirely — no snapshot, no diff, no row |
-| `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches (the guild one never fires — see below) |
-| `BANKFRAME_CLOSED`, `GUILDBANKFRAME_CLOSED` | Final reconcile, then disarm (the guild one never fires — see below) |
+| `BANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches. The guild bank has no open event — see below |
+| `BANKFRAME_CLOSED` | Final reconcile, then disarm. The guild bank has no close event — see below |
 | `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
 | `GUILDBANKBAGSLOTS_CHANGED` | Schedules the same debounced pass. It also **arms** the guild-bank context, but only when the guild-bank window reports itself explicitly visible — data alone is not proof of a visit, see below |
 | `ADDON_LOADED` | Installs `GuildBankFrame`'s `OnShow`/`OnHide` hooks when the load-on-demand `Blizzard_GuildBankUI` arrives. Those hooks are the guild bank's open and close — see below |
@@ -109,7 +109,8 @@ unless the player has script errors switched on. Names this build rejected are r
 
 The guild bank is the one store with **no usable open event, and no usable close event either**.
 `GUILDBANKFRAME_OPENED` is a valid name that registers without complaint and never fires on 12.0.7,
-and `GUILDBANKFRAME_CLOSED` is the same story. Both ends therefore hang off the frame's own scripts:
+and `GUILDBANKFRAME_CLOSED` is the same story, so neither is registered. Both ends therefore hang
+off the frame's own scripts:
 
 - **`GuildBankFrame`'s own `OnShow`** (`Ledger:HookGuildBankFrame`) is the open path. It fires when
   the player is demonstrably looking at the vault, which is exactly when the baseline wants taking,

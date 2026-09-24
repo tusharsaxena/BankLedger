@@ -697,16 +697,18 @@ end
 --
 -- Every other frame announces its own close and `CloseContext` runs off that event. The guild bank
 -- announces nothing: `GUILDBANKFRAME_CLOSED` registers without complaint and never fires on 12.0.7,
--- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check in `disarmGuildBankIfGone`,
+-- exactly like its `_OPENED` sibling, so neither name is registered any more (they only inflated
+-- `/bl debug scan`). The `IsGuildBankVisible()` check in `disarmGuildBankIfGone`,
 -- which `Reconcile` calls on every pass, is not a
 -- substitute, because closing the window changes no container and moves no money — so no event
 -- fires, no reconcile pass runs, and the context stays armed until some unrelated bag update happens
 -- along. That check is the backstop for a frame that vanished without hiding; this is the close.
 --
--- The frame's own `OnShow`/`OnHide` are the notices the client does give, and they are the whole of
--- what this addon knows about a guild bank visit. `OnShow` is the open the missing
--- `GUILDBANKFRAME_OPENED` was supposed to be: it fires when the player is demonstrably looking at
--- the vault, which tab data arriving does NOT establish (see `L:OnGuildBankData` and issue #12).
+-- The frame's own `OnShow`/`OnHide` are the notices the client does give, and they are the guild
+-- bank's ONLY open and close — the whole of what this addon knows about a guild bank visit. `OnShow`
+-- is the open the dead `GUILDBANKFRAME_OPENED` was supposed to be: it fires when the player is
+-- demonstrably looking at the vault, which tab data arriving does NOT establish (see
+-- `L:OnGuildBankData` and issue #12).
 --
 -- `GuildBankFrame` lives in Blizzard_GuildBankUI, loaded on demand, so the hooks go on the first
 -- time the guild bank is actually in play rather than at load — and once only, because a hook
@@ -839,14 +841,13 @@ function L:DropContext()
 end
 
 -- Which FRAME an open-event belongs to. There is deliberately no event for the warband tabs,
--- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
+-- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES) — and none for
+-- the guild bank, whose open and close are GuildBankFrame's OnShow/OnHide (L:HookGuildBankFrame).
 local OPEN_EVENTS = {
   BANKFRAME_OPENED        = C.Context.BANK_FRAME,
-  GUILDBANKFRAME_OPENED   = C.Context.GUILD_BANK,
 }
 local CLOSE_EVENTS = {
   BANKFRAME_CLOSED        = true,
-  GUILDBANKFRAME_CLOSED   = true,
 }
 -- Events that mean "something in an open container changed". Each is a cue to re-diff, never a
 -- movement in itself.
