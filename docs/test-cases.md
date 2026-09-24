@@ -785,7 +785,7 @@ badge and any count quoted in the docs must agree with it.
 - bus: without LibKa0s, NS.MSG is the same four names as a plain table
 - bus: no addon file but core/Constants.lua types a message's wire name
 
-### test_panel.lua (33)
+### test_panel.lua (35)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
@@ -814,6 +814,8 @@ badge and any count quoted in the docs must agree with it.
 - Minimap row: Reset all settings does not un-hide the button, or move it
 - Minimap row: a TARGETED /bl reset minimap.hide is not a sweep, and still works
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
+- Slash: ResetEverything while disabled stands the addon back up
+- Slash: ResetEverything announces LedgerChanged exactly once
 - Slash: ResetEverything traces the recorded entries it wiped, once
 - Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
 - Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
@@ -1169,7 +1171,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema_runtime.lua | 17 |
 | test_slash.lua | 50 |
 | test_bus.lua | 10 |
-| test_panel.lua | 33 |
+| test_panel.lua | 35 |
 | test_panel_filters.lua | 40 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
@@ -1189,4 +1191,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1023** |
+| **Total** | **1025** |

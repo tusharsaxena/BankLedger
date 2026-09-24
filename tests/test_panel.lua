@@ -624,6 +624,58 @@ test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches n
     "the gate is still judging movements by the settings the reset destroyed")
 end)
 
+test("Slash: ResetEverything while disabled stands the addon back up", function()
+  -- BANKLEDGER-R-02. The wipe restores `settings.enabled = true` straight into the store, behind
+  -- the row's onChange, so the latch never heard it: the checkbox read enabled while the addon
+  -- stayed stood down and recorded nothing until a /reload or a toggle. A reset must come back
+  -- indistinguishable from a fresh install (options-ui-§12), and a fresh install is enabled.
+  -- red under: removing the NS.ReevaluateEnabled call from Sl:ResetEverything.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local ok, err = pcall(function()
+    NS.Schema:Set("settings.enabled", false)
+    assertTrue(NS.IsDisabled(), "precondition: the disable took the hold")
+    NS.Slash:ResetEverything()
+    assertFalse(NS.IsDisabled(), "the reset left the `disabled` hold in place")
+    assertFalse(NS.IsStoodDown(), "the reset left the addon stood down")
+    local live = 0
+    for _, reg in ipairs(mocks.__registrations()) do
+      if reg.target == NS.addon then live = live + 1 end
+    end
+    assertTrue(live > 0, "the addon registered nothing after the reset")
+    assertEqual(NS.Schema:Get("settings.enabled"), true, "the enabled checkbox reads off")
+  end)
+  if NS.IsDisabled() then NS.Schema:Set("settings.enabled", true) end
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+end)
+
+test("Slash: ResetEverything announces LedgerChanged exactly once", function()
+  -- BANKLEDGER-R-03. The wipe empties the ledger, and History, Insights, the session window and the
+  -- storage read-out refresh on LedgerChanged and nothing else, so they went on showing the deleted
+  -- rows. Database stays the one sender (architecture-§4): the reset asks it to announce.
+  -- red under: removing the NS.Database:FireLedgerChanged call from Sl:ResetEverything.
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local B, SW = NS.Browser, NS.SessionWindow
+  local savedOnLedger, savedPrune = B.OnLedgerChanged, SW.PruneMissing
+  local browserRan, pruneRan, seen = 0, 0, 0
+  B.OnLedgerChanged = function() browserRan = browserRan + 1 end
+  SW.PruneMissing = function() pruneRan = pruneRan + 1 end
+  local target = NS.NewBusTarget()
+  target:RegisterMessage(NS.MSG.LEDGER_CHANGED, function() seen = seen + 1 end)
+
+  local ok, err = pcall(function() NS.Slash:ResetEverything() end)
+
+  target:UnregisterMessage(NS.MSG.LEDGER_CHANGED)
+  B.OnLedgerChanged, SW.PruneMissing = savedOnLedger, savedPrune
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+  assertEqual(seen, 1, "one reset, one LedgerChanged")
+  assertEqual(browserRan, 1, "History did not refresh off the emptied ledger")
+  assertEqual(pruneRan, 1, "the session window did not prune the deleted rows")
+end)
+
 test("Slash: ResetEverything traces the recorded entries it wiped, once", function()
   -- The wholesale reset empties db.global, and the recorded ledger goes with it. That is a purge of
   -- recorded data, which debug-logging-§8 requires traced (standard v2.44.0, debug-logging-§10),

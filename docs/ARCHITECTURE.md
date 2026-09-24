@@ -335,6 +335,15 @@ no `:StandUp()` member to call: the only route out is releasing the hold that pu
 AceDB's three profile callbacks all land there, so no surface can drive the teardown by another
 route and none of them holds a state of its own.
 
+**Reset all settings re-runs the latch too, and so re-enables a disabled addon.** The Master-controls
+button (`Sl:ResetEverything`) wipes `db.global` in place and merges the defaults back, which restores
+`settings.enabled = true` behind the row's `onChange`. So after its `SettingsChanged("reset")` and a
+`LedgerChanged` sent through `Database:FireLedgerChanged` (the wipe emptied the ledger; Database stays
+the one sender), it calls `NS.ReevaluateEnabled`, exactly as the profile callbacks do. That releases
+the `disabled` hold only on a real edge: an enabled addon is untouched, a disabled one stands back up,
+as a fresh install would be (`options-ui-§12`). The call comes after the `LedgerChanged` send, so the
+modules standing back up build from the empty store.
+
 ### What stands down, and what survives
 
 `NS.StandDown` in `core/BankLedger.lua` is the **one** teardown body, reached from two arms — the

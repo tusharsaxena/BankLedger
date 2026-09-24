@@ -459,6 +459,14 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    or `/bl` ▸ Filters), reset, and then move that item: it must now be **recorded**, because the
    reset emptied the blacklist. **Fail:** the movement is dropped, or a movement that should be
    dropped is recorded, until you `/reload`.
+5. **The open views empty at once.** With History, Insights and the settings panel's storage read-out
+   on screen, run **Reset all settings** ▸ Yes. History and Insights both go empty straight away and
+   the storage read-out reads 0 — the reset announces `Ka0s_BankLedger_LedgerChanged` through
+   `Database:FireLedgerChanged`. **Fail:** either view keeps showing the deleted rows until it is
+   reopened.
+6. **A reset while disabled re-enables.** Untick **Enable Bank Ledger**, then **Reset all settings**
+   ▸ Yes. The checkbox reads ticked and the addon is running: deposit something at your bank and it
+   records. **Fail:** the box reads ticked but nothing records until a `/reload` or a toggle.
 
 ## S-17 · Current Banking Session window
 

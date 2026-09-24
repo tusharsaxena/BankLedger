@@ -158,6 +158,19 @@ end
 --- would make every subscriber rebuild several times over for a single button press, and no
 --- subscriber wants finer grain than "all of it changed". The consumers are NOT enumerated here:
 --- they subscribe, which is the whole point of the bus.
+---
+--- THE LEDGER WENT WITH THE WIPE, so LedgerChanged goes out too (BankLedger-R-03). History,
+--- Insights, the session window's PruneMissing and the panel's storage read-out refresh on
+--- LedgerChanged and nothing else, and SettingsChanged alone left them showing deleted rows. Sent
+--- through `NS.Database:FireLedgerChanged`, never from here, so Database stays the one sender of
+--- that message (architecture-§4, core/Constants.lua).
+---
+--- THEN THE LATCH IS RE-RUN (BankLedger-R-02), as AceDB's OnProfileReset does in core/Database.lua.
+--- The wipe put `settings.enabled = true` back behind the row's onChange, so a reset made while
+--- disabled left the checkbox reading on and the addon stood down. `NS.ReevaluateEnabled` fires
+--- only on a real edge, so an enabled addon is untouched; a disabled one comes back up, which is a
+--- behavior change: a full reset made while disabled re-enables the addon, as a fresh install is.
+--- It runs AFTER the LedgerChanged send, so modules standing back up build from the empty store.
 function Sl:ResetEverything()
   local db = NS.db
   if db and db.global then
@@ -193,6 +206,8 @@ function Sl:ResetEverything()
   if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
   print("this addon reset to defaults.")
   if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "reset") end
+  if NS.Database and NS.Database.FireLedgerChanged then NS.Database:FireLedgerChanged() end
+  if NS.ReevaluateEnabled then NS.ReevaluateEnabled() end
   refreshAfterReset()
 end
 

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1023%2F1023_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1025%2F1025_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -147,6 +147,7 @@ questing, never ends up in the book.
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
 | The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all settings** button on the Master controls tab also recenters them, but it deletes your history too — export first if you want to keep it.) |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
+| The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns everything to a fresh install, and a fresh install is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. Add the output of `/bl debug scan`, which writes to the console whether logging is on or not and reports which container ids and money readers your client actually exposes. |
 
 ## Issues and feature requests
