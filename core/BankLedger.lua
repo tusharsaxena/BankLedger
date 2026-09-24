@@ -84,12 +84,14 @@ end
 --- set reflects the new value rather than the old one.
 function NS.StandUp()
   local self = NS.addon
-  self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEnterWorld")
+  -- Through the one isolating helper (core/CoreSetup.lua), never a bare self:RegisterEvent: these
+  -- three run BEFORE the module Enables below, so a raise here would abort all three of them.
+  NS.RegisterEventSafely(self, "PLAYER_ENTERING_WORLD", "OnEnterWorld")
   -- The General visibility rule's two transitions (options-ui-§15). `Only in combat` and `Only
   -- out of combat` are answers that CHANGE without anything being clicked, so the setting is
   -- unhonored without these: a window opened out of combat would simply stay up through a pull.
-  self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatChanged")
-  self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatChanged")
+  NS.RegisterEventSafely(self, "PLAYER_REGEN_DISABLED", "OnCombatChanged")
+  NS.RegisterEventSafely(self, "PLAYER_REGEN_ENABLED", "OnCombatChanged")
   if NS.Ledger and NS.Ledger.Enable then NS.Ledger:Enable() end
   if NS.Browser and NS.Browser.Enable then NS.Browser:Enable() end
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
@@ -161,7 +163,9 @@ function NS.StandDown()
   --    than a list to keep current: a list is what goes stale on the first event added to
   --    modules/Ledger.lua, and this addon has exactly one AceEvent target of its own.
   if ad and ad.UnregisterAllEvents then ad:UnregisterAllEvents() end
-  if NS.Ledger then NS.Ledger.registeredEvents, NS.Ledger.unavailableEvents = {}, {} end
+  --    The event record goes with them: `/bl debug scan` on a disabled addon reports nothing bound,
+  --    and the next stand-up rebuilds it from what actually registers.
+  NS.EventRecord.registered, NS.EventRecord.unavailable = {}, {}
 
   -- 3. THE CAPTURE GATE'S CACHED ANSWER, refreshed before the bus target that carries the refresh
   --    is dropped below. The gate is a BELT behind unregistered events rather than the mechanism —

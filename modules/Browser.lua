@@ -1215,6 +1215,6 @@ function B:Enable()
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if B.__ev.RegisterEvent then
-    B.__ev:RegisterEvent("PLAYER_LOGOUT", function() B:OnLogout() end)
+    NS.RegisterEventSafely(B.__ev, "PLAYER_LOGOUT", function() B:OnLogout() end)
   end
 end

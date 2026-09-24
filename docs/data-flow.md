@@ -100,11 +100,12 @@ looted into the bags while the bank happened to be open — the baseline re-anch
 so a stale delta cannot later pair with something unrelated. Closing a frame runs the pending pass
 immediately rather than waiting out the window.
 
-Event registration is **isolated per event** (`Ledger:RegisterEventSafely`). Modern retail raises
+Event registration is **isolated per event** (`NS.RegisterEventSafely`, over `LibKa0s-Core-1.0`'s
+`SafeRegisterEvent`, front-gated on `C_EventUtils.IsEventValid`). Modern retail raises
 on an unknown event name rather than ignoring it, so a bare registration loop turns one retired
 event into a silently deaf addon — every event after the throw goes unbound, with no visible error
 unless the player has script errors switched on. Names this build rejected are recorded in
-`Ledger.unavailableEvents` and reported by `/bl debug scan`.
+`NS.EventRecord.unavailable` and reported by `/bl debug scan`.
 
 The guild bank is the one store with **no usable open event, and no usable close event either**.
 `GUILDBANKFRAME_OPENED` is a valid name that registers without complaint and never fires on 12.0.7,

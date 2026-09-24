@@ -386,17 +386,25 @@ draw gate does.
 ## Event Subscriptions
 
 Fourteen registrations **while the addon is enabled**; **none** while it is disabled (see *The
-stand-down* above). **Nine** are the capture engine's and all go through
-`Ledger:RegisterEventSafely` — modern retail **raises** on an unknown event name, so a bare loop turns
-one retired event into a silently deaf addon. The other five sit outside the engine and outside that
-guard, because none of their names can go away under it: `PLAYER_ENTERING_WORLD` on the AceEvent addon
-object (`core/BankLedger.lua:45`, the one-shot retention prune), the combat pair
-`PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the same object (`core/BankLedger.lua:49-50`
+stand-down* above). **All fourteen** go through one helper, `NS.RegisterEventSafely(target, event,
+handler)` in `core/CoreSetup.lua`, over `LibKa0s-Core-1.0`'s `SafeRegisterEvent`
+(`events-frames-taint-§1`, standard v2.65.0). Modern retail **raises** on an unknown event name, so a
+bare registration turns one retired name into an aborted block: a silently deaf capture loop, or a
+stand-up that never reaches the module Enables after it. The helper asks
+`C_EventUtils.IsEventValid` first, so a name the client refuses never reaches `RegisterEvent` at all,
+and `pcall`s what gets past that gate; without the library its degraded arm keeps the `pcall` alone.
+Every outcome lands in one record, `NS.EventRecord` (`registered` / `unavailable`), which
+`/bl debug scan` prints as `events registered` / `events UNAVAILABLE` and `NS.StandDown` empties.
+
+**Nine** are the capture engine's (`modules/Ledger.lua`, `L:Enable`). The other five sit outside the
+engine: `PLAYER_ENTERING_WORLD` on the AceEvent addon object (`core/BankLedger.lua:89`, the one-shot
+retention prune), the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the same object
+(`core/BankLedger.lua:93-94`
 → `addon:OnCombatChanged` → `NS.Util.ApplyVisibility`, the two edges the **General visibility** rule
 answers on — without them a window opened out of combat would simply stay up through a pull; the
 `PLAYER_REGEN_DISABLED` edge also ends test mode first, through `LT:SetTestMode(false)`, which opens
 no window, per `options-ui-§15`), and
-`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1206`,
+`PLAYER_LOGOUT` on each window's own event frame (`modules/Browser.lua:1218`,
 `modules/SessionWindow.lua:673`, geometry flush).
 
 Change events are debounced into one reconcile pass per user action, and the baseline is held

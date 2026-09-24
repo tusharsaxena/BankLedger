@@ -670,6 +670,6 @@ function SW:Enable()
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if SW.__ev.RegisterEvent then
-    SW.__ev:RegisterEvent("PLAYER_LOGOUT", function() SW:OnLogout() end)
+    NS.RegisterEventSafely(SW.__ev, "PLAYER_LOGOUT", function() SW:OnLogout() end)
   end
 end

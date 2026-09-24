@@ -389,9 +389,11 @@ function L:Diagnose()
 
   -- Which events this build actually accepted. An event in the unavailable list is one Blizzard has
   -- retired; if a capture-critical one is in there, that is why nothing is being recorded.
-  add("events registered (%s): %s", #L.registeredEvents, table.concat(L.registeredEvents, ", "))
-  add("events UNAVAILABLE (%s): %s", #L.unavailableEvents,
-    #L.unavailableEvents > 0 and table.concat(L.unavailableEvents, ", ") or "none")
+  -- The record is the whole addon's (NS.EventRecord, core/CoreSetup.lua), not only this engine's.
+  local rec = NS.EventRecord
+  add("events registered (%s): %s", #rec.registered, table.concat(rec.registered, ", "))
+  add("events UNAVAILABLE (%s): %s", #rec.unavailable,
+    #rec.unavailable > 0 and table.concat(rec.unavailable, ", ") or "none")
   return out
 end
 
@@ -855,25 +857,17 @@ local CHANGE_EVENTS = {
 -- reconciling it — see L:OnGuildBankData.
 local GUILD_DATA_EVENTS = { "GUILDBANKBAGSLOTS_CHANGED" }
 
--- Which event names this build accepted, and which it rejected. Read back by `/bl debug scan`.
-L.registeredEvents = {}
-L.unavailableEvents = {}
-
--- Register one event in isolation.
+-- Every registration below is isolated, through NS.RegisterEventSafely (core/CoreSetup.lua).
 --
 -- Blizzard retires events between expansions, and on modern retail `RegisterEvent` **raises** on an
--- unknown name rather than ignoring it. A bare `for ... do addon:RegisterEvent(...) end` therefore
+-- unknown name rather than ignoring it. A bare `RegisterEvent` loop therefore
 -- turns one stale name into a silent catastrophe: the loop aborts and every remaining event goes
 -- unregistered, leaving the addon deaf with no visible error unless the player has script errors
 -- switched on. That is exactly how this addon shipped able to see `BANKFRAME_OPENED` and nothing
--- else. Isolating each registration means a name this build lacks is recorded and skipped while
--- every other event still binds.
-function L:RegisterEventSafely(addon, event, handler)
-  local ok = pcall(addon.RegisterEvent, addon, event, handler)
-  local list = ok and L.registeredEvents or L.unavailableEvents
-  list[#list + 1] = event
-  return ok
-end
+-- else. Isolating each registration means a name this build lacks is recorded (NS.EventRecord, read
+-- back by `/bl debug scan`) and skipped while every other event still binds. The record is NOT
+-- reset here: NS.StandUp registers the addon's own three names before this Enable runs, and
+-- NS.StandDown is what empties it.
 
 function L:Enable()
   if self._enabled then return end
@@ -881,26 +875,26 @@ function L:Enable()
   self:RefreshUpvalues()
 
   local addon = NS.addon
-  L.registeredEvents, L.unavailableEvents = {}, {}
+  local register = NS.RegisterEventSafely
   for event, context in pairs(OPEN_EVENTS) do
-    self:RegisterEventSafely(addon, event, function() L:OpenContext(context) end)
+    register(addon, event, function() L:OpenContext(context) end)
   end
   for event in pairs(CLOSE_EVENTS) do
-    self:RegisterEventSafely(addon, event, function() L:CloseContext() end)
+    register(addon, event, function() L:CloseContext() end)
   end
   for _, event in ipairs(CHANGE_EVENTS) do
     -- Debounced, not immediate: one user action fires several of these, and the halves of a single
     -- movement do not all arrive on the same one.
-    self:RegisterEventSafely(addon, event, function() L:ScheduleReconcile() end)
+    register(addon, event, function() L:ScheduleReconcile() end)
   end
   for _, event in ipairs(GUILD_DATA_EVENTS) do
-    self:RegisterEventSafely(addon, event, function() L:OnGuildBankData() end)
+    register(addon, event, function() L:OnGuildBankData() end)
   end
   -- The guild bank's open signal is its frame's OnShow, and the frame arrives with a load-on-demand
   -- addon. Try now — the UI may already be loaded, on a /reload with the vault open — and listen for
   -- it landing later.
   self:HookGuildBankFrame()
-  self:RegisterEventSafely(addon, "ADDON_LOADED", function(_, name) L:OnAddonLoaded(name) end)
+  register(addon, "ADDON_LOADED", function(_, name) L:OnAddonLoaded(name) end)
 
   -- Re-cache the hot-path upvalues whenever a setting changes. Registered on this module's OWN
   -- AceEvent target, never the shared bus-as-self, so it can't clobber another consumer of the same

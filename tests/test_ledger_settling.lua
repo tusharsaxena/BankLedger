@@ -30,14 +30,28 @@ local BAG_ID, BANK_ID, WARBAND_ID = S.BAG_ID, S.BANK_ID, S.WARBAND_ID
 --
 -- Not UnregisterAllEvents: that also strips the addon's own PLAYER_ENTERING_WORLD and PLAYER_REGEN_*
 -- registrations from OnEnable, which nothing here re-registers, so every later case would run
--- against a deaf addon object. Both of the Ledger's lists are walked, because a refused
--- registration still leaves its callback behind (CallbackHandler stores it before OnUsed raises),
--- and a leftover would turn the next refusal of that name into a silent re-registration.
+-- against a deaf addon object. The record is ONE list for the whole addon now (NS.EventRecord, BL-06),
+-- so the addon's own three names are skipped by name and kept in the record; everything else in it
+-- is the Ledger's. Both lists are walked, because a refused registration that reached RegisterEvent
+-- still leaves its callback behind (CallbackHandler stores it before OnUsed raises), and a leftover
+-- would turn the next refusal of that name into a silent re-registration.
+local OWN_EVENTS = {
+  PLAYER_ENTERING_WORLD = true, PLAYER_REGEN_DISABLED = true, PLAYER_REGEN_ENABLED = true,
+}
+
 local function reEnable(badEvents)
-  local L = NS.Ledger
-  for _, list in ipairs({ L.registeredEvents, L.unavailableEvents }) do
-    for _, event in ipairs(list) do NS.addon:UnregisterEvent(event) end
+  local rec = NS.EventRecord
+  local kept = {}
+  for _, list in ipairs({ rec.registered, rec.unavailable }) do
+    for _, event in ipairs(list) do
+      if OWN_EVENTS[event] then
+        if list == rec.registered then kept[#kept + 1] = event end
+      else
+        NS.addon:UnregisterEvent(event)
+      end
+    end
   end
+  rec.registered, rec.unavailable = kept, {}
   mocks.__badEvents = badEvents or {}
   NS.Ledger._enabled = nil
   NS.Ledger:Enable()
@@ -96,9 +110,9 @@ end)
 
 test("Ledger:Enable registers every event on a build that has them all", function()
   reEnable(nil)
-  assertEqual(#NS.Ledger.unavailableEvents, 0, "nothing rejected")
-  assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"))
-  assertTrue(listHas(NS.Ledger.registeredEvents, "BANKFRAME_OPENED"))
+  assertEqual(#NS.EventRecord.unavailable, 0, "nothing rejected")
+  assertTrue(listHas(NS.EventRecord.registered, "BAG_UPDATE_DELAYED"))
+  assertTrue(listHas(NS.EventRecord.registered, "BANKFRAME_OPENED"))
 end)
 
 test("Ledger:Enable survives a retired event and still binds the rest", function()
@@ -108,9 +122,9 @@ test("Ledger:Enable survives a retired event and still binds the rest", function
   -- reached Reconcile and not one movement was recorded. (The original offender was the reagent
   -- bank's own event, retired with the reagent bank itself; any name can be next.)
   reEnable({ PLAYERBANKSLOTS_CHANGED = true })
-  assertTrue(listHas(NS.Ledger.unavailableEvents, "PLAYERBANKSLOTS_CHANGED"),
+  assertTrue(listHas(NS.EventRecord.unavailable, "PLAYERBANKSLOTS_CHANGED"),
     "the retired event is recorded, not fatal")
-  assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"),
+  assertTrue(listHas(NS.EventRecord.registered, "BAG_UPDATE_DELAYED"),
     "the event capture actually depends on still bound")
 end)
 
@@ -120,24 +134,25 @@ test("Ledger:Enable binds the capture events even when several are retired", fun
     GUILDBANKBAGSLOTS_CHANGED = true,
     GUILDBANKFRAME_CLOSED = true,
   })
-  assertEqual(#NS.Ledger.unavailableEvents, 3)
-  assertTrue(listHas(NS.Ledger.registeredEvents, "BAG_UPDATE_DELAYED"))
-  assertTrue(listHas(NS.Ledger.registeredEvents, "PLAYER_MONEY"))
-  assertTrue(listHas(NS.Ledger.registeredEvents, "BANKFRAME_OPENED"))
+  assertEqual(#NS.EventRecord.unavailable, 3)
+  assertTrue(listHas(NS.EventRecord.registered, "BAG_UPDATE_DELAYED"))
+  assertTrue(listHas(NS.EventRecord.registered, "PLAYER_MONEY"))
+  assertTrue(listHas(NS.EventRecord.registered, "BANKFRAME_OPENED"))
 end)
 
 test("Ledger:Enable never lets a rejected open event silence the others", function()
   reEnable({ GUILDBANKFRAME_OPENED = true })
-  assertTrue(listHas(NS.Ledger.registeredEvents, "BANKFRAME_OPENED"))
-  assertTrue(listHas(NS.Ledger.unavailableEvents, "GUILDBANKFRAME_OPENED"))
+  assertTrue(listHas(NS.EventRecord.registered, "BANKFRAME_OPENED"))
+  assertTrue(listHas(NS.EventRecord.unavailable, "GUILDBANKFRAME_OPENED"))
 end)
 
-test("Ledger:RegisterEventSafely reports whether the binding took", function()
+test("NS.RegisterEventSafely reports whether the binding took", function()
   mocks.__badEvents = { NONESUCH_EVENT = true }
-  NS.Ledger.registeredEvents, NS.Ledger.unavailableEvents = {}, {}
-  assertTrue(NS.Ledger:RegisterEventSafely(NS.addon, "BAG_UPDATE_DELAYED", function() end))
-  assertFalse(NS.Ledger:RegisterEventSafely(NS.addon, "NONESUCH_EVENT", function() end))
+  assertTrue(NS.RegisterEventSafely(NS.addon, "BAG_UPDATE_DELAYED", function() end))
+  assertFalse(NS.RegisterEventSafely(NS.addon, "NONESUCH_EVENT", function() end))
   mocks.__badEvents = {}
+  assertTrue(listHas(NS.EventRecord.registered, "BAG_UPDATE_DELAYED"), "the bound name is recorded")
+  assertTrue(listHas(NS.EventRecord.unavailable, "NONESUCH_EVENT"), "the refused name is recorded")
   reEnable(nil)
 end)
 

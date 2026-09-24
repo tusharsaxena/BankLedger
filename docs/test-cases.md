@@ -209,7 +209,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:Enable survives a retired event and still binds the rest
 - Ledger:Enable binds the capture events even when several are retired
 - Ledger:Enable never lets a rejected open event silence the others
-- Ledger:RegisterEventSafely reports whether the binding took
+- NS.RegisterEventSafely reports whether the binding took
 - Ledger:Diagnose names the events this build rejected
 - Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
 - Ledger: a movement whose halves arrive in separate events is still recorded
@@ -1060,7 +1060,7 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
-### test_lifecycle.lua (7)
+### test_lifecycle.lua (10)
 
 - addon:OnDisable releases the _enabled latch on every module OnEnable arms
 - a disable then enable cycle leaves all four modules live again
@@ -1069,6 +1069,9 @@ badge and any count quoted in the docs must agree with it.
 - addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
 - NS.addon carries the kit's Printf and records its own events
 - OnEnterWorld arms the retention prune once per session
+- a rejected event name in the stand-up does not stop Ledger:Enable
+- C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
+- the stand-down clears the event record
 
 ### test_disabled.lua (14)
 
@@ -1087,9 +1090,10 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (11)
+### test_surface_parity.lua (12)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
+- Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Slash degraded: the stub carries the whole live surface
@@ -1190,13 +1194,13 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| test_lifecycle.lua | 7 |
+| test_lifecycle.lua | 10 |
 | test_disabled.lua | 14 |
-| test_surface_parity.lua | 11 |
+| test_surface_parity.lua | 12 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1029** |
+| **Total** | **1033** |

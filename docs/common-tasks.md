@@ -141,10 +141,13 @@ name. That is why every entry stores `classFile` rather than a class name.
 
 ## Register a new event
 
-Use `Ledger:RegisterEventSafely`, never a bare `RegisterEvent` loop. Modern retail **raises** on an
-unknown event name rather than ignoring it, so one retired name in a bare loop leaves every event
-after it unbound — a silently deaf addon with no visible error unless script errors are on. Names
-this build rejected land in `Ledger.unavailableEvents` and are reported by `/bl debug scan`.
+Use `NS.RegisterEventSafely(target, event, handler)` (`core/CoreSetup.lua`, over `LibKa0s-Core-1.0`'s
+`SafeRegisterEvent`), never a bare `RegisterEvent` — on the addon object, a bus target or a frame
+alike. Modern retail **raises** on an unknown event name rather than ignoring it, so one retired name
+in a bare loop leaves every event after it unbound — a silently deaf addon with no visible error
+unless script errors are on. The helper front-gates on `C_EventUtils.IsEventValid` and `pcall`s the
+rest; names this build rejected land in `NS.EventRecord.unavailable` and are reported by
+`/bl debug scan`.
 
 ## Add a window
 

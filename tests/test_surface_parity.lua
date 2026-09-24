@@ -76,6 +76,26 @@ test("LibKa0s-Core degraded: the fallback carries the whole live seam surface", 
   T.assertSurfaceParity(live, degraded, "the Core seam's namespace")
 end)
 
+test("Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent", function()
+  -- The degraded arm's one rung (BL-06): no library, so no IsEventValid gate, but the pcall still
+  -- stands between a refused name and the caller, and the record still says which way it went.
+  -- red under: a degraded NS.RegisterEventSafely that calls target:RegisterEvent bare.
+  local degraded, dm = loadUpTo("core/CoreSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-Core-1.0", true) == nil,
+    "the degraded arm still has the library — this case would prove nothing")
+  local target = {
+    RegisterEvent = function(_, event)
+      if event == "RETIRED_EVENT" then error("Attempt to register unknown event") end
+    end,
+  }
+  local ok, took = pcall(degraded.RegisterEventSafely, target, "RETIRED_EVENT", function() end)
+  assertTrue(ok, took)
+  assertTrue(took == false, "a raising RegisterEvent was reported as bound")
+  assertTrue(degraded.RegisterEventSafely(target, "BAG_UPDATE_DELAYED", function() end) == true)
+  assertEqual(degraded.EventRecord.unavailable[1], "RETIRED_EVENT")
+  assertEqual(degraded.EventRecord.registered[1], "BAG_UPDATE_DELAYED")
+end)
+
 -- ── LibKa0s-Lifecycle-1.0 ────────────────────────────────────────────────────────────────────
 
 test("LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface", function()

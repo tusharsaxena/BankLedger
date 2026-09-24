@@ -55,7 +55,8 @@ balance has no such problem — `C_Bank.FetchDepositedMoney(Enum.BankType.Accoun
 It does not ignore it. A bare registration loop therefore turns **one** retired event into a silently
 deaf addon: every registration after the throw goes unbound, with no visible error unless the player
 has script errors switched on. Registration is isolated per event
-(`Ledger:RegisterEventSafely`), rejected names are recorded in `Ledger.unavailableEvents`, and
+(`NS.RegisterEventSafely`, front-gated on `C_EventUtils.IsEventValid`), rejected names are recorded
+in `NS.EventRecord.unavailable`, and
 `/bl debug scan` reports them.
 
 ## The bank window hosts two stores behind one event
