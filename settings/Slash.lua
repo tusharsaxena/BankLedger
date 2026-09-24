@@ -442,6 +442,10 @@ local cli = lib:New({
   -- trace, same onChange reaction.
   -- The LibKa0s-Schema-1.0 instance's own members, handed over as values (settings/Schema.lua,
   -- which the TOC loads first). No gate stands in front of the seam, so nothing is bypassed.
+  -- `set` is the instance's THREE-value member, not NS.Schema:Set (which trims to two): on a refusal
+  -- it answers `false, err, why` with nothing stored, and the library (Slash minor 15) prints
+  -- INVALID for the path, then the reason and the why on indented lines, in place of an echo of the
+  -- unchanged value. Every row carries a default, so `/bl reset` never meets NO_DEFAULT here.
   get          = NS.SchemaRuntime.Get,
   set          = NS.SchemaRuntime.Set,
   findRow      = NS.SchemaRuntime.FindRow,

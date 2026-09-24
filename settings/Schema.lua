@@ -629,7 +629,9 @@ S.BulkEnd = inst.BulkEnd
 
 --- The single write seam. Answers `true`, or `false, reason` -- exactly two values on a refusal, as
 --- it always has: the library's optional third (a validate's own reason) is not passed on, because
---- every caller here reads at most two.
+--- every caller of THIS method reads at most two. Only NS.Schema:Set trims. The slash CLI does not
+--- come through here: its descriptor holds the instance's own Set (settings/Slash.lua), reads all
+--- three of `false, err, why`, and prints the refusal (LibKa0s-Slash minor 15).
 function S:Set(path, value)
   local ok, err = inst.Set(path, value)
   if ok then return true end

@@ -720,7 +720,7 @@ badge and any count quoted in the docs must agree with it.
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (51)
+### test_slash.lua (53)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -740,6 +740,8 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliSet rejects a non-numeric value for a number setting
 - Slash:CliSet reports an unknown path
 - Slash:CliSet refuses a value-less set and says why
+- slash: /bl set with a refused value prints INVALID, the reason and the why, and stores nothing
+- schema: NS.Schema:Set trims a validate refusal to two values; the instance's Set answers three
 - Slash:CliReset restores one setting to its default
 - Slash:CliReset echoes a table default through the shared formatter
 - Slash:CliReset echoes the colored key = value shape, like get and set
@@ -1182,7 +1184,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 52 |
 | test_schema_runtime.lua | 17 |
-| test_slash.lua | 51 |
+| test_slash.lua | 53 |
 | test_bus.lua | 10 |
 | test_panel.lua | 34 |
 | test_panel_filters.lua | 40 |
@@ -1205,4 +1207,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1035** |
+| **Total** | **1037** |

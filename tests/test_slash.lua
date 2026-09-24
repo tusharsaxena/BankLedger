@@ -160,6 +160,49 @@ test("Slash:CliSet refuses a value-less set and says why", function()
   assertTrue(joined(bare):find("Usage: /bl set <path> <value>", 1, true) ~= nil, joined(bare))
 end)
 
+-- LibKa0s-Slash minor 15: the write seam may REFUSE, and the descriptor's `set` is the Schema
+-- instance's own three-value member, so the library prints the refusal instead of echoing the
+-- unchanged value as though the write had landed. No row this addon ships carries a `validate`
+-- today (the parser refuses a dropdown value before the seam is reached, and clamps a slider), so
+-- the case lends one to a live row for its duration: what it pins is the WIRING, seam to CLI.
+-- red under: the descriptor handing over a `set` that drops the seam's answer (Slash minor 14 and
+-- earlier behaved exactly so) -- the old value is echoed back as `key = value`.
+test("slash: /bl set with a refused value prints INVALID, the reason and the why, and stores nothing",
+  function()
+    local path = "settings.rowHoverAlpha"
+    local row = NS.SchemaRuntime.FindRow(path)
+    local savedValidate, saved = row.validate, NS.Schema:Get(path)
+    row.validate = function(v)
+      if type(v) == "number" and v > 0.2 then return false, "too bright to read the row under it" end
+      return true
+    end
+    local ok, out = pcall(captureChat, function() Sl:CliSet(path .. " 0.3") end)
+    row.validate = savedValidate
+    if not ok then error(out, 0) end
+    assertEqual(#out, 3, "the INVALID line, the reason and the why: " .. joined(out))
+    assertTrue(out[1]:find("Invalid value for " .. path, 1, true) ~= nil, out[1])
+    assertTrue(out[2]:find("  invalid value", 1, true) ~= nil, out[2])
+    assertTrue(out[3]:find("  too bright to read the row under it", 1, true) ~= nil, out[3])
+    assertEqual(NS.Schema:Get(path), saved, "nothing was stored")
+  end)
+
+-- The docblock on S:Set says only NS.Schema:Set trims a refusal to two values, while the instance's
+-- own Set (what the CLI reads) answers three. Both halves pinned, so neither drifts from the words.
+test("schema: NS.Schema:Set trims a validate refusal to two values; the instance's Set answers three",
+  function()
+    local path = "settings.rowHoverAlpha"
+    local row = NS.SchemaRuntime.FindRow(path)
+    local savedValidate = row.validate
+    row.validate = function() return false, "why" end
+    local host = { NS.Schema:Set(path, 0.3) }
+    local inst = { NS.SchemaRuntime.Set(path, 0.3) }
+    row.validate = savedValidate
+    assertEqual(#host, 2, "NS.Schema:Set answers false, reason")
+    assertEqual(host[1], false)
+    assertEqual(inst[1], false)
+    assertEqual(inst[3], "why", "the instance passes the validate's why on")
+  end)
+
 test("Slash:CliReset restores one setting to its default", function()
   captureChat(function() Sl:CliSet("settings.qualityThreshold 4") end)
   captureChat(function() Sl:CliReset("settings.qualityThreshold") end)
