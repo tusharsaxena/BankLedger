@@ -45,6 +45,8 @@ push and never bump the version without an explicit instruction.
 
 Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.56.0 (MIT).
 
+That tag carries test-kit revision 26 (`Kit.VERSION` in `tests/_kit/framework.lua`).
+
 That line is the single answer to "which LibKa0s does this build carry?", and it is machine-read:
 `tests/test_vendor_sync.lua` greps it out of **this file** (kit revision 9 moved it here from
 `README.md`, which is player-facing and no longer carries a library inventory) and compares both
