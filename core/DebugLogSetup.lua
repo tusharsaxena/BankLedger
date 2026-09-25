@@ -43,6 +43,17 @@ if not lib then
   function D:ShowCopy() unavailable() end
   function D:IsEnabled() return not not (NS.State and NS.State.debug) end
 
+  -- The diagnostics report (debug-logging-§14, DebugLog 14.1). With no library there is no report
+  -- and no console to write one into, so `/bl diagnostics` says so in the collection's own
+  -- placeholder, writes nothing and counts nothing. BuildDiagnostics answers the report's empty
+  -- shape, and DebugVerb claims no word, so the `debug` verb keeps its own fallback.
+  function D:RunDiagnostics()
+    NS.Print(NS.L["%s is unavailable: the LibKa0s library did not load."]:format("/bl diagnostics"))
+    return 0
+  end
+  function D:BuildDiagnostics() return { lines = {}, dropped = 0, capped = false, capsHit = false } end
+  function D:DebugVerb() return false end
+
   -- The flag still flips. It gates more than the console — settings/Schema.lua's write seam checks
   -- it before tracing — so silently refusing to set it would be a second, invisible behavior change
   -- on top of a missing window.
