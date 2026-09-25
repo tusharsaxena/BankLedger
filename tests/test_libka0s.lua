@@ -557,7 +557,8 @@ test("LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an 
   assertTrue(d ~= nil, "NS.DebugLog must still exist")
   -- Every member settings/Schema.lua's `/bl debug` verb and its state.debugConsole row reach.
   for _, member in ipairs({ "IsShown", "Show", "Hide", "Toggle", "Add", "Clear", "SetEnabled",
-    "UpdateScrollBar", "UpdateStatus", "RefreshHeader", "ShowCopy", "IsEnabled" }) do
+    "UpdateScrollBar", "UpdateStatus", "RefreshHeader", "ShowCopy", "IsEnabled",
+    "RunDiagnostics", "BuildDiagnostics", "DebugVerb" }) do
     assertEqual(type(d[member]), "function", "the stub is missing " .. member)
   end
   assertEqual(type(ns.Debug), "function", "NS.Debug must still be callable")
@@ -571,6 +572,29 @@ test("LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause
   assertEqual(out[#out], "|cff00ffff[BL]|r The LibKa0s library is missing from this installation "
     .. "of Ka0s Bank Ledger (expected in libs/LibKa0s), so the debug console window is unavailable.")
 end)
+
+test("LibKa0s-DebugLog degraded: /bl diagnostics says the library did not load, and writes nothing",
+  function()
+    -- DebugLog 14.1's stub contract (debug-logging-§14): with no library there is no report and no
+    -- console to hold one, so RunDiagnostics prints the collection's placeholder with the full verb,
+    -- writes nothing, and counts 0. BuildDiagnostics answers the report's empty shape and DebugVerb
+    -- claims no word, so the `debug` verb keeps its own fallback.
+    local ns, m = loadDegraded()
+    local d = ns.DebugLog
+    local n
+    local out = captureChat(function() n = d:RunDiagnostics() end, m)
+    assertEqual(n, 0, "the stub report counts no lines")
+    -- The last line: the Core stub says its missing-library notice once, on the first line printed.
+    assertEqual(out[#out], "|cff00ffff[BL]|r /bl diagnostics is unavailable: the LibKa0s library did not load.")
+    assertEqual(#d.buffer, 0, "the stub wrote into a buffer it does not have")
+    local built = d:BuildDiagnostics()
+    assertEqual(#built.lines, 0)
+    assertEqual(built.dropped, 0)
+    assertTrue(built.capped == false and built.capsHit == false)
+    for _, word in ipairs({ "diagnostics", "on", "off", "" }) do
+      assertTrue(d:DebugVerb(word) == false, "the stub claimed the debug word '" .. word .. "'")
+    end
+  end)
 
 test("LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window",
   function()
@@ -869,6 +893,38 @@ test("LibKa0s-Slash degraded: the verbs that never needed the library still work
   assertTrue(reached, "the fallback dispatcher must still reach a host verb")
   ns.COMMANDS[#ns.COMMANDS] = nil
 end)
+
+test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out",
+  function()
+    -- settings/Slash.lua's library-absent dispatcher keeps its own copy of lib.LIVE_VERBS, because
+    -- there is no library to read it from. A literal copy does not inherit a verb the library adds
+    -- (Slash minor 16 added `diagnostics`), so this case walks the LIVE library's set and proves
+    -- the degraded gate lets each one through while the addon is off.
+    --
+    -- red under: a verb in lib.LIVE_VERBS that the degraded LIVE_VERBS table leaves out.
+    assertTrue(slashlib ~= nil and type(slashlib.LIVE_VERBS) == "table", "no live set to compare with")
+    local ns, m = loadDegraded()
+    local savedDisabled = ns.IsDisabled
+    ns.IsDisabled = function() return true end
+    local ok, err = pcall(function()
+      for _, verb in ipairs(slashlib.LIVE_VERBS) do
+        local reached = false
+        table.insert(ns.COMMANDS, 1, { verb, "probe", function() reached = true end })
+        local out = captureChat(function() ns.Slash:OnSlash(verb) end, m)
+        table.remove(ns.COMMANDS, 1)
+        assertTrue(reached, "`/bl " .. verb .. "` was refused while disabled on the degraded arm: "
+          .. table.concat(out, " / "))
+      end
+      -- And the gate is really armed: a feature verb is still refused.
+      local reached = false
+      table.insert(ns.COMMANDS, 1, { "probefeature", "probe", function() reached = true end })
+      captureChat(function() ns.Slash:OnSlash("probefeature") end, m)
+      table.remove(ns.COMMANDS, 1)
+      assertTrue(not reached, "the degraded gate let a feature verb through while disabled")
+    end)
+    ns.IsDisabled = savedDisabled
+    if not ok then error(err, 0) end
+  end)
 
 test("LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does", function()
   -- The stub mirrors Slash minor 11 (slash-commands-§4): bare and whitespace-only input run the

@@ -66,13 +66,15 @@ the settings registration are **setup**, not features, so the pair is never one-
 | | Verbs |
 |---|---|
 | Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `session`, `test`, `purge` |
-| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — and the bare `/bl`, which opens the settings panel |
+| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — and the bare `/bl`, which opens the settings panel |
 
 The live set is the standard's, and its reasoning is that a player must be able to **read and repair
 settings**, and to **reach the panel**, while the addon is off — which is precisely when they are most
-likely to need to — and **`enable` above all**. `debug` and `perf` are diagnostics rather than
-features; the usual reason to reach for either is that the addon is misbehaving. `perf` is on the
-list although this addon registers no `perf` verb (the `performance-§12` exemption): a verb is
+likely to need to — and **`enable` above all**. `debug`, `perf` and `diagnostics` are diagnostics
+rather than features; the usual reason to reach for any of them is that the addon is misbehaving.
+`perf` is on the list although this addon registers no `perf` verb (the `performance-§12`
+exemption), and `diagnostics` (reserved since `LibKa0s-Slash-1.0` minor 16, LibKa0s v1.60.0) is not
+registered here yet either: a verb is
 reserved always and registered when wired, so arming the harness later is a registration rather
 than a rename. Typed today, `/bl perf` answers `unknown command 'perf'` and the index **in either
 state**: from `LibKa0s-Slash-1.0` minor 14 (LibKa0s v1.42.0) the gate refuses only a verb the host

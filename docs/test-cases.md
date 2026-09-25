@@ -995,7 +995,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (64)
+### test_libka0s.lua (66)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -1034,6 +1034,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
 - LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
 - LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
+- LibKa0s-DebugLog degraded: /bl diagnostics says the library did not load, and writes nothing
 - LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
 - LibKa0s-DebugLog: the library is told the FOLDER name, not just the frame name
 - LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
@@ -1055,6 +1056,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
+- LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out
 - LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
@@ -1194,6 +1196,10 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
+### test_diagnostics_contract.lua (1)
+
+- diagnostics contract: debug-logging-§14 (skipped: Kit.diagnostics is not set in the runner, so this repo's dispatcher is not wired to the shared contract yet. Every Ka0s addon owes debug-logging-§14's report; wire Kit.diagnostics once the report exists)
+
 ## Totals
 
 | Suite | Cases |
@@ -1225,7 +1231,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 64 |
+| test_libka0s.lua | 66 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
@@ -1238,4 +1244,5 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1068** |
+| test_diagnostics_contract.lua | 1 |
+| **Total** | **1071** |

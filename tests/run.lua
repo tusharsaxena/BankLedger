@@ -35,6 +35,10 @@ local SUITES = {
   { name = "test_eol",        dir = "tests/_kit/" },
   { name = "test_prose",      dir = "tests/_kit/" },
   { name = "test_layout_cap", dir = "tests/_kit/" },
+  -- Kit revision 27's diagnostics contract (debug-logging-§14). Until this addon sets
+  -- Kit.diagnostics it registers one declared skip naming the rule; the report and its dispatcher
+  -- wiring arrive together (DR-BL-03 of the 2026-09-25 diagnostics rollout).
+  { name = "test_diagnostics_contract", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML

@@ -281,8 +281,9 @@ end
 -- ALWAYS_LIVE table, a stored-path read and a refusal printer of its own -- the collection's rule
 -- re-implemented per addon, with the wording re-spelled per addon along with it. Against Slash minor
 -- 14 (LibKa0s v1.42.0) the descriptor's `isEnabled` and `brandName` are the whole adoption: the library keeps its own
--- lib.LIVE_VERBS (the standard's twelve reserved verbs), refuses what is left, and renders the line
--- from lib.DISABLED_LINE_FORMAT so eleven addons cannot each word it differently.
+-- lib.LIVE_VERBS (the standard's reserved verbs, thirteen since Slash minor 16), refuses what is
+-- left, and renders the line from lib.DISABLED_LINE_FORMAT so eleven addons cannot each word it
+-- differently.
 --
 -- NO `liveVerbs` IS PASSED, deliberately. That field NARROWS or WIDENS the live set, and this addon
 -- wants neither: every reserved verb answers while disabled, and the bare `/bl` opens the settings
@@ -394,7 +395,7 @@ if not lib then
     return DISABLED_LINE_FORMAT:format(tostring(NS.BRAND_NAME or "/bl"), "/bl enable")
   end
 
-  -- The gate, reproduced for this arm alone. The live set is the standard's twelve reserved verbs,
+  -- The gate, reproduced for this arm alone. The live set is the standard's thirteen reserved verbs,
   -- which is lib.LIVE_VERBS written out: every one of them answers while the addon is off, because
   -- a player must be able to read and repair settings and to reach the panel -- which is precisely
   -- when they are most likely to need to -- and `enable` above all, or the pair is one-way.
@@ -403,7 +404,7 @@ if not lib then
   -- the harness later must be a registration rather than a second edit here.
   local LIVE_VERBS = {
     help = true, config = true, version = true, enable = true, disable = true,
-    debug = true, perf = true,
+    debug = true, perf = true, diagnostics = true,
     get = true, set = true, list = true, reset = true, resetall = true,
   }
 
