@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 71 today). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 73 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
