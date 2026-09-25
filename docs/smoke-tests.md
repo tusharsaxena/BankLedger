@@ -13,10 +13,18 @@ tolerance.
 3. No Lua errors on login (turn error display on first: `/console scriptErrors 1`).
 4. The minimap button is present, wearing **the addon's own logo** and not a Blizzard bag icon
    (`launcher-§4`); the same art is beside **Ka0s Bank Ledger** in the client's AddOns list. Its
-   tooltip shows the movement count and names both click verbs.
-5. **Left-click** the button: the ledger window opens. Left-click again: it closes (rung (a),
-   `launcher-§2`). **Right-click** it: the settings panel opens on its landing page.
-6. If a broker display is installed (Titan Panel, ElvUI data texts, Bazooka), **Ka0s Bank Ledger**
+   tooltip reads `Ka0s Bank Ledger  v<version>`, `Enabled: Yes`, `Locked: No`, `Test mode: Off`,
+   the movement count, then `Left-click: Open settings` and `Right-click: Options menu`.
+5. **Left-click** the button: the settings panel opens on its landing page (`launcher-§2`, standard
+   v2.67.0). It no longer toggles the ledger window.
+6. **Right-click** it: a menu titled **Ka0s Bank Ledger** opens with four checkboxes, in this order:
+   **Enabled** (ticked), **Locked**, **Test mode**, **Show window**. Click **Show window**: the ledger
+   window opens, exactly as `/bl toggle` does; right-click again and **Show window** is ticked. Click
+   **Test mode**: the chat line `test mode on` prints, as `/bl test` prints it, and the ledger shows
+   the sample. Click **Locked**: the chat line `settings.locked = true` prints and the ledger window
+   can no longer be dragged; the Master controls *Lock frame* box is ticked. Click each again to undo
+   it. The menu closes after every click.
+7. If a broker display is installed (Titan Panel, ElvUI data texts, Bazooka), **Ka0s Bank Ledger**
    appears in its plugin list wearing the same icon, and its clicks do exactly the same two things
    — it is one object registered twice, not two features.
 
@@ -199,7 +207,7 @@ tolerance.
 ## S-11 · Filters (blacklist / whitelist)
 
 1. Right-click a ledger row → **Blacklist item**. The chat line reads
-   `[BL] blacklisted <name>. Manage in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
+   `[BL] blacklisted <name> — manage it in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
    **tab and its sub-tab**, not the deregistered *Filters* page and not the retired top-level
    *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
 2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
@@ -268,13 +276,20 @@ tolerance.
      lines and the button pair; no row may be renamed, reordered or missing.
      **Untick *Minimap button***: the button vanishes from the minimap **immediately**, not at the
      next reload. Tick it: it comes back **at the same angle** you had dragged it to. Now hide it
-     from the button's OWN right-click menu instead, and reopen this tab — the box is unticked,
-     because the checkbox and LibDBIcon are reading one boolean and not two (`launcher-§3`). Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
+     with `/bl set minimap.shown false` instead, and reopen this tab — the box is unticked,
+     because the checkbox, the CLI and LibDBIcon are reading one boolean and not two
+     (`launcher-§3`). The button's right-click menu has no hide entry: since standard v2.67.0 it is
+     the options menu (S-1 step 6).
+     `/bl get minimap.shown` answers **false** now; `/bl set minimap.shown true` brings the button
+     back, `/reload` keeps whichever state you left, and `/bl get minimap.hide` answers `Setting
+     not found` — the CLI path reads in the row's own sense, the stored key is still LibDBIcon's. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
      and the windows visibly fade to that and no further — the row's declared minimum IS the floor
      `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
-     **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**;
-     `/bl resetall` and the header **Defaults** button are a different, non-destructive act (see
-     ARCHITECTURE ▸ Documented deviations, `options-ui-§12`).
+     **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**.
+     `/bl resetall`, the header **Defaults** button and Blizzard's footer **Defaults** raise the SAME
+     popup (`options-ui-§12`): **No** leaves everything as it was; **Yes** empties History and both
+     filter lists, turns test mode off, closes the debug console and leaves a hidden minimap button
+     hidden.
    - **Capture** — *Track items · Track gold*, then *Minimum quality*, then the full-width per-store
      grid.
    - **Interface** — a **Windows** heading over *Session window*, then a
@@ -405,6 +420,12 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
     be **indistinguishable**: same border, same inner highlight, same gold title, same divider, and
     the same three marks in the same order. Any difference means the shared edge has drifted in one
     of them, and the fix belongs in `../LibKa0s`, never in `libs/`.
+13. **The two addon-owned dumps.** With logging **off**, run `/bl debug scan` at a bank and then
+    `/bl debug panel` after `/bl config` has been opened once. Both open the console and write their
+    lines anyway, tagged `[Scan]` and `[Panel]`: they use the raw append, not the gated sink. The
+    scan ends with the `events registered` / `events UNAVAILABLE` pair. What each line means, and
+    when to paste which into an issue, is in [debug.md](debug.md). An empty console after either
+    verb with logging off means a dump went through the gated sink.
 
 ## S-15 · Test mode
 
@@ -459,6 +480,14 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    or `/bl` ▸ Filters), reset, and then move that item: it must now be **recorded**, because the
    reset emptied the blacklist. **Fail:** the movement is dropped, or a movement that should be
    dropped is recorded, until you `/reload`.
+5. **The open views empty at once.** With History, Insights and the settings panel's storage read-out
+   on screen, run **Reset all settings** ▸ Yes. History and Insights both go empty straight away and
+   the storage read-out reads 0 — the reset announces `Ka0s_BankLedger_LedgerChanged` through
+   `Database:FireLedgerChanged`. **Fail:** either view keeps showing the deleted rows until it is
+   reopened.
+6. **A reset while disabled re-enables.** Untick **Enable Bank Ledger**, then **Reset all settings**
+   ▸ Yes. The checkbox reads ticked and the addon is running: deposit something at your bank and it
+   records. **Fail:** the box reads ticked but nothing records until a `/reload` or a toggle.
 
 ## S-17 · Current Banking Session window
 
@@ -594,11 +623,14 @@ is about the path and the argument; this is where somebody actually looks at the
 1. `/bl show`. The title bar's close control is an **outlined ×**, not a font character: thinner,
    evenly weighted, and the same shape you see on every other Ka0s window. Hover it — it takes your
    class color, exactly as the old glyph did. Click it; the window closes.
-2. Reopen, then check the other three title bars the same way: `/bl session`, then **Export**, then
-   **Export to CSV** on the modal. All four wear the same mark, because all four go through
-   `B:MakeCloseButton`. A window whose × still looks like a font character means one of them stopped
-   using that factory. The **debug console** and its **Copy** box are the two windows this factory
-   does *not* draw — they are the library's, and S-14 steps 9–11 are where you check them.
+2. Reopen, then check the other two host title bars the same way: `/bl session`, then **Export**.
+   All three wear the same mark, because all three go through `B:MakeCloseButton`. A window whose ×
+   still looks like a font character means one of them stopped using that factory.
+   Then **Export to CSV** on the modal, and check the copy window **separately**: it is
+   `LibKa0s-Widgets-1.0`'s `CopyWindow`, so its close is the library's, not this factory's. It wears
+   the same outlined `close` mark; a font-character × there is a library regression, not a host one.
+   The **debug console** and its **Copy** box are two more windows this factory does *not* draw —
+   they are the library's too, and S-14 steps 9–11 are where you check them.
 3. **Every dropdown on the filter bar** ends in a **chevron**, not Blizzard's filled arrow — that is
    eight today: **Group by** on row 1, then Date, Direction, Store, Quality, Type, Sub-type and
    Character on row 2. Count them; Group by is the one a "seven filters" habit skips. The modal's
@@ -761,9 +793,12 @@ cannot see, so they are checked here. **NOT YET RUN** — recorded when the adop
 `NS.defaults.global`, because as a declared default it was stripped from the SavedVariables file at
 every logout and re-supplied at the next login as the runner's own target — so `NS:RunMigrations`
 read v2, `< NS.SCHEMA_VERSION` was never true, and the v1 → v2 pass had never once run against a
-player's store. The headless suite now pins the seeding, the discriminator and the `[Migrate]` line,
-but only the client can prove that a stamp the runner wrote **survives a logout**, which is the exact
-thing the defaults declaration broke. That is what this step is for.
+player's store. Since standard v2.65.0 (`BL-11`) the key is declared again, but as
+`schemaVersion = 0`, never a real version (`savedvariables-§1`): the strip cannot remove a real
+stamp, and a store with its stamp deleted is backfilled with 0 and walked from v1. The headless suite
+pins the declared 0, the walk and the `[Migrate]` line, but only the client can prove that a stamp
+the runner wrote **survives a logout**, which is the exact thing the old default broke. That is what
+this step is for.
 
 **Back up `WTF/` before you start, and do every edit on the copy.** This is the one step in this
 document that touches a real ledger.
@@ -778,7 +813,7 @@ document that touches a real ledger.
 5. Log out fully (exit to desktop; the strip runs on `PLAYER_LOGOUT`). Reopen the file.
 6. **Pass:** `["schemaVersion"] = 2,` is present under `["global"]`, and the `vendorPrice` key is
    gone from the entry you edited. **Fail:** the stamp is missing again, which would mean something
-   reinstated it as a default and the next schema bump is already disarmed.
+   declared a default equal to a real version and the next schema bump is already disarmed.
 7. Log back in once more and confirm the console shows **no** migration line the second time — the
    runner is idempotent and a stamped store is left alone.
 
@@ -898,9 +933,11 @@ Run every step with `/console scriptErrors 1`.
 4. **Pull a mob and drop combat.** **Pass** — nothing at all in chat, and no new line in the debug
    console. **Fail** — any line, because a disabled addon that says something on a combat edge is
    still registered for that edge.
-5. **Left-click the minimap button.** One line: `Ka0s Bank Ledger is disabled — enable it with
-   /bl enable`, the command in gold, and the ledger window does **not** open. **Right-click it** —
-   the settings panel opens, exactly as it does when the addon is running.
+5. **Left-click the minimap button.** The settings panel opens, exactly as it does when the addon
+   is running, and nothing prints. Hover it: `Enabled: No`. **Right-click it** — the menu opens with
+   **Enabled** unticked and live, and **Locked**, **Test mode** and **Show window** grayed out, each
+   reading `(enable the addon first)`. Clicking a grayed entry does nothing. (Do not click
+   **Enabled** yet: that re-enables the addon, which is the step further down.)
 6. **The command surface is untouched.** `/bl` alone opens the settings panel. `/bl version`,
    `/bl list`, `/bl get settings.qualityThreshold`, `/bl set settings.qualityThreshold 3`,
    `/bl reset settings.qualityThreshold` all answer normally — reading and repairing settings is
@@ -910,11 +947,14 @@ Run every step with `/console scriptErrors 1`.
    `/bl perf` answers the same way: it is reserved but this addon registers no `perf` verb, and
    from `LibKa0s-Slash-1.0` minor 14 an unshipped verb is never refused.
 7. **A feature verb is refused, on one line and once.** `/bl show`, `/bl toggle`, `/bl test`,
-   `/bl purge` — each prints exactly the same line as step 5 and does nothing else. `/bl purge`
+   `/bl purge` — each prints exactly one line, `Ka0s Bank Ledger is disabled — enable it with
+   /bl enable`, the command in gold, and does nothing else. `/bl purge`
    raises **no confirm dialog**.
 8. `/reload` with the addon still disabled. It comes back disabled, still silent, still answering
    every command — the stored setting is what survives, and the latch itself persists nothing.
-9. **Tick the box again.** Capture resumes with no reload: open the bank, move a stack, and the
+9. **Tick the box again** (or right-click the minimap button and click **Enabled**, which runs
+   `/bl enable`; the other three entries are live again the next time the menu opens). Capture
+   resumes with no reload: open the bank, move a stack, and the
    session window appears with the row in it. Then change one setting **while disabled** and
    re-enable — set `/bl disable`, `/bl set settings.trackMoney false`, `/bl enable`, and move gold
    in: it is **not** recorded. The rebuild reads the settings as they are now, never a snapshot

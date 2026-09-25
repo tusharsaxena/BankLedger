@@ -37,9 +37,9 @@ test("Database:Add fires EntryAdded on the bus", function()
   withLedger({}, function()
     local seen = 0
     local target = NS.NewBusTarget()
-    target:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() seen = seen + 1 end)
+    target:RegisterMessage(NS.MSG.ENTRY_ADDED, function() seen = seen + 1 end)
     NS.Database:Add(entry())
-    target:UnregisterMessage("Ka0s_BankLedger_EntryAdded")
+    target:UnregisterMessage(NS.MSG.ENTRY_ADDED)
     assertEqual(seen, 1)
   end)
 end)
@@ -50,11 +50,11 @@ test("Database: two consumers of one message both receive it", function()
   withLedger({}, function()
     local a, b = 0, 0
     local ta, tb = NS.NewBusTarget(), NS.NewBusTarget()
-    ta:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() a = a + 1 end)
-    tb:RegisterMessage("Ka0s_BankLedger_EntryAdded", function() b = b + 1 end)
+    ta:RegisterMessage(NS.MSG.ENTRY_ADDED, function() a = a + 1 end)
+    tb:RegisterMessage(NS.MSG.ENTRY_ADDED, function() b = b + 1 end)
     NS.Database:Add(entry())
-    ta:UnregisterMessage("Ka0s_BankLedger_EntryAdded")
-    tb:UnregisterMessage("Ka0s_BankLedger_EntryAdded")
+    ta:UnregisterMessage(NS.MSG.ENTRY_ADDED)
+    tb:UnregisterMessage(NS.MSG.ENTRY_ADDED)
     assertEqual(a, 1)
     assertEqual(b, 1)
   end)
@@ -273,7 +273,7 @@ test("Database:PruneOld broadcasts LedgerChanged only when a row actually went",
   NS.db.global.settings.retentionDays = 30
   local sent, savedSend = 0, NS.bus.SendMessage
   NS.bus.SendMessage = function(self, msg, ...)
-    if msg == "Ka0s_BankLedger_LedgerChanged" then sent = sent + 1 end
+    if msg == NS.MSG.LEDGER_CHANGED then sent = sent + 1 end
     return savedSend(self, msg, ...)
   end
   withLedger({ entry({ ts = MOCK_NOW }) }, function()
@@ -385,12 +385,10 @@ test("RunMigrations treats a database with no schemaVersion key at all as v1", f
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
 end)
 
--- The next three read the [Migrate] line rather than the stamp. That is deliberate: the stamp alone
--- cannot tell a fresh install from a database that was walked, because BOTH end at
--- NS.SCHEMA_VERSION. Asserting on the stamp, the empty-store case below stays green under the exact
--- mistake it exists to catch — seeding unconditionally at 1, which migrates an empty ledger and then
--- stamps it current anyway. The debug line is the only headless witness that the pass ran, and it is
--- also what docs/smoke-tests.md reads in the client, so the two checks now agree on their evidence.
+-- Several cases below read the [Migrate] line as well as the stamp. The stamp alone cannot tell a
+-- walked store from one left alone -- both end at NS.SCHEMA_VERSION -- and the row count is the only
+-- headless witness of what the walk touched. The line is also what docs/smoke-tests.md reads in the
+-- client, so the two checks agree on their evidence.
 
 local function migrationLines(fn)
   local savedDebug = NS.State.debug
@@ -426,41 +424,95 @@ test("RunMigrations announces the v1->v2 pass the smoke step reads", function()
     "the line names the ladder and the row count: " .. tostring(lines[1]))
 end)
 
-test("RunMigrations stamps a stamp-less EMPTY store at the current version without replaying v1->v2",
+test("RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows",
 function()
-  -- The other half of the discriminator, and the requirement the retired shipped default existed to
-  -- meet. A fresh install carries no stamp and no entries, and must not be read as a pre-stamp
-  -- database: the walk would find nothing and still report a migration that never happened.
-  -- red under: seeding unconditionally at 1.
+  -- savedvariables-§1 (standard v2.65.0): an unstamped store -- nil, or the 0 AceDB backfills from
+  -- the declared default -- is walked from v1, and a fresh install is not told apart from a legacy
+  -- one. It does not need to be: every step over an empty ledger is a no-op, so the walk costs a
+  -- loop and reports 0 rows. What is pinned is the end state and the honest count.
+  -- red under: a step that fabricates rows, or a runner that leaves an empty store unstamped.
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
   local lines = migrationLines(function()
     NS.db.global.schemaVersion = nil
     NS.db.global.ledger = {}
     NS:RunMigrations()
   end)
-  local after = NS.db.global.schemaVersion
+  local after, n = NS.db.global.schemaVersion, #NS.db.global.ledger
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
-  assertEqual(after, NS.SCHEMA_VERSION,
-    "an empty unstamped store is a fresh install and starts at the current shape")
-  assertEqual(#lines, 0, "and no pass ran, so nothing was announced")
+  assertEqual(after, NS.SCHEMA_VERSION, "an empty unstamped store ends at the current shape")
+  assertEqual(n, 0, "and the walk added nothing to it")
+  assertEqual(#lines, 1, "one pass, announced once")
+  assertTrue(lines[1]:find("0 rows touched", 1, true) ~= nil,
+    "the walk over an empty ledger touched nothing: " .. tostring(lines[1]))
 end)
 
-test("RunMigrations seeds a stamp-less store whose ledger is nil, without raising", function()
-  -- The ledger is the discriminator, so the discriminator has to survive the states the ledger is
-  -- actually in — and nil is one this suite already models a case for. Kept apart from the empty-
-  -- table case above because the obvious tightening, `next(g.ledger) == nil`, passes that one and
-  -- raises on this one, against a real SavedVariables file at login.
-  -- red under: dropping the `g.ledger == nil` clause from the discriminator.
+test("RunMigrations stamps a stamp-less store whose ledger is nil, without raising", function()
+  -- A real state rather than defensive decoration: the v1->v2 step iterates `g.ledger or {}`.
+  -- red under: a step that indexes g.ledger unguarded.
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
   NS.db.global.schemaVersion = nil
   NS.db.global.ledger = nil
   local ok
-  local lines = migrationLines(function() ok = pcall(function() NS:RunMigrations() end) end)
-  local after = NS.db.global.schemaVersion
+  migrationLines(function() ok = pcall(function() NS:RunMigrations() end) end)
+  local after, ledger = NS.db.global.schemaVersion, rawget(NS.db.global, "ledger")
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
   assertTrue(ok, "must not raise on a nil ledger")
-  assertEqual(after, NS.SCHEMA_VERSION, "nothing to migrate, so nothing to do")
-  assertEqual(#lines, 0, "and no pass ran, so nothing was announced")
+  assertEqual(after, NS.SCHEMA_VERSION, "nothing to migrate, and stamped current")
+  assertEqual(ledger, nil, "no ledger is fabricated where none existed")
+end)
+
+test("RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them",
+function()
+  -- The shape a legacy (pre-stamp) SavedVariables file takes once the default is declared: AceDB
+  -- backfills `schemaVersion = 0` onto the unstamped store, and 0 must read as "unstamped", never
+  -- as "current" (savedvariables-§1, v2.65.0).
+  -- red under: a runner that returns on `from == 0`, or reads 0 as the current version.
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  NS.db.global.schemaVersion = 0
+  NS.db.global.ledger = {
+    { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
+    { ts = 2, char = "A-R", kind = "ITEM", direction = "WITHDRAW", store = "BANK",
+      itemID = 2589, itemName = "Linen Cloth", quantity = 4, vendorPrice = 20 },
+  }
+  local lines = migrationLines(function() NS:RunMigrations() end)
+  local after = NS.db.global.schemaVersion
+  local p1, p2 = NS.db.global.ledger[1].vendorPrice, NS.db.global.ledger[2].vendorPrice
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+  assertEqual(after, NS.SCHEMA_VERSION, "0 was walked, not taken as current")
+  assertEqual(p1, nil); assertEqual(p2, nil)
+  assertTrue(lines[1] and lines[1]:find("2 rows touched", 1, true) ~= nil,
+    "both rows counted: " .. tostring(lines[1]))
+end)
+
+test("RunMigrations leaves the stamp at the last completed step when a step raises", function()
+  -- The runner stamps AFTER each step returns, so a step that raises leaves the store at the last
+  -- version it completed, and the next login retries that step rather than skipping it.
+  -- red under: stamping before running the step, or stamping the target once at the end regardless.
+  local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
+  local step = NS.MIGRATIONS[2]
+  NS.MIGRATIONS[2] = function() error("step blew up", 0) end
+  NS.db.global.schemaVersion = 1
+  NS.db.global.ledger = { { ts = 1, kind = "ITEM", quantity = 3, vendorPrice = 20 } }
+  local ok, err = pcall(function() NS:RunMigrations() end)
+  local after = NS.db.global.schemaVersion
+  NS.MIGRATIONS[2] = step
+  NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+  assertEqual(ok, false, "the step's error propagates")
+  assertEqual(err, "step blew up")
+  assertEqual(after, 1, "the stamp stays at the last completed version")
+end)
+
+test("ResetEverything leaves the store stamped at NS.SCHEMA_VERSION", function()
+  -- The wipe merges the declared defaults back, which carry `schemaVersion = 0`. Left there, a
+  -- freshly reset store reads v0 until the next login. The reset re-runs the runner instead.
+  -- red under: dropping the NS:RunMigrations() call from Sl:ResetEverything.
+  local saved = T.mocks.DEFAULT_CHAT_FRAME.AddMessage
+  T.mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  NS.Slash:ResetEverything()
+  T.mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  assertEqual(rawget(NS.db.global, "schemaVersion"), NS.SCHEMA_VERSION,
+    "a wiped store is re-stamped, not left on the declared 0")
 end)
 
 test("RunMigrations survives a database with no ledger at all", function()
@@ -502,19 +554,20 @@ end)
 
 -- ── Schema version ─────────────────────────────────────────────────────────────
 
-test("Database: schemaVersion is NOT a shipped AceDB default", function()
-  -- This case is what F-008's became. That one asserted the shipped default EQUALLED the runner's
-  -- target, and the equality is precisely what broke the runner: AceDB strips a stored value still
-  -- equal to its default at logout, so the stamp came back as the target and `< NS.SCHEMA_VERSION`
-  -- was never true (BANKLEDGER-R-02). There is no default left to keep in step; what needs pinning
-  -- now is that nobody reinstates one, because a reinstated default is silent — every suite here
-  -- stays green and only a real player's logout can tell.
-  -- red under: putting `schemaVersion = NS.SCHEMA_VERSION` back into NS.defaults.global.
-  assertEqual(NS.defaults.global.schemaVersion, nil)
+test("Database: defaults declare schemaVersion = 0 (savedvariables-§1)", function()
+  -- Standard v2.65.0. 0 is never a real version, so AceDB's logout strip (removeDefaults, which
+  -- drops a stored value still equal to its default) can never remove a real stamp, and the 0 AceDB
+  -- backfills onto a legacy unstamped store reads as "unstamped" rather than masking it. The old
+  -- failure -- a default EQUAL to NS.SCHEMA_VERSION, stripped at logout and read back as the target
+  -- so the runner never fired -- is what the second assertion keeps out.
+  -- red under: omitting the key, or declaring it as NS.SCHEMA_VERSION.
+  assertEqual(NS.defaults.global.schemaVersion, 0)
+  assertTrue(NS.defaults.global.schemaVersion ~= NS.SCHEMA_VERSION,
+    "the default must never equal a real version")
 end)
 
 test("Database: a fresh database needs no migration", function()
-  -- Seeded explicitly rather than read off NS.defaults.global, which no longer carries the key.
+  -- Seeded explicitly: the declared default is 0, which reads as unstamped, not current.
   local saved = NS.db.global.schemaVersion
   NS.db.global.schemaVersion = NS.SCHEMA_VERSION
   NS:RunMigrations()

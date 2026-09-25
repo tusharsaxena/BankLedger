@@ -335,3 +335,64 @@ test("Util.ResetWindowPositions clears BOTH windows' stored geometry", function(
   assertEqual(next(NS.db.global.settings.sessionWindow or {}), nil,
     "the session window's geometry survived")
 end)
+
+test("ApplyVisibility hides only open windows and re-shows exactly those on the way back", function()
+  -- The combat edge itself, in `inCombat` mode: InCombatLockdown flips and nothing else does. Both
+  -- windows open to start with, then the player closes one while the rule holds them hidden.
+  --
+  -- Dies under: re-showing every owner on the way back, or losing an owner from the name list.
+  local savedLockdown = mocks.InCombatLockdown
+  local inCombat = true
+  mocks.InCombatLockdown = function() return inCombat end
+  for k in pairs(NS.State.hiddenByVisibility) do NS.State.hiddenByVisibility[k] = nil end
+
+  withSettings({ visibility = "inCombat" }, function()
+    NS.Browser:Show()
+    NS.SessionWindow:Show()
+    assertTrue(NS.Browser:GetWindow():IsShown(), "the ledger window must be up to start with")
+    assertTrue(NS.SessionWindow:IsShown(), "the session window must be up to start with")
+
+    inCombat = false
+    NS.Util.ApplyVisibility()
+    assertFalse(NS.Browser:GetWindow():IsShown(), "leaving combat must take the ledger window")
+    assertFalse(NS.SessionWindow:IsShown(), "leaving combat must take the session window")
+    assertEqual(NS.State.hiddenByVisibility.Browser, true)
+    assertEqual(NS.State.hiddenByVisibility.SessionWindow, true)
+
+    inCombat = true
+    NS.Util.ApplyVisibility()
+    assertTrue(NS.Browser:GetWindow():IsShown(), "entering combat must put the ledger window back")
+    assertTrue(NS.SessionWindow:IsShown(), "entering combat must put the session window back")
+    assertEqual(next(NS.State.hiddenByVisibility), nil, "nothing left remembered once re-shown")
+
+    -- The player closes the session window; the next edge must not reopen it.
+    NS.SessionWindow:Hide()
+    inCombat = false
+    NS.Util.ApplyVisibility()
+    assertEqual(NS.State.hiddenByVisibility.SessionWindow, nil,
+      "a window the player closed must not be remembered")
+    inCombat = true
+    NS.Util.ApplyVisibility()
+    assertTrue(NS.Browser:GetWindow():IsShown(), "the ledger window comes back again")
+    assertFalse(NS.SessionWindow:IsShown(), "and the one the player closed stays closed")
+
+    NS.Browser:Hide()
+  end)
+  mocks.InCombatLockdown = savedLockdown
+end)
+
+test("ApplyVisibility and ApplyMasterChrome build no table literal per call", function()
+  -- docs/performance.md says the combat-edge handler allocates nothing. It runs on every
+  -- PLAYER_REGEN_DISABLED/ENABLED, so the owner lists are module-level and only iterated here.
+  --
+  -- Dies under: putting `pairs({ ... })` / `ipairs({ ... })` back into either body.
+  local fh = assert(io.open("core/Util.lua", "rb"))
+  local src = fh:read("*a")
+  fh:close()
+  for _, name in ipairs({ "ApplyVisibility", "ApplyMasterChrome" }) do
+    local body = src:match("\nfunction Util%." .. name .. "%(%)(.-)\nend\r?\n")
+    assertTrue(body ~= nil, "could not find the body of Util." .. name)
+    assertFalse(body:find("pairs({", 1, true) ~= nil,
+      "Util." .. name .. " builds a table literal on every call")
+  end
+end)

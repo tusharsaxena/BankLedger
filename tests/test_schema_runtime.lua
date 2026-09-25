@@ -77,6 +77,18 @@ test("Schema:Set refuses a value its row's validate rejects, and stores and call
   assertEqual(#log, 0, "no line, no reaction, no repaint: " .. table.concat(log, " | "))
 end)
 
+test("the live seam takes the row, not writeThrough, when settings.enabled has one", function()
+  -- settings.enabled is on S.WRITE_THROUGH, and a full load composes its row. The library's
+  -- writeRow answers the indexed row first, so the write validates and runs the row's onChange --
+  -- the latch -- rather than being stored raw.
+  local row = S:FindRow("settings.enabled")
+  assertTrue(row ~= nil, "the full load composed no settings.enabled row")
+  assertFalse(row.writeThrough == true, "FindRow answered the synthetic writeThrough row")
+  local log = observed(row, function() S:Set("settings.enabled", true) end)
+  assertTrue(table.concat(log, " | "):find("onChange:true", 1, true) ~= nil,
+    "the row's onChange did not run: " .. table.concat(log, " | "))
+end)
+
 test("Schema:Set on an unknown path stores nothing, anywhere", function()
   S:Set("settings.nonesuch", 1)
   S:Set("nonesuch", 1)
@@ -115,7 +127,7 @@ test("Schema:ApplyDefault restores one row and answers `true`; a pathless row an
 end)
 
 test("Schema:ApplyDefault leaves the Minimap row alone inside a bracket, and resets it outside one", function()
-  -- launcher-§3's carve-out is scoped to a sweep: `/bl reset minimap.hide` is the player naming
+  -- launcher-§3's carve-out is scoped to a sweep: `/bl reset minimap.shown` is the player naming
   -- that exact row, and it applies.
   local row = S:FindRow(S.MINIMAP_PATH)
   S:Set(S.MINIMAP_PATH, false)
@@ -186,13 +198,21 @@ test("Schema degraded: a table value is stored as a copy, and the default stays 
   assertEqual(ns.Schema:Default("settings.excludedStores").BANK, nil, "the default was poisoned")
 end)
 
-test("Schema degraded: the resetall sweep writes every row back and closes its bracket", function()
+test("Schema degraded: a bracketed sweep writes every row back and closes its bracket", function()
+  -- Driven through the stub's own bracket and ApplyDefault, the shape any sweep takes. It used to
+  -- ride on the degraded `/bl resetall`, which carried its own walk; that verb is the wholesale
+  -- Sl:ResetEverything now (options-ui-§12), so the stub's bracket is pinned directly.
+  -- red under: the stub's ApplyDefault writing nothing, or a BulkEnd that leaves the bracket open.
   local ns, m = degraded()
   ns.Schema:Set(PATH, 4)
   ns.Schema:Set("settings.trackItems", false)
   local saved = m.DEFAULT_CHAT_FRAME.AddMessage
   m.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  local ok, err = pcall(function() ns.Slash:CliResetAll() end)
+  local ok, err = pcall(function()
+    ns.Schema.BulkBegin("reset", "all")
+    for _, row in ipairs(ns.Schema.Schema) do ns.Schema:ApplyDefault(row) end
+    ns.Schema.BulkEnd("reset", "all", nil, nil, { profileReset = false })
+  end)
   m.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertTrue(ok, tostring(err))
   assertEqual(ns.Schema:Get(PATH), 0)

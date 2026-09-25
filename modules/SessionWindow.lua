@@ -31,7 +31,7 @@ local ITEM_MIN = 150          -- minimum width of the flex (Item) column
 local SCROLLBAR_GUTTER = 24
 local PANE_MARGIN = 12
 local ARROW_SIZE, ARROW_GAP = 12, 2
-local TITLE = "Ka0s Bank Ledger - Current Banking Session"
+local TITLE = NS.BRAND_NAME .. " - Current Banking Session"
 
 -- The History window's columns, minus the four the session view has no use for:
 --   * date/time  — every row happened moments ago, during this session
@@ -670,6 +670,6 @@ function SW:Enable()
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if SW.__ev.RegisterEvent then
-    SW.__ev:RegisterEvent("PLAYER_LOGOUT", function() SW:OnLogout() end)
+    NS.RegisterEventSafely(SW.__ev, "PLAYER_LOGOUT", function() SW:OnLogout() end)
   end
 end

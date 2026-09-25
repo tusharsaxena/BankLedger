@@ -21,7 +21,7 @@ local print = NS.Print
 
 -- The brand. Reaches the library as descriptor.parentTitle, which builds both the main page's title
 -- and every sub-page's "Ka0s Bank Ledger ▸ <page>" breadcrumb.
-local PARENT_TITLE = "Ka0s Bank Ledger"
+local PARENT_TITLE = NS.BRAND_NAME
 
 local lib = LibStub and LibStub("LibKa0s-Options-1.0", true)
 
@@ -49,8 +49,7 @@ local descriptor = {
   --
   -- applyDefault is the instance's ApplyDefault, with the bracket pair beside it, so the page
   -- Defaults act -- O.RestoreDefaults, which this addon does not call today (see below) -- would
-  -- skip the Minimap button row (launcher-§3) and log one `[Set] reset general: N rows` line, as
-  -- /bl resetall does. Before LibKa0s v1.55.0 this field wrote `S:Set(path, S:Default(path))`
+  -- skip the Minimap button row (launcher-§3) and log one `[Set] reset general: N rows` line. Before LibKa0s v1.55.0 this field wrote `S:Set(path, S:Default(path))`
   -- and carried no pair, so that act would have swept the minimap row back to shown.
   get          = NS.SchemaRuntime.Get,
   set          = NS.SchemaRuntime.Set,
@@ -62,8 +61,8 @@ local descriptor = {
   -- Every schema row lives on the General page. `filter` is ctx.unit, which this addon never sets —
   -- it has no per-unit pages — so it is ignored rather than threaded through.
   --
-  -- NS.Schema:PageRows(), not NS.Schema.Schema: the page also draws the two item-id filter tabs,
-  -- whose bodies are host-drawn and whose `group` is declared by a renderer-only row that is
+  -- NS.Schema:PageRows(), not NS.Schema.Schema: the page also draws the one Filters tab, whose two
+  -- item-id lists are host-drawn and whose `group` is declared by a renderer-only row that is
   -- deliberately NOT a setting (settings/Schema.lua, S.BespokeRows). `allRows` above still hands
   -- back the stored schema alone, so the CLI and every reset see exactly the settings.
   rowsForPage = function(pageKey)
@@ -101,9 +100,10 @@ local descriptor = {
   -- No `skipRestoreAll`: every row here is a plain setting and a global reset should touch all of
   -- them. This addon has no profiles page whose rows are user data.
   --
-  -- No `afterRestoreAll` and no use of the library's RestoreAllDefaults — see settings/Panel.lua's
-  -- P:RestoreDefaults, and LIBKA0S-22 (closed issue #10), for why the reset stays one
-  -- host-owned implementation shared with `/bl resetall`.
+  -- No `afterRestoreAll` and no use of the library's RestoreAllDefaults. The global reset is one
+  -- host-owned implementation (options-ui-§12, LIBKA0S-22, closed issue #10): Sl:ResetEverything,
+  -- behind the confirm popup Sl:RequestResetAll raises for Reset all settings, both Defaults
+  -- controls and `/bl resetall` alike. See settings/Panel.lua's P:RestoreDefaults.
   --
   -- No `getLSM`: no row is LSM-backed. The vendored console font is a Constants path, not a media
   -- picker.

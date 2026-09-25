@@ -76,6 +76,26 @@ test("LibKa0s-Core degraded: the fallback carries the whole live seam surface", 
   T.assertSurfaceParity(live, degraded, "the Core seam's namespace")
 end)
 
+test("Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent", function()
+  -- The degraded arm's one rung (BL-06): no library, so no IsEventValid gate, but the pcall still
+  -- stands between a refused name and the caller, and the record still says which way it went.
+  -- red under: a degraded NS.RegisterEventSafely that calls target:RegisterEvent bare.
+  local degraded, dm = loadUpTo("core/CoreSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-Core-1.0", true) == nil,
+    "the degraded arm still has the library — this case would prove nothing")
+  local target = {
+    RegisterEvent = function(_, event)
+      if event == "RETIRED_EVENT" then error("Attempt to register unknown event") end
+    end,
+  }
+  local ok, took = pcall(degraded.RegisterEventSafely, target, "RETIRED_EVENT", function() end)
+  assertTrue(ok, took)
+  assertTrue(took == false, "a raising RegisterEvent was reported as bound")
+  assertTrue(degraded.RegisterEventSafely(target, "BAG_UPDATE_DELAYED", function() end) == true)
+  assertEqual(degraded.EventRecord.unavailable[1], "RETIRED_EVENT")
+  assertEqual(degraded.EventRecord.registered[1], "BAG_UPDATE_DELAYED")
+end)
+
 -- ── LibKa0s-Lifecycle-1.0 ────────────────────────────────────────────────────────────────────
 
 test("LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface", function()
@@ -271,9 +291,9 @@ test("LibKa0s-Bus degraded: the stub answers as the untracked-target shape names
   local replayed, rejected = rec:StandUp()
   assertEqual(replayed, 0, "StandUp answers 0 replayed")
   assertTrue(type(rejected) == "table" and next(rejected) == nil, "StandUp answers an empty rejected list")
-  local declared = { X = "Ka0s_BankLedger_X" }
+  local declared = { X = NS.MSG.ENTRY_ADDED }
   assertTrue(Bus.Catalog("BankLedger", declared) == declared, "Catalog hands back the host's own table")
-  assertTrue(degraded.MSG.ENTRY_ADDED == "Ka0s_BankLedger_EntryAdded", "NS.MSG lost a name on the degraded load")
+  assertTrue(degraded.MSG.ENTRY_ADDED == NS.MSG.ENTRY_ADDED, "NS.MSG lost a name on the degraded load")
 end)
 
 test("LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil", function()
@@ -325,4 +345,172 @@ test("LibKa0s-Schema degraded: the stub library carries the whole lib-level surf
   -- are this addon's own words (the descriptor's `L`), not a copy of the library's constants.
   local degraded = loadDegraded()
   T.assertSurfaceParity(degraded.__schemaLib, "LibKa0s-Schema-1.0", { "STRINGS" })
+end)
+
+test("LibKa0s-Schema degraded: the stub SetMany is all-or-nothing", function()
+  -- Schema minor 2 (LibKa0s v1.56.0) adds SetMany to the instance surface, and its version-2
+  -- document puts it in the stub table: all-or-nothing, log-silent. The stub carries it ahead of
+  -- the re-vendor so the parity case above stays green across it. BankLedger calls it nowhere; this
+  -- case holds its semantics so a carried member is not an untested one. No row in S.Schema carries
+  -- a `validate`, so the refusing row is spliced into the degraded arm's own rows through AddRows.
+  local degraded = loadDegraded()
+  local R = degraded.SchemaRuntime
+  local ticks, repaints = 0, 0
+  degraded.Util.RefreshRowTint = function() ticks = ticks + 1 end
+  degraded.Panel = { Refresh = function() repaints = repaints + 1 end }
+  R.AddRows({ { path = "settings.refused", default = 1, group = "Capture",
+    validate = function(v) return v == 1, "only one" end } })
+
+  degraded.db = { global = { settings = { rowStripeAlpha = 0.03, rowHoverAlpha = 0.10 } } }
+  local store = degraded.db.global.settings
+  local ok, err, why, index = R.SetMany({
+    { path = "settings.rowStripeAlpha", value = 0.2 }, { path = "settings.nope", value = 1 } })
+  assertEqual(ok, false, "an unknown path let the batch through")
+  assertEqual(err, "unknown path: settings.nope", "the NOT_FOUND refusal is the host's words")
+  assertEqual(why, nil, "a NOT_FOUND refusal carries no why")
+  assertEqual(index, 2, "the refusal names the refused entry")
+
+  ok, err, why, index = R.SetMany({
+    { path = "settings.rowStripeAlpha", value = 0.2 }, { path = "settings.refused", value = 2 } })
+  assertEqual(ok, false, "a refusing validate let the batch through")
+  assertEqual(err, "invalid value", "the INVALID refusal is the host's words")
+  assertEqual(why, "only one", "the validate's own why is handed on")
+  assertEqual(index, 2, "the refusal names the refused entry")
+  assertEqual(store.rowStripeAlpha, 0.03, "a refused batch stored its first entry")
+  assertEqual(ticks + repaints, 0, "a refused batch ran a reaction or an announce")
+
+  assertEqual(R.SetMany({ { path = "settings.rowStripeAlpha", value = 0.2 },
+    { path = "settings.rowHoverAlpha", value = 0.3 } }, { act = "reset" }), true,
+    "a valid batch was refused")
+  assertEqual(store.rowStripeAlpha, 0.2, "the first entry was not stored")
+  assertEqual(store.rowHoverAlpha, 0.3, "the second entry was not stored")
+  assertEqual(ticks, 2, "each row's onChange runs once")
+  assertEqual(repaints, 2, "with no announceBatch, announce runs once per write")
+  assertEqual(R.SetMany({}), true, "the empty batch is a success")
+  assertEqual(ticks + repaints, 4, "the empty batch reacted or announced")
+
+  degraded.db = nil
+  ok, err, why, index = R.SetMany({ { path = "settings.rowStripeAlpha", value = 0.5 } })
+  assertEqual(ok, false, "a batch stored with no root")
+  assertEqual(err, "no settings store yet: settings.rowStripeAlpha", "the NO_ROOT refusal")
+  assertEqual(why, nil, "a NO_ROOT refusal carries no why")
+  assertEqual(index, 1, "the NO_ROOT refusal names its entry")
+end)
+
+-- ── The master switch without the library (WS-02 route a) ────────────────────────────────────
+--
+-- `settings.enabled` is a COMPOSED row: LibKa0s-Options' MasterControls declares it, so a load with
+-- no library has no row for it, and the reserved pair `/bl enable` / `/bl disable` used to meet the
+-- CLI-unavailable line and leave the store where it was. settings/Schema.lua lists the path in
+-- S.WRITE_THROUGH, the stub stores it raw through a synthetic row, and the degraded Sl:CliEnabled
+-- writes it through the seam and re-runs the latch itself (a write-through row has no onChange).
+
+--- A degraded load with a settings store, the addon enabled and the print survey emptied. The
+--- degraded NS.Print leads its first line with the once-only missing-library notice (BL-00), so
+--- one throwaway print spends it here and the cases below count only what the verb said.
+local function degradedEnabled(store)
+  local degraded, dm = loadDegraded()
+  degraded.db = store
+  degraded.Print("fixture")
+  dm.__resetPrinted()
+  return degraded, dm
+end
+
+test("degraded: /bl disable writes settings.enabled through and stands the addon down, without a Lua error", function()
+  -- red under: a degraded Sl:CliEnabled that goes through Sl:CliSet (the CLI-unavailable line).
+  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "disable")
+  assertTrue(ok, err)
+  assertEqual(degraded.db.global.settings.enabled, false, "the store did not take the write")
+  assertTrue(degraded.IsStoodDown() == true, "the addon did not stand down")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("settings.enabled = false", 1, true) ~= nil, lines[1])
+end)
+
+test("degraded: /bl enable reverses it", function()
+  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  degraded.Slash.OnSlash(degraded.Slash, "disable")
+  dm.__resetPrinted()
+  local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "enable")
+  assertTrue(ok, err)
+  assertEqual(degraded.db.global.settings.enabled, true, "the store did not take the write")
+  assertTrue(degraded.IsStoodDown() == false, "the addon did not stand back up")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("settings.enabled = true", 1, true) ~= nil, lines[1])
+end)
+
+test("degraded: /bl disable with no settings store prints the refusal and acknowledges nothing", function()
+  local degraded, dm = degradedEnabled(nil)
+  local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "disable")
+  assertTrue(ok, err)
+  assertTrue(degraded.IsStoodDown() == false, "a refused write stood the addon down")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("no settings store yet: settings.enabled", 1, true) ~= nil, lines[1])
+end)
+
+test("Schema stub: a writeThrough path with no row is stored raw and announced; a path outside the list still answers unknown path", function()
+  local degraded = loadDegraded()
+  local R = degraded.SchemaRuntime
+  assertTrue(R.FindRow("settings.enabled") == nil, "the degraded arm has a settings.enabled row")
+  local repaints = 0
+  degraded.Panel = { Refresh = function() repaints = repaints + 1 end }
+  degraded.db = { global = { settings = { enabled = true } } }
+  assertEqual(R.Set("settings.enabled", false), true, "the writeThrough path was refused")
+  assertEqual(degraded.db.global.settings.enabled, false, "the writeThrough path was not stored")
+  assertEqual(repaints, 1, "the writeThrough write was not announced once")
+  assertEqual(R.SetMany({ { path = "settings.enabled", value = true } }), true,
+    "SetMany refused the writeThrough path")
+  assertEqual(degraded.db.global.settings.enabled, true, "SetMany did not store the writeThrough path")
+  local ok, err = R.Set("settings.locked", true)
+  assertEqual(ok, false, "a row-less path outside the list was stored")
+  assertEqual(err, "unknown path: settings.locked")
+  degraded.db = nil
+  ok, err = R.Set("settings.enabled", false)
+  assertEqual(ok, false, "a writeThrough write with no root was stored")
+  assertEqual(err, "no settings store yet: settings.enabled")
+end)
+
+test("Slash stub DisabledLine format is the library's bytes", function()
+  local degraded = loadDegraded()
+  T.assertLibraryConstant(degraded.Slash.__DISABLED_LINE_FORMAT, "LibKa0s-Slash-1.0", "DISABLED_LINE_FORMAT")
+end)
+
+-- ── The degraded Slash arm speaks the live arm's bytes (BL-17) ────────────────────────────────────
+--
+-- `/bl version` and the unknown-verb answer are two lines a player meets on either arm. The degraded
+-- arm passes the value to the printer (events-frames-taint-§8) and must still print exactly what the
+-- live library prints, or a degraded install reads differently from a working one.
+
+--- The one line a degraded verb prints, the once-only missing-library notice spent beforehand.
+local function degradedLines(fn)
+  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  fn(degraded.Slash)
+  return dm.__printed()
+end
+
+local function liveLines(fn)
+  T.mocks.__resetPrinted()
+  fn(NS.Slash)
+  local out = T.mocks.__printed()
+  T.mocks.__resetPrinted()
+  return out
+end
+
+test("Slash stub: /bl version prints the live arm's bytes", function()
+  local want = liveLines(function(Sl) Sl:CliVersion() end)
+  local got = degradedLines(function(Sl) Sl:CliVersion() end)
+  assertEqual(#want, 1, "the live arm printed " .. #want .. " lines")
+  assertEqual(#got, 1, "the degraded arm printed " .. #got .. " lines")
+  assertEqual(got[1], want[1])
+end)
+
+test("Slash stub: an unknown verb is answered in the live arm's words", function()
+  -- Only the first line: the help index after it differs by design (the degraded arm has none).
+  local want = liveLines(function(Sl) Sl:OnSlash("wibble") end)
+  local got = degradedLines(function(Sl) Sl:OnSlash("wibble") end)
+  assertEqual(got[1], want[1])
+  assertEqual(got[1], "|cff00ffff[BL]|r unknown command 'wibble'")
 end)

@@ -389,9 +389,11 @@ function L:Diagnose()
 
   -- Which events this build actually accepted. An event in the unavailable list is one Blizzard has
   -- retired; if a capture-critical one is in there, that is why nothing is being recorded.
-  add("events registered (%s): %s", #L.registeredEvents, table.concat(L.registeredEvents, ", "))
-  add("events UNAVAILABLE (%s): %s", #L.unavailableEvents,
-    #L.unavailableEvents > 0 and table.concat(L.unavailableEvents, ", ") or "none")
+  -- The record is the whole addon's (NS.EventRecord, core/CoreSetup.lua), not only this engine's.
+  local rec = NS.EventRecord
+  add("events registered (%s): %s", #rec.registered, table.concat(rec.registered, ", "))
+  add("events UNAVAILABLE (%s): %s", #rec.unavailable,
+    #rec.unavailable > 0 and table.concat(rec.unavailable, ", ") or "none")
   return out
 end
 
@@ -695,16 +697,18 @@ end
 --
 -- Every other frame announces its own close and `CloseContext` runs off that event. The guild bank
 -- announces nothing: `GUILDBANKFRAME_CLOSED` registers without complaint and never fires on 12.0.7,
--- exactly like its `_OPENED` sibling. The `IsGuildBankVisible()` check in `disarmGuildBankIfGone`,
+-- exactly like its `_OPENED` sibling, so neither name is registered any more (they only inflated
+-- `/bl debug scan`). The `IsGuildBankVisible()` check in `disarmGuildBankIfGone`,
 -- which `Reconcile` calls on every pass, is not a
 -- substitute, because closing the window changes no container and moves no money — so no event
 -- fires, no reconcile pass runs, and the context stays armed until some unrelated bag update happens
 -- along. That check is the backstop for a frame that vanished without hiding; this is the close.
 --
--- The frame's own `OnShow`/`OnHide` are the notices the client does give, and they are the whole of
--- what this addon knows about a guild bank visit. `OnShow` is the open the missing
--- `GUILDBANKFRAME_OPENED` was supposed to be: it fires when the player is demonstrably looking at
--- the vault, which tab data arriving does NOT establish (see `L:OnGuildBankData` and issue #12).
+-- The frame's own `OnShow`/`OnHide` are the notices the client does give, and they are the guild
+-- bank's ONLY open and close — the whole of what this addon knows about a guild bank visit. `OnShow`
+-- is the open the dead `GUILDBANKFRAME_OPENED` was supposed to be: it fires when the player is
+-- demonstrably looking at the vault, which tab data arriving does NOT establish (see
+-- `L:OnGuildBankData` and issue #12).
 --
 -- `GuildBankFrame` lives in Blizzard_GuildBankUI, loaded on demand, so the hooks go on the first
 -- time the guild bank is actually in play rather than at load — and once only, because a hook
@@ -814,15 +818,36 @@ function L:CloseContext()
   fireSessionChanged(false, context)
 end
 
+--- The stand-down's teardown of the capture context (core/BankLedger.lua, NS.StandDown step 3b).
+---
+--- Clears the open context, its baseline snapshot and the settle window, cancels the pending pass,
+--- and ends the banking session when one was open. It is the only path besides `CloseContext` and
+--- `disarmGuildBankIfGone` that clears these fields, and the only one that needs no event: both of
+--- the others are reached from events the stand-down has just unregistered, so without this the
+--- context would outlive the switch and the stand-up would diff against a pre-disable baseline.
+---
+--- There is deliberately NO Reconcile here, unlike `CloseContext`: whatever is in flight at the
+--- moment of disabling belongs to a period the player asked not to have captured.
+function L:DropContext()
+  local context = NS.State.openContext
+  self:CancelPendingReconcile()
+  NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
+  if context then
+    if NS.State.debug and NS.Debug then
+      NS.Debug("Store", "%s dropped (stand-down)", tostring(context))
+    end
+    fireSessionChanged(false, context)
+  end
+end
+
 -- Which FRAME an open-event belongs to. There is deliberately no event for the warband tabs,
--- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES).
+-- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES) — and none for
+-- the guild bank, whose open and close are GuildBankFrame's OnShow/OnHide (L:HookGuildBankFrame).
 local OPEN_EVENTS = {
   BANKFRAME_OPENED        = C.Context.BANK_FRAME,
-  GUILDBANKFRAME_OPENED   = C.Context.GUILD_BANK,
 }
 local CLOSE_EVENTS = {
   BANKFRAME_CLOSED        = true,
-  GUILDBANKFRAME_CLOSED   = true,
 }
 -- Events that mean "something in an open container changed". Each is a cue to re-diff, never a
 -- movement in itself.
@@ -833,25 +858,17 @@ local CHANGE_EVENTS = {
 -- reconciling it — see L:OnGuildBankData.
 local GUILD_DATA_EVENTS = { "GUILDBANKBAGSLOTS_CHANGED" }
 
--- Which event names this build accepted, and which it rejected. Read back by `/bl debug scan`.
-L.registeredEvents = {}
-L.unavailableEvents = {}
-
--- Register one event in isolation.
+-- Every registration below is isolated, through NS.RegisterEventSafely (core/CoreSetup.lua).
 --
 -- Blizzard retires events between expansions, and on modern retail `RegisterEvent` **raises** on an
--- unknown name rather than ignoring it. A bare `for ... do addon:RegisterEvent(...) end` therefore
+-- unknown name rather than ignoring it. A bare `RegisterEvent` loop therefore
 -- turns one stale name into a silent catastrophe: the loop aborts and every remaining event goes
 -- unregistered, leaving the addon deaf with no visible error unless the player has script errors
 -- switched on. That is exactly how this addon shipped able to see `BANKFRAME_OPENED` and nothing
--- else. Isolating each registration means a name this build lacks is recorded and skipped while
--- every other event still binds.
-function L:RegisterEventSafely(addon, event, handler)
-  local ok = pcall(addon.RegisterEvent, addon, event, handler)
-  local list = ok and L.registeredEvents or L.unavailableEvents
-  list[#list + 1] = event
-  return ok
-end
+-- else. Isolating each registration means a name this build lacks is recorded (NS.EventRecord, read
+-- back by `/bl debug scan`) and skipped while every other event still binds. The record is NOT
+-- reset here: NS.StandUp registers the addon's own three names before this Enable runs, and
+-- NS.StandDown is what empties it.
 
 function L:Enable()
   if self._enabled then return end
@@ -859,26 +876,26 @@ function L:Enable()
   self:RefreshUpvalues()
 
   local addon = NS.addon
-  L.registeredEvents, L.unavailableEvents = {}, {}
+  local register = NS.RegisterEventSafely
   for event, context in pairs(OPEN_EVENTS) do
-    self:RegisterEventSafely(addon, event, function() L:OpenContext(context) end)
+    register(addon, event, function() L:OpenContext(context) end)
   end
   for event in pairs(CLOSE_EVENTS) do
-    self:RegisterEventSafely(addon, event, function() L:CloseContext() end)
+    register(addon, event, function() L:CloseContext() end)
   end
   for _, event in ipairs(CHANGE_EVENTS) do
     -- Debounced, not immediate: one user action fires several of these, and the halves of a single
     -- movement do not all arrive on the same one.
-    self:RegisterEventSafely(addon, event, function() L:ScheduleReconcile() end)
+    register(addon, event, function() L:ScheduleReconcile() end)
   end
   for _, event in ipairs(GUILD_DATA_EVENTS) do
-    self:RegisterEventSafely(addon, event, function() L:OnGuildBankData() end)
+    register(addon, event, function() L:OnGuildBankData() end)
   end
   -- The guild bank's open signal is its frame's OnShow, and the frame arrives with a load-on-demand
   -- addon. Try now — the UI may already be loaded, on a /reload with the vault open — and listen for
   -- it landing later.
   self:HookGuildBankFrame()
-  self:RegisterEventSafely(addon, "ADDON_LOADED", function(_, name) L:OnAddonLoaded(name) end)
+  register(addon, "ADDON_LOADED", function(_, name) L:OnAddonLoaded(name) end)
 
   -- Re-cache the hot-path upvalues whenever a setting changes. Registered on this module's OWN
   -- AceEvent target, never the shared bus-as-self, so it can't clobber another consumer of the same

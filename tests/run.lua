@@ -25,7 +25,7 @@ local SUITES = {
   "test_ledger", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_launcher", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
-  "test_panel", "test_panel_filters", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
+  "test_panel", "test_panel_filters", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
   "test_lintconfig",

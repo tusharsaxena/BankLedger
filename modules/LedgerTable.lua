@@ -1061,6 +1061,15 @@ end
 -- id into the real, persisted capture filter, and Delete matched nothing in storage while still
 -- broadcasting LedgerChanged — the row visibly stayed (F-002). "Link to chat" mutates nothing and
 -- stays available; refusing here is right, rather than teaching Database which dataset is live.
+--
+-- The two filter confirmations hand the printer their parts as arguments (events-frames-taint-§8)
+-- rather than one pre-formatted string. The label is addon-owned (the stored item name, or the id),
+-- and the route ends in the list name with no separator, so that one join stays a literal concat.
+local MANAGE_ROUTE = "\226\128\148 manage it in Settings \226\150\184 General \226\150\184 Filters \226\150\184 "
+local function rowLabel(entry)
+  return entry.itemName or ("item " .. tostring(entry.itemID))
+end
+
 function LT:RowMenuItems(entry)
   local live = not self:IsTestMode()
   return {
@@ -1071,14 +1080,12 @@ function LT:RowMenuItems(entry)
     -- every stored row alone. Manage the list in Settings ▸ General ▸ Filters.
     { label = "Blacklist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddBlacklist(entry.itemID) then
-          print(("blacklisted %s. Manage in Settings \226\150\184 General \226\150\184 Filters \226\150\184 Blacklist."):format(
-            entry.itemName or ("item " .. tostring(entry.itemID))))
+          print("blacklisted", rowLabel(entry), MANAGE_ROUTE .. "Blacklist.")
         end
       end },
     { label = "Whitelist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddWhitelist(entry.itemID) then
-          print(("whitelisted %s. Manage in Settings \226\150\184 General \226\150\184 Filters \226\150\184 Whitelist."):format(
-            entry.itemName or ("item " .. tostring(entry.itemID))))
+          print("whitelisted", rowLabel(entry), MANAGE_ROUTE .. "Whitelist.")
         end
       end },
     { label = "|cffff5555Delete|r", enabled = live, fn = function()

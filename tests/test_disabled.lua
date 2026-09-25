@@ -181,23 +181,150 @@ end)
 
 -- ── 4. Nothing left to wake up ────────────────────────────────────────────────
 
+--- Empty the kit's timer queue while keeping it CALLABLE: `mocks.__timers()` answers the live set
+--- through the queue's metatable, so a bare `{}` would take that answer away. An earlier suite can
+--- leave a plain C_Timer.After entry queued (the options panel's 0.4 s LoadItem check), and a case
+--- that asserts "nothing is armed" has to start from a queue that holds only what it armed itself.
+local function clearTimerQueue()
+  mocks.__timers = setmetatable({}, getmetatable(mocks.__timers))
+end
+
+--- Run `fn` with the retention prune's session state reset and PruneOld swapped for a counter, and
+--- put both back afterwards whatever `fn` did. Answers the counter's reader.
+local function withPruneWindow(fn)
+  local st, db = NS.State, NS.Database
+  local savedDone, savedPending, savedPrune = st.cleanupDone, st.cleanupPending, db.PruneOld
+  local pruned = 0
+  db.PruneOld = function() pruned = pruned + 1 end
+  st.cleanupDone, st.cleanupPending = false, nil
+  clearTimerQueue()
+  local ok, err = pcall(fn, function() return pruned end)
+  if st.cleanupPending and NS.addon.CancelTimer then NS.addon:CancelTimer(st.cleanupPending) end
+  db.PruneOld = savedPrune
+  st.cleanupDone, st.cleanupPending = savedDone, savedPending
+  clearTimerQueue()
+  if not ok then error(err, 0) end
+end
+
 test("disabled: no timer, ticker or OnUpdate is left armed", function()
   -- red under: dropping the CancelAllTimers or the per-module CancelPending walk in NS.StandDown.
   -- A coalescing repaint timer that re-arms and then discovers it has nothing to paint is the most
   -- expensive shape slash-commands-§7 names.
-  local R_on = baseline()
-  NS.Browser:ScheduleLedgerRefresh()
-  NS.Ledger:ScheduleReconcile()
-  disable()
-  assertEqual(#mocks.__timers(), 0, "something is still going to wake up")
+  --
+  -- red under: arming the retention prune through C_Timer.After (core/BankLedger.lua's
+  -- OnEnterWorld). A bare After returns no handle, so CancelAllTimers cannot reach it and it wakes
+  -- five seconds later to find the latch. The login PEW is driven here, inside the window.
+  withPruneWindow(function()
+    local R_on = baseline()
+    NS.Browser:ScheduleLedgerRefresh()
+    NS.Ledger:ScheduleReconcile()
+    NS.addon:OnEnterWorld()
+    disable()
+    assertEqual(#mocks.__timers(), 0, "something is still going to wake up")
 
-  -- And nothing re-arms for the rest of the run. Driven the way the client would drive it: every
-  -- event the enabled addon was registered for, fired at the mock. Nothing reaches a handler,
-  -- because nothing is registered -- which is the point.
-  for _, r in ipairs(R_on) do if r.event then mocks.__fire(r.event) end end
-  mocks.__fire("PLAYER_REGEN_DISABLED")
-  assertEqual(#mocks.__timers(), 0, "a stood-down addon armed a fresh timer")
-  enable()
+    -- And nothing re-arms for the rest of the run. Driven the way the client would drive it: every
+    -- event the enabled addon was registered for, fired at the mock. Nothing reaches a handler,
+    -- because nothing is registered -- which is the point.
+    for _, r in ipairs(R_on) do if r.event then mocks.__fire(r.event) end end
+    mocks.__fire("PLAYER_REGEN_DISABLED")
+    assertEqual(#mocks.__timers(), 0, "a stood-down addon armed a fresh timer")
+    enable()
+  end)
+end)
+
+test("disabled: a stand-down inside the prune window postpones the prune rather than canceling it",
+function()
+  -- The login PEW arms the retention prune five seconds out; the player disables inside those five
+  -- seconds. The prune must not run while disabled -- it writes SavedVariables -- but the session
+  -- must not lose it either: the next PEW after the stand-up arms it again, and it runs once.
+  --
+  -- red under: setting NS.State.cleanupDone BEFORE the timer (the latch-before-timer shape), which
+  -- skipped retention for the rest of the session; and under a C_Timer.After that the stand-down
+  -- cannot cancel.
+  withPruneWindow(function(prunedCount)
+    local st = NS.State
+    NS.addon:OnEnterWorld()
+    disable()
+    assertEqual(#mocks.__timers(), 0, "the prune timer outlived the stand-down")
+    assertEqual(st.cleanupDone, false, "a canceled prune latched the session as pruned")
+    assertEqual(prunedCount(), 0, "the prune ran while disabled")
+
+    enable()
+    NS.addon:OnEnterWorld()
+    mocks.__fireTimers()
+    assertEqual(prunedCount(), 1, "the next PEW after the stand-up did not prune exactly once")
+    assertEqual(st.cleanupDone, true, "the prune ran but the session latch was not set")
+  end)
+end)
+
+-- ── 4b. The capture context ───────────────────────────────────────────────────
+--
+-- The fields a bank visit arms -- the open context, its baseline snapshot, the settle window and the
+-- banking session -- are cleared only by events (a close, or the guild-bank disarm), and every one of
+-- those events is unregistered while the addon is down. So the stand-down drops them itself. Without
+-- that, the stand-up diffs against a baseline taken before the switch was thrown and records what
+-- the player did while the addon was off.
+
+local LS = dofile("tests/ledger_support.lua")
+local ITEM = 171276
+
+--- Put the capture context and the banking session back to "no visit", whatever the case left.
+local function clearVisit()
+  NS.State.openContext, NS.State.lastSnapshot, NS.Ledger._settleSince = nil, nil, nil
+  if NS.State.sessionActive and NS.SessionWindow.EndSession then NS.SessionWindow:EndSession() end
+  NS.Database:Delete(function(e) return e.itemID == ITEM end)
+  clearTimerQueue()
+end
+
+test("disabled at the bank: a movement made while disabled is not recorded after re-enable",
+function()
+  -- red under: removing the DropContext call from NS.StandDown (core/BankLedger.lua). The context
+  -- and its pre-disable baseline survive, the stand-up re-registers BAG_UPDATE_DELAYED, and the
+  -- next pass diffs the deposit made while the addon was off into a row.
+  baseline()
+  local ok, err = pcall(LS.withContainers, {
+    [LS.BAG_ID]  = { slots = 1, [1] = { itemID = ITEM, count = 5 } },
+    [LS.BANK_ID] = { slots = 1 },
+  }, function()
+    mocks.__fire("BANKFRAME_OPENED")
+    assertTrue(NS.State.openContext ~= nil, "the bank open did not arm a context")
+    local before = #NS.db.global.ledger
+    disable()
+    mocks.__containers[LS.BAG_ID][1] = nil
+    mocks.__containers[LS.BANK_ID][1] = { itemID = ITEM, count = 5 }
+    enable()
+    mocks.__fire("BAG_UPDATE_DELAYED")
+    mocks.__fireTimers()
+    assertEqual(#NS.db.global.ledger, before, "a movement made while disabled was recorded")
+  end)
+  clearVisit()
+  if not ok then error(err, 0) end
+end)
+
+test("disabled at the bank: the stand-down disarms the context and ends the session", function()
+  -- red under: removing the DropContext call from NS.StandDown (core/BankLedger.lua). The context
+  -- stays armed across the stand-down, so away from any bank every PLAYER_MONEY after the stand-up
+  -- queues a full rescan, and the banking session never ends.
+  baseline()
+  local ok, err = pcall(LS.withContainers, {
+    [LS.BAG_ID]  = { slots = 1, [1] = { itemID = ITEM, count = 5 } },
+    [LS.BANK_ID] = { slots = 1 },
+  }, function()
+    mocks.__fire("BANKFRAME_OPENED")
+    assertTrue(NS.State.sessionActive == true, "the bank open did not start a session")
+    disable()
+    assertEqual(NS.State.openContext, nil, "the open context survived the stand-down")
+    assertEqual(NS.State.lastSnapshot, nil, "the baseline survived the stand-down")
+    assertEqual(NS.Ledger._settleSince, nil, "the settle window survived the stand-down")
+    assertEqual(NS.State.sessionActive, false, "the banking session survived the stand-down")
+    mocks.__fire("BANKFRAME_CLOSED")   -- walked away while off; nothing is registered to hear it
+    enable()
+    clearTimerQueue()
+    mocks.__fire("PLAYER_MONEY")
+    assertEqual(#mocks.__timers(), 0, "a stood-up addon away from any bank queued a rescan")
+  end)
+  clearVisit()
+  if not ok then error(err, 0) end
 end)
 
 -- ── 5. Nothing on screen ──────────────────────────────────────────────────────
@@ -444,37 +571,122 @@ end)
 
 -- ── 8. The launcher ───────────────────────────────────────────────────────────
 
-test("disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel", function()
-  -- launcher-§2. Bank Ledger is rung (a) -- the left click drives a primary window, which is a
-  -- feature -- so it prints the one refusal line and does nothing else. Rung (c)'s carve-out does
-  -- not reach this addon: that rung's left click opens the settings panel and nothing else, which
-  -- slash-commands-§7 keeps standing.
+local menuMock = dofile("tests/menu_mock.lua")(mocks)
+
+test("disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled",
+function()
+  -- launcher-§2 as of v2.67.0 (Launcher minor 4). The left click opens the settings panel in
+  -- EITHER state: the panel is setup, not a feature, and it is where a disabled addon is re-enabled
+  -- (slash-commands-§7). The right-click menu keeps Enabled live and grays Locked, Test mode and
+  -- Show window with the note "enable the addon first", because every one of those is a feature
+  -- that refuses while disabled.
   --
-  -- red under: dropping the RefuseIfDisabled guard from the onClick in core/LauncherSetup.lua,
-  -- which is the minimap button with no disabled gate the audit found.
+  -- red under: dropping `isEnabled` from the descriptor in core/LauncherSetup.lua (nothing would
+  -- gray), or wiring an entry to anything but the handler its verb runs.
   local object = NS.Launcher:Object()
   assertTrue(object ~= nil and type(object.OnClick) == "function", "no launcher object to click")
 
   local saved = S:Get(ENABLED_PATH)
+  local toggles, testToggles, opened = 0, 0, 0
+  local savedToggle, savedTest, savedOpen = NS.Browser.Toggle, NS.LedgerTable.ToggleTestMode, NS.Panel.Open
+  NS.Browser.Toggle = function() toggles = toggles + 1 end
+  NS.LedgerTable.ToggleTestMode = function() testToggles = testToggles + 1 end
+  NS.Panel.Open = function() opened = opened + 1 end
   disable()
   watchStore()
   local shownBefore = #mocks.__shownFrames()
   local ok, err = pcall(function()
     local out = captureChat(function() object.OnClick(object, "LeftButton") end)
-    assertEqual(#out, 1, "the left click must answer on exactly one line")
-    assertTrue(isRefusal(out[1]), "not the collection's refusal line: " .. out[1])
-    assertEqual(#mocks.__svWrites(), 0, "the click wrote the stored tree of a disabled addon")
-    assertEqual(#mocks.__shownFrames(), shownBefore, "the click put a frame on screen")
+    assertEqual(#out, 0, "the left click printed: " .. table.concat(out, "\n"))
+    assertEqual(opened, 1, "the left click opens the panel in EITHER state")
 
-    local opened = 0
-    local savedOpen = NS.Panel.Open
-    NS.Panel.Open = function() opened = opened + 1 end
-    captureChat(function() object.OnClick(object, "RightButton") end)
-    NS.Panel.Open = savedOpen
-    assertEqual(opened, 1, "the right click opens the panel in EITHER state")
+    menuMock.install()
+    menuMock.reset()
+    out = captureChat(function() object.OnClick(object, "RightButton") end)
+    menuMock.remove()
+    local menu = menuMock.last
+    assertTrue(menu ~= nil, "the right click opened no menu while disabled")
+    assertEqual(#out, 0, "opening the menu printed: " .. table.concat(out, "\n"))
+    assertEqual(opened, 1, "the right click opened the panel instead of the menu")
+    assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked (enable the addon first) / "
+      .. "Test mode (enable the addon first) / Show window (enable the addon first)")
+    assertTrue(menu:Find("Enabled").enabled, "Enabled stays live while disabled")
+    assertFalse(menu:Checked("Enabled"), "a disabled addon's Enabled entry is unchecked")
+    for _, entry in ipairs({ "Locked", "Test mode", "Show window" }) do
+      assertFalse(menu:Find(entry).enabled, entry .. " is not grayed while disabled")
+      -- The library's own gate behind the gray: a client that dispatched it anyway reaches nothing.
+      captureChat(function() menu:ForceClick(entry) end)
+    end
+    assertEqual(toggles, 0, "Show window reached Browser:Toggle while disabled")
+    assertEqual(testToggles, 0, "Test mode reached LT:ToggleTestMode while disabled")
+    assertEqual(#mocks.__svWrites(), 0, "the clicks wrote the stored tree of a disabled addon")
+    assertEqual(#mocks.__shownFrames(), shownBefore, "the clicks put a frame on screen")
+
+    -- Enabled is the way back, through /bl enable's own handler.
+    captureChat(function() menu:Click("Enabled") end)
+    assertFalse(NS.IsDisabled(), "the Enabled entry did not re-enable the addon")
+    assertEqual(S:Get(ENABLED_PATH), true)
+  end)
+  menuMock.remove()
+  NS.Browser.Toggle, NS.LedgerTable.ToggleTestMode, NS.Panel.Open = savedToggle, savedTest, savedOpen
+  S:Set(ENABLED_PATH, saved)
+  if not ok then error(err, 0) end
+end)
+
+test("disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints",
+function()
+  -- launcher-§1 (standard v2.66.0): the tooltip is ALWAYS drawn, disabled included, since that is
+  -- when a player hovers to ask why the addon is quiet. The library draws it; this case pins that
+  -- the host's isEnabled feeds it, and that the hover writes and prints nothing. Since Launcher
+  -- minor 4 the hints are the same in both states: the left click opens the panel either way.
+  --
+  -- red under: dropping `isEnabled` from the descriptor in core/LauncherSetup.lua (the line would
+  -- read Yes).
+  local object = NS.Launcher:Object()
+  local saved = S:Get(ENABLED_PATH)
+  local function hover()
+    local lines = {}
+    object.OnTooltipShow({ AddLine = function(_, text)
+      lines[#lines + 1] = tostring(text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    end })
+    return lines
+  end
+  disable()
+  watchStore()
+  local ok, err = pcall(function()
+    local lines
+    local out = captureChat(function() lines = hover() end)
+    assertEqual(#out, 0, "a hover printed: " .. table.concat(out, "\n"))
+    assertEqual(#mocks.__svWrites(), 0, "a hover wrote the stored tree of a disabled addon")
+    local all = table.concat(lines, "\n")
+    assertTrue(lines[1]:find(NS.BRAND_NAME, 1, true) == 1, "the title still draws: " .. all)
+    assertEqual(lines[2], "Enabled: No")
+    assertTrue(all:find("\nLocked: ", 1, true) ~= nil, all)
+    assertTrue(all:find("\nTest mode: ", 1, true) ~= nil, all)
+    assertEqual(lines[#lines - 1], "Left-click: Open settings")
+    assertEqual(lines[#lines], "Right-click: Options menu")
+
+    enable()
+    lines = hover()
+    assertEqual(lines[2], "Enabled: Yes")
+    assertEqual(lines[#lines - 1], "Left-click: Open settings")
   end)
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
+end)
+
+test("disabled: the launcher carries no host gate and no retired refusal field", function()
+  -- The graying is the library's (Launcher minor 4), fed by the descriptor's `isEnabled`. A
+  -- host-side RefuseIfDisabled inside a toggle would be the collection's rule written twice, and
+  -- `disabledLine` fed only the left-click refusal minor 4 retired, so the anti-regression is a
+  -- source read.
+  local fh = assert(io.open("core/LauncherSetup.lua", "rb"))
+  local src = fh:read("*a")
+  fh:close()
+  assertEqual(src:find("RefuseIfDisabled", 1, true), nil,
+    "core/LauncherSetup.lua gates a launcher action host-side")
+  assertTrue(src:find("isEnabled%s*=") ~= nil, "the descriptor does not hand over isEnabled")
+  assertEqual(src:find("\n  disabledLine%s*="), nil, "the descriptor still passes the retired disabledLine")
 end)
 
 -- ── 9. Restoration, from CURRENT state ────────────────────────────────────────

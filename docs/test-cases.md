@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (36)
+### test_util.lua (38)
 
 - Util.PlayerKey joins name and realm with spaces stripped
 - Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
@@ -44,6 +44,8 @@ badge and any count quoted in the docs must agree with it.
 - Util.ApplyVisibility hides only what was up, and re-shows only what IT hid
 - Browser:Show refuses while General visibility says no
 - Util.ResetWindowPositions clears BOTH windows' stored geometry
+- ApplyVisibility hides only open windows and re-shows exactly those on the way back
+- ApplyVisibility and ApplyMasterChrome build no table literal per call
 
 ### test_compat.lua (13)
 
@@ -85,7 +87,7 @@ badge and any count quoted in the docs must agree with it.
 - Constants: every open-frame context has a Ledger store list
 - Constants: C.Context is its own axis, not a subset of C.Store
 
-### test_filters.lua (13)
+### test_filters.lua (14)
 
 - Filters: an added id reads back as blacklisted
 - Filters: adding the same id twice is a no-op the second time
@@ -100,6 +102,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters.ClearList ignores an unknown list name
 - Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
+- Filters: the Clear all confirms report the count as printer arguments
 
 ### test_ledger.lua (98)
 
@@ -202,14 +205,15 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
 
-### test_ledger_settling.lua (25)
+### test_ledger_settling.lua (26)
 
 - reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
 - Ledger:Enable survives a retired event and still binds the rest
 - Ledger:Enable binds the capture events even when several are retired
 - Ledger:Enable never lets a rejected open event silence the others
-- Ledger:RegisterEventSafely reports whether the binding took
+- Ledger:Enable registers no GUILDBANKFRAME_* event
+- NS.RegisterEventSafely reports whether the binding took
 - Ledger:Diagnose names the events this build rejected
 - Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
 - Ledger: a movement whose halves arrive in separate events is still recorded
@@ -230,7 +234,7 @@ badge and any count quoted in the docs must agree with it.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
-### test_database.lua (48)
+### test_database.lua (51)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -272,12 +276,15 @@ badge and any count quoted in the docs must agree with it.
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
 - RunMigrations announces the v1->v2 pass the smoke step reads
-- RunMigrations stamps a stamp-less EMPTY store at the current version without replaying v1->v2
-- RunMigrations seeds a stamp-less store whose ledger is nil, without raising
+- RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
+- RunMigrations stamps a stamp-less store whose ledger is nil, without raising
+- RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
+- RunMigrations leaves the stamp at the last completed step when a step raises
+- ResetEverything leaves the store stamped at NS.SCHEMA_VERSION
 - RunMigrations survives a database with no ledger at all
 - RunMigrations never downgrades a future schema version
 - Database:Export never emits a vendorPrice field
-- Database: schemaVersion is NOT a shipped AceDB default
+- Database: defaults declare schemaVersion = 0 (savedvariables-§1)
 - Database: a fresh database needs no migration
 - Database: an older database is migrated up to the current version
 
@@ -336,7 +343,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (54)
+### test_ledgertable.lua (55)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -392,6 +399,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable row menu still disables item actions on a money row
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
+- LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
 ### test_browser.lua (41)
 
@@ -416,7 +424,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
 - Browser: a saved date range is stored as the OPTION, not a resolved timestamp
 - Browser:ApplyView tolerates a scalar filter value in a stored view
-- Slash:CliResetAll also discards the saved view
+- Slash:CliResetAll (the wholesale reset) also discards the saved view
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -437,25 +445,39 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_launcher.lua (23)
+### test_launcher.lua (37)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
 - Launcher: the hand-rolled launcher is gone from modules/Browser.lua
-- Launcher: a host with neither broker library reports it and does NOT raise
+- Launcher: a host with neither broker library degrades and does NOT raise
+- Launcher: the missing-broker notice prints once across two Register calls, without a [LibKa0s] tag
 - Launcher: LibDataBroker without LibDBIcon still gets the broker plugin
 - Launcher: it registers under the FOLDER name, against db.global.minimap
 - Launcher: Register is idempotent, so no second button is built over the first
 - Launcher: ONE object, of type launcher, wearing the addon's icon
 - Launcher: the broker label is the BRAND NAME in plain text, not the Title and not the folder
-- Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch
-- Launcher: RIGHT-click opens the settings panel, whatever the left button does
-- Launcher: a raising click is reported, not thrown at the player
-- Launcher: the tooltip carries the live entry count and both click verbs
+- Launcher: the brand literal is spelled at NS.BRAND_NAME and the missing-library clause only
+- Launcher: LEFT-click opens the settings panel and nothing else
+- Launcher: RIGHT-click opens the options menu: Enabled, Locked, Test mode, Show window
+- Launcher: with no MenuUtil the right click falls back to the settings panel
+- Launcher: each menu entry runs the SAME handler its slash verb runs
+- Launcher: the Locked entry really locks, through the Lock frame row's own seam
+- Launcher: each checkmark reads the live state, on every open
+- Launcher: a raising menu handler is reported, not thrown at the player
+- Launcher: the descriptor passes this addon's state pairs, and none of the retired fields
+- Launcher: the tooltip draws the library's block around this addon's one extra line
+- Launcher: the tooltip's Locked and Test mode lines read what the panel reads, on every show
 - Minimap row: it is composed onto Master controls, stored, and SHOWN by default
 - Minimap row: the label says SHOWN and LibDBIcon's key says HIDDEN
 - Minimap row: writing it MOVES the button, not just the store
 - Minimap row: LibDBIcon's own minimapPos is never trampled
+- Minimap row: /bl get minimap.shown answers true while db.global.minimap.hide is false
+- Minimap row: /bl set minimap.shown false stores minimap.hide = true, hides the button and writes no shown key
+- Minimap row: a targeted /bl reset minimap.shown restores shown
+- Minimap row: the old path minimap.hide answers unknown setting
+- Minimap row: a legacy store keeps its choice with no migration
+- Minimap row: S:Register reports 0 failures with the renamed path
 - Minimap row: the defaults ship the table, so nothing has to seed it
 - Verbs: /bl enable and /bl disable are registered, and described the same way
 - Verbs: they write the Enable row's stored path, through the same write seam
@@ -643,7 +665,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (52)
+### test_schema.lua (53)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -667,6 +689,7 @@ badge and any count quoted in the docs must agree with it.
 - COMMANDS: a test verb exists (test-mode)
 - COMMANDS: /bl test says the module is missing rather than reporting it off
 - Schema: the page partitions into the designed tabs, in the designed order
+- schema: the live and library-absent row counts, and the composed delta
 - Schema: Master controls is the FIRST tab, and holds exactly the canonical rows
 - Schema: every row on every tab of the page carries a group
 - Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice
@@ -698,11 +721,12 @@ badge and any count quoted in the docs must agree with it.
 - Test mode: a combat edge with test mode off says nothing and starts nothing
 - Test mode: /bl session stays its own verb
 
-### test_schema_runtime.lua (17)
+### test_schema_runtime.lua (18)
 
 - Schema:Set stores, then logs one [Set] line, then reacts, then repaints -- once each
 - Schema:Set answers exactly `true` on success, and `false, reason` on a refusal
 - Schema:Set refuses a value its row's validate rejects, and stores and calls nothing
+- the live seam takes the row, not writeThrough, when settings.enabled has one
 - Schema:Set on an unknown path stores nothing, anywhere
 - Schema:Set on a session-only row calls its own set, reacts and repaints, stores nothing
 - Minimap row: the seam writes LibDBIcon's hide flag inverted, into the table LibDBIcon holds
@@ -712,13 +736,13 @@ badge and any count quoted in the docs must agree with it.
 - Schema.SameValue compares tables by content and tells false from absent
 - Schema degraded: a write lands, reads back, reacts and answers as the live seam does
 - Schema degraded: a table value is stored as a copy, and the default stays whole
-- Schema degraded: the resetall sweep writes every row back and closes its bracket
+- Schema degraded: a bracketed sweep writes every row back and closes its bracket
 - Schema runtime: the seam is a LibKa0s-Schema-1.0 instance, and the host names are bound to it
 - Schema:Register reports a path missing from the defaults even when the row has a default
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (50)
+### test_slash.lua (53)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -738,18 +762,21 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliSet rejects a non-numeric value for a number setting
 - Slash:CliSet reports an unknown path
 - Slash:CliSet refuses a value-less set and says why
+- slash: /bl set with a refused value prints INVALID, the reason and the why, and stores nothing
+- schema: NS.Schema:Set trims a validate refusal to two values; the instance's Set answers three
 - Slash:CliReset restores one setting to its default
 - Slash:CliReset echoes a table default through the shared formatter
 - Slash:CliReset echoes the colored key = value shape, like get and set
 - Slash:CliReset echoes the stored value, not the requested one
-- Slash:CliResetAll restores the schema AND clears the filter lists
-- Slash: /bl resetall logs ONE [Set] reset all line counting the rows it CHANGED, and no per-row [Set]
+- Slash: /bl resetall is the wholesale reset — the schema, the filter lists AND the ledger
+- Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and no per-row [Set]
 - Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
+- Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED
 - Slash: a reset nested inside another bracket logs ONE line, for the outermost act
 - Slash: a bracket reporting profileReset logs nothing, even around a nested reset
-- Slash: /bl resetall still runs every row's onChange, and the seam logs again afterwards
-- Slash: a row that raises mid-resetall logs ONE line marked as stopped, re-raises, and unmutes the seam
-- Slash: a resetall row raising nil logs the line without the marker (the library hands err = nil)
+- Slash: the library's sweep still runs every row's onChange, and the seam logs again afterwards
+- Slash: a row that raises mid-sweep logs ONE line marked as stopped, re-raises, and unmutes the seam
+- Slash: a sweep row raising nil logs the line without the marker (the library hands err = nil)
 - Slash: a bare /bl runs the config verb and prints nothing
 - Slash: whitespace-only input is a bare /bl too
 - Slash: a bare /bl opens the settings panel on its landing page, not a sub-page
@@ -784,13 +811,13 @@ badge and any count quoted in the docs must agree with it.
 - bus: without LibKa0s, NS.MSG is the same four names as a plain table
 - bus: no addon file but core/Constants.lua types a message's wire name
 
-### test_panel.lua (33)
+### test_panel.lua (34)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
 - Panel: the landing page's OnDefault is inert — it manages no settings
 - Panel: OnDefault runs the same action as the header Defaults button
-- Panel: the General defaults action resets settings but never the ledger
+- Panel: the General defaults action only asks, and changes nothing before the confirm
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
 - Panel: a schema write refreshes an open page
 - Panel: a schema write does NOT refresh a hidden page
@@ -811,14 +838,15 @@ badge and any count quoted in the docs must agree with it.
 - Slash: both global resets end test mode, which no store wipe can reach
 - Minimap row: the page Defaults button does not un-hide the button
 - Minimap row: Reset all settings does not un-hide the button, or move it
-- Minimap row: a TARGETED /bl reset minimap.hide is not a sweep, and still works
+- Minimap row: a TARGETED /bl reset minimap.shown is not a sweep, and still works
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
+- Slash: ResetEverything while disabled stands the addon back up
+- Slash: ResetEverything announces LedgerChanged exactly once
 - Slash: ResetEverything traces the recorded entries it wiped, once
-- Panel: Defaults logs ONE [Set] reset all line, and no per-row [Set]
+- Panel: Defaults logs ONE [Set] line, and no per-row [Set]
 - Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
 - Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
-- Slash: the two resets have DIFFERENT blast radii — the ledger survives exactly one
-- Slash: while the split stands, the button and the verb do NOT share a label
+- Slash: every reset route has the SAME blast radius — the ledger survives none of them
 
 ### test_panel_filters.lua (40)
 
@@ -862,6 +890,15 @@ badge and any count quoted in the docs must agree with it.
 - Panel: the storage read-out lands on the History tab and nowhere else
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Filters tab: the id list packs two entries to a line, row-major
+
+### test_reset_routes.lua (6)
+
+- Reset routes: every reset control raises the one confirm popup and changes nothing before accept
+- Reset routes: RequestResetAll is the single entry point, and the popup's Yes is ResetEverything
+- Reset routes: accepting the popup empties the ledger, both filter lists and savedView, ends test mode, closes the debug console and keeps db.global.minimap whole
+- Reset routes: accepting the popup puts the ledger window's live view back to stock
+- Reset routes: the resetall verb and the Defaults tooltip say history goes, and that it asks first
+- Reset routes degraded: library-absent /bl resetall raises the same popup
 
 ### test_harness.lua (8)
 
@@ -938,7 +975,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: the close control on every window this addon draws is the collection's close
 - marks: the close path is EXTENSIONLESS, which is the half that fails silently
 - marks degraded: with no library the close button is still the × it always was
-- marks: the × is DRAWN in exactly one place, so one edit reached all four title bars
+- marks: the × is DRAWN in exactly one place, so one edit reached the three host title bars
 - marks: every filter dropdown wears chevron-down, through the shared factory
 - marks degraded: MakeDropdown answers nil rather than a half-built widget, with no library
 - marks: a chosen row of a multi-select menu wears the collection's tick
@@ -958,7 +995,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (65)
+### test_libka0s.lua (64)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -986,6 +1023,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
 - LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
 - LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+- TOC: InsightsWidgets loads before Insights, and Schema before Slash, each annotated LOAD-BEARING
 - LibKa0s-DebugLog: the vendored major registered and the console is running on it
 - LibKa0s-DebugLog: the module needs the minor that carries the chrome hooks
 - LibKa0s-DebugLog: NS.Debug is bound and still gates on the session-only flag
@@ -1012,7 +1050,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
 - LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
 - LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
-- LibKa0s-Slash: CliResetAll also resets the filter registry and the saved view
+- LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk
 - LibKa0s-Slash: the landing page and the chat help render the SAME rows
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
@@ -1021,9 +1059,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
 - LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
-- LibKa0s-Slash degraded: resetall writes every changed row back, and logs no [Set] line
-- LibKa0s-Slash degraded: a raising resetall re-raises unchanged and closes its bracket
-- LibKa0s-Slash degraded: a resetall raising nil still reaches the caller and closes its bracket
+- LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line
 - LibKa0s-Slash: the seam loads after the schema it reads
 
 ### test_vendor_sync.lua (3)
@@ -1050,7 +1086,7 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
-### test_lifecycle.lua (6)
+### test_lifecycle.lua (10)
 
 - addon:OnDisable releases the _enabled latch on every module OnEnable arms
 - a disable then enable cycle leaves all four modules live again
@@ -1058,24 +1094,34 @@ badge and any count quoted in the docs must agree with it.
 - a disable then enable cycle does not subscribe the session window twice
 - addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
 - NS.addon carries the kit's Printf and records its own events
+- OnEnterWorld arms the retention prune once per session
+- a rejected event name in the stand-up does not stop Ledger:Enable
+- C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
+- the stand-down clears the event record
 
-### test_disabled.lua (11)
+### test_disabled.lua (16)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
+- disabled: a stand-down inside the prune window postpones the prune rather than canceling it
+- disabled at the bank: a movement made while disabled is not recorded after re-enable
+- disabled at the bank: the stand-down disarms the context and ends the session
 - disabled: every frame that was shown is hidden, and the show ladder keeps it shut
 - disabled: firing every baseline event writes nothing, prints nothing and shows nothing
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
 - disabled: every reserved verb and the bare /bl still answer normally
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
-- disabled: the launcher's LEFT click is refused and its RIGHT click opens the panel
+- disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
+- disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
+- disabled: the launcher carries no host gate and no retired refusal field
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (10)
+### test_surface_parity.lua (19)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
+- Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Slash degraded: the stub carries the whole live surface
@@ -1085,6 +1131,14 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil
 - LibKa0s-Schema degraded: the stub instance carries every member the addon reaches
 - LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS
+- LibKa0s-Schema degraded: the stub SetMany is all-or-nothing
+- degraded: /bl disable writes settings.enabled through and stands the addon down, without a Lua error
+- degraded: /bl enable reverses it
+- degraded: /bl disable with no settings store prints the refusal and acknowledges nothing
+- Schema stub: a writeThrough path with no row is stored raw and announced; a path outside the list still answers unknown path
+- Slash stub DisabledLine format is the library's bytes
+- Slash stub: /bl version prints the live arm's bytes
+- Slash stub: an unknown verb is answered in the live arm's words
 
 ### test_register.lua (1)
 
@@ -1104,12 +1158,12 @@ badge and any count quoted in the docs must agree with it.
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
-- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
 
 ### test_prose.lua (15)
 
-- prose: no authored file carries a British spelling from localization-5's published list
-- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 - prose self-test: the carve-out suppresses the named generated folder, and only it
 - prose self-test: a path the carve-out does not name is not covered by one that looks like it
 - prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
@@ -1128,7 +1182,7 @@ badge and any count quoted in the docs must agree with it.
 
 - layoutcap: every authored file over the 1500-line cap is named in the census
 - layoutcap: no census row outlives the breach it records
-- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
 - layoutcap: the census and the exempt set agree about which paths were exempted
 - layoutcap: an empty census is written as a result rather than left standing empty
 - layoutcap self-test: the parser reads the census nested under the register, and stops there
@@ -1144,43 +1198,44 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 36 |
+| test_util.lua | 38 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
-| test_filters.lua | 13 |
+| test_filters.lua | 14 |
 | test_ledger.lua | 98 |
-| test_ledger_settling.lua | 25 |
-| test_database.lua | 48 |
+| test_ledger_settling.lua | 26 |
+| test_database.lua | 51 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 54 |
+| test_ledgertable.lua | 55 |
 | test_browser.lua | 41 |
-| test_launcher.lua | 23 |
+| test_launcher.lua | 37 |
 | test_sessionwindow.lua | 32 |
 | test_insights.lua | 76 |
 | test_export.lua | 42 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 52 |
-| test_schema_runtime.lua | 17 |
-| test_slash.lua | 50 |
+| test_schema.lua | 53 |
+| test_schema_runtime.lua | 18 |
+| test_slash.lua | 53 |
 | test_bus.lua | 10 |
-| test_panel.lua | 33 |
+| test_panel.lua | 34 |
 | test_panel_filters.lua | 40 |
+| test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 65 |
+| test_libka0s.lua | 64 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| test_lifecycle.lua | 6 |
-| test_disabled.lua | 11 |
-| test_surface_parity.lua | 10 |
+| test_lifecycle.lua | 10 |
+| test_disabled.lua | 16 |
+| test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1017** |
+| **Total** | **1068** |

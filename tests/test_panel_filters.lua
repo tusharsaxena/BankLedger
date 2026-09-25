@@ -349,7 +349,7 @@ end)
 -- resolves a typed name against. The dropdown is a library frame, not an AceGUI widget, so a case
 -- records the frames CreateFrame hands out and finds the one carrying `rows`, and reads each row off
 -- the library's own record on it (`row.entry`, `row.labelText`): the kit's frame stub keeps no
--- FontString text. This harness's C_Timer.After is a no-op, so each case queues the typing debounce
+-- FontString text. Each case swaps C_Timer.After for its own queue, so it holds the typing debounce
 -- and runs it by hand.
 
 local ZEPHYR = "Potion of the Hushed Zephyr"

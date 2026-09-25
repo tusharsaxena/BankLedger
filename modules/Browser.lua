@@ -75,7 +75,8 @@ end
 -- The close control every window this addon draws wears: the collection's `close` mark where the
 -- shared art is there, and the thin × glyph it has always drawn where it is not. Light gray at
 -- rest, the player's class color on hover, either way. Shared by the ledger window (Browser.lua),
--- the session window (SessionWindow.lua) and both export popups (Export.lua). NOT by the debug
+-- the session window (SessionWindow.lua) and the export modal (Export.lua); the export COPY window
+-- is LibKa0s-Widgets-1.0's CopyWindow and wears the library's close. NOT by the debug
 -- console: that is the LIBRARY's window and wears Core's own 18x18 close — the edge is shared
 -- across every Ka0s window, but the close control on a library-drawn window is the library's
 -- (standalone-windows). The library draws that one for itself, once core/DebugLogSetup.lua hands it
@@ -761,7 +762,7 @@ function B:SaveView()
 end
 
 -- Drop the saved baseline back to stock and apply it now. `silent` suppresses the chat line for
--- programmatic callers (Slash:CliResetAll prints its own single confirmation); the bar's Reset
+-- programmatic callers (Sl:ResetEverything prints its own single confirmation); the bar's Reset
 -- button passes nothing and keeps the message.
 function B:ResetView(silent)
   if NS.db and NS.db.global then NS.db.global.savedView = nil end
@@ -1037,7 +1038,7 @@ local function EnsureFrame()
 
   local title = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   title:SetPoint("CENTER")
-  title:SetText("Ka0s Bank Ledger")
+  title:SetText(NS.BRAND_NAME)
   frame.title = title
 
   local testBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -1215,6 +1216,6 @@ function B:Enable()
   -- The last belt on geometry: a /reload with the window on screen tears the frame down without
   -- running OnHide, so PLAYER_LOGOUT is the only remaining chance to write the position out.
   if B.__ev.RegisterEvent then
-    B.__ev:RegisterEvent("PLAYER_LOGOUT", function() B:OnLogout() end)
+    NS.RegisterEventSafely(B.__ev, "PLAYER_LOGOUT", function() B:OnLogout() end)
   end
 end

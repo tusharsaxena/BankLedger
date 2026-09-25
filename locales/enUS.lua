@@ -9,7 +9,8 @@ NS.L = setmetatable(NS.L or {}, { __index = function(_, k) return k end })
 -- accepted scope decision for the first release, not an oversight). The NS.L seam is what a later
 -- localization pass wraps them through, dropping its enUS overrides here without touching a call
 -- site. There is deliberately no `local L` alias while nothing is wrapped, so this file stays
--- luacheck-clean.
+-- luacheck-clean. (The launcher's left-click label read NS.L["Toggle ledger window"] from M5 until
+-- LibKa0s-Launcher minor 4 retired `leftClickLabel`; the options menu's words are the library's.)
 --
 -- Keys are the English source strings (localization-§2); only overrides need listing, e.g.:
 -- NS.L["Enable capture"] = "Enable capture"

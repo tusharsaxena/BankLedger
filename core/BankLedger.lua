@@ -54,9 +54,11 @@ end
 function addon:OnEnable()
   -- The launcher (launcher-§1). SETUP, so it is registered in either state: the minimap button
   -- stays on the minimap and the broker row stays in the display while the addon is off, because
-  -- `minimap.hide` is a per-installation display preference (launcher-§3) and says nothing about
-  -- whether the addon is running. What the LEFT click does while disabled is core/LauncherSetup's
-  -- business, and it is refused there.
+  -- the minimap button's visibility (`minimap.shown`, stored as LibDBIcon's `minimap.hide`) is a
+  -- per-installation display preference (launcher-§3) and says nothing about whether the addon is
+  -- running. What its clicks reach while disabled is the library's business (Launcher minor 4):
+  -- the left click opens the settings panel either way, and the right-click menu grays every
+  -- entry but Enabled.
   --
   -- AFTER OnInitialize, which is what makes it work at all: the descriptor answers
   -- `db.global.minimap` through a closure and NS:InitDB is what materializes it. Idempotent by
@@ -84,12 +86,14 @@ end
 --- set reflects the new value rather than the old one.
 function NS.StandUp()
   local self = NS.addon
-  self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEnterWorld")
+  -- Through the one isolating helper (core/CoreSetup.lua), never a bare self:RegisterEvent: these
+  -- three run BEFORE the module Enables below, so a raise here would abort all three of them.
+  NS.RegisterEventSafely(self, "PLAYER_ENTERING_WORLD", "OnEnterWorld")
   -- The General visibility rule's two transitions (options-ui-§15). `Only in combat` and `Only
   -- out of combat` are answers that CHANGE without anything being clicked, so the setting is
   -- unhonored without these: a window opened out of combat would simply stay up through a pull.
-  self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatChanged")
-  self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatChanged")
+  NS.RegisterEventSafely(self, "PLAYER_REGEN_DISABLED", "OnCombatChanged")
+  NS.RegisterEventSafely(self, "PLAYER_REGEN_ENABLED", "OnCombatChanged")
   if NS.Ledger and NS.Ledger.Enable then NS.Ledger:Enable() end
   if NS.Browser and NS.Browser.Enable then NS.Browser:Enable() end
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
@@ -147,8 +151,10 @@ function NS.StandDown()
   local ad = NS.addon
 
   -- 1. EVERY TIMER. AceTimer's own cancel-all takes the handles, and each module drops the handle
-  --    it remembers so the next stand-up can schedule again.
+  --    it remembers so the next stand-up can schedule again. The retention prune's handle is the
+  --    addon object's own, so it is dropped here: the next PEW after a stand-up re-arms it.
   if ad and ad.CancelAllTimers then ad:CancelAllTimers() end
+  if NS.State then NS.State.cleanupPending = nil end
   for _, name in ipairs(TIMER_MODULES) do
     local module = NS[name]
     if module and module.CancelPending then module:CancelPending() end
@@ -159,13 +165,23 @@ function NS.StandDown()
   --    than a list to keep current: a list is what goes stale on the first event added to
   --    modules/Ledger.lua, and this addon has exactly one AceEvent target of its own.
   if ad and ad.UnregisterAllEvents then ad:UnregisterAllEvents() end
-  if NS.Ledger then NS.Ledger.registeredEvents, NS.Ledger.unavailableEvents = {}, {} end
+  --    The event record goes with them: `/bl debug scan` on a disabled addon reports nothing bound,
+  --    and the next stand-up rebuilds it from what actually registers.
+  NS.EventRecord.registered, NS.EventRecord.unavailable = {}, {}
 
   -- 3. THE CAPTURE GATE'S CACHED ANSWER, refreshed before the bus target that carries the refresh
   --    is dropped below. The gate is a BELT behind unregistered events rather than the mechanism —
   --    it is unreachable once step 2 has run — but a belt reading a cache from before the switch
   --    was thrown is a belt that says "capture is on" about an addon that is off.
   if NS.Ledger and NS.Ledger.RefreshUpvalues then NS.Ledger:RefreshUpvalues() end
+
+  -- 3b. THE CAPTURE CONTEXT — the open context, its baseline, the settle window and the banking
+  --    session. Every path that normally clears them is an event step 2 just unregistered, so left
+  --    alone they outlive the switch and the stand-up diffs against a pre-disable baseline. Before
+  --    step 4, because SessionWindow's bus target must still be subscribed to hear
+  --    SessionChanged(false) and end the session. No flush: nothing moved at the moment of
+  --    disabling is captured.
+  if NS.Ledger and NS.Ledger.DropContext then NS.Ledger:DropContext() end
 
   -- 4. THE FOUR PRIVATE BUS TARGETS, and the latches that would otherwise refuse to rebuild them.
   for _, name in ipairs(BUS_MODULES) do
@@ -214,16 +230,18 @@ end
 
 -- Retention cleanup runs once per session, deferred off the login/zone spike.
 function addon:OnEnterWorld()
-  if NS.State.cleanupDone then return end
-  NS.State.cleanupDone = true
-  if C_Timer and C_Timer.After then
-    C_Timer.After(5, function()
-      -- The one timer that can outlive the stand-down: it is armed BEFORE the disable and fires
-      -- five seconds later, and PruneOld writes SavedVariables. A write from a game event while
-      -- disabled is the failure slash-commands-§7 names in its purest form, so the body checks the
-      -- latch rather than trusting the cancel to have caught it.
-      if NS.IsStoodDown and NS.IsStoodDown() then return end
-      if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
-    end)
-  end
+  local st = NS.State
+  if st.cleanupDone or st.cleanupPending then return end
+  if not self.ScheduleTimer then return end
+  -- An AceTimer handle, so NS.StandDown's CancelAllTimers cancels it (slash-commands-§7: every
+  -- timer is canceled, not left armed to find a flag). StandDown also drops the handle, and the
+  -- latch is set only when the prune actually runs, so a stand-down inside the five seconds
+  -- POSTPONES the prune to the next PLAYER_ENTERING_WORLD rather than skipping it for the session.
+  -- PruneOld writes SavedVariables, so the body still checks the latch as a belt behind the cancel.
+  st.cleanupPending = self:ScheduleTimer(function()
+    st.cleanupPending = nil
+    if NS.IsStoodDown and NS.IsStoodDown() then return end
+    st.cleanupDone = true
+    if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+  end, 5)
 end

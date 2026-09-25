@@ -150,13 +150,21 @@ frameless** and every frame-only row applies.
   took and never a window the player had closed themselves.
 - **Debug console** is the session-only row it always was (`state.debugConsole`, verbatim and
   unprefixed); what changed is only where it is declared. It moved off the Interface tab.
-- **Minimap button** (`minimap.hide`, stored, first column of the fourth line; LibKa0s v1.39.0,
+- **Minimap button** (`minimap.shown`, stored as LibDBIcon's `minimap.hide`, first column of the fourth line; LibKa0s v1.39.0,
   compose minor 7) is the launcher's visibility row, emitted from `minimapPath`. Every addon has a
   minimap button and only some have a test mode, so the always-present row takes column 1 and the
   optional one pairs beside it. Its sense is inverted at the write seam — see the note under the
   row table — and the button it drives is `NS.Launcher`'s
   ([ARCHITECTURE.md ▸ Launcher](ARCHITECTURE.md#launcher)). It REPLACED the Interface tab's *Hide
-  minimap button*, on the same stored path.
+  minimap button*, on the same stored path. The button's hover tooltip (drawn by LibKa0s-Launcher
+  minor 3, enabled or disabled) reports this block's states back: `Enabled` from the *Enable* row's
+  latch, `Locked` from *Lock frame*'s stored `settings.locked`, and `Test mode` from the *Test mode*
+  row's own `get`, each read on every hover. The button's **left** click opens this panel, and its
+  **right** click opens the options menu (LibKa0s-Launcher minor 4, standard v2.67.0), whose checkboxes
+  are three of this block's rows plus the ledger window: *Enabled* runs `/bl enable|disable` (the
+  *Enable* row's path), *Locked* runs `/bl set settings.locked` (the *Lock frame* row), *Test mode*
+  runs `/bl test` (the *Test mode* row's switch), and *Show window* runs `/bl toggle`. While the addon
+  is disabled only *Enabled* is live.
 - **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from
@@ -170,34 +178,31 @@ frameless** and every frame-only row applies.
     the box goes back to unticked.
   - **Combat ends it.** `addon:OnCombatChanged` stops it on `PLAYER_REGEN_DISABLED` and prints
     `test mode off — combat started.`. A stop never opens the ledger window.
-  - **Both global resets end it.** `/bl resetall` and **Defaults** reach it through the row walk;
-    **Reset all settings** empties `db.global`, which test mode was never in, so
-    `Sl:ResetEverything` ends it by name.
+  - **The global reset ends it.** Test mode lives in `NS.State`, never in `db.global`, so the wipe
+    cannot reach it; `Sl:ResetEverything` ends it by name, and closes the debug console the same
+    way (`state.debugConsole` defaults to false).
 - **Reset position** is a real button now. The act existed only as a side effect folded into
-  `P:RestoreDefaults`; both routes call `NS.Util.ResetWindowPositions()`, which is the one body.
+  `P:RestoreDefaults`; it calls `NS.Util.ResetWindowPositions()`, which is the one body.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
   `options-ui-§12`'s second canonical wording byte for byte (the one for an addon with no profile).
   `OnAccept` runs `NS.Slash:ResetEverything`, which empties `db.global` **wholesale** — every
-  setting, both filter lists, both windows' geometry **and the recorded ledger** — then merges
-  `NS.defaults.global` back and re-anchors the windows. It used to be the right half of History's
-  button pair and **moved rather than being duplicated**.
+  setting, both filter lists, the saved view, both windows' geometry **and the recorded ledger** —
+  then merges `NS.defaults.global` back (holding the `minimap` table across the wipe,
+  `launcher-§3`), ends the session-only rows by name and re-anchors the windows. It used to be the
+  right half of History's button pair and **moved rather than being duplicated**.
 
-  **It is NOT the act `/bl resetall` takes.** That verb runs `NS.Slash:CliResetAll`, which clears the
-  two filter lists, resets the saved view and defers to the library's schema walk; your history
-  survives it. The header/footer **Defaults** button is the same non-destructive body, through
-  `P:RestoreDefaults`. So this addon has **three routes over two implementations**, where
-  `options-ui-§12` requires one — a **MUST divergence** that predates this pass, ratified as a row
-  in [`ARCHITECTURE.md` ▸ Documented deviations](ARCHITECTURE.md#documented-deviations). Until that
-  row is closed the two acts deliberately do **not** share a label: the button is *Reset all
-  settings*, and `/bl resetall` is described as *Reset every setting to defaults*
-  (`slash-commands-§3`'s own reference wording).
+  **It is the ONE global reset (`options-ui-§12`).** The header **Defaults** button, Blizzard's
+  footer **Defaults** (which forwards to it) and `/bl resetall` all reach the same popup through
+  `NS.Slash:RequestResetAll`, the single entry point; with no popup API it runs the reset directly.
+  Nothing changes before the player says Yes, and Yes discards recorded history on every route.
+  `/bl purge` is the act that deletes history alone. The `resetall` verb is described as *Reset
+  everything to defaults, including recorded history (asks first)*. Until BankLedger-A-02 the
+  Defaults pair and `/bl resetall` ran a non-destructive schema walk instead — three routes over
+  two implementations, carried as a register row that is now closed.
 
-  With logging on, each act writes one settings line (`debug-logging-§10`), never a line per row.
-  **Defaults** and `/bl resetall` log `[Set] reset all: N rows`, N the rows whose value changed. A
-  reset that raises part-way logs `[Set] reset all: N rows (stopped by an error)`, still once, and
-  re-raises the error.
-  *Reset all settings* logs `[Set] reset account-wide settings to defaults (N rows)` beside its
-  `[Data] reset-all wiped N ledger entries` line.
+  With logging on, the act writes one settings line (`debug-logging-§10`), never a line per row:
+  `[Set] reset account-wide settings to defaults (N rows)`, N the stored rows that changed, beside
+  its `[Data] reset-all wiped N ledger entries` line.
 
 ## Rows
 
@@ -221,8 +226,8 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.alpha` | number | `1.0` | Master controls | — | `min` narrowed to `0.1`, the honored floor |
 | `settings.locked` | bool | `false` | Master controls | — | `startsLine`, pairs with `debugConsole` |
 | `state.debugConsole` | bool (session-only) | `false` | Master controls | — | |
-| `minimap.hide` | bool | `false` (the row reads **shown**, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
-| `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.hide` |
+| `minimap.shown` | bool | `true` (stored inverted as `minimap.hide = false`, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
+| `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.shown` |
 | `settings.trackItems` | bool | `true` | Capture | — | pairs with `trackMoney` |
 | `settings.trackMoney` | bool | `true` | Capture | — | |
 | `settings.qualityThreshold` | number | `0` | Capture | — | |
@@ -232,21 +237,24 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
 | `settings.retentionDays` | number | `30` | History | — | |
 
-**The `minimap.hide` row reads backwards, and that is deliberate.** Its label says *Minimap
-button* — ticked means SHOWN — while the stored boolean is LibDBIcon's own `hide`. The key is the
+**The `minimap.shown` row is stored backwards, and that is deliberate.** Its label and its CLI
+path say SHOWN — ticked, or `/bl set minimap.shown true`, means the button is on the minimap —
+while the stored boolean is LibDBIcon's own `hide`. The key is the
 library's: it writes that same field itself when the player hides the button from its right-click
 menu, so a second boolean beside it would be a copy free to disagree (`launcher-§3`,
 anti-pattern #81). The inversion lives in **one** place, `NS.Schema:Set` / `NS.Schema:Get`, and the
 button is moved from the row's `onChange` through `NS.Launcher:SetShown`. This row REPLACED the
-Interface tab's *Hide minimap button*, which said the opposite on the same path; nobody's stored
-choice moved.
+Interface tab's *Hide minimap button*, which said the opposite over the same key; nobody's stored
+choice moved. The CLI path was `minimap.hide` until standard v2.65.0 renamed it to read in the
+row's own sense (`launcher-§3`); the stored key did not move, so there was no SavedVariables change
+and no migration, and the old path now answers `Setting not found`.
 
 **And it is the one row no reset on this page reaches.** A player's minimap-button choice is a
 per-installation display preference, like the angle they dragged the button to, so `launcher-§3`
 requires it to survive both *Reset all settings* and this page's own **Defaults** button — and both
 reached it here until the standard's v2.54.0 amendment. `NS.Schema.RESET_EXEMPT` names the row once
 and `S:ApplyDefault` honors it; the wholesale reset holds the `minimap` table across its wipe.
-A targeted `/bl reset minimap.hide` is not a sweep and still works. See
+A targeted `/bl reset minimap.shown` is not a sweep and still works. See
 [ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher).
 
 **No color rows.** Nothing here is `type = "color"`, so `options-ui-§17`'s class-color companion has
@@ -288,11 +296,81 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
   `NS.Util.RefreshRowTint` is the `onChange`: it rebinds both tables directly and broadcasts
   `SettingsChanged` beside it, the same shape `settings.windowScale` uses.
 
-**Defaults is non-destructive.** On General, `OnDefault` forwards to whatever the page parked as
+**Defaults asks first.** On General, `OnDefault` forwards to whatever the page parked as
 `defaultsOnClick`, so Blizzard's footer control and the addon's own header button are one
-implementation rather than two kept in step. That action is `P:RestoreDefaults()` — settings, the two
-id-lists, the saved view and window geometry, never the ledger. Wiping recorded history stays behind
-the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, which Blizzard's un-gated control never reaches.
+implementation rather than two kept in step. That action is `P:RestoreDefaults()`, which only calls
+`NS.Slash:RequestResetAll()` — the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, the same one
+*Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
+nothing without the player's Yes, and Yes is the wholesale reset, recorded history included.
+
+## The General page's tabs and the Filters tab
+
+The sixteen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
+**Capture** (4) · **Interface** (3) · **History** (1) · **Filters**. The last carries no settings at
+all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
+renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
+`NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
+**secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides Blacklist from Whitelist; its
+selection is `ctx.activeSubTab["Filters"]`, session state and never persisted. Each list is one
+LibKa0s `O.IdList` (`kind = "item"`, v1.35.0): the widget resolves an item id, a link or an item's
+name and calls back into `NS.Filters`, which stays the lists' only writer. The client has no
+item-name search (its name lookup answers only for items carried this session), so the list passes
+`candidates`: both lists' ids plus every item id the ledger recorded, read from existing state. The
+widget names them, suggests matches as the player types (one row per crafted-quality rank), and
+refuses a shared name until one is picked. The lines are drawn **two to a row** (`columns = 2`,
+LibKa0s v1.47.0): both lists are fed one id at a time out of a long ledger, so one entry per line
+made a scroll re-read on every visit. It is a **maximum**, not a count -- since v1.50.0 the widget
+measures the content width it has and falls back toward one column when two cannot be paid for, so
+a narrow settings canvas returns the old layout with nothing here having to know its width. The
+cost, taken knowingly: above one column word wrap goes off, so an entry too long for its column is
+cut from the tail and loses its gray `(id)` rather than shortening it; the entry's tooltip still
+carries the full name. That write fires
+`LedgerChanged` synchronously, so the tab's own listener is held off for it (`filterWrite`'s
+`ctx.__filterWrite`) and the widget's redraw goes through `ctx.rebuild` = `O.RefreshPanel(ctx, true)`:
+one add or Remove repaints this page once, rather than twice across every rendered page.
+
+Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
+five with **AH Price** after Capture. The two addons keep the same shape of record and a player
+compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
+was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
+rename and carried no migration (`options-ui-§15`).
+
+The **Master controls** tab is composed by the library (`H.MasterControls`, `options-ui-§15`) and
+spliced at the head of the array; `keys = { scale = "windowScale" }` is what keeps this addon's
+stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
+`settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
+chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
+`settings.rowHoverAlpha`, each defaulting to the number it replaced.
+
+## Bulk writes and the reset routes
+
+**A bulk reset logs one line** (`debug-logging-§10`, standard v2.44.0). The seam logs one
+`[Set] <path> = <value>` per write, except inside a bulk bracket: `S.BulkBegin` / `S.BulkEnd`, the
+instance's pair, which both descriptors take as `bulkBegin` / `bulkEnd` (LibKa0s Slash minor 8).
+Inside the bracket the seam mutes that line, and it counts each write whose read-back value actually
+changes (`S.SameValue`, deep for the set-typed row). Validation and each row's `onChange` still run
+per row.
+- The library's own `CliResetAll` walk logs exactly `[Set] reset all: N rows`. N is the rows whose
+  value changed, so a walk with every row already at its default logs `0 rows`. The library's own
+  `count` is not used, because it includes rows already at their default. **No host route runs that
+  walk any more**: `/bl resetall` and both Defaults controls are the one global reset below
+  (`options-ui-§12`). The Slash descriptor still hands the library the pair, and
+  `tests/test_slash.lua` drives the walk on an instance built from the same seam members.
+- A walk that raises part-way still logs its one line, counting the rows changed before the raise,
+  with ` (stopped by an error)` appended: `[Set] reset all: N rows (stopped by an error)`. The mute
+  still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
+  raise of nil or false (documented upstream), so that raise gets no marker.
+- Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
+  the line. `P:Batch` coalesces repaints and is not a bracket.
+- The Options descriptor carries the same pair and `applyDefault`, so `O.RestoreDefaults` would skip
+  the Minimap button row and log `[Set] reset general: N rows`. Nothing here calls it or
+  `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`
+  with no bracket and would have swept the Minimap row.
+- `Sl:ResetEverything`, the one global reset that Reset all settings, both Defaults controls and
+  `/bl resetall` reach through `Sl:RequestResetAll`, is a wholesale wipe, not a walk through the
+  seam. It logs one `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
+  already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
 
 ## In a degraded install
 

@@ -41,13 +41,14 @@ for a path that already has a row.
    directly from a new code path.
 
 If the value is window geometry or a remembered view, it is a **carve-out**, not a row. That is
-`architecture-§5` named non-setting state, and ARCHITECTURE.md → Settings Schema must name its
+`architecture-§5` named non-setting state, and [schema.md](schema.md) → *Registry, recorded data and named-state writers* must name its
 storage key, its one owner and every writer with the act that reaches it. See
 [schema.md](schema.md) → *Storage carve-outs*. If it is a collection the player adds to and removes
 from, like the filter id-sets, it is a **structural registry** (`architecture-§5`). One module is its
-only writer, and ARCHITECTURE.md → Settings Schema names its storage keys, that writer and its load
-pass. Either way it needs a line in `Slash:CliResetAll`'s wrapper so a reset still reaches it. For a
-registry, that line calls the writer.
+only writer, and [schema.md](schema.md) → *Registry, recorded data and named-state writers* names its storage keys, that writer and its load
+pass. Either way, keep it under `db.global` so the global reset (`Sl:ResetEverything`, which empties
+the store wholesale) reaches it with no extra line; if its owner also holds an in-memory copy, add
+the owner's refresh to that reset's `refreshAfterReset` fan-out, the way `NS.Browser:ResetView` is.
 
 If the row needs a **bespoke widget** beside it — a picker, a grid, a button pair — draw it from the
 tab's `afterGroup` hook (`GENERAL_AFTER_TAB` in `settings/Panel.lua`), never from the page renderer
@@ -101,15 +102,16 @@ Which answer is right depends entirely on whether rows exist:
 
 ## Add a migration
 
-1. Bump `NS.SCHEMA_VERSION` in `core/Namespace.lua` — the one source the runner seeds fresh installs
-   at and migrates towards. It is deliberately **not** an AceDB default: a default equal to the stored
-   value is stripped from the file at logout, which is how the v1 → v2 ladder spent a release
-   unreachable (`BANKLEDGER-R-02`). `defaults/Global.lua` carries the full reasoning where the key
-   used to be.
-2. Add the step to `NS:RunMigrations` in `core/Database.lua`, gated on the *current* version, and make
-   it idempotent: a database already at the new version must be skipped entirely, and re-running a
-   partially applied step must be a no-op.
-3. Emit the standard `[Migrate]` line via `NS.MigrationSummary`.
+1. Bump `NS.SCHEMA_VERSION` in `core/Namespace.lua` — the runner's target. Leave the shipped default
+   alone: `defaults/Global.lua` declares `schemaVersion = 0` and it stays 0 (`savedvariables-§1`). A
+   default equal to a real version is stripped from the file at logout, which is how the v1 → v2
+   ladder once spent a release unreachable (`BANKLEDGER-R-02`).
+2. Add the step as `NS.MIGRATIONS[<new version>] = function(g) ... return rowsTouched end` in
+   `core/Database.lua`. Do not touch the runner: it walks every step above the stored stamp in order
+   and stamps after each one returns. Make the step idempotent, because a step that raises leaves the
+   stamp at the last completed version and the next login runs it again.
+3. The runner emits the standard `[Migrate]` line via `NS.MigrationSummary`, summing the rows each
+   step reports.
 4. If the migration changes what the CSV emits, that is a **contract break** and it is recorded as a
    dated, accepted deviation tied to the schema bump — see the schema-v2 precedent in
    [schema.md](schema.md). Do not keep a column and emit blanks: a column with no value behind it is a
@@ -140,10 +142,13 @@ name. That is why every entry stores `classFile` rather than a class name.
 
 ## Register a new event
 
-Use `Ledger:RegisterEventSafely`, never a bare `RegisterEvent` loop. Modern retail **raises** on an
-unknown event name rather than ignoring it, so one retired name in a bare loop leaves every event
-after it unbound — a silently deaf addon with no visible error unless script errors are on. Names
-this build rejected land in `Ledger.unavailableEvents` and are reported by `/bl debug scan`.
+Use `NS.RegisterEventSafely(target, event, handler)` (`core/CoreSetup.lua`, over `LibKa0s-Core-1.0`'s
+`SafeRegisterEvent`), never a bare `RegisterEvent` — on the addon object, a bus target or a frame
+alike. Modern retail **raises** on an unknown event name rather than ignoring it, so one retired name
+in a bare loop leaves every event after it unbound — a silently deaf addon with no visible error
+unless script errors are on. The helper front-gates on `C_EventUtils.IsEventValid` and `pcall`s the
+rest; names this build rejected land in `NS.EventRecord.unavailable` and are reported by
+`/bl debug scan`.
 
 ## Add a window
 

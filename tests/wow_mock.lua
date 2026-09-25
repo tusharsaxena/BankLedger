@@ -28,9 +28,9 @@
 --                         and raises nothing unobservable.
 --   2. __shown = true   — the base starts frames hidden; real frames start shown, and nine IsShown
 --                         assertions in tests/test_sessionwindow.lua read the difference.
---   3. C_Timer.After    — a no-op, set on the kit's C_Timer table rather than replacing it, so the
---                         retention-cleanup deferral never runs inside the suites. The timer QUEUE
---                         is the kit's: since revision 17 `__fireTimers` skips a canceled entry and
+--   3. (retired)        — C_Timer.After was a no-op here, which hid a timer that outlived the
+--                         stand-down (BL-01). The kit's recording After and its timer QUEUE both
+--                         stand: since revision 17 `__fireTimers` skips a canceled entry and
 --                         answers how many ran, which is all the capture debounce's "three events,
 --                         ONE reconcile pass" needs. This file's own queue is gone (#19).
 --   4. (retired)        — AceAddon, AceEvent, AceTimer and AceConsole are all TAKEN from the kit
@@ -609,12 +609,13 @@ return function()
   -- The timer queue is the KIT'S (revision 17), for #19. `M.__timers` and `M.__fireTimers` are the
   -- kit's own: the queue skips a canceled entry and answers how many ran, which is what "three
   -- events, ONE reconcile pass" and "the pending timer was canceled" assert. AceTimer pushes onto
-  -- that queue directly, not through C_Timer.After, so the no-op below cannot silence it.
+  -- that queue directly.
   --
-  -- C_Timer.After alone is a no-op, layered onto the kit's C_Timer rather than replacing the table:
-  -- the retention-cleanup deferral (core/BankLedger.lua's OnEnterWorld) must NOT run inside the
-  -- suites, which seed history directly.
-  M.C_Timer.After = function() end
+  -- C_Timer.After is the kit's too, and it RECORDS (testing-§1: record, never no-op). This file
+  -- once replaced it with a no-op to keep the retention prune out of the suites, which hid the
+  -- one timer that could outlive a stand-down from tests/test_disabled.lua (BL-01). The prune now
+  -- rides AceTimer, and it stays out of the suites because nothing fires it: every __fireTimers
+  -- caller resets the queue first. Do not re-add the override.
 
   -- ── the Ace fakes ────────────────────────────────────────────────────────────────────────────
   -- Registered through M.__libs, the seam the base exposes for exactly this, so the base's LibStub

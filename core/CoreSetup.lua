@@ -31,8 +31,29 @@ local Util = NS.Util
 -- thing about WHY at every site and a different thing about WHAT at each one. Set OUTSIDE the branch
 -- below because the later seams read it on both paths, and set HERE because core/CoreSetup.lua is
 -- the first of the four the TOC loads.
+--
+-- THE ONE EARLY BRAND LITERAL. NS.BRAND_NAME is declared in core/LauncherSetup.lua, which the TOC
+-- loads after this file, so the clause spells the brand itself. Every other surface reads the
+-- constant; tests/test_launcher.lua fails on a third spelling in code.
 NS.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of Ka0s Bank Ledger " ..
   "(expected in libs/LibKa0s)"
+
+-- THE EVENT RECORD: which names this build accepted and which it refused, across EVERY
+-- registration the addon makes (events-frames-taint-§1). Read by `/bl debug scan`
+-- (modules/Ledger.lua, L:Diagnose) and reset by NS.StandDown, so a disabled addon reports an empty
+-- record and a stand-up rebuilds it from what actually bound. Set OUTSIDE the branch below because
+-- both arms of NS.RegisterEventSafely write it, and the parity case (tests/test_surface_parity.lua)
+-- holds each arm to the other's namespace.
+NS.EventRecord = { registered = {}, unavailable = {} }
+
+-- Append once. A name registered on two targets (PLAYER_LOGOUT, one per window) is one name the
+-- build accepted, and the library's own refusal list is de-duplicated the same way.
+local function noteOnce(list, event)
+  for i = 1, #list do
+    if list[i] == event then return end
+  end
+  list[#list + 1] = event
+end
 
 local lib = LibStub and LibStub("LibKa0s-Core-1.0", true)
 
@@ -100,6 +121,15 @@ if not lib then
     if f.divider then f.divider:SetColorTexture(0.24, 0.24, 0.27, 0.85) end
   end
 
+  -- The one rung left without the library: no IsEventValid front gate, but the pcall still keeps a
+  -- refused name from raising into the caller. Modern retail RAISES on an unknown event name, and a
+  -- raise inside NS.StandUp would abort every module Enable after it.
+  function NS.RegisterEventSafely(target, event, handler)
+    local ok = pcall(target.RegisterEvent, target, event, handler)
+    noteOnce(ok and NS.EventRecord.registered or NS.EventRecord.unavailable, event)
+    return ok
+  end
+
   Util.print = NS.Print
   return
 end
@@ -110,6 +140,19 @@ end
 -- as a flat NS member for the same reason NS.SafeToString is: the fallback branch owes the
 -- caller the same name.
 NS.ApplySkin = lib.ApplySkin
+
+-- EVERY event registration in this addon goes through here (events-frames-taint-§1): the stand-up's
+-- three on the addon object, the capture engine's set in modules/Ledger.lua, and the two windows'
+-- PLAYER_LOGOUT on their bus targets. Modern retail RAISES on an unknown event name, so a bare
+-- registration turns one retired name into an aborted loop or stand-up. LibKa0s-Core-1.0's
+-- SafeRegisterEvent asks C_EventUtils.IsEventValid first (so a refused name never reaches
+-- RegisterEvent at all) and pcalls what gets past it; the refusal lands in the record's
+-- `unavailable` list, and what bound is appended to `registered` here.
+function NS.RegisterEventSafely(target, event, handler)
+  local ok = lib.SafeRegisterEvent(target, event, handler, NS.EventRecord.unavailable)
+  if ok then noteOnce(NS.EventRecord.registered, event) end
+  return ok
+end
 
 NS.IsConcatSafe = lib.IsConcatSafe
 NS.SafeToString = lib.SafeToString

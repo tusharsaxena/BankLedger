@@ -590,3 +590,17 @@ test("LedgerTable: the whitelist confirmation names the tab the list actually li
   assertFalse(out:find("Settings \226\150\184 Filters") ~= nil,
     "the Filters PAGE no longer exists; the tab is reached through General")
 end)
+
+test("LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it", function()
+  -- BL-17 (events-frames-taint-§8): the label and the route are separate printer arguments, not
+  -- one pre-formatted string, so the bytes are the printer's space join. Pinned whole, both lists
+  -- and the id fallback a row with no cached name falls back to.
+  -- red under: the old `("blacklisted %s. Manage in ..."):format(label)` wording.
+  local route = " \226\128\148 manage it in Settings \226\150\184 General \226\150\184 Filters \226\150\184 "
+  assertEqual(fireMenuItem("Blacklist item", { itemID = 2589, itemName = "Linen Cloth" }),
+    "|cff00ffff[BL]|r blacklisted Linen Cloth" .. route .. "Blacklist.")
+  assertEqual(fireMenuItem("Whitelist item", { itemID = 2589, itemName = "Linen Cloth" }),
+    "|cff00ffff[BL]|r whitelisted Linen Cloth" .. route .. "Whitelist.")
+  assertEqual(fireMenuItem("Blacklist item", { itemID = 2589 }),
+    "|cff00ffff[BL]|r blacklisted item 2589" .. route .. "Blacklist.")
+end)

@@ -136,15 +136,20 @@ S.Schema = {
 -- WHY `windowScale` IS THE MASTER SCALE and not a per-window one: both of this addon's scalable
 -- surfaces already read that single key. Before the promotion each read it for itself, at frame
 -- construction and again on a settings change; they read it through NS.Util.ApplyMasterFrame now
--- (modules/Browser.lua:1123 and :1165, modules/SessionWindow.lua:554 and :648), which is the same
+-- (each window's frame builder and its OnSettingsChanged: EnsureFrame and B:OnSettingsChanged in
+-- modules/Browser.lua, ensureFrame and SW:OnSettingsChanged in modules/SessionWindow.lua), the same
 -- one key for a third surface as well. It has been addon-wide since it was added; the tab it sat on
 -- was the only thing suggesting otherwise. So this is a promotion with no second setting invented
 -- beside it, which is what options-ui-§15 asks for.
--- The minimap row's stored path, named once because THREE places have to agree on it: the spec
--- below, the decoration underneath, and the two inverting arms in the write seam. LibDBIcon owns
--- the key and writes it itself from its own right-click menu, which is exactly why there is one
--- boolean here and not a second one beside it (launcher-§3, anti-pattern #81).
-S.MINIMAP_PATH = "minimap.hide"
+-- The minimap row's CLI path, named once because FOUR places have to agree on it: the spec below,
+-- the decoration underneath, the reset carve-out, and S:Register's defaults resolution. It reads in
+-- the row's own sense -- `/bl set minimap.shown false` hides the button -- since standard v2.65.0
+-- (launcher-§3). The PATH IS THE CLI NAME ONLY: the stored key is still db.global.minimap.hide,
+-- which LibDBIcon owns and writes itself from its own right-click menu, so the decoration's get/set
+-- invert onto it and nothing is ever stored at `minimap.shown`. A stored `shown` key would be a
+-- second boolean beside the library's one (anti-pattern #81). The rename moved no SavedVariables
+-- and needs no migration; the old CLI path `minimap.hide` now answers `Setting not found`.
+S.MINIMAP_PATH = "minimap.shown"
 
 -- ── The rows a RESET SWEEP must not reach (launcher-§3, standard v2.54.0) ───────────────────────
 --
@@ -166,22 +171,37 @@ S.MINIMAP_PATH = "minimap.hide"
 -- schema row carrying a default, reached the row from the other side. BOTH of this addon's resets
 -- reached it; both are carved out now (settings/Slash.lua).
 --
--- A TARGETED `/bl reset minimap.hide` IS NOT A SWEEP and still works. The player naming the one row
+-- A TARGETED `/bl reset minimap.shown` IS NOT A SWEEP and still works. The player naming the one row
 -- is asking for exactly that row, which is what the veto below is careful not to refuse: it fires
 -- only inside a bulk bracket, which is what a wholesale act opens and a single-row reset does not.
 S.RESET_EXEMPT = { [S.MINIMAP_PATH] = true }
+
+-- ── The rows a host verb writes when the composer that declares them is absent (WS-02 route a) ──
+--
+-- `settings.enabled` is a COMPOSED row: LibKa0s-Options' MasterControls declares it, so a load
+-- without that library has no row for it, and `/bl enable` / `/bl disable` -- the reserved pair,
+-- which must work on every install (slash-commands-§2) -- would meet an unknown path. Listing it
+-- here is options-ui-§1's route (a): the seam still stores the path, raw, through a synthetic row
+-- with no validate and no onChange, so the degraded verbs re-run the latch themselves
+-- (settings/Slash.lua). A path WITH a row always takes the row, so the full load is unaffected.
+--
+-- It is the ONE composed row a host verb writes. `settings.locked` has no verb. Test mode and the
+-- debug console are session state, switched through LT:SetTestMode and NS.DebugLog, never through
+-- this seam, so neither belongs here.
+S.WRITE_THROUGH = { "settings.enabled" }
 
 S.MASTER_SPEC = {
   prefix    = "settings.",
   page      = "general",
   addonName = "Bank Ledger",
-  -- NOT frameless: modules/Browser.lua:1007, modules/SessionWindow.lua:449 and modules/Export.lua:347
-  -- all call SetMovable(true), so every frame-only row applies.
+  -- NOT frameless: each window's frame builder (EnsureFrame in modules/Browser.lua, ensureFrame in
+  -- modules/SessionWindow.lua, EnsureFrame in modules/Export.lua) calls SetMovable(true), so every
+  -- frame-only row applies.
   keys      = { scale = "windowScale" },
   -- The composer leaves the console toggle's default to the host, because "was the console open"
   -- is session state and only the host knows what it starts as. False is what this addon has always
-  -- shipped, and CliResetAll needs it: a session-only row is restored row by row, since a store
-  -- reset cannot reach it (options-ui-§12).
+  -- shipped, and the global reset lands on it: a session-only row is restored by name, since a
+  -- store wipe cannot reach it (options-ui-§12) -- Sl:ResetEverything closes the console.
   --
   -- The same holds for test mode, which the composer emits with no default at all: `false` is what
   -- lets a reset end it (options-ui-§15, standard v2.47.0).
@@ -194,10 +214,11 @@ S.MASTER_SPEC = {
   -- `settings.` prefix, and this addon has stored it at db.global.minimap since long before the
   -- section existed — so unlike Multi Meters it owes no migration.
   --
-  -- IT REPLACES A ROW RATHER THAN ADDING ONE. The Interface tab carried "Hide minimap button" on
-  -- this same path, with the opposite sense; it is gone, because two rows over one boolean is the
-  -- drift options-ui-§15 exists to end. The path did not move, so no player loses their choice —
-  -- what changes is the label, the tab, and which way round the box reads.
+  -- IT REPLACES A ROW RATHER THAN ADDING ONE. The Interface tab carried "Hide minimap button" over
+  -- this same stored key, with the opposite sense; it is gone, because two rows over one boolean is
+  -- the drift options-ui-§15 exists to end. The stored key did not move, so no player loses their
+  -- choice — what changed is the label, the tab, the CLI name (`minimap.shown` since standard
+  -- v2.65.0) and which way round the box reads.
   minimapPath = S.MINIMAP_PATH,
   -- The Test mode checkbox, on its own line below Lock frame / Debug console (LibKa0s v1.37.0). It
   -- switches the SAMPLE LEDGER (`/bl test`), not the session-window preview: `/bl session` stays its
@@ -320,23 +341,10 @@ function S:ComposeMaster(O)
   spec.onResetPosition = function() NS.Util.ResetWindowPositions() end
   -- options-ui-§12's global reset for an addon with NO PROFILE, verbatim: the confirm-gated
   -- KA0S_BANKLEDGER_RESETALL popup (whose text is that rule's second canonical wording, byte for
-  -- byte), never the deed on the click. EXACTLY the act the History tab's "Reset all…" button used
-  -- to raise — the button moved here rather than being copied.
-  --
-  -- Note for whoever reads this next: `/bl resetall` does NOT reach this, and neither does the
-  -- header/footer Defaults button. Both run Sl:CliResetAll, which walks the schema, clears the
-  -- filter registry through NS.Filters, discards the saved view and leaves the ledger alone, while
-  -- this raises Sl:ResetEverything, which empties db.global wholesale. options-ui-§12 wants all
-  -- three behind ONE implementation; they are not.
-  -- The divergence predates this tab and is now a RATIFIED ROW in docs/ARCHITECTURE.md's
-  -- `## Documented deviations` register, which also carries what closing it costs. Reported and
-  -- named, not quietly widened here.
+  -- byte), never the deed on the click. Through NS.Slash:RequestResetAll, the single entry point
+  -- the page and footer Defaults and `/bl resetall` share, so every control is one act.
   spec.onResetAll = function()
-    if type(StaticPopup_Show) == "function" then
-      StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
-    elseif NS.Slash and NS.Slash.ResetEverything then
-      NS.Slash:ResetEverything()
-    end
+    if NS.Slash and NS.Slash.RequestResetAll then NS.Slash:RequestResetAll() end
   end
 
   local rows, tail = O.MasterControls(spec)
@@ -389,18 +397,21 @@ end
 -- console WINDOW's visibility IS the `state.debugConsole` row the Master controls composer emits.
 -- NOTE: four storage carve-outs are architecture-§5 named non-setting state, written by their owner
 -- rather than through Schema:Set. None is a schema row, so none has a widget, a default or an
--- onChange. None has a `Documented deviations` row either: docs/ARCHITECTURE.md ▸ Settings Schema
--- names each one's owner and every writer, and that naming is the compliance. Check that list
--- before writing a key under db.global directly, and add any new writer to it. The four are:
+-- onChange. None has a `Documented deviations` row either: docs/schema.md ▸ Registry, recorded data
+-- and named-state writers names each one's owner and every writer, and that naming is the
+-- compliance. Check that list before writing a key under db.global directly, and add any new writer
+-- to it. The four are:
 --   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
---      (modules/Browser.lua:147) on four occasions: drag-stop, resize-grip mouse-up (:1099), hide
---      and logout. Emptied by B:ResetWindow (:185).
+--      (modules/Browser.lua) on four occasions: drag-stop, resize-grip mouse-up (the grip's OnMouseUp
+--      in EnsureFrame), hide and logout. Emptied by B:ResetWindow.
 --   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written on the
---      same four by SW:SaveGeometry (modules/SessionWindow.lua:252, grip :533); emptied by SW:ResetWindow (:289).
+--      same four by SW:SaveGeometry (modules/SessionWindow.lua; the grip's in ensureFrame); emptied by
+--      SW:ResetWindow.
 --   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
---      (modules/Browser.lua:748), cleared by B:ResetView (:757).
---   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table B:SetupMinimap
---      hands it. That table also holds the `minimap.hide` row, so nothing here replaces it whole.
+--      (modules/Browser.lua), cleared by B:ResetView.
+--   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table core/LauncherSetup.lua
+--      hands it. That table also holds `hide`, the Minimap button row's stored key (CLI path
+--      `minimap.shown`), so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
 -- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
 -- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.
@@ -425,7 +436,7 @@ end
 --   * debug / debugEnabled -- the [Set] line goes to NS.Debug, read at call time, and only while the
 --     session logging flag is on, so nothing is formatted with logging off.
 --   * resetExempt -- launcher-§3's Minimap button row. The library honors it inside a bracket only,
---     so the sweep skips the row while `/bl reset minimap.hide`, the player naming it, still applies.
+--     so the sweep skips the row while `/bl reset minimap.shown`, the player naming it, still applies.
 --   * L -- this addon's own refusal wording, kept from before the adoption.
 --
 -- WHAT THE LIBRARY DOES ON EVERY WRITE, IN THIS ORDER (the order is its contract): refuse an unknown
@@ -455,7 +466,9 @@ if not SchemaLib then
   --
   -- Trimmed: BulkRun, BulkAdd, InBulk, Reindex and the profile-reset count (CountOffDefault,
   -- ResetCounted, ConsumeResetCount) have no caller in this addon, which has no profile.
-  -- tests/test_surface_parity.lua names each one as live-only.
+  -- tests/test_surface_parity.lua names each one as live-only. SetMany is the other way round: it
+  -- has no caller in this addon either, and it is CARRIED, for parity -- Schema minor 2 (LibKa0s
+  -- v1.56.0) adds it to the instance, and the version-2 document puts it in the stub table.
   local stub = {}
   local function copy(v)
     if type(v) ~= "table" then return v end
@@ -502,6 +515,16 @@ if not SchemaLib then
   function stub:New(d)
     local R, depth, rows = {}, 0, d.rows
     local function words(key, path) return (d.L[key]):format(tostring(path)) end
+    -- The writeThrough rows, as the library builds them: one synthetic `{ path =, writeThrough =
+    -- true }` per listed path, read ONCE here and handed out by identity. No validate, no set, no
+    -- onChange, so prepare/store below treat it as a plain stored row: NO_ROOT without a store,
+    -- else a raw copy, then the announce.
+    local throughRows = {}
+    for _, p in ipairs(type(d.writeThrough) == "table" and d.writeThrough or {}) do
+      if type(p) == "string" and p ~= "" and not throughRows[p] then
+        throughRows[p] = { path = p, writeThrough = true }
+      end
+    end
     function R.AllRows() return rows end
     function R.FindRow(path)
       if type(path) ~= "string" then return nil end
@@ -522,9 +545,13 @@ if not SchemaLib then
       if type(path) ~= "string" or (row and row.sessionOnly) then return nil end
       return stub.Read(d.resolveRoot(), path)
     end
-    -- The seam's order without its log and tally: refuse, validate, store, react, announce.
-    function R.Set(path, value)
-      local row = R.FindRow(path)
+    -- Steps 1-3 of the seam, storing nothing: refuse an unknown path (a listed writeThrough path is
+    -- not unknown), validate, refuse a missing root. Answers the row and its root, or false and the
+    -- refusal. Set and SetMany both prepare through it, so a batch refuses on exactly the rules a
+    -- single write does.
+    local function prepare(path, value)
+      -- A path with a row always takes the row; a row-less path is refused unless it is listed.
+      local row = R.FindRow(path) or (type(path) == "string" and throughRows[path]) or nil
       if not row then return false, words("NOT_FOUND", path) end
       local stored = type(row.set) ~= "function" and not row.sessionOnly
       local root = stored and d.resolveRoot() or nil
@@ -533,13 +560,54 @@ if not SchemaLib then
         if not ok then return false, words("INVALID", path), why end
       end
       if stored and type(root) ~= "table" then return false, words("NO_ROOT", path) end
+      return row, root
+    end
+    -- The store alone: the row's own set, nothing for a sessionOnly row without one, else a copy.
+    local function store(row, root, path, value)
       if type(row.set) == "function" then
         row.set(value)
-      elseif stored then
+      elseif type(root) == "table" then
         stub.Write(root, path, copy(value))
       end
+    end
+    -- The seam's order without its log and tally: refuse, validate, store, react, announce.
+    function R.Set(path, value)
+      local row, root, why = prepare(path, value)
+      if not row then return false, root, why end
+      store(row, root, path, value)
       if type(row.onChange) == "function" then row.onChange(value) end
       d.announce(row, path, value)
+      return true
+    end
+    -- Phases 2-4 of the batch: every store, then every onChange, then the one announce.
+    local function commit(writes)
+      for _, w in ipairs(writes) do store(w.row, w.root, w.path, w.value) end
+      for _, w in ipairs(writes) do
+        if type(w.row.onChange) == "function" then w.row.onChange(w.value) end
+      end
+      if #writes == 0 then return end
+      if type(d.announceBatch) == "function" then return d.announceBatch(writes) end
+      for _, w in ipairs(writes) do d.announce(w.row, w.path, w.value) end
+    end
+    -- All or nothing: every entry is prepared before any is stored, and the first refusal answers
+    -- `false, err, why, index` with nothing stored and nothing called. With opts.act the stores and
+    -- reactions run inside the bracket depth, so the sweep veto reads it as the library's BulkRun.
+    function R.SetMany(entries, opts)
+      if type(entries) ~= "table" then entries = {} end
+      if type(opts) ~= "table" then opts = {} end
+      local writes = {}
+      for i, e in ipairs(entries) do
+        local path = type(e) == "table" and e.path or nil
+        local value = type(e) == "table" and e.value or nil
+        local row, root, why = prepare(path, value)
+        if not row then return false, root, why, i end
+        writes[#writes + 1] = { row = row, root = root, path = path, value = value }
+      end
+      if not opts.act then commit(writes); return true end
+      depth = depth + 1
+      local ok, err = pcall(commit, writes)
+      if depth > 0 then depth = depth - 1 end
+      if not ok then error(err, 0) end
       return true
     end
     function R.Default(path)
@@ -571,6 +639,7 @@ local inst = SchemaLib:New({
   debugEnabled = function() return NS.State ~= nil and NS.State.debug == true end,
   print        = function(line) print(line) end,
   resetExempt  = S.RESET_EXEMPT,
+  writeThrough = S.WRITE_THROUGH,
   L = {
     NOT_FOUND = "unknown path: %s",
     INVALID   = "invalid value",
@@ -590,13 +659,16 @@ S.SameValue = SchemaLib.SameValue
 -- library's `count`, which counts a row already at its default. A bracket that reports
 -- `info.profileReset` logs nothing (this addon has no profile, so none does), and a walk that
 -- raised part-way still logs its line, marked ` (stopped by an error)`. Dot-called values, handed
--- to the LibKa0s-Slash descriptor (settings/Slash.lua) and called by its degraded CliResetAll.
+-- to the LibKa0s-Slash and LibKa0s-Options descriptors. No host route opens one today: the global
+-- reset is the wholesale Sl:ResetEverything, which logs its own one line.
 S.BulkBegin = inst.BulkBegin
 S.BulkEnd = inst.BulkEnd
 
 --- The single write seam. Answers `true`, or `false, reason` -- exactly two values on a refusal, as
 --- it always has: the library's optional third (a validate's own reason) is not passed on, because
---- every caller here reads at most two.
+--- every caller of THIS method reads at most two. Only NS.Schema:Set trims. The slash CLI does not
+--- come through here: its descriptor holds the instance's own Set (settings/Slash.lua), reads all
+--- three of `false, err, why`, and prints the refusal (LibKa0s-Slash minor 15).
 function S:Set(path, value)
   local ok, err = inst.Set(path, value)
   if ok then return true end
@@ -608,12 +680,13 @@ function S:Default(path) return inst.Default(path) end
 
 --- Restore ONE row to its declared default -- the seam every reset SWEEP writes through, and the one
 --- place S.RESET_EXEMPT is honored (launcher-§3). Both the Slash and the Options descriptors hand it
---- over as `applyDefault`, and the degraded CliResetAll calls it too.
+--- over as `applyDefault`.
 ---
 --- THE VETO IS BRACKET-SCOPED, DELIBERATELY, and that is the library's rule too: the Slash library
---- reaches `applyDefault` from BOTH CliReset (one named path) and CliResetAll (the sweep), and only
+--- reaches `applyDefault` from BOTH CliReset (one named path) and its own CliResetAll (the sweep,
+--- which this addon's `/bl resetall` no longer runs -- that verb is the wholesale reset), and only
 --- the sweep opens the bulk bracket. Vetoing unconditionally would also refuse
---- `/bl reset minimap.hide`, which is the player naming that exact row.
+--- `/bl reset minimap.shown`, which is the player naming that exact row.
 function S:ApplyDefault(row) return inst.ApplyDefault(row) end
 
 -- Boot validation (architecture-§5), through the library's Validate: every row's shape (a path,
@@ -627,10 +700,25 @@ function S:ApplyDefault(row) return inst.ApplyDefault(row) end
 -- the defaults table, not from the rows, so its stored value would still read nil.
 local VALID_TYPES = { bool = true, number = true, string = true, color = true, table = true }
 
+--
+-- THE MINIMAP ROW IS THE ONE PATH THAT IS NOT A STORED KEY. `minimap.shown` is the CLI name; the
+-- store holds LibDBIcon's `minimap.hide` (S.MINIMAP_PATH above). So Validate resolves that one row
+-- against a root derived from the declared hide default, rather than against a `shown` key the
+-- defaults deliberately do not ship -- which keeps the check honest for the row without inventing
+-- a second stored boolean to satisfy it.
+local function defaultsRoot(_, row)
+  local global = NS.defaults and NS.defaults.global
+  if row and row.path == S.MINIMAP_PATH then
+    local mm = global and global.minimap
+    return { minimap = { shown = not (type(mm) == "table" and mm.hide) } }, 1
+  end
+  return global, 1
+end
+
 function S:Register()
   local errors, _, missing = inst.Validate({
     types        = VALID_TYPES,
-    defaultsRoot = function() return NS.defaults and NS.defaults.global, 1 end,
+    defaultsRoot = defaultsRoot,
   })
   return errors + missing
 end
@@ -658,15 +746,12 @@ NS.COMMANDS = {
   { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },
   { "list",     "List all settings",       function() NS.Slash:CliList() end },
   { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
-  -- NOT the same act as the Master controls tab's "Reset all settings" button, and therefore NOT
-  -- the same words: this walks the schema, the filter registry and the saved view, and leaves the
-  -- recorded ledger alone, while the button raises KA0S_BANKLEDGER_RESETALL and empties db.global
-  -- wholesale. The description is slash-commands-§3's own reference wording. options-ui-§12 wants
-  -- the two behind ONE implementation; they are not, and that divergence is a ratified row in
-  -- docs/ARCHITECTURE.md ▸ Documented deviations. Until it is closed, the two MUST NOT wear an
-  -- identical label — a player who cannot tell which of two controls does more is exactly the
-  -- failure that rule spends its length preventing.
-  { "resetall", "Reset every setting to defaults", function() NS.Slash:CliResetAll() end },
+  -- THE SAME ACT as the Master controls tab's "Reset all settings" button and both Defaults
+  -- controls (options-ui-§12): it raises KA0S_BANKLEDGER_RESETALL, and Yes empties db.global
+  -- wholesale. The words say both halves a player needs before typing it — history goes, and it
+  -- asks first — the way `purge` says it.
+  { "resetall", "Reset everything to defaults, including recorded history (asks first)",
+    function() NS.Slash:CliResetAll() end },
   { "session",  "Toggle the banking-session window (sample data outside a bank)",
     function()
       if not NS.SessionWindow then return end
@@ -674,7 +759,7 @@ NS.COMMANDS = {
       if on == nil then
         print("a real banking session is open \226\128\148 showing what you actually moved.")
       else
-        print("session window sample " .. (on and "on" or "off"))
+        print("session window sample", on and "on" or "off")
       end
     end },
   { "test",     "Toggle a sample ledger",  function()
@@ -688,7 +773,7 @@ NS.COMMANDS = {
         return
       end
       local on, refusal = LT:ToggleTestMode()
-      if refusal then print(refusal) else print("test mode " .. (on and "on" or "off")) end
+      if refusal then print(refusal) else print("test mode", on and "on" or "off") end
     end },
   { "purge",    "Delete ALL ledger history (asks first)", function()
       if type(StaticPopup_Show) == "function" then

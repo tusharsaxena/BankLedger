@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1017%2F1017_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1068%2F1068_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -35,9 +35,10 @@ reads from it.
 
 ## Usage
 
-`/bl show` opens the ledger and `/bl hide` closes it; `/bl toggle`, or a left-click on the minimap
-button, does whichever the window is not already doing, and Escape and the X in the top corner close
-it. A right-click on the minimap button, or `/bl config`, lands you in the settings instead. The
+`/bl show` opens the ledger and `/bl hide` closes it; `/bl toggle`, or **Show window** in the
+minimap button's right-click menu, does whichever the window is not already doing, and Escape and the
+X in the top corner close it. A left-click on the minimap button, or `/bl config`, lands you in the
+settings instead. The
 window opens on History, one line per movement, newest first, already scoped to whoever you are
 logged in as. The bar above the table is how you narrow that: a search box for item names, dropdowns
 for date, direction, store, quality, type, sub-type and character, and a Group dropdown that folds
@@ -75,9 +76,15 @@ controls tab, which pins every window the addon owns.
 
 The minimap button wears the addon's own logo — the same picture the AddOns list shows beside the
 name — and if you run Titan Panel, ElvUI's data texts or Bazooka, Bank Ledger turns up there too,
-clicking exactly the same way. The **Minimap button** box on the Master controls tab hides it and
-brings it back, and so does the button's own right-click menu; the two always agree, because they
-are one switch. Neither **Defaults** nor **Reset all settings** touches it: whether the button is
+clicking exactly the same way. A left-click opens the settings. A right-click opens a small menu of
+checkboxes: **Enabled**, **Locked** (the Master controls tab's *Lock frame*), **Test mode** (the
+sample ledger) and **Show window** (the ledger itself). Each one does exactly what its command does
+(`/bl enable` or `/bl disable`, `/bl set settings.locked`, `/bl test`, `/bl toggle`), messages
+included, and each tick shows the state as it is when the menu opens. Hover the button for a status
+card: the version, whether the addon is enabled, whether the windows are locked, whether test mode
+is on, how many movements the ledger holds, and what each click does. It shows while the addon is
+disabled too. The **Minimap button** box on the Master controls tab hides the button and brings it
+back. Neither **Defaults** nor **Reset all settings** touches it: whether the button is
 there, and the spot around the minimap you dragged it to, is part of how your screen is arranged
 rather than part of what the addon was told to do.
 
@@ -87,10 +94,13 @@ prints the full command list.
 
 If you'd rather read your settings than click through them, `/bl list` prints every one with its
 current value and `/bl get setting` answers for a single one; `/bl set setting value` changes
-one from chat. Going the other way, `/bl reset setting` puts one back to its default and
-`/bl resetall` puts all of them back — settings only, which is the important part: your ledger
-history is untouched by either. The command that does clear history is `/bl purge`, and because
-that cannot be undone it asks for confirmation first. `/bl version` prints the version to quote in
+one from chat. Going the other way, `/bl reset setting` puts one back to its default. Every
+*reset everything* control is one and the same act: `/bl resetall`, the **Defaults** button at the
+top of Settings ▸ General (and Blizzard's own Defaults at the foot of the Settings window), and
+**Reset all settings** on the Master controls tab all ask first, and saying Yes returns the addon
+to a fresh install — your settings, both filter lists, your saved view **and your recorded
+history** are discarded. Export first if you want to keep it. To delete history alone, use
+`/bl purge`, which asks for confirmation too and leaves your settings be. Purging is not the only way history goes: by default, movements older than 30 days are removed at login, and Settings ▸ History ▸ **Keep history for** changes that (**Always** keeps everything). `/bl version` prints the version to quote in
 a bug report. And if you want the addon out of the way without unticking it in the AddOns list,
 `/bl disable` stands it down and `/bl enable` brings it back — the same switch as the **Enable Bank
 Ledger** box on the Master controls tab, so whichever you use, the other agrees.
@@ -103,9 +113,10 @@ list, without the reload.
 What stays up is the way back in. Every command keeps working — you can read and change settings,
 open the panel, print the version, run the debug console — and a bare `/bl` still opens the
 settings window. What a stood-down addon will not do is **act**: ask it to show the ledger, toggle
-the sample or purge your history, or left-click the minimap button, and it says it is disabled and
-points you at `/bl enable` rather than quietly doing nothing. Right-click on the minimap button
-still opens the settings.
+the sample or purge your history, and it says it is disabled and points you at `/bl enable` rather
+than quietly doing nothing. A left-click on the minimap button still opens the settings, and in its
+right-click menu **Enabled** still works while the other three entries are grayed out with the note
+"enable the addon first".
 
 ## How the ledger works
 
@@ -135,6 +146,7 @@ questing, never ends up in the book.
 | What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |
 | Why does the session window forget everything when I reopen the bank? | Because it covers the visit you are on and nothing else. Anything older is in the main window. |
 | Does it slow the game down? | It only does anything while a bank window is open, and both windows build rows only for what fits on screen. |
+| Why did old history disappear? | By default, movements older than 30 days are removed at login. Keep them longer under Settings ▸ History ▸ **Keep history for**; **Always** keeps everything. |
 | Where is my data kept? | In the addon's SavedVariables file, on your own machine. Nothing is sent anywhere. |
 
 ## Troubleshooting
@@ -145,8 +157,9 @@ questing, never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Filters ▸ Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Defaults** button at the top of Settings ▸ General recenters both windows. It restores your settings, clears your filter lists and discards your saved view, but your history is untouched. (The **Reset all settings** button on the Master controls tab also recenters them, but it deletes your history too — export first if you want to keep it.) |
+| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control — **Defaults**, **Reset all settings** and `/bl resetall` — recenters them too, but it asks first and then discards your settings, filter lists and recorded history as well; export first if you want to keep it. `/bl purge` deletes history only. |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
+| The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns everything to a fresh install, and a fresh install is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
 | Something looks wrong and you want to report it | `/bl debug on`, reproduce it, then `/bl debug`, hit **Copy**, and paste the log into an issue. Add the output of `/bl debug scan`, which writes to the console whether logging is on or not and reports which container ids and money readers your client actually exposes. |
 
 ## Issues and feature requests

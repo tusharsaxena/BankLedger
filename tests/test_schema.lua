@@ -33,11 +33,11 @@ end
 local function reasonsFrom(fn)
   local seen = {}
   local target = NS.NewBusTarget()
-  target:RegisterMessage("Ka0s_BankLedger_SettingsChanged", function(_, reason)
+  target:RegisterMessage(NS.MSG.SETTINGS_CHANGED, function(_, reason)
     seen[#seen + 1] = reason
   end)
   local ok, err = pcall(fn)
-  target:UnregisterMessage("Ka0s_BankLedger_SettingsChanged")
+  target:UnregisterMessage(NS.MSG.SETTINGS_CHANGED)
   if not ok then error(err, 0) end
   return seen
 end
@@ -273,9 +273,31 @@ test("Schema: the page partitions into the designed tabs, in the designed order"
   end
 end)
 
+test("schema: the live and library-absent row counts, and the composed delta", function()
+  -- options-ui-§1 (when the missing content is COMPOSED): without LibKa0s, the OptionsSetup stub's
+  -- O.MasterControls is hollow, so S:ComposeMaster adds nothing and the whole Master-controls block
+  -- is absent from both S.Schema and S:PageRows(). PageRows carries one row more than the registry
+  -- on each arm (the renderer-only Filters row in S.BespokeRows), so the delta is 8 on both.
+  --
+  -- Red under a composer that stops being hollow, or a host row added or removed.
+  local Env = dofile("tests/degraded_env.lua")
+  local DS = Env.loadDegraded().Schema
+  local live = { schema = #S.Schema, page = #S:PageRows() }
+  local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
+  assertEqual(live.schema, 16, "live #S.Schema")
+  assertEqual(degraded.schema, 8, "library-absent #S.Schema")
+  assertEqual(live.page, 17, "live #S:PageRows()")
+  assertEqual(degraded.page, 9, "library-absent #S:PageRows()")
+  local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
+    .. "O.MasterControls, which composes nothing without the library"
+  assertEqual(live.schema - degraded.schema, 8, "S.Schema live minus degraded" .. why)
+  assertEqual(live.page - degraded.page, 8, "S:PageRows() live minus degraded" .. why)
+end)
+
 test("Schema: Master controls is the FIRST tab, and holds exactly the canonical rows", function()
   -- options-ui-§15. The set is canonical, not a menu: this addon draws three movable frames
-  -- (modules/Browser.lua:1007, modules/SessionWindow.lua:449, modules/Export.lua:347) so it is not
+  -- (the SetMovable(true) call in each frame builder: EnsureFrame in modules/Browser.lua,
+  -- ensureFrame in modules/SessionWindow.lua, EnsureFrame in modules/Export.lua) so it is not
   -- frameless and every frame-only row applies. The ORDER is the standard's table read across then
   -- down, and it must not be reordered, renamed or split.
   --
@@ -287,7 +309,7 @@ test("Schema: Master controls is the FIRST tab, and holds exactly the canonical 
     "settings.locked", "state.debugConsole",
     -- The fourth line, since LibKa0s v1.39.0 (compose minor 7): [Minimap button] [Test mode].
     -- Minimap button takes column 1 because EVERY addon has one and only some have a test mode.
-    "minimap.hide", "state.testMode",
+    "minimap.shown", "state.testMode",
   }
   local got = {}
   for _, row in ipairs(S:PageRows()) do
@@ -434,7 +456,7 @@ test("Schema: the Interface tab opens with the control most players reach for", 
     if row.group == "Interface" then first = row; break end
   end
   assertEqual(first.path, "settings.showSessionWindow")
-  assertEqual(S:FindRow("minimap.hide").group, "Master controls",
+  assertEqual(S:FindRow("minimap.shown").group, "Master controls",
     "the minimap row must not be on the Interface tab as well")
 end)
 

@@ -83,7 +83,7 @@ end
 --- Add a name here the moment a surface starts drawing it. A name in the source and not in this
 --- list is exactly the drift the list exists to catch.
 ---
----   close          modules/Browser.lua  B:MakeCloseButton — all four title bars
+---   close          modules/Browser.lua  B:MakeCloseButton — the three host title bars
 ---   chevron-down   modules/Browser.lua  B:MakeDropdown's injected ▼, and the expanded group header
 ---   confirm        modules/Browser.lua  B:MakeDropdown's injected tick, for a multi-select menu's row
 ---   chevron-right  modules/LedgerTable.lua  the collapsed group header

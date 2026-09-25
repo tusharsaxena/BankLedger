@@ -6,10 +6,10 @@ NS.name = addonName
 -- the TOC's ## Version and degrades to this when the metadata API is unavailable (headlessly, say).
 NS.version = "1.1.0"
 
--- The persisted-DB shape this build writes. ONE source for both the shipped default
--- (defaults/Global.lua) and the migration runner's target (NS:RunMigrations) — they were separately
--- maintained and had already drifted apart by one (F-008), so a fresh install shipped a value the
--- runner immediately migrated off.
+-- The persisted-DB shape this build writes: the migration runner's target (NS:RunMigrations) and the
+-- highest key in NS.MIGRATIONS. It is NOT the shipped default -- defaults/Global.lua declares
+-- `schemaVersion = 0`, never a real version (savedvariables-§1), so AceDB's logout strip cannot take
+-- a real stamp out of the file.
 NS.SCHEMA_VERSION = 2
 
 -- Shared chat tag. Cyan (00ffff) is the Ka0s Standard house color (slash-commands-§4) — every Ka0s

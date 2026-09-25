@@ -2,9 +2,9 @@
 --
 -- The library's own suite covers the launcher's semantics; duplicating them here is the
 -- consumer-side copy testing-§8 forbids. What only this repo can assert is that the seam is wired,
--- that the RUNG is the one the standard's ADDONS.md records against this addon, that the inverting
--- get/set at the write seam is the right way round, and that a host missing either broker library
--- degrades rather than raises.
+-- that the MENU ENTRIES are the ones the standard's ADDONS.md records for this addon and each runs
+-- its slash verb's own handler, that the inverting get/set at the write seam is the right way
+-- round, and that a host missing either broker library degrades rather than raises.
 --
 -- ── THE ORDER OF THE CASES IS LOAD-BEARING ───────────────────────────────────────────────────
 --
@@ -22,7 +22,9 @@ local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
 local S = NS.Schema
-local MINIMAP_PATH = "minimap.hide"
+-- The row's CLI path reads in its own sense (launcher-§3, standard v2.65.0); the STORED key is still
+-- LibDBIcon's db.global.minimap.hide, which every assertion on storage below reads directly.
+local MINIMAP_PATH = "minimap.shown"
 
 local function readSource(path)
   local f = assert(io.open(path, "rb"))
@@ -99,20 +101,23 @@ end)
 
 -- ── Degradation (this case must run BEFORE the launcher is registered) ───────────────────────
 
-test("Launcher: a host with neither broker library reports it and does NOT raise", function()
+test("Launcher: a host with neither broker library degrades and does NOT raise", function()
   -- The library resolves both with LibStub(..., true) at REGISTER time and degrades by name. The
   -- harness never loads either — tests/run.lua's loader skips the TOC's `libs\` lines — so this is
   -- the truly unregistered state rather than a simulated one.
+  --
+  -- WHAT IS NOT ASSERTED HERE, AND WHY: the notice. Since Launcher minor 2 (LibKa0s v1.56.0) the
+  -- library prints a missing-library notice ONCE per instance, and this live instance has already
+  -- been through Register before this suite runs (tests/test_ledger_settling.lua drives the real
+  -- addon:OnEnable, which registers it), so a capture here is empty by design. The report is pinned
+  -- by the next case, against a fresh load whose notice is still unspent.
   assertFalse(NS.Launcher:IsRegistered(), "this case must run before the registration case")
   assertEqual(mocks.__libs["LibDataBroker-1.1"], nil, "the harness ships neither broker library")
 
-  local out
   local ok, err = pcall(function()
-    out = captureChat(function() assertFalse(NS.Launcher:Register()) end)
+    captureChat(function() assertFalse(NS.Launcher:Register()) end)
   end)
   assertTrue(ok, "a host with no LibDataBroker must not raise: " .. tostring(err))
-  assertTrue(table.concat(out, "\n"):find("LibDataBroker", 1, true) ~= nil,
-    "the absence is reported on one line rather than swallowed: " .. table.concat(out, "\n"))
   assertFalse(NS.Launcher:IsRegistered())
   assertEqual(NS.Launcher:Object(), nil, "nothing was built")
 
@@ -123,6 +128,40 @@ test("Launcher: a host with neither broker library reports it and does NOT raise
   assertFalse(NS.Launcher:IsShown(), "IsShown reads the store, not the button")
   NS.db.global.minimap.hide = saved
 end)
+
+test("Launcher: the missing-broker notice prints once across two Register calls, without a [LibKa0s] tag",
+  function()
+    -- A FRESH load of the library and the whole addon, so this instance has never been through
+    -- Register and its once-per-instance notice is still unspent. Its descriptor is the addon's own
+    -- (core/LauncherSetup.lua, as the TOC loads it), so the line goes out through the addon's real
+    -- printer rather than a stand-in.
+    --
+    -- Launcher minor 2: one missing library is ONE line in chat however many times Register is
+    -- reached (OnEnable, then again from any later login path), and the line is UNTAGGED by the
+    -- library, so the host printer's [BL] is the only tag on it. Before minor 2 it printed on every
+    -- call and carried a [LibKa0s] tag inside the [BL] one.
+    --
+    -- Dies under: a re-vendor that loses the once-per-instance latch, a library tag coming back, or
+    -- the descriptor's `print` no longer routing through NS.Print.
+    local m = T.makeMocks()
+    local ns = {}
+    T.Loader.loadAll(T.libka0sFiles, ns, m)
+    T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+    assertEqual(m.__libs["LibDataBroker-1.1"], nil, "the fresh load ships neither broker library")
+    assertFalse(ns.Launcher.__degraded == true, "the fresh load must build the live instance")
+
+    local out = {}
+    m.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+    assertFalse(ns.Launcher:Register(), "first Register")
+    assertFalse(ns.Launcher:Register(), "second Register")
+
+    assertEqual(#out, 1, "one missing library is one line, not one per call: " .. table.concat(out, " || "))
+    local line = out[1]
+    assertTrue(line:find("LibDataBroker-1.1", 1, true) ~= nil, "the line names the missing library: " .. line)
+    assertEqual(line:find("[LibKa0s]", 1, true), nil, "the library no longer tags its own line: " .. line)
+    assertEqual(line:find("|cff00ffff[BL]|r ", 1, true), 1, "the host printer's [BL] is the one tag: " .. line)
+    assertFalse(ns.Launcher:IsRegistered())
+  end)
 
 test("Launcher: LibDataBroker without LibDBIcon still gets the broker plugin", function()
   -- The honest half-answer: the display row exists, the minimap button does not, and Register says
@@ -230,56 +269,298 @@ function()
   assertEqual(NS.BRAND_NAME, label, "the refusal line and the broker row read one brand name")
 end)
 
--- ── The rung (launcher-§2) ───────────────────────────────────────────────────────────────────
-
-test("Launcher: LEFT-click toggles the ledger window — rung (a), and the real switch", function()
-  -- ADDONS.md records this addon as rung (a): it HAS a primary window, so the left button spends
-  -- itself on that window and not on the settings panel, which is already on the right button. And
-  -- it drives B:Toggle, the same act `/bl toggle` runs, rather than a second copy of it.
+test("Launcher: the brand literal is spelled at NS.BRAND_NAME and the missing-library clause only",
+function()
+  -- BankLedger-R-10. Every surface that shows the brand (the tooltip title, the options parent
+  -- title, the window titles, the purge popup) reads NS.BRAND_NAME. The one other literal is
+  -- core/CoreSetup.lua's NS.LIBKA0S_MISSING, which loads before core/LauncherSetup.lua declares the
+  -- constant. Comments are stripped first: prose may name the brand, code may not re-spell it.
   --
-  -- Dies under: dropping onClick from the descriptor (which would silently demote this addon to
-  -- rung (c)), or pointing it at anything but the Browser's own toggle.
-  local toggled, opened = 0, 0
-  local savedToggle, savedOpen = NS.Browser.Toggle, NS.Panel.Open
-  NS.Browser.Toggle = function() toggled = toggled + 1 end
-  NS.Panel.Open = function() opened = opened + 1 end
-  NS.Launcher:Object().OnClick(nil, "LeftButton")
-  NS.Browser.Toggle, NS.Panel.Open = savedToggle, savedOpen
-  assertEqual(toggled, 1, "left-click must toggle the ledger browser")
-  assertEqual(opened, 0, "a rung (a) addon whose left click opens the panel has skipped the rule")
+  -- Dies under: any core/, settings/ or modules/ file putting "Ka0s Bank Ledger" back in code.
+  local BRAND = "Ka0s Bank Ledger"
+  local hits = {}
+  for _, path in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
+    local rel = path:gsub("\\", "/")
+    if rel:match("^core/") or rel:match("^settings/") or rel:match("^modules/") then
+      local n = 0
+      for line in (readSource(rel) .. "\n"):gmatch("([^\n]*)\n") do
+        n = n + 1
+        local code = line:gsub("%-%-.*$", "")
+        if code:find(BRAND, 1, true) then hits[#hits + 1] = rel .. ":" .. n end
+      end
+    end
+  end
+  local where = table.concat(hits, ", ")
+  assertEqual(#hits, 2, "expected exactly two code spellings, got: " .. where)
+  assertTrue(where:find("core/CoreSetup.lua:", 1, true) ~= nil, where)
+  assertTrue(where:find("core/LauncherSetup.lua:", 1, true) ~= nil, where)
+  local src = readSource("core/LauncherSetup.lua")
+  -- The tooltip title is the library's since Launcher minor 3, drawn from `label`, so the host hook
+  -- must not spell a title of its own (anti-pattern #89).
+  assertEqual(src:find("tt:AddLine(NS.BRAND_NAME", 1, true), nil,
+    "the tooltip title is the library's, drawn from label = NS.BRAND_NAME")
+  assertTrue(readSource("settings/OptionsSetup.lua"):find("local PARENT_TITLE = NS.BRAND_NAME", 1, true)
+    ~= nil, "the options parent title reads the constant")
 end)
 
-test("Launcher: RIGHT-click opens the settings panel, whatever the left button does", function()
-  local toggled, opened = 0, 0
-  local savedToggle, savedOpen = NS.Browser.Toggle, NS.Panel.Open
-  NS.Browser.Toggle = function() toggled = toggled + 1 end
-  NS.Panel.Open = function() opened = opened + 1 end
-  NS.Launcher:Object().OnClick(nil, "RightButton")
-  NS.Browser.Toggle, NS.Panel.Open = savedToggle, savedOpen
-  assertEqual(opened, 1, "right-click ALWAYS opens the settings panel")
-  assertEqual(toggled, 0)
+-- ── The two buttons (launcher-§2, standard v2.67.0; Launcher minor 4) ────────────────────────
+--
+-- LEFT opens the settings panel, on every addon and in either state. RIGHT opens the client's own
+-- context menu, one checkbox per toggle this addon really has, each wired to the handler its slash
+-- verb already runs. The drawing, the order and the graying are the library's suite; what only this
+-- repo can assert is WHICH entries it supplies and WHERE each click lands.
+
+local menuMock = dofile("tests/menu_mock.lua")(mocks)
+
+-- Open the options menu through the one click both surfaces share, with the fake MenuUtil installed
+-- for exactly as long as the case needs it. Answers the opened menu.
+local OWNER = {}
+local function openMenu()
+  menuMock.install()
+  menuMock.reset()
+  local ok, err = pcall(NS.Launcher:Object().OnClick, OWNER, "RightButton")
+  menuMock.remove()
+  if not ok then error(err, 0) end
+  return menuMock.last
+end
+
+-- Swap `tbl[key]` for a counting spy for the length of `fn`, and answer the calls it saw.
+local function spyOn(tbl, key, fn)
+  local calls = {}
+  local saved = tbl[key]
+  tbl[key] = function(...) calls[#calls + 1] = { ... } end
+  local ok, err = pcall(fn)
+  tbl[key] = saved
+  if not ok then error(err, 0) end
+  return calls
+end
+
+test("Launcher: LEFT-click opens the settings panel and nothing else", function()
+  -- launcher-§2 as of v2.67.0: the three left-click rungs are retired. Bank Ledger was rung (a) —
+  -- its left click toggled the ledger — and that toggle is the menu's Show window entry now.
+  --
+  -- Dies under: a host `onClick` the library still honored, or openSettings pointing anywhere but
+  -- the panel.
+  local toggled = spyOn(NS.Browser, "Toggle", function()
+    local opened = spyOn(NS.Panel, "Open", function()
+      NS.Launcher:Object().OnClick(OWNER, "LeftButton")
+    end)
+    assertEqual(#opened, 1, "left-click opens the settings panel")
+  end)
+  assertEqual(#toggled, 0, "left-click no longer toggles the ledger window")
 end)
 
-test("Launcher: a raising click is reported, not thrown at the player", function()
-  -- The click runs inside the client's own dispatch, where a raise is a red error box over the
-  -- minimap with nothing saying which addon caused it. The library pcalls it; this case is here
-  -- because the guard is only worth anything if the host's printer is wired, and ours is.
+test("Launcher: RIGHT-click opens the options menu: Enabled, Locked, Test mode, Show window", function()
+  -- The four entries the standard's ADDONS.md records against this addon (WS-11): it has the
+  -- addon-wide switch, the Master-controls Lock frame row, the sample-ledger test mode, and a
+  -- primary window, the ledger browser. The title is the brand, the same `label` the tooltip draws.
+  --
+  -- Dies under: dropping any accessor/toggle pair from core/LauncherSetup.lua (half a pair draws
+  -- nothing), or the right click opening the panel instead.
+  local opened = spyOn(NS.Panel, "Open", function()
+    local menu = openMenu()
+    assertTrue(menu ~= nil, "right-click opened no menu")
+    assertEqual(menu.owner, OWNER, "the menu anchors to the frame that was clicked")
+    assertEqual(menu.titles[1], "Ka0s Bank Ledger", "the menu's title is the brand name")
+    assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked / Test mode / Show window")
+  end)
+  assertEqual(#opened, 0, "the right click opened the panel as well as the menu")
+end)
+
+test("Launcher: with no MenuUtil the right click falls back to the settings panel", function()
+  -- A client without the 11.0 menu API: the library degrades to the panel, which holds every toggle
+  -- the menu would have. The case is here because it is the state every OTHER suite runs in.
+  local opened = spyOn(NS.Panel, "Open", function()
+    NS.Launcher:Object().OnClick(OWNER, "RightButton")
+  end)
+  assertEqual(#opened, 1, "no menu API, so the right click opens the panel")
+end)
+
+test("Launcher: each menu entry runs the SAME handler its slash verb runs", function()
+  -- Enabled -> `/bl enable|disable` (Sl:CliEnabled); Locked -> `/bl set settings.locked`, the only
+  -- verb that writes the Lock frame row (Sl:CliSet); Test mode -> `/bl test` (LT:ToggleTestMode);
+  -- Show window -> `/bl toggle` (B:Toggle). Each pair below drives the verb AND the entry into one
+  -- spy, so a menu that grew its own copy of any of them goes red.
+  local LT = NS.LedgerTable
+  local savedLocked = S:Get("settings.locked")
+  S:Set("settings.locked", false)
+  local ok, err = pcall(function()
+    local calls = spyOn(NS.Slash, "CliEnabled", function()
+      NS.Slash:OnSlash("disable")
+      openMenu():Click("Enabled")
+    end)
+    assertEqual(#calls, 2, "/bl disable and the Enabled entry reach Sl:CliEnabled once each")
+    assertEqual(calls[1][2], false)
+    assertEqual(calls[2][2], false, "an enabled addon's Enabled entry moves it to disabled")
+
+    calls = spyOn(NS.Slash, "CliSet", function()
+      NS.Slash:OnSlash("set settings.locked true")
+      openMenu():Click("Locked")
+    end)
+    assertEqual(#calls, 2, "/bl set settings.locked and the Locked entry reach Sl:CliSet once each")
+    assertEqual(calls[1][2], "settings.locked true")
+    assertEqual(calls[2][2], "settings.locked true", "an unlocked addon's Locked entry locks it")
+
+    calls = spyOn(LT, "ToggleTestMode", function()
+      captureChat(function() NS.Slash:OnSlash("test") end)
+      captureChat(function() openMenu():Click("Test mode") end)
+    end)
+    assertEqual(#calls, 2, "/bl test and the Test mode entry reach LT:ToggleTestMode once each")
+
+    calls = spyOn(NS.Browser, "Toggle", function()
+      NS.Slash:OnSlash("toggle")
+      openMenu():Click("Show window")
+    end)
+    assertEqual(#calls, 2, "/bl toggle and the Show window entry reach B:Toggle once each")
+  end)
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
+end)
+
+test("Launcher: the Locked entry really locks, through the Lock frame row's own seam", function()
+  -- The spy above proves the route; this proves the route arrives. Clicking Locked on an unlocked
+  -- addon stores settings.locked = true, which the row and the tooltip then both read.
+  local savedLocked = S:Get("settings.locked")
+  S:Set("settings.locked", false)
+  local ok, err = pcall(function()
+    captureChat(function() openMenu():Click("Locked") end)
+    assertEqual(S:Get("settings.locked"), true, "the Locked entry did not lock")
+    captureChat(function() openMenu():Click("Locked") end)
+    assertEqual(S:Get("settings.locked"), false, "a second click unlocks")
+  end)
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
+end)
+
+test("Launcher: each checkmark reads the live state, on every open", function()
+  -- Never cached: flip each state and reopen. Show window reads the ledger frame itself.
+  local LT = NS.LedgerTable
+  local savedLocked = S:Get("settings.locked")
+  local savedIsTest = LT.IsTestMode
+  local testOn = false
+  LT.IsTestMode = function() return testOn end
+  local ok, err = pcall(function()
+    NS.Browser:Hide()
+    S:Set("settings.locked", false)
+    local menu = openMenu()
+    assertTrue(menu:Checked("Enabled"), "an enabled addon's Enabled entry is checked")
+    assertFalse(menu:Checked("Locked"))
+    assertFalse(menu:Checked("Test mode"))
+    assertFalse(menu:Checked("Show window"), "the ledger window is closed")
+
+    S:Set("settings.locked", true)
+    testOn = true
+    NS.Browser:Show()
+    menu = openMenu()
+    assertTrue(menu:Checked("Locked"))
+    assertTrue(menu:Checked("Test mode"))
+    assertTrue(menu:Checked("Show window"), "the ledger window is open")
+  end)
+  NS.Browser:Hide()
+  LT.IsTestMode = savedIsTest
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
+end)
+
+test("Launcher: a raising menu handler is reported, not thrown at the player", function()
+  -- The click runs inside the client's menu dispatch, where a raise is a red error box with nothing
+  -- saying which addon caused it. The library pcalls it; this case is here because the guard is only
+  -- worth anything if the host's printer is wired, and ours is.
   local saved = NS.Browser.Toggle
   NS.Browser.Toggle = function() error("boom", 0) end
-  local out = captureChat(function() NS.Launcher:Object().OnClick(nil, "LeftButton") end)
+  local ok, err = pcall(function()
+    local out = captureChat(function() openMenu():Click("Show window") end)
+    assertTrue(table.concat(out, "\n"):find("boom", 1, true) ~= nil,
+      "the raise is named on one line: " .. table.concat(out, "\n"))
+  end)
   NS.Browser.Toggle = saved
-  assertTrue(table.concat(out, "\n"):find("boom", 1, true) ~= nil,
-    "the raise is named on one line: " .. table.concat(out, "\n"))
+  if not ok then error(err, 0) end
 end)
 
-test("Launcher: the tooltip carries the live entry count and both click verbs", function()
+-- ── The status tooltip (launcher-§1, standard v2.66.0; Launcher minor 3, hints since minor 4) ─
+--
+-- The LIBRARY draws the tooltip now, in one shape across the eleven addons: title and version,
+-- Enabled, Locked and Test mode where the addon has them, the host's own lines, then the two click
+-- hints. What only this repo can assert is WHICH fields it hands over and that each one reads the
+-- same state the settings panel reads -- the drawing itself is the library's suite.
+
+-- The tooltip's lines as the library draws them, with its green/red value escapes stripped so a
+-- case compares words. The mock is the same `AddLine` shape GameTooltip offers.
+local function tooltipLines()
   local lines = {}
   NS.Launcher:Object().OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = text end })
-  local all = table.concat(lines, "\n")
-  assertTrue(all:find("Ka0s Bank Ledger", 1, true) ~= nil, all)
-  assertTrue(all:find("movement", 1, true) ~= nil, all)
-  assertTrue(all:find("Left%-click: open the ledger") ~= nil, all)
-  assertTrue(all:find("Right%-click: open settings") ~= nil, all)
+  for i, line in ipairs(lines) do
+    lines[i] = tostring(line):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+  end
+  return lines
+end
+
+test("Launcher: the descriptor passes this addon's state pairs, and none of the retired fields",
+function()
+  -- Bank Ledger HAS every state the library asks about: the addon-wide switch (isEnabled /
+  -- setEnabled), the Master-controls "Lock frame" row (isLocked / toggleLock), the sample-ledger
+  -- test mode (isTestMode / toggleTestMode) and a primary window, the ledger browser
+  -- (isWindowShown / toggleWindow). Launcher minor 4 retired four fields; passing them is dead
+  -- configuration (launcher-§5).
+  --
+  -- Dies under: dropping any field from core/LauncherSetup.lua, or a retired one coming back.
+  local src = readSource("core/LauncherSetup.lua")
+  for _, field in ipairs({ "version", "isEnabled", "setEnabled", "isLocked", "toggleLock",
+      "isTestMode", "toggleTestMode", "isWindowShown", "toggleWindow", "openSettings" }) do
+    assertTrue(src:find("\n  " .. field .. "%s*=") ~= nil, "the descriptor does not pass `" .. field .. "`")
+  end
+  for _, field in ipairs({ "onClick", "leftClickLabel", "disabledLine", "slash" }) do
+    assertEqual(src:find("\n  " .. field .. "%s*="), nil, "the descriptor still passes the retired `" .. field .. "`")
+  end
+end)
+
+test("Launcher: the tooltip draws the library's block around this addon's one extra line", function()
+  -- Dies under: the host hook drawing a title or a click hint again (anti-pattern #89 -- the
+  -- library draws both, so the hook's copy is a second one), or losing the movement count.
+  local savedLocked = S:Get("settings.locked")
+  S:Set("settings.locked", false)
+  local lines = tooltipLines()
+  S:Set("settings.locked", savedLocked)
+
+  assertEqual(lines[1], "Ka0s Bank Ledger  v" .. NS.Version(), "title: the brand, then the TOC's version")
+  assertEqual(lines[2], "Enabled: Yes")
+  assertEqual(lines[3], "Locked: No")
+  assertEqual(lines[4], "Test mode: Off")
+  assertTrue(lines[5]:match("^%d+ movements?$") ~= nil, "the host's own line is the entry count: " .. lines[5])
+  assertEqual(lines[6], "Left-click: Open settings")
+  assertEqual(lines[7], "Right-click: Options menu")
+  assertEqual(#lines, 7, "exactly seven lines, one title and one pair of hints: "
+    .. table.concat(lines, " / "))
+end)
+
+test("Launcher: the tooltip's Locked and Test mode lines read what the panel reads, on every show",
+function()
+  -- Never cached: flip each state through the surface a player uses and hover again.
+  --
+  -- Dies under: isLocked reading anything but the store the Lock frame row writes, isTestMode
+  -- reading anything but LT:IsTestMode (the Test mode row's own get), or either being captured once.
+  local savedLocked = S:Get("settings.locked")
+  local LT = NS.LedgerTable
+  local savedIsTest = LT.IsTestMode
+  local testOn = false
+  LT.IsTestMode = function() return testOn end
+  local ok, err = pcall(function()
+    S:Set("settings.locked", true)
+    testOn = true
+    local lines = tooltipLines()
+    assertEqual(lines[3], "Locked: Yes")
+    assertEqual(lines[4], "Test mode: On")
+    assertEqual(S:Get("state.testMode"), true, "the row and the tooltip read one switch")
+
+    S:Set("settings.locked", false)
+    testOn = false
+    lines = tooltipLines()
+    assertEqual(lines[3], "Locked: No")
+    assertEqual(lines[4], "Test mode: Off")
+  end)
+  LT.IsTestMode = savedIsTest
+  S:Set("settings.locked", savedLocked)
+  if not ok then error(err, 0) end
 end)
 
 -- ── The Minimap button row (launcher-§3) ─────────────────────────────────────────────────────
@@ -357,6 +638,91 @@ test("Minimap row: LibDBIcon's own minimapPos is never trampled", function()
   S:Set(MINIMAP_PATH, true)
   assertEqual(NS.db.global.minimap.minimapPos, 217.5, "the dragged angle survived a write of hide")
   NS.db.global.minimap.hide, NS.db.global.minimap.minimapPos = saved, savedPos
+end)
+
+-- ── The CLI path reads in the row's own sense (launcher-§3, standard v2.65.0) ─────────────────
+--
+-- `minimap.shown` is the name a player types; `db.global.minimap.hide` is still where the boolean
+-- lives, because LibDBIcon owns that key and writes it from its own right-click menu. So the rename
+-- is a CLI rename only: no SavedVariables change, no migration, and a stored `shown` key would be
+-- the second copy of one state anti-pattern #81 forbids.
+
+--- Whether any `shown` key sits in the RAW minimap table (rawget, so an AceDB default cannot hide one).
+local function hasStoredShown()
+  local t = rawget(NS.db.global, "minimap")
+  return type(t) == "table" and rawget(t, "shown") ~= nil
+end
+
+test("Minimap row: /bl get minimap.shown answers true while db.global.minimap.hide is false", function()
+  local saved = NS.db.global.minimap.hide
+  NS.db.global.minimap.hide = false
+  local out = captureChat(function() NS.Slash:CliGet("minimap.shown") end)
+  NS.db.global.minimap.hide = saved
+  local line = table.concat(out, "\n")
+  assertTrue(line:find("minimap.shown", 1, true) ~= nil, "the get names the path: " .. line)
+  assertTrue(line:find("true", 1, true) ~= nil, "a shown button reads true: " .. line)
+  assertTrue(line:find("unknown", 1, true) == nil, "the renamed path is known: " .. line)
+end)
+
+test("Minimap row: /bl set minimap.shown false stores minimap.hide = true, hides the button and writes no shown key", function()
+  local saved = NS.db.global.minimap.hide
+  button.shown = nil
+  captureChat(function() NS.Slash:CliSet("minimap.shown false") end)
+  assertEqual(NS.db.global.minimap.hide, true, "the stored key is still LibDBIcon's hide")
+  assertEqual(button.shown, false, "the button was hidden")
+  assertFalse(hasStoredShown(), "a stored `shown` key is a second copy of one state (anti-pattern #81)")
+  captureChat(function() NS.Slash:CliSet("minimap.shown true") end)
+  assertEqual(NS.db.global.minimap.hide, false)
+  assertFalse(hasStoredShown())
+  NS.db.global.minimap.hide = saved
+end)
+
+test("Minimap row: a targeted /bl reset minimap.shown restores shown", function()
+  local saved = NS.db.global.minimap.hide
+  NS.db.global.minimap.hide = true
+  button.shown = nil
+  captureChat(function() NS.Slash:CliReset("minimap.shown") end)
+  assertEqual(NS.db.global.minimap.hide, false, "the row's default is SHOWN")
+  assertEqual(button.shown, true, "the reset moved the button")
+  assertEqual(S:Default(MINIMAP_PATH), true, "S:Default reads the row's own sense")
+  assertFalse(hasStoredShown())
+  NS.db.global.minimap.hide = saved
+end)
+
+test("Minimap row: the old path minimap.hide answers unknown setting", function()
+  assertEqual(S:FindRow("minimap.hide"), nil, "no row answers the retired CLI path")
+  local ok = S:Set("minimap.hide", false)
+  assertFalse(ok, "the seam refuses the retired path")
+  local out = captureChat(function() NS.Slash:CliGet("minimap.hide") end)
+  assertTrue(table.concat(out, "\n"):find("not found", 1, true) ~= nil,
+    "/bl get minimap.hide answers Setting not found: " .. table.concat(out, "\n"))
+end)
+
+test("Minimap row: a legacy store keeps its choice with no migration", function()
+  -- A player who hid the button before the rename: the store carries hide = true and a dragged
+  -- angle. The renamed path reads it as NOT shown, the button stays hidden, the angle is untouched,
+  -- and a write never leaves a `shown` key behind.
+  local g = NS.db.global
+  local savedHide, savedPos = g.minimap.hide, g.minimap.minimapPos
+  g.minimap.hide, g.minimap.minimapPos = true, 200
+  local out = captureChat(function() NS.Slash:CliGet("minimap.shown") end)
+  assertTrue(table.concat(out, "\n"):find("false", 1, true) ~= nil, "a hidden button reads false")
+  assertEqual(S:Get(MINIMAP_PATH), false)
+  assertEqual(g.minimap.hide, true, "the stored choice did not move")
+  S:Set(MINIMAP_PATH, false)
+  assertEqual(g.minimap.hide, true)
+  assertEqual(button.shown, false, "the button stays hidden")
+  assertEqual(g.minimap.minimapPos, 200, "the dragged angle is untouched")
+  assertFalse(hasStoredShown(), "no `shown` key is ever written to the raw store")
+  g.minimap.hide, g.minimap.minimapPos = savedHide, savedPos
+end)
+
+test("Minimap row: S:Register reports 0 failures with the renamed path", function()
+  -- The row's path is not a stored path, so Validate must resolve it against the declared hide
+  -- default rather than against a `shown` key the defaults deliberately do not ship.
+  local out = captureChat(function() assertEqual(S:Register(), 0) end)
+  assertEqual(#out, 0, "Register printed: " .. table.concat(out, " | "))
+  assertEqual(NS.defaults.global.minimap.shown, nil, "the defaults ship no `shown` key")
 end)
 
 test("Minimap row: the defaults ship the table, so nothing has to seed it", function()

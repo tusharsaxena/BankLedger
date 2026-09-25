@@ -118,8 +118,9 @@ function F:ClearList(listKey)
   return removed
 end
 
--- Empty BOTH lists with a single _notify. Returns the total ids removed. Used by the settings
--- reset paths (Slash:CliResetAll, which the General page's Defaults button goes through).
+-- Empty BOTH lists with a single _notify. Returns the total ids removed. No reset path calls it
+-- since BankLedger-A-02: the global reset (Sl:ResetEverything) empties both lists with the rest of
+-- db.global. It stays the registry's one bulk writer.
 function F:ClearAll()
   local removed = self:Count(self:Blacklist()) + self:Count(self:Whitelist())
   if removed == 0 then return 0 end
