@@ -28,16 +28,15 @@ local SUITES = {
   "test_panel", "test_panel_filters", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
-  "test_lintconfig",
+  "test_lintconfig", "test_diagnostics",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
   { name = "test_eol",        dir = "tests/_kit/" },
   { name = "test_prose",      dir = "tests/_kit/" },
   { name = "test_layout_cap", dir = "tests/_kit/" },
-  -- Kit revision 27's diagnostics contract (debug-logging-§14). Until this addon sets
-  -- Kit.diagnostics it registers one declared skip naming the rule; the report and its dispatcher
-  -- wiring arrive together (DR-BL-03 of the 2026-09-25 diagnostics rollout).
+  -- Kit revision 27's diagnostics contract (debug-logging-§14), run against this addon's own
+  -- dispatcher through Kit.diagnostics below. tests/test_diagnostics.lua adds the domain cases.
   { name = "test_diagnostics_contract", dir = "tests/_kit/" },
 }
 
@@ -98,5 +97,19 @@ NS.Ledger:Enable()
 -- The session window subscribes to the SessionChanged / EntryAdded / LedgerChanged messages here, so
 -- its suite exercises the real bus wiring rather than calling its handlers by hand.
 NS.SessionWindow:Enable()
+
+-- The facts the kit's diagnostics contract runs against (tests/_kit/test_diagnostics_contract.lua):
+-- the brand both markers carry, the one door every verb comes through, the live console, and the
+-- two switches the contract flips. `setDisabled` takes the latch's `disabled` hold directly, the
+-- hold the Master-controls checkbox and `/bl disable` drive, so the dispatcher's gate sees exactly
+-- what a player's disabled addon shows it. No `retired`: this addon never shipped another name for
+-- the report.
+Kit.diagnostics = {
+  brand       = NS.BRAND_NAME,
+  dispatch    = function(line) NS.Slash:OnSlash(line) end,
+  console     = function() return NS.DebugLog end,
+  setDebug    = function(on) NS.State.debug = on and true or false end,
+  setDisabled = function(off) NS.SetDisabledHold(off) end,
+}
 
 Kit.run{ dir = "tests/", suites = SUITES }

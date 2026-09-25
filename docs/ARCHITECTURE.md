@@ -171,7 +171,7 @@ gets no close event either.
 ## Slash Commands
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
-page read one table. Seventeen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+page read one table. Eighteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
 seam. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
 prints the list (`slash-commands-§4`). Verb table and the host/library split in
 **[slash-dispatch.md](slash-dispatch.md)**.
@@ -354,7 +354,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 17 verbs in `NS.COMMANDS` (threshold is 8) |
+| `slash-dispatch.md` | Present | 18 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
