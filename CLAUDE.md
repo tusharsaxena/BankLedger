@@ -43,9 +43,9 @@ push and never bump the version without an explicit instruction.
 
 ## Vendored LibKa0s — the provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.61.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.62.0 (MIT).
 
-That tag carries test-kit revision 27 (`Kit.VERSION` in `tests/_kit/framework.lua`).
+That tag carries test-kit revision 31 (`Kit.VERSION` in `tests/_kit/framework.lua`).
 
 That line is the single answer to "which LibKa0s does this build carry?", and it is machine-read:
 `tests/test_vendor_sync.lua` greps it out of **this file** (kit revision 9 moved it here from
