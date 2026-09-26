@@ -1,0 +1,1 @@
+clean: DR-BL-07 verified - revendor no-op confirmed (TOC/badge/CLAUDE.md, 0 notation hits), README Reporting a bug matches documentation-§1 item 9, no alias, new test_disabled case falsified red in scratch copy; gate re-run 1104/0, luacheck 0/0, lizard clean, max 1221 lines
