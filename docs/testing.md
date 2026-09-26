@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 73 today). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 75 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
@@ -242,14 +242,24 @@ tests/
                            --   assertion reads the kit's recording registry -- registrations,
                            --   timers, shown frames, SavedVariables writes, printed lines --
                            --   and NONE reads a handler's return value, because an early
-                           --   return is exactly what a draw gate does. Eleven cases: baseline
-                           --   and empty registration set (through the one write seam), no
-                           --   armed timer, no shown frame, fire everything at it anyway
-                           --   (registered and unconditionally), the CONTROL proving the write
-                           --   and print surveys can see a survivor, the slash surface walked
-                           --   over every NS.COMMANDS entry, the feature-verb refusal, the
-                           --   launcher's clicks and grayed menu, restore-from-current-state, the two-hold latch,
-                           --   and the `disabled` hold re-taken at load from the store
+                           --   return is exactly what a draw gate does. Seventeen cases:
+                           --   baseline and empty registration set (through the one write
+                           --   seam), no armed timer, the prune postponed rather than
+                           --   canceled, the two at-the-bank cases, no shown frame, fire
+                           --   everything at it anyway (registered and unconditionally), the
+                           --   CONTROL proving the write and print surveys can see a survivor,
+                           --   the slash surface walked over every NS.COMMANDS entry, both
+                           --   diagnostics forms reaching RunDiagnostics while down, the
+                           --   feature-verb refusal, the launcher's clicks and grayed menu, its
+                           --   tooltip, no host gate on it, restore-from-current-state, the
+                           --   two-hold latch, and the `disabled` hold re-taken at load
+  test_diagnostics.lua     -- the diagnostics report's content (debug-logging-14, DX-BL): every
+                           --   section in order, the always-print rows, the capped filter list,
+                           --   ledger counts and the link-free tail, a secret-shaped ledger value,
+                           --   the stood-down engine, the closed guild-bank label, a raising
+                           --   section costing one line, the cap's end marker, and `debug` testing
+                           --   `diagnostics` first. The dispatcher half is the kit's shared
+                           --   _kit/test_diagnostics_contract.lua, wired through Kit.diagnostics
   test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: left-click settings, the options
                            --   menu's four entries and the verb each runs (through
                            --   tests/menu_mock.lua, a fake MenuUtil), the folder-name

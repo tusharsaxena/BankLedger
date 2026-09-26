@@ -21,7 +21,8 @@ settings landing page both read from one place.
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
-| `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console |
+| `/bl diagnostics` / `/bl debug diagnostics` | Write the diagnostics report into the console, after whatever it already holds, and show it (`debug-logging-§14`). The only two forms: no `diag` or other alias exists, and `/bl debug` tests `diagnostics` before its other words. Live while disabled. Sections in `modules/Diagnostics.lua` |
+| `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console. The same lines are the report's `scan` section; the verb stays as a topic dump |
 | `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
 | `/bl help` | Print the command list (the help index) |
 
@@ -73,8 +74,8 @@ settings**, and to **reach the panel**, while the addon is off — which is prec
 likely to need to — and **`enable` above all**. `debug`, `perf` and `diagnostics` are diagnostics
 rather than features; the usual reason to reach for any of them is that the addon is misbehaving.
 `perf` is on the list although this addon registers no `perf` verb (the `performance-§12`
-exemption), and `diagnostics` (reserved since `LibKa0s-Slash-1.0` minor 16, LibKa0s v1.60.0) is not
-registered here yet either: a verb is
+exemption). `diagnostics` (reserved since `LibKa0s-Slash-1.0` minor 16, LibKa0s v1.60.0) is
+registered here and answers in both states. A verb is
 reserved always and registered when wired, so arming the harness later is a registration rather
 than a rename. Typed today, `/bl perf` answers `unknown command 'perf'` and the index **in either
 state**: from `LibKa0s-Slash-1.0` minor 14 (LibKa0s v1.42.0) the gate refuses only a verb the host

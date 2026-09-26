@@ -567,7 +567,7 @@ end)
 -- over a verb that printed the refusal and then went ahead and acted anyway.
 
 local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
-local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug",
+local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug", "diagnostics",
                      "get", "set", "list", "reset", "resetall" }
 
 --- The collection's one refusal line (slash-commands-§7), matched by SHAPE rather than by its

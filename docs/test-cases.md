@@ -1101,7 +1101,7 @@ badge and any count quoted in the docs must agree with it.
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
 
-### test_disabled.lua (16)
+### test_disabled.lua (17)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1112,6 +1112,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: firing every baseline event writes nothing, prints nothing and shows nothing
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
 - disabled: every reserved verb and the bare /bl still answer normally
+- disabled: both diagnostics forms reach RunDiagnostics, each once, with no refusal
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
 - disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
@@ -1157,6 +1158,35 @@ badge and any count quoted in the docs must agree with it.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
+### test_diagnostics.lua (26)
+
+- diagnostics: the descriptor names the full brand in both markers
+- diagnostics: every DX-BL section runs, in order, without a failure line
+- diagnostics: the report stays inside the DX-BL size estimate on the test world
+- diagnostics: the state section reports the stored switch, the holds and test mode
+- diagnostics: the capture-critical rows print even at their defaults
+- diagnostics: a changed setting prints as path = value (default)
+- diagnostics: an unchanged, non-critical row is not printed
+- diagnostics: the excluded-stores set renders as its members
+- diagnostics: a filter list past 40 ids is capped and the truncated line says so
+- diagnostics: the ledger section counts by store, direction and kind
+- diagnostics: the ledger tail is the last 20 entries, links stripped
+- diagnostics: a secret-shaped value in the ledger renders rather than raising
+- diagnostics: the capture section reports the engine and the cached gate
+- diagnostics: the capture section summarizes an open frame's snapshot
+- diagnostics: a stood-down addon says so instead of reporting an empty engine
+- diagnostics: the session section reports the live banking session
+- diagnostics: Ledger:Diagnose is folded in as the scan section
+- diagnostics: a closed guild-bank frame labels the tab counts as not fact
+- diagnostics: the report never queries the guild bank and never clears the console
+- diagnostics: the window, launcher and environment sections are present
+- diagnostics: a bank-replacing addon that is loaded is named
+- diagnostics: a raising section costs exactly one line and the next section runs
+- diagnostics: an over-cap report ends in the truncated line, then the end marker
+- diagnostics: the report leaves the debug flag exactly as it found it
+- diagnostics: /bl debug tests `diagnostics` before its other words
+- diagnostics: the verb is one COMMANDS row, and no alias of it exists
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1196,9 +1226,15 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
-### test_diagnostics_contract.lua (1)
+### test_diagnostics_contract.lua (7)
 
-- diagnostics contract: debug-logging-§14 (skipped: Kit.diagnostics is not set in the runner, so this repo's dispatcher is not wired to the shared contract yet. Every Ka0s addon owes debug-logging-§14's report; wire Kit.diagnostics once the report exists)
+- diagnostics contract: both forms run the report
+- diagnostics contract: the debug word is matched in any case
+- diagnostics contract: both markers carry the brand and the end counts the report
+- diagnostics contract: the report appends after what the console already holds
+- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: both forms run while the addon is disabled
+- diagnostics contract: no other name runs the report
 
 ## Totals
 
@@ -1236,13 +1272,14 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
-| test_disabled.lua | 16 |
+| test_disabled.lua | 17 |
 | test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
+| test_diagnostics.lua | 26 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 1 |
-| **Total** | **1071** |
+| test_diagnostics_contract.lua | 7 |
+| **Total** | **1104** |

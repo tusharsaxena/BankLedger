@@ -782,13 +782,19 @@ NS.COMMANDS = {
         NS.Database:Purge()
       end
     end },
-  { "debug",    "Toggle the console; 'on'/'off' set logging", function(rest)
+  { "debug",    NS.L["Toggle the console; 'on'/'off' set logging; 'diagnostics' writes a report"],
+    function(rest)
       -- `/bl debug` toggles the WINDOW only (the logging flag is untouched); `/bl debug on|off`
       -- sets the session-only logging flag through the DebugLog seam. Logging runs even with the
       -- console closed, so a bug can be reproduced first and the log read afterwards.
+      --
+      -- `diagnostics` is tested FIRST (debug-logging-§14): the second of the report's two forms,
+      -- the same call as `/bl diagnostics`. No other word runs it -- `diag` is an ordinary unknown
+      -- word here and toggles the window like any other.
       local arg = rest and tostring(rest):lower():match("^%s*(%S*)") or ""
       if not NS.DebugLog then return end
-      if arg == "on" then NS.DebugLog:SetEnabled(true)
+      if arg == "diagnostics" then NS.DebugLog:RunDiagnostics()
+      elseif arg == "on" then NS.DebugLog:SetEnabled(true)
       elseif arg == "off" then NS.DebugLog:SetEnabled(false)
       elseif arg == "panel" then
         -- Structured dump of the settings header's Defaults button (debug-logging-§4). Same RAW
@@ -805,6 +811,13 @@ NS.COMMANDS = {
         NS.DebugLog:Show()
         for _, line in ipairs(NS.Ledger:Diagnose()) do NS.DebugLog:Add("Scan", line) end
       else NS.DebugLog:Toggle() end
+    end },
+  -- THE DIAGNOSTICS REPORT (debug-logging-§14, a reserved verb since slash-commands-§2 v2.68.0).
+  -- Everything a maintainer needs, appended to the console after the trace the player just
+  -- reproduced, so one Copy carries both. Live while disabled (LibKa0s-Slash-1.0's LIVE_VERBS), and
+  -- read-only: modules/Diagnostics.lua supplies the sections, the library writes the rest.
+  { "diagnostics", NS.L["Write a diagnostic report to the debug console"], function()
+      if NS.DebugLog then NS.DebugLog:RunDiagnostics() end
     end },
   { "help",     "Show this help",          function() NS.Slash:PrintHelp() end },
 }

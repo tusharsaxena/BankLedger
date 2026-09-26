@@ -52,6 +52,12 @@ local DB_ENABLED, DB_TRACK_ITEMS, DB_TRACK_MONEY = true, true, true
 local DB_QUALITY, DB_EXCLUDED = 0, {}
 local DB_BLACKLIST, DB_WHITELIST = {}, {}
 
+local function countKeys(t)
+  local n = 0
+  for _ in pairs(t) do n = n + 1 end
+  return n
+end
+
 function L:RefreshUpvalues()
   local s = (NS.db and NS.db.global and NS.db.global.settings) or {}
   DB_ENABLED      = s.enabled ~= false
@@ -61,6 +67,23 @@ function L:RefreshUpvalues()
   DB_EXCLUDED     = s.excludedStores or {}
   DB_BLACKLIST    = (NS.Filters and NS.Filters:Blacklist()) or {}
   DB_WHITELIST    = (NS.Filters and NS.Filters:Whitelist()) or {}
+end
+
+--- The cached gate, READ-ONLY, for the diagnostics report (modules/Diagnostics.lua). The upvalues
+--- above are what GateReason actually judges by, and they can disagree with the store: a settings
+--- change that never reached RefreshUpvalues is exactly the bug the report exists to show. A fresh
+--- table of plain values and counts, so a reader can neither mutate the gate nor hold its sets.
+function L:GateState()
+  local excluded = {}
+  for store, on in pairs(DB_EXCLUDED) do
+    if on then excluded[#excluded + 1] = tostring(store) end
+  end
+  table.sort(excluded)
+  return {
+    enabled = DB_ENABLED, trackItems = DB_TRACK_ITEMS, trackMoney = DB_TRACK_MONEY,
+    quality = DB_QUALITY, excluded = excluded,
+    blacklist = countKeys(DB_BLACKLIST), whitelist = countKeys(DB_WHITELIST),
+  }
 end
 
 -- ── Pure diff ───────────────────────────────────────────────────────────────────

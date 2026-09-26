@@ -85,6 +85,9 @@ modules\InsightsWidgets.lua
 # LOAD-BEARING: modules/Insights.lua takes NS.InsightsWidgets as a file-scope upvalue; modules\InsightsWidgets.lua above creates it. Swapped, W is nil and every chart call raises.
 modules\Insights.lua
 modules\Export.lua
+# The diagnostics report's sections (debug-logging-§14). Conventional rather than load-bearing: the
+# console descriptor reaches NS.Diagnostics through a closure at report time, never at load.
+modules\Diagnostics.lua
 
 # Settings (last — depend on everything else being initialized)
 settings\Schema.lua

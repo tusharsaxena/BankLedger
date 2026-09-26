@@ -68,7 +68,7 @@ if not lib then
   return
 end
 
-NS.DebugLog = lib:New({
+local descriptor = {
   name  = addonName,          -- seeds BankLedgerDebugWindow / …CopyWindow / …CopyScroll
 
   -- THE FOLDER NAME, which is a DIFFERENT QUESTION from the one above even though this addon
@@ -143,7 +143,25 @@ NS.DebugLog = lib:New({
   -- No `L`. This addon translates none of the console's strings, and handing a descriptor an
   -- addon-wide locale table is the one mistake that renders every label as its own key at once.
   -- No `safeToString` either: Core's is already what NS.SafeToString is.
-})
+
+  -- The diagnostics report's sections (debug-logging-§14): modules/Diagnostics.lua's list, asked for
+  -- each time `/bl diagnostics` runs. A closure, because that module loads long after this file.
+  diagnostics = function()
+    return NS.Diagnostics and NS.Diagnostics.Sections and NS.Diagnostics.Sections() or {}
+  end,
+}
+
+-- `brandName`, the full brand both report markers carry, RESOLVED AT READ TIME. The library reads it
+-- off this table when a report runs, never at :New; but NS.BRAND_NAME is spelled once, in
+-- core/LauncherSetup.lua, which the TOC loads after this file, and tests/test_launcher.lua holds
+-- the code to exactly that one spelling (plus CoreSetup's cause clause). So the field is answered
+-- lazily rather than copied now, when it would still be nil and the markers would fall back to the
+-- bare title.
+setmetatable(descriptor, { __index = function(_, key)
+  if key == "brandName" then return NS.BRAND_NAME end
+end })
+
+NS.DebugLog = lib:New(descriptor)
 
 -- The global debug sink, republished under the name all 29 call sites already use. A plain dot
 -- function on the instance, so it needs no self and binds bare.
