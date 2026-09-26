@@ -26,7 +26,7 @@ local SUITES = {
   "test_browser", "test_launcher", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
   "test_panel", "test_panel_filters", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
-  "test_marks", "test_libka0s", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
+  "test_marks", "test_libka0s", "test_libka0s_slash", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
   "test_lintconfig", "test_diagnostics",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5

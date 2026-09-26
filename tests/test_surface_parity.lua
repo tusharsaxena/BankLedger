@@ -160,8 +160,8 @@ test("LibKa0s-DebugLog degraded: the stub carries the live surface the addon rea
   --
   -- The four `_...ForTest` seams are the one thing the by-name form ADDED to this list, and they are
   -- a fact about the live arm rather than about the stub. The library stamps them on the instance
-  -- when it BUILDS the console and the copy window (libs/LibKa0s/DebugLog.lua:477, :482, :712,
-  -- :713); two of them are on the instance by the time this case runs because tests/test_debuglog.lua
+  -- when it BUILDS the console and the copy window (libs/LibKa0s/DebugLog.lua:527, :532, :809,
+  -- :810); two of them are on the instance by the time this case runs because tests/test_debuglog.lua
   -- showed the console. A library-less build has no window to build, so their absence from the stub
   -- is the condition under test, not a gap in it. Single underscore, so Kit.publicMembers does not
   -- filter them — that exclusion is the `__` prefix. All four are named, not the two set today: they
@@ -239,7 +239,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- `__print` IS NO LONGER ON THIS LIST, and that is the whole reason this case moved to the by-name
   -- form. It joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
   -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
-  -- (libs/LibKa0s/Options.lua:536, read at OptionsWidgets.lua:1347). Its own comment there calls it
+  -- (libs/LibKa0s/Options.lua:499, read at OptionsWidgets.lua:404). Its own comment there calls it
   -- internal rather than surface and says a degradation stub does not mirror it, BECAUSE
   -- Kit.assertSurfaceParity skips the `__` prefix — which was true of the by-name form and not of
   -- the four-argument form this case used, so the exemption had to be typed here by hand and the

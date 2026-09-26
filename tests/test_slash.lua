@@ -22,7 +22,7 @@ local function joined(out) return table.concat(out, "\n") end
 --
 -- Sl.FormatSchemaValue and Sl.FormatKV are gone: both are LibKa0s-Slash-1.0's, lib-level rather
 -- than on the instance. What is still OURS is the `format` descriptor hook, which is the only
--- reason a set renders as a set — see the LibKa0s-Slash section of tests/test_libka0s.lua for the
+-- reason a set renders as a set — see tests/test_libka0s_slash.lua for the
 -- rendered-byte assertions, and the cases below for the behavior those bytes describe.
 
 test("Slash: a set renders as a sorted brace list, through the format hook", function()
@@ -461,7 +461,7 @@ end)
 
 -- slash-commands-§4 (LibKa0s Slash minor 11): a bare /bl runs the `config` verb, which opens the
 -- settings panel on its landing page, and `/bl help` is what prints the index. The degraded stub
--- mirrors both branches; its cases are in tests/test_libka0s.lua.
+-- mirrors both branches; its cases are in tests/test_libka0s_slash.lua.
 
 local function configEntry()
   for _, cmd in ipairs(NS.COMMANDS) do

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "addon": "BankLedger",
+  "addonVersion": "1.1.0",
+  "run": "20260926-160240",
+  "startedAt": "2026-09-26T16:02:40+05:30",
+  "durationMs": 14395,
+  "label": null,
+  "release": null,
+  "git": { "sha": "08512989b673d5ef9402187bd0c5e94f838facc1", "branch": "master", "dirty": false },
+  "host": { "lua": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio", "luacheck": "Luacheck: 1.2.0", "lizard": "1.24.0", "timingSource": "date +%s%3N" },
+  "suites": {
+    "lint": { "status": "pass", "durationMs": 3970, "warnings": 0, "errors": 0, "files": 75, "gating": true, "gates": { "commit": true, "release": true } },
+    "tests": { "status": "pass", "durationMs": 6864, "passed": 1104, "failed": 0, "skipped": 0, "total": 1104, "gating": true, "gates": { "commit": true, "release": true } },
+    "perf": { "status": "skip", "durationMs": 2, "skipReason": "performance-§12 no-combat-path exemption (ratified; docs/ARCHITECTURE.md -> Documented deviations)", "scenarios": 0, "gating": false, "gates": { "commit": false, "release": true } },
+    "complexity": { "status": "pass", "durationMs": 2369, "warnings": 0, "maxCcn": 15, "nloc": 19172, "functions": 2918, "avgCcn": 2.0, "avgNloc": 6.0, "avgToken": 47.1, "warnFunRatio": 0.00, "warnNlocRatio": 0.00, "bandFiles": 5, "overCapFiles": 0, "gating": false, "gates": { "commit": false, "release": true } }
+  },
+  "verdict": "green"
+}
