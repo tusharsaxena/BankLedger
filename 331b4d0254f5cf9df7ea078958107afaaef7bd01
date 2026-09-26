@@ -1,0 +1,1 @@
+clean: DR-BL-05 docs verified against modules/Diagnostics.lua, DebugLogDiagnostics (v1.60.0), Schema/Slash dispatch and the README; STD-20, DX-BL, Q11 and DR-OW-02 (3000) honored; CRLF kept; gate re-run green (1103/0, luacheck 0/0, lizard clean, max 1221 lines)
