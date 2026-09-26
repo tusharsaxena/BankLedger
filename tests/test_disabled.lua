@@ -528,6 +528,36 @@ test("disabled: every reserved verb and the bare /bl still answer normally", fun
   if not ok then error(err, 0) end
 end)
 
+test("disabled: both diagnostics forms reach RunDiagnostics, each once, with no refusal", function()
+  -- debug-logging-§14 and the AUD-01 audit step: the report is the thing a player runs BECAUSE
+  -- something is wrong, and "disabled" is one of the states they report from. The walk above only
+  -- proves `/bl diagnostics` is not refused; this pins that BOTH forms, `/bl diagnostics` and
+  -- `/bl debug diagnostics`, land in the one helper while the addon is down. The kit's contract case
+  -- (tests/_kit/test_diagnostics_contract.lua) checks what the report writes; this checks the route.
+  --
+  -- red under: a `liveVerbs` that drops `diagnostics`, a host gate in front of the dispatcher, or a
+  -- `debug` handler that no longer tests `diagnostics` before its other words.
+  local saved = S:Get(ENABLED_PATH)
+  local savedRun = NS.DebugLog.RunDiagnostics
+  local calls = 0
+  local ok, err = pcall(function()
+    NS.DebugLog.RunDiagnostics = function() calls = calls + 1 return 0 end
+    for _, form in ipairs({ "diagnostics", "debug diagnostics" }) do
+      disable()
+      local before = calls
+      local out = captureChat(function() NS.Slash:OnSlash(form) end)
+      assertEqual(calls - before, 1, "`/bl " .. form .. "` must run the report once while disabled")
+      for _, line in ipairs(out) do
+        assertFalse(isRefusal(line), "`/bl " .. form .. "` was refused: " .. line)
+      end
+    end
+  end)
+  NS.DebugLog.RunDiagnostics = savedRun
+  if NS.DebugLog.Hide then NS.DebugLog:Hide() end
+  S:Set(ENABLED_PATH, saved)
+  if not ok then error(err, 0) end
+end)
+
 test("disabled: every feature verb answers ONE refusal line and reaches no write seam", function()
   -- This addon takes slash-commands-§2's SHOULD. The suite pins that choice so it cannot drift
   -- silently: an addon that declined would assert its feature verbs act normally instead.

@@ -1101,7 +1101,7 @@ badge and any count quoted in the docs must agree with it.
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
 
-### test_disabled.lua (16)
+### test_disabled.lua (17)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1112,6 +1112,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: firing every baseline event writes nothing, prints nothing and shows nothing
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
 - disabled: every reserved verb and the bare /bl still answer normally
+- disabled: both diagnostics forms reach RunDiagnostics, each once, with no refusal
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
 - disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
@@ -1271,7 +1272,7 @@ badge and any count quoted in the docs must agree with it.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
-| test_disabled.lua | 16 |
+| test_disabled.lua | 17 |
 | test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
@@ -1281,4 +1282,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1103** |
+| **Total** | **1104** |
