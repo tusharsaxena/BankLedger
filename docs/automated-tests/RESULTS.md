@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260926-160240`](20260926-160240/) | `0851298` | clean | 1.1.0 | 0/0 | 75 | 1104/0/1104 | skip | 19172 | 2918 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260924-105040`](20260924-105040/) | `fff9780` | clean | 1.1.0 | 0/0 | 72 | 1061/0/1061 | skip | 18306 | 2765 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260916-184426`](20260916-184426/) | unknown | unknown | 1.1.0 | 0/0 | 67 | 943/0/943 | skip | 16380 | 2498 | 5.9 | 2.0 | 15 | 0 | **green** |
 | [`20260916-094506`](20260916-094506/) | unknown | unknown | 1.1.0 | 0/0 | 61 | 913/0/913 | skip | 15821 | 2401 | 5.9 | 2.0 | 17 | 1 | **green** |
@@ -47,18 +48,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**1061 cases** — 1061 passed, 0 failed, 0 skipped. The generated inventory
-[`20260924-105040/test-cases.md`](20260924-105040/test-cases.md) is the authority on which cases existed at this run;
+**1104 cases** — 1104 passed, 0 failed, 0 skipped. The generated inventory
+[`20260926-160240/test-cases.md`](20260926-160240/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **943 → 1061** since the previous run.
+Moved **1061 → 1104** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
 
 ## Lint
 
-**0 warnings / 0 errors over 72 files** (`luacheck .`).
+**0 warnings / 0 errors over 75 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 5 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `_dev/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -75,8 +76,8 @@ combat path for one to measure, not because the question was never asked.
 
 ## Complexity watch list
 
-Current as of [`20260924-105040`](20260924-105040/) — **this run's measurement, not its diff.** Max CCN **15** across 2765
-functions, **0** of them warned on; 4 file(s) in the 1000–1500 band and 0 over the 1500 cap
+Current as of [`20260926-160240`](20260926-160240/) — **this run's measurement, not its diff.** Max CCN **15** across 2918
+functions, **0** of them warned on; 5 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
 Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
@@ -97,6 +98,7 @@ cell is this file saying something crossed and nobody has ruled on it yet.
 | 1000–1500 (on notice) | `modules/Insights.lua` | 1002 | **Accepted.** New in this table: 992 → 1002, crossed by the stand-down latch in `a769125` (+10), not by a new renderer. Avg CCN 3.6 over 65 functions ([`20260924-105040/complexity.txt`](20260924-105040/complexity.txt)): section renderers, not tangle. Peel seam: `I:Layout` / `I:LayoutSections` and the `I:Render*` section renderers they drive lift into a sibling file. Re-check trigger: 1300 LOC, or a new section renderer. |
 | 1000–1500 (on notice) | `modules/LedgerTable.lua` | 1139 | **Accepted** — carried forward; 1132 → 1139 since `20260916-184426` (+7, the printer-argument change in `17568e2`). The test-data generator (`makeTestEntry`/`seedCoverage`/`bulkMovements`/`goldMovements`) is a self-contained block and is still the peel seam if it grows. Shelf life: this record holds exactly **one** release run (`20260910-234511`), so the three-consecutive-releases rule has not been reached. |
 | 1000–1500 (on notice) | `tests/test_ledger.lua` | 1028 | **Accepted — arriving, not drifting.** New in this table, but it entered the band from **above**: 1539 and over the cap at the previous run, split in `684107c` into `tests/test_ledger_settling.lua`. Case count, not tangle — avg CCN 1.1 over 135 functions ([`20260916-184426/complexity.txt`](20260916-184426/complexity.txt)). Re-check trigger: 1200 LOC, at which the settling/marks boundary is the next seam. |
+| 1000–1500 (on notice) | `tests/test_libka0s.lua` | 1020 | **Accepted — case count, not tangle.** New in this table: 964 → 1020 (+56) since `20260924-105040`, all of it `08ccdee` (DR-BL-01, the LibKa0s v1.60.0 re-vendor and its diagnostics cases; 64 → 66 cases). Avg CCN 1.4 over 121 functions ([`20260926-160240/complexity.txt`](20260926-160240/complexity.txt)). Re-check trigger: 1200 LOC, at which the file splits by LibKa0s surface. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN

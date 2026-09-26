@@ -1,0 +1,1285 @@
+# Test Cases
+
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
+
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
+
+### test_util.lua (38)
+
+- Util.PlayerKey joins name and realm with spaces stripped
+- Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
+- Util.FormatClock renders HH:MM
+- Util.PlainMoney always renders gold, silver and copper parts
+- Util.PlainMoney renders zero rather than an empty string
+- Util.PlainMoney renders nil as empty
+- Util.FormatMoney is blank for nothing and compact for a real amount
+- Util.EntryType is the stored item type for an item movement
+- Util.EntryType is Gold for a gold movement, which stores no type
+- Util.EntryType is blank for an uncached item and for nothing at all
+- Util.ClassIconMarkup carries the class's slice of the icon sheet
+- Util.ClassIconMarkup honors a requested size
+- Util.ClassIconMarkup is empty for an unknown or missing class
+- Util.FormatBytes steps through B, kB and MB
+- Util.RangeFrom returns nil for the no-bound 'all' range
+- Util.RangeFrom windows are ordered today > 7d > 30d
+- NS.IsConcatSafe accepts an ordinary value
+- NS.IsConcatSafe rejects a value table.concat would refuse
+- NS.SafeToString substitutes a sentinel for an unconcatenable value
+- NS.SafeToString passes nil and booleans through unmasked
+- NS.Print prefixes the cyan [BL] tag and space-joins its arguments
+- NS.Print never raises on a value that would break table.concat
+- NS.Print survives the AceConsole embed (architecture-§2)
+- Util.WowheadURL carries every bonus id from the item link
+- Util.WowheadURL stops at the declared bonus count
+- Util.WowheadURL omits the bonus query for an item that has none
+- Util.WowheadURL falls back to the stored item id when there is no link
+- Util.WowheadURL accepts a bare item string as well as a full hyperlink
+- Util.WowheadURL returns nothing for a row with no item at all
+- Util.ApplyMasterFrame applies scale, alpha AND the lock to one frame
+- Util.ApplyMasterFrame clamps a master alpha that would hide the addon outright
+- Util: every stop the Master alpha slider offers is a stop the drawing code draws
+- Util.VisibilityAllows answers all four modes against the combat state
+- Util.ApplyVisibility hides only what was up, and re-shows only what IT hid
+- Browser:Show refuses while General visibility says no
+- Util.ResetWindowPositions clears BOTH windows' stored geometry
+- ApplyVisibility hides only open windows and re-shows exactly those on the way back
+- ApplyVisibility and ApplyMasterChrome build no table literal per call
+
+### test_compat.lua (13)
+
+- Compat.GetItemDetails returns name, quality, type, subtype and vendor price
+- Compat.GetItemDetails returns nil for an item the client has not cached
+- Compat.ItemNameQuality resolves an id the client knows
+- Compat.GetContainerNumSlots reports zero for an unreachable container
+- Compat.GetContainerSlot returns a normalized triple for a filled slot
+- Compat.GetContainerSlot returns nil for an empty slot
+- Compat.GetGuildName returns the player's guild
+- Compat.GetMoney reads the carried balance
+- Compat.GetStoreMoney reads the guild bank's own balance while the frame is open
+- Compat.GetStoreMoney returns nil for the guild bank when the frame is closed
+- Compat.GetStoreMoney reads the warband balance by BankType name, not by number
+- Compat.GetStoreMoney returns nil for a store that holds no coin of its own
+- Compat.GetStoreMoney returns nil when the build exposes no reader
+
+### test_constants.lua (21)
+
+- Constants: every Store enum member appears in the display order
+- Constants: every Store enum member has a display label
+- Constants: every Store enum value equals its key (the stable stored form)
+- Constants: every Direction enum member has a label and a sign
+- Constants: a deposit signs positive and a withdrawal negative
+- Constants: every Kind has a label
+- Constants: the bag id group covers the backpack, four bags and the reagent bag
+- Constants: the bank group is exactly the six character-bank tabs
+- Constants: the warband bank spans its five account tabs
+- Constants: no container id belongs to two stores
+- Constants: no group lists the same id twice
+- Constants: the enum's type constants are never mistaken for containers
+- Constants: every container-backed store resolves to a non-empty group
+- Constants: the guild bank is NOT container-id scanned
+- Constants: the store mute options exclude BAGS
+- Constants: every quality option carries a numeric value and a label
+- Constants: the retention presets offer an 'Always' (0) option
+- Constants: every store has a display color
+- Constants: every direction has a color and a glyph
+- Constants: every open-frame context has a Ledger store list
+- Constants: C.Context is its own axis, not a subset of C.Store
+
+### test_filters.lua (14)
+
+- Filters: an added id reads back as blacklisted
+- Filters: adding the same id twice is a no-op the second time
+- Filters: adding to one list removes the id from the other
+- Filters: removing an id that is not on the list reports no change
+- Filters: a removed id is no longer blacklisted
+- Filters: a non-numeric id is rejected rather than stored
+- Filters: a write never mutates the previously stored table in place
+- Filters.SortedIDs returns the ids in ascending order
+- Filters.ClearList empties one list and reports how many went
+- Filters.ClearList on an empty list reports zero
+- Filters.ClearList ignores an unknown list name
+- Filters.ClearAll empties both lists in one go
+- Filters: a list change re-caches the capture gate's upvalues
+- Filters: the Clear all confirms report the count as printer arguments
+
+### test_ledger.lua (98)
+
+- Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
+- Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
+- Ledger.Diff: a partial stack move records only the quantity that actually moved
+- Ledger.Diff: quantity is the smaller of the two sides when they disagree
+- Ledger.Diff: an item that only appears in bags is not a bank movement
+- Ledger.Diff: an item that only appears in the store is not a movement
+- Ledger.Diff: identical snapshots produce nothing
+- Ledger.Diff: several items in one pass each get their own movement
+- Ledger.Diff: movements come back in ascending itemID order (deterministic)
+- Ledger.Diff: the store name is carried on every movement
+- Ledger.Diff: money leaving the player and arriving at the store is a DEPOSIT
+- Ledger.Diff: money leaving the store and arriving at the player is a WITHDRAW
+- Ledger.Diff: a purse drop the store's balance does not mirror is NOT a deposit
+- Ledger.Diff: a store balance change the purse does not mirror is not a movement
+- Ledger.Diff: both balances falling together is not a movement
+- Ledger.Diff: the recorded amount is the smaller of the two deltas
+- Ledger.Diff: an unreadable store balance produces no money movement
+- Ledger.Diff: a balance readable on only one side produces no money movement
+- Ledger.Diff: money is ignored at a store that holds no gold
+- Ledger.Diff: an unchanged balance produces no money movement
+- Ledger.Diff: the money movement sorts after the item movements
+- Ledger:ScanStore sums stacks across every container id of a store
+- Ledger:ScanStore returns an empty map for a store with no reachable containers
+- Ledger:Snapshot captures bags, every reachable store and the money balance
+- Ledger:Snapshot carries each money-holding store's own balance
+- Ledger:Snapshot omits a store balance this build cannot read
+- Ledger:StoresFor: the bank frame reaches the character bank and the warband tabs
+- Ledger:StoresFor drops a store this build has no container for
+- Ledger:StoresFor: the guild bank frame reaches only itself
+- Ledger:StoresFor: an unknown context reaches nothing
+- Ledger:Reconcile records a bags-to-character-bank deposit
+- Ledger:Reconcile records a warband move with no warband open event at all
+- Ledger:Reconcile writes ONE row, not one per store the frame reaches
+- Ledger:Reconcile records a withdrawal back out of the bank
+- Ledger:Reconcile writes nothing when no frame is open
+- Ledger:CloseContext reconciles once more, then disarms
+- Ledger:GateReason allows an ordinary item move
+- Ledger:GateReason blocks everything while capture is disabled
+- Ledger:GateReason blocks an item below the minimum quality
+- Ledger:GateReason lets a whitelisted item through the quality gate
+- Ledger:GateReason skips an uncached item when a minimum quality is set
+- Ledger:GateReason records an uncached item at the default threshold
+- Ledger:GateReason lets a whitelisted uncached item through
+- Ledger:GateReason asks the client to cache an item it had to skip
+- Ledger:GateReason blocks a blacklisted item even when it would otherwise pass
+- Ledger:GateReason blocks a muted store
+- Ledger:GateReason blocks item moves when item tracking is off
+- Ledger:GateReason blocks money moves when gold tracking is off
+- Ledger:GateReason ignores the quality gate for a money move
+- Ledger:BuildEntry stamps who, where and when onto an item movement
+- Ledger:BuildEntry enriches an item movement from the item cache
+- Ledger:BuildEntry names a money movement and leaves the item fields empty
+- Ledger:BuildEntry stamps the guild name on a guild-bank movement only
+- Ledger:Record appends a gated-in movement to the ledger
+- Ledger:Record drops a gated-out movement and writes nothing
+- Ledger.MoveSummary renders one line per pass, not one per item (debug-logging-§9)
+- Ledger.DiffSummary reports both sides and the move count
+- Ledger.CountKinds counts distinct ids, not stack sizes
+- Ledger:Diagnose reports the open store and the resolved id groups
+- Ledger:Diagnose lists the BagIndex members the client exposes
+- Ledger:Diagnose probes containers and reports only the ones with slots
+- Ledger:Diagnose never raises when no container is reachable
+- Ledger:ScanGuildBank sees nothing from a tab that was never queried
+- Ledger:QueryGuildBankTabs asks for every tab
+- Ledger:ScanGuildBank reads a tab once it has been queried
+- Ledger:OpenContext queries the guild bank tabs on open
+- Ledger:OpenContext does NOT query guild tabs for the bank frame
+- Ledger: a guild-bank deposit is recorded
+- Ledger:Diagnose reports the guild-bank API and per-tab contents
+- Compat.GetGuildBankSlot survives a build with no guild-bank API
+- Ledger: the guild-bank frame showing arms the context
+- Ledger: the guild-bank frame showing never steals an open bank context
+- Ledger:OnAddonLoaded hooks the frame when Blizzard_GuildBankUI arrives
+- Ledger:OnGuildBankData arms when the guild-bank window is explicitly visible
+- Ledger:OnGuildBankData does NOT arm when there is no guild-bank window
+- Ledger:OnGuildBankData does NOT arm when the guild-bank window is hidden
+- Ledger:OnGuildBankData still reconciles a context that is already open
+- Ledger:OnGuildBankData queries the tabs when it arms
+- Ledger:OnGuildBankData never steals the context from an open bank frame
+- Ledger:OnGuildBankData re-arms without churning the baseline once armed
+- Ledger: a guild-bank deposit is recorded with no open event at all
+- Ledger: the guild bank disarms once its window has gone
+- Ledger: hiding the guild-bank frame disarms it there and then, with no event
+- Ledger: the guild-bank OnHide hook is installed once, not once per data event
+- Ledger:Diagnose reports whether the guild-bank frame hooks are installed
+- Ledger: hiding the guild-bank frame leaves an open BANK frame alone
+- Ledger: an unknown window state does NOT disarm the guild bank
+- Compat.IsGuildBankVisible is three-valued
+- Ledger:ScanStore hands back the first hyperlink seen for each item
+- Ledger:Snapshot carries a links table beside the counts
+- Ledger.Diff attaches the observed link to a deposit
+- Ledger.Diff attaches the observed link to a withdrawal
+- Ledger.Diff leaves the link nil when neither snapshot observed one
+- Ledger:BuildEntry keeps the scanned link over the one derived from the id
+- Ledger:BuildEntry falls back to the item cache's link when the move carries none
+- Ledger:BuildEntry takes the quality from the moved link, not the base item
+- Ledger:BuildEntry still enriches from the id when the move carries no link
+- Ledger:GateReason judges the quality gate on the moved link
+
+### test_ledger_settling.lua (26)
+
+- reEnable leaves the addon's own event registrations standing
+- Ledger:Enable registers every event on a build that has them all
+- Ledger:Enable survives a retired event and still binds the rest
+- Ledger:Enable binds the capture events even when several are retired
+- Ledger:Enable never lets a rejected open event silence the others
+- Ledger:Enable registers no GUILDBANKFRAME_* event
+- NS.RegisterEventSafely reports whether the binding took
+- Ledger:Diagnose names the events this build rejected
+- Ledger:ScheduleReconcile coalesces a burst of events into ONE pass
+- Ledger: a movement whose halves arrive in separate events is still recorded
+- Ledger: a withdrawal whose halves arrive separately is also recorded
+- Ledger: two separate actions stay two separate rows
+- Ledger:ScheduleReconcile does nothing when no frame is open
+- Ledger:CloseContext runs the pending pass instead of waiting out the debounce
+- Ledger.SnapshotsDiffer spots a change on any side
+- Ledger: a movement whose halves are SECONDS apart is still recorded
+- Ledger: gold spent at the bank window is not recorded as a warband deposit
+- Ledger: a real gold deposit still records when the store balance lands a pass later
+- Ledger: a one-sided change that never completes re-anchors after the timeout
+- Ledger: a re-anchored loot does not pair with a later unrelated deposit
+- Ledger: an unchanged world advances the baseline without waiting
+- Ledger: a completed movement clears the settle wait
+- Ledger: a deletion writes no row and arms ONE deadline, not a poll
+- Ledger: the deadline is armed for the REMAINING window, not a fixed retry
+- Ledger: the deadline never schedules a near-zero timer
+- Ledger: firing the deadline re-anchors and stops waiting
+
+### test_database.lua (51)
+
+- Database:Add appends and returns the new index
+- Database:Add fires EntryAdded on the bus
+- Database: two consumers of one message both receive it
+- Database:QueryList with no filter returns everything
+- Database:QueryList filters on a scalar store
+- Database:QueryList filters on a store SET (multi-select)
+- Database:QueryList filters on direction
+- Database:QueryList filters on kind
+- Database:QueryList filters on character
+- Database:QueryList filters on item sub-type
+- Database:QueryList filters on an item sub-type SET (multi-select)
+- Database:QueryList filters gold movements under the type 'Gold'
+- Database:QueryList mixes Gold with real item types in one set
+- Database:QueryList filters on an exact quality
+- Database:QueryList filters on a quality SET
+- Database:QueryList filters on a from/to timestamp window, inclusive
+- Database:QueryList text search is a case-insensitive substring on the item name
+- Database:QueryList combines filters with AND
+- Database:QueryList returns nothing when the filters exclude everything
+- Database:Export returns plain copies, not the stored tables
+- Database:DeleteAt removes one entry and compacts the array
+- Database:DeleteAt rejects an out-of-range index
+- Database:Delete removes every entry matching the predicate
+- Database:Purge empties the ledger and reports the count
+- Database:Delete traces one [Data] line naming how many entries it removed
+- Database:Delete writes no line while logging is off
+- Database:PruneOld drops entries past the retention window
+- Database:PruneOld keeps everything when retention is Always (0)
+- Database:PruneOld broadcasts LedgerChanged only when a row actually went
+- Database:StorageStats reports count, span and an estimated size
+- Database:StorageStats reports a zero span for an empty ledger
+- Database:ActiveLedger prefers the test dataset when one is published
+- RunMigrations stamps a schema version onto a fresh database
+- RunMigrations is idempotent — running it twice changes nothing
+- NS.MigrationSummary renders a readable one-liner
+- NS.InitSummary identifies the build, schema, profile and size
+- RunMigrations strips vendorPrice from every stored entry and bumps to v2
+- RunMigrations is idempotent on an already-migrated database
+- RunMigrations treats a database with no schemaVersion key at all as v1
+- RunMigrations announces the v1->v2 pass the smoke step reads
+- RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
+- RunMigrations stamps a stamp-less store whose ledger is nil, without raising
+- RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
+- RunMigrations leaves the stamp at the last completed step when a step raises
+- ResetEverything leaves the store stamped at NS.SCHEMA_VERSION
+- RunMigrations survives a database with no ledger at all
+- RunMigrations never downgrades a future schema version
+- Database:Export never emits a vendorPrice field
+- Database: defaults declare schemaVersion = 0 (savedvariables-§1)
+- Database: a fresh database needs no migration
+- Database: an older database is migrated up to the current version
+
+### test_stats.lua (52)
+
+- Stats: the entry total counts every movement in scope
+- Stats: item quantities split by direction
+- Stats: gold in, gold out and the net between them
+- Stats: distinct items counts item ids, not movements
+- Stats: distinct characters counts the players involved
+- Stats: the first and last timestamps bracket the data
+- Stats: active days counts distinct calendar days
+- Stats: byStore counts movements per store
+- Stats: byDirection counts deposits and withdrawals
+- Stats: byKind separates item movements from gold movements
+- Stats: byChar carries a per-character count
+- Stats: charByStore is a per-character by-store matrix
+- Stats: byItemType counts item movements only
+- Stats: topItems ranks by number of moves, most first
+- Stats: the busiest day is the one with the most movements
+- Stats: a filter narrows every total, not just the count
+- Stats: an empty result set produces zeroed totals rather than nil
+- Stats: byItemSubType counts item rows by sub-type
+- Stats: byQuality counts item rows by quality id
+- Stats: byQuality ignores gold, which has no quality
+- Stats: byZone counts movements by where they happened
+- Stats: topZones ranks the banking spots, count-desc
+- Stats: byHour and byWeekday bucket every movement exactly once
+- Stats: byWeekday is keyed 0..6 with Sunday as 0
+- Stats: moneyByStore totals gross coin per store
+- Stats: moneyByDay totals coin per calendar day, items excluded
+- Stats: totals.moneyMoved is gross coin, not net
+- Stats: totals.netItems signs the item flow like netMoney signs gold
+- Stats: charByDirection splits each character's movements in and out
+- Stats: storeByDirection splits each store's movements in and out
+- Stats: topItemsByQuantity ranks the item index by stack count
+- Stats: the two top-item rankings share one record per item
+- Stats: topItems still ranks by movement count, unchanged
+- Stats: every new breakdown is empty rather than nil on an empty ledger
+- Stats: the new breakdowns honor the filter like every other key
+- Stats no longer reports any value figure
+- Stats: netByStore counts movements, deposits positive
+- Stats: itemsMoved totals every stack unit that crossed the line
+- Stats: topStore names the store with the most movements
+- Stats: topStore is nil on an empty slice
+- Stats: qualityByDirection is keyed on the numeric quality id
+- Stats: itemTypeByDirection and itemSubTypeByDirection split by direction
+- Stats: the direction split always sums back to its parent breakdown
+- Stats: item records split their moves and quantities by direction
+- Stats: the In and Out item rankings sum back to the combined ranking
+- Stats: byZone keeps its plain count-map shape for the CSV
+- Stats: topZones records carry the in/out split
+- Stats: topTypeSub ranks type and sub-type pairs with a display label
+- Stats: topItemsByStore ranks each store's items independently
+- Stats: per-store item records split moves by direction
+- Stats: the per-store In and Out lists rank independently
+- Stats: a store with no withdrawals has an empty per-store Out list
+
+### test_ledgertable.lua (55)
+
+- LedgerTable:CellText renders the direction as a human label
+- LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
+- LedgerTable:PaintCell writes the column's text into the cell
+- LedgerTable:PaintCell drives the direction glyph only for the Direction column
+- LedgerTable:PaintCell is a safe no-op for a missing cell or column
+- LedgerTable:CellText renders the store as a human label
+- LedgerTable:CellText falls back to 'Item <id>' for an uncached item
+- LedgerTable:CellText shows a gold row's amount as money in the Qty column
+- LedgerTable:CellText shows the stack size for an item row
+- LedgerTable:CellText renders the quality label, and blank when unknown
+- LedgerTable:CellText shows a dash for a gold row's quality
+- LedgerTable:CellText renders the item type and sub-type, and blank when unknown
+- LedgerTable:CellText types a gold row as Gold on both type columns
+- LedgerTable:CellText returns empty for an unknown column key
+- LedgerTable:SortEntries orders by the active column
+- LedgerTable:SortEntries honors the ascending direction
+- LedgerTable:SortEntries is stable across equal keys
+- LedgerTable:SortEntries never mutates the array it is given
+- LedgerTable:SortEntries sorts the Qty column on what the cell shows
+- LedgerTable:GroupEntries with no grouping emits one row item each
+- LedgerTable:GroupEntries inserts a header per group, with a count
+- LedgerTable:GroupEntries labels a header with its column prefix and value
+- LedgerTable:GroupEntries emits only the header for a collapsed group
+- LedgerTable:GroupEntries namespaces group keys by mode, so they cannot collide
+- LedgerTable:GroupEntries groups gold and items apart under 'kind'
+- LedgerTable:GroupEntries groups by item type and sub-type
+- LedgerTable:GroupEntries gathers gold under Gold when grouping by type
+- LedgerTable:GroupEntries labels an untyped item group Unknown
+- LedgerTable:GroupEntries orders quality groups Poor to Legendary
+- LedgerTable:GroupEntries puts gold in its own quality group
+- LedgerTable:GroupEntries emits the exact key and label for every group mode
+- LedgerTable:GroupEntries defaults a missing group value rather than dropping the entry
+- LedgerTable:BuildTestData produces a non-trivial sample ledger
+- LedgerTable:BuildTestData is deterministic across runs
+- LedgerTable:BuildTestData covers every store
+- LedgerTable:BuildTestData covers both directions and both kinds
+- LedgerTable:BuildTestData only puts gold where gold can live
+- LedgerTable:BuildTestData stamps the guild name only on guild-bank rows
+- LedgerTable.RenderSummary is one line carrying the render's shape
+- LedgerTable:MinFrameWidth is wide enough for every column
+- BuildTestData is byte-identical across two builds
+- BuildTestData covers every store and both directions
+- BuildTestData covers every item quality 0-5
+- BuildTestData spans more than 14 days
+- BuildTestData spreads across many characters and zones
+- BuildTestData never carries vendor value
+- LedgerTable:ToggleTestMode publishes and clears the dataset
+- LedgerTable:SetTestMode sets a value rather than flipping one, and a stop opens nothing
+- LedgerTable:IsTestMode is derived from the published dataset, not a second flag
+- LedgerTable row menu offers the mutating actions on a real row
+- LedgerTable row menu disables every mutating action in test mode
+- LedgerTable row menu still disables item actions on a money row
+- LedgerTable: the blacklist confirmation names the tab the list actually lives on
+- LedgerTable: the whitelist confirmation names the tab the list actually lives on
+- LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
+
+### test_browser.lua (41)
+
+- Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
+- Browser.ResolveCharFilter passes ordinary character keys through
+- Browser.ResolveCharFilter mixes the sentinel with explicit names
+- Browser.ResolveCharFilter collapses the sentinel onto the same name once
+- Browser.ResolveCharFilter returns nil for an empty selection (no filter)
+- Browser.ResolveCharFilter falls back to the live player key
+- Browser.ResolveCharFilter copies the set rather than aliasing it
+- Browser:ClearFilters defaults the Character filter to the current character
+- Browser:ClearFilters leaves every other filter empty
+- Browser:ClearFilters does not scope test data to the real player
+- Browser: with nothing saved, the baseline IS the stock view
+- Browser: a corrupt saved view degrades to stock rather than erroring
+- Browser:SaveView then ClearFilters returns to the SAVED view, not stock
+- Browser:ResetView drops the saved view, and Clear then lands on stock
+- Browser:CaptureView omits sortAsc entirely when the table module is not loaded
+- Browser:CaptureView never captures the character scope
+- Browser:ApplyView always scopes to the current character
+- Browser:ApplyView with the 'all' scope drops the character filter entirely
+- Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
+- Browser: a saved date range is stored as the OPTION, not a resolved timestamp
+- Browser:ApplyView tolerates a scalar filter value in a stored view
+- Slash:CliResetAll (the wholesale reset) also discards the saved view
+- Browser:MinWidth fits every table column and the whole toolbar
+- Browser:SaveGeometry writes the live position and size
+- Browser:ApplyGeometry restores a saved position and size
+- Browser:ApplyGeometry never restores a size below the window floor
+- Browser:SaveGeometry refuses to write a point-less table
+- the ledger window saves its geometry when it hides
+- the ledger window closes an open dropdown menu when it hides
+- the ledger window saves its geometry at logout
+- Browser:ExportWidth leaves the Export button a usable width
+- Browser: a burst of search keystrokes costs ONE filter application
+- Browser: the debounced filter still applies when there is no timer library
+- Browser: a 20-stack deposit repaints the window once, not twenty times
+- Browser hands the table a filter COPY, not its own mutable one
+- Browser: MakeDropdown injects this addon's chevron, tick and mono face
+- Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art
+- Browser: the window still opens and the ledger table still populates with no Widgets library
+- Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
+- Browser: a selection that DOES have a row still labels from that row
+- Browser: the Character filter's selection can never outlive its option list
+
+### test_launcher.lua (37)
+
+- Launcher: the seam is published, and it is the library's instance
+- Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
+- Launcher: the hand-rolled launcher is gone from modules/Browser.lua
+- Launcher: a host with neither broker library degrades and does NOT raise
+- Launcher: the missing-broker notice prints once across two Register calls, without a [LibKa0s] tag
+- Launcher: LibDataBroker without LibDBIcon still gets the broker plugin
+- Launcher: it registers under the FOLDER name, against db.global.minimap
+- Launcher: Register is idempotent, so no second button is built over the first
+- Launcher: ONE object, of type launcher, wearing the addon's icon
+- Launcher: the broker label is the BRAND NAME in plain text, not the Title and not the folder
+- Launcher: the brand literal is spelled at NS.BRAND_NAME and the missing-library clause only
+- Launcher: LEFT-click opens the settings panel and nothing else
+- Launcher: RIGHT-click opens the options menu: Enabled, Locked, Test mode, Show window
+- Launcher: with no MenuUtil the right click falls back to the settings panel
+- Launcher: each menu entry runs the SAME handler its slash verb runs
+- Launcher: the Locked entry really locks, through the Lock frame row's own seam
+- Launcher: each checkmark reads the live state, on every open
+- Launcher: a raising menu handler is reported, not thrown at the player
+- Launcher: the descriptor passes this addon's state pairs, and none of the retired fields
+- Launcher: the tooltip draws the library's block around this addon's one extra line
+- Launcher: the tooltip's Locked and Test mode lines read what the panel reads, on every show
+- Minimap row: it is composed onto Master controls, stored, and SHOWN by default
+- Minimap row: the label says SHOWN and LibDBIcon's key says HIDDEN
+- Minimap row: writing it MOVES the button, not just the store
+- Minimap row: LibDBIcon's own minimapPos is never trampled
+- Minimap row: /bl get minimap.shown answers true while db.global.minimap.hide is false
+- Minimap row: /bl set minimap.shown false stores minimap.hide = true, hides the button and writes no shown key
+- Minimap row: a targeted /bl reset minimap.shown restores shown
+- Minimap row: the old path minimap.hide answers unknown setting
+- Minimap row: a legacy store keeps its choice with no migration
+- Minimap row: S:Register reports 0 failures with the renamed path
+- Minimap row: the defaults ship the table, so nothing has to seed it
+- Verbs: /bl enable and /bl disable are registered, and described the same way
+- Verbs: they write the Enable row's stored path, through the same write seam
+- Verbs: they hold NO state of their own
+- Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
+- LibKa0s-Launcher degraded: the stub answers every member the addon reaches
+
+### test_sessionwindow.lua (32)
+
+- SessionWindow drops the Date, Time and Character columns
+- SessionWindow keeps the seven data columns, in table order
+- SessionWindow resolves every column key against the shared LedgerTable spec
+- SessionWindow:MinFrameWidth covers every column plus the gutter and margins
+- SessionWindow:ColumnLayout lays columns left to right with the Item column flexing
+- SessionWindow:StartSession arms the session and clears the previous visit
+- SessionWindow:EndSession disarms and drops the rows
+- SessionWindow collects movements only while a session is open
+- SessionWindow shows newest movement first
+- SessionWindow:DisplayList never reorders the session list in place
+- SessionChanged from the Ledger opens and closes a session
+- Ledger:OpenContext and CloseContext drive the session window
+- closing the guild bank closes the session window
+- a recorded movement reaches the session window through EntryAdded
+- the disable setting suppresses the window without suppressing collection
+- the window stays shut while capture itself is off
+- settings.showSessionWindow defaults to enabled
+- turning the setting off closes an open session window
+- SessionWindow:PruneMissing drops rows deleted from the ledger
+- a purge empties the session view
+- SessionWindow:TogglePreview shows placeholder rows through the real render path
+- SessionWindow:TogglePreview refuses to overwrite a real session
+- a preview session is never pruned against the live ledger
+- a real session replaces a preview session's rows
+- SessionWindow:SaveGeometry writes the live position and size
+- SessionWindow:ApplyGeometry restores a saved position and size
+- SessionWindow:ApplyGeometry never restores a size below the column minimum
+- the session window saves its geometry when it hides
+- the session window saves its geometry at logout
+- a full save/reload round trip lands the window back where it was
+- SessionWindow:ResetWindow clears the persisted geometry carve-out
+- the session window's geometry is a separate carve-out from the main window's
+
+### test_insights.lua (76)
+
+- InsightsWidgets.PaletteColor returns an rgb triple for rank 1
+- InsightsWidgets.PaletteColor gives adjacent ranks different colors
+- InsightsWidgets.PaletteColor cycles past the end of the palette
+- InsightsWidgets.PaletteMap assigns colors by list position
+- InsightsWidgets.PaletteMap of an empty list is empty
+- InsightsWidgets.Truncate leaves a short label alone
+- InsightsWidgets.Truncate cuts a long label to an ellipsis at the limit
+- InsightsWidgets.Truncate handles nil as an empty label
+- InsightsWidgets.ShortChar drops the realm from a Name-Realm key
+- InsightsWidgets.FitFontSize keeps the base size when the string fits
+- InsightsWidgets.FitFontSize shrinks proportionally when it overflows
+- InsightsWidgets.FitFontSize never shrinks below the floor
+- InsightsWidgets.FitFontSize treats a missing measurement as fitting
+- InsightsWidgets.SignedMoney colors a gain green and a loss red
+- InsightsWidgets.SignedMoney renders zero as a neutral dash
+- InsightsWidgets.SignedCount signs a count the same way
+- InsightsWidgets.Money renders nothing as a plain zero, not an empty cell
+- InsightsWidgets.PeakShares fills the larger side and scales the smaller against it
+- InsightsWidgets.PeakShares fills the larger side whichever side it is on
+- InsightsWidgets.PeakShares gives an empty split two zero-width halves
+- InsightsWidgets.PeakShares treats a negative side as zero
+- InsightsWidgets.Percent rounds to a whole percentage
+- InsightsWidgets.Percent is zero for an empty total, never a divide by zero
+- InsightsWidgets.StripMetrics widens the bars when there are few buckets
+- InsightsWidgets.StripMetrics keeps a minimum bar width when buckets are dense
+- InsightsWidgets.StripMetrics thins the axis labels as the bars tighten
+- InsightsWidgets.StripMetrics survives zero buckets
+- InsightsWidgets.DayKeys covers every day inclusive of both ends
+- InsightsWidgets.DayKeys includes the quiet days in between
+- InsightsWidgets.DayKeys caps a long span to the most recent bars
+- InsightsWidgets.DayKeys is empty without both ends, or when they are inverted
+- InsightsWidgets.ShortDay compacts an ISO day key for the axis
+- InsightsWidgets.SortedByCount ranks count-desc then key-asc
+- InsightsWidgets.NormalizeFractions makes the largest bar fill its track
+- InsightsWidgets.NormalizeFractions leaves an all-zero list alone
+- InsightsWidgets.StackSegments orders segments by their global rank
+- InsightsWidgets.StackSegments returns the row's total
+- InsightsWidgets.StackSegments lumps the overflow into one Other segment, last
+- InsightsWidgets.StackSegments drops zero and negative magnitudes
+- InsightsWidgets.BuildStackRows scales every row against the biggest row
+- InsightsWidgets.BuildStackRows breaks total ties on the label
+- InsightsWidgets.BuildBackToBackRows scales both sides against one shared maximum
+- InsightsWidgets.BuildBackToBackRows reports each side's raw magnitude and the total
+- InsightsWidgets.BuildBackToBackRows gives a one-sided row a zero-width other half
+- InsightsWidgets.BuildBackToBackRows breaks total ties on the label
+- InsightsWidgets.BuildBackToBackRows survives an all-zero matrix
+- InsightsWidgets.BuildBackToBackRows of an empty matrix is empty
+- InsightsWidgets.BuildStackRows tips each segment with its category and value
+- InsightsWidgets.BuildStackRows of an empty matrix is empty
+- InsightsWidgets.BuildStackRows falls back to tostring and the neutral color
+- InsightsWidgets pools reuse a released widget instead of building another
+- Insights.CardValues renders every declared card
+- Insights.CardValues shows a dash where there is genuinely nothing
+- Insights.CardValues survives being handed nothing at all
+- Insights.CardValues covers every card the panel declares
+- Insights.CardValues no longer produces value or biggest-move cards
+- Insights.CardValues reports items moved and the top store
+- Insights.CardValues em-dashes the top store on an empty slice
+- Insights.SummaryLine names the scope and the count
+- Insights:Attach and Refresh survive an empty ledger
+- Insights:Refresh lays out every section against a populated ledger
+- Insights:Refresh renders a slice with no gold at all
+- Insights: a negative moneyMoved hides the GOLD section rather than drawing it
+- Insights: the four direction-split companions render without raising
+- Insights.BarLabel truncates the name and leaves the icon escape intact
+- Insights.BarLabel is a plain truncation when there is no icon
+- Insights: character bars carry the icon out of band
+- InsightsWidgets exports the split bar's two-part height
+- InsightsWidgets pools list panels, each carrying its own row pool
+- InsightsWidgets.MakeCard builds every headline on one base font template
+- Insights: the reorganized list section renders every group
+- Insights.ElementTip pairs the full label with the figure the element shows
+- Insights.ElementTip falls back to the bare label when there is no value
+- Insights: a bar's tip carries its untruncated label AND its value
+- Insights: the headline split puts withdrawals left, deposits right, peak-scaled
+- Insights: a back-to-back half's tip carries its count and its share of the row
+
+### test_export.lua (42)
+
+- Export:CSV emits a header row even with no data
+- Export:CSV emits one row per entry
+- Export:CSV uses CRLF line endings (RFC 4180)
+- Export:CSV writes the human direction and store labels
+- Export:CSV keeps the raw store token beside its label
+- Export:CSV pairs each human column with its raw sibling
+- Export:CSV renders a gold row's kind label
+- Export:CSV quotes a field containing a comma and doubles embedded quotes
+- Export:CSV leaves an absent field empty rather than writing nil
+- Export:CSV never emits the item link (a raw link is unusable in a spreadsheet)
+- Export:InsightsCSV starts with the four-column header
+- Export:InsightsCSV carries the summary card values
+- Export:InsightsCSV includes a per-store breakdown
+- Export:InsightsCSV includes the signed net-by-store rows
+- Export:InsightsCSV includes the direction and kind breakdowns
+- Export:InsightsCSV includes the top-items ranking
+- Export:InsightsCSV carries the two new summary figures
+- Export:InsightsCSV includes the sub-type breakdown
+- Export:InsightsCSV includes the quality breakdown, in quality order
+- Export:InsightsCSV includes the zone breakdown
+- Export:InsightsCSV includes the gross coin per store
+- Export:InsightsCSV includes the extra top-item ranking
+- Export:InsightsCSV includes a per-day coin section
+- Export:InsightsCSV emits a full 24-hour and 7-day grid
+- Export:InsightsCSV keeps the original section headers unchanged
+- Export:InsightsCSV survives an empty stats result
+- Export:InsightsCSV survives being handed nothing at all
+- Export: the ledger CSV carries no value columns
+- Export: the insights CSV drops the value summary and the value ranking
+- Export: net by store is written as a count, not a coin string
+- Export:CSV ends with the wowhead column
+- Export:CSV writes a wowhead URL carrying the item's bonus ids
+- Export:CSV writes a bare item URL when the row has no link
+- Export:CSV leaves the wowhead cell empty for a gold row
+- Export modal: the Data Set control is a real LibKa0s-Widgets-1.0 dropdown
+- Export modal: with no Widgets library it REFUSES the Data Set control instead of raising
+- Export modal: hiding the modal closes an open dropdown menu
+- Export modal: the titlebar close button closes the menu with the modal
+- Export modal: Escape reaches the same close path, because the modal is a UISpecialFrame
+- Export: the copy window comes from LibKa0s-Widgets-1.0
+- Export: showing the copy window puts the text in it
+- Export: the copy window is built once and reused
+
+### test_debuglog.lua (18)
+
+- DebugLog.FormatPlain renders '<ts> | [<tag>] <msg>' with no color codes
+- DebugLog.FormatPlain tolerates a missing tag
+- DebugLog.FormatColored uses the mandated timestamp and tag colors
+- DebugLog.FormatColored escapes the separator pipe so it renders literally
+- DebugLog: the plain and colored lines carry the same tag and message
+- NS.Debug writes nothing while logging is off
+- NS.Debug appends a line while logging is on
+- NS.Debug formats its arguments into the message
+- NS.Debug never raises on a value table.concat would reject
+- DebugLog:Clear empties the copy buffer
+- DebugLog:SetEnabled flips the session-only flag
+- DebugLog:SetEnabled acks in chat with a color-coded state word
+- DebugLog:SetEnabled brackets BOTH transitions in the console
+- DebugLog:SetEnabled emits an [Init] session summary on enable
+- DebugLog:SetEnabled emits no [Init] summary on disable
+- DebugLog: the enabled state is never written to SavedVariables
+- DebugLog: the header toggle flips the same flag as the slash verb
+- DebugLog:UpdateScrollBar is a clean no-op under a stub frame
+
+### test_schema.lua (53)
+
+- Schema: every row's path resolves against the defaults table
+- Schema: every row declares a label, a widget and a group
+- Schema: changing the window scale broadcasts it so every window rescales
+- Schema: every row declares a default
+- Schema: dropdown rows carry their option list
+- Schema:FindRow finds a declared path and rejects an unknown one
+- Schema:Get reads the stored value
+- Schema:Set writes through the single seam and reads back
+- Schema:Set rejects an unknown path with a reason
+- Schema:Set writes a nested path, creating intermediate tables
+- Schema:Set fires the row's onChange
+- Schema:Set deep-copies a table value so the default can't be aliased
+- Schema:Default returns a fresh copy each time
+- Schema: a session-only row never touches SavedVariables
+- Schema: the session-only row reads through its own getter
+- Schema: the debug LOGGING flag is deliberately not a schema row
+- COMMANDS: every entry is a { name, description, handler } triple
+- COMMANDS: names are unique, so dispatch can never be ambiguous
+- COMMANDS: the standard's required verbs are all present
+- COMMANDS: a test verb exists (test-mode)
+- COMMANDS: /bl test says the module is missing rather than reporting it off
+- Schema: the page partitions into the designed tabs, in the designed order
+- schema: the live and library-absent row counts, and the composed delta
+- Schema: Master controls is the FIRST tab, and holds exactly the canonical rows
+- Schema: every row on every tab of the page carries a group
+- Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice
+- Schema: no tab holds fewer than two controls unless it is exempt by name
+- Schema: two tabs draw a strip at all — a single-group page falls back to sections
+- Schema: the Capture tab leads with the two kind toggles, paired across one line
+- Schema: the Capture kind toggles pair across one line, in item-then-gold order
+- Schema: rest and hover sit on ONE line, so they are read across and not down
+- Schema: the Interface tab opens with the control most players reach for
+- Schema: the Interface tab heads each KIND of control it mixes
+- Schema: each promoted tint default IS the literal it replaced
+- Util.RowTintAlpha clamps what SavedVariables hands it
+- Util.ApplyRowTint paints both textures and drives the banding
+- Schema: every row carries a tooltip
+- Schema: this addon still declares no color row at all
+- Schema: a color row is followed by its companion, and never carries disabledIf
+- Schema: General visibility is a dropdown over the four canonical answers
+- Schema: settings.windowScale declares its own step
+- Schema: a row the library cannot draw is marked skipRender, not left to vanish
+- Schema: no row uses the pre-library field spellings
+- Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
+- Test mode: the composed row sits right below Debug console, session-only, on its own line
+- Test mode: the checkbox is never written to SavedVariables
+- Test mode: ticking it loads the sample ledger and opens the ledger window
+- Test mode: /bl test and the checkbox are one switch
+- Test mode: a start General visibility refuses leaves the box unticked
+- Test mode: a start in combat is refused
+- Test mode: combat ends it, says so once, and does not open the ledger window
+- Test mode: a combat edge with test mode off says nothing and starts nothing
+- Test mode: /bl session stays its own verb
+
+### test_schema_runtime.lua (18)
+
+- Schema:Set stores, then logs one [Set] line, then reacts, then repaints -- once each
+- Schema:Set answers exactly `true` on success, and `false, reason` on a refusal
+- Schema:Set refuses a value its row's validate rejects, and stores and calls nothing
+- the live seam takes the row, not writeThrough, when settings.enabled has one
+- Schema:Set on an unknown path stores nothing, anywhere
+- Schema:Set on a session-only row calls its own set, reacts and repaints, stores nothing
+- Minimap row: the seam writes LibDBIcon's hide flag inverted, into the table LibDBIcon holds
+- Schema:ApplyDefault restores one row and answers `true`; a pathless row answers `false`
+- Schema:ApplyDefault leaves the Minimap row alone inside a bracket, and resets it outside one
+- Schema:Default answers a fresh copy of the row's default, and nil for an unknown path
+- Schema.SameValue compares tables by content and tells false from absent
+- Schema degraded: a write lands, reads back, reacts and answers as the live seam does
+- Schema degraded: a table value is stored as a copy, and the default stays whole
+- Schema degraded: a bracketed sweep writes every row back and closes its bracket
+- Schema runtime: the seam is a LibKa0s-Schema-1.0 instance, and the host names are bound to it
+- Schema:Register reports a path missing from the defaults even when the row has a default
+- Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
+- Options: the page Defaults act skips the Minimap button row and logs one [Set] line
+
+### test_slash.lua (53)
+
+- Slash: a set renders as a sorted brace list, through the format hook
+- Slash: an empty set renders as (none), not as an empty brace pair
+- Slash: a number row keeps its declared fmt
+- Slash: a boolean row still reads true/false
+- Slash: the key = value line carries no trailing colon (house style)
+- Slash:BuildListLines opens with the green 'Available settings' header
+- Slash:BuildListLines has no trailing colon on any line
+- Slash:BuildListLines indents group headers by two and rows by four
+- Slash:BuildListLines emits one row for every schema row
+- Slash:BuildListLines groups the rows under their declared page order
+- Slash:CliGet prints the single-line path = value form
+- Slash:CliGet reports an unknown path rather than printing nil
+- Slash:CliGet prints a usage line when given nothing
+- Slash:CliSet writes a boolean from a human word
+- Slash:CliSet writes a number and echoes the STORED value back
+- Slash:CliSet rejects a non-numeric value for a number setting
+- Slash:CliSet reports an unknown path
+- Slash:CliSet refuses a value-less set and says why
+- slash: /bl set with a refused value prints INVALID, the reason and the why, and stores nothing
+- schema: NS.Schema:Set trims a validate refusal to two values; the instance's Set answers three
+- Slash:CliReset restores one setting to its default
+- Slash:CliReset echoes a table default through the shared formatter
+- Slash:CliReset echoes the colored key = value shape, like get and set
+- Slash:CliReset echoes the stored value, not the requested one
+- Slash: /bl resetall is the wholesale reset — the schema, the filter lists AND the ledger
+- Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and no per-row [Set]
+- Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
+- Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED
+- Slash: a reset nested inside another bracket logs ONE line, for the outermost act
+- Slash: a bracket reporting profileReset logs nothing, even around a nested reset
+- Slash: the library's sweep still runs every row's onChange, and the seam logs again afterwards
+- Slash: a row that raises mid-sweep logs ONE line marked as stopped, re-raises, and unmutes the seam
+- Slash: a sweep row raising nil logs the line without the marker (the library hands err = nil)
+- Slash: a bare /bl runs the config verb and prints nothing
+- Slash: whitespace-only input is a bare /bl too
+- Slash: a bare /bl opens the settings panel on its landing page, not a sub-page
+- Slash: with no config verb, a bare /bl falls back to the help index
+- Slash: /bl help prints the help index
+- Slash: the help index has one row per COMMANDS entry, plus the header
+- Slash: the help header names both the short verb and its alias
+- Slash: help rows are gold command, em-dash, white description, indented
+- Slash: an unknown verb says so and then prints the help index
+- Slash: every registered verb is either a feature verb or on the LIVE list, never neither
+- Slash: while disabled, every feature verb refuses on ONE line naming /bl enable, and does not act
+- Slash: /bl show while disabled leaves the ledger window shut, and opens it once enabled
+- Slash: /bl test while disabled does not start test mode
+- Slash: an unknown verb is never REFUSED while disabled -- it is still unknown
+- Slash: the live verbs keep answering while disabled, and none of them is refused
+- Slash: dispatch lower-cases only the verb, preserving the argument's case
+- Slash:CliVersion prints a single tagged version line
+- Slash: every chat line carries the cyan [BL] tag
+- Slash: /bl list groups in schema declaration order, matching the panel
+- Slash: /bl version and the help header report the same version
+
+### test_bus.lua (10)
+
+- bus: each module's receiver subscribes to exactly the wire names it always has
+- bus: no live registration names an addon message outside the four
+- bus: Database:Add sends EntryAdded with the entry and its index
+- bus: Database:FireLedgerChanged sends LedgerChanged with no payload
+- bus: a settings write and the row-tint refresh send SettingsChanged with their reason
+- bus: opening and closing the bank frame sends SessionChanged true, then false
+- bus: NS.MSG declares exactly the four wire names
+- bus: NS.MSG is LibKa0s-Bus-1.0's strict catalog, so a mistyped key raises
+- bus: without LibKa0s, NS.MSG is the same four names as a plain table
+- bus: no addon file but core/Constants.lua types a message's wire name
+
+### test_panel.lua (34)
+
+- Panel: every registered canvas frame is handed to the Settings framework
+- Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
+- Panel: the landing page's OnDefault is inert — it manages no settings
+- Panel: OnDefault runs the same action as the header Defaults button
+- Panel: the General defaults action only asks, and changes nothing before the confirm
+- Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
+- Panel: a schema write refreshes an open page
+- Panel: a schema write does NOT refresh a hidden page
+- Panel: Refresh walks EVERY registered page, not just General
+- Panel: a bulk reset coalesces into exactly ONE refresh
+- Panel: Batch unwinds its depth on the error path
+- Panel: /bl resetall repaints, and only once
+- Panel: a refresher that raises does not stop the others
+- Panel: every tab of the General page renders without the library reporting a failure
+- Panel: the General page draws a tab strip, one button per schema group
+- Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's
+- Panel:Diagnose says so and stops when no defaults button was ever built
+- Panel:Diagnose stops at a button with no frame
+- Panel:Diagnose dumps the frame, its parent chain and every scrap of its art
+- Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
+- Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
+- Slash: the restored store does not ALIAS the defaults table
+- Slash: both global resets end test mode, which no store wipe can reach
+- Minimap row: the page Defaults button does not un-hide the button
+- Minimap row: Reset all settings does not un-hide the button, or move it
+- Minimap row: a TARGETED /bl reset minimap.shown is not a sweep, and still works
+- Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
+- Slash: ResetEverything while disabled stands the addon back up
+- Slash: ResetEverything announces LedgerChanged exactly once
+- Slash: ResetEverything traces the recorded entries it wiped, once
+- Panel: Defaults logs ONE [Set] line, and no per-row [Set]
+- Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
+- Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
+- Slash: every reset route has the SAME blast radius — the ledger survives none of them
+
+### test_panel_filters.lua (40)
+
+- Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
+- Filters tab: an item id typed into the box goes through Filters:AddBlacklist
+- Filters tab: a shift-clicked item link adds the id inside it
+- Filters tab: an item typed by NAME resolves to its id, whatever its case
+- Filters tab: input that names no item adds nothing and says why on the tab
+- Filters tab: an entry draws an X on the left (removeStyle = "icon", LibKa0s v1.44.0)
+- Filters tab: an entry's X goes through Filters:RemoveBlacklist
+- Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move, unchanged)
+- Filters tab: an entry reads its item name and id; an empty list reads (none)
+- Filters tab: an uncached item is asked for, and the list redraws when it lands
+- Filters tab: several uncached items cost one load check and one redraw
+- Filters tab: one add redraws the page once, not twice
+- Filters tab: one X-click redraws the page once, not twice
+- Filters tab: the list's own redraw repaints this page, never every rendered page
+- Filters tab: a list change from elsewhere still repaints the open tab
+- Filters tab: an entry's name is drawn in its item quality color
+- Filters tab: typing lists the items the ledger recorded and the other list holds
+- Filters tab: a name the client's lookup cannot find resolves through the ledger's ids
+- Filters tab: picking a suggestion adds it through the list's own writer, once
+- Filters tab: a name three ranks share lists every rank; Enter without a pick adds none
+- Filters tab: a name two ranks in the bags share is refused unpicked, with no ledger
+- Filters tab: Enter after retyping adds what was typed, not the old highlighted row
+- Filters tab: the name candidates walk the ledger once until it changes
+- Filters tab: a ledger change reaches the name candidates
+- Filters tab: an item recorded after the tab was drawn resolves by name
+- Filters tab: a ledger table swapped with no message still reaches the candidates
+- Filters tab: a list table swapped with no message still reaches the candidates
+- Filters tab: a shared name with one rank known here adds that rank
+- Filters tab: a name nothing knows is refused, saying where names come from
+- Panel: every renderable schema row reaches the page on ITS OWN tab
+- Panel: a boolean row is a CheckBox and a range row is a Slider
+- Panel: the Master controls tab closes with the two reset buttons
+- Panel: a numeric ENUM row is a Dropdown, not a slider over its indices
+- Panel: a checkbox write goes through the single write seam
+- Panel: History draws Purge alone — Reset all left with the Master controls tab
+- Panel: the store grid renders as an inverted checkbox set, host-drawn
+- Panel: a tab's only headings are the SUBSECTION ones its rows declare
+- Panel: the storage read-out lands on the History tab and nowhere else
+- Panel: re-rendering a page releases the previous widgets and their refreshers
+- Filters tab: the id list packs two entries to a line, row-major
+
+### test_reset_routes.lua (6)
+
+- Reset routes: every reset control raises the one confirm popup and changes nothing before accept
+- Reset routes: RequestResetAll is the single entry point, and the popup's Yes is ResetEverything
+- Reset routes: accepting the popup empties the ledger, both filter lists and savedView, ends test mode, closes the debug console and keeps db.global.minimap whole
+- Reset routes: accepting the popup puts the ledger window's live view back to stock
+- Reset routes: the resetall verb and the Defaults tooltip say history goes, and that it asks first
+- Reset routes degraded: library-absent /bl resetall raises the same popup
+
+### test_harness.lua (8)
+
+- Harness: every suite the runner lists exists on disk
+- Harness: every suite on disk is listed in the runner
+- Harness: the runner's suite list has no duplicates
+- Harness: the suite-list reader takes both entry shapes
+- Harness: the TOC is what the headless runner loads, and it is non-empty
+- Harness: Compat loads before everything else in core/
+- Harness: Filters loads before Ledger — the capture gate reads the lists
+- Harness: the settings files load last, and in order
+
+### test_mock.lua (28)
+
+- Mock frame: a stub starts SHOWN, as a real frame does
+- Mock frame: Show, Hide and SetShown flip the one piece of state the stub models
+- Mock frame: Show and Hide return the frame, so calls chain
+- Mock frame: OnHide fires only on a real shown->hidden transition
+- Mock frame: OnHide handlers are called with the frame, in hook order
+- Mock frame: SetScript RECORDS the handler and GetScript hands it back
+- Mock frame: __fire replays a recorded script with the frame and the extra args
+- Mock frame: __fire on a script nobody set is a silent no-op
+- Mock frame: HookScript chains the PREVIOUS handler before the new one
+- Mock frame: HookScript on a bare frame still installs a callable script
+- Mock frame: SetPoint records the (point, x, y) form
+- Mock frame: SetPoint records the (point, relativeTo, relativePoint, x, y) form
+- Mock frame: a bare SetPoint defaults its offsets to zero
+- Mock frame: points accumulate, ClearAllPoints drops them, GetPoint misses to nil
+- Mock frame: size is real state through SetSize, SetWidth and SetHeight
+- Mock frame: CreateFontString answers with its OWN object, not the frame
+- Mock frame: sizing a FontString does not resize its parent
+- Mock frame: CreateFontString still records the templates it was asked for, in order
+- Mock frame: a FontString with NO font raises on SetText, exactly as the client does
+- Mock frame: a FontString built FROM A TEMPLATE has a font and accepts SetText
+- Mock frame: SetFont is what rescues a bare FontString, and it is recorded
+- Mock frame: the FONT rule is a FontString rule, not a frame rule
+- Mock frame: a FontString measures its text rather than answering with a frame
+- Mock frame: any other PascalCase key is a chainable no-op
+- Mock frame: a named method always beats the catch-all
+- Mock frame: lowercase and non-string keys miss through to nil
+- Mock AceDB: a scalar default reads through; clearing the key does not unset it
+- Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed
+
+### test_mediasetup.lua (13)
+
+- LibKa0s-Media: the vendored major registered and the seam is published
+- LibKa0s-Media: NS.Icon answers the vendored path, EXTENSIONLESS
+- LibKa0s-Media: an icon the library does not ship answers nil
+- LibKa0s-Media: NS.MediaFont answers the vendored face, and an unknown face answers nil
+- LibKa0s-Media: C.FONT_MONO resolves through the seam, not to a literal under media/fonts/
+- LibKa0s-Media: the addon's own media/fonts/ is gone from disk
+- LibKa0s-Media: the font name this addon stores is a key of the library's FONTS
+- LibKa0s-Media: this addon no longer registers the face with LibSharedMedia itself
+- LibKa0s-Media: every name the library ships has a file in the vendored copy
+- LibKa0s-Media: every icon name this addon asks for is one the library ships
+- LibKa0s-Media: the seam loads BEFORE core/Constants.lua, which resolves the font from it
+- LibKa0s-Media degraded: with no library there is no art, and that is not an error
+- LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
+
+### test_envsetup.lua (9)
+
+- EnvSetup: NS.Meta asks about THIS addon's folder, not its title or its frame prefix
+- EnvSetup: NS.Meta degrades to nil when the client exposes no manifest reader
+- EnvSetup: NS.Version prefers the TOC over this addon's own constant
+- EnvSetup: NS.Version falls back to this addon's own constant
+- EnvSetup: NS.Zone answers two strings
+- EnvSetup: NS.Zone answers "" rather than nil when the client has no zone text
+- EnvSetup: NS.PlayerMapID answers the map id
+- EnvSetup degraded: an install with no LibKa0s still reads its TOC and stamps its zone
+- EnvSetup: the deleted shims are gone from Compat
+
+### test_marks.lua (22)
+
+- marks: the close control on every window this addon draws is the collection's close
+- marks: the close path is EXTENSIONLESS, which is the half that fails silently
+- marks degraded: with no library the close button is still the × it always was
+- marks: the × is DRAWN in exactly one place, so one edit reached the three host title bars
+- marks: every filter dropdown wears chevron-down, through the shared factory
+- marks degraded: MakeDropdown answers nil rather than a half-built widget, with no library
+- marks: a chosen row of a multi-select menu wears the collection's tick
+- marks: the column-header sort arrow is the collection's, at the site that draws it
+- marks: every inline header mark is TINTED to the gold of the word it sits beside
+- marks: the group header's expander is a chevron, at the site that draws it
+- marks degraded: every inline mark falls back to the exact art it used to be
+- marks: the filter bar is WORDS ONLY — its Export button carries no mark
+- marks: the export modal's action button carries its mark BESIDE the words
+- marks: BESIDE means beside — the modal's button keeps the width its mark was sized for
+- marks: both button factories still draw the label unconditionally
+- marks: the search box wears a magnifier, and its words step aside for it
+- marks degraded: with no magnifier the search box's inset does not move
+- marks: every name this addon draws is spelled in NS.ICON_NAMES
+- marks: every icon name reaches NS.Icon as a LITERAL, where the scan above can read it
+- marks: no mark carries a tooltip of its own
+- marks: nothing under settings/ resolves a mark — that panel is the Options library's
+- marks: the art that is NOT a mark was left alone
+
+### test_libka0s.lua (66)
+
+- LibKa0s-Core: the vendored major registered and the addon is running on it
+- LibKa0s-Core: this addon does NOT republish the library's close factory
+- LibKa0s-Media: the folder name the seam passes is the FIRST VARARG, not a hand-typed literal
+- LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
+- LibKa0s-Core: the seam publishes ONE object to NS.Print and NS.Util.print
+- LibKa0s-Core: the reclaim in core/BankLedger.lua survives the AceConsole embed
+- LibKa0s-Core: a printed line is byte-identical to the pre-library printer
+- LibKa0s-Core: a bare NS.Print() emits the tag and its separator
+- LibKa0s-Core: the degraded fallback renders the SAME bytes as the library on every input
+- LibKa0s-Core: an unconcatenable argument renders as the sentinel, never raising
+- LibKa0s-Core: nil and booleans are not masked by the secret guard
+- LibKa0s-Core: the prefix is re-read on every call, so a later change lands
+- LibKa0s-Core degraded: the addon loads with no library at all
+- LibKa0s-Core degraded: the fallback printer renders the same bytes
+- LibKa0s-Core degraded: the notice is said exactly ONCE, on the first line printed
+- LibKa0s: the shared cause clause is set on BOTH paths, word for word
+- LibKa0s-Core tripwire: Core ships no STRINGS and reads no descriptor L
+- LibKa0s-Options tripwire: Options reads no descriptor L
+- LibKa0s: no seam file hands a descriptor the addon-wide locale table
+- LibKa0s: the locale-descriptor matcher catches all three spellings
+- LibKa0s-Widgets: the vendored major registered
+- LibKa0s: the harness loads every file LibKa0s.xml declares, in XML order
+- LibKa0s: the vendored folder carries the license it ships under
+- LibKa0s-Core: the seam loads after core/Namespace.lua, which defines NS.PREFIX
+- LibKa0s-Core: the seam loads before the AceConsole reclaim in core/BankLedger.lua
+- LibKa0s-Core: the seam loads before every file that captures NS.Print at load
+- TOC: InsightsWidgets loads before Insights, and Schema before Slash, each annotated LOAD-BEARING
+- LibKa0s-DebugLog: the vendored major registered and the console is running on it
+- LibKa0s-DebugLog: the module needs the minor that carries the chrome hooks
+- LibKa0s-DebugLog: NS.Debug is bound and still gates on the session-only flag
+- LibKa0s-DebugLog: the enable seam reads and writes NS.State.debug, never SavedVariables
+- LibKa0s-DebugLog: the window title composes to exactly what the old console rendered
+- LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's
+- LibKa0s-DebugLog: the console's title bar is the library's, at the pitch the ART gives it
+- LibKa0s-DebugLog: every user-visible string resolves to prose, not to its own key
+- LibKa0s-DebugLog degraded: the console degrades to an honest stub, not an error
+- LibKa0s-DebugLog degraded: the consequence is appended to the SHARED cause clause
+- LibKa0s-DebugLog degraded: /bl diagnostics says the library did not load, and writes nothing
+- LibKa0s-DebugLog degraded: the session flag still flips, because it gates more than the window
+- LibKa0s-DebugLog: the library is told the FOLDER name, not just the frame name
+- LibKa0s-DebugLog: the seam loads after Constants (FONT_MONO) and after the Core seam
+- LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
+- LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
+- LibKa0s-DebugLog: hiding the console repaints the settings panel
+- LibKa0s-Slash: the vendored major registered and the CLI is running on it
+- LibKa0s-Slash: the module needs the minor that carries the format hook
+- LibKa0s-Slash: every printed line still carries the [BL] tag
+- LibKa0s-Slash: /bl list keeps its section headings
+- LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel
+- LibKa0s-Slash: the format hook defers to the library for every OTHER row type
+- LibKa0s-Slash: booleans are settable, because the schema says 'bool'
+- LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
+- LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
+- LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
+- LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk
+- LibKa0s-Slash: the landing page and the chat help render the SAME rows
+- LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
+- LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
+- LibKa0s-Slash degraded: the verbs that never needed the library still work
+- LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out
+- LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does
+- LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
+- LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
+- LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself
+- LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line
+- LibKa0s-Slash: the seam loads after the schema it reads
+
+### test_vendor_sync.lua (3)
+
+- libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
+- tests/_kit is the test kit that shipped with that release
+- the automated-test runner is recorded executable (100755)
+
+### test_poolsetup.lua (3)
+
+- PoolSetup: the seam is published
+- PoolSetup: a released object is reused rather than rebuilt
+- PoolSetup: a nested release empties both levels
+
+### test_itemsetup.lua (9)
+
+- ItemSetup: the seam is published
+- ItemSetup: the primitives answer what the deleted shims answered
+- ItemSetup: ItemIDFromLink pulls the id out of a full item link
+- ItemSetup: ItemIDFromLink accepts a bare itemString
+- ItemSetup: ItemIDFromLink returns nil for anything that is not a link
+- ItemSetup: QualityLabel maps a quality id to its English name
+- ItemSetup: this addon now HAS the color fallback it lacked
+- ItemSetup: the resolver did NOT move
+- ItemSetup: the moved shims are gone from Compat
+
+### test_lifecycle.lua (10)
+
+- addon:OnDisable releases the _enabled latch on every module OnEnable arms
+- a disable then enable cycle leaves all four modules live again
+- addon:OnDisable leaves _guildHooked alone — the hook it records is still installed
+- a disable then enable cycle does not subscribe the session window twice
+- addon:OnDisable clears the PLAYER_LOGOUT the Browser and SessionWindow targets registered
+- NS.addon carries the kit's Printf and records its own events
+- OnEnterWorld arms the retention prune once per session
+- a rejected event name in the stand-up does not stop Ledger:Enable
+- C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
+- the stand-down clears the event record
+
+### test_disabled.lua (17)
+
+- disabled: the baseline is non-empty, and the disable empties the registration set
+- disabled: no timer, ticker or OnUpdate is left armed
+- disabled: a stand-down inside the prune window postpones the prune rather than canceling it
+- disabled at the bank: a movement made while disabled is not recorded after re-enable
+- disabled at the bank: the stand-down disarms the context and ends the session
+- disabled: every frame that was shown is hidden, and the show ladder keeps it shut
+- disabled: firing every baseline event writes nothing, prints nothing and shows nothing
+- disabled: the CONTROL -- the write and print surveys really would catch a survivor
+- disabled: every reserved verb and the bare /bl still answer normally
+- disabled: both diagnostics forms reach RunDiagnostics, each once, with no refusal
+- disabled: every feature verb answers ONE refusal line and reaches no write seam
+- disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
+- disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
+- disabled: the launcher carries no host gate and no retired refusal field
+- disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
+- disabled: releasing one hold does not stand up an addon the other still holds down
+- disabled: the `disabled` hold is taken at LOAD from the stored path
+
+### test_surface_parity.lua (19)
+
+- LibKa0s-Core degraded: the fallback carries the whole live seam surface
+- Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
+- LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
+- LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
+- LibKa0s-Slash degraded: the stub carries the whole live surface
+- LibKa0s-Options degraded: the stub carries the live surface the addon reaches
+- LibKa0s-Bus degraded: the stub carries the whole live surface
+- LibKa0s-Bus degraded: the stub answers as the untracked-target shape names
+- LibKa0s-Bus degraded: with AceEvent-3.0 itself absent, NewTarget answers nil
+- LibKa0s-Schema degraded: the stub instance carries every member the addon reaches
+- LibKa0s-Schema degraded: the stub library carries the whole lib-level surface but STRINGS
+- LibKa0s-Schema degraded: the stub SetMany is all-or-nothing
+- degraded: /bl disable writes settings.enabled through and stands the addon down, without a Lua error
+- degraded: /bl enable reverses it
+- degraded: /bl disable with no settings store prints the refusal and acknowledges nothing
+- Schema stub: a writeThrough path with no row is stored raw and announced; a path outside the list still answers unknown path
+- Slash stub DisabledLine format is the library's bytes
+- Slash stub: /bl version prints the live arm's bytes
+- Slash stub: an unknown verb is answered in the live arm's words
+
+### test_register.lua (1)
+
+- every deviation id the register cites is assigned by a bundle in docs/audits/
+
+### test_docs.lua (1)
+
+- docs/smoke-tests.md carries a non-English-client section
+
+### test_lintconfig.lua (4)
+
+- lintconfig: .luacheckrc sets no top-level ignore
+- lintconfig: .luacheckrc switches no warning class off wholesale
+- lintconfig: every files[...] ignore is narrowed to a file or a name
+- lintconfig: no source file carries a bare inline luacheck ignore
+
+### test_diagnostics.lua (26)
+
+- diagnostics: the descriptor names the full brand in both markers
+- diagnostics: every DX-BL section runs, in order, without a failure line
+- diagnostics: the report stays inside the DX-BL size estimate on the test world
+- diagnostics: the state section reports the stored switch, the holds and test mode
+- diagnostics: the capture-critical rows print even at their defaults
+- diagnostics: a changed setting prints as path = value (default)
+- diagnostics: an unchanged, non-critical row is not printed
+- diagnostics: the excluded-stores set renders as its members
+- diagnostics: a filter list past 40 ids is capped and the truncated line says so
+- diagnostics: the ledger section counts by store, direction and kind
+- diagnostics: the ledger tail is the last 20 entries, links stripped
+- diagnostics: a secret-shaped value in the ledger renders rather than raising
+- diagnostics: the capture section reports the engine and the cached gate
+- diagnostics: the capture section summarizes an open frame's snapshot
+- diagnostics: a stood-down addon says so instead of reporting an empty engine
+- diagnostics: the session section reports the live banking session
+- diagnostics: Ledger:Diagnose is folded in as the scan section
+- diagnostics: a closed guild-bank frame labels the tab counts as not fact
+- diagnostics: the report never queries the guild bank and never clears the console
+- diagnostics: the window, launcher and environment sections are present
+- diagnostics: a bank-replacing addon that is loaded is named
+- diagnostics: a raising section costs exactly one line and the next section runs
+- diagnostics: an over-cap report ends in the truncated line, then the end marker
+- diagnostics: the report leaves the debug flag exactly as it found it
+- diagnostics: /bl debug tests `diagnostics` before its other words
+- diagnostics: the verb is one COMMANDS row, and no alias of it exists
+
+### test_eol.lua (2)
+
+- eol: every tracked file carries the terminator .gitattributes declares for it
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
+
+### test_prose.lua (15)
+
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
+- prose self-test: the carve-out suppresses the named generated folder, and only it
+- prose self-test: a path the carve-out does not name is not covered by one that looks like it
+- prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
+- prose self-test: a TOC's file lines are read as paths, and its directives and comments are not
+- prose self-test: a .pkgmeta's ignore block is read, and the keys around it are not
+- prose self-test: an ignore entry covers a path exactly, by folder, and by wildcard
+- prose self-test: the carve-out admits a generated dump and refuses a file the TOC loads
+- prose self-test: a waiver-file exclusion meets the same two refusals as the carve-out
+- prose self-test: each list is refused on the matching rule its own scan uses
+- prose self-test: the scan and the refusals read the added exclusions through one reader
+- prose self-test: a narrowing is refused by what it suppresses, not by how it is written
+- prose self-test: the disclosure names what each entry suppressed, and says when it is bounded
+- prose self-test: a malformed waived is a failure, not a silence
+
+### test_layout_cap.lua (13)
+
+- layoutcap: every authored file over the 1500-line cap is named in the census
+- layoutcap: no census row outlives the breach it records
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
+- layoutcap: the census and the exempt set agree about which paths were exempted
+- layoutcap: an empty census is written as a result rather than left standing empty
+- layoutcap self-test: the parser reads the census nested under the register, and stops there
+- layoutcap self-test: a census outside its register, or at the wrong level, is not read
+- layoutcap self-test: an over-cap file missing from the census is reported, and an exempt one is not
+- layoutcap self-test: a census row that outlives its breach is reported
+- layoutcap self-test: an over-cap row that names no terminal state is reported
+- layoutcap self-test: the census and the exempt set are held to naming the same paths
+- layoutcap self-test: a census that states nothing is told apart from one that states none
+- layoutcap self-test: the exempt set takes folders as well as paths
+
+### test_diagnostics_contract.lua (7)
+
+- diagnostics contract: both forms run the report
+- diagnostics contract: the debug word is matched in any case
+- diagnostics contract: both markers carry the brand and the end counts the report
+- diagnostics contract: the report appends after what the console already holds
+- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: both forms run while the addon is disabled
+- diagnostics contract: no other name runs the report
+
+## Totals
+
+| Suite | Cases |
+|-------|------:|
+| test_util.lua | 38 |
+| test_compat.lua | 13 |
+| test_constants.lua | 21 |
+| test_filters.lua | 14 |
+| test_ledger.lua | 98 |
+| test_ledger_settling.lua | 26 |
+| test_database.lua | 51 |
+| test_stats.lua | 52 |
+| test_ledgertable.lua | 55 |
+| test_browser.lua | 41 |
+| test_launcher.lua | 37 |
+| test_sessionwindow.lua | 32 |
+| test_insights.lua | 76 |
+| test_export.lua | 42 |
+| test_debuglog.lua | 18 |
+| test_schema.lua | 53 |
+| test_schema_runtime.lua | 18 |
+| test_slash.lua | 53 |
+| test_bus.lua | 10 |
+| test_panel.lua | 34 |
+| test_panel_filters.lua | 40 |
+| test_reset_routes.lua | 6 |
+| test_harness.lua | 8 |
+| test_mock.lua | 28 |
+| test_mediasetup.lua | 13 |
+| test_envsetup.lua | 9 |
+| test_marks.lua | 22 |
+| test_libka0s.lua | 66 |
+| test_vendor_sync.lua | 3 |
+| test_poolsetup.lua | 3 |
+| test_itemsetup.lua | 9 |
+| test_lifecycle.lua | 10 |
+| test_disabled.lua | 17 |
+| test_surface_parity.lua | 19 |
+| test_register.lua | 1 |
+| test_docs.lua | 1 |
+| test_lintconfig.lua | 4 |
+| test_diagnostics.lua | 26 |
+| test_eol.lua | 2 |
+| test_prose.lua | 15 |
+| test_layout_cap.lua | 13 |
+| test_diagnostics_contract.lua | 7 |
+| **Total** | **1104** |
