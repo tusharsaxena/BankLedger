@@ -190,3 +190,10 @@ lives.
 | ------- | ---- | ---------- |
 | 1.1.0 | 2026-09-10 | - The two id-lists are now one **Filters** tab, and the settings pages gained **Master controls**<br>- Fixed the guild bank arming on data arriving rather than on its frame showing, which could miss the first deposit of a session<br>- A disabled addon can now be re-enabled without a reload, and `/bl test` no longer confirms a toggle that never happened<br>- **Reset Everything** now clears the capture gate's stored settings instead of leaving dead ones behind<br>- Updated for game patch 12.1.0 |
 | 1.0.0 | 2026-07-28 | - First release: a complete passbook of item and gold movements across the character, warband and guild banks<br>- History tab with search, per-column filters, grouping, sorting and a saved view<br>- Insights tab with fourteen headline figures and seventeen charts<br>- A live Current Banking Session window<br>- CSV export for either tab, with a Wowhead link per row |
+
+## Credits
+
+The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1, and the
+ledger window's close, search, dropdown and checkbox marks and the export dialog's icon are drawn
+from [Open Iconic](https://github.com/iconic/open-iconic) (MIT). Both ship inside the bundled
+LibKa0s payload, with their license text beside them.
