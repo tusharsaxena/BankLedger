@@ -1,0 +1,1 @@
+clean: NR-BL-01 matches its task section; payload byte-identical to v1.61.0 (c6183bd), kit unchanged, stub-revert reproduces the single NavRail parity FAIL, gate 1104/0/0, luacheck 0/0, lizard clean, CRLF kept, inventory unchanged
