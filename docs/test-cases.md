@@ -104,7 +104,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters: a list change re-caches the capture gate's upvalues
 - Filters: the Clear all confirms report the count as printer arguments
 
-### test_ledger.lua (98)
+### test_ledger.lua (72)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -168,6 +168,19 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:Diagnose lists the BagIndex members the client exposes
 - Ledger:Diagnose probes containers and reports only the ones with slots
 - Ledger:Diagnose never raises when no container is reachable
+- Ledger:ScanStore hands back the first hyperlink seen for each item
+- Ledger:Snapshot carries a links table beside the counts
+- Ledger.Diff attaches the observed link to a deposit
+- Ledger.Diff attaches the observed link to a withdrawal
+- Ledger.Diff leaves the link nil when neither snapshot observed one
+- Ledger:BuildEntry keeps the scanned link over the one derived from the id
+- Ledger:BuildEntry falls back to the item cache's link when the move carries none
+- Ledger:BuildEntry takes the quality from the moved link, not the base item
+- Ledger:BuildEntry still enriches from the id when the move carries no link
+- Ledger:GateReason judges the quality gate on the moved link
+
+### test_ledger_guildbank.lua (26)
+
 - Ledger:ScanGuildBank sees nothing from a tab that was never queried
 - Ledger:QueryGuildBankTabs asks for every tab
 - Ledger:ScanGuildBank reads a tab once it has been queried
@@ -194,16 +207,6 @@ badge and any count quoted in the docs must agree with it.
 - Ledger: hiding the guild-bank frame leaves an open BANK frame alone
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
-- Ledger:ScanStore hands back the first hyperlink seen for each item
-- Ledger:Snapshot carries a links table beside the counts
-- Ledger.Diff attaches the observed link to a deposit
-- Ledger.Diff attaches the observed link to a withdrawal
-- Ledger.Diff leaves the link nil when neither snapshot observed one
-- Ledger:BuildEntry keeps the scanned link over the one derived from the id
-- Ledger:BuildEntry falls back to the item cache's link when the move carries none
-- Ledger:BuildEntry takes the quality from the moved link, not the base item
-- Ledger:BuildEntry still enriches from the id when the move carries no link
-- Ledger:GateReason judges the quality gate on the moved link
 
 ### test_ledger_settling.lua (26)
 
@@ -1247,7 +1250,8 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 14 |
-| test_ledger.lua | 98 |
+| test_ledger.lua | 72 |
+| test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
