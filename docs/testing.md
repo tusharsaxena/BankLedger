@@ -219,7 +219,9 @@ install and verification commands in the root [`DEPENDENCIES.md`](../DEPENDENCIE
 ```
 tests/
   _kit/                    -- VENDORED from LibKa0s (testkit/). Never edited here — see The vendor gate.
-    framework.lua          --   the registry, the assertions, the runner and the --list renderer
+    framework.lua          --   the registry, the suite loader, the runner and the --list renderer
+    asserts.lua            --   the assertions and the surface-parity gate (kit revision 26)
+    inventory.lua          --   the suite inventory and its path helpers (kit revision 28)
     loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
@@ -267,6 +269,11 @@ tests/
                            --   verbs, and both degraded arms (no broker libraries; no LibKa0s).
                            --   ITS CASE ORDER IS LOAD-BEARING — the no-broker case must run while
                            --   the one live launcher is still unregistered
+  test_libka0s.lua         -- the vendored library's seams (Core, DebugLog, Options, Widgets, Media) as
+                           --   this addon consumes them, live and degraded
+  test_libka0s_slash.lua   -- the LibKa0s-Slash-1.0 seam, split out of test_libka0s.lua on the
+                           --   library-surface seam (ATS-24): the format hook, the [BL] tag, the
+                           --   bare-verb and help branches, and the degraded stub
   test_marks.lua           -- the shared LibKa0s-Media marks on this addon's own windows: the PATH
                            --   and the ARGUMENT, never the appearance, and BOTH rungs of every
                            --   fallback ladder — a texture that does not load draws nothing and
