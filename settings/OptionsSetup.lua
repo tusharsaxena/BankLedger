@@ -222,6 +222,9 @@ if not lib then
     -- page. This addon does not adopt tab-scoped refresh; a no-op keeps the stub's surface
     -- matching the live one.
     SelectTab = function() end,
+    -- NavRail, new at LibKa0s v1.61.0 (OptionsNav minor 1): drawn only by a page render, and no
+    -- page here draws a rail, so a no-op keeps the stub matching the live surface.
+    NavRail = function() end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
