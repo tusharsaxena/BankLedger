@@ -882,9 +882,9 @@ green whether it is right or wrong — the test and the bug agree with each othe
 
 **What this addon reads in the player's language.** Four seams:
 
-- **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:477-482`, via
+- **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
   `core/Compat.lua:153-159`). These are `C_Item.GetItemInfo`'s **localized** type and sub-type
-  strings. They are not only displayed: `core/Database.lua:248-270` uses them as analytics **keys**
+  strings. They are not only displayed: `core/Database.lua:275-306` uses them as analytics **keys**
   (`byItemType`, `byItemSubType`, and `byTypeSub` keyed on `type\tsubType`), they are persisted into
   SavedVariables on every row, and `modules/Export.lua`'s `itemType` / `itemSubType` columns emit
   them raw. The same `C_Item.GetItemInfo` call returns the locale-independent `classID` /
@@ -893,11 +893,11 @@ green whether it is right or wrong — the test and the bug agree with each othe
 - **`NS.Item.QualityLabel`** (`core/ItemSetup.lua:59-62`) — `_G["ITEM_QUALITY" .. q .. "_DESC"]`,
   falling back to an English table when the client leaves the global nil. Localized by design, with
   the numeric `qualityRaw` beside it in the CSV.
-- **`Util.FormatDate`** (`core/Util.lua:29-31`) — `date("%d-%b-%Y")`, whose comment claims the shape
+- **`Util.FormatDate`** (`core/Util.lua:20-22`) — `date("%d-%b-%Y")`, whose comment claims the shape
   is "unambiguous across locales". That is true of the **order** and not of `%b`, which is the
   month's abbreviation in the client's own language.
 - **Case folding.** `modules/LedgerTable.lua:66`, `:85`, `:89` and `:94` sort on `:lower()`, and
-  `core/Database.lua:143` and `:160` lowercase the item name and the search text before matching.
+  `core/Database.lua:171` and `:188` lowercase the item name and the search text before matching.
   Lua's `string.lower` folds ASCII and nothing else, so `Ä` is not `ä` to any of them.
 
 **English by design, and not a failure here.** `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and

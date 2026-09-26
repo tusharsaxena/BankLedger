@@ -35,99 +35,49 @@ reads from it.
 
 ## Usage
 
-`/bl show` opens the ledger and `/bl hide` closes it. `/bl toggle` flips it either way, and so does
-**Show window** in the minimap button's right-click menu. Escape or the X in the top corner closes
-it too. Left-click the minimap button, or type `/bl config`, and you land in the settings instead.
+On a fresh install nothing opens but the minimap button. Left-click it for the settings, or
+right-click it for a small menu. Both of the addon's windows drag by their title bar and resize from
+the bottom-right corner, and **Lock frame** on the settings' Master controls tab pins them in place.
+Want to see the ledger before you have any history? `/bl test`, or the **Test mode** box on that same
+tab, fills it with a sample. It turns itself off when you enter combat.
 
-The window opens on History: one line per movement, newest first, already scoped to the character
-you're logged in as. You narrow it with the bar above the table. There's a search box for item
-names, dropdowns for date, direction, store, quality, type, sub-type and character, and a Group
-dropdown that folds the rows into blocks whose headers collapse when you click them. Click any
-column header to sort on that column. Click it again to flip the direction. Once the view is the way
-you like it, **Save** makes it the one every session opens on, **Clear** brings you back to it after
-you've wandered off, and **Reset** returns the default to stock. Character scope is the one thing
-Save never keeps, so the window always opens on you, one click away from All.
+You don't have to do anything to start recording. A first visit to the bank goes like this.
 
-Hover a row for the item's own tooltip. Gold rows have no item link to show, so they get a small
-tooltip I build by hand with the amount spelled out in full, because the Qty cell can truncate it.
-Shift-left-click drops the item into chat. Right-click opens the row menu, where you can link it,
-blacklist it, whitelist it, or delete that one line from the book. Both lists are point-in-time:
-they decide what gets recorded from now on and leave everything already stored alone.
+1. Go to a bank. Open your character bank, the warband bank or your guild bank and move something
+   in or out. **Current Banking Session** opens alongside and lists each movement as you make it,
+   then closes when the bank does. It's only a view, and everything in it lands in your history
+   too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
+2. Open the ledger. Type `/bl show`, or tick **Show window** in the minimap button's right-click
+   menu. It opens on the History tab, one line per movement with the newest at the top, and it only
+   shows the character you're logged in as until you pick All. `/bl hide`, Escape or the X closes
+   it.
+3. Narrow it down. The bar above the table has a search box for item names and dropdowns for date,
+   direction, store, quality, type, sub-type and character. The Group dropdown folds rows into
+   blocks you can collapse, and a click on any column header sorts by it. **Save** keeps the view
+   as the one the window opens on. **Clear** brings you back to it, and **Reset** goes back to
+   stock.
+4. Act on a row. Hover it for the item's tooltip, or shift-click it to drop the item into chat.
+   Right-click gives you a menu to link it, delete that one line, or blacklist or whitelist the
+   item. The two lists only decide what gets recorded from now on, and what's already in the book
+   stays put.
+5. Look at the totals. The Insights tab turns whatever you've filtered into headline figures and
+   charts, so the two tabs always describe the same rows. **Export** hands you either tab as CSV,
+   all of it or just the current view, in a box you copy with Ctrl+C. History rows carry a Wowhead
+   link to the exact item.
 
-Want a look around before you have any history of your own? `/bl test` puts a sample ledger on
-screen, and so does the **Test mode** box on the Master controls tab. It stays on until you turn it
-off or enter combat. Only **Link to chat** works on those sample rows, because the other menu
-entries would write fake item ids into your real settings.
+Movements older than 30 days are dropped at login, and **Keep history for** on the settings'
+History tab changes that. `/bl purge` deletes your history and leaves your settings alone.
+`/bl resetall` goes further and puts the whole addon back to a fresh install, history included, so
+export first. Both ask before they do anything.
 
-The Insights tab swaps the table for charts drawn through the same filter, so the two tabs always
-describe the same slice. Fourteen headline figures come first, then seventeen charts: each of the
-main breakdowns is followed by its deposits-against-withdrawals companion, and the ranked "Top Of
-The List" panels sit below them. Gold charts appear only when the slice you're looking at contains a
-coin movement. **Export** takes whichever tab you're on, asks for All Data or Current View, and hands
-you the CSV in a copy box (Ctrl+C, then Esc). History rows carry a Wowhead link for the exact item
-that moved, bonus IDs and all.
-
-Then there's the window you never have to open. Walk up to a bank and **Current Banking Session**
-opens with it, listing what you move during this visit as you move it. Close the bank and it closes
-too. It stores nothing of its own; everything in it is in your history as well. Placing it while a
-bank frame is in the way is a nuisance, so `/bl session` opens it away from a bank, filled with
-sample movements. You can drag either window by its title bar and resize it from the grip in the
-bottom-right corner, and both come back where you left them. To stop them moving, tick **Lock
-frame** on the settings' Master controls tab. That pins every window the addon owns.
-
-The minimap button carries the addon's logo, the same picture that sits beside its name in the
-AddOns list. If you run Titan Panel, ElvUI's data texts or Bazooka, Bank Ledger turns up there too
-and clicks exactly the same way. Left-click opens the settings. Right-click opens a small menu of
-checkboxes: **Enabled**, **Locked** (the Master controls tab's *Lock frame*), **Test mode** (the
-sample ledger) and **Show window** (the ledger itself). Each one does exactly what its command does
-(`/bl enable` or `/bl disable`, `/bl set settings.locked`, `/bl test`, `/bl toggle`), messages
-included, and each tick shows the state as it is when the menu opens.
-
-Hover the button and you get a status card. It lists the version, whether the addon is enabled,
-whether the windows are locked, whether test mode is on, how many movements the ledger holds, and
-what each click does, and it shows up while the addon is disabled too. The **Minimap button** box on
-the Master controls tab hides the button and brings it back. Neither **Defaults** nor **Reset all
-settings** touches it. Whether the button is there, and the spot around the minimap you dragged it
-to, belong to how your screen is arranged, not to what you told the addon to do.
-
-Everything else is configuration, and it lives in two places. One is the addon's own page under
-Settings → AddOns in game, which a bare `/bl` (or `/bankledger`) opens. The other is `/bl help`,
-which prints the full command list.
-
-If you'd rather read your settings than click through them, `/bl list` prints every one with its
-current value and `/bl get setting` answers for a single one. `/bl set setting value` changes one
-from chat, and `/bl reset setting` puts one back to its default.
-
-There are several ways to reset everything, and they are all the same act: `/bl resetall`, the
-**Defaults** button at the top of Settings ▸ General (and Blizzard's own Defaults at the foot of the
-Settings window), and **Reset all settings** on the Master controls tab. Each one asks first. Say
-Yes and the addon goes back to a fresh install, which discards your settings, both filter lists,
-your saved view **and your recorded history**. Export first if you want to keep it. To delete
-history alone, use `/bl purge`. It asks for confirmation too, and it leaves your settings be.
-
-Purging isn't the only way history goes. By default, movements older than 30 days are removed at
-login, and Settings ▸ History ▸ **Keep history for** changes that (**Always** keeps everything).
-`/bl version` prints the version to quote in a bug report. And if you want the addon out of the way
-without unticking it in the AddOns list, `/bl disable` stands it down and `/bl enable` brings it
-back. That's the same switch as the **Enable Bank Ledger** box on the Master controls tab, so
-whichever one you use, the other agrees.
-
-Off means off. While it's disabled, the addon watches nothing, times nothing, draws nothing and
-records nothing. Every event the capture engine listens for is unregistered rather than ignored, so
-the game stops handing the addon work altogether. You get the same result as unticking it in
-Blizzard's own AddOns list, without the reload.
-
-What stays up is the way back in. Every command still works. You can read and change settings, open
-the panel, print the version and run the debug console, and a bare `/bl` still opens the settings
-window. What a stood-down addon won't do is act. Ask it to show the ledger, toggle the sample or
-purge your history, and it tells you it's disabled and points you at `/bl enable` instead of quietly
-doing nothing. A left-click on the minimap button still opens the settings. In the right-click menu,
-**Enabled** still works and the other three entries are grayed out with the note "enable the addon
-first".
+Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
+`/bl help` (or `/bankledger help`) lists every command.
 
 ## How the ledger works
 
-The game never announces "you deposited this", so the addon works it out by watching.
+The game never announces "you deposited this", so the addon works it out by watching. What the game
+does give an addon is a read of every bag and bank slot, plus an event each time one of them
+changes. The whole ledger is built from those two.
 
 1. When you open a bank, it takes a private snapshot of your bags and of that bank's contents.
 2. Every time something changes, it takes a fresh snapshot and compares the two.
