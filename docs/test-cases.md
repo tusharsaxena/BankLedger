@@ -995,7 +995,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (66)
+### test_libka0s.lua (44)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -1041,6 +1041,9 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
+
+### test_libka0s_slash.lua (22)
+
 - LibKa0s-Slash: the vendored major registered and the CLI is running on it
 - LibKa0s-Slash: the module needs the minor that carries the format hook
 - LibKa0s-Slash: every printed line still carries the [BL] tag
@@ -1267,7 +1270,8 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 66 |
+| test_libka0s.lua | 44 |
+| test_libka0s_slash.lua | 22 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
