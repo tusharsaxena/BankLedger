@@ -22,7 +22,7 @@ settings landing page both read from one place.
 | `/bl purge` | Delete all history (confirm-gated) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
 | `/bl diagnostics` / `/bl debug diagnostics` | Write the diagnostics report into the console, after whatever it already holds, and show it (`debug-logging-§14`). The only two forms: no `diag` or other alias exists, and `/bl debug` tests `diagnostics` before its other words. Live while disabled. Sections in `modules/Diagnostics.lua` |
-| `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console |
+| `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console. The same lines are the report's `scan` section; the verb stays as a topic dump |
 | `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
 | `/bl help` | Print the command list (the help index) |
 

@@ -148,7 +148,7 @@ alike. Modern retail **raises** on an unknown event name rather than ignoring it
 in a bare loop leaves every event after it unbound — a silently deaf addon with no visible error
 unless script errors are on. The helper front-gates on `C_EventUtils.IsEventValid` and `pcall`s the
 rest; names this build rejected land in `NS.EventRecord.unavailable` and are reported by
-`/bl debug scan`.
+`/bl debug scan` and by the `scan` section of `/bl diagnostics`.
 
 ## Add a window
 
@@ -164,6 +164,29 @@ owners. Anchor geometry persistence to the **guaranteed** moments —
 Drag-stop and resize-stop are conveniences on top, not the contract: releasing a resize grip a pixel
 outside a 16×16 button never delivers its `OnMouseUp`, and the in-memory frame then masks the fault
 for a whole session. See [windows.md](windows.md).
+
+## Add a section to the diagnostics report
+
+The report's frame is the library's (`LibKa0s-DebugLog-1.0`'s helper): the markers, the identity
+header, the per-section `pcall`, the cap and the `truncated` line. This addon writes **sections
+only**, in `modules/Diagnostics.lua` (`debug-logging-§14`).
+
+1. Write the section as `function X.Name(out)` and add `{ "name", X.Name }` to the list
+   `X.Sections()` returns, at the place in the report it belongs. The list is asked for each time the
+   report runs, so a module that loads after the console is fine.
+2. Write lines only through the writer: `out:add(tag, fmt, ...)` with `%s`-only formats, and
+   `out:list` / `out:joined` for lists. Pass values as arguments and never concatenate them first;
+   the writer stringifies each through `SafeToString`, so a secret prints as `<secret>`. Test a
+   number with `out:readable(v)` before comparing or adding it, and use `out:plain` for text that
+   may carry a link or a color code.
+3. Keep it **read-only**: no Lifecycle hold, no event registration, no timer, no setting write, no
+   server query (`QueryGuildBankTab` included), no `Clear()`. If the section describes runtime
+   machinery that stand-down releases, print one `stood down: ...` line when `NS.IsStoodDown()` is
+   true, as `X.Capture` and `X.Session` do.
+4. Cap anything unbounded: `out:list(tag, lead, items, cap)`, or a fixed tail like the ledger's 20.
+5. Add its cases to `tests/test_diagnostics.lua` (the section's lines, its stood-down line if it has
+   one, and no raise on a secret-shaped value), then document it in the section table in
+   [debug.md](debug.md).
 
 ## Before committing
 

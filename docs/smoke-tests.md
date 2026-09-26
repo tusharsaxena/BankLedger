@@ -388,9 +388,10 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
 2. `/bl debug on` → a green ON ack in chat, a `[Debug] logging enabled` line and an `[Init]` summary
    naming the build, schema and profile.
 3. Move something to your bank → one `[Move]` summary line per pass, not one per item.
-4. The scrollbar tracks the wheel both ways, and the counter reads `N / 1500 lines`.
+4. The scrollbar tracks the wheel both ways, and the counter reads `N / 3000 lines` (LibKa0s
+   v1.60.0 raised the buffer from 1500).
 5. **Copy** opens a monospace box with the plain, color-code-free log. **Clear** empties both and
-   resets the counter to `0 / 1500`.
+   resets the counter to `0 / 3000`.
 6. `/bl debug off` → a red OFF ack and a `[Debug] logging disabled` line.
 7. `/reload` → logging is off again, because the flag is session-only.
 8. **Chrome.** The console and the **Copy** box wear the same edge as the ledger window — a flat 1px
@@ -424,8 +425,35 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
     `/bl debug panel` after `/bl config` has been opened once. Both open the console and write their
     lines anyway, tagged `[Scan]` and `[Panel]`: they use the raw append, not the gated sink. The
     scan ends with the `events registered` / `events UNAVAILABLE` pair. What each line means, and
-    when to paste which into an issue, is in [debug.md](debug.md). An empty console after either
+    which to paste with a bug report, is in [debug.md](debug.md). An empty console after either
     verb with logging off means a dump went through the gated sink.
+14. **The diagnostics report.** `/bl debug on`, move something to your bank, then `/bl debug off` and
+    run `/bl diagnostics` at the bank with it still open.
+    - The `[Move]` lines are still there, **above** a `[Diag] ==== Ka0s Bank Ledger diagnostics begin
+      ====` line: the report appended, it did not clear.
+    - The report lands in full with logging off, and the console header still reads **Debug: OFF**
+      afterwards. Move another item: no new `[Move]` line, because the report left the flag alone.
+    - Chat prints one line, *Diagnostic report written to the debug console: N lines. Use Copy to
+      share it.*
+    - The sections follow in this order, each under its own tag: `[State]`, `[Set]`, `[Filter]`,
+      `[Ledger]`, `[Capture]`, `[Session]`, `[Scan]`, `[Window]`, `[Launcher]`, `[Env]`. The last
+      line is `[Diag] ==== Ka0s Bank Ledger diagnostics end: N line(s) ====`, with the same N as the
+      chat line. A `section <name> failed:` line names a section that raised.
+    - `/bl debug diagnostics` writes a second, identical-shaped report below the first.
+    - **Copy**, then paste into a text editor. The paste holds the trace and both reports, with no
+      `|c`, `|T` or `|H` escapes; ledger entries show an item id and a plain name, never a link.
+    - Run it once more with the guild bank **closed**. The `[Scan]` section opens with `guild bank
+      frame closed: the tab counts below are the client's cache, not fact`.
+15. **Diagnostics while disabled.** Untick **Enable Bank Ledger**, then run `/bl diagnostics` and
+    `/bl debug diagnostics`. Both write a full report. `[State]` reads `disabled=true stood
+    down=true`, and `[Capture]` and `[Session]` each print one `stood down:` line instead of engine
+    state. `/bl debug diag` and `/bl diag` run nothing: the first toggles the console, the second is
+    an unknown command. Re-enable the addon.
+16. **Diagnostics in combat.** Pull a training dummy and run `/bl diagnostics`. No Lua error; the
+    identity header's `combat:` line reads `InCombatLockdown=true`.
+17. **The buffer cap.** With logging on, keep moving items (or run `/bl diagnostics` repeatedly)
+    until the counter passes 3000. It pins at `3000 / 3000 lines`, the oldest lines scroll away, and
+    **Copy** still opens without a noticeable hitch.
 
 ## S-15 · Test mode
 
@@ -559,6 +587,8 @@ for.
    that drops lines is the failure this step exists to catch.
 6. `/bl show`, `/bl config`, `/bl debug` — the ledger window, the settings panel and the console all
    open and behave. Nothing about the addon's own function depends on the library.
+   `/bl diagnostics` prints one line, `/bl diagnostics is unavailable: the LibKa0s library did not
+   load.`, and writes nothing to chat or the console beyond it.
 7. **The Media seam is the silent one.** With the library gone, `NS.Icon` and `NS.MediaFont` both
    answer `nil`, and nothing errors either way. Every mark falls back to the rung below it (S-21
    step 10 is the full list), and every monospace surface falls back to `STANDARD_TEXT_FONT`: the
