@@ -13,7 +13,7 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
 -- Stand a TOC reader up for the duration of `fn`, recording what it was asked about.
 --
--- The mock deliberately does NOT stub `C_AddOns` (tests/_kit/mock_base.lua:183 says why), so out of
+-- The mock deliberately does NOT stub `C_AddOns` (tests/_kit/mock_base.lua:1110 says why), so out of
 -- game this addon has no manifest to read and every metadata call answers nil. That absence is what
 -- makes the fallback cases below honest, and it is why the two cases that need a readable TOC build
 -- one here rather than asserting a fixture that does not exist.

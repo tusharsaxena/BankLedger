@@ -60,7 +60,7 @@ globals = {
   "StaticPopupDialogs",
 }
 
--- The harness publishes its exposed table under a per-repo global, written at tests/run.lua:74 and
+-- The harness publishes its exposed table under a per-repo global, written at tests/run.lua:86 and
 -- read by every suite file through _G. It is declared HERE rather than in the top-level
 -- `read_globals` on purpose: a name granted at the top level is granted to core/, modules/ and
 -- settings/ as much as to a suite, and no shipped file may ever reach for the test harness.
@@ -119,10 +119,10 @@ files["core/Database.lua"] = {
 -- LibKa0s-DebugLog-1.0 is absent this file stands up a table carrying every member the live
 -- instance publishes, so nothing that reaches the console raises. Four of them -- UpdateScrollBar,
 -- UpdateStatus, RefreshHeader, ShowCopy -- have no caller in THIS repo because their callers are
--- inside the library (libs/LibKa0s/DebugLog.lua calls `D:UpdateStatus()` at :557, :625 and :680,
+-- inside the library (libs/LibKa0s/DebugLog.lua calls `D:UpdateStatus()` at :607, :690 and :753,
 -- and the others likewise), which is exactly why the stub has to carry them. A no-op stub still has
--- to accept the receiver its live counterpart is called with. tests/test_libka0s.lua:537 pins all
--- twelve members by name.
+-- to accept the receiver its live counterpart is called with. tests/test_libka0s.lua:560-562 pins all
+-- fifteen members by name.
 files["core/DebugLogSetup.lua"] = {
   ignore = { "212/self" },
 }
