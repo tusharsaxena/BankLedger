@@ -80,6 +80,10 @@ modules\Filters.lua
 modules\Ledger.lua
 modules\Browser.lua
 modules\LedgerTable.lua
+# Extends NS.LedgerTable with the test dataset and LT:SetTestMode. Conventional rather than
+# load-bearing: both files open NS.LedgerTable = NS.LedgerTable or {}, and every caller reaches the
+# test-mode methods at run time.
+modules\LedgerTable_TestMode.lua
 modules\SessionWindow.lua
 modules\InsightsWidgets.lua
 # LOAD-BEARING: modules/Insights.lua takes NS.InsightsWidgets as a file-scope upvalue; modules\InsightsWidgets.lua above creates it. Swapped, W is nil and every chart call raises.

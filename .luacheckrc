@@ -138,6 +138,7 @@ files["modules/Export.lua"]        = { ignore = { "212/self" } }
 files["modules/Filters.lua"]       = { ignore = { "212/self" } }
 files["modules/Ledger.lua"]        = { ignore = { "212/self" } }
 files["modules/LedgerTable.lua"]   = { ignore = { "212/self" } }
+files["modules/LedgerTable_TestMode.lua"] = { ignore = { "212/self" } }
 files["modules/SessionWindow.lua"] = { ignore = { "212/self" } }
 
 -- The settings trio, same shape. `NS.Schema:Set`/`:Get` alone are called from 87 sites across the

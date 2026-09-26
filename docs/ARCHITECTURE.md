@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 30 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 31 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,7 +34,7 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-30 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+31 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
 the Compat firewall, the AceDB layer and the eight LibKa0s seams; `modules/` holds the capture engine
 and every window; `settings/` holds the schema and the two panel pages.
 
