@@ -1,0 +1,1 @@
+clean: README Reporting a bug matches STD-17 verbatim with /bl, sits between Troubleshooting and Issues, no link; Troubleshooting row matches STD-18; CRLF kept; gate re-run 1103/0, luacheck 0/0, lizard clean, max 1221 lines
