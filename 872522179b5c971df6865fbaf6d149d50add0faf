@@ -1,0 +1,1 @@
+BL-ATS-SD review: PASS — docs/testing.md only (no code, no frozen bundle); framework/asserts(rev 26)/inventory(rev 28) rows and test_libka0s/test_libka0s_slash rows match the tree; kit rev 31 = LibKa0s v1.62.0; CRLF working tree, LF blob per .gitattributes; gate re-run 1104/1104 passed, luacheck 0/0 in 76 files.
