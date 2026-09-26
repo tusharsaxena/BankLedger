@@ -346,7 +346,7 @@ tests/
     exercise the real printer-reclaim path;
   - the kit's event half raises for a name in `mocks.__badEvents` on the event's **first**
     registrant, where retail raises, so a case that re-registers must unregister first
-    (`test_ledger.lua`'s `reEnable`);
+    (`test_ledger_settling.lua`'s `reEnable`);
   - the kit's message bus keys callbacks by `(message, target)` and fans `SendMessage` out to every
     target, so a test can catch two receivers clobbering each other on a shared target;
   - the kit's timer queue skips a canceled entry and `mocks.__fireTimers()` answers how many ran, so
