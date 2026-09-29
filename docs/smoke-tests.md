@@ -1,1073 +1,772 @@
 # Smoke tests — Ka0s Bank Ledger
 
-In-game checks for the behavior the headless suites cannot reach: real frames, real bank UIs, real
-taint. Run these before a release, on a character with a bank, a warband bank and a guild bank.
+These are the in-client checks the headless suite cannot make: real frames, real bank UIs, real taint,
+real SavedVariables files. Run them before a release, from a clean `/reload`, on a character with a
+character bank, a warband bank and a guild bank. Turn logging on (`/bl debug on`) only where a step
+says so. Each check says what to do and what must happen; anything that does not match is a bug, not a
+tolerance. Record the outcome on the check's `Result:` line (pass, or what you saw instead). IDs are
+`<THEME>-<n>` and stay stable: a new check takes the next free number in its theme, and a retired one
+leaves its number unused.
 
-Each test lists what to do and what must happen. Anything that does not match is a bug, not a
-tolerance.
+## Index
 
-## S-1 · Load
+| ID range | Theme | What it covers |
+|---|---|---|
+| INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
+| SLASH-1 – 4 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled |
+| PANEL-1 – 32 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset |
+| PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
+| STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
+| COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
+| CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
+| LEDG-1 – 46 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus |
+| INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
+| FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
+| SESS-1 – 12 | Session window | The Current Banking Session window at every store |
+| DIAG-1 – 19 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report |
+| DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
+| LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
-1. Enable the addon and log in.
-2. `/bl version` prints one cyan-tagged line, `[BL] v1.2.0`.
-3. No Lua errors on login (turn error display on first: `/console scriptErrors 1`).
-4. The minimap button is present, wearing **the addon's own logo** and not a Blizzard bag icon
-   (`launcher-§4`); the same art is beside **Ka0s Bank Ledger** in the client's AddOns list. Its
-   tooltip reads `Ka0s Bank Ledger  v<version>`, `Enabled: Yes`, `Locked: No`, `Test mode: Off`,
-   the movement count, then `Left-click: Open settings` and `Right-click: Options menu`.
-5. **Left-click** the button: the settings panel opens on its landing page (`launcher-§2`, standard
-   v2.67.0). It no longer toggles the ledger window.
-6. **Right-click** it: a menu titled **Ka0s Bank Ledger** opens with four checkboxes, in this order:
-   **Enabled** (ticked), **Locked**, **Test mode**, **Show window**. Click **Show window**: the ledger
-   window opens, exactly as `/bl toggle` does; right-click again and **Show window** is ticked. Click
-   **Test mode**: the chat line `test mode on` prints, as `/bl test` prints it, and the ledger shows
-   the sample. Click **Locked**: the chat line `settings.locked = true` prints and the ledger window
-   can no longer be dragged; the Master controls *Lock frame* box is ticked. Click each again to undo
-   it. The menu closes after every click.
-7. If a broker display is installed (Titan Panel, ElvUI data texts, Bazooka), **Ka0s Bank Ledger**
-   appears in its plugin list wearing the same icon, and its clicks do exactly the same two things
-   — it is one object registered twice, not two features.
+## Before you start
 
-## S-2 · Character bank deposit and withdrawal
+- Error display on: `/console scriptErrors 1`. Every check assumes it.
+- A character with a character bank, the warband bank and a guild bank it can deposit to, some gold,
+  and a few movements already recorded (so History, Insights and the session window have rows).
+- A training dummy nearby for the COMBAT checks and the combat halves of others.
+- A second Ka0s addon installed, for DIAG-11 and PANEL-4 (Ka0s Loot History for PANEL-4).
+- Back up `WTF/` before INSTALL-8 and PROFILE-14: both edit or replace a real SavedVariables file.
+- For DEGRADED, quit the game and rename `Interface/AddOns/BankLedger/libs/LibKa0s` to
+  `libs/LibKa0s.off`; DEGRADED-11 renames it back. A repo left in that state passes its own gate and
+  ships broken.
 
-1. Open your bank.
-2. Deposit a stack of something into a bank bag.
-3. `/bl show` — the top row is a **Deposit** to **Character Bank** with the right item and count.
-4. Withdraw part of that stack.
-5. A new **Withdraw** row appears with the partial count, not the whole stack.
+## INSTALL
 
-## S-3 · Loot does not become a movement
+- **INSTALL-1. Clean login.** Enable the addon and log in → zero Lua errors. A nil-index in
+  `core/Constants.lua` means `core\ItemSetup.lua` slipped below `core\Constants.lua` in the TOC. Result:
+- **INSTALL-2. Version.** `/bl version` → one line, `[BL] v<version>` with the tag in cyan, the
+  version the TOC's `## Version` line carries. Result:
+- **INSTALL-3. The minimap button.** Look at the minimap and at the AddOns list → the button wears the
+  addon's own logo, not a Blizzard bag icon (`launcher-§4`), and the same art sits beside Ka0s Bank
+  Ledger in the AddOns list. Hover it → `Ka0s Bank Ledger  v<version>`, `Enabled: Yes`, `Locked: No`,
+  `Test mode: Off`, the movement count, then `Left-click: Open settings` and
+  `Right-click: Options menu`. Result:
+- **INSTALL-4. Left-click.** Left-click the button → the settings panel opens on its landing page
+  (`launcher-§2`); the ledger window does not toggle. Result:
+- **INSTALL-5. The options menu.** Right-click the button → a menu titled Ka0s Bank Ledger with four
+  checkboxes in this order: Enabled (ticked), Locked, Test mode, Show window. Click Show window → the
+  ledger opens exactly as `/bl toggle` opens it, and on the next right-click Show window is ticked. The
+  menu closes after every click. Result:
+- **INSTALL-6. Menu entries echo their verbs.** In the menu click Test mode → chat prints
+  `test mode on` and the ledger shows the sample. Click Locked → chat prints `settings.locked = true`,
+  the ledger can no longer be dragged and Master controls' *Lock frame* is ticked. Click each again →
+  both undo. Result:
+- **INSTALL-7. Broker displays.** With Titan Panel, ElvUI data texts or Bazooka installed → Ka0s Bank
+  Ledger is in its plugin list with the same icon, and its clicks do the same two things (one object
+  registered twice). Result:
+- **INSTALL-8. The migration ladder runs on a real store.** Copy
+  `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe. Edit the file: delete the
+  `["schemaVersion"] = 4,` line under `["global"]` and add `["vendorPrice"] = 20,` to one ledger entry
+  (note which). Log in, `/bl debug on`, open the console → it carries
+  `[Migrate] v1 -> v4, 1 rows touched`. **Fail:** no migration line at all, or a row count other than
+  the one you planted. (On a store already at v4 the settings sit in `["profiles"]` and no profile
+  holds a retention window, so the v3 and v4 steps add no rows.) Result:
+- **INSTALL-9. The stamp survives a logout.** After INSTALL-8, exit to desktop (the strip runs on
+  `PLAYER_LOGOUT`) and reopen the file → `["schemaVersion"] = 4,` is under `["global"]` and the
+  planted `vendorPrice` key is gone. **Fail:** the stamp is missing again, meaning something declared a
+  default equal to a real version (`savedvariables-§1`). Result:
+- **INSTALL-10. A stamped store is left alone.** Log back in with `/bl debug on` → no `[Migrate]` line.
+  Result:
 
-1. Open your bank and leave it open.
-2. Take an item from your mailbox, or loot something, so it lands in your bags.
-3. **No** ledger row appears — the item changed on one side only, so it is not a bank movement.
+## SLASH
 
-## S-4 · Warband bank
+- **SLASH-1. Bare `/bl`, config and help.** `/bl config` → the panel opens with the addon's entry
+  already in the list. Close it, type `/bl` alone → the same landing page, not General, and nothing in
+  chat. `/bl help` → the command list prints instead. Result:
+- **SLASH-2. Panel and CLI read one value.** Toggle a checkbox on General, then `/bl list` → the value
+  matches. `/bl set settings.trackMoney false`, reopen the panel → *Track gold* is unticked. Set it
+  back. Result:
+- **SLASH-3. Live verbs answer while disabled.** Disable the addon (`/bl disable`). `/bl` alone opens
+  the panel. `/bl version`, `/bl list`, `/bl get settings.qualityThreshold`,
+  `/bl set settings.qualityThreshold 3`, `/bl reset settings.qualityThreshold` all answer normally.
+  `/bl help` prints the whole index with the refusal line under its header. `/bl wibble` answers
+  `unknown command 'wibble'` and the index, not the refusal. `/bl perf` answers the same way (reserved,
+  but this addon registers no `perf` verb). Re-enable. Result:
+- **SLASH-4. Feature verbs are refused once.** Disabled, run `/bl show`, `/bl toggle`, `/bl test`,
+  `/bl purge` → each prints exactly one line, `Ka0s Bank Ledger is disabled — enable it with
+  /bl enable` with the command in gold, and does nothing else; `/bl purge` raises no confirm dialog.
+  Re-enable. Result:
 
-1. With the bank open, click the **Warband Bank** tab and move an item in → a **Warband Bank** row.
-2. Move it back out → a Withdraw row. Both must appear even though switching tabs fires no event.
-3. The row can take a second or two: the warband tab updates on a server round-trip, and the addon
-   deliberately waits for both halves of the movement before writing anything.
-4. Both stores appear in the Store filter dropdown, which only lists stores your data contains.
+## PANEL
 
-## S-5 · Gold
+- **PANEL-1. Landing page.** `/bl config` → the logo, the tagline and every slash command, `profile`
+  included. The logo is present and crisp: blank is a real failure (a missing texture draws nothing
+  and raises nothing), soft or jagged means the `.tga` was regenerated at a size that is not a power of
+  two (ARCHITECTURE ▸ Logo art). Result:
+- **PANEL-2. The settings tree.** Settings ▸ AddOns ▸ Ka0s Bank Ledger → General, then Profiles, and no
+  Filters page (an entry there would open onto nothing). Result:
+- **PANEL-3. General's header.** Open General → a breadcrumb header, a gold divider and a Defaults
+  button that looks like every other button on the page. Blizzard's red stone button means it was built
+  before a UI skin hooked AceGUI (`/bl debug panel` shows the region list; the bare 5-region `130828`
+  form is the unskinned one). Result:
+- **PANEL-4. The tab strip.** On General → a strip pinned under the header, above the scroll, reading
+  Master controls · Capture · Interface · History · Filters, with Master controls selected on first
+  open and no section heading repeating a tab's name (`options-ui-§13`). Open Ka0s Loot History's
+  panel beside it → the same five, plus AH Price after Capture. Result:
+- **PANEL-5. Master controls rows.** Master controls → *Enable Bank Ledger · General visibility*, then
+  *Master scale · Master alpha*, then *Lock frame · Debug console*, then *Minimap button · Test mode*,
+  then Reset position and Reset all settings side by side. Nothing renamed, reordered or missing.
+  Result:
+- **PANEL-6. Capture tab.** Capture → *Track items · Track gold*, then *Minimum quality*, then the
+  full-width per-store grid. Open *Minimum quality* → six rows, each the quality's own name in its own
+  color followed by " and above": Poor, Common, Uncommon, Rare, Epic, Legendary. A bare number or an
+  uncolored row is the Item seam failing. Result:
+- **PANEL-7. Interface tab.** Interface → a Windows heading over *Session window*, then a Table rows
+  heading over *Row stripe opacity · Row hover opacity*, the two sliders side by side on one line.
+  Neither heading reads "Interface" (`options-ui-§7`). Result:
+- **PANEL-8. History tab.** History → *Keep history for*, the storage read-out ("N movements recorded
+  over N days" and the estimated database size), then Purge ledger… alone. No Reset all button here or
+  on Interface or Capture: the only one is on Master controls. Result:
+- **PANEL-9. Filters tab.** Filters → a secondary strip inside the scroll (it scrolls with the content)
+  reading Blacklist · Whitelist, opening on Blacklist. The selected list shows its own blurb, its own
+  Clear all, its own add box and id list, and never both lists at once. Click Whitelist, go to Capture,
+  come back → still on Whitelist. `/reload` → back on Blacklist (none of it is saved). Result:
+- **PANEL-10. A second visit redraws.** Click each tab in turn, then back → the store grid, the storage
+  read-out, the reset pair and both id lists are still there (they are drawn from the tab's
+  `afterGroup` hook; anything drawn by the page body would survive one render). Result:
+- **PANEL-11. The tab strip survives pooling.** On General, cycle every tab three times, ending on the
+  first. Watch each pass → every label is that tab's own, the selected tab is the one you pressed, and
+  the strip's band height never moves. **Fail:** a label carried over from the previous tab, a highlight
+  on the wrong button, a body under the wrong tab, or a band that grows or shrinks (the pool handing
+  back a frame it did not finish dressing). Result:
+- **PANEL-12. Scrollbar.** Compare the landing page and General → the scrollbar is visible on both and
+  grayed out on the one that fits, so the body width does not jump. Result:
+- **PANEL-13. No marks in the panel.** Walk every page → no mark art anywhere; the panel's widgets are
+  `LibKa0s-Options-1.0`'s. Result:
+- **PANEL-14. No raw locale keys.** Walk the landing page and every tab of General (both Filters
+  sub-tabs), toggle the debug console on and off, and run `/bl help`, `/bl list`,
+  `/bl get settings.enabled`, `/bl reset settings.enabled` → nothing on screen or in chat is
+  `SCREAMING_SNAKE_CASE`. One raw key means a library descriptor was handed `NS.L`, and then all of them
+  are wrong. Result:
+- **PANEL-15. Minimap button checkbox.** On Master controls untick *Minimap button* → the button leaves
+  the minimap at once. Tick it → it returns at the angle you dragged it to. `/bl set minimap.shown
+  false`, reopen the tab → the box is unticked; `/bl get minimap.shown` answers false;
+  `/bl set minimap.shown true` brings it back; `/reload` keeps whichever state you left;
+  `/bl get minimap.hide` answers `Setting not found` (`launcher-§3`). Result:
+- **PANEL-16. Master scale reaches both windows.** With the ledger and the session window open
+  (`/bl show`, `/bl session`) and General on screen, `/bl set settings.windowScale 1.25` → the Master
+  scale slider moves at once and both windows rescale together. Drag the slider → both rescale again,
+  no `/reload`. Result:
+- **PANEL-17. Master scale clamps and resets.** `/bl set settings.windowScale 9` → the slider lands on
+  2.00 and the chat echo says `2.00x`. `/bl reset settings.windowScale` → back to 1.00. Result:
+- **PANEL-18. Master alpha reaches every window.** `/bl show`, open a bank (the session window
+  appears), open Export. Drag Master alpha to about a quarter → all three fade while you drag. Result:
+- **PANEL-19. The alpha floor.** Drag Master alpha to its far left → it stops at 0.10, and the windows
+  fade to that and no further: faint, still findable and clickable. Put it back to 1.00. Result:
+- **PANEL-20. Reset position.** Move the ledger and the session window well off center, then Reset
+  position → both return to center at their default size; settings, filter lists and history are
+  untouched. Result:
+- **PANEL-21. Row tints at their defaults.** `/bl show` with rows → every second row carries a faint
+  lighter band (0.03) and a hovered row a faint gold wash (0.10). Result:
+- **PANEL-22. Row stripe slider.** With the ledger on screen, drag Row stripe opacity to its maximum →
+  the banding darkens while you drag. Drag it to 0 → no banding at all. Result:
+- **PANEL-23. Row hover slider.** Row hover opacity at maximum, hover a row → a strong gold wash. At 0
+  → no highlight. Result:
+- **PANEL-24. One tint, both tables.** Open a bank and move something → the session window's rows wear
+  the same band and hover at the same strengths. Result:
+- **PANEL-25. Tint values clamp.** `/bl set settings.rowStripeAlpha 5` → clamped to the slider's
+  maximum, never an opaque white block. A negative value clamps to 0. Result:
+- **PANEL-26. A slash write repaints the open panel.** With General on Master controls on screen,
+  `/bl set settings.enabled false` → the Enable Bank Ledger box unticks at once (`options-ui-§11`).
+  Set it back to `true`. Result:
+- **PANEL-27. One reset, one popup.** Click Reset all settings on Master controls → a confirm popup
+  saying it resets this profile and leaves your other profiles alone. `/bl resetall`, General's header
+  Defaults and Blizzard's footer Defaults raise the same popup (`options-ui-§12`). No → nothing
+  changes. Result:
+- **PANEL-28. What Yes resets.** Save a view, blacklist and whitelist an item, change a few settings
+  (row tints included), tick Test mode, open the console, hide the minimap button, move both windows.
+  Reset all settings ▸ Yes → every setting at stock (tints back to 0.03 and 0.10), both lists empty,
+  the saved view discarded (Clear lands on stock), test mode off, the console closed, both windows
+  recentered, the minimap button still hidden. History keeps every row. Result:
+- **PANEL-29. The open views keep the history.** With History, Insights and the storage read-out on
+  screen, Reset all settings ▸ Yes → History and Insights keep every row, the read-out keeps its count,
+  and the Filters tab's lists empty at once. **Fail:** any history row goes, or a list keeps showing ids
+  until reopened. Result:
+- **PANEL-30. Capture sees the reset without a reload.** Blacklist an item, Reset all settings ▸ Yes,
+  then move that item at your bank → it is recorded, in History and the session window. **Fail:** the
+  movement is dropped (or one that should drop is recorded) until you `/reload`. Result:
+- **PANEL-31. The reset repaints once.** With General open, `/bl resetall` ▸ Yes → every widget
+  repaints once, not per row, and History's Database size line updates. On Filters ▸ Blacklist add an
+  id, then `/bl resetall` ▸ Yes → the list empties while you watch. Close the settings window,
+  `/bl resetall` ▸ Yes → no errors, and reopening shows the reset values. Result:
+- **PANEL-32. Blizzard's footer Defaults reaches the addon.** On General change a setting, use the
+  Settings window's footer Defaults ▸ Yes → settings return to stock, both lists clear, History keeps
+  its row count. Result:
 
-1. Open the warband bank and deposit gold.
-2. A **Gold** row appears: Qty shows the amount as money, Type and Sub-type both read Gold,
-   Quality shows a dash, direction Deposit (green ▼). The item name is a pale gold.
-3. Hovering the row shows a **Gold** tooltip with the amount (a gold row has no item link, so the
-   tooltip is built by hand).
-4. Withdraw gold → a Withdraw row with the same shape.
-5. Open your **character** bank and sell something to a vendor with the bank open. **No** gold row
-   appears — the character bank holds no gold, so its money changes are never attributed.
-6. Open the bank again and **spend** gold with it open — buy a bank slot, or repair. **No** gold row
-   appears. A purse change alone is not a movement: the store's own balance has to mirror it, which
-   is what stops a purchase at the bank being filed as a warband deposit.
-7. `/bl debug scan` at the bank and read the `money API:` block. `bankFetch=function` and a non-zero
-   `C_Bank.FetchDepositedMoney(Account)` mean the warband balance is readable on this build; if it
-   is not, gold movements to the warband bank are declined rather than guessed.
+## PROFILE
 
-## S-6 · Guild bank
+- **PROFILE-1. The Profiles page.** Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ Profiles → last under
+  General, no Defaults button, `Default` shown as the current profile. Result:
+- **PROFILE-2. A new profile is fresh settings over the same history.** On the page create `Alt` → at
+  once, with no `/reload`: General reads every default, the Blacklist is empty, both windows sit at
+  their default positions, History still has every row. **Fail:** a history row missing, or a window or
+  setting still showing `Default`'s values. Result:
+- **PROFILE-3. Switching back restores.** Choose `Default` → every setting, the blacklist, the saved
+  view and both window positions come back. Result:
+- **PROFILE-4. Enable is per profile.** On `Alt` untick Enable Bank Ledger → it stands down. Choose
+  `Default` → running (deposit something, it records). Choose `Alt` → stood down. Tick it again. Result:
+- **PROFILE-5. Reset Profile keeps history.** On `Alt` change a setting, press the page's Reset Profile
+  → `Alt` returns to defaults with no confirm, History keeps every row, `Default` is untouched when you
+  switch back. On `Default`, `/bl resetall` → the popup reads *Reset this profile to the addon's
+  defaults? … your other profiles are not affected*, and Yes keeps History. Result:
+- **PROFILE-6. One debug line per profile event.** `/bl debug on`, open the console. Switch profile →
+  exactly one `[Profile] switched to profile '<name>'` line. Copy `Alt` into the current profile →
+  exactly one `[Set] copied profile 'Alt' -> '<current>'` line. `/bl debug off`. Result:
+- **PROFILE-7. Retention is account-wide and nothing prunes.** On `Default` set Keep history for to
+  Always, with at least one History row older than 30 days. Hover the dropdown → the tooltip ends
+  *Account-wide: one value for every profile, because the history it trims is shared.* Switch to `Alt`
+  → still Always. Switch back, copy `Alt` into `Default`, press Reset Profile, then `/bl resetall` ▸
+  Yes → after each the dropdown still reads Always and the old row is still in History, and with
+  `/bl debug on` none of those writes a `[Prune]` line. Keep `Alt` for PROFILE-8 to 13. Result:
+- **PROFILE-8. `/bl profile` lists.** With `Default` and `Alt` present, `/bl profile` → a `Profiles`
+  header, one row per profile sorted without regard to case with the current one suffixed
+  `(current)`, then `/bl profile <name> switches profile`. No line ends in a colon. Result:
+- **PROFILE-9. `/bl profile <name>` switches.** On the page choose `Alt`, set Master scale to 1.25,
+  choose `Default`. Open General on Master controls with the ledger shown, then `/bl profile Alt` →
+  `Switched to profile 'Alt'.`; the slider moves to 1.25 and the ledger rescales without a `/reload`,
+  exactly as choosing it on the page does. `/bl profile Alt` again → `Already on profile 'Alt'.` and
+  nothing changes. `/bl profile Default` to go back. Result:
+- **PROFILE-10. An unknown name is refused, never created.** `/bl profile Nope` → `No profile named
+  'Nope'.` then the list; the Profiles page's list has no `Nope`. `/bl profile alt` → refused the same
+  way, with `Did you mean 'Alt'?` before the list (names are case-sensitive). Result:
+- **PROFILE-11. Quotes and spaces.** Create `My Alt` on the page and switch back to `Default`.
+  `/bl profile "My Alt"` → switched to `My Alt`. `/bl profile 'Default'` → switched back. Delete
+  `My Alt`. Result:
+- **PROFILE-12. The verb answers while disabled.** `/bl profile Alt`, untick Enable Bank Ledger.
+  `/bl profile` → the list, not the disabled refusal. `/bl profile Default` → switched, and the addon
+  is running again (deposit something, it records). Result:
+- **PROFILE-13. No switch in combat.** Pull a training dummy. `/bl profile Alt` → `Can't switch
+  profiles in combat.` and the profile does not change. `/bl profile` → the list still prints. Leave
+  combat and delete `Alt`. Result:
+- **PROFILE-14. The schema v3 lift keeps your settings.** On a build before schema v3, set a minimum
+  quality, a muted store and a row tint, blacklist an item, save a view and move the ledger. Install
+  this build and log in → all of it as you left it, History complete. Log out and open
+  `BankLedger.lua` → settings, both lists and `savedView` under `["profiles"]["Default"]`; `["global"]`
+  holds only `ledger`, `minimap`, `schemaVersion = 4` and, if you changed Keep history for, a
+  `settings` table holding `retentionDays` alone (D6). **Fail:** a setting back at its default, or any
+  other key in a `settings` table under `["global"]`. Result:
 
-1. Open the guild bank and deposit an item.
-2. A **Guild Bank** row appears; the exported CSV's `guild` column carries your guild name.
-3. Deposit gold → a Gold row against the guild bank.
-   Then, from a fresh `/reload`, spend gold at a **character bank** and only afterwards open the
-   guild bank. **No** guild-bank gold row appears. This is worth doing deliberately: with the guild
-   frame closed the client reports the guild balance as `0` rather than "unknown", so a naive read
-   would see the true balance arrive as an enormous gain the moment you open it.
-4. `/bl debug scan` while it is open reports `openContext=GUILD_BANK`. The guild bank has no
-   working open event, so it arms itself when tab data arrives — if this reads `nil`, no data has
-   reached the addon and nothing will be recorded.
-5. Close the window, then move something in your bags. No further guild-bank scanning should
-   happen — it disarms once the window is gone.
+## STATE
 
-## S-7 · Window behavior
+- **STATE-1. Disabling takes the windows down at once.** `/bl show` and `/bl session`, `/bl debug on`,
+  `/bl debug` (leave the console open). Untick Enable Bank Ledger on Master controls (or `/bl
+  disable`, the same write) → both windows go in the same turn as the click. Result:
+- **STATE-2. Nothing is recorded while disabled.** Disabled, open your bank and move a stack in and out
+  → nothing recorded (History's Database size line has not moved) and no session window. Result:
+- **STATE-3. Silent on combat edges.** Disabled, pull a mob and drop combat → nothing in chat and no
+  new console line. **Fail:** any line: the addon is still registered for that edge. Result:
+- **STATE-4. The minimap button while disabled.** Disabled, left-click the button → the settings panel
+  opens and nothing prints. Hover → `Enabled: No`. Right-click → Enabled unticked and live; Locked,
+  Test mode and Show window grayed out, each reading `(enable the addon first)`, and clicking one does
+  nothing. Result:
+- **STATE-5. Disabled survives a reload.** `/reload` while disabled → still disabled, still silent,
+  still answering every live verb. Result:
+- **STATE-6. Re-enabling resumes without a reload.** Tick the box again (or right-click the button ▸
+  Enabled, which runs `/bl enable`; the other three entries are live on the next open). Open the bank
+  and move a stack → the session window appears with the row. Then `/bl disable`,
+  `/bl set settings.trackMoney false`, `/bl enable`, move gold → not recorded (the rebuild reads the
+  settings as they are now). Set it back. Result:
+- **STATE-7. A reset while disabled re-enables.** Untick Enable Bank Ledger, then Reset all settings ▸
+  Yes → the box reads ticked and the addon runs: a deposit records. **Fail:** ticked but nothing
+  records until a `/reload` or a toggle. Result:
+- **STATE-8. Lock frame.** Tick Lock frame → the ledger, the session window and the export modal cannot
+  be dragged by their title bars. Untick → all three drag again. Result:
+- **STATE-9. General visibility: Never.** Set General visibility to Never → every window closes and
+  `/bl show` does nothing (it refuses, it does not defer). Move something into your bank, set it back
+  to Always → the movement is in the ledger. Result:
 
-1. `/bl toggle` opens and closes the window; **Esc** closes it.
-2. Drag the title bar, then resize from the bottom-right grip. `/reload` — the position and size
-   come back. Repeat resizing *only* (never dragging), releasing the grip well outside the button,
-   and again with the window still open when you `/reload`: both must survive.
-3. The window will not shrink below the width that shows every column.
-4. `/bl set settings.windowScale 1.3` rescales the open window immediately. With the Current
-   Banking Session window also open (`/bl session`), **both** windows rescale together, from the
-   slash path and from the Settings slider alike, with no `/reload`.
+## COMBAT
 
-## S-8 · Filtering, grouping and sorting
+- **COMBAT-1. No panel in combat.** Pull a training dummy, `/bl config` → a gray "cannot open settings
+  during combat" notice and no panel. Leave combat → the panel does not open by itself. Result:
+- **COMBAT-2. The ledger works in combat.** In combat, open, refresh and filter the ledger window → all
+  work (it is not a secure frame). Result:
+- **COMBAT-3. An open panel locks in combat.** Open the panel on General, pull a training dummy → a gray
+  *Settings are locked during combat.* cover over the page; a click on a checkbox or tab does nothing
+  and chat prints one gray line for the combat; Blizzard's settings window stays usable (no
+  `ADDON_ACTION_BLOCKED`). Leave combat → the cover lifts and the page shows current values. Result:
+- **COMBAT-4. Combat ends test mode.** Tick Test mode, close the ledger, pull a dummy → one chat line,
+  `test mode off — combat started.`; the ledger does not open; the box is unticked. Still in combat,
+  tick it → one line saying test mode cannot start during combat, and it stays unticked. Result:
+- **COMBAT-5. Only out of combat, window open.** Set General visibility to Only out of combat with the
+  ledger open, pull a dummy → it hides on the pull and returns when combat ends. Result:
+- **COMBAT-6. Only out of combat, window closed.** Repeat COMBAT-5 with the ledger closed → it stays
+  closed through both edges. Result:
+- **COMBAT-7. Only in combat.** Set Only in combat → hidden out of combat, shown on the pull. Set it
+  back to Always. Result:
+- **COMBAT-8. Diagnostics in combat.** In combat, `/bl diagnostics` → no Lua error, and the identity
+  header's `combat:` line reads `InCombatLockdown=true`. Result:
 
-1. Type in the search box — the row count in the footer falls as you type.
-2. Pick two stores in the Store dropdown — both are ticked and the button reads "Store: 2 selected".
-3. Click a column header to sort; click it again to reverse. Date starts newest-first.
-4. Group by Store — collapsible headers appear with per-group counts. Click one to collapse it.
-5. The **Sub-type** and **Quality** dropdowns list only values your data contains; Quality is
-   ordered Poor→Legendary (not alphabetically) and each option carries its quality color.
-6. **Type ▸ Gold** and **Sub-type ▸ Gold** appear once a gold movement is recorded, and filter to
-   gold rows. Both mix freely with real item types in one multi-select.
-7. The **Direction** menu shows a red ▲ Withdraw and a green ▼ Deposit; the **Store** menu shows each
-   store in its column color. Both match the table exactly.
-8. The window opens with **Character: Current** already applied — a fresh install, a `/reload` and
-   **Clear** all land there, not on "All". `/bl test` is the exception: synthetic data opens
-   unscoped.
-9. Every character row and dropdown option shows its class icon and class color; "Character:
-   Current" carries no icon.
-10. Group by **Type**, **Sub-type** and **Quality**. Quality groups run Poor→Legendary and gold sits
-    in its own "None" group.
-11. **Clear** returns every filter, the grouping and the sort to their defaults.
-12. **Save · Reset · Clear** sit in one cluster above **Export**, their right edges flush with it,
-    and stay put as the window is widened.
-13. Set a grouping, a couple of column filters and a search term, then press **Save** — a
-    "view saved as your default" line appears in chat. Change the filters, press **Clear**: you land
-    back on the saved view, not on stock. `/reload` and the window opens on it too.
-14. Set **Character: All**, press **Save**, then `/reload` — the window still opens on **Current**.
-    Character scope is never part of a saved view.
-15. Press **Reset** — chat confirms, the bar returns to stock, and **Clear** now lands on stock.
-    `/bl resetall` and the Settings **Defaults** button discard the saved view the same way.
-16. With a view saved, `/bl test` opens the synthetic data **unscoped and unfiltered**; leaving test
-    mode restores the saved view scoped back to Current.
+## CAPT
 
-## S-9 · Insights
+- **CAPT-1. Character bank deposit.** Open your bank, deposit a stack into a bank bag, `/bl show` → the
+  top row is a Deposit to Character Bank with the right item and count. Result:
+- **CAPT-2. Partial withdrawal.** Withdraw part of that stack → a Withdraw row with the partial count,
+  not the whole stack. Result:
+- **CAPT-3. Loot is not a movement.** With the bank open, take an item from the mailbox or loot one →
+  no row. Result:
+- **CAPT-4. Warband bank items.** On the Warband Bank tab move an item in, then out → a Warband Bank
+  deposit row and a withdraw row, even though switching tabs fires no event. Each can take a second or
+  two (the addon waits for both halves of the server round trip). Result:
+- **CAPT-5. Warband gold.** Deposit gold at the warband bank → a Gold row: Qty as money, Type and
+  Sub-type Gold, Quality a dash, Deposit (green ▼), a pale gold name. Hover → a Gold tooltip with the
+  amount. Withdraw gold → a Withdraw row of the same shape. Result:
+- **CAPT-6. The character bank holds no gold.** At the character bank, sell something to a vendor with
+  the bank open → no gold row. Result:
+- **CAPT-7. Spending is not a deposit.** With the bank open, buy a bank slot or repair → no gold row
+  (the store's own balance must mirror a purse change). Result:
+- **CAPT-8. The money API is readable.** At the bank, `/bl debug scan`, read the `money API:` block →
+  `bankFetch=function` and a non-zero `C_Bank.FetchDepositedMoney(Account)`. If not, warband gold is
+  declined rather than guessed. Result:
+- **CAPT-9. Guild bank items.** Deposit an item at the guild bank → a Guild Bank row, and the exported
+  CSV's `guild` column carries your guild name. Result:
+- **CAPT-10. Guild bank gold.** Deposit gold at the guild bank → a Gold row against the guild bank.
+  Result:
+- **CAPT-11. A closed guild frame is not a zero balance.** From a fresh `/reload`, spend gold at a
+  character bank, then open the guild bank → no guild-bank gold row (with the frame closed the client
+  reports the guild balance as `0`, so a naive read would see a huge gain on open). Result:
+- **CAPT-12. The guild bank arms on open.** With the guild bank open, `/bl debug scan` →
+  `openContext=GUILD_BANK`. With `/bl debug on`, reopen it → `[Store] GUILD_BANK opened` with a
+  non-zero `GUILD_BANK` baseline once the tab queries land. `nil` means no data reached the addon.
+  Result:
+- **CAPT-13. The guild bank disarms on close.** Close it, then move something in your bags → no further
+  guild-bank scanning. If either half misbehaves, `/bl debug scan` says
+  `guild bank frame hooks: NOT INSTALLED`. Result:
+- **CAPT-14. No guild session away from a bank.** `/bl debug on`, `/reload` somewhere with no bank in
+  sight and stay a few minutes (ideally while a guildmate uses the vault) → no session window and no
+  `[Store] GUILD_BANK opened` line. One with a `GUILD_BANK 0` baseline is the regression (issue #12).
+  Result:
+- **CAPT-15. An uncached item is refused, not guessed.** Set Minimum quality to Rare. `/reload`, then
+  at once move something unusual from a bank tab you have not opened → `/bl debug` shows it skipped
+  with cause `uncached`, not captured. Repeat the movement a few seconds later → judged properly
+  (captured, or skipped on quality). **Fail:** a row appearing at once at a quality nothing resolved.
+  Result:
+- **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
+  gone. Result:
+- **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
+  empty state. Result:
 
-1. Switch to the **Insights** tab. Fourteen stat cards populate across the top — three rows of four
-   single-width cards, then a fourth row of two double-width cards (date range, busiest day) —
-   hovering each one explains what it counts. There is no value or biggest-move card.
-2. Every card shares one headline font size; the long date-range and busiest-day strings shrink to
-   stay on one line inside their card rather than clipping or wrapping.
-3. Net items and Net gold read green with a `+` when positive, red with a `-` when negative, and a
-   gray dash at exactly zero.
-4. **Deposits vs Withdrawals** is one back-to-back bar about a center axis, drawn the same way as
-   every `× Deposits/Withdrawals` companion below it: **withdrawals grow left** in red,
-   **deposits grow right** in green, and the two are scaled against the larger — the bigger
-   direction fills its half exactly and the smaller is a visible proportion of it. The center line
-   sits on the same vertical as the companions' axis. The counts and percentages sit in a
-   **caption row below the bar** — `Withdrawals <n> · <pct>%` left-aligned in withdraw red,
-   `Deposits <n> · <pct>%` right-aligned in deposit green — and stay readable even at a lopsided
-   split (try filtering to a slice that is almost all one direction; the label never vanishes the
-   way in-bar text used to, and the near-empty side still shows a sliver). Hovering either half
-   names it and gives its exact count.
-5. **Movements By Character** is class-colored and carries each class icon rendered as an actual
-   icon — never a raw `|TInterface\...|t` texture path as literal text. **Movements By Character ×
-   Store** below it stacks one segment per store, left-aligned, each segment hover-tipped with its
-   own value and a legend beneath.
-6. **Every `× Deposits/Withdrawals` companion is drawn back to back**: withdraw-red grows LEFT of a center line,
-   deposit-green grows RIGHT. Check the center line falls in the **same horizontal position on every
-   row** of a chart — that is the whole point of the form. A row that is mostly withdrawals visibly
-   leans left; mostly deposits leans right. Hovering either half names the direction and its exact
-   count. The legend reads **Withdraw then Deposit**, matching the chart left to right.
-7. **Companion titles mirror their parent in full** — the companion under *Movements By Item Type*
-   reads **Movements By Item Type × Deposits/Withdrawals**, not *Item Type × Deposits/Withdrawals*. Same for Store, Quality,
-   Sub-type and Character.
-8. **Movements By Quality** runs Poor → Legendary (not by count) in the game's own quality colors,
-   immediately followed by its back-to-back companion.
-9. **Item Type** and **Sub-type** bars are all visibly different colors — no two adjacent bars look
-    alike — each with a legend, and each immediately followed by its own back-to-back `× Deposits/Withdrawals`
-    companion whose row labels keep the parent chart's colors. A parent capped at 12 bars has a
-    companion capped at 12 too.
-10. The per-day strip (movements, and gold if any) shares its x-axis with the hour and weekday charts.
-    Quiet days show a faint ghost bar rather than a gap; the rotated date labels thin out as the bars
-    tighten and never overlap. Hovering a bar names the day and its figure. There is no value-moved
-    strip.
-11. **By Hour Of Day** shows all 24 buckets, including the empty ones.
-12. With an enriched slice (see the Test mode scenario below), every store shows a bar, both
-    directions are visible on every split chart, and the character/zone/type/quality spreads look
-    visibly uneven rather than a flat comb of equal-height bars.
-13. Under **TOP OF THE LIST**, a three-column grid grouped under four sub-headings:
-    - **ITEMS** — Top Items By Movements, then Top Items By Quantity, each one row of three panels
-      (All / Deposits / Withdrawals).
-    - **CATEGORIES** — Top Type · Sub-type, one row of three panels.
-    - **WHERE** — Top Banking Spots, one row of three panels.
-    - **BY STORE** — a sub-section per store that has movements (Character Bank, Warband Bank,
-      Guild Bank), each with its OWN row of three panels (All / Deposits /
-      Withdrawals), not a single combined panel. A coin-only store has no item list and does not
-      appear at all.
-    A slice with no withdrawals simply has no Withdrawals column in a row — the row is not padded
-    with an empty panel. Item names carry their quality color; a truncated name shows in full on
-    hover. There is no Top Items By Value panel.
-14. Move some gold, refresh — the **GOLD** divider and its two charts appear. With a filter that
-    excludes every gold movement, that whole block disappears rather than rendering empty.
-15. Apply a filter on the History tab, then switch back to Insights — every number and every bar
-    reflects the same filter. The two tabs never disagree.
-16. Resize the window: the cards re-flow to the new width, the bars and strips re-stretch, and the
-    Top Of The List columns stay side by side.
-17. With the tab open, move something at a bank — the panel updates live.
-18. Purge the ledger: the cards read 0 and one centered "no movements" line replaces every section.
+## LEDG
 
-## S-10 · Export
+- **LEDG-1. Open and close.** `/bl toggle` → opens, again → closes. Esc also closes it. Result:
+- **LEDG-2. Geometry persists.** Drag the title bar and resize from the bottom-right grip, `/reload` →
+  position and size return. Resize only (never drag), releasing the grip well outside the button,
+  `/reload` → kept. Again with the window open at `/reload` → kept. Result:
+- **LEDG-3. Minimum width.** Shrink the window → it stops at the width that shows every column. Result:
+- **LEDG-4. Search.** Type in the search box → the footer's row count falls as you type. Result:
+- **LEDG-5. Store filter.** Open Store → only stores your data contains, both bank stores listed once
+  both have rows. Pick two → both ticked, the button reads "Store: 2 selected". Result:
+- **LEDG-6. Sorting.** Click a column header → sorts; again → reversed. Date starts newest first.
+  Result:
+- **LEDG-7. Group by Store.** Group by Store → collapsible headers with per-group counts; click one →
+  it collapses. Result:
+- **LEDG-8. Sub-type and Quality options.** Open both → only values your data contains; Quality runs
+  Poor→Legendary, each option in its quality color. Result:
+- **LEDG-9. Gold as a type.** After a gold movement → Type ▸ Gold and Sub-type ▸ Gold appear, filter to
+  gold rows, and mix with item types in one multi-select. Result:
+- **LEDG-10. Direction and Store colors.** Open Direction → a red ▲ Withdraw and a green ▼ Deposit.
+  Open Store → each store in its column color, matching the table. Result:
+- **LEDG-11. Character: Current by default.** On a fresh install, after a `/reload` and after Clear →
+  the window is on Character: Current, not All. Result:
+- **LEDG-12. Class icons.** Every character row and option shows its class icon and color;
+  "Character: Current" has no icon. Result:
+- **LEDG-13. More groupings.** Group by Type, Sub-type and Quality → Quality groups run Poor→Legendary
+  and gold sits in its own "None" group. Result:
+- **LEDG-14. Clear.** With no saved view, change filters, grouping and sort, press Clear → all back to
+  their defaults. Result:
+- **LEDG-15. The button cluster.** Save · Reset · Clear sit in one cluster above Export, right edges
+  flush with it, and stay put as the window widens. Result:
+- **LEDG-16. Save a view.** Set a grouping, two column filters and a search term, press Save → a "view
+  saved as your default" line in chat. Change filters, press Clear → back on the saved view. `/reload`
+  → the window opens on it. Result:
+- **LEDG-17. Character scope is not saved.** Set Character: All, Save, `/reload` → opens on Current.
+  Result:
+- **LEDG-18. Reset the view.** Press Reset → chat confirms, the bar returns to stock, and Clear now
+  lands on stock. Result:
+- **LEDG-19. Quality words.** The Quality column and the Quality filter read the quality names, and an
+  export writes the same names into its rows. Result:
+- **LEDG-20. Test mode.** `/bl test` → the window opens on a sample ledger with a red TEST MODE badge
+  by the title; filters, grouping, Insights and export all work on it. Result:
+- **LEDG-21. Test mode ignores the saved view.** With a view saved, `/bl test` → the sample opens
+  unscoped and unfiltered. Leave test mode → the saved view is back, scoped to Current. Result:
+- **LEDG-22. The sample reads like a real bank.** In test mode → character-bank rows dominate, warband
+  mid-weight, guild lightest; about 60/40 deposit-leaning; about eight characters across distinct
+  classes with two or three clear mains; six real bank-city zones; a hot-item head over a long tail in
+  Top Items; an evening-leaning hour curve; every store, both directions and qualities 0–5 at least
+  once; a date range over 14 days. Result:
+- **LEDG-23. Sample rows cannot touch real data.** Right-click a sample row → Link to chat available;
+  Blacklist item, Whitelist item and Delete grayed out and click-inert. Then both filter lists on
+  Filters are unchanged. Result:
+- **LEDG-24. Back to real data.** `/bl test` again → real data, badge gone. Right-click a real row →
+  all four entries live; Delete removes the row and the footer count drops. Result:
+- **LEDG-25. The Master controls box is the same switch.** Close the ledger, tick Test mode on Master
+  controls → the ledger opens on the sample with the badge. Untick → real data, the window stays.
+  `/bl test` with the panel open → the box ticks; again → unticks. The session window never changes
+  (its preview is `/bl session`'s). Result:
+- **LEDG-26. A refused start leaves the box unticked.** General visibility Never, tick Test mode → one
+  chat line saying General visibility keeps the window closed, and the box unticks. `/bl test` → the
+  same answer, never `test mode on`. Set visibility back to Always. Result:
+- **LEDG-27. Test mode is never saved.** Tick Test mode, press General's Defaults ▸ Yes → the box
+  unticks, real data returns. Tick it, `/bl resetall` ▸ Yes → the same. Tick it, `/reload` → off.
+  Result:
+- **LEDG-28. The copy window opens ready.** History ▸ Export ▸ Current View ▸ Export to CSV → the copy
+  window opens centered on the ledger, above the modal, with the text already selected in a monospace
+  font. Result:
+- **LEDG-29. The copied CSV is whole.** Ctrl+C, paste into a text editor → the whole CSV with its
+  `\r\n` line breaks, and a row count matching the table. Result:
+- **LEDG-30. One copy window.** Switch the Data Set to All Data and export again → the same window, new
+  text, selected again; no second window. Result:
+- **LEDG-31. Esc closes only the copy window.** Esc → the copy window closes and the modal stays open.
+  Result:
+- **LEDG-32. The copy window follows the ledger.** Drag the ledger elsewhere and export again → the
+  copy window opens centered on it. Result:
+- **LEDG-33. Wowhead URLs carry bonuses.** In the CSV, the last column is `wowhead`. Open the URL from a
+  gear row recorded by this build → the item at its item level with its sockets and tertiaries (the
+  `?bonus=…` list). A stackable trade good is a plain `item=<id>` URL; a gold row's cell is empty.
+  Result:
+- **LEDG-34. The Insights export.** Export from the Insights tab → the sectioned summary, not raw rows.
+  Result:
+- **LEDG-35. Host close marks.** `/bl show` → the close control is an outlined ×, not a font
+  character; hover → your class color; click → closes. Check `/bl session` and the Export modal → the
+  same mark (all three use `B:MakeCloseButton`). Result:
+- **LEDG-36. The copy window's close is the library's.** Export to CSV and look at the copy window's
+  title bar → the library's outlined close mark, 18×18 with a red hover (the host's is 24×24 with a
+  class-colored hover), reading as a close button and not clipped by the 26px bar. A font × there is a
+  library regression. Result:
+- **LEDG-37. Dropdown art.** Count the filter bar's dropdowns → eight chevrons, not Blizzard's filled
+  arrow: Group by on row 1, then Date, Direction, Store, Quality, Type, Sub-type, Character on row 2;
+  the modal's Data set makes nine. Open a multi-select (Store, Type, Quality, Character), pick two →
+  each chosen row has a flat full-white tick, not Blizzard's beveled `UI-CheckBox-Check`. Full white
+  is correct: it is the one untinted inline mark ([media.md](media.md)). Result:
+- **LEDG-38. Header marks are gold.** Click a column header → a sort-up / sort-down mark that flips on
+  the next click. Group by Day → each group header opens with a chevron, right when collapsed, down
+  when expanded. All four are the same gold as the label beside them (the gray `(count)` is not part of
+  this). **Fail:** a near-white mark against a gold word (the vertex-color tail came off). Widget marks
+  (close, dropdown chevron, magnifier, the modal's export mark) are 0.7–0.85 gray instead. Result:
+- **LEDG-39. Button marks.** Export, Save, Reset and Clear on the bar → four plain centered words, no
+  mark. The modal's Export to CSV → a small mark on its left with the words still centered, about
+  two-fifths the width of the Data set dropdown above it and centered under it. **Fail:** a button
+  spanning the modal edge to edge with the mark pinned far left. Result:
+- **LEDG-40. The search magnifier.** The search box shows a magnifier on its left with "Search items…"
+  starting just past it; typed text starts in the same place. Result:
+- **LEDG-41. Marks carry no tooltips.** Hover every mark → none shows a tooltip; the four filter-bar
+  buttons still show theirs. Result:
+- **LEDG-42. The first click opens the menu.** Right after logging in, `/bl show`, click Store as the
+  first dropdown you touch → the menu drops. Click Direction → its ▲/▼ rows are glyphs, not boxes.
+  Result:
+- **LEDG-43. Escape takes the menu with the window.** Open Store's menu, press Escape → the ledger and
+  the menu both close. Export ▸ open Data set's menu ▸ Escape → modal and menu both close. Reopen, open
+  the menu, click the modal's × → the same. Result:
+- **LEDG-44. A slash close takes the menu.** Open any filter menu, `/bl hide` → window and menu close.
+  Again with `/bl toggle` on an open window → the same. (`/bl show` closes nothing; the session window
+  owns no such menu, so a filter menu stays open when it closes.) Result:
+- **LEDG-45. One menu at a time; clicks land.** Open Store's menu, then click Character → Store closes,
+  Character opens. Open Export, open Data set's menu, left-click in the ledger behind → the menu closes
+  and the click lands on what is under the cursor in the same press. Right-click there → the same.
+  Two presses where one should do is the regression. Result:
+- **LEDG-46. A filter it can no longer list keeps its name.** Filter History to one Type only one
+  character owns, Save, switch to a character with none of it (or `/bl test` and back) → the Type
+  button reads the type's name, not "Type: All", and the row count is unchanged. The same for Store,
+  Quality and Sub-type (Character always has its All and Current rows). Result:
 
-1. On History, click **Export** → choose **Current View** → **Export to CSV**.
-2. The copy window opens with the text pre-selected in a monospace font. Ctrl+C copies it; Esc
-   closes it.
-3. The row count matches what the table showed.
-4. The last column is `wowhead`. Open the URL from a **gear** row: the page must show the item at the
-   item level and with the sockets/tertiaries the piece you moved actually has — that is the
-   `?bonus=…` list doing its job. A stackable trade good has no bonuses, so it is a plain
-   `item=<id>` URL, and a gold row's cell is empty. Use a row recorded **after** this build: rows
-   captured earlier stored the base link, so their URL resolves to the base item.
-5. Repeat on the **Insights** tab — the CSV is the sectioned summary, not raw rows.
+## INS
 
-## S-11 · Filters (blacklist / whitelist)
+- **INS-1. Stat cards.** Open Insights → fourteen cards: three rows of four, then two double-width
+  (date range, busiest day). Hover each → what it counts. No value or biggest-move card. Result:
+- **INS-2. Card text fits.** Every card shares one headline size; the date-range and busiest-day
+  strings shrink to one line rather than clip or wrap. Result:
+- **INS-3. Net colors.** Net items and Net gold → green `+` when positive, red `-` when negative, a gray
+  dash at zero. Result:
+- **INS-4. Deposits vs Withdrawals.** One back-to-back bar: withdrawals grow left in red, deposits
+  right in green, scaled against the larger; its center line on the companions' axis. A caption row
+  below reads `Withdrawals <n> · <pct>%` left in red and `Deposits <n> · <pct>%` right in green, still
+  readable on a slice that is almost all one direction (the small side keeps a sliver). Hover either
+  half → its name and exact count. Result:
+- **INS-5. By Character.** Movements By Character → class colors and real class icons, never a raw
+  `|TInterface\...|t` path. Movements By Character × Store → one left-aligned segment per store, each
+  hover-tipped, with a legend. Result:
+- **INS-6. Back-to-back companions.** Every `× Deposits/Withdrawals` companion → red grows left of a
+  center line in the same position on every row, green right; a mostly-withdraw row leans left. Hover
+  → direction and count. Legend reads Withdraw then Deposit. Result:
+- **INS-7. Companion titles.** Under Movements By Item Type → Movements By Item Type ×
+  Deposits/Withdrawals, not Item Type × …; the same for Store, Quality, Sub-type and Character. Result:
+- **INS-8. By Quality.** Movements By Quality → Poor→Legendary in the game's quality colors, followed
+  by its companion. Result:
+- **INS-9. Type and Sub-type bars.** Visibly different colors (no two adjacent alike), each with a
+  legend and its own companion whose labels keep the parent's colors; a parent capped at 12 bars has
+  a companion capped at 12. Result:
+- **INS-10. The per-day strip.** Movements (and gold, if any) share an x-axis with the hour and weekday
+  charts; quiet days show a faint ghost bar; the rotated date labels thin out and never overlap; hover
+  names the day and figure. No value-moved strip. Result:
+- **INS-11. By Hour Of Day.** All 24 buckets, empty ones included. Result:
+- **INS-12. An enriched slice.** In test mode → every store has a bar, both directions show on every
+  split chart, and the character, zone, type and quality spreads are visibly uneven. Result:
+- **INS-13. Top Of The List.** A three-column grid under ITEMS (Top Items By Movements, then By
+  Quantity, each All / Deposits / Withdrawals), CATEGORIES (Top Type · Sub-type), WHERE (Top Banking
+  Spots) and BY STORE (a sub-section per store with movements, each its own row of three; a coin-only
+  store absent). A slice with no withdrawals has no Withdrawals column rather than an empty panel. Names
+  in quality color, a truncated one full on hover. No Top Items By Value. Result:
+- **INS-14. The GOLD block.** Move gold, refresh → the GOLD divider and its two charts. Filter out every
+  gold movement → the whole block disappears rather than rendering empty. Result:
+- **INS-15. One filter, both tabs.** Filter on History, switch to Insights → every number and bar
+  reflects that filter. Result:
+- **INS-16. Resize.** Resize the window → cards re-flow, bars and strips re-stretch, the Top Of The List
+  columns stay side by side. Result:
+- **INS-17. Live update.** With Insights open, move something at a bank → it updates. Result:
+- **INS-18. Empty ledger.** After a purge (CAPT-17) → the cards read 0 and one centered "no movements"
+  line replaces every section. Result:
 
-1. Right-click a ledger row → **Blacklist item**. The chat line reads
-   `[BL] blacklisted <name> — manage it in Settings ▸ General ▸ Filters ▸ Blacklist.` — it must name the
-   **tab and its sub-tab**, not the deregistered *Filters* page and not the retired top-level
-   *Blacklist* tab. Whitelisting names **General ▸ Filters ▸ Whitelist**.
-2. Move that item to your bank again — **no** new row is recorded, and the row you clicked is still
-   there (blacklisting is point-in-time, it never rewrites history).
-3. Open Settings ▸ General ▸ **Filters** ▸ **Blacklist** — the item is listed with an **X on the
-   left**, then its icon, its name and its id in gray, and no right-hand Remove button. Hover it:
-   the game's own item tooltip shows. Click the X to remove it.
-4. The add box (LibKa0s `IdList`) takes three forms — add one item each way: shift-click an item
-   link into it, type a bare item id, and type an item's **name** in lower case (one in your bags).
-   Each lands on the list. An id the client has not cached reads `Unknown item <id>` at first and
-   fills in its name a moment later, with no reopen.
-5. Whitelist an item, set the minimum quality to Epic, and move the whitelisted item — it is still
-   recorded.
-6. **Defaults** on the General page clears both lists (along with every setting) after a confirm.
-   There is **no Filters page** in the sidebar any more — an entry still listed there would be one
-   opening onto nothing.
-7. **The dropdown appears, and ranks are labeled.** Type two or more letters of an item your ledger
-   has recorded. A list drops down under the box, above the settings panel and not clipped by it:
-   each row shows the item's icon, its name in its quality color and its id in gray. An item made in
-   several crafted-quality ranks (a Dragonflight potion or reagent) shows one row for each rank you
-   carry or your ledger or lists hold, each labeled with its quality-tier icon. Only those ranks: a
-   rank nothing here has seen is not listed, and a name with just one known rank is added as that
-   rank on Enter. More than ten matches end in a gray `+N more` line.
-8. **Picking adds.** Click a row, or highlight one with Up/Down and press Enter — that exact id is
-   added once, the box clears, the dropdown closes, and the list shows the item. Escape, or clicking
-   elsewhere, closes the dropdown without adding anything. Type a name several ranks share in full
-   and press Enter **without** picking — nothing is added; the orange line reads
-   `Several items are named '<name>' — pick one from the list, or use the id.` and the ranks stay
-   listed to pick from.
-9. **A name you never had this session resolves.** `/reload`, make sure an item your ledger
-   recorded (or one on the other list) is **not** in your bags, then type its exact name and press
-   Enter. It is added. A gray `Looking up items…` line may show first, while the client loads names
-   it has not cached yet. On a large ledger whose items are uncached, or that holds items the game
-   has retired, the first name typed after a `/reload` can wait up to about ten seconds (five
-   windows of five asks, 0.4 s apart) before it resolves or is refused; later ones answer at once.
-10. **A name nothing knows is refused, honestly.** Type the exact name of a real item that you have
-    not carried this session, that is on neither list, and that your ledger never recorded, then press
-    Enter. Nothing is added, the text stays in the box, and the orange line reads
-    `No item named '<text>' that the game can find. Names work for items you carry (or carried this
-    session), items on either list and items your ledger has recorded; otherwise use the id or
-    shift-click a link.` Hover the box: its tooltip ends with the same sentence. The item's id, or
-    its link shift-clicked from chat, still adds it.
+## FILT
 
-## S-12 · Settings panel
+- **FILT-1. Blacklist from a row.** Right-click a ledger row ▸ Blacklist item → `[BL] blacklisted
+  <name> — manage it in Settings ▸ General ▸ Filters ▸ Blacklist.`, naming the tab and sub-tab.
+  Whitelisting names General ▸ Filters ▸ Whitelist. Result:
+- **FILT-2. Blacklisting is point in time.** Move that item to your bank again → no new row, and the
+  row you clicked is still there. Result:
+- **FILT-3. A list entry.** Filters ▸ Blacklist → the item with an X on the left, its icon, its name,
+  its id in gray, no Remove button. Hover → the game's item tooltip. Click the X → removed. Result:
+- **FILT-4. Three ways to add.** In the add box, shift-click an item link, type a bare item id, and type
+  an item's name in lower case (one in your bags) → each lands on the list. An uncached id reads
+  `Unknown item <id>` and fills in its name a moment later with no reopen. Result:
+- **FILT-5. The whitelist beats the quality floor.** Whitelist an item, set Minimum quality to Epic,
+  move the item → still recorded. Result:
+- **FILT-6. The name dropdown.** Type two or more letters of a recorded item → a list under the box,
+  above the panel and not clipped: icon, name in quality color, id in gray. A crafted-quality item
+  shows one row per rank you carry, recorded or listed, each with its tier icon, and no other rank; a
+  name with one known rank adds that rank on Enter. Over ten matches end in a gray `+N more`. Result:
+- **FILT-7. Picking adds.** Click a row, or Up/Down and Enter → that id added once, the box clears, the
+  dropdown closes. Escape or a click elsewhere closes it without adding. A name several ranks share,
+  typed in full with Enter and no pick → nothing added, the orange line reads `Several items are named
+  '<name>' — pick one from the list, or use the id.`, the ranks stay listed. Result:
+- **FILT-8. A name not seen this session.** `/reload`, then with a recorded (or listed) item not in
+  your bags, type its exact name, Enter → added, perhaps after a gray `Looking up items…`. On a large,
+  uncached ledger the first name after a `/reload` can take up to about ten seconds; later ones answer
+  at once. Result:
+- **FILT-9. A name nothing knows is refused.** Type the exact name of a real item you have not carried
+  this session, on neither list and never recorded, Enter → nothing added, the text stays, the orange
+  line reads `No item named '<text>' that the game can find. Names work for items you carry (or carried
+  this session), items on either list and items your ledger has recorded; otherwise use the id or
+  shift-click a link.` The box's tooltip ends with the same sentence. Its id or link still adds it.
+  Result:
+- **FILT-10. Two to a row.** With at least five blacklisted items → entries two to a row, left to right
+  then down, the X, icon and name aligned across both columns and down each. Whitelist → the same.
+  Result:
+- **FILT-11. An odd count.** With an odd count → the last row has one entry in the left column and
+  empty space on the right, not one stretched entry. Result:
+- **FILT-12. Long names truncate.** Blacklist an item with a long name → cut at the tail, not wrapped (a
+  long one may lose its gray `(id)`); hovering still names the item. Result:
+- **FILT-13. Remove and add repack.** Remove an entry with its X → the grid rebuilds and repacks left to
+  right. Add one → the same. Result:
+- **FILT-14. One column when narrow.** Narrow the settings canvas (windowed at a small width, or
+  `/console uiScale 1`) → below about 580px of panel the lists draw one full-width column, correctly
+  formed; never icons over wrapped names or an X on its own row. Widen and reopen → two columns. (If
+  you cannot get narrow enough, FILT-10 passing is still the meaningful result.) Result:
 
-1. `/bl config` opens the panel with the addon's entry already present in the list. Close it, then
-   type `/bl` with nothing after it: the panel opens on the same landing page, not on General, and
-   nothing prints in chat. `/bl help` prints the command list instead.
-2. The landing page shows the **logo**, the tagline and every slash command. The logo must actually
-   be there and be crisp — a missing texture draws nothing and raises no error, so blank is a real
-   failure mode, and a soft or jagged one means the `.tga` was regenerated at the wrong size (it
-   must be a power of two; see ARCHITECTURE ▸ Logo art).
-3. General renders a breadcrumb header, a gold divider and a Defaults button. The
-   Defaults button looks like every other button on the page — if it renders as Blizzard's red
-   stone button, it was built before a UI skin hooked AceGUI (`/bl debug panel` shows the region
-   list; the bare 5-region `130828` form is the unskinned one).
-   The page is **tabbed** (`options-ui-§13`): a strip pinned under the header, above the scroll,
-   with no section heading repeating a tab's own name — the tab is the heading. The strip reads
-   **Master controls · Capture · Interface · History · Filters**, in that order, and
-   **Master controls** is selected when General first opens. Those names and that order are shared
-   with **Ka0s Loot History**, whose strip is the same five plus **AH Price** after Capture — open
-   both panels side by side and check they agree, because that agreement is the point.
-   - **Master controls** — *Enable Bank Ledger · General visibility*, then *Master scale · Master
-     alpha*, then *Lock frame · Debug console*, then *Minimap button · Test mode*, then
-     **Reset position** and **Reset all settings** side by side. Exactly that order, four full
-     lines and the button pair; no row may be renamed, reordered or missing.
-     **Untick *Minimap button***: the button vanishes from the minimap **immediately**, not at the
-     next reload. Tick it: it comes back **at the same angle** you had dragged it to. Now hide it
-     with `/bl set minimap.shown false` instead, and reopen this tab — the box is unticked,
-     because the checkbox, the CLI and LibDBIcon are reading one boolean and not two
-     (`launcher-§3`). The button's right-click menu has no hide entry: since standard v2.67.0 it is
-     the options menu (S-1 step 6).
-     `/bl get minimap.shown` answers **false** now; `/bl set minimap.shown true` brings the button
-     back, `/reload` keeps whichever state you left, and `/bl get minimap.hide` answers `Setting
-     not found` — the CLI path reads in the row's own sense, the stored key is still LibDBIcon's. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
-     and the windows visibly fade to that and no further — the row's declared minimum IS the floor
-     `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
-     **Reset all settings** raises a confirm popup that says it resets **this profile** and leaves
-     your other profiles alone. `/bl resetall`, the header **Defaults** button and Blizzard's footer
-     **Defaults** raise the SAME popup (`options-ui-§12`): **No** leaves everything as it was;
-     **Yes** resets every setting, empties both filter lists, turns test mode off, closes the debug
-     console, leaves a hidden minimap button hidden, and **keeps History** (the ledger is
-     account-wide and in no profile).
-   - **Capture** — *Track items · Track gold*, then *Minimum quality*, then the full-width per-store
-     grid.
-   - **Interface** — a **Windows** heading over *Session window*, then a
-     **Table rows** heading over *Row stripe opacity · Row hover opacity*. Both headings must be
-     there (this tab mixes two kinds of control, `options-ui-§7`), and neither may read
-     "Interface". The two opacity sliders must be side by side on one line, not stacked.
-   - **History** — *Keep history for*, then the storage read-out ("N movements recorded over N
-     days" and the estimated database size), then **Purge ledger…** alone. There must be **no**
-     *Reset all* button on History, Interface or Capture — there is exactly one in the panel and it
-     is on Master controls.
-   - **Filters** — a **secondary** strip inside the scroll (it scrolls with the content, and there
-     is no second pinned chrome band), reading **Blacklist · Whitelist**, opening on Blacklist. The
-     selected list shows its own blurb, its own **Clear all**, then its own add box and id list,
-     and never both lists at once — one add box on screen, not two. Click Whitelist, leave for **Capture**, come
-     back: Filters is still on **Whitelist** (the sub-selection is per-tab session state). Reload:
-     it opens on Blacklist again, because none of it is persisted.
-   Click each tab in turn and then click back: the store grid, the read-out, the reset pair and both
-   id lists must still be there. They are drawn from the tab's `afterGroup` hook precisely so that a
-   second visit redraws them; anything drawn by the page body instead would survive exactly one
-   render.
-4. Toggle a checkbox, then run `/bl list` — the value matches.
-5. `/bl set settings.trackMoney false`, then reopen the panel — the checkbox reflects the change.
-6. The scrollbar is visible on both pages and grayed out on the one that fits, so the body width
-   does not jump between them.
-7. **Blizzard's own defaults control** (the Settings window's footer, not the addon's header button)
-   reaches the addon: on General, change a setting, then use it — the settings return to stock, both
-   id lists are cleared and the ledger is untouched (`/bl` reports the same entry count as before).
-   Headless coverage stops at the callback contract; only the live client proves the framework
-   actually invokes it.
+## SESS
 
-## S-12a · The row tint sliders
+- **SESS-1. It opens with the bank.** Open your character bank → a second window, Ka0s Bank Ledger -
+  Current Banking Session, empty, reading "Nothing has moved yet this session." Result:
+- **SESS-2. Its shape.** No tabs, filter bar, search, Clear, Export or footer. Columns: Direction,
+  Store, Item, Qty, Quality, Type, Sub-type; no Date, Time or Character. Result:
+- **SESS-3. Headers do not sort.** Click a header → nothing; hover → the column's explanation. Result:
+- **SESS-4. Rows arrive at once.** Deposit something → a row at once, colored as History colors it,
+  newest on top. Withdraw → a second row above it with the red ▲. Result:
+- **SESS-5. Gold.** Move gold at the warband bank → the row reads Gold with the amount in coins.
+  Result:
+- **SESS-6. It is this visit only.** Drag and resize it, close the bank → it closes. Reopen → empty, at
+  the position and size you left. Result:
+- **SESS-7. History holds it.** Open the ledger → every movement from that visit is there. Delete one in
+  History with the bank open → it leaves the session window too. Result:
+- **SESS-8. Every store drives it.** Repeat SESS-1 and SESS-4 at the warband tabs and at a guild bank →
+  the same window. Result:
+- **SESS-9. The guild bank's open and close.** Open the guild bank → the window appears (on the frame's
+  `OnShow`). Move something → the row. Close it without touching your bags → the window disappears at
+  once, not on the next bag change. Result:
+- **SESS-10. Geometry across a game session.** Move and resize it, close the bank, `/reload`, reopen →
+  same size and place, no rows. Log in on another character on the same profile → the geometry
+  follows (it belongs to the profile). Again resizing only, and again with it on screen at `/reload` →
+  both kept. Result:
+- **SESS-11. The Session window setting.** Untick Session window on Interface, open a bank → no window,
+  but movements still record in History. Tick it with a bank open → it appears on the next movement.
+  Untick it while shown → it closes at once. Result:
+- **SESS-12. The preview.** Away from any bank, `/bl session` → it opens on a sample visit; again →
+  dismissed. During a real session, `/bl session` → refuses and says so. Result:
 
-Two settings that were hardcoded numbers until the tabbed-panel pass: `settings.rowStripeAlpha`
-(the zebra band behind every second row, `0.03`) and `settings.rowHoverAlpha` (the gold wash under
-the cursor, `0.10`). Both live on **Settings ▸ General ▸ Interface** and both drive **two** tables —
-the History window and the Current Banking Session window.
+## DIAG
 
-1. `/bl show` with a few movements recorded. Every second row carries a faint lighter band. Hover a
-   row: it takes a faint gold wash. That is the shipped look, and it must be **identical** to what
-   the addon drew before these sliders existed — the defaults are the literals they replaced, so an
-   install that never touches them is not redrawn by the upgrade.
-2. Open Settings ▸ General ▸ Interface with the ledger window still on screen. Drag **Row stripe
-   opacity** to its maximum. The banding darkens **while you drag**, with no reload.
-3. Drag it to `0`. The banding disappears entirely — every row reads the same.
-4. Drag **Row hover opacity** to its maximum, then hover a row: the wash is strong and unmistakably
-   gold. Set it to `0` and hover again: no highlight at all.
-5. Open a bank so the **Current Banking Session** window appears, and move something. Its rows wear
-   the same band and the same hover at the same strengths — one setting, both tables.
-6. `/bl set settings.rowStripeAlpha 5`. The CLI clamps to the slider's maximum; the table is tinted
-   at that value and never drawn as an opaque white block. Same for a negative value: it clamps to
-   `0`. (These come out of SavedVariables, so a hand-edit is the real case.)
-7. `/bl resetall`, then look again: `0.03` and `0.10`, and the tables read exactly as in step 1.
+- **DIAG-1. The console opens.** `/bl debug` → the console, header **Debug: OFF** in red. Result:
+- **DIAG-2. Logging on.** `/bl debug on` → a green ON ack, `[Debug] logging enabled` and an `[Init]`
+  summary naming the build, schema and profile. Result:
+- **DIAG-3. One summary per pass.** Move something at your bank → one `[Move]` summary line per pass,
+  not one per item. Result:
+- **DIAG-4. Scroll and counter.** The scrollbar follows the wheel both ways; the counter reads
+  `N / 3000 lines`. Result:
+- **DIAG-5. Copy and Clear.** Copy → a monospace box with the plain log, no color codes. Clear → both
+  empty and the counter reads `0 / 3000`. Result:
+- **DIAG-6. Logging off.** `/bl debug off` → a red OFF ack and `[Debug] logging disabled`. Turn it on
+  and `/reload` → off again (the flag is session-only). Result:
+- **DIAG-7. Chrome.** The console and its Copy box wear the ledger window's edge (a flat 1px black
+  border with a 1px light-gray line inside, a gold title, a gray divider), with a smaller close
+  control, 18×18 on a 26px title bar, drawn as the outlined × mark. That size is the library's, not
+  drift. Result:
+- **DIAG-8. Three title-bar marks.** Right to left: close, clear, copy, one size and pitch, gray at rest
+  and brighter under the pointer, the art every Ka0s window uses. **Fail:** the words `Copy` and
+  `Clear`, or a thin multiplication sign for close: `core/DebugLogSetup.lua` stopped passing
+  `addonName`, or the art is missing from the payload (with the marks clear is 18 wide and copy sits
+  at `-54`; with words, 42 and `-78`). Result:
+- **DIAG-9. No tooltips on the marks.** Hover copy, clear and close, here and on the Copy box → each
+  brightens and nothing pops up. A tooltip there is a regression. Result:
+- **DIAG-10. A monospace log.** Timestamps, `[Tag]` prefixes and `[Move]` numbers line up in straight
+  columns, in the console and the Copy box. **Fail:** proportional text: `NS.MediaFont("JetBrains
+  Mono")` answered nil (`LibKa0s-Media-1.0` missing, or `core\MediaSetup.lua` after
+  `core\Constants.lua` in the TOC). Result:
+- **DIAG-11. One console look.** Open another Ka0s addon's console beside this one → apart from the
+  titles, indistinguishable: border, inner line, gold title, divider, the same three marks in order. A
+  difference is fixed in `../LibKa0s`, never in `libs/`. Result:
+- **DIAG-12. The addon's own dumps.** With logging off, `/bl debug scan` at a bank, then `/bl debug
+  panel` after opening `/bl config` once → both open the console and write their lines anyway, tagged
+  `[Scan]` and `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
+  ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Result:
+- **DIAG-13. The report appends with logging off.** `/bl debug on`, move something, `/bl debug off`,
+  then `/bl diagnostics` at the open bank → the `[Move]` lines sit above a `[Diag] ==== Ka0s Bank Ledger
+  diagnostics begin ====` line; the report is complete; the header still reads Debug: OFF, and another
+  move logs no `[Move]` line. Chat prints one line, *Diagnostic report written to the debug console: N
+  lines. Use Copy to share it.* Result:
+- **DIAG-14. The report's sections.** In order, each under its tag: `[State]`, `[Set]`, `[Filter]`,
+  `[Ledger]`, `[Capture]`, `[Session]`, `[Scan]`, `[Window]`, `[Launcher]`, `[Env]`, ending
+  `[Diag] ==== Ka0s Bank Ledger diagnostics end: N line(s) ====` with the chat line's N. A
+  `section <name> failed:` line names a section that raised. Result:
+- **DIAG-15. A second report and the copy.** `/bl debug diagnostics` → a second report of the same shape
+  below the first. Copy, paste into an editor → the trace and both reports, no `|c`, `|T` or `|H`
+  escapes; ledger entries show an item id and a plain name, never a link. Result:
+- **DIAG-16. The guild cache caveat.** Run the report with the guild bank closed → `[Scan]` opens with
+  `guild bank frame closed: the tab counts below are the client's cache, not fact`. Result:
+- **DIAG-17. Diagnostics while disabled.** Untick Enable Bank Ledger, run `/bl diagnostics` and
+  `/bl debug diagnostics` → both write a full report; `[State]` reads `disabled=true stood down=true`;
+  `[Capture]` and `[Session]` each print one `stood down:` line. `/bl debug diag` toggles the console
+  and `/bl diag` is an unknown command. Re-enable. Result:
+- **DIAG-18. The buffer cap.** With logging on, keep logging (moves, or repeated `/bl diagnostics`) past
+  3000 → the counter pins at `3000 / 3000 lines`, the oldest lines scroll away, and Copy still opens
+  without a hitch. Result:
+- **DIAG-19. A reset logs one line.** `/bl debug on`, open the console. `/bl set
+  settings.qualityThreshold 4`, `/bl set settings.rowHoverAlpha 0.3`, `/bl resetall` ▸ Yes → exactly one
+  `[Set] reset profile 'Default' to defaults (2 rows)` and no `[Set] settings.… = …` line under it.
+  `/bl resetall` ▸ Yes again → one `… (0 rows)` line. General's Defaults ▸ Yes → the same one line
+  (`debug-logging-§10`). `/bl debug off`. Result:
 
-## S-12b · Master controls — the three rows the revamp added
+## DEGRADED
 
-`General visibility`, `Master alpha` and `Lock frame` are new settings, not relabeled old ones.
-Nothing headless can prove a frame is actually dimmed, undraggable or gone, so this is the only place
-these are observable. All three are on **Settings ▸ General ▸ Master controls**.
-
-1. `/bl show`. Drag **Master alpha** down to about a quarter: the ledger window fades **while you
-   drag**. Open a bank so the **Current Banking Session** window appears — it is faded to the same
-   degree. Open **Export** from the filter bar: the modal matches too. All three read one setting.
-2. Set **Master alpha** to its minimum. The windows are faint but still findable and still
-   clickable — never fully invisible. (`0` is clamped to `0.1` at the read for exactly that reason.)
-   Put it back to `1.00`.
-3. Tick **Lock frame**. Try to drag the ledger window by its title bar: it does not move. The session
-   window and the export modal are equally stuck. Untick it — all three drag again.
-4. Move the ledger window well off center, drag the session window somewhere odd, then click **Reset
-   position**. Both snap back to center at their default size. Nothing else changes — your settings,
-   your filter lists and your recorded history are all untouched. (The page's **Defaults** button
-   does this too, as part of a wider reset; this button does *only* this.)
-5. Set **General visibility** to **Never**. Every window closes. `/bl show` does nothing — the addon
-   refuses rather than deferring. Capture keeps running: move something into your bank, set
-   visibility back to **Always**, and the movement is in the ledger.
-6. Set **General visibility** to **Only out of combat** with the ledger window open, then pull a
-   training dummy: the window hides on the pull and comes back when you leave combat.
-7. Repeat step 6 with the ledger window **closed**. It must stay closed through both edges — the
-   rule puts back only what it took, never a window you had closed yourself.
-8. Set **General visibility** to **Only in combat** and confirm the mirror image: hidden out of
-   combat, shown on the pull. Set it back to **Always** when you are done.
-
-## S-13 · Combat
-
-1. Pull a training dummy.
-2. `/bl config` prints a gray "cannot open settings during combat" notice and does **not** open.
-3. Leave combat. The panel does **not** pop itself open — you re-run `/bl config` when you choose.
-4. The ledger window still opens, refreshes and filters in combat (it is a non-secure frame).
-5. Open the settings panel out of combat, leave it on General, then pull a training dummy. A gray
-   *Settings are locked during combat.* cover goes over the page; a click on a checkbox or a tab does
-   nothing and chat prints one gray line for the combat. Blizzard's settings window stays open and
-   usable (no `ADDON_ACTION_BLOCKED`). Leave combat: the cover lifts and the page shows current values.
-
-## S-14 · Debug console
-
-1. `/bl debug` opens the console. The header reads **Debug: OFF** in red.
-2. `/bl debug on` → a green ON ack in chat, a `[Debug] logging enabled` line and an `[Init]` summary
-   naming the build, schema and profile.
-3. Move something to your bank → one `[Move]` summary line per pass, not one per item.
-4. The scrollbar tracks the wheel both ways, and the counter reads `N / 3000 lines` (LibKa0s
-   v1.60.0 raised the buffer from 1500).
-5. **Copy** opens a monospace box with the plain, color-code-free log. **Clear** empties both and
-   resets the counter to `0 / 3000`.
-6. `/bl debug off` → a red OFF ack and a `[Debug] logging disabled` line.
-7. `/reload` → logging is off again, because the flag is session-only.
-8. **Chrome.** The console and the **Copy** box wear the same edge as the ledger window — a flat 1px
-   black border with a 1px light-gray line just inside it, a gold title, a gray divider — but their
-   close control is **smaller** (18×18 on a 26px title bar) than the ledger window's 24×24. That is
-   correct, not drift: the edge is shared across every Ka0s window, the close control on a
-   library-drawn window is the library's (standalone-windows). Both should now show the same
-   **×-in-outline mark** rather than a font character — see S-21.
-9. **The title bar draws three marks, right to left: close, clear, copy** — one size (18×18), one
-   pitch, gray at rest and brighter under the pointer, and the same art every other Ka0s window
-   uses. **Words there (`Copy`, `Clear`), or a thin multiplication sign where the close mark should
-   be, mean `core/DebugLogSetup.lua` stopped passing `addonName`** — or the art is missing from the
-   vendored payload. The library falls back to the words and the console keeps working, which is
-   exactly why nothing errors to tell you. The measurement gives it away too: with the marks, clear
-   is 18 wide and copy sits at `-54`; with the word, clear is 42 wide and copy slides out to `-78`.
-10. **Hover copy and clear: each brightens, and NOTHING pops up.** They carried a tooltip for one
-    release; anchored under the control, it covered the first line of the log, and it was removed
-    rather than repositioned. A tooltip reappearing on either of them is a **regression**, not a
-    nicety. The same goes for the close mark, here and on the **Copy** box.
-11. **The log body is still monospace.** Timestamps and the `[Tag]` prefixes line up in a straight
-    column down the left edge, and so do the numbers in a `[Move]` summary. **Proportional text
-    there means the font seam fell through** — `NS.MediaFont("JetBrains Mono")` answered nil and
-    `C.FONT_MONO` took `STANDARD_TEXT_FONT` instead. Either `LibKa0s-Media-1.0` is not loaded, or
-    `core\\MediaSetup.lua` slipped after `core\\Constants.lua` in the TOC. It is readable, so
-    nothing complains; the ragged left column is the only symptom. Check the **Copy** box too.
-12. Open another Ka0s addon's debug console alongside this one. Apart from their titles the two must
-    be **indistinguishable**: same border, same inner highlight, same gold title, same divider, and
-    the same three marks in the same order. Any difference means the shared edge has drifted in one
-    of them, and the fix belongs in `../LibKa0s`, never in `libs/`.
-13. **The two addon-owned dumps.** With logging **off**, run `/bl debug scan` at a bank and then
-    `/bl debug panel` after `/bl config` has been opened once. Both open the console and write their
-    lines anyway, tagged `[Scan]` and `[Panel]`: they use the raw append, not the gated sink. The
-    scan ends with the `events registered` / `events UNAVAILABLE` pair. What each line means, and
-    which to paste with a bug report, is in [debug.md](debug.md). An empty console after either
-    verb with logging off means a dump went through the gated sink.
-14. **The diagnostics report.** `/bl debug on`, move something to your bank, then `/bl debug off` and
-    run `/bl diagnostics` at the bank with it still open.
-    - The `[Move]` lines are still there, **above** a `[Diag] ==== Ka0s Bank Ledger diagnostics begin
-      ====` line: the report appended, it did not clear.
-    - The report lands in full with logging off, and the console header still reads **Debug: OFF**
-      afterwards. Move another item: no new `[Move]` line, because the report left the flag alone.
-    - Chat prints one line, *Diagnostic report written to the debug console: N lines. Use Copy to
-      share it.*
-    - The sections follow in this order, each under its own tag: `[State]`, `[Set]`, `[Filter]`,
-      `[Ledger]`, `[Capture]`, `[Session]`, `[Scan]`, `[Window]`, `[Launcher]`, `[Env]`. The last
-      line is `[Diag] ==== Ka0s Bank Ledger diagnostics end: N line(s) ====`, with the same N as the
-      chat line. A `section <name> failed:` line names a section that raised.
-    - `/bl debug diagnostics` writes a second, identical-shaped report below the first.
-    - **Copy**, then paste into a text editor. The paste holds the trace and both reports, with no
-      `|c`, `|T` or `|H` escapes; ledger entries show an item id and a plain name, never a link.
-    - Run it once more with the guild bank **closed**. The `[Scan]` section opens with `guild bank
-      frame closed: the tab counts below are the client's cache, not fact`.
-15. **Diagnostics while disabled.** Untick **Enable Bank Ledger**, then run `/bl diagnostics` and
-    `/bl debug diagnostics`. Both write a full report. `[State]` reads `disabled=true stood
-    down=true`, and `[Capture]` and `[Session]` each print one `stood down:` line instead of engine
-    state. `/bl debug diag` and `/bl diag` run nothing: the first toggles the console, the second is
-    an unknown command. Re-enable the addon.
-16. **Diagnostics in combat.** Pull a training dummy and run `/bl diagnostics`. No Lua error; the
-    identity header's `combat:` line reads `InCombatLockdown=true`.
-17. **The buffer cap.** With logging on, keep moving items (or run `/bl diagnostics` repeatedly)
-    until the counter passes 3000. It pins at `3000 / 3000 lines`, the oldest lines scroll away, and
-    **Copy** still opens without a noticeable hitch.
-
-## S-15 · Test mode
-
-1. `/bl test` opens the window on a sample ledger with a red **TEST MODE** badge by the title.
-2. The filters, grouping, Insights and export all work against it.
-3. The dataset reads as a real bank's history, not a uniform grid: character-bank rows dominate,
-   warband is mid-weight and the guild bank lightest; roughly 60/40 deposit-leaning; about
-   eight characters across distinct classes with two or three clear "mains"; six real bank-city
-   zones; a hot-item head over a long tail in the Top Items lists; an evening-leaning hour-of-day
-   curve; every store, both directions and every quality 0–5 appear at least once; the date range
-   spans more than 14 days.
-4. Right-click a sample row. **Link to chat** is available; **Blacklist item**, **Whitelist item**
-   and **Delete** are grayed out and click-inert. The sample rows carry synthetic item ids, so those
-   three would otherwise reach the real filter lists and the real ledger.
-5. `/bl config` ▸ **General** ▸ **Filters** ▸ **Blacklist** / **Whitelist** — both lists are unchanged by
-   anything done in step 4.
-6. `/bl test` again returns to the real data and the badge disappears. Right-click a real row: all
-   four entries are now available, and **Delete** removes the row and decrements the footer count.
-7. **The Master controls checkbox is the same switch.** Close the ledger window, then open Settings ▸
-   General ▸ **Master controls** and tick **Test mode**: the window opens on the sample with the
-   **TEST MODE** badge. Untick it: the real data comes back and the window stays where it is. Now run
-   `/bl test` with the panel still open. The box ticks itself, and `/bl test` again unticks it.
-   Nothing about the **Current Banking Session** window changes at any point; that preview is
-   `/bl session`'s, not this box's.
-8. **Combat ends it.** Tick **Test mode**, close the ledger window, then pull a training dummy. Chat
-   prints one line, `test mode off — combat started.`. The ledger window does **not** open, and the box
-   is unticked when you look. Then, still in combat, tick the box. It refuses with one line saying
-   test mode cannot start during combat, and it stays unticked.
-9. **A refused start leaves the box unticked.** Set **General visibility** to **Never** and tick
-   **Test mode**. One chat line says General visibility is keeping the window closed, and the box
-   is unticked again. `/bl test` gives the same answer and never prints `test mode on`. Set
-   visibility back to **Always**.
-10. **Reset ends it.** Tick **Test mode**, then click the page's **Defaults** button: the box unticks
-    and the real data is back. Tick it again and run `/bl resetall`: same result. Leave **Reset all
-    settings** out of this step unless you mean it: it resets the current profile's settings,
-    though it keeps the recorded ledger (S-16).
-    `/reload` with it ticked: it comes back off, because test mode is never saved.
-
-## S-16 · Retention and purge
-
-1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
-2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **Master controls** ▸ **Reset all settings** asks to confirm and resets the
-   current profile, recentering both windows. The recorded ledger is **kept**: only `/bl purge`
-   (step 2) deletes history. It sits beside
-   **Reset position** in that tab's closing button pair, and nowhere else — History carries
-   **Purge ledger…** alone (S-12).
-4. **Without reloading**, capture a bank movement: open your character bank and deposit or withdraw
-   something. The movement is recorded under the restored defaults — a new row in History and in the
-   Current Banking Session window. This is the check that the reset told the rest of the addon it
-   happened: the capture gate holds its settings in cached upvalues, and until it was given a
-   `Ka0s_BankLedger_SettingsChanged` broadcast it went on judging movements by the settings the
-   reset had already destroyed. To make it bite, blacklist an item first (History ▸ right-click ▸
-   or `/bl` ▸ Filters), reset, and then move that item: it must now be **recorded**, because the
-   reset emptied the blacklist. **Fail:** the movement is dropped, or a movement that should be
-   dropped is recorded, until you `/reload`.
-5. **The open views keep the history.** With History, Insights and the settings panel's storage
-   read-out on screen, run **Reset all settings** ▸ Yes. History and Insights keep every row and the
-   storage read-out keeps its count; the Filters tab's lists empty at once, because the profile
-   handler announces `Ka0s_BankLedger_LedgerChanged` through `Database:FireLedgerChanged`. **Fail:**
-   any row of history goes, or a list keeps showing ids until it is reopened.
-6. **A reset while disabled re-enables.** Untick **Enable Bank Ledger**, then **Reset all settings**
-   ▸ Yes. The checkbox reads ticked and the addon is running: deposit something at your bank and it
-   records. **Fail:** the box reads ticked but nothing records until a `/reload` or a toggle.
-
-## S-17 · Current Banking Session window
-
-1. Open your character bank. A second window titled **Ka0s Bank Ledger - Current Banking Session**
-   appears alongside it, empty, reading "Nothing has moved yet this session."
-2. It has no tabs, no filter bar, no search, no Clear, no Export and no footer. Its columns are
-   Direction, Store, Item, Qty, Quality, Type and Sub-type — no Date, no Time, no Character.
-3. Clicking a column header does nothing. Hovering one still shows that column's explanation.
-4. Deposit something. A row appears **immediately**, colored exactly as the same movement reads in
-   the History window, newest at the top.
-5. Withdraw something. A second row appears above the first, with the red ▲ glyph.
-6. Move gold at the warband bank — the row shows "Gold" and the amount as coins.
-7. Drag the window somewhere else and resize it from the bottom-right grip.
-8. Close the bank. The window closes.
-9. Reopen the bank: it comes back **empty** (it is this visit's movements, not a running log) and in
-   the position and size you left it.
-10. Open the main ledger window — every movement from that session is still there. The session view
-    never stored anything of its own.
-11. Delete one of those rows from the History table while the bank is still open — it disappears from
-    the session window too.
-12. Repeat steps 1–5 at the **warband** tabs and at a **guild bank**. Both drive the same window.
-13. **Guild bank open and close, specifically.** The guild bank fires neither event, so its session
-    starts on the frame's own `OnShow` and ends on its `OnHide`. Open the guild bank — the session
-    window must appear, and `/bl debug` must show `[Store] GUILD_BANK opened` with a **non-zero**
-    baseline for the `GUILD_BANK` store once the tab queries land. Move something and confirm the
-    row. Then close it **without touching your bags afterwards** — the window must disappear
-    *immediately*, not on your next bag change. If either half misbehaves, `/bl debug scan` will say
-    `guild bank frame hooks: NOT INSTALLED`.
-14. **No session away from a bank** (issue #12). `/bl debug on`, then `/reload` while standing
-    somewhere with no bank in sight, and leave the character parked for a few minutes — ideally
-    while a guildmate moves something in the guild vault. No session window may appear, and the log
-    must show **no** `[Store] GUILD_BANK opened` line. A `GUILD_BANK opened` with a baseline of
-    `GUILD_BANK 0` is the exact signature of the regression.
-15. **Geometry across a game session.** Move and resize the window, close the bank, then `/reload`.
-    Open a bank again: it comes back at the size and position you left it, with no rows. Repeat
-    logging in on a **different character** on the same profile (every character shares `Default`
-    until you choose otherwise) — the geometry belongs to the profile, so it follows you.
-    Do it once more resizing *only* (never dragging), and once more with the window still on screen
-    when you `/reload`: both must survive. Session *data* is never persisted; only the geometry is.
-16. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
-    movements you make are still recorded (check the History window). Tick it again while a bank is
-    open and it appears on the next movement; untick it while it is open and it closes at once.
-17. Away from any bank, `/bl session` opens it on a sample visit so it can be positioned. Run it
-    again to dismiss it. While a real bank session is open, `/bl session` refuses and says so rather
-    than replacing your actual data with placeholders.
-
-## S-18 · LibKa0s — the degraded install
-
-The nine LibKa0s seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
+With `libs/LibKa0s` renamed aside (Before you start). Nothing about the addon's own function depends
+on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
 `core/ItemSetup.lua`, `core/LifecycleSetup.lua`, `core/MediaSetup.lua`, `core/PoolSetup.lua`,
-`settings/OptionsSetup.lua` and `settings/Slash.lua`) each degrade rather than error when the
-vendored library is absent. Nothing headless can prove what the client
-actually draws, and an install missing `libs/LibKa0s` is exactly the install those branches exist
-for.
+`settings/OptionsSetup.lua`, `settings/Slash.lua`) each degrade rather than error.
 
-1. Quit the game. Rename `Interface/AddOns/BankLedger/libs/LibKa0s` to `libs/LibKa0s.off`.
-2. Log in. **Zero Lua errors.** Not one — turn error display on (`/console scriptErrors 1`) first.
-3. `/bl version` prints two lines: the notice, then `[BL] v1.2.0`. The notice reads, exactly:
+- **DEGRADED-1. Zero errors.** Log in → not one Lua error. Result:
+- **DEGRADED-2. The notice.** `/bl version` → two lines: `[BL] The LibKa0s library is missing from this
+  installation of Ka0s Bank Ledger (expected in libs/LibKa0s); running on reduced built-in
+  fallbacks.`, then `[BL] v<version>`. The clause up to `(expected in libs/LibKa0s)` matches every
+  other Ka0s addon's word for word; a difference is the finding. Result:
+- **DEGRADED-3. Said once.** `/bl version` again → no notice. It prints once per session, on the first
+  line the addon prints. Result:
+- **DEGRADED-4. A complete list.** `/bl list` → every schema row under its group headings, no gaps and
+  no truncation. Keep the output for DEGRADED-11. Result:
+- **DEGRADED-5. The addon still works.** `/bl show`, `/bl config`, `/bl debug` → the ledger, the panel
+  and the console open and behave. `/bl diagnostics` → one line, `/bl diagnostics is unavailable: the
+  LibKa0s library did not load.`, and nothing else. Result:
+- **DEGRADED-6. The profile verb explains itself.** `/bl profile` and `/bl profile Default` → each one
+  line, `/bl profile is unavailable: the LibKa0s library did not load.`, and no switch. Result:
+- **DEGRADED-7. The Media fallbacks.** The console log, the Copy box, the ▲/▼ column in History and in
+  the session window → proportional text, and ▲/▼ drawn as boxes. Correct here; the same with
+  `libs/LibKa0s` in place is a broken seam. Result:
+- **DEGRADED-8. No filter bar.** `/bl show` → the filter bar does not build (none of its eight
+  dropdowns), chat reads "Filters need LibKa0s. The ledger itself is unaffected.", and the History
+  table below still works unfiltered. Result:
+- **DEGRADED-9. The fallback marks.** Every other surface still draws something: the font-character ×,
+  `Arrow-Up-Up` sort arrows, boxed `+`/`-` group expanders, and the four header marks still gold (the
+  tint rides on the escape). A near-white one means the fallback lost the tail. Nothing blank or off
+  center. Result:
+- **DEGRADED-10. The export modal is unreachable.** There is no Export button anywhere and no way to
+  open the modal (it lives on the filter bar). `tests/test_export.lua` covers the modal on this rung.
+  Result:
+- **DEGRADED-11. Restore.** Quit, rename `libs/LibKa0s.off` back, log in → no notice, `/bl list` byte for
+  byte as in DEGRADED-4, the console monospace again with its three marks. Result:
 
-   > `[BL] The LibKa0s library is missing from this installation of Ka0s Bank Ledger (expected in
-   > libs/LibKa0s); running on reduced built-in fallbacks.`
+## Non-English client
 
-   The cause clause — everything up to and including `(expected in libs/LibKa0s)` — is shared with
-   every other Ka0s addon that bundles LibKa0s. If it does not match theirs word for word, that is
-   the finding.
-4. `/bl version` again. The notice is **not** repeated. It is said once per session, on the first
-   line the addon prints, never stapled to every line.
-5. `/bl list` prints a **complete** listing — every schema row under all three group headings
-   (*Capture*, *Interface*, *History*, in that order), no gaps and no truncation. A degraded printer
-   that drops lines is the failure this step exists to catch.
-6. `/bl show`, `/bl config`, `/bl debug` — the ledger window, the settings panel and the console all
-   open and behave. Nothing about the addon's own function depends on the library.
-   `/bl diagnostics` prints one line, `/bl diagnostics is unavailable: the LibKa0s library did not
-   load.`, and writes nothing to chat or the console beyond it.
-7. **The Media seam is the silent one.** With the library gone, `NS.Icon` and `NS.MediaFont` both
-   answer `nil`, and nothing errors either way. Every mark falls back to the rung below it (S-21
-   step 10 is the full list), and every monospace surface falls back to `STANDARD_TEXT_FONT`: the
-   debug console, the **Copy** box, the direction ▲/▼ column in History and the same glyph in the
-   session window. The console's log goes proportional and the ▲/▼ render as **boxes**. All of that
-   is correct in this state and a **bug** in a healthy install — if you see a box or a
-   proportional log with `libs/LibKa0s` in place, the seam is broken, not the client.
-8. Quit, rename `libs/LibKa0s.off` back to `libs/LibKa0s`, log in. The notice is gone and `/bl list`
-   is byte-for-byte what it was in step 5. Re-check the console: monospace again, and the three
-   marks back on its title bar.
+Run on a client set to **deDE or frFR**, the two the collection's other locale checks use
+(ConsumableMaster LOC-1, KickCD LOC-1). Any character with a bank works. The headless suite is blind
+here: `tests/wow_mock.lua` answers enUS for every localized global, so a path keyed on a display
+string is green whether it is right or wrong.
 
-**Rename the folder back before you finish.** A repo left in the degraded state passes its own gate
-and ships broken.
-
-## S-19 · LibKa0s — no raw locale keys on screen
-
-The library modules resolve their user-visible strings through the descriptor's `L` table first.
-Handing one an addon-wide locale table makes every key resolve to *itself*, so the addon renders
-`DEBUG_ON` and `LIST_HEADER` in place of English — for every string at once, and only in game. The
-headless source guard cannot see what the client draws.
-
-1. Walk **every** settings page and every tab of General: the landing page, then Master controls,
-   Capture, Interface, History, and Filters (both of its sub-tabs).
-2. Open the debug console (`/bl debug`) and toggle it on and off.
-3. Run `/bl help`, `/bl list`, `/bl get settings.enabled`, `/bl reset settings.enabled`.
-4. Nothing on screen or in chat is `SCREAMING_SNAKE_CASE`. Every label is prose. One raw key means
-   a descriptor was handed `NS.L`, and it means all of them are wrong, not just the one you spotted.
-
-## S-20 · A slash write repaints the open settings window
-
-options-ui-§11: an open panel must reflect live state after a mutation, including a slash `set`. It
-did not, from v1.0.0 until this was fixed — the value was written correctly and the widget kept
-showing the old one until the window was closed and reopened. Nothing headless can see a widget
-redraw, so this is the only place the fix is actually observable.
-
-1. `/bl config`, then open **General**. Leave the window on screen for every step below.
-2. `/bl set settings.enabled false` — the **Enable Bank Ledger** checkbox on **Master controls**
-   unticks **immediately**, with the settings window still open. Set it back to `true`.
-3. `/bl set settings.windowScale 1.25` — the **Master scale** slider moves at once, and both the
-   ledger and session windows rescale.
-4. `/bl set settings.windowScale 9` — the slider lands on its maximum (2.00), because the CLI
-   clamps. The chat echo says `2.00x`, and the slider agrees with it.
-5. `/bl reset settings.windowScale` — the slider returns to 1.00.
-6. `/bl resetall` — every General widget repaints, and the **Database size** line on History
-   updates. It should repaint **once**, not flicker per row.
-7. Switch to **Filters ▸ Blacklist**, add an item id, then `/bl resetall` — the id list empties while
-   you watch. (This path was already correct: the lists are structural and ride `LedgerChanged`.)
-8. Close the settings window entirely and run `/bl resetall` again. No errors, and reopening shows
-   the reset values.
-9. `/bl debug on` and open the console (`/bl debug`). Run `/bl set settings.qualityThreshold 4` and
-   `/bl set settings.rowHoverAlpha 0.3`, then `/bl resetall`. The console shows exactly **one**
-   `[Set] reset profile 'Default' to defaults (2 rows)` line for the reset, with no
-   `[Set] settings.… = …` line under it. Run `/bl resetall` again: one
-   `[Set] reset profile 'Default' to defaults (0 rows)`. Press the General page's **Defaults** and
-   expect the same one line. Then `/bl debug off` (`debug-logging-§10`).
-
-## S-21 · The shared marks
-
-The one failure mode nothing headless can see. A texture that does not load draws **nothing** and
-raises **nothing** — no error, no log line, no red suite. Every assertion in `tests/test_marks.lua`
-is about the path and the argument; this is where somebody actually looks at the window.
-
-1. `/bl show`. The title bar's close control is an **outlined ×**, not a font character: thinner,
-   evenly weighted, and the same shape you see on every other Ka0s window. Hover it — it takes your
-   class color, exactly as the old glyph did. Click it; the window closes.
-2. Reopen, then check the other two host title bars the same way: `/bl session`, then **Export**.
-   All three wear the same mark, because all three go through `B:MakeCloseButton`. A window whose ×
-   still looks like a font character means one of them stopped using that factory.
-   Then **Export to CSV** on the modal, and check the copy window **separately**: it is
-   `LibKa0s-Widgets-1.0`'s `CopyWindow`, so its close is the library's, not this factory's. It wears
-   the same outlined `close` mark; a font-character × there is a library regression, not a host one.
-   The **debug console** and its **Copy** box are two more windows this factory does *not* draw —
-   they are the library's too, and S-14 steps 9–11 are where you check them.
-3. **Every dropdown on the filter bar** ends in a **chevron**, not Blizzard's filled arrow — that is
-   eight today: **Group by** on row 1, then Date, Direction, Store, Quality, Type, Sub-type and
-   Character on row 2. Count them; Group by is the one a "seven filters" habit skips. The modal's
-   **Data set** dropdown makes nine — it is the same factory.
-   Open any MULTI-select one (Store, Type, Quality, Character) and pick two values. Each chosen row
-   is prefixed by a **flat white tick**, the same weight as the chevron on the button above it — not
-   Blizzard's beveled `UI-CheckBox-Check`. A beveled tick means the `confirm` path this addon hands
-   `LibKa0s-Widgets-1.0` through `B:MakeDropdown` stopped resolving and fell to its rung, which is
-   the same art the menu used before the marks landed.
-   **The tick is FULL WHITE and that is correct** — it is the one inline mark left untinted, because
-   the menu row beside it is plain white text with no color for it to match. It reads a shade
-   brighter than that label. Recorded in [media.md](media.md); not a regression to file.
-4. Click a **column header** in History. The sort arrow beside the label is a chevron-weight
-   **sort-up / sort-down** mark, and it flips when you click again. Group by **Day**: each group
-   header now opens with a **chevron**, right when collapsed and down when expanded, where it used
-   to be Blizzard's boxed `+` / `-`. Click one; the chevron turns.
-   **All four are the SAME GOLD as the words they sit beside** — the arrows against the column
-   label, the chevrons against the group label, both of which are drawn in 1/0.82/0. Hold your eye
-   on each pair: a near-white mark against a gold word means the vertex-color tail came off the
-   inline escape, and it is the one failure in this section that still draws, still sizes and still
-   points the right way. Check the group chevron as carefully as the arrow — it is drawn in a
-   different function and is the half that gets forgotten. The gray `(count)` on the same line is
-   *not* gold and is not part of this check. Every mark drawn on a *widget* — close, the dropdown
-   chevron, the magnifier, the modal's export mark — is toned to 0.7–0.85 gray instead.
-5. **The filter bar carries no marks at all** — **Export**, **Save**, **Reset** and **Clear** are
-   four plain centered words. Export used to wear one and does not any more: one marked button in a
-   row of four read as an odd one out. A mark that has come back on any of them is a regression.
-   **Export to CSV** in the modal is the one action button that keeps its mark: a small mark on its
-   LEFT with the words still **centered** — not shifted. If the words have moved off center, the
-   label was anchored to the art instead of to the button.
-   **Measure the modal's button against the Data set dropdown directly above it.** It must be about
-   *two-fifths* as wide and centered under it, with the mark and the words close enough to read as one
-   control. If it spans the modal edge to edge like the dropdown does, its 150px width was overridden
-   by a left-and-right anchor pair — the mark is then pinned at the far-left edge with the label
-   floating ~150px away, which reads as an unrelated decoration rather than as a mark BESIDE a label.
-6. The search box shows a **magnifier** on its left, with "Search items…" starting just past it. Type
-   into it — your text starts in the same place, not under the magnifier.
-7. **Hover every mark in turn.** None of them shows a tooltip of its own. The four filter-bar buttons
-   still show *their* tooltips, which is not the same thing.
-8. **The settings panel has no marks at all** — `/bl config`, every page. Its widgets belong to
-   `LibKa0s-Options-1.0`; a mark that has appeared there came from the wrong side of the seam.
-9. **The degraded pass.** Rename `libs/LibKa0s` aside and `/reload`. **The filter bar refuses to
-   build entirely** — none of its eight dropdowns appear, and the chat line reads "Filters need
-   LibKa0s. The ledger itself is unaffected." The History table underneath still works and is still
-   usable with no filters. Every surface not on that bar must still draw *something*: the
-   font-character ×, its `Arrow-Up-Up` sort arrows and its boxed `+`/`-` group expanders.
-   **The four header marks are GOLD on this rung too** —
-   the tint rides on the escape rather than on the art, so a gold `Arrow-Up-Up` and a gold boxed `+`
-   are correct here; a near-white one means the fallback path lost the tail the resolved path keeps.
-   Nothing blank, nothing off-center, no error.
-
-   **The export modal is NOT on this rung, and that is not a gap in the check.** This step used to
-   ask for "**Export to CSV** with its words and no art", and it could not be performed: the
-   **Export** button lives on the filter bar, the filter bar refuses to build, so nothing in the
-   client can call `NS.Export:Open` and the modal never exists. Confirm the *absence* instead — no
-   **Export** button anywhere, no way to reach the modal — and check the modal's own marks on the
-   healthy rung, at steps 2 and 5. `tests/test_export.lua` covers what the modal does if it is ever
-   opened on this rung anyway: it draws no **Data set** dropdown rather than a dead one, and it does
-   not raise. Put the folder back.
-
-## S-22 · LibKa0s-Widgets-1.0 — the shared dropdown menu
-
-S-21 checks the *art* on the dropdowns. This section checks the *menu*, which is a different thing
-and a shared one: `LibKa0s-Widgets-1.0` drops **one** popup frame for every dropdown in the client,
-parented to `UIParent` at `FULLSCREEN_DIALOG` and outliving any window that opened it. Nothing
-headless can reach it — the addon is handed no reference to it, only `W.CloseMenu()`.
-
-1. **The first click opens the menu.** `/bl show`, then click **Store** as the very first dropdown
-   you touch after logging in. The menu drops. This is the check for the crash v1.11.0 and v1.11.1
-   of the library shipped: the *first* click built the row pool, and building a row raised
-   `FontString:SetText(): Font not set` before anything appeared. A second click is not a substitute
-   — by then the pool exists. If it drops, click **Direction** too: its rows carry the ▲/▼ glyph,
-   which is the row field that was crashing, and it must be a **glyph and not a box**.
-2. **Escape closes the window AND the menu.** Open **Store**'s menu and, with it still open, press
-   Escape. The ledger window closes *and the menu goes with it*. A menu left floating over the game
-   with no window behind it is the failure: `modules/Browser.lua`'s `OnHide` hook missed its
-   `W.CloseMenu()`. Do the same on the **export modal**: **Export**, open the **Data set** menu,
-   press Escape — modal and menu both go. Then reopen the modal, open the menu again and click the
-   modal's **×**: same result. That close button and Escape are the two routes
-   `modules/Export.lua`'s `OnHide` hook covers.
-3. **A slash-command close closes the menu.** Open the ledger, open any filter menu, and type
-   `/bl hide` in chat with the menu still open. The window closes *and the menu goes with it* —
-   `/bl hide` lands on `B:Hide`, which calls `W.CloseMenu()` itself. Repeat with `/bl toggle` on an
-   open window: it hides the frame, the `OnHide` hook fires, and the menu goes the same way.
-   `/bl show` is **not** a toggle in this addon — it re-shows an already-open window and closes
-   nothing, so it is not the verb to use here. No other slash verb closes the ledger, and no other
-   window owns one of these menus: the session window (`/bl session`) has no `LibKa0s-Widgets-1.0`
-   dropdown, so a filter menu left open while it closes stays open, correctly.
-4. **Two dropdowns do not fight.** Open **Store**'s menu, then — without closing it — click
-   **Character**. The Store menu closes and the Character menu opens in its place; exactly one menu
-   is on screen, the way a native game menu behaves. Then open **Export** on top of the ledger
-   window, open the modal's **Data set** menu, and click somewhere in the ledger window behind it:
-   the menu closes **and the click lands** on whatever in the ledger window sits under the cursor,
-   in that same press. Right-click there instead and the same holds: the menu goes, and the
-   right-click reaches what is under it. *(Changed at LibKa0s v1.13.0, Widgets minor 5. The menu
-   used to be dismissed by a full-screen `Button` shown alongside it, which intercepted the press —
-   so closing the menu cost a click that did nothing else. That `Button` registered `LeftButtonUp`
-   and nothing else, so a right-click anywhere while a menu was open landed on it, found no handler
-   and went nowhere at all. The catcher is gone; two presses where one should do is now a
-   regression.)*
-5. **A collapsed multi-select names a filter it can no longer list.** *(New at LibKa0s v1.12.0,
-   Widgets minor 4 — this is a deliberate change to what the button says.)* Filter History to a
-   single item **Type** that only one character owns, press **Save**, then switch to a character
-   with none of it (or `/bl test` and back) so today's dataset no longer contains that type. The
-   **Type** button reads the **type's own name**. It used to read **"Type: All"** while the filter
-   was still on — the old label walked the option list, and a selected value with no row in it was
-   invisible. The filter itself has not changed and the row count is the same as before; only the
-   words on the button. **"Type: All" on a bar that is visibly filtering is now the regression.**
-   The same applies to **Store**, **Quality** and **Sub-type**. It cannot happen to **Character**:
-   that list always carries its **All** and **Current** rows, whatever the data holds.
-
-## S-23 · The Item seam, and the refusal it did not take with it
-
-`core/ItemSetup.lua` moved four primitives to `LibKa0s-Item-1.0` and left the **resolver** in
-`core/Compat.lua` on purpose. Two things need a client to see: the seam resolves before
-`core/Constants.lua` builds its quality labels at file load, and the capture gate still **refuses**
-an item it cannot classify. Neither is visible headlessly — the first is a load-order accident that
-only a real login can produce, the second needs an item the client has genuinely not cached.
-
-1. Log in with error display on (`/console scriptErrors 1`). **Zero Lua errors.** A nil-index in
-   `core/Constants.lua` here means `core\ItemSetup.lua` has slipped below `core\Constants.lua` in
-   the TOC.
-2. `/bl config` → **General** ▸ **Capture**. The **Minimum quality** dropdown lists six rows, each the quality's
-   own name in its own color followed by " and above": *Poor*, *Common*, *Uncommon*, *Rare*,
-   *Epic*, *Legendary*. A row reading a bare number, or a row with no color, is the seam failing.
-   On a non-English client the names are the client's own, never English.
-3. `/bl show` — the **Quality** column and the Quality filter still read the same words they did
-   before this change, and `/bl export` writes the same quality names into its rows.
-4. **The refusal survives (F-006).** Set Minimum quality to *Rare*. Move an item the client has not
-   cached this session — the reliable way is `/reload` and then immediately move something unusual
-   from a bank tab you have not opened. `/bl debug` shows the movement recorded as skipped with
-   cause `uncached`, **not** captured and **not** guessed at from the link's color. The addon also
-   asks the client to cache the id, so repeating the same movement a few seconds later judges it
-   properly and either captures it or skips it on quality. A row that appears immediately at a
-   quality nothing resolved is the regression this step exists to catch: that is LootHistory's
-   policy, and it is wrong here.
-
-## S-24 · The copy window is LibKa0s-Widgets-1.0's
-
-`modules/Export.lua` no longer builds a frame for the export copy window; it passes a descriptor to
-`Widgets.CopyWindow`. Focus, selection and the Esc binding are the three things a headless suite
-cannot see, so they are checked here. **NOT YET RUN** — recorded when the adoption landed.
-
-1. `/bl show` → **Export** → with **All Data** selected, click **Export to CSV**.
-2. The copy window opens **centered on the ledger window**, above the modal, with the CSV **already
-   selected**.
-3. Ctrl+C, paste into a text editor: the whole CSV, including the `\r\n` line breaks the exporter
-   writes.
-4. Switch the **Data Set** to **Current View** and export again: the **same** window, new text,
-   selected again — not a second window stacked on the first.
-5. Esc closes the copy window and leaves the modal open.
-6. Drag the ledger window somewhere else and export again: the copy window follows it.
-7. **The close glyph is the library's now** — 18x18 with a red hover, where this addon's own close
-   is 24x24 with a class-colored hover. Confirm it still reads as a close button in the title bar
-   and is not clipped by the 26px bar. This is the one deliberate visual difference in the change.
-
-## S-25 · The v1 → v2 ladder actually runs on a real store
-
-**Session 2 of the 2026-09-07 remediation plan. NOT YET RUN.** `M2-05` took `schemaVersion` out of
-`NS.defaults.global`, because as a declared default it was stripped from the SavedVariables file at
-every logout and re-supplied at the next login as the runner's own target — so `NS:RunMigrations`
-read v2, `< NS.SCHEMA_VERSION` was never true, and the v1 → v2 pass had never once run against a
-player's store. Since standard v2.65.0 (`BL-11`) the key is declared again, but as
-`schemaVersion = 0`, never a real version (`savedvariables-§1`): the strip cannot remove a real
-stamp, and a store with its stamp deleted is backfilled with 0 and walked from v1. The headless suite
-pins the declared 0, the walk and the `[Migrate]` line, but only the client can prove that a stamp
-the runner wrote **survives a logout**, which is the exact thing the old default broke. That is what
-this step is for.
-
-**Back up `WTF/` before you start, and do every edit on the copy.** This is the one step in this
-document that touches a real ledger.
-
-1. Copy `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe.
-2. Hand-edit the file in place: delete the `["schemaVersion"] = 4,` line under `["global"]`, and add
-   `["vendorPrice"] = 20,` to exactly one existing ledger entry. Note which entry. (On a store this
-   build has already stamped v4 the settings are in `["profiles"]` and no profile holds a retention
-   window, so the v3 and v4 steps find nothing to move and add no rows to the count.)
-3. Log in. `/bl debug` on, and open the console.
-4. **Pass:** the console carries `[Migrate] v1 -> v4, 1 rows touched`. **Fail:** no migration line at
-   all — that is the defect this step exists to catch — or a row count that is not the one you
-   planted.
-5. Log out fully (exit to desktop; the strip runs on `PLAYER_LOGOUT`). Reopen the file.
-6. **Pass:** `["schemaVersion"] = 4,` is present under `["global"]`, and the `vendorPrice` key is
-   gone from the entry you edited. **Fail:** the stamp is missing again, which would mean something
-   declared a default equal to a real version and the next schema bump is already disarmed.
-7. Log back in once more and confirm the console shows **no** migration line the second time — the
-   runner is idempotent and a stamped store is left alone.
-
-## S-26 · The tab strip survives being pooled and re-dressed
-
-**Session 3 of the 2026-09-07 remediation plan. NOT YET RUN.** `M4-01` re-vendors LibKa0s v1.27.0,
-and `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer builds a button and a content panel per
-click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses them, re-setting
-`OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a second selection
-pass. The case that would pin band geometry as invariant under selection cannot be written yet — the
-shared mock answers `GetHeight` with 0 for every frame and that flips at kit 16, not here. **So a
-stale label, a mis-anchored button or a band that changes height on a re-dressed tab is invisible to
-every automated check in this repo.**
-
-1. `/bl config`, then **General** — the page `settings/Panel.lua` draws with
-   `O.RenderTabbedSchema`.
-2. Cycle every tab of the strip three times, ending back on the first.
-3. Watch three things on each pass: the **label** is that tab's own, the **selected** tab is the one
-   you pressed, and the strip's **band height** does not move as you go through it.
-4. **Pass:** every tab labeled and selected correctly on all three passes, no band that grows or
-   shrinks. **Fail:** a label carried over from the previously-dressed tab, a highlight on the wrong
-   button, a body drawn under the wrong tab, or a strip whose height moves between passes — each of
-   which is the pool handing back a frame it did not finish dressing.
-
-## S-27 · Non-English client (session 6, `M5-08`)
-
-**Session 6 of the 2026-09-07 remediation plan. NOT YET RUN — no WoW client was available when
-`M5-08` landed, so nothing below has been performed and no step here is recorded as passed.** Run
-on a client set to **deDE or frFR** — the two the collection's other locale steps use
-(`ConsumableMaster/docs/smoke-tests.md` § 3c, `KickCD/docs/smoke-tests.md` § 9b). Any character with
-a bank works; a warband or guild bank is not needed.
-
-This section exists because the headless suite is structurally blind here. `tests/wow_mock.lua`
-answers enUS for every localized global it defines, so a path that keys off a display string is
-green whether it is right or wrong — the test and the bug agree with each other.
-
-**What this addon reads in the player's language.** Four seams:
+What this addon reads in the player's language:
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
-  `core/Compat.lua:153-159`). These are `C_Item.GetItemInfo`'s **localized** type and sub-type
-  strings. They are not only displayed: `core/Database.lua:497-528` uses them as analytics **keys**
-  (`byItemType`, `byItemSubType`, and `byTypeSub` keyed on `type\tsubType`), they are persisted into
-  SavedVariables on every row, and `modules/Export.lua`'s `itemType` / `itemSubType` columns emit
-  them raw. The same `C_Item.GetItemInfo` call returns the locale-independent `classID` /
-  `subClassID`, and `core/Compat.lua:156` discards both with `_, _`. `quality` and `store` each have
-  a `*Raw` sibling column for exactly this reason; these two have none.
-- **`NS.Item.QualityLabel`** (`core/ItemSetup.lua:59-62`) — `_G["ITEM_QUALITY" .. q .. "_DESC"]`,
-  falling back to an English table when the client leaves the global nil. Localized by design, with
-  the numeric `qualityRaw` beside it in the CSV.
-- **`Util.FormatDate`** (`core/Util.lua:20-22`) — `date("%d-%b-%Y")`, whose comment claims the shape
-  is "unambiguous across locales". That is true of the **order** and not of `%b`, which is the
-  month's abbreviation in the client's own language.
-- **Case folding.** `modules/LedgerTable.lua:66`, `:85`, `:89` and `:94` sort on `:lower()`, and
-  `core/Database.lua:393` and `:410` lowercase the item name and the search text before matching.
-  Lua's `string.lower` folds ASCII and nothing else, so `Ä` is not `ä` to any of them.
+  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:497-528`
+  uses them as analytics keys (`byItemType`, `byItemSubType`, `byTypeSub`), they are persisted on every
+  row, and the CSV emits them raw. `core/Compat.lua:156` discards the locale-independent `classID` /
+  `subClassID`; unlike `quality` and `store`, these two have no `*Raw` column.
+- **`NS.Item.QualityLabel`** (`core/ItemSetup.lua:59-62`): `_G["ITEM_QUALITY" .. q .. "_DESC"]`,
+  localized by design, with the numeric `qualityRaw` beside it in the CSV.
+- **`Util.FormatDate`** (`core/Util.lua:20-22`): `date("%d-%b-%Y")`, whose `%b` is the month in the
+  client's language.
+- **Case folding**: `modules/LedgerTable.lua:66`, `:85`, `:89`, `:94` sort on `:lower()`, and
+  `core/Database.lua:393` and `:410` lowercase names and search text. Lua's `string.lower` folds ASCII
+  only.
 
-**English by design, and not a failure here.** `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and
-every label, tooltip and chat line the addon prints are hardcoded English and stay English on a
-German client. The CSV's **header row** is likewise English `snake_case` and must stay
-byte-identical to the enUS header — it is a key another tool parses, not prose.
+English by design, and not a failure: `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and every
+label, tooltip and chat line the addon prints; the CSV header row stays byte-identical to enUS (a key
+another tool parses).
 
-1. **The type facets are the client's language, and they split on a language switch.** Deposit two
-   items of different classes — a piece of armor and a trade good, say. Open **Insights** and read
-   the **Movements By Item Type** and sub-type facets.
-   **Pass** — the facet labels are the client's own words (`Rüstung`, `Handelswaren`), the counts
-   are right, and the type × sub-type pivot pairs them correctly. **Fail** — a facet labeled with a
-   number, an empty label, or two facets counted separately for what is plainly one category.
-   Then, if this account has rows captured on an **English** client (or capture some, switch the
-   client language, and come back), look for **both** spellings in the same facet list: one category
-   with an English label and a German one is the persisted-display-string defect, and it is what
-   this step is really for. Record what you see either way — a split facet list is a finding to
-   file, not a step to re-run.
-2. **The export.** History ▸ **Export** ▸ **Current View** ▸ **Export to CSV**.
-   **Pass** — the header row is byte-identical to the enUS one (`ts,date,time,char,classFile,…`,
-   all ASCII), `quality` carries the localized label with the numeric `qualityRaw` beside it, and
-   `direction` / `store` / `kind` are still the English labels the constants define. **Fail** — a
-   translated header key, or a `storeRaw` / `qualityRaw` cell that is anything but the raw token.
-   Then read two cells and **write down exactly what they say**: the `date` cell's month token
-   (`11-Jul-2026` on enUS — what is it here?) and the `itemType` / `itemSubType` pair. Those two
-   answers are what decides whether the CSV contract is locale-independent in fact or only in the
-   comment, and they cannot be obtained any other way.
-3. **Sorting and search over non-ASCII text.** With rows whose item names begin with an accented or
-   umlauted letter in the client's language, click the **Item** column header to sort both ways,
-   then type the name into the search box in **lower case** with the accent (`änderung`, `épée`).
-   **Pass** — accented names sort in with their unaccented neighbors, and the search finds the row
-   whichever case you type. **Fail** — every accented name clumped at one end of the sort, or a
-   search that finds nothing until you match the capital exactly. Both are `string.lower` folding
-   only ASCII, and both are invisible on an English client. This is the step most likely to fail.
-4. **Nothing else moved.** Walk `S-1`, `S-2` and `S-8` once on this client. **Pass** — capture,
-   the ledger table, grouping and the filter bar behave exactly as they do on English. **Fail** —
-   any Lua error at all, which on this client means a localized string reached something that
-   assumed an English one.
+- **LOC-1. Type facets in the client's language.** Deposit armor and a trade good, open Insights and
+  read Movements By Item Type and the sub-type facets → labels in the client's words (`Rüstung`,
+  `Handelswaren`), right counts, and the type × sub-type pivot paired correctly. **Fail:** a numeric or
+  empty label, or one category counted twice. If this account has rows captured on an English client
+  (or you capture some and switch language), look for both spellings in one facet list: one category
+  under an English and a German label is the persisted-display-string defect. Record what you see
+  either way; a split list is a finding to file. Result:
+- **LOC-2. The export contract.** History ▸ Export ▸ Current View ▸ Export to CSV → the header row
+  byte-identical to enUS (`ts,date,time,char,classFile,…`, all ASCII), `quality` localized with
+  `qualityRaw` numeric beside it, `direction` / `store` / `kind` English. **Fail:** a translated header
+  key, or a `storeRaw` / `qualityRaw` cell that is not the raw token. Write down the `date` cell's month
+  token (`11-Jul-2026` on enUS) and one `itemType` / `itemSubType` pair: they decide whether the CSV
+  is locale-independent in fact. Result:
+- **LOC-3. Sort and search over non-ASCII text.** With item names starting with an accented or
+  umlauted letter, sort the Item column both ways, then search the name in lower case with the accent
+  (`änderung`, `épée`) → accented names sort among their unaccented neighbors and search finds the
+  row in either case. **Fail:** accented names clumped at one end, or a search that needs the exact
+  capital. This is the check most likely to fail. Result:
+- **LOC-4. Nothing else moved.** Run CAPT-1, CAPT-2 and LEDG-4 to LEDG-14 on this client → they behave
+  as on English. **Fail:** any Lua error (a localized string reached code that assumed English).
+  Result:
+- **LOC-5. Quality names are the client's.** Capture ▸ Minimum quality → the six names in the client's
+  language, never English. Result:
 
-**Sign-off without a non-English client.** There is none for steps 1 to 3. The headless cases that
-touch these paths (`test_database`'s analytics grouping, `test_export`'s column contract,
-`test_ledgertable`'s sort keys) all feed the mock's English strings in and check that the same
-English strings come back, which is the answer they are asking for. Step 4 alone is covered by the
-rest of this file on English. Until the pass runs, the honest state of this section is unrun, and it
-is recorded that way rather than as coverage.
+No sign-off exists without a non-English client for LOC-1 to LOC-3 and LOC-5: the headless cases on
+these paths (`test_database`'s analytics grouping, `test_export`'s column contract,
+`test_ledgertable`'s sort keys) feed the mock's English in and read the same English back. Until the
+pass runs, record this section as unrun, not as coverage.
 
-## S-28 · The stand-down — disabled means not running (`slash-commands-§7`)
+## Pending sign-off
 
-`tests/test_disabled.lua` proves the registration set empties, and that is the substance. What it
-cannot prove is what the **client** does with a stood-down addon, and the whole point of the rule is
-a cost that is invisible from every surface a player can see. These steps are where you look.
+Checks the owner has not yet run in a client. Origins are sections and steps of the pre-2026-09-29
+document (`S-n`), or new with the `/bl profile` verb.
 
-Run every step with `/console scriptErrors 1`.
-
-1. `/bl show` and `/bl session` so both windows are up. `/bl debug on`, then `/bl debug` to open the
-   console and leave it open — it is the one window that stays, and it is where the evidence lands.
-2. **Untick *Enable Bank Ledger*** on **Master controls** (or run `/bl disable`; the two are one
-   write). Both windows go away **at once**, in the same turn as the click — not on the next zone,
-   not on a `/reload`.
-3. **Open your bank and move a stack in and out.** Nothing is recorded: reopen the settings panel
-   and the **Database size** line on **History** has not moved. The session window does not appear.
-   This is the step that fails against a draw gate whose windows are merely hidden.
-4. **Pull a mob and drop combat.** **Pass** — nothing at all in chat, and no new line in the debug
-   console. **Fail** — any line, because a disabled addon that says something on a combat edge is
-   still registered for that edge.
-5. **Left-click the minimap button.** The settings panel opens, exactly as it does when the addon
-   is running, and nothing prints. Hover it: `Enabled: No`. **Right-click it** — the menu opens with
-   **Enabled** unticked and live, and **Locked**, **Test mode** and **Show window** grayed out, each
-   reading `(enable the addon first)`. Clicking a grayed entry does nothing. (Do not click
-   **Enabled** yet: that re-enables the addon, which is the step further down.)
-6. **The command surface is untouched.** `/bl` alone opens the settings panel. `/bl version`,
-   `/bl list`, `/bl get settings.qualityThreshold`, `/bl set settings.qualityThreshold 3`,
-   `/bl reset settings.qualityThreshold` all answer normally — reading and repairing settings is
-   precisely what you need from an addon you have switched off. `/bl help` prints the **whole**
-   index with the refusal line under its header; `/bl wibble` answers `unknown command 'wibble'`
-   and the index, **not** the refusal, because the addon did not understand rather than decline.
-   `/bl perf` answers the same way: it is reserved but this addon registers no `perf` verb, and
-   from `LibKa0s-Slash-1.0` minor 14 an unshipped verb is never refused.
-7. **A feature verb is refused, on one line and once.** `/bl show`, `/bl toggle`, `/bl test`,
-   `/bl purge` — each prints exactly one line, `Ka0s Bank Ledger is disabled — enable it with
-   /bl enable`, the command in gold, and does nothing else. `/bl purge`
-   raises **no confirm dialog**.
-8. `/reload` with the addon still disabled. It comes back disabled, still silent, still answering
-   every command — the stored setting is what survives, and the latch itself persists nothing.
-9. **Tick the box again** (or right-click the minimap button and click **Enabled**, which runs
-   `/bl enable`; the other three entries are live again the next time the menu opens). Capture
-   resumes with no reload: open the bank, move a stack, and the
-   session window appears with the row in it. Then change one setting **while disabled** and
-   re-enable — set `/bl disable`, `/bl set settings.trackMoney false`, `/bl enable`, and move gold
-   in: it is **not** recorded. The rebuild reads the settings as they are now, never a snapshot
-   taken on the way down.
-
-## S-29 · The filter lists pack two to a row (LibKa0s v1.47.0 `columns`)
-
-The Blacklist and the Whitelist draw **two entries per row** now. The count is a MAXIMUM -- since
-LibKa0s v1.50.0 the list measures the width it actually has and drops back to one column when two
-cannot be paid for -- so part of this is checking the fallback as well as the packing. Only the
-client can show either.
-
-**Setup:** a Blacklist with at least **five** items, so a full row and an odd trailing one are both
-visible.
-
-1. **Settings > General > Filters > Blacklist** -> entries lay out **two to a row**, reading left to
-   right then down. The X, the icon and the name line up **across** the two columns as well as down
-   each one.
-2. With an **odd** count, the last row has one entry in the **left** column and empty space to the
-   right -- not one entry stretched across the width.
-3. **Whitelist** -> the same.
-4. **The truncation trade.** Blacklist an item with a long name. At two columns the name is cut from
-   the tail rather than wrapped, and a long enough one loses its gray `(id)` entirely -- a wrapped
-   name would push the column beside it out of alignment. **Hovering the entry still names the
-   item**, which is where the full name lives.
-5. **Remove** an entry with its X -> the list rebuilds, stays a grid, and the remaining entries
-   repack left-to-right. **Add** one -> the same.
-6. **The fallback.** Narrow the settings canvas -- windowed mode at a small width, and/or a higher
-   UI scale (`/console uiScale 1`). Below roughly **580px of panel** the lists should draw **one
-   column**, full width, still correctly formed. What must NOT happen: icons stacked over wrapped
-   names, or an entry's X on a row of its own.
-7. Widen it back and reopen the panel -> two columns return.
-
-> On a normal setup you may not be able to get narrow enough to trigger step 6; the column cap was
-> chosen conservatively. If you cannot, step 1 passing is still the meaningful result.
-
-## S-30 · Profiles and the schema v3 lift
-
-Settings moved from the account-wide store into AceDB profiles at schema v3 ([profiles.md](profiles.md)).
-The headless suite pins the lift, the adopt path and the page's registration; only the client can
-show the Profiles page, a real SavedVariables file after the lift, and what a switch does to live
-windows.
-
-**Back up `WTF/` first.** Step 1 needs a store written by a build **before** schema v3.
-
-1. **The lift keeps your settings.** On the old build, set a few things away from their defaults (a
-   minimum quality, a muted store, a row tint), blacklist one item, save a view and drag the ledger
-   window somewhere. Install this build and log in. Every one of those is exactly as you left it,
-   and History has every row. Log out and open `BankLedger.lua`: the settings, both lists and
-   `savedView` sit under `["profiles"]["Default"]`, and `["global"]` holds only `ledger`, `minimap`,
-   `schemaVersion = 4` and, if you changed **Keep history for**, a `settings` table holding
-   `retentionDays` alone (it is account-wide, owner decision D6). **Fail:** any setting back at its
-   default, or any other key in a `settings` table under `["global"]`.
-2. **The page.** Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ **Profiles** is the last entry under
-   General, has no **Defaults** button, and shows `Default` as the current profile.
-3. **A new profile is a fresh configuration over the same history.** Create a profile named `Alt`.
-   At once, and without a `/reload`: the General page reads every default, the Blacklist is empty,
-   both windows sit at their default positions, and History still has every row. **Fail:** any
-   history row missing, or a window or a setting still showing `Default`'s values.
-4. **Switching back restores.** Choose `Default` again: every setting, the blacklist, the saved view
-   and both window positions come back.
-5. **Enable is per profile.** On `Alt`, untick **Enable Bank Ledger**; the addon stands down. Choose
-   `Default`: it is running again (deposit something and it records). Choose `Alt`: it stands down.
-   Tick it again on `Alt`.
-6. **Reset Profile keeps history.** On `Alt`, change a setting, then press the page's **Reset
-   Profile**: `Alt` returns to defaults without a confirm (AceDBOptions asks nothing), History keeps
-   every row, and `Default` is untouched when you switch back. Then `/bl resetall` on `Default`: the
-   popup reads *Reset this profile to the addon's defaults? … your other profiles are not affected*,
-   and **Yes** keeps History.
-7. **One line per event.** `/bl debug on`, open the console, switch profile: exactly one
-   `[Profile] switched to profile '<name>'` line. Copy `Alt` into the current profile: exactly one
-   `[Set] copied profile 'Alt' -> '<current>'` line. Then `/bl debug off`.
-8. **Retention is account-wide, and no profile act prunes (D6).** On `Default`, set
-   **Keep history for** to **Always**, and have at least one History row older than 30 days. Hover
-   the dropdown: the tooltip ends *Account-wide: one value for every profile, because the history it
-   trims is shared.* Switch to `Alt`: the dropdown still reads **Always**. Switch back, copy `Alt`
-   into `Default`, press **Reset Profile**, then `/bl resetall` and **Yes**: after each, the dropdown
-   still reads **Always** and History still has the old row. With `/bl debug on`, none of those acts
-   writes a `[Prune]` line. Delete `Alt` when done.
+| ID | Origin | Why it is owed |
+|---|---|---|
+| INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`) |
+| PANEL-11 | S-26 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 3, `M4-01`) |
+| PROFILE-1 – 7, PROFILE-14 | S-30 steps 1–8 | Added with profile support (SP-BL-01, 2026-09-29); never run |
+| PROFILE-8 – 13 | New | The `/bl profile` verb (SP-BL-02, 2026-09-29) |
+| LEDG-28 – 32, LEDG-36 | S-24 steps 1–7 (merged with S-10 steps 1–3, S-21 step 2) | S-24 was NOT YET RUN since the `CopyWindow` adoption |
+| DEGRADED-6 | New | The verb's library-absent line (SP-BL-02) |
+| LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
+| LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |

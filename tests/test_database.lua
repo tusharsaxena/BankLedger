@@ -409,7 +409,7 @@ local function migrationLines(fn)
 end
 
 test("RunMigrations announces the v1->v4 pass the smoke step reads", function()
-  -- The exact string docs/smoke-tests.md S-25 looks for in the client. Pinned here so the in-game
+  -- The exact string docs/smoke-tests.md INSTALL-8 looks for in the client. Pinned here so the in-game
   -- step has a headless twin and a rename of MigrationSummary cannot silently break it.
   -- red under: the disarmed runner this item removed — no line at all was emitted.
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion

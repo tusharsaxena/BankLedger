@@ -3,7 +3,7 @@
 The console itself is **`LibKa0s-DebugLog-1.0`**'s, wired by `core/DebugLogSetup.lua`: the window,
 the buffer (3000 lines, `lib.MAX_BUFFER`), the **Copy** box, the `on`/`off` seam and the chat
 acknowledgment are the library's, and `/bl debug`, `/bl debug on` and `/bl debug off` drive it the
-way they drive every Ka0s console (`debug-logging`; the in-game walk is `S-14` in
+way they drive every Ka0s console (`debug-logging`; the in-game walk is the DIAG checks in
 [smoke-tests.md](smoke-tests.md)).
 
 This page covers what the library does not: the **diagnostics report**, whose sections this addon
