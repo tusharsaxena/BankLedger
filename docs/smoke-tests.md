@@ -14,7 +14,7 @@ leaves its number unused.
 |---|---|---|
 | INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
 | SLASH-1 – 4 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled |
-| PANEL-1 – 32 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset |
+| PANEL-1 – 31 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
@@ -35,9 +35,9 @@ leaves its number unused.
 - A training dummy nearby for the COMBAT checks and the combat halves of others.
 - A second Ka0s addon installed, for DIAG-11 and PANEL-4 (Ka0s Loot History for PANEL-4).
 - Back up `WTF/` before INSTALL-8 and PROFILE-14: both edit or replace a real SavedVariables file.
-- For DEGRADED, quit the game and rename `Interface/AddOns/BankLedger/libs/LibKa0s` to
-  `libs/LibKa0s.off`; DEGRADED-11 renames it back. A repo left in that state passes its own gate and
-  ships broken.
+- For DEGRADED, first run `/bl list` on the healthy install and keep the output for DEGRADED-11. Then
+  quit the game and rename `Interface/AddOns/BankLedger/libs/LibKa0s` to `libs/LibKa0s.off`;
+  DEGRADED-11 renames it back. A repo left in that state passes its own gate and ships broken.
 
 ## INSTALL
 
@@ -54,8 +54,8 @@ leaves its number unused.
   (`launcher-§2`); the ledger window does not toggle. Result:
 - **INSTALL-5. The options menu.** Right-click the button → a menu titled Ka0s Bank Ledger with four
   checkboxes in this order: Enabled (ticked), Locked, Test mode, Show window. Click Show window → the
-  ledger opens exactly as `/bl toggle` opens it, and on the next right-click Show window is ticked. The
-  menu closes after every click. Result:
+  ledger opens exactly as `/bl toggle` opens it, and on the next right-click Show window is ticked.
+  Click Show window again → the ledger closes. The menu closes after every click. Result:
 - **INSTALL-6. Menu entries echo their verbs.** In the menu click Test mode → chat prints
   `test mode on` and the ledger shows the sample. Click Locked → chat prints `settings.locked = true`,
   the ledger can no longer be dragged and Master controls' *Lock frame* is ticked. Click each again →
@@ -180,8 +180,10 @@ leaves its number unused.
   Set it back to `true`. Result:
 - **PANEL-27. One reset, one popup.** Click Reset all settings on Master controls → a confirm popup
   saying it resets this profile and leaves your other profiles alone. `/bl resetall`, General's header
-  Defaults and Blizzard's footer Defaults raise the same popup (`options-ui-§12`). No → nothing
-  changes. Result:
+  Defaults and Blizzard's footer Defaults (the Settings window's own button, not the addon's) raise
+  the same popup (`options-ui-§12`). No → nothing changes. On General change a setting, then footer
+  Defaults ▸ Yes → the PANEL-28 reset runs (settings at stock, both lists empty, History keeps its
+  row count), which proves the framework calls the addon. Result:
 - **PANEL-28. What Yes resets.** Save a view, blacklist and whitelist an item, change a few settings
   (row tints included), tick Test mode, open the console, hide the minimap button, move both windows.
   Reset all settings ▸ Yes → every setting at stock (tints back to 0.03 and 0.10), both lists empty,
@@ -198,9 +200,6 @@ leaves its number unused.
   repaints once, not per row, and History's Database size line updates. On Filters ▸ Blacklist add an
   id, then `/bl resetall` ▸ Yes → the list empties while you watch. Close the settings window,
   `/bl resetall` ▸ Yes → no errors, and reopening shows the reset values. Result:
-- **PANEL-32. Blizzard's footer Defaults reaches the addon.** On General change a setting, use the
-  Settings window's footer Defaults ▸ Yes → settings return to stock, both lists clear, History keeps
-  its row count. Result:
 
 ## PROFILE
 
@@ -216,8 +215,7 @@ leaves its number unused.
   `Default` → running (deposit something, it records). Choose `Alt` → stood down. Tick it again. Result:
 - **PROFILE-5. Reset Profile keeps history.** On `Alt` change a setting, press the page's Reset Profile
   → `Alt` returns to defaults with no confirm, History keeps every row, `Default` is untouched when you
-  switch back. On `Default`, `/bl resetall` → the popup reads *Reset this profile to the addon's
-  defaults? … your other profiles are not affected*, and Yes keeps History. Result:
+  switch back. (The `/bl resetall` popup and its Yes are PANEL-27 and PANEL-28.) Result:
 - **PROFILE-6. One debug line per profile event.** `/bl debug on`, open the console. Switch profile →
   exactly one `[Profile] switched to profile '<name>'` line. Copy `Alt` into the current profile →
   exactly one `[Set] copied profile 'Alt' -> '<current>'` line. `/bl debug off`. Result:
@@ -415,9 +413,8 @@ leaves its number unused.
 - **LEDG-26. A refused start leaves the box unticked.** General visibility Never, tick Test mode → one
   chat line saying General visibility keeps the window closed, and the box unticks. `/bl test` → the
   same answer, never `test mode on`. Set visibility back to Always. Result:
-- **LEDG-27. Test mode is never saved.** Tick Test mode, press General's Defaults ▸ Yes → the box
-  unticks, real data returns. Tick it, `/bl resetall` ▸ Yes → the same. Tick it, `/reload` → off.
-  Result:
+- **LEDG-27. Test mode is never saved.** Tick Test mode, `/reload` → off. (A reset ending it is
+  PANEL-28.) Result:
 - **LEDG-28. The copy window opens ready.** History ▸ Export ▸ Current View ▸ Export to CSV → the copy
   window opens centered on the ledger, above the modal, with the text already selected in a monospace
   font. Result:
@@ -677,16 +674,21 @@ on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, 
   other Ka0s addon's word for word; a difference is the finding. Result:
 - **DEGRADED-3. Said once.** `/bl version` again → no notice. It prints once per session, on the first
   line the addon prints. Result:
-- **DEGRADED-4. A complete list.** `/bl list` → every schema row under its group headings, no gaps and
-  no truncation. Keep the output for DEGRADED-11. Result:
-- **DEGRADED-5. The addon still works.** `/bl show`, `/bl config`, `/bl debug` → the ledger, the panel
-  and the console open and behave. `/bl diagnostics` → one line, `/bl diagnostics is unavailable: the
-  LibKa0s library did not load.`, and nothing else. Result:
+- **DEGRADED-4. The settings CLI explains itself.** `/bl list` and `/bl get settings.enabled` → each
+  one line, `[BL] The LibKa0s library is missing from this installation of Ka0s Bank Ledger (expected
+  in libs/LibKa0s), so the slash help index and the settings CLI (list/get/set/reset) are
+  unavailable.`, and nothing else. Result:
+- **DEGRADED-5. The addon still works.** `/bl show` → the ledger opens and behaves, and a bank
+  movement still records. `/bl config` → one line ending `, so the settings panel is unavailable.`
+  and no panel. `/bl debug` → one line ending `, so the debug console window is unavailable.` and no
+  console. `/bl diagnostics` → one line, `/bl diagnostics is unavailable: the LibKa0s library did not
+  load.`, and nothing else. Result:
 - **DEGRADED-6. The profile verb explains itself.** `/bl profile` and `/bl profile Default` → each one
   line, `/bl profile is unavailable: the LibKa0s library did not load.`, and no switch. Result:
-- **DEGRADED-7. The Media fallbacks.** The console log, the Copy box, the ▲/▼ column in History and in
-  the session window → proportional text, and ▲/▼ drawn as boxes. Correct here; the same with
-  `libs/LibKa0s` in place is a broken seam. Result:
+- **DEGRADED-7. The Media fallbacks.** The ▲/▼ column in History and in the session window →
+  proportional text, and ▲/▼ drawn as boxes. Correct here; the same with `libs/LibKa0s` in place is a
+  broken seam. (The console and the Copy box are unreachable in this state; DEGRADED-11 checks the
+  console's font on restore.) Result:
 - **DEGRADED-8. No filter bar.** `/bl show` → the filter bar does not build (none of its eight
   dropdowns), chat reads "Filters need LibKa0s. The ledger itself is unaffected.", and the History
   table below still works unfiltered. Result:
@@ -697,8 +699,9 @@ on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, 
 - **DEGRADED-10. The export modal is unreachable.** There is no Export button anywhere and no way to
   open the modal (it lives on the filter bar). `tests/test_export.lua` covers the modal on this rung.
   Result:
-- **DEGRADED-11. Restore.** Quit, rename `libs/LibKa0s.off` back, log in → no notice, `/bl list` byte for
-  byte as in DEGRADED-4, the console monospace again with its three marks. Result:
+- **DEGRADED-11. Restore.** Quit, rename `libs/LibKa0s.off` back, log in → no notice, `/bl list`
+  byte for byte the healthy listing kept before the rename (Before you start), the console monospace
+  again with its three marks. Result:
 
 ## Non-English client
 
@@ -744,9 +747,9 @@ another tool parses).
   (`änderung`, `épée`) → accented names sort among their unaccented neighbors and search finds the
   row in either case. **Fail:** accented names clumped at one end, or a search that needs the exact
   capital. This is the check most likely to fail. Result:
-- **LOC-4. Nothing else moved.** Run CAPT-1, CAPT-2 and LEDG-4 to LEDG-14 on this client → they behave
-  as on English. **Fail:** any Lua error (a localized string reached code that assumed English).
-  Result:
+- **LOC-4. Nothing else moved.** Run INSTALL-1 to INSTALL-7, CAPT-1, CAPT-2, LEDG-4 to LEDG-18 and
+  LEDG-21 on this client → they behave as on English. **Fail:** any Lua error (a localized string
+  reached code that assumed English). Result:
 - **LOC-5. Quality names are the client's.** Capture ▸ Minimum quality → the six names in the client's
   language, never English. Result:
 
@@ -757,16 +760,14 @@ pass runs, record this section as unrun, not as coverage.
 
 ## Pending sign-off
 
-Checks the owner has not yet run in a client. Origins are sections and steps of the pre-2026-09-29
-document (`S-n`), or new with the `/bl profile` verb.
+Checks carried over from the pre-rework document (the `S-n` sections and steps as of commit
+`16398dd`) that the owner has not yet run in a client.
 
 | ID | Origin | Why it is owed |
 |---|---|---|
 | INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`) |
 | PANEL-11 | S-26 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 3, `M4-01`) |
 | PROFILE-1 – 7, PROFILE-14 | S-30 steps 1–8 | Added with profile support (SP-BL-01, 2026-09-29); never run |
-| PROFILE-8 – 13 | New | The `/bl profile` verb (SP-BL-02, 2026-09-29) |
 | LEDG-28 – 32, LEDG-36 | S-24 steps 1–7 (merged with S-10 steps 1–3, S-21 step 2) | S-24 was NOT YET RUN since the `CopyWindow` adoption |
-| DEGRADED-6 | New | The verb's library-absent line (SP-BL-02) |
 | LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
 | LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |
