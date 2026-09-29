@@ -144,9 +144,11 @@ Which answer is right depends entirely on whether rows exist:
 ## Add a locale string
 
 `locales/enUS.lua` publishes `NS.L` with a metatable fallback returning the key itself, so a missing
-key never errors. v1.0.0 ships **English-only and unwrapped** — every label is hardcoded English, an
-accepted scope decision. There is deliberately no `local L` alias until the first string is wrapped,
-so the file stays luacheck-clean. Wrapping the first string means adding the alias in the same change.
+key never errors. The addon ships **English-only**: every label is hardcoded English, an accepted
+scope decision, except four strings that read `NS.L["…"]` at their call site (listed in the
+`localization-§1` row of `ARCHITECTURE.md` → `## Documented deviations`). `enUS.lua` overrides no
+key, so it carries no `local L` alias and stays luacheck-clean; the first override adds the alias in
+the same change.
 
 Match game data on **stable ids and tokens** — `itemID`, `classFile`, `Enum.*` — never on a localized
 name. That is why every entry stores `classFile` rather than a class name.

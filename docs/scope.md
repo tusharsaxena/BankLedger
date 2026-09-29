@@ -8,7 +8,7 @@ What Bank Ledger is for, and — the load-bearing half — what it deliberately 
 |---|---|
 | Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
 | Client | Retail (Mainline) only — a single `## Interface:` line, currently `120100` |
-| SavedVariables | `BankLedgerDB`: the recorded ledger account-wide, the settings per AceDB profile ([profiles.md](profiles.md)) |
+| SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window and the Minimap button account-wide, every other setting per AceDB profile ([profiles.md](profiles.md)) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag |
 | Layout | `core/ defaults/ locales/ modules/ settings/`, 34 source files |

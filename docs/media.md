@@ -103,13 +103,14 @@ fails is the one nothing else notices — a texture that does not load draws not
 
 ## Logo art
 
-`media/logos/` holds one master and three derivatives. Only the `.tga` is loaded by the addon; WoW
-cannot read `.png` or `.jpg` at runtime.
+`media/logos/` holds one master and four derivatives. Only the two `.tga` files are loaded by the
+client; WoW cannot read `.png` or `.jpg` at runtime.
 
 | File | Size | Role |
 |---|---|---|
 | `bankledger.logo.png` | 2000×2000 | The master. Never shipped to the client; the `.tga` and the 256 avatar are derived from it. |
 | `bankledger.logo.tga` | 512×512, 24-bit RLE | **The runtime asset** — `C.LOGO_PATH`, drawn on the settings landing page at 300px. |
+| `bankledger.logo.128.tga` | 128×128, uncompressed 32-bit | **The addon icon** — the TOC's `## IconTexture` and the launcher's icon (`NS.LOGO_ICON`, `core/LauncherSetup.lua`; `launcher-§4`). Not produced by the recipe below. |
 | `bankledger.logo.jpg` | 2000×2000 | The README / CDN image. Supplied alongside the master at full size, not downscaled from it. |
 | `bankledger.logo.256.jpg` | 256×256 | The CurseForge project avatar. |
 

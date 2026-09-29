@@ -244,14 +244,15 @@ tests/
                            --   assertion reads the kit's recording registry -- registrations,
                            --   timers, shown frames, SavedVariables writes, printed lines --
                            --   and NONE reads a handler's return value, because an early
-                           --   return is exactly what a draw gate does. Seventeen cases:
+                           --   return is exactly what a draw gate does. Eighteen cases:
                            --   baseline and empty registration set (through the one write
                            --   seam), no armed timer, the prune postponed rather than
                            --   canceled, the two at-the-bank cases, no shown frame, fire
                            --   everything at it anyway (registered and unconditionally), the
                            --   CONTROL proving the write and print surveys can see a survivor,
                            --   the slash surface walked over every NS.COMMANDS entry, both
-                           --   diagnostics forms reaching RunDiagnostics while down, the
+                           --   diagnostics forms reaching RunDiagnostics while down, /bl
+                           --   profile listing and switching unrefused (a host live verb), the
                            --   feature-verb refusal, the launcher's clicks and grayed menu, its
                            --   tooltip, no host gate on it, restore-from-current-state, the
                            --   two-hold latch, and the `disabled` hold re-taken at load

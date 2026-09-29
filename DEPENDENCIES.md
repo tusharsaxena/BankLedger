@@ -160,9 +160,9 @@ item exists for one job that is done rarely and by hand.
 
 ### Python 3 + Pillow — regenerating the logo derivatives only
 
-`media/logos/bankledger.logo.png` is the 2000×2000 master. The `.tga` the client actually loads and
-the two `.jpg` renders for the project page are produced from it by a short Pillow script recorded
-verbatim in **`docs/media.md:132-140`** (`from PIL import Image, ImageFilter`, `LANCZOS`
+`media/logos/bankledger.logo.png` is the 2000×2000 master. The 512×512 `.tga` the settings page loads and
+the 256×256 `.jpg` project avatar are produced from it by a short Pillow script recorded
+verbatim in **`docs/media.md:133-141`** (`from PIL import Image, ImageFilter`, `LANCZOS`
 downscales, an unsharp mask on the 256). The derivatives are **committed**, so this is needed only
 when the artwork changes.
 

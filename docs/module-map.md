@@ -96,15 +96,17 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 #### Locale seam
 
 `locales/enUS.lua` publishes `NS.L` with the metatable fallback that returns the key itself, so a
-missing key never errors. The addon is **English-only and entirely unwrapped**: every label, tooltip
-and message is a hardcoded English literal, which is an accepted scope decision rather than an
-oversight, and the seam is what a later pass wraps them through without touching a call site.
+missing key never errors. The addon is **English-only**: every label, tooltip and message is a hardcoded
+English literal but four, which is an accepted scope decision rather than an oversight, and the seam
+is what a later pass wraps them through without touching a call site. The four already read
+`NS.L["…"]` and resolve to their key (the `localization-§1` row of `ARCHITECTURE.md` →
+`## Documented deviations` names them).
 
 The one entry that used to sit here was the **disabled-verb refusal**. It is gone rather than
 translated: `slash-commands-§7` fixes that line's wording collection-wide, `LibKa0s-Slash-1.0`
 builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L`
-override does not reach it. There is deliberately no `local L` alias while nothing is wrapped, so
-the file stays luacheck-clean.
+override does not reach it. There is deliberately no `local L` alias while `enUS.lua` overrides no
+key, so the file stays luacheck-clean.
 
 Input side: the addon matches game data on **stable ids and tokens** — `itemID`, `classFile`,
 `Enum.*` — never on a localized name. That is why every entry stores `classFile` rather than a class
