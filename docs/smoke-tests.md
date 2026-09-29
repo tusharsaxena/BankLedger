@@ -796,8 +796,8 @@ which ends by walking this whole document, is still owed, so most checks are her
 its own `Result:` line, then remove its ID from this table.
 
 Not listed, because a recorded pass covers them and the rework did not change what they expect:
-INSTALL-3 – 5 (S-1 steps 4 and 5 and the menu half of step 6, passed in the owner's minimap re-check
-of 2026-09-25 on the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
+INSTALL-3 and INSTALL-4 (S-1 steps 4 and 5, passed in the owner's minimap re-check of 2026-09-25 on
+the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
 DIAG-13 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
 BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
 Ka0sAddonsCommonTasks repository.
@@ -806,6 +806,7 @@ Ka0sAddonsCommonTasks repository.
 |---|---|---|
 | INSTALL-1 | S-1 steps 1 and 3, S-23 step 1 | No recorded result |
 | INSTALL-2 | S-1 step 2, corrected by SP-BL-03 | The old step expected a hardcoded `[BL] v1.2.0`; it now expects the version the TOC's `## Version` line carries |
+| INSTALL-5 | S-1 step 6 (the menu's shape and the Show window entry) | X1.4's pass recorded that right-click opens the menu, not that Show window opens the ledger, shows ticked and closes it again; no recorded result |
 | INSTALL-6 | S-1 step 6 (the Test mode and Locked entries) | X1.4's pass recorded the menu opening, not these entries' chat lines; no recorded result |
 | INSTALL-7 | S-1 step 7 | No recorded result |
 | INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`). Its `[Migrate]` expectation could never pass in a client (logging is off when the ladder runs), so the evidence is now `[State]`, the file and a profile switch |
