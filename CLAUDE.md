@@ -43,7 +43,7 @@ push and never bump the version without an explicit instruction.
 
 ## Vendored LibKa0s — the provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.62.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.63.0 (MIT).
 
 That tag carries test-kit revision 31 (`Kit.VERSION` in `tests/_kit/framework.lua`).
 
