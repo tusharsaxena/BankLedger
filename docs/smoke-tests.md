@@ -66,16 +66,24 @@ leaves its number unused.
 - **INSTALL-8. The migration ladder runs on a real store.** Copy
   `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe. Edit the file: delete the
   `["schemaVersion"] = 4,` line under `["global"]` and add `["vendorPrice"] = 20,` to one ledger entry
-  (note which). Log in, `/bl debug on`, open the console → it carries
-  `[Migrate] v1 -> v4, 1 rows touched`. **Fail:** no migration line at all, or a row count other than
-  the one you planted. (On a store already at v4 the settings sit in `["profiles"]` and no profile
-  holds a retention window, so the v3 and v4 steps add no rows.) Result:
-- **INSTALL-9. The stamp survives a logout.** After INSTALL-8, exit to desktop (the strip runs on
-  `PLAYER_LOGOUT`) and reopen the file → `["schemaVersion"] = 4,` is under `["global"]` and the
-  planted `vendorPrice` key is gone. **Fail:** the stamp is missing again, meaning something declared a
-  default equal to a real version (`savedvariables-§1`). Result:
-- **INSTALL-10. A stamped store is left alone.** Log back in with `/bl debug on` → no `[Migrate]` line.
-  Result:
+  (note which). Log in → zero Lua errors, and `/bl debug diagnostics` → its `[State]` section reads
+  `schema stored=4 code=4`. **Fail:** `stored=0`, the default showing through because the ladder did
+  not run. Do not look for a `[Migrate]` line: the ladder runs in `addon:OnInitialize`, before any
+  slash command can turn logging on, and logging is off at every login, so the line never reaches a
+  client's console. The stamp alone cannot tell a walked store from one left alone; INSTALL-9 reads
+  what the walk did from the file. Result:
+- **INSTALL-9. The walk shows in the file, and the stamp survives a logout.** After INSTALL-8, exit to
+  desktop (the strip runs on `PLAYER_LOGOUT`) and reopen the file → `["schemaVersion"] = 4,` is under
+  `["global"]`, the planted `vendorPrice` key is gone from the entry you noted, and the settings still
+  sit under `["profiles"]` (on a store already at v4 no profile holds a retention window, so the v3
+  and v4 steps find nothing to move). **Fail:** `vendorPrice` still there (the v2 step did not run),
+  or the stamp missing again, meaning something declared a default equal to a real version
+  (`savedvariables-§1`). Result:
+- **INSTALL-10. A stamped store is left alone.** After INSTALL-9, log back in. `/bl debug on`, open the
+  console. On the Profiles page create a profile (any name), then choose `Default` again → two
+  `[Profile] switched to profile '…'` lines and no `[Migrate]` line. Every profile event re-runs the
+  ladder (`NS.OnProfileEvent`), so this is the one place a client can watch it run with logging on,
+  and on a stamped store it does nothing. Delete the extra profile, `/bl debug off`. Result:
 
 ## SLASH
 
@@ -667,20 +675,26 @@ on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, 
 `core/ItemSetup.lua`, `core/LifecycleSetup.lua`, `core/MediaSetup.lua`, `core/PoolSetup.lua`,
 `settings/OptionsSetup.lua`, `settings/Slash.lua`) each degrade rather than error.
 
-- **DEGRADED-1. Zero errors.** Log in → not one Lua error. Result:
-- **DEGRADED-2. The notice.** `/bl version` → two lines: `[BL] The LibKa0s library is missing from this
-  installation of Ka0s Bank Ledger (expected in libs/LibKa0s); running on reduced built-in
-  fallbacks.`, then `[BL] v<version>`. The clause up to `(expected in libs/LibKa0s)` matches every
-  other Ka0s addon's word for word; a difference is the finding. Result:
-- **DEGRADED-3. Said once.** `/bl version` again → no notice. It prints once per session, on the first
-  line the addon prints. Result:
+- **DEGRADED-1. Zero errors, two lines at login.** Log in → not one Lua error, and the addon prints
+  exactly two lines: the notice (DEGRADED-2), then `[BL] The LibKa0s library is missing from this
+  installation of Ka0s Bank Ledger (expected in libs/LibKa0s), so the settings panel is unavailable.`
+  The second comes from the settings category registering at login (`NS.Panel:Register` in
+  `addon:OnInitialize`), whose stub answers once per session; as the addon's first printed line it
+  brings the notice with it. Result:
+- **DEGRADED-2. The notice.** The first of the two login lines reads `[BL] The LibKa0s library is
+  missing from this installation of Ka0s Bank Ledger (expected in libs/LibKa0s); running on reduced
+  built-in fallbacks.` The clause up to `(expected in libs/LibKa0s)` matches every other Ka0s addon's
+  word for word; a difference is the finding. Result:
+- **DEGRADED-3. Said once.** `/bl version`, then `/bl version` again → one line each time,
+  `[BL] v<version>`, and no notice above either. It prints once per session, on the first line the
+  addon prints, and that line came at login. Result:
 - **DEGRADED-4. The settings CLI explains itself.** `/bl list` and `/bl get settings.enabled` → each
   one line, `[BL] The LibKa0s library is missing from this installation of Ka0s Bank Ledger (expected
   in libs/LibKa0s), so the slash help index and the settings CLI (list/get/set/reset) are
   unavailable.`, and nothing else. Result:
 - **DEGRADED-5. The addon still works.** `/bl show` → the ledger opens and behaves, and a bank
-  movement still records. `/bl config` → one line ending `, so the settings panel is unavailable.`
-  and no panel. `/bl debug` → one line ending `, so the debug console window is unavailable.` and no
+  movement still records. `/bl config` and bare `/bl` → no panel and nothing in chat (the settings
+  panel's one line printed at login, DEGRADED-1). `/bl debug` → one line ending `, so the debug console window is unavailable.` and no
   console. `/bl diagnostics` → one line, `/bl diagnostics is unavailable: the LibKa0s library did not
   load.`, and nothing else. Result:
 - **DEGRADED-6. The profile verb explains itself.** `/bl profile` and `/bl profile Default` → each one
@@ -761,13 +775,19 @@ pass runs, record this section as unrun, not as coverage.
 ## Pending sign-off
 
 Checks carried over from the pre-rework document (the `S-n` sections and steps as of commit
-`16398dd`) that the owner has not yet run in a client.
+`16398dd`) that the owner has not yet run in a client: the ones never run at all, and the ones whose
+expectations SP-BL-01 rewrote for profiles and have not been run in their current form.
 
 | ID | Origin | Why it is owed |
 |---|---|---|
-| INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`) |
+| INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`). Its `[Migrate]` expectation could never pass in a client (logging is off when the ladder runs), so the evidence is now `[State]`, the file and a profile switch |
 | PANEL-11 | S-26 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 3, `M4-01`) |
+| PANEL-27 | S-12 step 3 and S-16 step 3 as rewritten by SP-BL-01 | The popup now says it resets this profile and leaves the others alone; master's doc expected the old wording |
+| PANEL-28 | S-12 step 3 and S-16 step 3 as rewritten by SP-BL-01 | Yes now keeps every History row; master's doc expected Yes to empty History, the opposite |
+| PANEL-29 | S-16 step 5 as rewritten by SP-BL-01 | History, Insights and the read-out now keep their rows; master's doc expected them to go empty, the opposite |
 | PROFILE-1 – 7, PROFILE-14 | S-30 steps 1–8 | Added with profile support (SP-BL-01, 2026-09-29); never run |
 | LEDG-28 – 32, LEDG-36 | S-24 steps 1–7 (merged with S-10 steps 1–3, S-21 step 2) | S-24 was NOT YET RUN since the `CopyWindow` adoption |
+| SESS-10 | S-17 step 15 as rewritten by SP-BL-01 | Geometry now belongs to the profile; master's doc expected it to be account-wide |
+| DIAG-19 | S-20 step 9 as rewritten by SP-BL-01 | The line is now `[Set] reset profile 'Default' to defaults (N rows)`; master's doc expected `[Set] reset all: N rows` |
 | LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
 | LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |

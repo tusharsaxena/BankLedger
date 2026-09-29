@@ -390,8 +390,10 @@ end)
 
 -- Several cases below read the [Migrate] line as well as the stamp. The stamp alone cannot tell a
 -- walked store from one left alone -- both end at NS.SCHEMA_VERSION -- and the row count is the only
--- headless witness of what the walk touched. The line is also what docs/smoke-tests.md reads in the
--- client, so the two checks agree on their evidence.
+-- headless witness of what the walk touched. A client never shows it: the ladder runs in
+-- addon:OnInitialize, before any slash command can turn logging on, and NS.State.debug is off at every
+-- login. So docs/smoke-tests.md INSTALL-8 to 10 read the in-client evidence from `[State]`, the saved
+-- file and a profile switch instead, and these cases are the only place the line itself is checked.
 
 local function migrationLines(fn)
   local savedDebug = NS.State.debug
@@ -408,9 +410,9 @@ local function migrationLines(fn)
   return out
 end
 
-test("RunMigrations announces the v1->v4 pass the smoke step reads", function()
-  -- The exact string docs/smoke-tests.md INSTALL-8 looks for in the client. Pinned here so the in-game
-  -- step has a headless twin and a rename of MigrationSummary cannot silently break it.
+test("RunMigrations announces the v1->v4 pass in one [Migrate] line", function()
+  -- The exact [Migrate] string, pinned here because no in-game check can read it (see the note above)
+  -- and a rename of MigrationSummary would otherwise break it silently.
   -- red under: the disarmed runner this item removed — no line at all was emitted.
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
   local lines = migrationLines(function()
