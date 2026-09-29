@@ -246,31 +246,31 @@ end)
 local MOCK_NOW = T.mocks.__now
 
 test("Database:PruneOld drops entries past the retention window", function()
-  local saved = NS.db.global.settings.retentionDays
-  NS.db.global.settings.retentionDays = 30
+  local saved = NS.db.profile.settings.retentionDays
+  NS.db.profile.settings.retentionDays = 30
   withLedger({ entry({ ts = MOCK_NOW }), entry({ ts = MOCK_NOW - 60 * 86400 }) }, function()
     assertEqual(NS.Database:PruneOld(), 1)
     assertEqual(NS.Database:Count(), 1)
   end)
-  NS.db.global.settings.retentionDays = saved
+  NS.db.profile.settings.retentionDays = saved
 end)
 
 test("Database:PruneOld keeps everything when retention is Always (0)", function()
-  local saved = NS.db.global.settings.retentionDays
-  NS.db.global.settings.retentionDays = 0
+  local saved = NS.db.profile.settings.retentionDays
+  NS.db.profile.settings.retentionDays = 0
   withLedger({ entry({ ts = MOCK_NOW - 900 * 86400 }) }, function()
     assertEqual(NS.Database:PruneOld(), 0)
     assertEqual(NS.Database:Count(), 1)
   end)
-  NS.db.global.settings.retentionDays = saved
+  NS.db.profile.settings.retentionDays = saved
 end)
 
 -- The message is the expensive part: every LedgerChanged repaints the ledger window, the session
 -- window and the Insights charts. PruneOld runs on every login, so a pass that aged nothing out
 -- used to pay for three full repaints to report that nothing had happened.
 test("Database:PruneOld broadcasts LedgerChanged only when a row actually went", function()
-  local saved = NS.db.global.settings.retentionDays
-  NS.db.global.settings.retentionDays = 30
+  local saved = NS.db.profile.settings.retentionDays
+  NS.db.profile.settings.retentionDays = 30
   local sent, savedSend = 0, NS.bus.SendMessage
   NS.bus.SendMessage = function(self, msg, ...)
     if msg == NS.MSG.LEDGER_CHANGED then sent = sent + 1 end
@@ -285,7 +285,7 @@ test("Database:PruneOld broadcasts LedgerChanged only when a row actually went",
     assertEqual(sent, 1, "a prune that removed a row still broadcasts, exactly once")
   end)
   NS.bus.SendMessage = savedSend
-  NS.db.global.settings.retentionDays = saved
+  NS.db.profile.settings.retentionDays = saved
 end)
 
 test("Database:StorageStats reports count, span and an estimated size", function()
@@ -319,14 +319,15 @@ end)
 -- ── Migrations ─────────────────────────────────────────────────────────────────
 
 test("RunMigrations stamps a schema version onto a fresh database", function()
-  -- Schema v2 shipped alongside this suite, so a freshly-initialized database is already migrated.
-  assertEqual(NS.db.global.schemaVersion, 2)
+  -- Schema v3 shipped alongside this suite, so a freshly-initialized database is already migrated.
+  assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION)
+  assertEqual(NS.SCHEMA_VERSION, 3, "v3 moved the settings into the profile")
 end)
 
 test("RunMigrations is idempotent — running it twice changes nothing", function()
   NS:RunMigrations()
   NS:RunMigrations()
-  assertEqual(NS.db.global.schemaVersion, 2)
+  assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION)
 end)
 
 test("NS.MigrationSummary renders a readable one-liner", function()
@@ -336,7 +337,7 @@ end)
 test("NS.InitSummary identifies the build, schema, profile and size", function()
   local s = NS.InitSummary()
   assertTrue(s:find("BankLedger", 1, true) ~= nil, "names the addon")
-  assertTrue(s:find("schema v2", 1, true) ~= nil, "names the schema version")
+  assertTrue(s:find("schema v3", 1, true) ~= nil, "names the schema version")
   assertTrue(s:find("profile 'Default'", 1, true) ~= nil, "names the profile")
   assertTrue(s:find("entries", 1, true) ~= nil, "carries the entry count")
 end)
@@ -353,7 +354,7 @@ test("RunMigrations strips vendorPrice from every stored entry and bumps to v2",
       itemName = "Gold", quantity = 50000 },
   }
   NS:RunMigrations()
-  assertEqual(NS.db.global.schemaVersion, 2)
+  assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION)
   assertEqual(NS.db.global.ledger[1].vendorPrice, nil)
   assertEqual(NS.db.global.ledger[1].quantity, 10, "the rest of the entry is untouched")
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
@@ -361,10 +362,10 @@ end)
 
 test("RunMigrations is idempotent on an already-migrated database", function()
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
-  NS.db.global.schemaVersion = 2
+  NS.db.global.schemaVersion = NS.SCHEMA_VERSION
   NS.db.global.ledger = { { ts = 1, kind = "ITEM", quantity = 3 } }
   NS:RunMigrations()
-  assertEqual(NS.db.global.schemaVersion, 2)
+  assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION)
   assertEqual(NS.db.global.ledger[1].quantity, 3)
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
 end)
@@ -380,7 +381,8 @@ test("RunMigrations treats a database with no schemaVersion key at all as v1", f
       itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
   }
   NS:RunMigrations()
-  assertEqual(NS.db.global.schemaVersion, 2, "an absent version is treated as v1 and upgraded")
+  assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION,
+    "an absent version is treated as v1 and upgraded")
   assertEqual(NS.db.global.ledger[1].vendorPrice, nil)
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
 end)
@@ -405,7 +407,7 @@ local function migrationLines(fn)
   return out
 end
 
-test("RunMigrations announces the v1->v2 pass the smoke step reads", function()
+test("RunMigrations announces the v1->v3 pass the smoke step reads", function()
   -- The exact string docs/smoke-tests.md S-25 looks for in the client. Pinned here so the in-game
   -- step has a headless twin and a rename of MigrationSummary cannot silently break it.
   -- red under: the disarmed runner this item removed — no line at all was emitted.
@@ -420,7 +422,7 @@ test("RunMigrations announces the v1->v2 pass the smoke step reads", function()
   end)
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
   assertEqual(#lines, 1, "exactly one migration line")
-  assertTrue(lines[1]:find("v1 -> v2, 1 rows touched", 1, true) ~= nil,
+  assertTrue(lines[1]:find("v1 -> v3, 1 rows touched", 1, true) ~= nil,
     "the line names the ladder and the row count: " .. tostring(lines[1]))
 end)
 
@@ -504,9 +506,9 @@ test("RunMigrations leaves the stamp at the last completed step when a step rais
 end)
 
 test("ResetEverything leaves the store stamped at NS.SCHEMA_VERSION", function()
-  -- The wipe merges the declared defaults back, which carry `schemaVersion = 0`. Left there, a
-  -- freshly reset store reads v0 until the next login. The reset re-runs the runner instead.
-  -- red under: dropping the NS:RunMigrations() call from Sl:ResetEverything.
+  -- The reset is a PROFILE reset now, and the stamp is account-wide: nothing may put the declared
+  -- `schemaVersion = 0` back, or the next login would walk every step again.
+  -- red under: a reset that wipes db.global again.
   local saved = T.mocks.DEFAULT_CHAT_FRAME.AddMessage
   T.mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
   NS.Slash:ResetEverything()
@@ -520,21 +522,23 @@ test("RunMigrations survives a database with no ledger at all", function()
   NS.db.global.schemaVersion = 1
   NS.db.global.ledger = nil
   local ok, err = pcall(function() NS:RunMigrations() end)
-  assertTrue(ok, "must not raise on a nil ledger: " .. tostring(err))
-  assertEqual(NS.db.global.schemaVersion, 2)
-  assertEqual(NS.db.global.ledger, nil, "no ledger is fabricated where none existed")
+  local after, ledger = NS.db.global.schemaVersion, NS.db.global.ledger
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
+  assertTrue(ok, "must not raise on a nil ledger: " .. tostring(err))
+  assertEqual(after, NS.SCHEMA_VERSION)
+  assertEqual(ledger, nil, "no ledger is fabricated where none existed")
 end)
 
 test("RunMigrations never downgrades a future schema version", function()
   local saved, savedVer = NS.db.global.ledger, NS.db.global.schemaVersion
-  NS.db.global.schemaVersion = 3
+  NS.db.global.schemaVersion = NS.SCHEMA_VERSION + 1
   NS.db.global.ledger = {
     { ts = 1, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
       itemID = 2589, itemName = "Linen Cloth", quantity = 10, vendorPrice = 20 },
   }
   NS:RunMigrations()
-  assertEqual(NS.db.global.schemaVersion, 3, "a future version is left exactly as it was")
+  assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION + 1,
+    "a future version is left exactly as it was")
   assertEqual(NS.db.global.ledger[1].vendorPrice, 20,
     "a future schema's entries are not touched by the v1->v2 step")
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer

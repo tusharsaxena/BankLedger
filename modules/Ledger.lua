@@ -59,7 +59,7 @@ local function countKeys(t)
 end
 
 function L:RefreshUpvalues()
-  local s = (NS.db and NS.db.global and NS.db.global.settings) or {}
+  local s = (NS.db and NS.db.profile and NS.db.profile.settings) or {}
   DB_ENABLED      = s.enabled ~= false
   DB_TRACK_ITEMS  = s.trackItems ~= false
   DB_TRACK_MONEY  = s.trackMoney ~= false

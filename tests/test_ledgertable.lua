@@ -565,7 +565,7 @@ end
 local function fireMenuItem(label, entry)
   local blacklist, whitelist = NS.Filters:Blacklist(), NS.Filters:Whitelist()
   local out = captureChat(function() menuByLabel(entry, false)[label].fn() end)
-  NS.db.global.blacklist, NS.db.global.whitelist = blacklist, whitelist
+  NS.db.profile.blacklist, NS.db.profile.whitelist = blacklist, whitelist
   NS.Filters:_notify()
   return out
 end

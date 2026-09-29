@@ -39,9 +39,11 @@
 --                         the event's first registrant, where retail raises. That is the failure
 --                         mode that once unregistered this whole addon, so tests/test_ledger.lua's
 --                         reEnable clears the addon's events before each re-registration.
---   5. AceDB            — the base models profiles because its other consumers switch them. This is
---                         an account-wide addon created with defaultProfile = true, and its own
---                         suite asserts against a fixed "Default", so the simpler stub is kept.
+--   5. AceDB            — the base models profiles too, but copies scalar defaults INTO the store,
+--                         so a cleared key reads nil there. This one keeps AceDB's default
+--                         fallback (overlayDefaults) and adds the profile surface the addon uses
+--                         since schema v3: a lazy db.profile, switch/copy/reset/delete and the
+--                         three profile callbacks.
 --   6. __settingsPanels — the base splits the canvas registry into __mainPanel and __subcategories.
 --                         tests/test_panel.lua reaches BOTH through one name-keyed table and calls
 --                         GetID() on both returns.
@@ -71,6 +73,9 @@
 --                         every suite knows by id are known by name too. They are seeded WITHOUT a
 --                         quality, so the kit's C_Item.GetItemQualityByID answers nil and IdList
 --                         draws their names plain (the v1.35.0 re-cut colors a name by quality).
+--  14. AceConfig trio   — ADDED, not overridden: the base has no AceDBOptions-3.0, AceConfig-3.0 or
+--                         AceConfigDialog-3.0. Recorders for settings/Profiles.lua (options-ui-§3),
+--                         which reaches all three; M.__aceConfig holds what they were handed.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -327,12 +332,29 @@ end
 -- defaults are held OFF the store, behind __index, so reading one that was never written — or one
 -- that has been set nil — answers with the default rather than with nil. Writes go straight to
 -- the store and shadow the default, so seeding an explicit version still works and round-trips.
-local function defaultedStore(src)
-  local store, scalars = {}, {}
+--
+-- LAID OVER whatever the store already holds, so the same function serves a fresh install (an empty
+-- table) and a SavedVariables root a suite seeds before InitDB (a legacy global section, a stored
+-- profile): a stored value always wins, and a table default is materialized only where nothing is
+-- stored, as copyDefaults does.
+local function overlayDefaults(store, src)
+  local scalars = {}
   for k, v in pairs(src or {}) do
-    if type(v) == "table" then store[k] = defaultedStore(v) else scalars[k] = v end
+    if type(v) == "table" then
+      if type(rawget(store, k)) ~= "table" then rawset(store, k, {}) end
+      overlayDefaults(rawget(store, k), v)
+    else
+      scalars[k] = v
+    end
   end
   return setmetatable(store, { __index = scalars })
+end
+
+local function deepcopy(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = deepcopy(x) end
+  return out
 end
 
 return function()
@@ -622,21 +644,116 @@ return function()
   -- (with its real NewLibrary and its strict silent flag) is kept intact.
   local libs = M.__libs
 
-  -- Override 5. Account-wide addon: created in-game with defaultProfile = true, so the profile is
-  -- always the fixed "Default". The base models a full profile surface for hosts that switch
-  -- profiles; this one never does, and its suite asserts against that fixed name.
+  -- Override 5. AceDB with the PROFILE SURFACE this addon uses since schema v3 (docs/profiles.md):
+  -- a raw SavedVariables root (`db.sv`, `db.profiles`), a LAZY `db.profile` built on first read the
+  -- way AceDB's initSection builds it (so a migration that runs first sees the raw profiles), and
+  -- SetProfile / ResetProfile / CopyProfile / DeleteProfile / GetProfiles firing OnProfileChanged,
+  -- OnProfileReset and OnProfileCopied with AceDB's own arguments.
   --
-  -- Both scopes are built through defaultedStore, so the defaults FALL BACK rather than being
-  -- copied flat — see its comment for why. That is the one fidelity this override adds back over
-  -- the base, whose copyDefaults writes scalars into the store and therefore lets a cleared key
-  -- read nil, a state AceDB does not hand a running addon.
+  -- WHY NOT THE KIT'S: its copyDefaults writes scalars into the store, so a cleared key reads nil, a
+  -- state AceDB does not hand a running addon. Both scopes here are built through overlayDefaults,
+  -- so the defaults FALL BACK rather than being copied flat -- see its comment.
+  --
+  -- `tbl` may be a TABLE rather than the global's name: a suite hands in a seeded SavedVariables
+  -- root (a pre-v3 store with settings under `global`) and drives the real InitDB path over it.
   libs["AceDB-3.0"] = {
-    New = function(_, _name, defaults)
-      return {
-        global = defaultedStore(defaults and defaults.global),
-        profile = defaultedStore(defaults and defaults.profile),
-        GetCurrentProfile = function() return "Default" end,
-      }
+    New = function(_, tbl, defaults)
+      local sv = type(tbl) == "table" and tbl or {}
+      sv.global = overlayDefaults(sv.global or {}, defaults and defaults.global)
+      sv.profiles = sv.profiles or {}
+      local current, callbacks = "Default", {}
+      local db = { sv = sv, profiles = sv.profiles, global = sv.global }
+
+      local function ensureProfile(name)
+        local p = sv.profiles[name]
+        if type(p) ~= "table" then p = {}; sv.profiles[name] = p end
+        return overlayDefaults(p, defaults and defaults.profile)
+      end
+      -- Lazy, as AceDB's DBObject __index is: nothing reads a profile into being before the addon
+      -- asks for one, which is what savedvariables-§1's "runner before the first db.profile read"
+      -- is about.
+      setmetatable(db, { __index = function(t, k)
+        if k ~= "profile" then return nil end
+        local p = ensureProfile(current)
+        rawset(t, "profile", p)
+        return p
+      end })
+
+      -- CallbackHandler's shape: RegisterCallback(target, event, fn-or-method-name), fired as
+      -- fn(event, db, ...) -- or target[method](target, event, db, ...) for the string form.
+      local function fire(event, ...)
+        for _, cb in ipairs(callbacks[event] or {}) do
+          if type(cb.fn) == "string" then cb.target[cb.fn](cb.target, event, db, ...)
+          else cb.fn(event, db, ...) end
+        end
+      end
+      db.RegisterCallback = function(target, event, fn)
+        callbacks[event] = callbacks[event] or {}
+        table.insert(callbacks[event], { target = target, fn = fn })
+      end
+
+      function db.GetCurrentProfile() return current end
+      function db.GetProfiles(_, out)
+        out = out or {}
+        local n = 0
+        for name in pairs(sv.profiles) do n = n + 1; out[n] = name end
+        if not sv.profiles[current] then n = n + 1; out[n] = current end
+        table.sort(out)
+        return out, n
+      end
+      function db.SetProfile(_, name)
+        if name == current then return end
+        current = name
+        rawset(db, "profile", ensureProfile(name))
+        fire("OnProfileChanged", name)
+      end
+      -- Wipe IN PLACE, as AceDB does: anything holding the profile table keeps the live one.
+      local function wipe(p) for k in pairs(p) do p[k] = nil end end
+      function db.ResetProfile()
+        local p = ensureProfile(current)
+        wipe(p)
+        overlayDefaults(p, defaults and defaults.profile)
+        rawset(db, "profile", p)
+        fire("OnProfileReset")   -- the db alone, as AceDB-3.0 fires it
+      end
+      function db.CopyProfile(_, name)
+        if name == current then
+          error(("Cannot have the same source and destination profiles (%q)."):format(name), 2)
+        end
+        local src = sv.profiles[name]
+        if not src then error(("Cannot copy profile %q as it does not exist."):format(name), 2) end
+        local p = ensureProfile(current)
+        wipe(p)
+        for k, v in pairs(deepcopy(src)) do p[k] = v end
+        overlayDefaults(p, defaults and defaults.profile)
+        rawset(db, "profile", p)
+        fire("OnProfileCopied", name)   -- the SOURCE, as AceDB-3.0 fires it
+      end
+      function db.DeleteProfile(_, name)
+        if name == current then
+          error(("Cannot delete the active profile (%q) in an AceDBObject."):format(name), 2)
+        end
+        sv.profiles[name] = nil
+      end
+      return db
+    end,
+  }
+
+  -- Addition 14. The three libraries settings/Profiles.lua reaches (options-ui-§3), as RECORDERS
+  -- (testing-§1: record, never no-op): the options table AceDBOptions built and for which db,
+  -- each AceConfig registration, and each AceConfigDialog Open with the container it was handed.
+  -- The real libraries are vendored but not loaded headlessly (the loader skips `libs\` TOC lines),
+  -- so without these the page builder answers nil and the page is untestable.
+  M.__aceConfig = { tables = {}, opened = {} }
+  libs["AceDBOptions-3.0"] = {
+    GetOptionsTable = function(_, db) return { type = "group", name = "Profiles", handler = db } end,
+  }
+  libs["AceConfig-3.0"] = {
+    RegisterOptionsTable = function(_, app, opts) M.__aceConfig.tables[app] = opts end,
+  }
+  libs["AceConfigDialog-3.0"] = {
+    Open = function(_, app, container)
+      table.insert(M.__aceConfig.opened, { app = app, container = container })
     end,
   }
 

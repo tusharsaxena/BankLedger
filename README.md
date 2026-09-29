@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1104%2F1104_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1125%2F1125_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -67,8 +67,13 @@ You don't have to do anything to start recording. A first visit to the bank goes
 
 Movements older than 30 days are dropped at login, and **Keep history for** on the settings'
 History tab changes that. `/bl purge` deletes your history and leaves your settings alone.
-`/bl resetall` goes further and puts the whole addon back to a fresh install, history included, so
-export first. Both ask before they do anything.
+`/bl resetall` does the opposite: it puts the current profile's settings, filter lists and saved view
+back to defaults and keeps your history. Both ask before they do anything.
+
+Your settings live in a profile. Every character shares the one **Default** profile until you
+choose otherwise under Settings → AddOns → Ka0s Bank Ledger → **Profiles**, where you can give a
+character its own. The history is never part of a profile: every character on every profile reads and
+writes the same ledger.
 
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.
@@ -98,6 +103,7 @@ and questing, never ends up in the book.
 | -------- | ------ |
 | Does it track what's in my bank right now? | No, and that is what a bag addon is for. This one keeps the record of what crossed in and out. |
 | Is my history shared between characters? | Yes. One account-wide ledger, so an alt's deposits and your withdrawals sit in the same list. |
+| Can one character use different settings? | Yes. Settings, the two filter lists and the saved view belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. The history stays shared whatever profile you are on. |
 | Does it record currencies like Valorstones? | No. The book covers items and gold; currencies are deliberately out of scope. |
 | Will it see what other people put in the guild bank? | No. It only sees what your own character does. |
 | What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |
@@ -114,9 +120,10 @@ and questing, never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Filters ▸ Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then discards your settings, filter lists and recorded history as well, so export first if you want to keep it. `/bl purge` deletes history only. |
+| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then resets the current profile's settings, filter lists and saved view as well. Your recorded history is kept; `/bl purge` is what deletes it. |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
-| The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns everything to a fresh install, and a fresh install is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
+| The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns the current profile to its defaults, and a fresh profile is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
+| The addon switched itself off (or on) when I changed profile | *Enable Bank Ledger* is a setting like any other, so it belongs to the profile. Switching to a profile where it is off turns the addon off. Tick it again on that profile, or switch back. |
 | Something looks wrong and I want to report it | Follow [Reporting a bug](#reporting-a-bug) below. |
 
 ## Reporting a bug

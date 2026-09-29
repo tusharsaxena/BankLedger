@@ -285,11 +285,12 @@ tolerance.
      not found` — the CLI path reads in the row's own sense, the stored key is still LibDBIcon's. Drag **Master alpha** to its far left: it bottoms out at **0.10**, not 0,
      and the windows visibly fade to that and no further — the row's declared minimum IS the floor
      `NS.Util.ApplyMasterFrame` draws at, so no stop on the slider is one the drawing code refuses.
-     **Reset all settings** raises a confirm popup and, on Yes, discards **the recorded ledger too**.
-     `/bl resetall`, the header **Defaults** button and Blizzard's footer **Defaults** raise the SAME
-     popup (`options-ui-§12`): **No** leaves everything as it was; **Yes** empties History and both
-     filter lists, turns test mode off, closes the debug console and leaves a hidden minimap button
-     hidden.
+     **Reset all settings** raises a confirm popup that says it resets **this profile** and leaves
+     your other profiles alone. `/bl resetall`, the header **Defaults** button and Blizzard's footer
+     **Defaults** raise the SAME popup (`options-ui-§12`): **No** leaves everything as it was;
+     **Yes** resets every setting, empties both filter lists, turns test mode off, closes the debug
+     console, leaves a hidden minimap button hidden, and **keeps History** (the ledger is
+     account-wide and in no profile).
    - **Capture** — *Track items · Track gold*, then *Minimum quality*, then the full-width per-store
      grid.
    - **Interface** — a **Windows** heading over *Session window*, then a
@@ -495,8 +496,9 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
 
 1. `/bl set settings.retentionDays 7`, then `/reload`. Entries older than 7 days are gone.
 2. `/bl purge` asks to confirm; accepting empties the ledger and the window shows its empty state.
-3. Settings ▸ General ▸ **Master controls** ▸ **Reset all settings** asks to confirm and restores
-   everything, recentering both windows and discarding the recorded ledger with them. It sits beside
+3. Settings ▸ General ▸ **Master controls** ▸ **Reset all settings** asks to confirm and resets the
+   current profile, recentering both windows. The recorded ledger is **kept**: only `/bl purge`
+   (step 2) deletes history. It sits beside
    **Reset position** in that tab's closing button pair, and nowhere else — History carries
    **Purge ledger…** alone (S-12).
 4. **Without reloading**, capture a bank movement: open your character bank and deposit or withdraw
@@ -508,11 +510,11 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    or `/bl` ▸ Filters), reset, and then move that item: it must now be **recorded**, because the
    reset emptied the blacklist. **Fail:** the movement is dropped, or a movement that should be
    dropped is recorded, until you `/reload`.
-5. **The open views empty at once.** With History, Insights and the settings panel's storage read-out
-   on screen, run **Reset all settings** ▸ Yes. History and Insights both go empty straight away and
-   the storage read-out reads 0 — the reset announces `Ka0s_BankLedger_LedgerChanged` through
-   `Database:FireLedgerChanged`. **Fail:** either view keeps showing the deleted rows until it is
-   reopened.
+5. **The open views keep the history.** With History, Insights and the settings panel's storage
+   read-out on screen, run **Reset all settings** ▸ Yes. History and Insights keep every row and the
+   storage read-out keeps its count; the Filters tab's lists empty at once, because the profile
+   handler announces `Ka0s_BankLedger_LedgerChanged` through `Database:FireLedgerChanged`. **Fail:**
+   any row of history goes, or a list keeps showing ids until it is reopened.
 6. **A reset while disabled re-enables.** Untick **Enable Bank Ledger**, then **Reset all settings**
    ▸ Yes. The checkbox reads ticked and the addon is running: deposit something at your bank and it
    records. **Fail:** the box reads ticked but nothing records until a `/reload` or a toggle.
@@ -551,7 +553,8 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
     `GUILD_BANK 0` is the exact signature of the regression.
 15. **Geometry across a game session.** Move and resize the window, close the bank, then `/reload`.
     Open a bank again: it comes back at the size and position you left it, with no rows. Repeat
-    logging in on a **different character** — the geometry is account-wide, so it follows you.
+    logging in on a **different character** on the same profile (every character shares `Default`
+    until you choose otherwise) — the geometry belongs to the profile, so it follows you.
     Do it once more resizing *only* (never dragging), and once more with the window still on screen
     when you `/reload`: both must survive. Session *data* is never persisted; only the geometry is.
 16. Settings ▸ General ▸ untick **Session window**. Open a bank — no window appears, but the
@@ -640,8 +643,9 @@ redraw, so this is the only place the fix is actually observable.
    the reset values.
 9. `/bl debug on` and open the console (`/bl debug`). Run `/bl set settings.qualityThreshold 4` and
    `/bl set settings.rowHoverAlpha 0.3`, then `/bl resetall`. The console shows exactly **one**
-   `[Set] reset all: 2 rows` line for the reset, with no `[Set] settings.… = …` line under it. Run
-   `/bl resetall` again: one `[Set] reset all: 0 rows`. Press the General page's **Defaults** and
+   `[Set] reset profile 'Default' to defaults (2 rows)` line for the reset, with no
+   `[Set] settings.… = …` line under it. Run `/bl resetall` again: one
+   `[Set] reset profile 'Default' to defaults (0 rows)`. Press the General page's **Defaults** and
    expect the same one line. Then `/bl debug off` (`debug-logging-§10`).
 
 ## S-21 · The shared marks
@@ -834,14 +838,16 @@ this step is for.
 document that touches a real ledger.
 
 1. Copy `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe.
-2. Hand-edit the file in place: delete the `["schemaVersion"] = 2,` line under `["global"]`, and add
-   `["vendorPrice"] = 20,` to exactly one existing ledger entry. Note which entry.
+2. Hand-edit the file in place: delete the `["schemaVersion"] = 3,` line under `["global"]`, and add
+   `["vendorPrice"] = 20,` to exactly one existing ledger entry. Note which entry. (On a store this
+   build has already stamped v3 the settings are in `["profiles"]`, so the v3 step finds nothing
+   under `["global"]` to lift and adds no rows to the count.)
 3. Log in. `/bl debug` on, and open the console.
-4. **Pass:** the console carries `[Migrate] v1 -> v2, 1 rows touched`. **Fail:** no migration line at
+4. **Pass:** the console carries `[Migrate] v1 -> v3, 1 rows touched`. **Fail:** no migration line at
    all — that is the defect this step exists to catch — or a row count that is not the one you
    planted.
 5. Log out fully (exit to desktop; the strip runs on `PLAYER_LOGOUT`). Reopen the file.
-6. **Pass:** `["schemaVersion"] = 2,` is present under `["global"]`, and the `vendorPrice` key is
+6. **Pass:** `["schemaVersion"] = 3,` is present under `["global"]`, and the `vendorPrice` key is
    gone from the entry you edited. **Fail:** the stamp is missing again, which would mean something
    declared a default equal to a real version and the next schema bump is already disarmed.
 7. Log back in once more and confirm the console shows **no** migration line the second time — the
@@ -884,7 +890,7 @@ green whether it is right or wrong — the test and the bug agree with each othe
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
   `core/Compat.lua:153-159`). These are `C_Item.GetItemInfo`'s **localized** type and sub-type
-  strings. They are not only displayed: `core/Database.lua:275-306` uses them as analytics **keys**
+  strings. They are not only displayed: `core/Database.lua:392-423` uses them as analytics **keys**
   (`byItemType`, `byItemSubType`, and `byTypeSub` keyed on `type\tsubType`), they are persisted into
   SavedVariables on every row, and `modules/Export.lua`'s `itemType` / `itemSubType` columns emit
   them raw. The same `C_Item.GetItemInfo` call returns the locale-independent `classID` /
@@ -897,7 +903,7 @@ green whether it is right or wrong — the test and the bug agree with each othe
   is "unambiguous across locales". That is true of the **order** and not of `%b`, which is the
   month's abbreviation in the client's own language.
 - **Case folding.** `modules/LedgerTable.lua:66`, `:85`, `:89` and `:94` sort on `:lower()`, and
-  `core/Database.lua:171` and `:188` lowercase the item name and the search text before matching.
+  `core/Database.lua:288` and `:305` lowercase the item name and the search text before matching.
   Lua's `string.lower` folds ASCII and nothing else, so `Ä` is not `ä` to any of them.
 
 **English by design, and not a failure here.** `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and
@@ -1020,3 +1026,39 @@ visible.
 
 > On a normal setup you may not be able to get narrow enough to trigger step 6; the column cap was
 > chosen conservatively. If you cannot, step 1 passing is still the meaningful result.
+
+## S-30 · Profiles and the schema v3 lift
+
+Settings moved from the account-wide store into AceDB profiles at schema v3 ([profiles.md](profiles.md)).
+The headless suite pins the lift, the adopt path and the page's registration; only the client can
+show the Profiles page, a real SavedVariables file after the lift, and what a switch does to live
+windows.
+
+**Back up `WTF/` first.** Step 1 needs a store written by a build **before** schema v3.
+
+1. **The lift keeps your settings.** On the old build, set a few things away from their defaults (a
+   minimum quality, a muted store, a row tint), blacklist one item, save a view and drag the ledger
+   window somewhere. Install this build and log in. Every one of those is exactly as you left it,
+   and History has every row. Log out and open `BankLedger.lua`: the settings, both lists and
+   `savedView` sit under `["profiles"]["Default"]`, and `["global"]` holds only `ledger`, `minimap`
+   and `schemaVersion = 3`. **Fail:** any setting back at its default, or a `settings` table still
+   under `["global"]`.
+2. **The page.** Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ **Profiles** is the last entry under
+   General, has no **Defaults** button, and shows `Default` as the current profile.
+3. **A new profile is a fresh configuration over the same history.** Create a profile named `Alt`.
+   At once, and without a `/reload`: the General page reads every default, the Blacklist is empty,
+   both windows sit at their default positions, and History still has every row. **Fail:** any
+   history row missing, or a window or a setting still showing `Default`'s values.
+4. **Switching back restores.** Choose `Default` again: every setting, the blacklist, the saved view
+   and both window positions come back.
+5. **Enable is per profile.** On `Alt`, untick **Enable Bank Ledger**; the addon stands down. Choose
+   `Default`: it is running again (deposit something and it records). Choose `Alt`: it stands down.
+   Tick it again on `Alt`.
+6. **Reset Profile keeps history.** On `Alt`, change a setting, then press the page's **Reset
+   Profile**: `Alt` returns to defaults without a confirm (AceDBOptions asks nothing), History keeps
+   every row, and `Default` is untouched when you switch back. Then `/bl resetall` on `Default`: the
+   popup reads *Reset this profile to the addon's defaults? … your other profiles are not affected*,
+   and **Yes** keeps History.
+7. **One line per event.** `/bl debug on`, open the console, switch profile: exactly one
+   `[Profile] switched to profile '<name>'` line. Copy `Alt` into the current profile: exactly one
+   `[Set] copied profile 'Alt' -> '<current>'` line. Then `/bl debug off`. Delete `Alt` when done.

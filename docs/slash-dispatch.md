@@ -16,7 +16,7 @@ settings landing page both read from one place.
 | `/bl enable` / `disable` | Turn the addon on or off. **Aliases**, not a second switch: both write `settings.enabled` — the path the Master controls **Enable Bank Ledger** checkbox writes — through `NS.Schema:Set`, and hold no state of their own (`slash-commands-§2`). `/bl set settings.enabled true|false` is the same write by its long name. The dispatcher keeps answering while the addon is disabled, so the pair is never one-way. |
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` | Read and write settings |
-| `/bl resetall` | Reset everything to defaults, **including recorded history**. Asks first: the same confirm popup, and the same act, as *Reset all settings* and both **Defaults** controls (`options-ui-§12`) |
+| `/bl resetall` | Reset the **current profile's** settings to defaults; **recorded history is kept**. Asks first: the same confirm popup, and the same act, as *Reset all settings* and both **Defaults** controls (`options-ui-§12`); the Profiles page's Reset Profile is the same act too |
 | `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box) |
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
@@ -132,9 +132,10 @@ this refusal line while disabled; that refusal and the `disabledLine` field that
   (`options-ui-§12`): `Sl:CliResetAll` returns `Sl:RequestResetAll()`, the single entry point that
   the Master controls tab's *Reset all settings*, the General page's **Defaults** and Blizzard's
   footer **Defaults** share too. It raises the confirm popup `KA0S_BANKLEDGER_RESETALL`, whose
-  `OnAccept` is `Sl:ResetEverything` — `db.global` emptied wholesale, recorded history, both filter
-  lists and the saved view included, then the defaults merged back with the `minimap` table held
-  across the wipe (`launcher-§3`), test mode ended and the debug console closed by name. With no
+  `OnAccept` is `Sl:ResetEverything` — `db:ResetProfile()`: the active profile's settings, both filter lists and the saved view back to
+  their defaults, with the account-wide ledger and the `minimap` table untouched (`launcher-§3`) and
+  the rest done by the profile handler, `NS.OnProfileEvent` ([profiles.md](profiles.md)), which also
+  ends test mode and closes the debug console by name. With no
   popup API it runs the reset directly. The degraded arm defines the same one-line member, so
   `NS.Slash` keeps its shape with or without the library. `/bl purge` deletes history alone.
 - **The bulk bracket** (`bulkBegin` / `bulkEnd`, Slash minor 8), so a library row walk logs one line
@@ -145,8 +146,8 @@ this refusal line while disabled; that refusal and the `disabledLine` field that
   when everything was already at its default. A walk that raises part-way logs the same line once
   with ` (stopped by an error)` appended, then the error is re-raised. The library hands `bulkEnd`
   `err = nil` for a raise of nil or false, so that raise gets no marker. **No host route runs that
-  walk any more** — `/bl resetall` is the wholesale reset above, which logs its own one
-  `[Set] reset account-wide settings to defaults (N rows)` line — but the descriptor keeps the pair
+  walk any more** — `/bl resetall` is the profile reset above, whose one
+  `[Set] reset profile '<name>' to defaults (N rows)` line the profile handler writes — but the descriptor keeps the pair
   so the library's seam stays whole, and `tests/test_slash.lua` drives the walk directly.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings

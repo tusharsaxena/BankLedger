@@ -11,10 +11,10 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 |---|---|
 | Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
 | Scope | Retail (Mainline) only — a single `## Interface:` line, currently `120100` |
-| SavedVariables | `BankLedgerDB`, **account-wide `global` only** (see *Documented deviations*) |
+| SavedVariables | `BankLedgerDB`: the recorded ledger **account-wide** (`global`), every setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 31 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 34 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,9 +34,10 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-31 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the eight LibKa0s seams; `modules/` holds the capture engine
-and every window; `settings/` holds the schema and the two panel pages.
+34 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` holds the account-wide
+and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
+the schema, the slash seam and the settings pages (General and Profiles).
 
 Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
 derives from the TOC. File-by-file table, load-order notes and the locale seam in
@@ -56,22 +57,46 @@ tabbed **General** page (`options-ui-§13`): **Master controls** · **Capture** 
 **History** · **Filters**. The bulk bracket, the reset routes and the tab strip are in
 `settings-panel.md`.
 
-What is stored outside the rows is named per `architecture-§5`:
-- **One structural registry** — the filter id-sets, `db.global.blacklist` and
-  `db.global.whitelist`, whose only writer is `NS.Filters` (`modules/Filters.lua`).
-- **The movement log is recorded data** — `db.global.ledger`, written only by `NS.Database`
-  (`core/Database.lua`): `Add`, `Delete`, `DeleteAt`, `Purge` and `PruneOld`.
+Every schema path resolves against the **active profile**, `NS.db.profile` (schema v3). What is
+stored outside the rows is named per `architecture-§5`:
+- **One structural registry** — the filter id-sets, `db.profile.blacklist` and
+  `db.profile.whitelist`, whose only runtime writer is `NS.Filters` (`modules/Filters.lua`). Two
+  acts replace them wholesale without going through it: the load pass `NS.MIGRATIONS[3]`
+  (`core/Database.lua`), which lifted them out of `db.global` once, and AceDB's own profile switch,
+  copy and reset, after which `NS.OnProfileEvent` re-caches the capture gate and broadcasts
+  `LedgerChanged` exactly as `NS.Filters` does.
+- **The movement log is recorded data** — `db.global.ledger`, account-wide and in no profile,
+  written only by `NS.Database` (`core/Database.lua`): `Add`, `Delete`, `DeleteAt`, `Purge` and
+  `PruneOld`.
 - **Named non-setting state** — four storage carve-outs written outside `NS.Schema:Set`, none with a
   `Documented deviations` row:
-  - **Main window geometry**, `db.global.settings.window`, owned by `NS.Browser`.
-  - **Session window geometry**, `db.global.settings.sessionWindow`, owned by `NS.SessionWindow`.
-  - **Saved ledger view**, `db.global.savedView`, owned by `NS.Browser`.
-  - **Minimap button position**, `db.global.minimap.minimapPos`, written by LibDBIcon into the table
-    `NS.Launcher` hands it; the global reset holds that table back (`launcher-§3`, see **Launcher**
-    below).
+  - **Main window geometry**, `db.profile.settings.window`, owned by `NS.Browser`.
+  - **Session window geometry**, `db.profile.settings.sessionWindow`, owned by `NS.SessionWindow`.
+  - **Saved ledger view**, `db.profile.savedView`, owned by `NS.Browser`.
+  - **Minimap button position**, `db.global.minimap.minimapPos`, written by LibDBIcon into the
+    account-wide table `NS.Launcher` hands it; no profile event reaches it (`launcher-§3`, see
+    **Launcher** below).
 
 The runtime and its stub, and every writer of each with the act that reaches it, are in
 **[schema.md](schema.md#registry-recorded-data-and-named-state-writers)**.
+
+## Profiles
+
+AceDB profiles, since schema v3. A profile holds **everything a player configures**: every schema
+row, both filter lists, the saved view and both windows' geometry. The **recorded ledger** and
+LibDBIcon's table stay **account-wide** in `db.global`, so switching profile never changes what was
+recorded (owner decision D5, 2026-09-29: settings only). Every character starts on the one shared
+`Default` profile, which is where `NS.MIGRATIONS[3]` lifted the old account-wide settings.
+
+The **Profiles** page (`settings/Profiles.lua`, `options-ui-§3`) is AceDBOptions in a canvas
+subcategory, registered after General, with no Defaults button. AceDB's three profile callbacks all
+reach **`NS.OnProfileEvent`** (`core/Database.lua`), the one adopt path: the migration runner, the
+enable latch, one `SettingsChanged("profile")` and one `LedgerChanged`, every setting's effect
+re-applied (window geometry and chrome, the saved view, visibility, the row tint, the retention
+prune), the panel refreshed, and exactly one debug line (`debug-logging-§10`). The global reset is
+`db:ResetProfile()` (`options-ui-§12`, the "addon with both" form), so it is the same act as the
+Profiles page's Reset Profile and it never deletes history; `/bl purge` does that, separately
+confirmed. Detail in **[profiles.md](profiles.md)**.
 
 ## Launcher
 
@@ -116,14 +141,14 @@ the row (`minimap.shown`, stored as `minimap.hide`) to survive **both** *Reset a
 neither may re-hide a shown one either.
 
 Until standard v2.54.0 that section *derived* the conclusion — *Reset all settings* is a profile
-reset, the table is global, so the reset cannot reach it. **Neither half of that argument holds
-here, and both of this addon's reset implementations reached the row.** Since BankLedger-A-02 there
-is one global reset (`options-ui-§12`); the walk below survives as the library's, which no host
-route runs:
+reset, the table is global, so the reset cannot reach it. **Until schema v3 neither half of that
+argument held here, and both of this addon's reset implementations reached the row.** Since
+BankLedger-A-02 there is one global reset (`options-ui-§12`), and since schema v3 it is a profile
+reset; the walk below survives as the library's, which no host route runs:
 
 | Reset | Route | Why it reached the row | The carve-out |
 |---|---|---|---|
-| *Reset all settings*, **Defaults** and `/bl resetall` (all confirm-gated) | `Sl:ResetEverything` | **This addon has no profile.** Everything it stores is `db.global`, so the rule's second form applies: empty the account-wide store wholesale and merge the declared defaults back — and `minimap = { hide = false }` is one of the declared defaults. A hidden button came back, at the default angle. | The `minimap` table is held and restored around the wipe. The **table**, not the `hide` key, so `minimapPos` rides with it and a future key in it needs no second edit. |
+| *Reset all settings*, **Defaults** and `/bl resetall` (all confirm-gated), and the Profiles page's Reset Profile | `Sl:ResetEverything` → `db:ResetProfile()` | **Until schema v3 this addon had no profile**, so the reset emptied `db.global` wholesale and merged the declared defaults back, and `minimap = { hide = false }` was one of them: a hidden button came back, at the default angle. | None needed since schema v3: the reset is a profile reset, and the `minimap` table is in `db.global`, which no profile event reaches. Until then the table was held and restored around the wipe. |
 | The library's row walk (**Defaults** and `/bl resetall` until BankLedger-A-02; `O.RestoreDefaults` if ever called) | `applyDefault` over every schema row | The Minimap button row **is** a schema row — the Master controls composer emits it — and the walk rewrites every row carrying a `default`. This reaches the row even where the profile reasoning does hold, which is why the amended rule names it. | `NS.Schema.RESET_EXEMPT`, honored in `S:ApplyDefault`, the one seam the Slash and Options descriptors' `applyDefault` write through, so any library walk inherits the veto. |
 
 The veto is **bracket-scoped**: it fires only while a bulk bracket is open, which a sweep opens and a
@@ -157,7 +182,7 @@ shape names them. `tests/test_surface_parity.lua` holds it to the live major wit
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` (`ENTRY_ADDED`) | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
 | `Ka0s_BankLedger_LedgerChanged` (`LEDGER_CHANGED`) | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
-| `Ka0s_BankLedger_SettingsChanged` (`SETTINGS_CHANGED`) | `Schema` row `onChange` handlers, and `Slash:ResetEverything` once at the end of the confirm-gated full reset | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `reset`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SettingsChanged` (`SETTINGS_CHANGED`) | `Schema` row `onChange` handlers, and `NS.OnProfileEvent` once per profile switch, copy or reset (the global reset among them) | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `profile`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` (`SESSION_CHANGED`) | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm / the stand-down's `DropContext`) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
@@ -207,13 +232,12 @@ AceDB's three profile callbacks all land there, so no surface can drive the tear
 route and none of them holds a state of its own.
 
 **Reset all settings re-runs the latch too, and so re-enables a disabled addon.** The global reset
-(`Sl:ResetEverything`, behind every reset control) wipes `db.global` in place and merges the defaults back, which restores
-`settings.enabled = true` behind the row's `onChange`. So after its `SettingsChanged("reset")` and a
-`LedgerChanged` sent through `Database:FireLedgerChanged` (the wipe emptied the ledger; Database stays
-the one sender), it calls `NS.ReevaluateEnabled`, exactly as the profile callbacks do. That releases
+(`Sl:ResetEverything`, behind every reset control) is `db:ResetProfile()`, which restores
+`settings.enabled = true` behind the row's `onChange`. AceDB's `OnProfileReset` reaches
+`NS.OnProfileEvent`, which runs `NS.ReevaluateEnabled` like every profile event does. That releases
 the `disabled` hold only on a real edge: an enabled addon is untouched, a disabled one stands back up,
-as a fresh install would be (`options-ui-§12`). The call comes after the `LedgerChanged` send, so the
-modules standing back up build from the empty store.
+as a freshly created profile would be (`options-ui-§12`). A profile **switch** to a profile whose
+`settings.enabled` is false stands the addon down the same way.
 
 ### What stands down, and what survives
 
@@ -345,8 +369,8 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `ARCHITECTURE.md` | This file — the hub: at-a-glance facts, module map, schema, bus, slash, events, deviations |
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
-| `schema.md` | `BankLedgerDB`'s account-wide shape, the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The two pages, the five-tab strip, the sixteen rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
+| `settings-panel.md` | The three pages, the five-tab strip, the sixteen rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 
@@ -358,7 +382,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
-| `profiles.md` | Not applicable | No AceDB profiles are user-visible — the addon is account-wide by design and the profile namespace is unused |
+| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide, the v3 lift, the profile events and the reset |
 | `debug.md` | Present | The diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned topic dumps, `/bl debug scan` and `/bl debug panel`; which to paste with a bug report |
 | `perf-analysis/README.md` | Not applicable | The `performance-§12` no-combat-path exemption is held — see `## Documented deviations` |
 
@@ -394,16 +418,11 @@ with no re-check trigger is a permanent exemption granted by accident.
 | Rule | What differs | Why | Decided | Re-check trigger |
 |---|---|---|---|---|
 | `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and every event that *can* fire in combat is a row of that page's table with its work named: the three change events (`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY`) and `GUILDBANKBAGSLOTS_CHANGED` reach a single `NS.State.openContext` nil check and return, and the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` also runs `NS.Util.ApplyVisibility` — bounded, allocation-free, once per combat edge. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. Re-checked 2026-09-23 (audit): trigger not fired. |
-| `savedvariables-§2` | All defaults live in `defaults/Global.lua`; **`defaults/Profile.lua` is not created**, and `layout-§1`'s tree therefore has a file missing. | Bank Ledger is **account-wide by design** — you deposit on one character and withdraw on another, so a per-character profile would split the very history the addon exists to join up. `NS.defaults` carries a `global` table only and every schema path resolves against `NS.db.global`. An empty `Profile.lua` would satisfy the filename while weakening the rule's real invariant — that there is exactly *one* place a default value is hardcoded — by standing up a second candidate home for it. | 2026-07-27 | **The first per-profile setting.** The moment one default belongs to a character rather than to the account, `defaults/Profile.lua` is created and this row is deleted. Re-checked 2026-09-23 (audit): trigger not fired. |
 | `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and **no** user-facing string routes through `NS.L` — every label, tooltip and message is a hardcoded English literal. The launcher's `leftClickLabel` (`Toggle ledger window`) routed through it from M5 (2026-09-24) until Launcher minor 4 retired the field (M6, 2026-09-25); the menu's entry labels are the library's own `lib.STRINGS`. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. Re-checked 2026-09-23 (audit): trigger not fired. |
 | `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `B:MakeCloseButton` in `modules/Browser.lua`, 24×24, class-colored on hover — rather than a one-line wrapper over `lib.MakeCloseButton`, which `core/CoreSetup.lua` deliberately does not republish (its "`lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED" paragraph). | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`EnsureFrame` in `modules/Browser.lua`), the session window (`ensureFrame` in `modules/SessionWindow.lua`) and the export modal (`EnsureFrame` in `modules/Export.lua`) are this addon's, and those are the factory's three callers; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon("close")`, inside `B:MakeCloseButton` itself, with the documented fallback ladder beneath it, so the two implementations agree on the art and differ only in size and hover tint. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its three callers and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change three visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. Re-checked 2026-09-23 (audit): trigger not fired. |
 
 No other issue owes a row: the `state:will-not-do` issues #4, #6, #7, #8, #10, #15 and #20 decline
 library adoptions or scope, not rules of the standard (#5 and #9 are cited by the rows above).
-
-Detail the table cannot hold, for the `savedvariables-§2` row: AceDB still creates the profile
-namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — it is simply unused, so
-the switch to a per-profile setting is a defaults-file addition rather than a database migration.
 
 ### Files over the 1500-line cap
 

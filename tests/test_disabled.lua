@@ -410,7 +410,7 @@ test("disabled: the CONTROL -- the write and print surveys really would catch a 
   disable()
   watchStore()
   mocks.__resetPrinted()
-  local settings = NS.db.global.settings
+  local settings = NS.db.profile.settings
   local savedLocked = settings.locked
   NS.addon.PLAYER_REGEN_DISABLED = function()
     settings.locked = not settings.locked

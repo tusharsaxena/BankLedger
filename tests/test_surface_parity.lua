@@ -326,8 +326,8 @@ end)
 --   Callers from: grep -rnE "SchemaRuntime[.:][A-Za-z]+|S\.Bulk[A-Za-z]+|Schema[.:](Set|Get|Default|ApplyDefault|FindRow|ReadPath|WritePath|SameValue|Register)\b" core modules settings
 --   * BulkRun, BulkAdd, InBulk -- the addon brackets with the BulkBegin/BulkEnd pair and nothing else.
 --   * Reindex -- the one head splice goes through AddRows, which re-indexes on its own.
---   * CountOffDefault, ResetCounted, ConsumeResetCount -- the profile reset's count. This addon has
---     no profile (the savedvariables-§2 row), so nothing resets one.
+--   * CountOffDefault, ResetCounted, ConsumeResetCount -- the profile reset's count. Sl:ResetEverything
+--     counts its own reset and hands the number to the profile handler (NS.SetPendingResetRows).
 local SCHEMA_LIVE_ONLY = {
   "BulkAdd", "BulkRun", "ConsumeResetCount", "CountOffDefault", "InBulk", "Reindex", "ResetCounted",
 }
@@ -361,8 +361,8 @@ test("LibKa0s-Schema degraded: the stub SetMany is all-or-nothing", function()
   R.AddRows({ { path = "settings.refused", default = 1, group = "Capture",
     validate = function(v) return v == 1, "only one" end } })
 
-  degraded.db = { global = { settings = { rowStripeAlpha = 0.03, rowHoverAlpha = 0.10 } } }
-  local store = degraded.db.global.settings
+  degraded.db = { profile = { settings = { rowStripeAlpha = 0.03, rowHoverAlpha = 0.10 } } }
+  local store = degraded.db.profile.settings
   local ok, err, why, index = R.SetMany({
     { path = "settings.rowStripeAlpha", value = 0.2 }, { path = "settings.nope", value = 1 } })
   assertEqual(ok, false, "an unknown path let the batch through")
@@ -418,10 +418,10 @@ end
 
 test("degraded: /bl disable writes settings.enabled through and stands the addon down, without a Lua error", function()
   -- red under: a degraded Sl:CliEnabled that goes through Sl:CliSet (the CLI-unavailable line).
-  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  local degraded, dm = degradedEnabled({ profile = { settings = { enabled = true } } })
   local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "disable")
   assertTrue(ok, err)
-  assertEqual(degraded.db.global.settings.enabled, false, "the store did not take the write")
+  assertEqual(degraded.db.profile.settings.enabled, false, "the store did not take the write")
   assertTrue(degraded.IsStoodDown() == true, "the addon did not stand down")
   local lines = dm.__printed()
   assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
@@ -429,12 +429,12 @@ test("degraded: /bl disable writes settings.enabled through and stands the addon
 end)
 
 test("degraded: /bl enable reverses it", function()
-  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  local degraded, dm = degradedEnabled({ profile = { settings = { enabled = true } } })
   degraded.Slash.OnSlash(degraded.Slash, "disable")
   dm.__resetPrinted()
   local ok, err = pcall(degraded.Slash.OnSlash, degraded.Slash, "enable")
   assertTrue(ok, err)
-  assertEqual(degraded.db.global.settings.enabled, true, "the store did not take the write")
+  assertEqual(degraded.db.profile.settings.enabled, true, "the store did not take the write")
   assertTrue(degraded.IsStoodDown() == false, "the addon did not stand back up")
   local lines = dm.__printed()
   assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
@@ -457,13 +457,13 @@ test("Schema stub: a writeThrough path with no row is stored raw and announced; 
   assertTrue(R.FindRow("settings.enabled") == nil, "the degraded arm has a settings.enabled row")
   local repaints = 0
   degraded.Panel = { Refresh = function() repaints = repaints + 1 end }
-  degraded.db = { global = { settings = { enabled = true } } }
+  degraded.db = { profile = { settings = { enabled = true } } }
   assertEqual(R.Set("settings.enabled", false), true, "the writeThrough path was refused")
-  assertEqual(degraded.db.global.settings.enabled, false, "the writeThrough path was not stored")
+  assertEqual(degraded.db.profile.settings.enabled, false, "the writeThrough path was not stored")
   assertEqual(repaints, 1, "the writeThrough write was not announced once")
   assertEqual(R.SetMany({ { path = "settings.enabled", value = true } }), true,
     "SetMany refused the writeThrough path")
-  assertEqual(degraded.db.global.settings.enabled, true, "SetMany did not store the writeThrough path")
+  assertEqual(degraded.db.profile.settings.enabled, true, "SetMany did not store the writeThrough path")
   local ok, err = R.Set("settings.locked", true)
   assertEqual(ok, false, "a row-less path outside the list was stored")
   assertEqual(err, "unknown path: settings.locked")
@@ -486,7 +486,7 @@ end)
 
 --- The one line a degraded verb prints, the once-only missing-library notice spent beforehand.
 local function degradedLines(fn)
-  local degraded, dm = degradedEnabled({ global = { settings = { enabled = true } } })
+  local degraded, dm = degradedEnabled({ profile = { settings = { enabled = true } } })
   fn(degraded.Slash)
   return dm.__printed()
 end

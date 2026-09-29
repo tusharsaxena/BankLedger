@@ -751,14 +751,14 @@ test("Verbs: they write the Enable row's stored path, through the same write sea
   local saved = S:Get("settings.enabled")
 
   local out = captureChat(function() NS.Slash:OnSlash("disable") end)
-  assertEqual(NS.db.global.settings.enabled, false, "/bl disable must write settings.enabled")
+  assertEqual(NS.db.profile.settings.enabled, false, "/bl disable must write settings.enabled")
   assertEqual(S:Get("settings.enabled"), false)
   -- slash-commands-§5's single-line `path = value` echo, from the shared formatter.
   assertTrue(table.concat(out, "\n"):find("settings.enabled", 1, true) ~= nil,
     "the verb echoes what it wrote: " .. table.concat(out, "\n"))
 
   captureChat(function() NS.Slash:OnSlash("enable") end)
-  assertEqual(NS.db.global.settings.enabled, true, "/bl enable must write settings.enabled")
+  assertEqual(NS.db.profile.settings.enabled, true, "/bl enable must write settings.enabled")
 
   -- The long name is the same write.
   captureChat(function() NS.Slash:OnSlash("set settings.enabled false") end)

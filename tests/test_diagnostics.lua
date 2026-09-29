@@ -105,7 +105,7 @@ test("diagnostics: the state section reports the stored switch, the holds and te
     "the lifecycle line")
   assertTrue(has(lines, "[State] holds: -"), "no hold is held on a running addon")
   assertTrue(has(lines, "[State] schema stored=" .. tostring(NS.db.global.schemaVersion)
-    .. " code=" .. tostring(NS.SCHEMA_VERSION) .. " profile=account-wide"), "the schema line")
+    .. " code=" .. tostring(NS.SCHEMA_VERSION) .. " profile=Default"), "the schema line, naming the active profile")
   assertTrue(has(lines, "[State] test mode=false"), "the test-mode line")
 end)
 
@@ -136,12 +136,12 @@ end)
 test("diagnostics: the excluded-stores set renders as its members", function()
   local S = NS.Schema
   local saved = S:Get("settings.excludedStores")
-  NS.db.global.settings.excludedStores = { GUILD_BANK = true, BANK = true }
+  NS.db.profile.settings.excludedStores = { GUILD_BANK = true, BANK = true }
   local ok, err = pcall(function()
     assertTrue(has(build(), "[Set] settings.excludedStores = {BANK, GUILD_BANK} ((none))"),
       "the set, sorted, beside its empty default")
   end)
-  NS.db.global.settings.excludedStores = saved
+  NS.db.profile.settings.excludedStores = saved
   if not ok then error(err, 0) end
 end)
 

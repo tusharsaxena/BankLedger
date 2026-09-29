@@ -6,7 +6,9 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 
 -- One row per setting. This single table drives the AceDB defaults check, the panel widgets, and
 -- the slash get/set/list/reset dispatch (architecture-§5) — add a setting here and all three
--- surfaces pick it up with no other edit. Paths resolve against NS.db.global (account-wide).
+-- surfaces pick it up with no other edit. Paths resolve against NS.db.profile (the active profile;
+-- docs/profiles.md), except the Minimap button row, whose own get/set reach LibDBIcon's account-wide
+-- table.
 --
 -- `group` names one TAB on the page (options-ui-§13): H.RenderTabbedSchema partitions the page's
 -- rows by `group` IN DECLARATION ORDER and draws one tab per distinct group, so the array's order
@@ -163,13 +165,12 @@ S.MINIMAP_PATH = "minimap.shown"
 -- *and put the button back on my minimap, at the default angle*.
 --
 -- Until v2.54.0 the standard ARGUED the conclusion instead of stating it: *Reset all settings* is a
--- profile reset, the table is global, therefore the reset cannot reach it. THAT ARGUMENT WAS NEVER
--- TRUE HERE. This addon has NO PROFILE -- everything it stores is `db.global` -- so its reset empties
--- the account-wide store wholesale and merges the declared defaults back, and `minimap = { hide =
--- false }` is one of them: the wipe walked a hidden button straight back to shown. And the argument
--- only ever spoke about that one control, so the page-scoped **Defaults** button, which walks every
--- schema row carrying a default, reached the row from the other side. BOTH of this addon's resets
--- reached it; both are carved out now (settings/Slash.lua).
+-- profile reset, the table is global, therefore the reset cannot reach it. Until schema v3 that
+-- argument was not true here: this addon had no profile, its reset emptied the account-wide store
+-- wholesale, and `minimap = { hide = false }` was one of the defaults it merged back. It is true
+-- now -- the reset is `db:ResetProfile()` and the table is in db.global -- but the argument only ever
+-- spoke about that one control, and a row walk (the library's page-scoped Defaults, or its
+-- CliResetAll) would still reach the row from the other side. So the veto stays, as a property.
 --
 -- A TARGETED `/bl reset minimap.shown` IS NOT A SWEEP and still works. The player naming the one row
 -- is asking for exactly that row, which is what the veto below is careful not to refuse: it fires
@@ -201,7 +202,7 @@ S.MASTER_SPEC = {
   -- The composer leaves the console toggle's default to the host, because "was the console open"
   -- is session state and only the host knows what it starts as. False is what this addon has always
   -- shipped, and the global reset lands on it: a session-only row is restored by name, since a
-  -- store wipe cannot reach it (options-ui-§12) -- Sl:ResetEverything closes the console.
+  -- profile reset cannot reach it (options-ui-§12) -- Sl:ResetEverything closes the console.
   --
   -- The same holds for test mode, which the composer emits with no default at all: `false` is what
   -- lets a reset end it (options-ui-§15, standard v2.47.0).
@@ -301,7 +302,7 @@ S.MASTER_DECOR = {
     end },
 
   ["state.debugConsole"] = { widget = "CheckBox",
-    -- Session-only: Schema:Set skips the db.global write and calls this set() instead. Mirrors
+    -- Session-only: Schema:Set skips the profile write and calls this set() instead. Mirrors
     -- `/bl debug` with no argument. It used to be a hand-declared row on the Interface tab.
     get = function() return NS.DebugLog ~= nil and NS.DebugLog:IsShown() end,
     set = function(v)
@@ -339,9 +340,9 @@ function S:ComposeMaster(O)
   local spec = {}
   for k, v in pairs(S.MASTER_SPEC) do spec[k] = v end
   spec.onResetPosition = function() NS.Util.ResetWindowPositions() end
-  -- options-ui-§12's global reset for an addon with NO PROFILE, verbatim: the confirm-gated
-  -- KA0S_BANKLEDGER_RESETALL popup (whose text is that rule's second canonical wording, byte for
-  -- byte), never the deed on the click. Through NS.Slash:RequestResetAll, the single entry point
+  -- options-ui-§12's global reset, verbatim: the confirm-gated KA0S_BANKLEDGER_RESETALL popup
+  -- (whose text is that rule's first canonical wording, byte for byte), never the deed on the click,
+  -- and Yes resets the active profile. Through NS.Slash:RequestResetAll, the single entry point
   -- the page and footer Defaults and `/bl resetall` share, so every control is one act.
   spec.onResetAll = function()
     if NS.Slash and NS.Slash.RequestResetAll then NS.Slash:RequestResetAll() end
@@ -399,7 +400,7 @@ end
 -- rather than through Schema:Set. None is a schema row, so none has a widget, a default or an
 -- onChange. None has a `Documented deviations` row either: docs/schema.md ▸ Registry, recorded data
 -- and named-state writers names each one's owner and every writer, and that naming is the
--- compliance. Check that list before writing a key under db.global directly, and add any new writer
+-- compliance. Check that list before writing a key under db.profile directly, and add any new writer
 -- to it. The four are:
 --   1. `settings.window` — the ledger window's geometry. Owner Browser. Written by B:SaveGeometry
 --      (modules/Browser.lua) on four occasions: drag-stop, resize-grip mouse-up (the grip's OnMouseUp
@@ -407,11 +408,11 @@ end
 --   2. `settings.sessionWindow` — the session window's geometry. Owner SessionWindow. Written on the
 --      same four by SW:SaveGeometry (modules/SessionWindow.lua; the grip's in ensureFrame); emptied by
 --      SW:ResetWindow.
---   3. `savedView` — the account-wide column/sort baseline. Owner Browser. Written by B:SaveView
+--   3. `savedView` — the profile's column/sort baseline. Owner Browser. Written by B:SaveView
 --      (modules/Browser.lua), cleared by B:ResetView.
---   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the table core/LauncherSetup.lua
---      hands it. That table also holds `hide`, the Minimap button row's stored key (CLI path
---      `minimap.shown`), so nothing here replaces it whole.
+--   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the account-wide table
+--      core/LauncherSetup.lua hands it (db.global.minimap). That table also holds `hide`, the
+--      Minimap button row's stored key (CLI path `minimap.shown`), so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
 -- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
 -- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.
@@ -426,8 +427,9 @@ end
 -- S.SameValue, S.BulkBegin, S.BulkEnd and S:Register.
 --
 -- What the descriptor supplies is what is genuinely ours:
---   * resolveRoot -- every stored path resolves against NS.db.global. This addon has no profile
+--   * resolveRoot -- every stored path resolves against NS.db.profile, the active profile
 --     (savedvariables-§2), and before InitDB there is nowhere to store, which the seam refuses.
+--     AceDB swaps the profile TABLE on a switch, so the root is resolved per call, never held.
 --   * announce -- the post-write repaint. An open panel MUST reflect live state after a mutation
 --     (options-ui-§11), and this is "the same function /bl set calls" (options-ui-§1), so a slash
 --     write, a panel widget and a reset all repaint by one route. It runs after the row's onChange,
@@ -465,7 +467,8 @@ if not SchemaLib then
   -- notice beside the shared cause clause core/CoreSetup.lua has already printed once.
   --
   -- Trimmed: BulkRun, BulkAdd, InBulk, Reindex and the profile-reset count (CountOffDefault,
-  -- ResetCounted, ConsumeResetCount) have no caller in this addon, which has no profile.
+  -- ResetCounted, ConsumeResetCount) have no caller in this addon: Sl:ResetEverything counts its
+  -- own reset and hands the number to the profile handler (settings/Slash.lua).
   -- tests/test_surface_parity.lua names each one as live-only. SetMany is the other way round: it
   -- has no caller in this addon either, and it is CARRIED, for parity -- Schema minor 2 (LibKa0s
   -- v1.56.0) adds it to the instance, and the version-2 document puts it in the stub table.
@@ -633,7 +636,7 @@ NS.__schemaLib = SchemaLib
 
 local inst = SchemaLib:New({
   rows         = S.Schema,
-  resolveRoot  = function() return NS.db and NS.db.global, 1 end,
+  resolveRoot  = function() return NS.db and NS.db.profile, 1 end,
   announce     = function() if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end end,
   debug        = function(tag, fmt, ...) if NS.Debug then NS.Debug(tag, fmt, ...) end end,
   debugEnabled = function() return NS.State ~= nil and NS.State.debug == true end,
@@ -657,10 +660,10 @@ S.SameValue = SchemaLib.SameValue
 -- `[Set] <act> <scope>: N rows` line from the outermost BulkEnd, never one [Set] per row; each row's
 -- validate and onChange still run. N is the rows whose READ-BACK value moved, never the Slash
 -- library's `count`, which counts a row already at its default. A bracket that reports
--- `info.profileReset` logs nothing (this addon has no profile, so none does), and a walk that
+-- `info.profileReset` logs nothing (the profile handler logs that act), and a walk that
 -- raised part-way still logs its line, marked ` (stopped by an error)`. Dot-called values, handed
 -- to the LibKa0s-Slash and LibKa0s-Options descriptors. No host route opens one today: the global
--- reset is the wholesale Sl:ResetEverything, which logs its own one line.
+-- reset is Sl:ResetEverything's db:ResetProfile(), whose one line NS.OnProfileEvent writes.
 S.BulkBegin = inst.BulkBegin
 S.BulkEnd = inst.BulkEnd
 
@@ -701,18 +704,19 @@ function S:ApplyDefault(row) return inst.ApplyDefault(row) end
 local VALID_TYPES = { bool = true, number = true, string = true, color = true, table = true }
 
 --
--- THE MINIMAP ROW IS THE ONE PATH THAT IS NOT A STORED KEY. `minimap.shown` is the CLI name; the
--- store holds LibDBIcon's `minimap.hide` (S.MINIMAP_PATH above). So Validate resolves that one row
--- against a root derived from the declared hide default, rather than against a `shown` key the
--- defaults deliberately do not ship -- which keeps the check honest for the row without inventing
--- a second stored boolean to satisfy it.
+-- THE MINIMAP ROW IS THE ONE PATH THAT IS NOT A STORED KEY, and the one row whose store is not the
+-- profile. `minimap.shown` is the CLI name; the account-wide store holds LibDBIcon's `minimap.hide`
+-- (S.MINIMAP_PATH above). So Validate resolves that one row against a root derived from the
+-- declared GLOBAL hide default, rather than against a `shown` key the defaults deliberately do not
+-- ship -- which keeps the check honest for the row without inventing a second stored boolean to
+-- satisfy it. Every other row resolves against the PROFILE defaults.
 local function defaultsRoot(_, row)
-  local global = NS.defaults and NS.defaults.global
   if row and row.path == S.MINIMAP_PATH then
+    local global = NS.defaults and NS.defaults.global
     local mm = global and global.minimap
     return { minimap = { shown = not (type(mm) == "table" and mm.hide) } }, 1
   end
-  return global, 1
+  return NS.defaults and NS.defaults.profile, 1
 end
 
 function S:Register()
@@ -746,11 +750,11 @@ NS.COMMANDS = {
   { "set",      "Set a setting value",     function(a) NS.Slash:CliSet(a) end },
   { "list",     "List all settings",       function() NS.Slash:CliList() end },
   { "reset",    "Reset one setting",       function(a) NS.Slash:CliReset(a) end },
-  -- THE SAME ACT as the Master controls tab's "Reset all settings" button and both Defaults
-  -- controls (options-ui-§12): it raises KA0S_BANKLEDGER_RESETALL, and Yes empties db.global
-  -- wholesale. The words say both halves a player needs before typing it — history goes, and it
-  -- asks first — the way `purge` says it.
-  { "resetall", "Reset everything to defaults, including recorded history (asks first)",
+  -- THE SAME ACT as the Master controls tab's "Reset all settings" button, both Defaults controls
+  -- and the Profiles page's Reset Profile (options-ui-§12): it raises KA0S_BANKLEDGER_RESETALL, and
+  -- Yes resets the active profile. The words say what a player needs before typing it — this
+  -- profile's settings go, the history stays, and it asks first — the way `purge` says its half.
+  { "resetall", "Reset this profile's settings to defaults; history is kept (asks first)",
     function() NS.Slash:CliResetAll() end },
   { "session",  "Toggle the banking-session window (sample data outside a bank)",
     function()

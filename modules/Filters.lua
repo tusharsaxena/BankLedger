@@ -10,23 +10,27 @@ local F = NS.Filters
 -- Both are point-in-time: a list decides FUTURE captures, it never hides, deletes or resurrects an
 -- entry already written. (Delete unwanted rows from the ledger table if you want them gone.)
 --
--- The lists are stored account-wide in NS.db.global.{blacklist,whitelist} — NOT under settings, and
+-- The lists are stored in the PROFILE, NS.db.profile.{blacklist,whitelist} — NOT under settings, and
 -- NOT as Schema rows. They are an architecture-§5 structural registry (the player adds and removes
--- ids, and no row path names one), and this module is its one writer: F:_move, F:_remove,
--- F:ClearList and F:ClearAll. Nothing else writes either key, and none of it goes through
--- Schema:Set. There is no load pass; AceDB supplies the empty defaults.
+-- ids, and no row path names one), and this module is its one runtime writer: F:_move, F:_remove,
+-- F:ClearList and F:ClearAll. None of it goes through Schema:Set. Two things replace the lists
+-- wholesale without coming through here, and both are named in docs/ARCHITECTURE.md beside this
+-- writer: the load pass NS.MIGRATIONS[3] (core/Database.lua), which lifted them out of db.global
+-- once, and AceDB itself on a profile switch, copy or reset -- after which NS.OnProfileEvent re-caches
+-- the capture gate and broadcasts LedgerChanged, exactly as _notify does. AceDB supplies the empty
+-- defaults.
 --
 -- An id can be on at most ONE list (adding to one drops it from the other), so the capture gate's
 -- whitelist/blacklist checks can never contradict.
 --
--- Every mutation writes a FRESH table back to NS.db.global (copy-on-write) so it never mutates an
+-- Every mutation writes a FRESH table back to NS.db.profile (copy-on-write) so it never mutates an
 -- AceDB shared-default table in place, then propagates the change WITHOUT adding a second bus
 -- sender (architecture-§4's one-sender-per-message invariant): it re-caches the Ledger's list
 -- upvalues by a direct call, and broadcasts LedgerChanged through Database's own emitter so the
 -- browser and the Filters panel re-query.
 
 local function currentSet(key)
-  return (NS.db and NS.db.global and NS.db.global[key]) or {}
+  return (NS.db and NS.db.profile and NS.db.profile[key]) or {}
 end
 
 -- Shallow copy of a set, so a write never aliases the stored (or AceDB default) table.
@@ -82,9 +86,9 @@ function F:_move(listKey, id)
   local siblingKey = (listKey == "blacklist") and "whitelist" or "blacklist"
   local target, sibling = currentSet(listKey), currentSet(siblingKey)
   if target[id] and not sibling[id] then return false end
-  local t = setCopy(target); t[id] = true; NS.db.global[listKey] = t
+  local t = setCopy(target); t[id] = true; NS.db.profile[listKey] = t
   if sibling[id] then
-    local s = setCopy(sibling); s[id] = nil; NS.db.global[siblingKey] = s
+    local s = setCopy(sibling); s[id] = nil; NS.db.profile[siblingKey] = s
   end
   self:_notify()
   return true
@@ -96,7 +100,7 @@ function F:_remove(listKey, id)
   if not id then return false end
   local target = currentSet(listKey)
   if not target[id] then return false end
-  local t = setCopy(target); t[id] = nil; NS.db.global[listKey] = t
+  local t = setCopy(target); t[id] = nil; NS.db.profile[listKey] = t
   self:_notify()
   return true
 end
@@ -113,19 +117,19 @@ function F:ClearList(listKey)
   if listKey ~= "blacklist" and listKey ~= "whitelist" then return 0 end
   local removed = self:Count(currentSet(listKey))
   if removed == 0 then return 0 end
-  NS.db.global[listKey] = {}
+  NS.db.profile[listKey] = {}
   self:_notify()
   return removed
 end
 
 -- Empty BOTH lists with a single _notify. Returns the total ids removed. No reset path calls it
--- since BankLedger-A-02: the global reset (Sl:ResetEverything) empties both lists with the rest of
--- db.global. It stays the registry's one bulk writer.
+-- since BankLedger-A-02: the global reset (Sl:ResetEverything) resets the whole profile, both lists
+-- with it. It stays the registry's one bulk writer.
 function F:ClearAll()
   local removed = self:Count(self:Blacklist()) + self:Count(self:Whitelist())
   if removed == 0 then return 0 end
-  NS.db.global.blacklist = {}
-  NS.db.global.whitelist = {}
+  NS.db.profile.blacklist = {}
+  NS.db.profile.whitelist = {}
   self:_notify()
   return removed
 end

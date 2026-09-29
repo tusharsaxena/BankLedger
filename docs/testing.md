@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 75 today). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 81 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
@@ -262,6 +262,11 @@ tests/
                            --   section costing one line, the cap's end marker, and `debug` testing
                            --   `diagnostics` first. The dispatcher half is the kit's shared
                            --   _kit/test_diagnostics_contract.lua, wired through Kit.diagnostics
+  test_profiles.lua        -- settings per AceDB profile (schema v3, docs/profiles.md): the
+                           --   global/profile defaults split, the v3 lift into `Default` (values
+                           --   land, db.global cleared, the ledger untouched, idempotent), reads
+                           --   resolving against the profile, and NS.OnProfileEvent on a switch,
+                           --   a copy and a page-driven reset; plus the Profiles page itself
   test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: left-click settings, the options
                            --   menu's four entries and the verb each runs (through
                            --   tests/menu_mock.lua, a fake MenuUtil), the folder-name

@@ -43,8 +43,18 @@ local ALWAYS = {
 
 local function yn(v) return v and "yes" or "no" end
 
+-- The two scopes the report reads: the account-wide store (the ledger, LibDBIcon's table, the
+-- schema stamp) and the active profile (every setting; docs/profiles.md).
 local function global()
   return NS.db and NS.db.global or {}
+end
+
+local function profile()
+  return NS.db and NS.db.profile or {}
+end
+
+local function profileName()
+  return (NS.db and NS.db.GetCurrentProfile and NS.db:GetCurrentProfile()) or "?"
 end
 
 -- ── state ──────────────────────────────────────────────────────────────────────────────────
@@ -60,8 +70,8 @@ function X.State(out)
     NS.EnabledStored and NS.EnabledStored(), NS.IsDisabled and NS.IsDisabled(),
     NS.IsStoodDown and NS.IsStoodDown())
   out:joined("State", "holds:", NS.Lifecycle and NS.Lifecycle:Holds() or {})
-  out:add("State", "schema stored=%s code=%s profile=account-wide", g.schemaVersion,
-    NS.SCHEMA_VERSION)
+  out:add("State", "schema stored=%s code=%s profile=%s", g.schemaVersion,
+    NS.SCHEMA_VERSION, out:plain(profileName()))
   local st = NS.State or {}
   out:add("State", "test mode=%s sample rows=%s", testMode(),
     type(st.testRecords) == "table" and #st.testRecords or 0)
@@ -156,7 +166,7 @@ function X.Ledger(out)
   out:joined("Ledger", "by direction:", pairsOf(out, byDir))
   out:joined("Ledger", "by kind:", pairsOf(out, byKind))
   stamps(out, ledger)
-  local s = g.settings or {}
+  local s = profile().settings or {}
   out:add("Ledger", "retention=%s day(s) (0 keeps everything)", s.retentionDays)
   tail(out, ledger)
 end
@@ -226,7 +236,7 @@ local function windowLine(out, label, frame, stored)
 end
 
 function X.Windows(out)
-  local s = global().settings or {}
+  local s = profile().settings or {}
   local B, SW = NS.Browser, NS.SessionWindow
   windowLine(out, "ledger", B and B.GetWindow and B:GetWindow(), s.window)
   windowLine(out, "session", SW and SW.GetWindow and SW:GetWindow(), s.sessionWindow)

@@ -9,8 +9,9 @@ One row, three surfaces. A row in `settings/Schema.lua` drives the panel widget,
 `/bl get|set|list|reset` dispatch and the defaults reset at once — so never write a parallel mutator
 for a path that already has a row.
 
-1. Add the shipped value to `defaults/Global.lua`. That is the **only** place a default is hardcoded
-   (`savedvariables-§2`); there is deliberately no `defaults/Profile.lua`.
+1. Add the shipped value to `defaults/Profile.lua`, under `settings`. That is the **only** place a
+   default is hardcoded (`savedvariables-§2`). Every schema path resolves against the active profile;
+   `defaults/Global.lua` is for recorded data and LibDBIcon's table only ([profiles.md](profiles.md)).
 2. Add the row to the schema table in `settings/Schema.lua`, at the position you want it to render —
    **rows render in schema order, so the table is also the panel layout.** `group` names the **tab**
    the row draws on (`options-ui-§13`), and the array's declaration order is the tab order, so a
@@ -37,8 +38,12 @@ for a path that already has a row.
    `Ka0s_BankLedger_SettingsChanged` with a short reason string — that is what makes `modules/Ledger.lua`
    re-cache its capture-gate upvalues.
 6. Every write — panel widget or slash line — goes through `NS.Schema:Set`, which validates, writes,
-   emits the one debug trace, runs `onChange` and repaints an open panel. Do not write `db.global`
+   emits the one debug trace, runs `onChange` and repaints an open panel. Do not write `db.profile`
    directly from a new code path.
+7. If the setting has an effect beyond the bus message (a frame to re-anchor, a list to repaint), add
+   it to `applyProfileEffects` in `core/Database.lua` too. A profile switch, copy or reset replaces
+   the stored value without running any row's `onChange`, and `NS.OnProfileEvent` is where the addon
+   catches up.
 
 If the value is window geometry or a remembered view, it is a **carve-out**, not a row. That is
 `architecture-§5` named non-setting state, and [schema.md](schema.md) → *Registry, recorded data and named-state writers* must name its
@@ -46,9 +51,11 @@ storage key, its one owner and every writer with the act that reaches it. See
 [schema.md](schema.md) → *Storage carve-outs*. If it is a collection the player adds to and removes
 from, like the filter id-sets, it is a **structural registry** (`architecture-§5`). One module is its
 only writer, and [schema.md](schema.md) → *Registry, recorded data and named-state writers* names its storage keys, that writer and its load
-pass. Either way, keep it under `db.global` so the global reset (`Sl:ResetEverything`, which empties
-the store wholesale) reaches it with no extra line; if its owner also holds an in-memory copy, add
-the owner's refresh to that reset's `refreshAfterReset` fan-out, the way `NS.Browser:ResetView` is.
+pass. Either way, keep it under `db.profile` if a player configures it, so the global reset
+(`Sl:ResetEverything`, a profile reset) and every profile switch reach it with no extra line; if its
+owner also holds an in-memory copy, add the owner's refresh to `applyProfileEffects` in
+`core/Database.lua`, the way `NS.Browser:ClearFilters` is. Recorded data goes under `db.global`, which
+no profile event touches.
 
 If the row needs a **bespoke widget** beside it — a picker, a grid, a button pair — draw it from the
 tab's `afterGroup` hook (`GENERAL_AFTER_TAB` in `settings/Panel.lua`), never from the page renderer
@@ -71,7 +78,7 @@ back to the tab.
 
 ## Add a slash command
 
-Append one entry to `NS.COMMANDS` (`settings/Schema.lua:729`). `/bl help` and the settings landing
+Append one entry to `NS.COMMANDS` (`settings/Schema.lua:733`). `/bl help` and the settings landing
 page both read from that table, so nothing else needs editing — the README documents no command
 list of its own (`documentation-§1` item 7). See [slash-dispatch.md](slash-dispatch.md) for what the
 library owns versus what stays the host's.
@@ -106,8 +113,10 @@ Which answer is right depends entirely on whether rows exist:
    alone: `defaults/Global.lua` declares `schemaVersion = 0` and it stays 0 (`savedvariables-§1`). A
    default equal to a real version is stripped from the file at logout, which is how the v1 → v2
    ladder once spent a release unreachable (`BANKLEDGER-R-02`).
-2. Add the step as `NS.MIGRATIONS[<new version>] = function(g) ... return rowsTouched end` in
-   `core/Database.lua`. Do not touch the runner: it walks every step above the stored stamp in order
+2. Add the step as `NS.MIGRATIONS[<new version>] = function(g, db) ... return rowsTouched end` in
+   `core/Database.lua` (`g` is `db.global`; `db` is the AceDB handle, for a step that has to reach
+   `db.sv.profiles`). A step that reshapes data **inside** a profile must walk every stored profile
+   or carry a per-profile stamp (`savedvariables-§1`); the account-wide stamp alone runs it once. Do not touch the runner: it walks every step above the stored stamp in order
    and stamps after each one returns. Make the step idempotent, because a step that raises leaves the
    stamp at the last completed version and the next login runs it again.
 3. The runner emits the standard `[Migrate]` line via `NS.MigrationSummary`, summing the rows each

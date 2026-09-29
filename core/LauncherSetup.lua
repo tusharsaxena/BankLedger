@@ -128,7 +128,7 @@ end
 
 -- The Lock frame row's stored key, read here once for both the accessor and its toggle.
 local function isLocked()
-  local s = NS.db and NS.db.global and NS.db.global.settings
+  local s = NS.db and NS.db.profile and NS.db.profile.settings
   return type(s) == "table" and s.locked == true
 end
 

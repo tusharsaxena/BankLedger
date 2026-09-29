@@ -167,7 +167,7 @@ end
 -- that is not a number falls back to the shipped default rather than to zero, so a corrupt key
 -- degrades to the stock look instead of to no look at all.
 function Util.RowTintAlpha(key, fallback)
-  local g = NS.db and NS.db.global and NS.db.global.settings
+  local g = NS.db and NS.db.profile and NS.db.profile.settings
   local v = g and g[key]
   if type(v) ~= "number" then return fallback end
   if v < 0 then return 0 end
@@ -208,7 +208,7 @@ end
 
 --- One window's masterable settings, read fresh and defaulted where the store is empty.
 local function masterChrome()
-  local g = (NS.db and NS.db.global and NS.db.global.settings) or {}
+  local g = (NS.db and NS.db.profile and NS.db.profile.settings) or {}
   local scale = tonumber(g.windowScale) or 1.0
   local alpha = tonumber(g.alpha)
   if type(alpha) ~= "number" then alpha = 1.0 end
@@ -264,7 +264,7 @@ function Util.VisibilityAllows()
   -- IsStoodDown, not "is the player's switch off": a perf-suspended addon draws nothing either,
   -- and the show ladder is about whether the addon is RUNNING rather than about why it is not.
   if NS.IsStoodDown and NS.IsStoodDown() then return false end
-  local g = (NS.db and NS.db.global and NS.db.global.settings) or {}
+  local g = (NS.db and NS.db.profile and NS.db.profile.settings) or {}
   local mode = g.visibility or "always"
   if mode == "never" then return false end
   if mode == "always" then return true end

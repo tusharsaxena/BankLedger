@@ -69,8 +69,8 @@ local savedLedger
 --- lists' add box takes its name candidates from it: rows left behind by another suite would be
 --- unnamed ids, and a typed name waits on a lookup while any candidate is unnamed.
 local function filtersTab(listKey, black, white, ledgerRows)
-  NS.db.global.blacklist = black or {}
-  NS.db.global.whitelist = white or {}
+  NS.db.profile.blacklist = black or {}
+  NS.db.profile.whitelist = white or {}
   if savedLedger == nil then savedLedger = { NS.db.global.ledger } end
   NS.db.global.ledger = ledgerRows or {}
   local c = ctxFor("General")
@@ -106,7 +106,7 @@ local function typeInto(made, text)
 end
 
 local function leaveFilters(c)
-  NS.db.global.blacklist, NS.db.global.whitelist = {}, {}
+  NS.db.profile.blacklist, NS.db.profile.whitelist = {}, {}
   if savedLedger then NS.db.global.ledger = savedLedger[1] end
   savedLedger = nil
   c.activeSubTab = nil
@@ -114,14 +114,14 @@ local function leaveFilters(c)
 end
 
 test("Filters tab: an item id typed into the box goes through Filters:AddBlacklist", function()
-  -- red under: onAdd writing db.global.blacklist directly (the spy sees nothing), or not wired.
+  -- red under: onAdd writing db.profile.blacklist directly (the spy sees nothing), or not wired.
   local made, c = filtersTab("blacklist")
   local calls = spyWriter("AddBlacklist", function() typeInto(made, "2589") end)
   assertEqual(#calls, 1, "one add, one writer call")
   assertEqual(calls[1], 2589)
   -- The stored shape is unchanged: a number key, the value true, and nothing else in the set.
   local keys = 0
-  for k, v in pairs(NS.db.global.blacklist) do
+  for k, v in pairs(NS.db.profile.blacklist) do
     keys = keys + 1
     assertEqual(type(k), "number", "keyed by the numeric item id")
     assertEqual(v, true, "stored as [itemID] = true")
@@ -154,7 +154,7 @@ test("Filters tab: input that names no item adds nothing and says why on the tab
   local made, c = filtersTab("blacklist")
   local calls = spyWriter("AddBlacklist", function() typeInto(made, "Nonesuch Blade") end)
   assertEqual(#calls, 0, "nothing reaches the writer")
-  assertEqual(next(NS.db.global.blacklist), nil, "the list is untouched")
+  assertEqual(next(NS.db.profile.blacklist), nil, "the list is untouched")
   assertTrue(firstOf(made, "Label", "No item named 'Nonesuch Blade'") ~= nil,
     "the reason is shown under the box")
   leaveFilters(c)
@@ -178,7 +178,7 @@ test("Filters tab: an entry's X goes through Filters:RemoveBlacklist", function(
   assertTrue(rm ~= nil, "the entry has an X icon")
   local calls = spyWriter("RemoveBlacklist", function() rm:__fire("OnClick") end)
   assertEqual(calls[1], 2589)
-  assertEqual(next(NS.db.global.blacklist), nil, "the id is gone from the store")
+  assertEqual(next(NS.db.profile.blacklist), nil, "the id is gone from the store")
   leaveFilters(c)
 end)
 
@@ -187,8 +187,8 @@ test("Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move
   local made, c = filtersTab("whitelist", { [2589] = true })
   local calls = spyWriter("AddWhitelist", function() typeInto(made, "2589") end)
   assertEqual(calls[1], 2589)
-  assertTrue(NS.db.global.whitelist[2589] == true, "now on the whitelist")
-  assertTrue(NS.db.global.blacklist[2589] == nil, "and off the blacklist")
+  assertTrue(NS.db.profile.whitelist[2589] == true, "now on the whitelist")
+  assertTrue(NS.db.profile.blacklist[2589] == nil, "and off the blacklist")
   leaveFilters(c)
 end)
 
@@ -290,7 +290,7 @@ test("Filters tab: one add redraws the page once, not twice", function()
   local made, c = filtersTab("blacklist")
   local boxes = editBoxesMadeBy(function() typeInto(made, "2589") end)
   assertEqual(boxes, 1, "exactly one repaint follows one add")
-  assertTrue(NS.db.global.blacklist[2589] == true, "the add landed")
+  assertTrue(NS.db.profile.blacklist[2589] == true, "the add landed")
   leaveFilters(c)
 end)
 
@@ -300,7 +300,7 @@ test("Filters tab: one X-click redraws the page once, not twice", function()
   local rm = firstOf(made, "Icon")
   local boxes = editBoxesMadeBy(function() rm:__fire("OnClick") end)
   assertEqual(boxes, 1, "exactly one repaint follows one remove")
-  assertEqual(next(NS.db.global.blacklist), nil, "the remove landed")
+  assertEqual(next(NS.db.profile.blacklist), nil, "the remove landed")
   leaveFilters(c)
 end)
 
@@ -496,7 +496,7 @@ suggestCase("Filters tab: picking a suggestion adds it through the list's own wr
   end)
   assertEqual(table.concat(white, ","), "99101", "one call, with the picked id")
   assertEqual(#black, 0, "the other list's writer is not called")
-  assertTrue(NS.db.global.whitelist[99101] == true, "the pick landed on the whitelist")
+  assertTrue(NS.db.profile.whitelist[99101] == true, "the pick landed on the whitelist")
 end)
 
 suggestCase("Filters tab: a name three ranks share lists every rank; Enter without a pick adds none", function(s)
@@ -633,7 +633,7 @@ suggestCase("Filters tab: a list table swapped with no message still reaches the
   s.notCarried()
   local made
   made, s.c = filtersTab("blacklist")
-  NS.db.global.whitelist = { [99106] = true }
+  NS.db.profile.whitelist = { [99106] = true }
   local black = spyWriter("AddBlacklist", function() typeInto(made, "Tarnished Locket") end)
   assertEqual(table.concat(black, ","), "99106")
 end)

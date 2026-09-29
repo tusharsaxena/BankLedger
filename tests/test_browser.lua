@@ -125,7 +125,7 @@ end
 -- filter) whether it passes or throws.
 local function withFakeBar(fn)
   local savedDd, savedSearch = B._dd, B._search
-  local savedView = NS.db.global.savedView
+  local savedView = NS.db.profile.savedView
   local savedGroup, savedSort, savedAsc =
     NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc
   local dd = {}
@@ -133,10 +133,10 @@ local function withFakeBar(fn)
     dd[k] = fakeDropdown()
   end
   B._dd, B._search = dd, fakeSearch()
-  NS.db.global.savedView = nil
+  NS.db.profile.savedView = nil
   local ok, err = pcall(function() withCleanFilter(function() fn(dd) end) end)
   B._dd, B._search = savedDd, savedSearch
-  NS.db.global.savedView = savedView
+  NS.db.profile.savedView = savedView
   NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc =
     savedGroup, savedSort, savedAsc
   if not ok then error(err, 0) end
@@ -150,7 +150,7 @@ end)
 
 test("Browser: a corrupt saved view degrades to stock rather than erroring", function()
   withFakeBar(function()
-    NS.db.global.savedView = "not a table"
+    NS.db.profile.savedView = "not a table"
     assertEqual(B._savedViewOrStock(), B._STOCK_VIEW, "a scalar is not a view")
   end)
 end)
@@ -190,7 +190,7 @@ test("Browser:ResetView drops the saved view, and Clear then lands on stock", fu
     B:SaveView()
     B:ResetView(true)
 
-    assertEqual(NS.db.global.savedView, nil, "the saved view is gone from storage")
+    assertEqual(NS.db.profile.savedView, nil, "the saved view is gone from storage")
     assertEqual(NS.LedgerTable.groupBy, "none")
     assertEqual(B.activeFilter.store, nil)
     assertEqual(B._savedViewOrStock(), B._STOCK_VIEW)
@@ -201,7 +201,7 @@ test("Browser:ResetView drops the saved view, and Clear then lands on stock", fu
   end)
 end)
 
--- Regression: CaptureView's return is written verbatim to NS.db.global.savedView, so its SHAPE is a
+-- Regression: CaptureView's return is written verbatim to NS.db.profile.savedView, so its SHAPE is a
 -- SavedVariables shape. With no table module the sort direction must be a nil in the constructor,
 -- which leaves the `sortAsc` KEY ABSENT from the stored view — a refactor that defaulted it to
 -- `false` instead would start writing a key that was never on disk before, and an absent key and a
@@ -258,7 +258,7 @@ test("Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved
     dd.store:SetSelected({ BANK = true })
     B:SaveView()
     dd.store:SetSelected({ BANK = true, GUILD_BANK = true })   -- the user keeps filtering
-    assertEqual(NS.db.global.savedView.store.GUILD_BANK, nil)
+    assertEqual(NS.db.profile.savedView.store.GUILD_BANK, nil)
   end)
 end)
 
@@ -268,8 +268,8 @@ test("Browser: a saved date range is stored as the OPTION, not a resolved timest
   withFakeBar(function(dd)
     dd.date:SelectValue("7d")
     B:SaveView()
-    assertEqual(NS.db.global.savedView.date, "7d")
-    assertEqual(NS.db.global.savedView.from, nil)
+    assertEqual(NS.db.profile.savedView.date, "7d")
+    assertEqual(NS.db.profile.savedView.from, nil)
   end)
 end)
 
@@ -281,14 +281,14 @@ test("Browser:ApplyView tolerates a scalar filter value in a stored view", funct
   end)
 end)
 
-test("Slash:CliResetAll (the wholesale reset) also discards the saved view", function()
-  -- `/bl resetall` is Sl:ResetEverything now (options-ui-§12), and the wipe takes savedView with
-  -- the rest of db.global. red under: a reset that keeps savedView.
+test("Slash:CliResetAll (the profile reset) also discards the saved view", function()
+  -- `/bl resetall` is Sl:ResetEverything now (options-ui-§12), and its db:ResetProfile() takes
+  -- savedView with the rest of the profile. red under: a reset that keeps savedView.
   withFakeBar(function(dd)
     dd.store:SetSelected({ BANK = true })
     B:SaveView()
     NS.Slash:CliResetAll()
-    assertEqual(NS.db.global.savedView, nil)
+    assertEqual(NS.db.profile.savedView, nil)
   end)
 end)
 
@@ -305,14 +305,14 @@ end)
 -- the first /reload. Both windows anchor the save to guaranteed moments instead.
 
 test("Browser:SaveGeometry writes the live position and size", function()
-  NS.db.global.settings.window = {}
+  NS.db.profile.settings.window = {}
   NS.Browser:Show()
   local f = NS.Browser:GetWindow()
   f:ClearAllPoints()
   f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 77, -88)
   f:SetSize(1000, 700)
   NS.Browser:SaveGeometry()
-  local saved = NS.db.global.settings.window
+  local saved = NS.db.profile.settings.window
   assertEqual(saved.point, "TOPLEFT")
   assertEqual(saved.x, 77)
   assertEqual(saved.y, -88)
@@ -322,7 +322,7 @@ test("Browser:SaveGeometry writes the live position and size", function()
 end)
 
 test("Browser:ApplyGeometry restores a saved position and size", function()
-  NS.db.global.settings.window = { point = "BOTTOMLEFT", x = 15, y = 25, w = 1100, h = 720 }
+  NS.db.profile.settings.window = { point = "BOTTOMLEFT", x = 15, y = 25, w = 1100, h = 720 }
   NS.Browser:Show()
   local f = NS.Browser:GetWindow()
   f:ClearAllPoints()
@@ -337,7 +337,7 @@ test("Browser:ApplyGeometry restores a saved position and size", function()
 end)
 
 test("Browser:ApplyGeometry never restores a size below the window floor", function()
-  NS.db.global.settings.window = { point = "CENTER", x = 0, y = 0, w = 10, h = 10 }
+  NS.db.profile.settings.window = { point = "CENTER", x = 0, y = 0, w = 10, h = 10 }
   NS.Browser:Show()
   local f = NS.Browser:GetWindow()
   NS.Browser:ApplyGeometry()
@@ -348,24 +348,24 @@ end)
 test("Browser:SaveGeometry refuses to write a point-less table", function()
   -- Writing one would make ApplyGeometry fall through to the default and silently discard a real
   -- position the next time the window opened.
-  NS.db.global.settings.window = { point = "TOPLEFT", x = 5, y = -5, w = 1000, h = 600 }
+  NS.db.profile.settings.window = { point = "TOPLEFT", x = 5, y = -5, w = 1000, h = 600 }
   NS.Browser:Show()
   local f = NS.Browser:GetWindow()
   f:ClearAllPoints()
   assertFalse(NS.Browser:SaveGeometry(), "an unanchored frame has nothing worth saving")
-  assertEqual(NS.db.global.settings.window.point, "TOPLEFT", "the last good value survives")
+  assertEqual(NS.db.profile.settings.window.point, "TOPLEFT", "the last good value survives")
   NS.Browser:Hide()
 end)
 
 test("the ledger window saves its geometry when it hides", function()
-  NS.db.global.settings.window = {}
+  NS.db.profile.settings.window = {}
   NS.Browser:Show()
   local f = NS.Browser:GetWindow()
   f:ClearAllPoints()
   f:SetPoint("TOPLEFT", T.mocks.UIParent, "TOPLEFT", 111, -222)
   f:SetSize(980, 640)
   NS.Browser:Hide()
-  local saved = NS.db.global.settings.window
+  local saved = NS.db.profile.settings.window
   assertEqual(saved.point, "TOPLEFT", "closing the window persisted the position")
   assertEqual(saved.x, 111)
   assertEqual(saved.w, 980)
@@ -411,15 +411,15 @@ test("the ledger window closes an open dropdown menu when it hides", function()
 end)
 
 test("the ledger window saves its geometry at logout", function()
-  NS.db.global.settings.window = {}
+  NS.db.profile.settings.window = {}
   NS.Browser:Show()
   local f = NS.Browser:GetWindow()
   f:ClearAllPoints()
   f:SetPoint("CENTER", T.mocks.UIParent, "CENTER", 9, 19)
   f:SetSize(960, 620)
   NS.Browser:OnLogout()
-  assertEqual(NS.db.global.settings.window.x, 9)
-  assertEqual(NS.db.global.settings.window.y, 19)
+  assertEqual(NS.db.profile.settings.window.x, 9)
+  assertEqual(NS.db.profile.settings.window.y, 19)
   NS.Browser:Hide()
 end)
 

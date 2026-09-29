@@ -115,7 +115,7 @@ end
 -- gates the window because with capture off no movement can ever be recorded — a live window that is
 -- guaranteed to stay empty for the whole visit reads as a broken feature, not as a disabled one.
 function SW:Enabled()
-  local s = NS.db and NS.db.global and NS.db.global.settings
+  local s = NS.db and NS.db.profile and NS.db.profile.settings
   if not s then return true end
   return s.showSessionWindow ~= false and s.enabled ~= false
 end
@@ -251,7 +251,7 @@ end
 
 function SW:SaveGeometry()
   if not frame then return false end
-  local settings = NS.db and NS.db.global and NS.db.global.settings
+  local settings = NS.db and NS.db.profile and NS.db.profile.settings
   if not settings then return false end
   local point, _, _, x, y = frame:GetPoint(1)
   -- A frame with no anchor yet has nothing worth saving, and writing a point-less table would make
@@ -266,7 +266,7 @@ end
 
 function SW:ApplyGeometry()
   if not frame then return end
-  local g = NS.db and NS.db.global and NS.db.global.settings.sessionWindow
+  local g = NS.db and NS.db.profile and NS.db.profile.settings.sessionWindow
   frame:ClearAllPoints()
   if g and g.point then
     frame:SetPoint(g.point, UIParent, g.point, g.x or 0, g.y or 0)
@@ -287,8 +287,8 @@ function SW:OnLogout()
 end
 
 function SW:ResetWindow()
-  if NS.db and NS.db.global and NS.db.global.settings then
-    NS.db.global.settings.sessionWindow = {}
+  if NS.db and NS.db.profile and NS.db.profile.settings then
+    NS.db.profile.settings.sessionWindow = {}
   end
   if frame then
     frame:SetSize(SW._minW or 0, DEFAULT_H)

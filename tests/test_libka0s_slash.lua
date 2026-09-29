@@ -179,20 +179,20 @@ test("LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN 
     NS.Schema:Set("settings.excludedStores", saved or {})
   end)
 
-test("LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk", function()
+test("LibKa0s-Slash: CliResetAll is the host's profile reset, not the library's walk", function()
   -- The library's CliResetAll walks the schema and acknowledges; it cannot know about state that has
-  -- no Schema row (the filter id-sets, the saved view, the recorded ledger). The host used to wrap
-  -- that walk with the missing pieces. Now `/bl resetall` is the one global reset (options-ui-§12):
-  -- the popup's Sl:ResetEverything, which empties db.global wholesale and so reaches all of it with
-  -- no list to keep. The mock has no popup API, so the request runs the act directly.
+  -- no Schema row (the filter id-sets, the saved view). The host used to wrap that walk with the
+  -- missing pieces. Now `/bl resetall` is the one global reset (options-ui-§12): the popup's
+  -- Sl:ResetEverything, whose db:ResetProfile() empties the whole profile and so reaches all of it
+  -- with no list to keep. The mock has no popup API, so the request runs the act directly.
   -- red under: Sl:CliResetAll calling cli:CliResetAll again (the library's line comes back).
   NS.Filters:AddBlacklist(2589)
-  NS.db.global.savedView = { tab = "insights" }
+  NS.db.profile.savedView = { tab = "insights" }
   local out = chat(function() Sl:CliResetAll() end)
   assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0, "the filter lists are cleared")
-  assertTrue(NS.db.global.savedView == nil, "the saved ledger view is cleared")
+  assertTrue(NS.db.profile.savedView == nil, "the saved ledger view is cleared")
   assertEqual(#out, 1, "still exactly one confirmation line")
-  assertEqual(out[1], NS.PREFIX .. " this addon reset to defaults.")
+  assertEqual(out[1], NS.PREFIX .. " profile 'Default' reset to defaults.")
 end)
 
 test("LibKa0s-Slash: the landing page and the chat help render the SAME rows", function()
@@ -346,9 +346,11 @@ end)
 test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself", function()
   -- A reset that silently did nothing is worse than a missing help index. The degraded arm needs no
   -- library for it: `/bl resetall` is the same confirm-gated request as the live arm
-  -- (options-ui-§12), and the popup's Yes is the host's own Sl:ResetEverything. Before
-  -- BankLedger-A-02 this arm carried its own bracketed schema walk, which kept the ledger.
-  -- red under: restoring the degraded walk (the ledger survives, the library-shaped line returns).
+  -- (options-ui-§12), and the popup's Yes is the host's own Sl:ResetEverything: a profile reset,
+  -- which needs AceDB and not LibKa0s. Before BankLedger-A-02 this arm carried its own bracketed
+  -- schema walk.
+  -- red under: restoring the degraded walk (the library-shaped line returns), or a reset that takes
+  -- the account-wide ledger.
   local ns, m = loadDegraded()
   ns:InitDB()
   ns.Schema:Set("settings.qualityThreshold", 4)
@@ -357,14 +359,14 @@ test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining
   }
   local out = captureChat(function() ns.Slash:CliResetAll() end, m)
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0)
-  assertEqual(#ns.db.global.ledger, 0, "the degraded reset kept recorded history")
-  assertEqual(out[#out], "|cff00ffff[BL]|r this addon reset to defaults.")
+  assertEqual(#ns.db.global.ledger, 1, "the degraded reset took recorded history")
+  assertEqual(out[#out], "|cff00ffff[BL]|r profile 'Default' reset to defaults.")
 end)
 
 test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line", function()
   -- The degraded schema runtime is settings/Schema.lua's log-silent stub, so a row walk through it
-  -- would log nothing. The wholesale reset is not a walk: it logs its own one line, counted before
-  -- the wipe (debug-logging-§10), on this arm as on the live one. The case installs a recorder in
+  -- would log nothing. The profile reset is not a walk: the profile handler logs its one line,
+  -- counted before the reset (debug-logging-§10), on this arm as on the live one. The case installs a recorder in
   -- NS.Debug's place, because the degraded DebugLog stub discards every line. Before BankLedger-A-02
   -- the degraded walk logged nothing here, and the two raising-walk cases that followed it pinned a
   -- bracket this arm no longer opens; they went with the walk.
@@ -383,7 +385,7 @@ test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs i
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
   assertEqual(ns.Schema:Get("settings.trackItems"), true, "every changed row was written back")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
-  assertEqual(lines[1], "[Set] reset account-wide settings to defaults (2 rows)")
+  assertEqual(lines[1], "[Set] reset profile 'Default' to defaults (2 rows)")
 end)
 
 test("LibKa0s-Slash: the seam loads after the schema it reads", function()

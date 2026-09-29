@@ -1,33 +1,39 @@
 local addonName, NS = ...
 local C = NS.Constants
 
--- AceDB init. Account-wide: the whole ledger + every setting live in NS.db.global.
+-- AceDB init. Two scopes (docs/profiles.md): the recorded ledger and LibDBIcon's table are
+-- account-wide in NS.db.global; every setting, both filter lists and the saved view live in the
+-- active profile, NS.db.profile. `true` is AceDB's defaultProfile: every character starts on the one
+-- shared profile, "Default", which is where schema v3 lifted the old account-wide settings.
 function NS:InitDB()
   NS.db = LibStub("AceDB-3.0"):New(addonName .. "DB", NS.defaults, true)
-  NS:RunMigrations()   -- normalize the persisted schema before any ledger read
+  -- The runner goes FIRST, before anything reads db.profile (savedvariables-§1): the v3 step lifts
+  -- the pre-profile settings into the Default profile, and a read of db.profile before it would
+  -- have AceDB fill the profile with defaults the lift then has to tell apart from player choices.
+  NS:RunMigrations()
   -- THE PROFILE CALLBACKS SURVIVE THE DISABLED STATE (slash-commands-§7), and this is why they
   -- have to: `enabled` is a stored setting like any other and a profile switch can flip it with no
   -- verb and no checkbox being touched, so the addon re-reads the path and re-runs the latch's
-  -- decision. NS.ReevaluateEnabled fires a callback only on a real edge.
-  --
-  -- REGISTERED THOUGH THIS ADDON HAS NO PROFILES. Everything it stores is account-wide --
-  -- NS.defaults carries only `global` -- so AceDB never fires these today. They are wired anyway
-  -- because the cost is three lines and the failure they prevent is silent: the day a `profile`
-  -- section is added, an addon that never registered them comes up in the wrong state with no
-  -- error anywhere.
+  -- decision. All three reach the one adopt path, NS.OnProfileEvent below.
   if NS.db.RegisterCallback then
-    local function onProfile() NS.ReevaluateEnabled() end
+    local function onProfile(event, _, key) NS.OnProfileEvent(event, key) end
     NS.db.RegisterCallback(NS, "OnProfileChanged", onProfile)
     NS.db.RegisterCallback(NS, "OnProfileCopied",  onProfile)
     NS.db.RegisterCallback(NS, "OnProfileReset",   onProfile)
   end
 end
 
+-- The profile keys schema v3 lifted out of db.global, in the order they are moved. `settings` is
+-- every schema row's root; the other three are the architecture-§5 structural registry (the two
+-- filter lists) and the named non-setting state (the saved view) a profile carries beside it.
+NS.PROFILE_LIFT_KEYS = { "settings", "blacklist", "whitelist", "savedView" }
+
 -- The migration steps, keyed by the version each one PRODUCES: NS.MIGRATIONS[n] takes a v(n-1)
 -- store to vn and returns the number of rows it touched (for the [Migrate] line). Every step MUST be
 -- idempotent -- a re-run over an already-migrated store is a no-op -- because a step that raises
 -- leaves the stamp at the last completed version and the next login runs it again. Adding one:
--- bump NS.SCHEMA_VERSION (core/Namespace.lua) and add NS.MIGRATIONS[<new version>].
+-- bump NS.SCHEMA_VERSION (core/Namespace.lua) and add NS.MIGRATIONS[<new version>]. Each step is
+-- handed db.global and the whole AceDB handle, for a step that has to reach the raw profiles.
 NS.MIGRATIONS = {
   -- v1 -> v2: the addon no longer derives, captures or persists vendor value, so the field leaves
   -- the SavedVariables file rather than merely going unread. Clearing an absent field is a no-op.
@@ -38,11 +44,46 @@ NS.MIGRATIONS = {
     end
     return n
   end,
+
+  -- v2 -> v3: settings become per profile (docs/profiles.md). Every stored value under a lifted key
+  -- moves from db.global into the `Default` profile's raw table -- the profile every character was
+  -- already on, since this addon has always created its db with defaultProfile = true -- and leaves
+  -- db.global. The ledger stays where it is.
+  --
+  -- WHAT IS STORED IS WHAT MOVES. AceDB's logout strip left only the values that differ from their
+  -- defaults in db.global, and the new global defaults no longer declare any of these keys, so
+  -- nothing here is a default AceDB filled in: a key present under db.global IS a player's choice.
+  -- A `settings` value overwrites the profile's own (which can only be a default, since nothing
+  -- wrote the profile before this step); a list or the saved view replaces the profile's whole.
+  --
+  -- IDEMPOTENT by construction: the global key is cleared the moment it is copied, so a second run
+  -- finds nothing to move and touches nothing. Counts one row per value moved.
+  [3] = function(g, db)
+    local sv = db and db.sv
+    if type(sv) ~= "table" then return 0 end
+    sv.profiles = sv.profiles or {}
+    local n = 0
+    for _, key in ipairs(NS.PROFILE_LIFT_KEYS) do
+      local v = rawget(g, key)
+      if v ~= nil then
+        local p = sv.profiles.Default
+        if type(p) ~= "table" then p = {}; sv.profiles.Default = p end
+        if key == "settings" and type(v) == "table" then
+          if type(rawget(p, "settings")) ~= "table" then rawset(p, "settings", {}) end
+          for k, val in pairs(v) do p.settings[k] = val; n = n + 1 end
+        else
+          rawset(p, key, v); n = n + 1
+        end
+        g[key] = nil
+      end
+    end
+    return n
+  end,
 }
 
 -- Schema-migration runner (toc-file-§2 / savedvariables-§1, standard v2.65.0). Invoked once at init,
--- before any read of db.global.ledger, and again by Sl:ResetEverything after its wipe. Safe no-op
--- when the DB isn't ready yet.
+-- before any read of db.profile or db.global.ledger, and again from every profile event, where it is
+-- a no-op once the stamp is current. Safe no-op when the DB isn't ready yet.
 --
 -- THE STAMP. defaults/Global.lua declares `schemaVersion = 0`, which is never a real version: AceDB's
 -- logout strip can never remove a real stamp, and the 0 it backfills onto an unstamped store reads
@@ -54,8 +95,10 @@ NS.MIGRATIONS = {
 -- and the stamp stays at the last version that completed, so the next run retries that step rather
 -- than skipping it.
 --
--- NO PROFILE SCOPE. savedvariables-§1's per-profile walk has nothing to walk here: NS.defaults
--- carries only `global` (the savedvariables-§2 register row), so every step takes db.global.
+-- ONE ACCOUNT-WIDE STAMP, and no per-profile one, because no step is profile-scoped. v3 is a lift
+-- OUT of db.global into the one profile every character was on; a profile created after it passes
+-- through untouched, which is savedvariables-§1's idempotence against a fresh default profile. The
+-- first step that reshapes data INSIDE a profile has to walk sv.profiles or carry a per-profile stamp.
 function NS:RunMigrations()
   local g = NS.db and NS.db.global
   if not g then return end
@@ -64,12 +107,100 @@ function NS:RunMigrations()
   local v = math.max(from, 1)
   local rows = 0
   for target = v + 1, NS.SCHEMA_VERSION do
-    rows = rows + NS.MIGRATIONS[target](g)
+    rows = rows + NS.MIGRATIONS[target](g, NS.db)
     g.schemaVersion = target   -- reached only when the step returned
   end
   if NS.State.debug and NS.Debug then
     NS.Debug("Migrate", "%s", NS.MigrationSummary(v, NS.SCHEMA_VERSION, rows))
   end
+end
+
+-- ── The profile events: one adopt path (savedvariables-§1, options-ui-§12, debug-logging-§10) ──
+--
+-- AceDB replaces the whole profile on a switch, a copy and a reset, and none of it goes through the
+-- write seam, so no row's onChange runs. This is where the addon catches up, in one place for all
+-- three events: re-run the migrations (a no-op once stamped), re-sync the enable latch, re-apply
+-- every setting's effect from the new profile, refresh an open panel, and log exactly one line.
+
+-- The reset's row count, handed over by Sl:ResetEverything, which counts the rows off their
+-- defaults BEFORE it resets (after, they are all back on them). Taken once, so a reset that arrives
+-- from AceDBOptions' own Reset Profile button, which counts nothing, logs its line without one.
+local pendingResetRows
+
+function NS.SetPendingResetRows(n) pendingResetRows = n end
+
+local function profileName()
+  return (NS.db and NS.db.GetCurrentProfile and NS.db:GetCurrentProfile()) or "?"
+end
+
+--- The one line debug-logging-§10 asks for, worded by the event. The reset and the copy rewrite rows
+--- and carry `[Set]`; a switch rewrites none and is traced under `[Profile]`.
+local function traceProfileEvent(event, key)
+  local rows = pendingResetRows
+  pendingResetRows = nil
+  if not (NS.State and NS.State.debug and NS.Debug) then return end
+  if event == "OnProfileReset" then
+    if rows then
+      NS.Debug("Set", "reset profile '%s' to defaults (%d rows)", profileName(), rows)
+    else
+      NS.Debug("Set", "reset profile '%s' to defaults", profileName())
+    end
+  elseif event == "OnProfileCopied" then
+    NS.Debug("Set", "copied profile '%s' -> '%s'", tostring(key), profileName())
+  else
+    NS.Debug("Profile", "switched to profile '%s'", profileName())
+  end
+end
+
+--- Re-apply what a profile's settings DO. Each call is the one its row's onChange (or its owner's
+--- frame builder) already makes, so nothing here is a second implementation; every target is
+--- optional because a profile can change before a module has built its frame.
+local function applyProfileEffects()
+  local U, B, SW = NS.Util, NS.Browser, NS.SessionWindow
+  -- Stored geometry and the saved view belong to the profile: re-anchor both windows from it, and
+  -- put the ledger window on the new profile's view (or stock), silently.
+  if B and B.ApplyGeometry then B:ApplyGeometry() end
+  if SW and SW.ApplyGeometry then SW:ApplyGeometry() end
+  if B and B.ClearFilters then B:ClearFilters() end
+  if U then
+    U.ApplyMasterChrome()
+    U.ApplyVisibility()
+  end
+  -- The row tint, repainted directly (Util.RefreshRowTint would send a second bus message).
+  if NS.LedgerTable and NS.LedgerTable.Bind then NS.LedgerTable:Bind() end
+  if SW and SW.Bind then SW:Bind() end
+  -- Retention is a setting like any other, and its effect is a prune of the SHARED ledger: the one
+  -- the next login would run anyway, run now against the new profile's window (docs/profiles.md).
+  if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+end
+
+--- The session-only rows a profile reset cannot reach, ended BY NAME (options-ui-§12, §15). Neither
+--- lives in the profile: test mode is NS.State, and the debug console row reads the window itself.
+--- NOT through the write seam, which would log a per-row [Set] line beside the act's one line
+--- (debug-logging-§10). Each lands on its row's declared default, which S.MASTER_SPEC gives as false
+--- for both. LT:SetTestMode repaints the panel itself. A reset only: a switch or a copy is not a
+--- reset, and ending the player's test mode on one would be a surprise.
+local function endSessionState()
+  local LT = NS.LedgerTable
+  if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
+  local D = NS.DebugLog
+  if D and D.IsShown and D:IsShown() then D:Hide() end
+end
+
+--- The adopt path. `event` is AceDB's callback name; `key` is its third argument (the profile
+--- switched to, or the source of a copy; nothing on a reset).
+function NS.OnProfileEvent(event, key)
+  if event == "OnProfileReset" then endSessionState() end
+  NS:RunMigrations()
+  NS.ReevaluateEnabled()
+  -- The capture gate caches the settings and both lists: SettingsChanged re-caches it (and every
+  -- other subscriber re-reads), LedgerChanged repaints what the filter lists decide -- the tables,
+  -- Insights and the Filters tab. One message each, for the whole act.
+  if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "profile") end
+  if NS.Database and NS.Database.FireLedgerChanged then NS.Database:FireLedgerChanged() end
+  applyProfileEffects()
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
+  traceProfileEvent(event, key)
 end
 
 -- Pure migration summary for the [Migrate] debug line.
@@ -79,7 +210,7 @@ end
 
 -- Pure [Init] session summary for the SetEnabled seam (debug-logging-§5/§8): addon name + version,
 -- schema version, active profile, and entry count — e.g.
--- "BankLedger v1.2.0, schema v2, profile 'Default', 412 entries".
+-- "BankLedger v1.2.0, schema v3, profile 'Default', 412 entries".
 -- Guarded so it can't error before the DB is ready. All values are plain constants/counts, so a raw
 -- tostring is secret-safe here.
 function NS.InitSummary()
@@ -667,7 +798,7 @@ end
 -- Retention cleanup. Drops entries older than settings.retentionDays (0 == Always). Rebuild-and-swap
 -- avoids O(n^2) shifting and array holes. Fires LedgerChanged when it actually runs.
 function Database:PruneOld()
-  local days = NS.db.global.settings.retentionDays
+  local days = NS.db.profile.settings.retentionDays
   if not days or days == 0 then return 0 end
   local cutoff = time() - days * 86400
   local ledger = NS.db.global.ledger

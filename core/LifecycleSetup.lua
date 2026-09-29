@@ -93,7 +93,7 @@ end
 --- there is no composed `settings.enabled` row at all. An absent store answers ENABLED — "no
 --- answer" is not "off".
 function NS.EnabledStored()
-  local s = NS.db and NS.db.global and NS.db.global.settings
+  local s = NS.db and NS.db.profile and NS.db.profile.settings
   if type(s) ~= "table" then return true end
   return s.enabled ~= false
 end

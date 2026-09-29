@@ -81,7 +81,7 @@ test("Schema:FindRow finds a declared path and rejects an unknown one", function
 end)
 
 test("Schema:Get reads the stored value", function()
-  NS.db.global.settings.qualityThreshold = 3
+  NS.db.profile.settings.qualityThreshold = 3
   assertEqual(S:Get("settings.qualityThreshold"), 3)
   S:Set("settings.qualityThreshold", S:Default("settings.qualityThreshold"))
 end)
@@ -100,7 +100,7 @@ end)
 
 test("Schema:Set writes a nested path, creating intermediate tables", function()
   S:Set("settings.windowScale", 1.25)
-  assertEqual(NS.db.global.settings.windowScale, 1.25)
+  assertEqual(NS.db.profile.settings.windowScale, 1.25)
   S:Set("settings.windowScale", 1.0)
 end)
 
@@ -120,7 +120,7 @@ test("Schema:Set deep-copies a table value so the default can't be aliased", fun
   -- and any later in-place mutation would poison the default for the rest of the session.
   local def = S:Default("settings.excludedStores")
   S:Set("settings.excludedStores", def)
-  NS.db.global.settings.excludedStores.BANK = true
+  NS.db.profile.settings.excludedStores.BANK = true
   assertEqual(S:Default("settings.excludedStores").BANK, nil, "the default is untouched")
   S:Set("settings.excludedStores", {})
 end)
@@ -488,22 +488,22 @@ test("Schema: each promoted tint default IS the literal it replaced", function()
   -- upgrade that promised to change nothing.
   assertEqual(S:Default("settings.rowStripeAlpha"), 0.03, "the zebra band's old hardcoded alpha")
   assertEqual(S:Default("settings.rowHoverAlpha"), 0.10, "the hover wash's old hardcoded alpha")
-  assertEqual(NS.defaults.global.settings.rowStripeAlpha, 0.03, "the defaults mirror disagrees")
-  assertEqual(NS.defaults.global.settings.rowHoverAlpha, 0.10, "the defaults mirror disagrees")
+  assertEqual(NS.defaults.profile.settings.rowStripeAlpha, 0.03, "the defaults mirror disagrees")
+  assertEqual(NS.defaults.profile.settings.rowHoverAlpha, 0.10, "the defaults mirror disagrees")
 end)
 
 test("Util.RowTintAlpha clamps what SavedVariables hands it", function()
   -- These are hand-editable. An alpha of 5 is not an error the client reports: it is a table drawn
   -- opaque white, which reads as the slider not working.
-  local saved = NS.db.global.settings.rowStripeAlpha
-  NS.db.global.settings.rowStripeAlpha = 5
+  local saved = NS.db.profile.settings.rowStripeAlpha
+  NS.db.profile.settings.rowStripeAlpha = 5
   assertEqual(NS.Util.RowTintAlpha("rowStripeAlpha", 0.03), 1, "above 1 clamps to 1")
-  NS.db.global.settings.rowStripeAlpha = -3
+  NS.db.profile.settings.rowStripeAlpha = -3
   assertEqual(NS.Util.RowTintAlpha("rowStripeAlpha", 0.03), 0, "below 0 clamps to 0")
-  NS.db.global.settings.rowStripeAlpha = "opaque"
+  NS.db.profile.settings.rowStripeAlpha = "opaque"
   assertEqual(NS.Util.RowTintAlpha("rowStripeAlpha", 0.03), 0.03,
     "a non-number falls back to the shipped default, not to zero")
-  NS.db.global.settings.rowStripeAlpha = saved
+  NS.db.profile.settings.rowStripeAlpha = saved
 end)
 
 test("Util.ApplyRowTint paints both textures and drives the banding", function()
@@ -587,7 +587,7 @@ test("Schema: General visibility is a dropdown over the four canonical answers",
     assertEqual(row.sorting[i], key, "visibility answer #" .. i .. " is out of order")
     assertTrue((row.values[key] or "") ~= "", key .. " has no label")
   end
-  local shipped = NS.defaults.global.settings
+  local shipped = NS.defaults.profile.settings
   assertEqual(shipped.visibility, "always", "the defaults mirror disagrees")
   assertEqual(shipped.showOnlyInCombat, nil,
     "a legacy boolean turned up — it would need a migration, not a type change")
@@ -662,7 +662,7 @@ end
 -- a sample ledger leaking out of here would be what every later file reads.
 local function withTestModeClean(fn)
   local savedLockdown = mocks.InCombatLockdown
-  local g = NS.db.global.settings
+  local g = NS.db.profile.settings
   local savedVis = g.visibility
   mocks.InCombatLockdown = function() return false end
   g.visibility = "always"
@@ -759,7 +759,7 @@ test("Test mode: a start General visibility refuses leaves the box unticked", fu
   -- Browser:Show refuses under the visibility rule; a sample ledger loaded behind a window that
   -- will not open is test mode on with nothing to show for it.
   withTestModeClean(function()
-    NS.db.global.settings.visibility = "never"
+    NS.db.profile.settings.visibility = "never"
     local said = table.concat(captureChat(function() S:Set(TEST_PATH, true) end), "\n")
     assertFalse(LTm:IsTestMode(), "a start the window refused still loaded the sample")
     assertFalse(S:Get(TEST_PATH), "the box reads ticked after a refused start")

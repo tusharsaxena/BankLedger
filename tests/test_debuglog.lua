@@ -138,7 +138,7 @@ end)
 test("DebugLog: the enabled state is never written to SavedVariables", function()
   captureChat(function() D:SetEnabled(true) end)
   assertEqual(NS.db.global.debug, nil)
-  assertEqual(NS.db.global.settings.debug, nil)
+  assertEqual(NS.db.profile.settings.debug, nil)
   captureChat(function() D:SetEnabled(false) end)
 end)
 

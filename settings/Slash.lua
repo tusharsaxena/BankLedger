@@ -3,16 +3,6 @@ NS.Slash = NS.Slash or {}
 local Sl = NS.Slash
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
 
---- A deep copy of the declared defaults, so the restored store never aliases the defaults table --
---- a later write into `db.global` would otherwise reach back into `NS.defaults.global` and change
---- what the NEXT reset restores.
-local function deepcopyGlobal(v)
-  if type(v) ~= "table" then return v end
-  local out = {}
-  for k, val in pairs(v) do out[k] = deepcopyGlobal(val) end
-  return out
-end
-
 -- Confirm dialogs for the destructive actions. Registered once; in-game only.
 if type(StaticPopupDialogs) == "table" then
   StaticPopupDialogs["KA0S_BANKLEDGER_PURGE"] = {
@@ -27,11 +17,12 @@ if type(StaticPopupDialogs) == "table" then
     preferredIndex = 3,
   }
   StaticPopupDialogs["KA0S_BANKLEDGER_RESETALL"] = {
-    -- THE COLLECTION'S SECOND CANONICAL WORDING (options-ui-§12), verbatim: the one for an addon
-    -- with no profile. The first closes with "your other profiles are not affected", which is a
-    -- promise this addon cannot keep -- it has none.
-    text = "Reset this addon to its defaults? Everything you have configured or recorded is "
-      .. "discarded, for every character on this account — this cannot be undone.",
+    -- THE COLLECTION'S FIRST CANONICAL WORDING (options-ui-§12), verbatim: the one for an addon with a
+    -- profile section. This addon has had one since schema v3, and it keeps its account-wide ledger
+    -- beside it -- the "addon with both" case, which resets the profile and never folds the recorded
+    -- history into it. Deleting history is `/bl purge`, confirmed separately (KA0S_BANKLEDGER_PURGE).
+    text = "Reset this profile to the addon's defaults? Everything you have configured or added in "
+      .. "it is discarded — your other profiles are not affected.",
     button1 = YES or "Yes",
     button2 = NO or "No",
     OnAccept = function() Sl:ResetEverything() end,
@@ -66,167 +57,58 @@ if type(StaticPopupDialogs) == "table" then
   }
   -- NO "clear both filters" popup any more. It existed for the Filters subcategory's own top-right
   -- Defaults button, and that page is gone (R3) — the two lists are tabs of the General page now,
-  -- whose Defaults button raises KA0S_BANKLEDGER_RESETALL above, and the wholesale wipe behind it
-  -- empties both lists with the rest of db.global. A confirm dialog with no caller is one nobody can
+  -- whose Defaults button raises KA0S_BANKLEDGER_RESETALL above, and the profile reset behind it
+  -- empties both lists with the rest of the profile. A confirm dialog with no caller is one nobody can
   -- reach, so it was deleted rather than parked.
 end
 
---- debug-logging-§8: the wholesale reset below takes the recorded ledger with the rest of the store,
---- which is a purge of recorded data, so it is traced exactly as Database:Purge traces `/bl purge`:
---- one [Data] line carrying the count. Called just BEFORE the wipe, while the count is still there to
---- read; the wipe that follows is plain table work that cannot fail part-way. Nothing is counted or
---- formatted while logging is off.
-local function traceLedgerWipe(g)
-  if not (NS.State and NS.State.debug and NS.Debug) then return end
-  local n = type(g.ledger) == "table" and #g.ledger or 0
-  NS.Debug("Data", "reset-all wiped %s ledger entries", tostring(n))
-end
-
---- debug-logging-§10: the same wipe replaces every stored setting, and that is logged ONCE, as a
---- [Set] line worded by the act. It is the no-profile form of the profile handler's
---- `reset profile '<name>' to defaults (N rows)`: a wholesale replacement, not a walk through the
---- helper, so the write seam never runs and there is no per-row line to mute. N is the stored rows
---- the wipe actually changes: a row already at its default is not counted, and neither is the
---- session-only console row, which lives outside db.global where the wipe cannot reach it. So it is
---- read BEFORE the wipe, beside the [Data] trace, while the old values are still there to compare.
---- It takes no store argument any more: it reads through S:Get, which is where the minimap row's
---- inversion lives, and S:Get reads db.global — the very table the caller was handing in.
---- Worded apart from the [Data] line's "reset-all" on purpose: that line is the ledger purge, this
---- one is the settings.
-local function traceSettingsReset()
-  if not (NS.State and NS.State.debug and NS.Debug) then return end
+--- debug-logging-§10: a profile reset is logged ONCE, by the profile-event handler
+--- (NS.OnProfileEvent in core/Database.lua), as `[Set] reset profile '<name>' to defaults (N rows)`.
+--- N is the stored rows the reset actually changes, so it is counted HERE, before the reset, while the
+--- old values are still there to compare, and handed over through NS.SetPendingResetRows. A row
+--- already at its default is not counted, and neither is a session-only row (its storage is not the
+--- profile) or an exempt one (launcher-§3: the minimap row's key is account-wide and a profile reset
+--- cannot reach it). Read through S:Get, which is where the minimap row's inversion lives. Nothing is
+--- counted while logging is off.
+local function countResetRows()
+  if not (NS.State and NS.State.debug and NS.Debug) then return nil end
   local S, n = NS.Schema, 0
   for _, row in ipairs(S and S.Schema or {}) do
-    -- S:Get, not S:ReadPath: the minimap row's stored boolean is the INVERSE of the row's own
-    -- (launcher-§3), and comparing the raw key against the row default would count it as changed
-    -- on every reset. S:Get answers in the sense `row.default` is written in. `g` IS db.global,
-    -- which is what S:Get reads, so this still reports the pre-wipe store.
-    -- An EXEMPT row is not reset, so it is not counted (launcher-§3). Without this the count is
-    -- wrong by one for every player who has hidden their minimap button: the row differs from its
-    -- default and the wipe below deliberately leaves it that way.
     if not row.sessionOnly and not S.RESET_EXEMPT[row.path]
       and not S.SameValue(S:Get(row.path), row.default) then
       n = n + 1
     end
   end
-  NS.Debug("Set", "reset account-wide settings to defaults (%d rows)", n)
+  return n
 end
 
---- The post-wipe repaint, lifted out of `Sl:ResetEverything` so that function stays under the
---- complexity ceiling the release gate enforces (`performance-§10`). It is a fan-out of guarded
---- calls and nothing else. Each target is optional because a reset can land before a module has
---- built its frame, and none of them touch stored data: they re-anchor live frames from what is now
---- an empty store.
-local function refreshAfterReset()
-  -- The minimap button follows the store the wipe just replaced. NOT through the write seam: the
-  -- act has already logged its one [Set] summary line and a per-row line beside it would
-  -- contradict it (debug-logging-§10). The store already says what it should be — this only moves
-  -- the button to match, which is the half LibDBIcon cannot work out for itself.
-  if NS.Launcher and NS.Launcher.SetShown then
-    local t = NS.db and NS.db.global and NS.db.global.minimap
-    NS.Launcher:SetShown(not (type(t) == "table" and t.hide))
-  end
-  if NS.Browser and NS.Browser.ResetWindow then NS.Browser:ResetWindow() end
-  -- The wipe emptied db.global.savedView, but the ledger window still holds the view it last
-  -- painted (B.activeFilter, the dropdowns, the table's sort). Its owner repaints it to stock,
-  -- SILENTLY, because this act prints its own one line.
-  if NS.Browser and NS.Browser.ResetView then NS.Browser:ResetView(true) end
-  if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
-  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
-end
-
---- The session-only rows a store wipe cannot reach, ended BY NAME (options-ui-§12, §15). Neither
---- lives in db.global: test mode is NS.State, and the debug console row reads the window itself.
---- NOT through the write seam, which would log a per-row [Set] line beside the act's one summary
---- (debug-logging-§10). Each lands on its row's declared default, which S.MASTER_SPEC gives as false
---- for both. LT:SetTestMode repaints the panel itself.
-local function endSessionState()
-  local LT = NS.LedgerTable
-  if LT and LT.IsTestMode and LT:IsTestMode() then LT:SetTestMode(false) end
-  local D = NS.DebugLog
-  if D and D.IsShown and D:IsShown() then D:Hide() end
-end
-
---- The confirm-gated full reset (options-ui-§12), in the shape that rule takes for an addon with
---- NO PROFILE. It is the ONE reset: the popup's OnAccept runs it, and every control -- Reset all
---- settings, the page and footer Defaults, `/bl resetall` -- reaches the popup through
---- Sl:RequestResetAll below.
+--- The confirm-gated global reset (options-ui-§12), in the shape that rule takes for an addon with
+--- BOTH a profile and an account-wide store: `db:ResetProfile()`, the active profile only. It is the
+--- ONE reset: the popup's OnAccept runs it, and every control -- Reset all settings, the page and
+--- footer Defaults, `/bl resetall` -- reaches the popup through Sl:RequestResetAll below. AceDBOptions'
+--- own Reset Profile on the Profiles page is the same act by construction.
 ---
---- Everything this addon stores is account-wide: `NS.defaults.global` carries the ledger, the filter
---- lists AND the settings, and there is no `profile` section at all. `db:ResetProfile()` -- what the
---- rule asks of an addon that has one -- would be a no-op here, so the rule translates: empty the
---- account-wide store wholesale and merge the declared defaults back, so what comes back is
---- indistinguishable from a fresh install.
+--- WHAT IT TAKES is everything the profile holds: every setting, both filter lists, the saved view
+--- and both windows' stored geometry. WHAT IT KEEPS is everything account-wide: the recorded ledger
+--- (deleting history is `/bl purge`, a separate, separately confirmed act, never folded into a
+--- settings reset), LibDBIcon's table (launcher-§3), the profile list and every other profile.
 ---
---- WIPED IN PLACE, and NOT key by key. `NS.db.global` is held by modules from load, so replacing the
---- table would leave every holder on a stale one. And a hand-written list of things to clear fails
---- exactly the way a row-by-row schema sweep fails -- one release later, when something new is
---- stored beside the ones the list names -- which is what this function used to be: a purge, a
---- schema walk, a filter-list clear and two window-geometry carve-outs, five enumerations that
---- between them happened to cover the whole table. AceDB ships no `ResetGlobal`, so it is written
---- here.
----
---- The window resets live in `refreshAfterReset` above. They are not stored data: they re-anchor
---- live frames from what is now an empty store.
----
---- The broadcast is what tells the rest of the addon the store underneath it changed
---- (`architecture-§4`). Every Schema row already sends one on a single-key edit; this rewrites
---- every key there is and used to send nothing, so `modules/Ledger.lua`'s capture gate went on
---- judging bank movements by the cached settings the reset had just destroyed, until a /reload.
---- Once, at the end, with `"reset"` as the reason -- one act, one message. Sending per restored key
---- would make every subscriber rebuild several times over for a single button press, and no
---- subscriber wants finer grain than "all of it changed". The consumers are NOT enumerated here:
---- they subscribe, which is the whole point of the bus.
----
---- THE LEDGER WENT WITH THE WIPE, so LedgerChanged goes out too (BankLedger-R-03). History,
---- Insights, the session window's PruneMissing and the panel's storage read-out refresh on
---- LedgerChanged and nothing else, and SettingsChanged alone left them showing deleted rows. Sent
---- through `NS.Database:FireLedgerChanged`, never from here, so Database stays the one sender of
---- that message (architecture-§4, core/Constants.lua).
----
---- THEN THE LATCH IS RE-RUN (BankLedger-R-02), as AceDB's OnProfileReset does in core/Database.lua.
---- The wipe put `settings.enabled = true` back behind the row's onChange, so a reset made while
---- disabled left the checkbox reading on and the addon stood down. `NS.ReevaluateEnabled` fires
---- only on a real edge, so an enabled addon is untouched; a disabled one comes back up, which is a
---- behavior change: a full reset made while disabled re-enables the addon, as a fresh install is.
---- It runs AFTER the LedgerChanged send, so modules standing back up build from the empty store.
+--- NOT a schema walk and NOT a hand-written list of keys. AceDB empties the profile in place and
+--- merges its defaults back, then fires OnProfileReset, and NS.OnProfileEvent does the rest: it ends
+--- the session-only rows a profile reset cannot reach (test mode, the debug console), then takes the
+--- order every profile event takes -- the migration runner, the enable latch (a reset made while
+--- disabled re-enables the addon, as a fresh profile is), one SettingsChanged and one LedgerChanged
+--- broadcast, the windows re-anchored from the now-empty geometry (centered), the ledger window's
+--- view back to stock, the panel repaint, and the one [Set] line. Doing that in the handler rather
+--- than here is what makes the Profiles page's own Reset Profile the same act.
 function Sl:ResetEverything()
   local db = NS.db
-  if db and db.global then
-    local g = db.global
-    traceLedgerWipe(g)
-    traceSettingsReset()
-    -- LIBDBICON'S OWN TABLE SURVIVES THE WIPE, WHOLE (launcher-§3, standard v2.54.0). Both keys in
-    -- it are per-installation display preferences rather than settings: `hide` is whether the player
-    -- wants the button at all, `minimapPos` is the angle they dragged it to, and no reset in the
-    -- collection has ever been meant to put a button back on a minimap at the default angle.
-    --
-    -- THIS ADDON IS ONE OF THE TWO SHAPES THAT RULE NAMES, and the reason the rule stopped being an
-    -- argument and became a property. The old reasoning -- Reset all settings is a PROFILE reset and
-    -- this table is GLOBAL, so it cannot be reached -- has no premise here: there is no profile at
-    -- all, so the reset is this wholesale wipe of the account-wide store, and `minimap = { hide =
-    -- false }` is a declared default that the merge below put straight back. A player who had hidden
-    -- their button got it back, at the default angle, from a button labeled *Reset all settings*.
-    --
-    -- Carved out by holding the TABLE and putting it back, rather than by reading `hide` and
-    -- re-writing it: `minimapPos` is in there too and is nobody's schema row, so a key-by-key
-    -- carve-out would be a list to keep current -- the exact failure the wholesale wipe exists to
-    -- avoid. The write seam's own sweep is exempted separately, through S.RESET_EXEMPT.
-    local minimap = g.minimap
-    for k in pairs(g) do g[k] = nil end
-    for k, v in pairs(deepcopyGlobal(NS.defaults and NS.defaults.global or {})) do g[k] = v end
-    if type(minimap) == "table" then g.minimap = minimap end
-    -- The merge put the declared `schemaVersion = 0` back. Re-stamp now (savedvariables-§1), so a
-    -- wiped store reads the current version rather than v0 until the next login. Every step over
-    -- the empty ledger is a no-op.
-    NS:RunMigrations()
+  if db and db.ResetProfile then
+    NS.SetPendingResetRows(countResetRows())
+    db:ResetProfile()
   end
-  endSessionState()
-  print("this addon reset to defaults.")
-  if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "reset") end
-  if NS.Database and NS.Database.FireLedgerChanged then NS.Database:FireLedgerChanged() end
-  if NS.ReevaluateEnabled then NS.ReevaluateEnabled() end
-  refreshAfterReset()
+  print("profile '" .. tostring(db and db.GetCurrentProfile and db:GetCurrentProfile() or "?")
+    .. "' reset to defaults.")
 end
 
 --- THE SINGLE ENTRY POINT to the global reset (options-ui-§12). Reset all settings, the General
@@ -235,7 +117,7 @@ end
 --- API it runs the reset directly, the arm the headless harness takes.
 ---
 --- Defined ABOVE the library branch on purpose, so both arms' CliResetAll resolve the same one.
---- History goes with the rest of the store, after the confirm; `/bl purge` deletes history alone.
+--- Recorded history is never part of it; `/bl purge` deletes history alone.
 function Sl:RequestResetAll()
   if type(StaticPopup_Show) == "function" then
     return StaticPopup_Show("KA0S_BANKLEDGER_RESETALL")
@@ -551,7 +433,7 @@ function Sl:DisabledLine() return cli:DisabledLine() end
 function Sl:LandingRows() return cli:LandingRows() end
 
 -- `/bl resetall` is the ONE global reset (options-ui-§12), not the library's schema walk: it asks
--- through the same confirm popup as Reset all settings and both Defaults controls, and Yes empties
--- db.global wholesale -- recorded history, the filter lists and the saved view with the settings.
+-- through the same confirm popup as Reset all settings and both Defaults controls, and Yes resets the
+-- active profile -- the settings, the filter lists and the saved view. Recorded history is kept.
 -- The member name stays CliResetAll for NS.Slash parity with the degraded arm.
 function Sl:CliResetAll() return Sl:RequestResetAll() end
