@@ -705,10 +705,12 @@ on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, 
   one line, `[BL] The LibKa0s library is missing from this installation of Ka0s Bank Ledger (expected
   in libs/LibKa0s), so the slash help index and the settings CLI (list/get/set/reset) are
   unavailable.`, and nothing else. Result:
-- **DEGRADED-5. The addon still works.** `/bl show` → the ledger opens and behaves, and a bank
+- **DEGRADED-5. The addon still works.** `/bl show` → the ledger opens and behaves, and chat reads
+  `[BL] Filters need LibKa0s. The ledger itself is unaffected.` This first `/bl show` of the session
+  builds the window, and only the build prints that line (DEGRADED-8 checks the bar itself). A bank
   movement still records. `/bl config` and bare `/bl` → no panel and nothing in chat (the settings
-  panel's one line printed at login, DEGRADED-1). `/bl debug` → one line ending `, so the debug console window is unavailable.` and no
-  console. `/bl diagnostics` → one line, `/bl diagnostics is unavailable: the LibKa0s library did not
+  panel's one line printed at login, DEGRADED-1). `/bl debug` → one line ending
+  `, so the debug console window is unavailable.` and no console. `/bl diagnostics` → one line, `/bl diagnostics is unavailable: the LibKa0s library did not
   load.`, and nothing else. Result:
 - **DEGRADED-6. The profile verb explains itself.** `/bl profile` and `/bl profile Default` → each one
   line, `/bl profile is unavailable: the LibKa0s library did not load.`, and no switch. Result:
@@ -716,9 +718,10 @@ on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, 
   proportional text, and ▲/▼ drawn as boxes. Correct here; the same with `libs/LibKa0s` in place is a
   broken seam. (The console and the Copy box are unreachable in this state; DEGRADED-11 checks the
   console's font on restore.) Result:
-- **DEGRADED-8. No filter bar.** `/bl show` → the filter bar does not build (none of its eight
-  dropdowns), chat reads "Filters need LibKa0s. The ledger itself is unaffected.", and the History
-  table below still works unfiltered. Result:
+- **DEGRADED-8. No filter bar.** In the ledger DEGRADED-5 opened → no filter bar (none of its eight
+  dropdowns), and the History table below still works unfiltered. `/bl hide`, then `/bl show` → the
+  same window comes back and chat stays quiet: the window is built once per session, and the
+  filter-bar line came with that build (DEGRADED-5). Result:
 - **DEGRADED-9. The fallback marks.** Every other surface still draws something: the font-character ×,
   `Arrow-Up-Up` sort arrows, boxed `+`/`-` group expanders, and the four header marks still gold (the
   tint rides on the escape). A near-white one means the fallback lost the tail. Nothing blank or off
@@ -796,7 +799,7 @@ which ends by walking this whole document, is still owed, so most checks are her
 its own `Result:` line, then remove its ID from this table.
 
 Not listed, because a recorded pass covers them and the rework did not change what they expect:
-INSTALL-3 and INSTALL-4 (S-1 steps 4 and 5, passed in the owner's minimap re-check of 2026-09-25 on
+INSTALL-4 (S-1 step 5, passed in the owner's minimap re-check of 2026-09-25 on
 the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
 DIAG-13 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
 BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
@@ -806,6 +809,7 @@ Ka0sAddonsCommonTasks repository.
 |---|---|---|
 | INSTALL-1 | S-1 steps 1 and 3, S-23 step 1 | No recorded result |
 | INSTALL-2 | S-1 step 2, corrected by SP-BL-03 | The old step expected a hardcoded `[BL] v1.2.0`; it now expects the version the TOC's `## Version` line carries |
+| INSTALL-3 | S-1 step 4 | X1.4's pass recorded the status tooltip, not the button's own logo (`launcher-§4`) or the same art beside Ka0s Bank Ledger in the AddOns list; no recorded result for those |
 | INSTALL-5 | S-1 step 6 (the menu's shape and the Show window entry) | X1.4's pass recorded that right-click opens the menu, not that Show window opens the ledger, shows ticked and closes it again; no recorded result |
 | INSTALL-6 | S-1 step 6 (the Test mode and Locked entries) | X1.4's pass recorded the menu opening, not these entries' chat lines; no recorded result |
 | INSTALL-7 | S-1 step 7 | No recorded result |
@@ -872,8 +876,9 @@ Ka0sAddonsCommonTasks repository.
 | SESS-11, SESS-12 | S-17 steps 16–17 | No recorded result |
 | DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
-| DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
+| DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the first `/bl show` prints the filter-bar line; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
-| DEGRADED-8 – 10 | S-21 step 9 | No recorded result |
+| DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |
+| DEGRADED-9 – 10 | S-21 step 9 | No recorded result |
 | LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
 | LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |
