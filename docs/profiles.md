@@ -9,7 +9,7 @@ how the old account-wide settings got into a profile. The stored shape is in
 
 | Scope | Where | What |
 |---|---|---|
-| **Profile** (`db.profile`) | `defaults/Profile.lua` | Every schema row but retention (`settings.*`: enabled, capture, visibility, scale, alpha, lock, row tints, the session window switch), both item-id filter lists (`blacklist`, `whitelist`), the saved ledger view (`savedView`), and both windows' stored geometry (`settings.window`, `settings.sessionWindow`) |
+| **Profile** (`db.profile`) | `defaults/Profile.lua` | Every schema row but the two account-wide ones, retention and the Minimap button (`settings.*`: enabled, capture, visibility, scale, alpha, lock, row tints, the session window switch), both item-id filter lists (`blacklist`, `whitelist`), the saved ledger view (`savedView`), and both windows' stored geometry (`settings.window`, `settings.sessionWindow`) |
 | **Account-wide** (`db.global`) | `defaults/Global.lua` | The recorded ledger (`ledger`), the retention window that governs it (`settings.retentionDays`, *Keep history for*), LibDBIcon's `minimap` table (whether the button is shown, and its angle), the `schemaVersion` stamp |
 | **Session only** | `NS.State` | Test mode, the debug console window, the debug logging flag, the open banking session |
 
@@ -118,7 +118,9 @@ lifted values. A second run finds nothing left in `db.global` and moves nothing.
 `NS.MIGRATIONS[4]` repairs a store an earlier build of v3 wrote, which lifted `retentionDays` into
 the profile with everything else. It walks every stored profile raw and takes the key out of each.
 The value kept in `db.global` is a player choice already there (one off the declared default), else
-the `Default` profile's, else the first other profile's by name. A second run finds no key in any
+the `Default` profile's; no other profile's value is ever promoted. A `Default` profile without the
+key holds that build's 30-day profile default (AceDB's logout strip drops a stored default), so a
+shorter window in another profile never becomes the account's. A second run finds no key in any
 profile, and a v2 upgrade (whose v3 never lifted the key) has nothing to move. Detail in
 [schema.md](schema.md) → *Schema v3*.
 
@@ -126,8 +128,8 @@ profile, and a v2 upgrade (whose v3 never lifted the key) has nothing to move. D
 
 `tests/test_profiles.lua` pins the split, the v3 lift (values land in `Default`, `db.global` is
 cleared, the retention window stays, the ledger is untouched, a second run is a no-op, reads resolve
-against the profile), the v4 return of the window (the `Default` profile's value wins, a global
-choice is kept, every profile is cleared, a second run is a no-op), the account-wide window (a write
+against the profile), the v4 return of the window (the `Default` profile's value wins, its implicit 30 included, a
+global choice is kept, every profile is cleared, a second run is a no-op), the account-wide window (a write
 lands in `db.global`, every profile and the prune read the one value, a stale profile copy is
 ignored, the tooltip says so), the adopt path (a switch re-reads settings, re-caches the gate, drives
 the latch, re-applies chrome and geometry, sends one message of each kind and logs one line; a copy

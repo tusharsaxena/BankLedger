@@ -294,6 +294,54 @@ test("Migrate v4: a player choice already in db.global is kept over a profile's 
   end)
 end)
 
+test("Migrate v4: a Default profile with no stored window keeps its implicit 30 over another profile's shorter one", function()
+  -- The pre-D6 build declared 30 in the profile defaults and AceDB's logout strip removed a stored
+  -- 30, so a Default profile WITHOUT the key held 30. The shorter Alt window must not become the
+  -- account-wide one, or the next login prune deletes shared history Default's characters kept.
+  -- red under: a step that reads the absent key as "Default holds nothing" and falls through to
+  -- the next profile (savedvariables-§1's forbidden presence test): global would read 7, and the
+  -- prune below would drop the ten-day-old movement.
+  local now = mocks.__now
+  local sv = {
+    global = { schemaVersion = 3, settings = { retentionDays = 30 },
+      ledger = { recentEntryAt(now - 10 * 86400) } },
+    profiles = {
+      Default = { settings = { qualityThreshold = 3 } },
+      Alt = { settings = { retentionDays = 7 } },
+    },
+  }
+  withDb(sv, function(db)
+    local n
+    muted(function()
+      n = NS.MIGRATIONS[4](db.global, db)
+      db.global.schemaVersion = 4
+    end)
+    assertEqual(n, 1, "one row per profile value removed")
+    assertEqual(rawget(db.global.settings, "retentionDays"), 30, "another profile's window was promoted")
+    assertEqual(rawget(sv.profiles.Alt.settings, "retentionDays"), nil, "Alt still holds a window")
+    assertEqual(sv.profiles.Default.settings.qualityThreshold, 3, "another setting was touched")
+    assertEqual(NS.Schema:Get("settings.retentionDays"), 30, "the row does not read Default's window")
+    local pruned
+    muted(function() pruned = NS.Database:PruneOld() end)
+    assertEqual(pruned, 0, "the login prune deleted shared history Default kept")
+    assertEqual(#db.global.ledger, 1, "the ten-day-old movement is gone")
+  end)
+end)
+
+test("Migrate v4: a store with no Default profile resolves to the pre-D6 default, not the first other profile", function()
+  -- red under: a step that promotes the first other profile's window in name order.
+  local sv = {
+    global = { schemaVersion = 3, settings = { retentionDays = 30 }, ledger = {} },
+    profiles = { Alt = { settings = { retentionDays = 7 } }, Main = { settings = { retentionDays = 14 } } },
+  }
+  withDb(sv, function(db)
+    assertEqual(NS.MIGRATIONS[4](db.global, db), 2, "one row per profile value removed")
+    assertEqual(rawget(db.global.settings, "retentionDays"), 30, "another profile's window was promoted")
+    assertEqual(rawget(sv.profiles.Alt.settings, "retentionDays"), nil, "Alt still holds a window")
+    assertEqual(rawget(sv.profiles.Main.settings, "retentionDays"), nil, "Main still holds a window")
+  end)
+end)
+
 test("Migrate v4: a store with no profile window is left alone", function()
   -- A v2 upgrade takes the new v3, which never lifts the window, so v4 has nothing to do.
   -- red under: a step that raises on a profile with no settings table, or counts nothing as a row.
@@ -417,8 +465,8 @@ test("Profiles: a switch logs exactly one [Profile] line naming the profile, and
 end)
 
 --- Run `fn` with the account-wide ledger swapped for `entries`, and put the suite's own back
---- afterwards whatever happens. The adopt path runs the retention prune, so a test that keeps the
---- shipped 30-day window must choose what that prune can see.
+--- afterwards whatever happens. No profile event prunes (D6), so the entries a test picks are what
+--- lets it prove that: an entry past the 30-day window is one only a prune could take.
 local function withLedger(entries, fn)
   local saved = NS.db.global.ledger
   NS.db.global.ledger = entries

@@ -108,8 +108,14 @@ every stored profile raw (`db.sv.profiles`, before anything reads `db.profile`) 
 
 - **Which value is kept.** A player choice already in `db.global.settings` (a value off the declared
   default) wins; otherwise the `Default` profile's, which is where v3 put the player's pre-profile
-  value; otherwise the first other profile's in name order. Every profile's copy is cleared either
-  way.
+  value. No other profile's value is ever promoted. Every profile's copy is cleared either way.
+- **A `Default` profile without the key holds 30.** The earlier build declared a 30-day window in
+  the profile defaults, and AceDB's logout strip drops a stored value equal to its default, so an
+  absent key in that build's `Default` profile *is* 30 (frozen in the step as
+  `V3_PROFILE_DEFAULTS`). The step compares against that default rather than testing for the key
+  (savedvariables-§1); reading the absence as "no value" would let another profile's shorter window
+  become the account's, and the next login prune would delete history `Default` kept. A store with
+  no `Default` profile resolves to 30 the same way.
 - **Idempotent.** A second run finds the key in no profile and touches nothing. A v2 upgrade runs the
   current v3, which never lifts the key, so v4 has nothing to do for it.
 - **Walks the profiles, and still needs no per-profile stamp.** The profile defaults no longer
@@ -179,7 +185,8 @@ post-write tail is the panel repaint (`options-ui-§11`), the
 in), tally or log, `onChange`, repaint, in that order. The Minimap button row's inversion is the
 row's own `set`, so no other code knows which way round its boolean is. `S:Register` now reports a
 row whose path is missing from `defaults/Profile.lua` even when the row carries a `default` of its own
-(the Minimap row alone resolves against `defaults/Global.lua`'s `minimap.hide`);
+(the two `S.GLOBAL_ROWS` resolve against `defaults/Global.lua` instead: the Minimap row against its
+`minimap.hide`, the retention row against `settings.retentionDays`, D6);
 before the adoption that row passed, although AceDB would still have read it as nil.
 
 ## Without the library: the degradation stub and write-through

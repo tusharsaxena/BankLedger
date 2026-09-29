@@ -36,6 +36,54 @@ NS.PROFILE_LIFT_KEYS = { "settings", "blacklist", "whitelist", "savedView" }
 -- db.global itself (settings/Schema.lua, S.GLOBAL_ROWS).
 NS.GLOBAL_SETTINGS = { retentionDays = true }
 
+-- What an NS.GLOBAL_SETTINGS key read as in a profile that did not store it, in the pre-D6 build of
+-- v3: its defaults/Profile.lua declared `settings.retentionDays = 30`. Frozen here rather than read
+-- from the live defaults, because v4 interprets a store THAT build wrote: a later change to the
+-- declared window must not change what an absent key in one of its profiles meant.
+local V3_PROFILE_DEFAULTS = { retentionDays = 30 }
+
+--- A stored profile's raw `settings` table, or nil. Raw, so no AceDB default is read as stored.
+local function rawProfileSettings(p)
+  local ps = type(p) == "table" and rawget(p, "settings")
+  return type(ps) == "table" and ps or nil
+end
+
+-- One NS.GLOBAL_SETTINGS key back from every stored profile into db.global.settings (the v4 step,
+-- below). Returns the number of profile values removed; 0, touching nothing, when no profile holds
+-- the key.
+--
+-- WHICH VALUE WINS: a player choice already in db.global (a value off the declared default) is
+-- kept; otherwise the Default profile's, which is where v3 put the player's own pre-profile value.
+-- No other profile's value is ever promoted. Every profile's copy is cleared either way, so no
+-- profile is left holding a window nothing reads.
+--
+-- A DEFAULT PROFILE WITHOUT THE KEY STILL HOLDS A VALUE (savedvariables-§1: a step tells a player's
+-- value from a default by comparing against the default, never by testing for the key). AceDB's
+-- logout strip removes a value equal to its default, so in a store the pre-D6 build wrote an absent
+-- key IS V3_PROFILE_DEFAULTS'. Reading the absence as "Default holds nothing" would promote another
+-- profile's shorter window over it, and the next login prune would delete shared history the
+-- Default profile's characters kept: the loss D6 exists to prevent. A store with no Default profile
+-- at all resolves the same way, to the pre-D6 default.
+local function returnGlobalKey(g, profiles, key, declared)
+  local holders = {}
+  for _, p in pairs(profiles) do
+    local ps = rawProfileSettings(p)
+    if ps and rawget(ps, key) ~= nil then holders[#holders + 1] = ps end
+  end
+  if #holders == 0 then return 0 end
+  local gs = rawget(g, "settings")
+  local current = type(gs) == "table" and rawget(gs, key) or nil
+  if current == nil or current == declared then
+    local ds = rawProfileSettings(profiles.Default)
+    local v = ds and rawget(ds, key)
+    if v == nil then v = V3_PROFILE_DEFAULTS[key] end
+    if type(gs) ~= "table" then gs = {}; rawset(g, "settings", gs) end
+    rawset(gs, key, v)
+  end
+  for _, ps in ipairs(holders) do rawset(ps, key, nil) end
+  return #holders
+end
+
 -- The migration steps, keyed by the version each one PRODUCES: NS.MIGRATIONS[n] takes a v(n-1)
 -- store to vn and returns the number of rows it touched (for the [Migrate] line). Every step MUST be
 -- idempotent -- a re-run over an already-migrated store is a no-op -- because a step that raises
@@ -102,12 +150,7 @@ NS.MIGRATIONS = {
   -- build of v3 lifted it into the Default profile with every other setting; a profile could then
   -- carry its own window, and switching to it pruned the history every profile shares. This step
   -- walks every STORED profile raw (sv.profiles, before anything reads db.profile) and takes each
-  -- NS.GLOBAL_SETTINGS key out of it.
-  --
-  -- WHICH VALUE WINS, when more than one place holds one: a player choice already in db.global (a
-  -- value off the declared default) is kept; otherwise the Default profile's, which is where v3 put
-  -- the player's own pre-profile value; otherwise the first other profile's in name order. Every
-  -- profile's copy is cleared either way, so no profile is left holding a window nothing reads.
+  -- NS.GLOBAL_SETTINGS key out of it (returnGlobalKey, above).
   --
   -- IDEMPOTENT: a second run finds no key in any profile and touches nothing. A store that took the
   -- v3 above never had the key lifted, so this step is a no-op for every v2 upgrade. Counts one row
@@ -116,36 +159,10 @@ NS.MIGRATIONS = {
     local sv = db and db.sv
     local profiles = type(sv) == "table" and sv.profiles
     if type(profiles) ~= "table" then return 0 end
-    local names = {}
-    for name, p in pairs(profiles) do
-      if type(p) == "table" and type(rawget(p, "settings")) == "table" then names[#names + 1] = name end
-    end
-    table.sort(names, function(a, b)
-      if (a == "Default") ~= (b == "Default") then return a == "Default" end
-      return tostring(a) < tostring(b)
-    end)
     local declared = (NS.defaults and NS.defaults.global and NS.defaults.global.settings) or {}
-    local gs = rawget(g, "settings")
-    local held = {}
-    for key in pairs(NS.GLOBAL_SETTINGS) do
-      local v = type(gs) == "table" and rawget(gs, key) or nil
-      held[key] = v ~= nil and v ~= declared[key]
-    end
     local n = 0
-    for _, name in ipairs(names) do
-      local ps = rawget(profiles[name], "settings")
-      for key in pairs(NS.GLOBAL_SETTINGS) do
-        local v = rawget(ps, key)
-        if v ~= nil then
-          if not held[key] then
-            if type(gs) ~= "table" then gs = {}; rawset(g, "settings", gs) end
-            rawset(gs, key, v)
-            held[key] = true
-          end
-          rawset(ps, key, nil)
-          n = n + 1
-        end
-      end
+    for key in pairs(NS.GLOBAL_SETTINGS) do
+      n = n + returnGlobalKey(g, profiles, key, declared[key])
     end
     return n
   end,

@@ -1193,7 +1193,7 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
 
-### test_profiles.lua (35)
+### test_profiles.lua (37)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1208,6 +1208,8 @@ badge and any count quoted in the docs must agree with it.
 - Migrate v4: a profile's retention window goes back to db.global, the Default profile's value winning
 - Migrate v4: idempotent — a second run moves nothing, and the runner stamps v4
 - Migrate v4: a player choice already in db.global is kept over a profile's copy
+- Migrate v4: a Default profile with no stored window keeps its implicit 30 over another profile's shorter one
+- Migrate v4: a store with no Default profile resolves to the pre-D6 default, not the first other profile
 - Migrate v4: a store with no profile window is left alone
 - Profiles: a switch re-reads every setting from the new profile
 - Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
@@ -1324,9 +1326,9 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
-| test_profiles.lua | 35 |
+| test_profiles.lua | 37 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1139** |
+| **Total** | **1141** |
