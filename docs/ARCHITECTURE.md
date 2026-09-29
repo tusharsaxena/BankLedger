@@ -57,7 +57,9 @@ tabbed **General** page (`options-ui-§13`): **Master controls** · **Capture** 
 **History** · **Filters**. The bulk bracket, the reset routes and the tab strip are in
 `settings-panel.md`.
 
-Every schema path resolves against the **active profile**, `NS.db.profile` (schema v3). What is
+Every schema path resolves against the **active profile**, `NS.db.profile` (schema v3), except two
+rows whose own `get`/`set` reach the account-wide store (`S.GLOBAL_ROWS`): the Minimap button row
+and the retention window, `db.global.settings.retentionDays` (owner decision D6, schema v4). What is
 stored outside the rows is named per `architecture-§5`:
 - **One structural registry** — the filter id-sets, `db.profile.blacklist` and
   `db.profile.whitelist`, whose only runtime writer is `NS.Filters` (`modules/Filters.lua`). Two
@@ -82,22 +84,26 @@ The runtime and its stub, and every writer of each with the act that reaches it,
 
 ## Profiles
 
-AceDB profiles, since schema v3. A profile holds **everything a player configures**: every schema
-row, both filter lists, the saved view and both windows' geometry. The **recorded ledger** and
-LibDBIcon's table stay **account-wide** in `db.global`, so switching profile never changes what was
-recorded (owner decision D5, 2026-09-29: settings only). Every character starts on the one shared
-`Default` profile, which is where `NS.MIGRATIONS[3]` lifted the old account-wide settings.
+AceDB profiles, since schema v3. A profile holds **everything a player configures** but the
+retention window: every other schema row, both filter lists, the saved view and both windows'
+geometry. The **recorded ledger**, the **retention window** that governs it and LibDBIcon's table
+stay **account-wide** in `db.global`, so switching profile never changes what was recorded or how
+much of it is kept (owner decisions D5 and D6, 2026-09-29). Every character starts on the one shared
+`Default` profile, which is where `NS.MIGRATIONS[3]` lifted the old account-wide settings;
+`NS.MIGRATIONS[4]` takes the retention window back out of any profile an earlier build had put it in.
 
 The **Profiles** page (`settings/Profiles.lua`, `options-ui-§3`) is AceDBOptions in a canvas
 subcategory, registered after General, with no Defaults button. AceDB's three profile callbacks all
 reach **`NS.OnProfileEvent`** (`core/Database.lua`), the one adopt path: the migration runner, the
 enable latch, one `SettingsChanged("profile")` and one `LedgerChanged`, every setting's effect
-re-applied (window geometry and chrome, the saved view, visibility, the row tint, the retention
-prune, quiet when it removes nothing), the panel refreshed, and exactly one debug line for the act
-(`debug-logging-§10`); a prune that does remove history adds its own `[Prune]` line. The global reset is
-`db:ResetProfile()` (`options-ui-§12`, the "addon with both" form), so it is the same act as the
-Profiles page's Reset Profile and it never deletes history; `/bl purge` does that, separately
-confirmed. Detail in **[profiles.md](profiles.md)**.
+re-applied (window geometry and chrome, the saved view, visibility, the row tint), the panel
+refreshed, and exactly one debug line for the act (`debug-logging-§10`). It never runs the retention
+prune: no profile event deletes history (D6). The global reset is `db:ResetProfile()`
+(`options-ui-§12`, the "addon with both" form), so it is the same act as the Profiles page's Reset
+Profile and it never deletes history or moves the retention window; `/bl purge` deletes history,
+separately confirmed. The Options descriptor's `skipRestoreAll` is the one named veto,
+`S.VetoedFromResetAll` (`options-ui-§3`): the Profiles page and every stored row. Detail in
+**[profiles.md](profiles.md)**.
 
 ## Launcher
 
@@ -383,7 +389,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
-| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide, the v3 lift, the profile events and the reset |
+| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift and the v4 return of the window, the profile events and the reset |
 | `debug.md` | Present | The diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned topic dumps, `/bl debug scan` and `/bl debug panel`; which to paste with a bug report |
 | `perf-analysis/README.md` | Not applicable | The `performance-§12` no-combat-path exemption is held — see `## Documented deviations` |
 

@@ -4,16 +4,18 @@ local _, NS = ...
 -- AceDBOptions table into an AceGUI group inside our canvas; the flow engine never renders it, so
 -- the tab strip does not apply (options-ui-§13).
 --
--- A profile holds every setting, both item-id filter lists and the saved view; the recorded ledger
--- is account-wide and no control on this page reaches it (docs/profiles.md). Switching, copying or
+-- A profile holds every setting but one, both item-id filter lists and the saved view; the recorded
+-- ledger and the retention window that governs it are account-wide, and no control on this page
+-- reaches either (docs/profiles.md, owner decision D6). Switching, copying or
 -- resetting a profile reaches NS.OnProfileEvent (core/Database.lua), which re-applies the new
 -- profile. Reset Profile here is the same act as Reset all settings, the General page's Defaults and
 -- `/bl resetall` (options-ui-§12); only those three ask first, because AceDBOptions' own button does
 -- not.
 --
 -- NO DEFAULTS BUTTON: profile management has its own destructive controls, and a header Defaults
--- here would be a second reset beside Reset Profile. Nothing on this page is a schema row, so no row
--- walk can reach it either.
+-- here would be a second reset beside Reset Profile. Nothing on this page is a schema row, and the
+-- global reset's veto names the page anyway (S.VetoedFromResetAll, settings/Schema.lua, passed to the
+-- library as `skipRestoreAll`), so no row walk can reach it.
 --
 -- Registered by settings/Panel.lua's P:Register straight after General, so it is the last entry in
 -- the Settings tree. Optional dependency: without AceDBOptions, AceConfig, AceConfigDialog or AceGUI
@@ -39,7 +41,7 @@ function PP.Build(mainCategory)
   AceConfig:RegisterOptionsTable(APPNAME, AceDBOptions:GetOptionsTable(NS.db))
 
   local ctx = O.CreatePanel("BankLedgerProfilesPanel", TITLE, {
-    pageKey = "profiles", defaultsButton = false,
+    pageKey = NS.Schema.PROFILES_PAGE, defaultsButton = false,
   })
   PP.ctx = ctx
 

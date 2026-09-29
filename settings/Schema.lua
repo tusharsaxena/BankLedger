@@ -7,8 +7,8 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- One row per setting. This single table drives the AceDB defaults check, the panel widgets, and
 -- the slash get/set/list/reset dispatch (architecture-§5) — add a setting here and all three
 -- surfaces pick it up with no other edit. Paths resolve against NS.db.profile (the active profile;
--- docs/profiles.md), except the Minimap button row, whose own get/set reach LibDBIcon's account-wide
--- table.
+-- docs/profiles.md), except two rows whose own get/set reach the account-wide store: the Minimap
+-- button row (LibDBIcon's table) and the retention row (owner decision D6; S.GLOBAL_ROWS below).
 --
 -- `group` names one TAB on the page (options-ui-§13): H.RenderTabbedSchema partitions the page's
 -- rows by `group` IN DECLARATION ORDER and draws one tab per distinct group, so the array's order
@@ -117,9 +117,28 @@ S.Schema = {
   -- confirm-gated Purge button beside it are bespoke and have no path, which is the named exemption
   -- to "a tab holding fewer than two visible controls is not a subject". "Reset all settings" is NOT
   -- here any more — it is the Master controls tab's closing button pair (options-ui-§15).
+  --
+  -- ACCOUNT-WIDE, NOT PER PROFILE (owner decision D6, 2026-09-29). The window decides how much of
+  -- the SHARED ledger is kept, so it is one value for the whole account, stored at
+  -- db.global.settings.retentionDays (defaults/Global.lua) -- the key v2 always used, so the CLI path
+  -- is unchanged. Its own get/set reach that store; the seam's path walk would reach the profile. No
+  -- profile switch, copy or reset changes it, and so none of them can prune history. The tooltip
+  -- says so, because the panel otherwise gives no hint that this row differs from its neighbors.
   { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
     group = "History", label = "Keep history for", values = C.RETENTION_OPTIONS,
-    tooltip = "Automatically drop movements older than this. 'Always' keeps everything.",
+    tooltip = "Automatically drop movements older than this. 'Always' keeps everything. "
+      .. "Account-wide: one value for every profile, because the history it trims is shared.",
+    get = function()
+      local g = NS.db and NS.db.global
+      local st = g and g.settings
+      return st and st.retentionDays
+    end,
+    set = function(v)
+      local g = NS.db and NS.db.global
+      if not g then return end
+      if type(g.settings) ~= "table" then g.settings = {} end
+      g.settings.retentionDays = v
+    end,
     onChange = function()
       if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end },
@@ -153,6 +172,19 @@ S.Schema = {
 -- and needs no migration; the old CLI path `minimap.hide` now answers `Setting not found`.
 S.MINIMAP_PATH = "minimap.shown"
 
+-- The retention row's path, named once for the same reason: the row, the global-rows set, the reset
+-- carve-out and S:Register's defaults resolution all have to agree on it.
+S.RETENTION_PATH = "settings.retentionDays"
+
+-- ── The rows whose storage is ACCOUNT-WIDE (db.global), not the profile ─────────────────────────
+--
+-- Each carries its own get/set onto db.global, so the seam's path walk (which answers the profile)
+-- never stores them. The Minimap button row is LibDBIcon's table (launcher-§3); the retention row
+-- governs the shared ledger (owner decision D6). S:Register resolves both against the GLOBAL
+-- defaults, and a profile reset's row count (settings/Slash.lua) leaves both out, since
+-- db:ResetProfile() cannot reach them.
+S.GLOBAL_ROWS = { [S.MINIMAP_PATH] = true, [S.RETENTION_PATH] = true }
+
 -- ── The rows a RESET SWEEP must not reach (launcher-§3, standard v2.54.0) ───────────────────────
 --
 -- Named once, as data, so the two sweeps this addon ships consult one list rather than each
@@ -175,7 +207,35 @@ S.MINIMAP_PATH = "minimap.shown"
 -- A TARGETED `/bl reset minimap.shown` IS NOT A SWEEP and still works. The player naming the one row
 -- is asking for exactly that row, which is what the veto below is careful not to refuse: it fires
 -- only inside a bulk bracket, which is what a wholesale act opens and a single-row reset does not.
-S.RESET_EXEMPT = { [S.MINIMAP_PATH] = true }
+--
+-- THE RETENTION ROW IS ON IT TOO (owner decision D6). A settings reset never touches recorded data,
+-- and this row's reaction is a prune: a sweep that put "Always" back to the 30-day default would
+-- delete every older movement as a side effect of "reset my settings". The global reset is a profile
+-- reset and cannot reach the row's account-wide store anyway; the veto stops a row walk reaching it
+-- from the other side, exactly as for the minimap row. `/bl reset settings.retentionDays` still
+-- works: the player naming the row is choosing the prune.
+S.RESET_EXEMPT = { [S.MINIMAP_PATH] = true, [S.RETENTION_PATH] = true }
+
+-- ── The global reset's row veto, named ONCE (options-ui-§3, options-ui-§12) ─────────────────────
+--
+-- The Profiles page's key (settings/Profiles.lua passes it as its pageKey). No schema row declares
+-- it -- that page is AceDBOptions' own table -- but the veto names it, so it is spelled once here.
+S.PROFILES_PAGE = "profiles"
+
+--- What the library's global-reset row walk (O.RestoreAllDefaults) must NOT touch, handed to it as
+--- the Options descriptor's `skipRestoreAll` (settings/OptionsSetup.lua). The global reset is a
+--- profile reset, so the walk keeps only what a profile reset cannot reach -- the session-only rows,
+--- whose storage is their own set(). Vetoed: anything on the Profiles page (AceDBOptions' rows;
+--- "resetting" them deletes profiles) and every row whose value is stored, in the profile (the
+--- reset takes it whole) or account-wide (the Minimap button and the retention window, which no
+--- settings reset may move). The library already narrows its walk the same way when `resetProfile`
+--- is supplied; the veto states the policy in the addon, as options-ui-§3 requires, so it holds
+--- whatever the library does. This addon's own reset (Sl:ResetEverything) walks no rows at all.
+function S.VetoedFromResetAll(row)
+  if type(row) ~= "table" then return true end
+  if row.page == S.PROFILES_PAGE then return true end
+  return not row.sessionOnly
+end
 
 -- ── The rows a host verb writes when the composer that declares them is absent (WS-02 route a) ──
 --
@@ -437,8 +497,9 @@ end
 --     widget's value does not fire its OnValueChanged, so it cannot loop back through the seam.
 --   * debug / debugEnabled -- the [Set] line goes to NS.Debug, read at call time, and only while the
 --     session logging flag is on, so nothing is formatted with logging off.
---   * resetExempt -- launcher-§3's Minimap button row. The library honors it inside a bracket only,
---     so the sweep skips the row while `/bl reset minimap.shown`, the player naming it, still applies.
+--   * resetExempt -- launcher-§3's Minimap button row and D6's retention row. The library honors it
+--     inside a bracket only, so a sweep skips both while `/bl reset <path>`, the player naming one,
+--     still applies.
 --   * L -- this addon's own refusal wording, kept from before the adoption.
 --
 -- WHAT THE LIBRARY DOES ON EVERY WRITE, IN THIS ORDER (the order is its contract): refuse an unknown
@@ -704,18 +765,20 @@ function S:ApplyDefault(row) return inst.ApplyDefault(row) end
 local VALID_TYPES = { bool = true, number = true, string = true, color = true, table = true }
 
 --
--- THE MINIMAP ROW IS THE ONE PATH THAT IS NOT A STORED KEY, and the one row whose store is not the
--- profile. `minimap.shown` is the CLI name; the account-wide store holds LibDBIcon's `minimap.hide`
--- (S.MINIMAP_PATH above). So Validate resolves that one row against a root derived from the
--- declared GLOBAL hide default, rather than against a `shown` key the defaults deliberately do not
--- ship -- which keeps the check honest for the row without inventing a second stored boolean to
--- satisfy it. Every other row resolves against the PROFILE defaults.
+-- THE TWO ROWS WHOSE STORE IS NOT THE PROFILE (S.GLOBAL_ROWS) resolve against the GLOBAL defaults.
+-- The minimap row is also the one path that is not a stored key: `minimap.shown` is the CLI name and
+-- the account-wide store holds LibDBIcon's `minimap.hide` (S.MINIMAP_PATH above). So Validate
+-- resolves that one row against a root derived from the declared hide default, rather than against
+-- a `shown` key the defaults deliberately do not ship -- which keeps the check honest for the row
+-- without inventing a second stored boolean to satisfy it. The retention row's path IS its global
+-- key (defaults/Global.lua, D6). Every other row resolves against the PROFILE defaults.
 local function defaultsRoot(_, row)
+  local global = NS.defaults and NS.defaults.global
   if row and row.path == S.MINIMAP_PATH then
-    local global = NS.defaults and NS.defaults.global
     local mm = global and global.minimap
     return { minimap = { shown = not (type(mm) == "table" and mm.hide) } }, 1
   end
+  if row and S.GLOBAL_ROWS[row.path] then return global, 1 end
   return NS.defaults and NS.defaults.profile, 1
 end
 

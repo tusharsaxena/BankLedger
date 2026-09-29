@@ -12,13 +12,15 @@ One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.de
 
 | Scope | Defaults file | Holds |
 |---|---|---|
-| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, LibDBIcon's `minimap` table, the `schemaVersion` stamp |
-| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every schema row (`settings.*`), both filter lists, the saved view |
+| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp |
+| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`), both filter lists, the saved view |
 
 The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
 per-character history would split the very record the addon exists to join up. What a player
 configures is per profile, and every character starts on the one shared `Default` profile (the
-`true` above). Each default value is hardcoded in exactly one of the two files (`savedvariables-§2`).
+`true` above). The one exception is the retention window: it decides how much of the shared ledger
+is kept, so it is account-wide too (owner decision D6), and no profile event changes it or prunes.
+Each default value is hardcoded in exactly one of the two files (`savedvariables-§2`).
 
 One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 
@@ -73,13 +75,16 @@ partially-migrated one is a no-op.
 
 #### Schema v3 — settings move into the profile
 
-`db.global.schemaVersion` is now **3**. The v2 → v3 step is `NS.MIGRATIONS[3]` in
+The v2 → v3 step is `NS.MIGRATIONS[3]` in
 `core/Database.lua`, and it is the load pass that made settings per profile (owner decision D5,
 2026-09-29: settings only, recorded data stays account-wide). For each of the four keys in
 `NS.PROFILE_LIFT_KEYS` — `settings`, `blacklist`, `whitelist`, `savedView` — it moves whatever
 `db.global` stores into the raw `Default` profile (`db.sv.profiles.Default`, created if absent) and
 clears it from `db.global`. A `settings` value overwrites the profile's own, key by key; a list or the
-saved view replaces the profile's whole. It counts one row per value moved.
+saved view replaces the profile's whole. It counts one row per value moved. The account-wide
+settings keys, `NS.GLOBAL_SETTINGS` (today `retentionDays` alone, D6), are not lifted: they stay in
+`db.global.settings`, where v2 stored them, so the `settings` table is cleared key by key rather
+than whole.
 
 - **Why `Default`.** It is the profile every character was already on, because the db has always
   been created with `defaultProfile = true`. An upgrade therefore changes nothing a player sees.
@@ -91,6 +96,24 @@ saved view replaces the profile's whole. It counts one row per value moved.
 - **Not profile-scoped.** The step lifts **out of** `db.global` into the one profile that existed; a
   profile created later passes through it untouched. So the account-wide stamp is the right gate and
   there is no per-profile stamp.
+
+#### Schema v4 — the retention window goes back to db.global
+
+`db.global.schemaVersion` is now **4**. An earlier build of v3 lifted `retentionDays` into the
+profile with every other setting, so a profile could carry its own window and a switch pruned the
+history every profile shares. Owner decision D6 (2026-09-29) made the window account-wide, and the
+v3 → v4 step, `NS.MIGRATIONS[4]` in `core/Database.lua`, repairs a store that build wrote. It walks
+every stored profile raw (`db.sv.profiles`, before anything reads `db.profile`) and removes each
+`NS.GLOBAL_SETTINGS` key from it, counting one row per value removed.
+
+- **Which value is kept.** A player choice already in `db.global.settings` (a value off the declared
+  default) wins; otherwise the `Default` profile's, which is where v3 put the player's pre-profile
+  value; otherwise the first other profile's in name order. Every profile's copy is cleared either
+  way.
+- **Idempotent.** A second run finds the key in no profile and touches nothing. A v2 upgrade runs the
+  current v3, which never lifts the key, so v4 has nothing to do for it.
+- **Walks the profiles, and still needs no per-profile stamp.** The profile defaults no longer
+  declare the key, so a profile created after the step never carries one.
 
 #### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
 
@@ -214,10 +237,11 @@ compliance. It has no `Documented deviations` row.
     as the index-delete seam.
   - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
     button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
-  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
-    from that row's `onChange`, on every profile event (`NS.OnProfileEvent`, quiet when it removes
-    nothing; [profiles.md](profiles.md)) and once per session, five seconds after `PLAYER_ENTERING_WORLD`
-    (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. The session latch is set when
+  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows, read from
+    `db.global.settings` (`Database:RetentionDays`; the window is account-wide, owner decision D6).
+    It runs from that row's `onChange` and once per session, five seconds after
+    `PLAYER_ENTERING_WORLD` (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. It never
+    runs on a profile event ([profiles.md](profiles.md)). The session latch is set when
     the prune runs, so a disable inside those five seconds postpones it to the next
     `PLAYER_ENTERING_WORLD` rather than skipping it.
 - **Why none of those is a player choice.** Deleting entries, purging the log and pruning it by the
@@ -301,7 +325,8 @@ whatever you were working with.
 
 **The movement log is recorded data, not a carve-out or a registry** (`architecture-§5` named
 non-setting state). `db.global.ledger` is owned by `NS.Database`, and only its `Add`, `Delete`,
-`DeleteAt`, `Purge` and `PruneOld` write it. `PruneOld` runs off the `settings.retentionDays` row.
+`DeleteAt`, `Purge` and `PruneOld` write it. `PruneOld` runs off the account-wide
+`settings.retentionDays` row.
 [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers) names the act that reaches each
 writer.
 

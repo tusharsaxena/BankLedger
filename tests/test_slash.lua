@@ -420,12 +420,13 @@ test("Slash: a row that raises mid-sweep logs ONE line marked as stopped, re-rai
   -- stopped. The host's depth counter must unwind on that path, or one bad row mutes the seam for
   -- the rest of the session.
   -- red under: BulkEnd ignoring `err` (no marker), or the host swallowing the error.
-  -- qualityThreshold comes before retentionDays in schema order, so it is reset and counted before
-  -- the raise. retentionDays is written, counted, and then raises from its onChange.
+  -- qualityThreshold comes before rowHoverAlpha in schema order, so it is reset and counted before
+  -- the raise. rowHoverAlpha is written, counted, and then raises from its onChange. (Not the
+  -- retention row: it is exempt from a sweep, owner decision D6, so the sweep never reaches it.)
   librarySweep()   -- baseline: every row at its default
   NS.Schema:Set("settings.qualityThreshold", 4)
-  NS.Schema:Set("settings.retentionDays", 7)
-  local row = NS.Schema:FindRow("settings.retentionDays")
+  NS.Schema:Set("settings.rowHoverAlpha", 0.2)
+  local row = NS.Schema:FindRow("settings.rowHoverAlpha")
   local orig = row.onChange
   row.onChange = function() error("boom", 0) end
   local lines, ok, err
@@ -448,7 +449,7 @@ test("Slash: a sweep row raising nil logs the line without the marker (the libra
   -- Characterizes the documented upstream limit: the library hands bulkEnd the raw pcall value, so
   -- a raise of nil reaches the host as `err = nil` and cannot be told from success. The line is
   -- still emitted once and the seam still unmutes.
-  local row = NS.Schema:FindRow("settings.retentionDays")
+  local row = NS.Schema:FindRow("settings.rowHoverAlpha")
   local orig = row.onChange
   row.onChange = function() error(nil) end
   local lines, ok

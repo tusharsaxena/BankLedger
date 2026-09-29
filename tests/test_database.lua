@@ -246,31 +246,32 @@ end)
 local MOCK_NOW = T.mocks.__now
 
 test("Database:PruneOld drops entries past the retention window", function()
-  local saved = NS.db.profile.settings.retentionDays
-  NS.db.profile.settings.retentionDays = 30
+  -- The window is ACCOUNT-WIDE (owner decision D6): stored in db.global, never the profile.
+  local saved = NS.db.global.settings.retentionDays
+  NS.db.global.settings.retentionDays = 30
   withLedger({ entry({ ts = MOCK_NOW }), entry({ ts = MOCK_NOW - 60 * 86400 }) }, function()
     assertEqual(NS.Database:PruneOld(), 1)
     assertEqual(NS.Database:Count(), 1)
   end)
-  NS.db.profile.settings.retentionDays = saved
+  NS.db.global.settings.retentionDays = saved
 end)
 
 test("Database:PruneOld keeps everything when retention is Always (0)", function()
-  local saved = NS.db.profile.settings.retentionDays
-  NS.db.profile.settings.retentionDays = 0
+  local saved = NS.db.global.settings.retentionDays
+  NS.db.global.settings.retentionDays = 0
   withLedger({ entry({ ts = MOCK_NOW - 900 * 86400 }) }, function()
     assertEqual(NS.Database:PruneOld(), 0)
     assertEqual(NS.Database:Count(), 1)
   end)
-  NS.db.profile.settings.retentionDays = saved
+  NS.db.global.settings.retentionDays = saved
 end)
 
 -- The message is the expensive part: every LedgerChanged repaints the ledger window, the session
 -- window and the Insights charts. PruneOld runs on every login, so a pass that aged nothing out
 -- used to pay for three full repaints to report that nothing had happened.
 test("Database:PruneOld broadcasts LedgerChanged only when a row actually went", function()
-  local saved = NS.db.profile.settings.retentionDays
-  NS.db.profile.settings.retentionDays = 30
+  local saved = NS.db.global.settings.retentionDays
+  NS.db.global.settings.retentionDays = 30
   local sent, savedSend = 0, NS.bus.SendMessage
   NS.bus.SendMessage = function(self, msg, ...)
     if msg == NS.MSG.LEDGER_CHANGED then sent = sent + 1 end
@@ -285,7 +286,7 @@ test("Database:PruneOld broadcasts LedgerChanged only when a row actually went",
     assertEqual(sent, 1, "a prune that removed a row still broadcasts, exactly once")
   end)
   NS.bus.SendMessage = savedSend
-  NS.db.profile.settings.retentionDays = saved
+  NS.db.global.settings.retentionDays = saved
 end)
 
 test("Database:StorageStats reports count, span and an estimated size", function()
@@ -319,9 +320,9 @@ end)
 -- ── Migrations ─────────────────────────────────────────────────────────────────
 
 test("RunMigrations stamps a schema version onto a fresh database", function()
-  -- Schema v3 shipped alongside this suite, so a freshly-initialized database is already migrated.
+  -- Schema v4 shipped alongside this suite, so a freshly-initialized database is already migrated.
   assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION)
-  assertEqual(NS.SCHEMA_VERSION, 3, "v3 moved the settings into the profile")
+  assertEqual(NS.SCHEMA_VERSION, 4, "v4 moved the retention window back to db.global")
 end)
 
 test("RunMigrations is idempotent — running it twice changes nothing", function()
@@ -337,7 +338,7 @@ end)
 test("NS.InitSummary identifies the build, schema, profile and size", function()
   local s = NS.InitSummary()
   assertTrue(s:find("BankLedger", 1, true) ~= nil, "names the addon")
-  assertTrue(s:find("schema v3", 1, true) ~= nil, "names the schema version")
+  assertTrue(s:find("schema v4", 1, true) ~= nil, "names the schema version")
   assertTrue(s:find("profile 'Default'", 1, true) ~= nil, "names the profile")
   assertTrue(s:find("entries", 1, true) ~= nil, "carries the entry count")
 end)
@@ -407,7 +408,7 @@ local function migrationLines(fn)
   return out
 end
 
-test("RunMigrations announces the v1->v3 pass the smoke step reads", function()
+test("RunMigrations announces the v1->v4 pass the smoke step reads", function()
   -- The exact string docs/smoke-tests.md S-25 looks for in the client. Pinned here so the in-game
   -- step has a headless twin and a rename of MigrationSummary cannot silently break it.
   -- red under: the disarmed runner this item removed — no line at all was emitted.
@@ -422,7 +423,7 @@ test("RunMigrations announces the v1->v3 pass the smoke step reads", function()
   end)
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
   assertEqual(#lines, 1, "exactly one migration line")
-  assertTrue(lines[1]:find("v1 -> v3, 1 rows touched", 1, true) ~= nil,
+  assertTrue(lines[1]:find("v1 -> v4, 1 rows touched", 1, true) ~= nil,
     "the line names the ladder and the row count: " .. tostring(lines[1]))
 end)
 

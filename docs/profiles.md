@@ -9,13 +9,20 @@ how the old account-wide settings got into a profile. The stored shape is in
 
 | Scope | Where | What |
 |---|---|---|
-| **Profile** (`db.profile`) | `defaults/Profile.lua` | Every schema row (`settings.*`: enabled, capture, visibility, scale, alpha, lock, row tints, retention, the session window switch), both item-id filter lists (`blacklist`, `whitelist`), the saved ledger view (`savedView`), and both windows' stored geometry (`settings.window`, `settings.sessionWindow`) |
-| **Account-wide** (`db.global`) | `defaults/Global.lua` | The recorded ledger (`ledger`), LibDBIcon's `minimap` table (whether the button is shown, and its angle), the `schemaVersion` stamp |
+| **Profile** (`db.profile`) | `defaults/Profile.lua` | Every schema row but retention (`settings.*`: enabled, capture, visibility, scale, alpha, lock, row tints, the session window switch), both item-id filter lists (`blacklist`, `whitelist`), the saved ledger view (`savedView`), and both windows' stored geometry (`settings.window`, `settings.sessionWindow`) |
+| **Account-wide** (`db.global`) | `defaults/Global.lua` | The recorded ledger (`ledger`), the retention window that governs it (`settings.retentionDays`, *Keep history for*), LibDBIcon's `minimap` table (whether the button is shown, and its angle), the `schemaVersion` stamp |
 | **Session only** | `NS.State` | Test mode, the debug console window, the debug logging flag, the open banking session |
 
 The split is the owner's decision D5 (2026-09-29): **settings only**. A ledger is a record of what
 happened to the account, and a per-character history would split the very thing the addon exists to
-join up, so the history is in no profile. Everything a player configures is.
+join up, so the history is in no profile. Everything a player configures is, with one exception.
+
+**Retention is account-wide** (owner decision D6, 2026-09-29). *Keep history for* decides how much
+of the shared ledger is kept, so it is one value for the whole account, stored at
+`db.global.settings.retentionDays`. Its schema row carries its own `get`/`set` onto that store, and
+the Settings tooltip says the value is shared by every profile. No profile switch, copy or reset
+changes it, and none of them prunes: the retention prune runs at login and when the row itself is
+changed, and never on a profile event.
 
 The db is created with `AceDB:New("BankLedgerDB", NS.defaults, true)`: the `true` puts every
 character on one shared profile, `Default`, until the player picks another. So out of the box the
@@ -46,9 +53,8 @@ for each, in this order:
    decide what the History table, Insights, the session window and the Filters tab show.
 5. **Every setting's effect re-applied** (`applyProfileEffects`): both windows re-anchored from the
    new profile's geometry, the ledger window put on the new profile's saved view (or stock), master
-   scale, alpha and lock, visibility, the row tint, and the retention prune. The prune runs quiet
-   when it removes nothing (`Database:PruneOld(true)`): a "removed 0 entries" line is no material
-   effect, and the act's line below is the only one it would sit beside.
+   scale, alpha and lock, visibility, and the row tint. **No retention prune**: the window is
+   account-wide and a profile event never deletes history (D6).
 6. **The open panel refreshed** (`options-ui-§11`).
 7. **Exactly one debug line for the act** (`debug-logging-§10`), worded by the event:
    - a switch: `[Profile] switched to profile '<name>'` (no rows are rewritten, so it is not a
@@ -58,23 +64,20 @@ for each, in this order:
      `Sl:ResetEverything` before the reset; a reset from the Profiles page's own button logs the
      same line without the count.
 
-   Two kinds of line can sit beside it, and neither restates the act. When the retention prune
-   **does** remove history under the new profile's window, it adds its own
-   `[Prune] retention <N>d: removed <M> entries`: that is a material effect (`debug-logging-§10`
-   lets a reactor log one), since history went and the act's line cannot say so. And a view that is
-   built repaints, as it does on any setting change, logging its one-per-pass render summary
+   The one kind of line that can sit beside it does not restate the act: a view that is built
+   repaints, as it does on any setting change, logging its one-per-pass render summary
    (`[Table] rendered …`, `[Insights] computed …`, `debug-logging-§9`). `tests/test_profiles.lua`
-   counts every other line under the shipped 30-day retention, so neither a no-op `[Prune]` nor a
+   counts every other line under the shipped 30-day retention, so neither a `[Prune]` line nor a
    per-row `[Set]` can come back unseen.
 
 No row's `onChange` runs on a profile event: AceDB replaces the whole profile, which is not a write
 through the seam. A setting whose effect is more than the bus message has to be in
 `applyProfileEffects` (see [common-tasks.md](common-tasks.md) → *Add a setting*).
 
-**Retention is per profile, and the ledger is not.** The retention prune runs against the shared
-ledger with the **active** profile's *Keep history for*. Switching to a profile that keeps fewer
-days prunes the shared history to that window, exactly as the next login on that profile would.
-Keep the same retention on every profile unless that is what you want.
+**No profile event prunes history.** An earlier build of this branch kept *Keep history for* in the
+profile and ran the prune on every profile event, so switching to a profile with a shorter window
+deleted history every other profile still showed. D6 moved the window back to `db.global` and took
+the prune out of the adopt path.
 
 ## The global reset is a profile reset
 
@@ -88,26 +91,49 @@ reset cannot reach (test mode, the debug console) by name, whichever control rai
 It resets the **active profile only**: the other profiles and the profile list are untouched. It
 **never deletes history**: this addon has both a profile and an account-wide store, and
 `options-ui-§12` keeps the account-wide store out of a settings reset. Deleting history is
-`/bl purge`, which asks separately. LibDBIcon's table is account-wide too, so the reset leaves the
-minimap button where it is (`launcher-§3`).
+`/bl purge`, which asks separately. The retention window is account-wide too, so the reset leaves
+*Keep history for* as it is and cannot trigger a prune (D6). LibDBIcon's table is account-wide as
+well, so the reset leaves the minimap button where it is (`launcher-§3`).
 
-## Schema v3: how the settings got into the profile
+**The row veto is named once**, as `S.VetoedFromResetAll` in `settings/Schema.lua`, and the Options
+descriptor passes it to the library as `skipRestoreAll` (`options-ui-§3`, `options-ui-§12`): the
+Profiles page (`S.PROFILES_PAGE`, the page's own key) and every stored row, profile or account-wide,
+are vetoed, so a row walk (the library's `O.RestoreAllDefaults`) reaches only the session-only rows.
+This addon's own reset walks no rows at all; the veto states the exclusion for the library's walk,
+the same shape KickCD, WhatGroup, PrettyChat and Loot History ship. The retention row and the
+Minimap button row are also on `S.RESET_EXEMPT`, so the Slash library's sweep skips both, while
+`/bl reset settings.retentionDays` (the player naming the row) still applies.
+
+## Schema v3 and v4: how the settings got into the profile
 
 Until schema v3 every setting, both filter lists and the saved view lived in `db.global`.
 `NS.MIGRATIONS[3]` moves each stored value of `settings`, `blacklist`, `whitelist` and `savedView`
 from `db.global` into the raw `Default` profile (`db.sv.profiles.Default`, created if absent) and
-clears it from `db.global`. The runner runs straight after `AceDB:New`, before anything reads
-`db.profile`, so the profile AceDB then builds is built over the lifted values. A second run finds
-nothing left in `db.global` and moves nothing. The ledger and the `minimap` table stay where they
-are. Detail in [schema.md](schema.md) → *Schema v3*.
+clears it from `db.global`, except the account-wide settings keys (`NS.GLOBAL_SETTINGS`, today
+`retentionDays` alone), which stay in `db.global.settings`. The runner runs straight after
+`AceDB:New`, before anything reads `db.profile`, so the profile AceDB then builds is built over the
+lifted values. A second run finds nothing left in `db.global` and moves nothing. The ledger and the
+`minimap` table stay where they are.
+
+`NS.MIGRATIONS[4]` repairs a store an earlier build of v3 wrote, which lifted `retentionDays` into
+the profile with everything else. It walks every stored profile raw and takes the key out of each.
+The value kept in `db.global` is a player choice already there (one off the declared default), else
+the `Default` profile's, else the first other profile's by name. A second run finds no key in any
+profile, and a v2 upgrade (whose v3 never lifted the key) has nothing to move. Detail in
+[schema.md](schema.md) → *Schema v3*.
 
 ## Tests
 
 `tests/test_profiles.lua` pins the split, the v3 lift (values land in `Default`, `db.global` is
-cleared, the ledger is untouched, a second run is a no-op, reads resolve against the profile), the
-adopt path (a switch re-reads settings, re-caches the gate, drives the latch, re-applies chrome and
-geometry, sends one message of each kind and logs one line; a copy and a page-driven reset log
-theirs; a reset from the page ends test mode and closes the console) and the Profiles page's
-registration. The reset's blast radius (`options-ui-§12`: the active profile only, the profile list,
+cleared, the retention window stays, the ledger is untouched, a second run is a no-op, reads resolve
+against the profile), the v4 return of the window (the `Default` profile's value wins, a global
+choice is kept, every profile is cleared, a second run is a no-op), the account-wide window (a write
+lands in `db.global`, every profile and the prune read the one value, a stale profile copy is
+ignored, the tooltip says so), the adopt path (a switch re-reads settings, re-caches the gate, drives
+the latch, re-applies chrome and geometry, sends one message of each kind and logs one line; a copy
+and a page-driven reset log theirs; a reset from the page ends test mode and closes the console;
+no switch, copy, profile reset or global reset prunes history or moves the window), the reset veto
+(what it vetoes, its `skipRestoreAll` wiring, and the library's walk over it) and the Profiles
+page's registration. The reset's blast radius (`options-ui-§12`: the active profile only, the profile list,
 the other profiles and the ledger untouched) is pinned there too, and the reset routes in
 `tests/test_reset_routes.lua` and `tests/test_panel.lua`.

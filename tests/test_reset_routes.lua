@@ -58,8 +58,8 @@ local function muted(fn)
 end
 
 -- A store that is NOT the fresh install: a recorded row, one id on each list, a saved view and a
--- changed setting. Dated NOW, because resetting settings.retentionDays re-runs the retention
--- cleanup and a 1970 row would be dropped as ancient rather than by a reset.
+-- changed setting. Dated NOW, so no retention pass could take the row: a reset no longer prunes
+-- (the window is account-wide, owner decision D6), and a row gone here must be the reset's doing.
 local function seedStore()
   NS.db.global.ledger = {
     { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },

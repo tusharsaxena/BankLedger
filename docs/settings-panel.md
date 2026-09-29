@@ -195,8 +195,9 @@ frameless** and every frame-only row applies.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
   `options-ui-§12`'s first canonical wording byte for byte (the one for an addon with a profile).
   `OnAccept` runs `NS.Slash:ResetEverything`, which calls `db:ResetProfile()`: the **active
-  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved view and both windows' geometry. The **recorded ledger** and
-  LibDBIcon's `minimap` table are account-wide and are **kept**, and so are the other profiles.
+  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved view and both windows' geometry. The **recorded ledger**,
+  the retention window that governs it and LibDBIcon's `minimap` table are account-wide and are
+  **kept**, and so are the other profiles.
   AceDB's `OnProfileReset` reaches `NS.OnProfileEvent`, which ends the session-only rows by name,
   re-applies everything and re-anchors the windows. Since schema v3 this is the "addon with both"
   form of `options-ui-§12`; until then it emptied `db.global` wholesale, history included. It used to be the right half of History's button
@@ -248,7 +249,15 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.showSessionWindow` | bool | `true` | Interface | Windows | alone under its heading |
 | `settings.rowStripeAlpha` | number | `0.03` | Interface | Table rows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
-| `settings.retentionDays` | number | `30` | History | — | |
+| `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
+
+**The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of
+the shared ledger is kept, so every profile reads the one value (`db.global.settings.retentionDays`,
+[profiles.md](profiles.md)), and its tooltip ends *Account-wide: one value for every profile,
+because the history it trims is shared.* No profile switch, copy or reset changes it, so none of them
+can prune history. It is on `NS.Schema.RESET_EXEMPT` beside the minimap row, so a row sweep skips it
+(a sweep putting *Always* back to 30 days would prune); a targeted
+`/bl reset settings.retentionDays` still applies.
 
 **The `minimap.shown` row is stored backwards, and that is deliberate.** Its label and its CLI
 path say SHOWN — ticked, or `/bl set minimap.shown true`, means the button is on the minimap —

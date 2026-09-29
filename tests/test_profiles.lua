@@ -1,9 +1,10 @@
--- tests/test_profiles.lua — settings per profile (schema v3, docs/profiles.md).
+-- tests/test_profiles.lua — settings per profile (schema v3 and v4, docs/profiles.md).
 --
 -- What a profile holds and what stays account-wide, the one-time lift of the pre-v3 settings into
--- the Default profile, and the one adopt path every profile event takes (NS.OnProfileEvent): the
--- migrations, the enable latch, every setting's effect re-applied, the panel refreshed and exactly
--- one debug line. And the Profiles page itself (options-ui-§3).
+-- the Default profile, the v4 return of the retention window to db.global (owner decision D6), and
+-- the one adopt path every profile event takes (NS.OnProfileEvent): the migrations, the enable
+-- latch, every setting's effect re-applied, the panel refreshed and exactly one debug line, and
+-- never a prune. And the Profiles page itself, and the global reset's veto (options-ui-§3, §12).
 
 local T = _G.BL_TEST
 local NS = T.NS
@@ -62,6 +63,12 @@ local function legacyStore()
   }
 end
 
+--- One recorded movement at `ts`, for the fixtures below.
+local function recentEntryAt(ts)
+  return { ts = ts, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+    itemID = 2589, itemName = "Linen Cloth", quantity = 1 }
+end
+
 --- Run `fn` with NS.db swapped for a fresh db built over `sv`, the way NS:InitDB builds it, and put
 --- the suite's own db back afterwards whatever happens.
 local function withDb(sv, fn)
@@ -74,17 +81,26 @@ end
 
 -- ── what lives where ─────────────────────────────────────────────────────────────────────────
 
-test("Profiles: the defaults split — the ledger and the minimap table are account-wide, everything configured is per profile", function()
+test("Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile", function()
   -- D5 (settings only): recorded data stays account-wide; the settings, both filter lists and the
-  -- saved view move into the profile.
-  -- red under: a settings key left in (or put back into) defaults/Global.lua.
+  -- saved view move into the profile. D6: the retention window, which governs the recorded data,
+  -- stays account-wide and is the ONE settings key declared there.
+  -- red under: a settings key left in (or put back into) defaults/Global.lua, or retentionDays
+  -- declared per profile again.
   local g, p = NS.defaults.global, NS.defaults.profile
   assertTrue(type(g.ledger) == "table", "the ledger is account-wide")
   assertTrue(type(g.minimap) == "table", "LibDBIcon's table is account-wide")
   assertEqual(g.schemaVersion, 0, "the stamp is account-wide, and declared as 0")
-  for _, key in ipairs({ "settings", "blacklist", "whitelist", "savedView" }) do
+  for _, key in ipairs({ "blacklist", "whitelist", "savedView" }) do
     assertEqual(g[key], nil, key .. " is still declared account-wide")
   end
+  local globalKeys = {}
+  for k in pairs(g.settings or {}) do globalKeys[#globalKeys + 1] = k end
+  table.sort(globalKeys)
+  assertEqual(table.concat(globalKeys, ","), "retentionDays",
+    "the account-wide settings are the retention window and nothing else")
+  assertEqual(g.settings.retentionDays, 30, "the account-wide window's default")
+  assertEqual(p.settings.retentionDays, nil, "the retention window is declared per profile")
   assertTrue(type(p.settings) == "table", "the settings are per profile")
   assertTrue(type(p.blacklist) == "table" and type(p.whitelist) == "table",
     "both filter lists are per profile")
@@ -96,10 +112,11 @@ test("Profiles: a schema write lands in the active profile, never in db.global",
   local saved = NS.Schema:Get("settings.qualityThreshold")
   NS.Schema:Set("settings.qualityThreshold", 4)
   local inProfile = rawget(NS.db.profile.settings, "qualityThreshold")
-  local inGlobal = rawget(NS.db.global, "settings")
+  local gs = rawget(NS.db.global, "settings")
+  local inGlobal = type(gs) == "table" and rawget(gs, "qualityThreshold") or nil
   NS.Schema:Set("settings.qualityThreshold", saved)
   assertEqual(inProfile, 4, "the write did not reach db.profile.settings")
-  assertEqual(inGlobal, nil, "a settings table appeared under db.global")
+  assertEqual(inGlobal, nil, "the write reached db.global.settings")
 end)
 
 test("Profiles: the filter lists are written into the active profile", function()
@@ -120,7 +137,7 @@ test("Migrate v3: every stored setting, both lists and the saved view land in th
   local sv = legacyStore()
   withDb(sv, function(db)
     NS:RunMigrations()
-    assertEqual(db.global.schemaVersion, 3, "stamped v3")
+    assertEqual(db.global.schemaVersion, NS.SCHEMA_VERSION, "stamped current")
     local p = sv.profiles.Default
     assertTrue(type(p) == "table", "the Default profile was not created")
     assertEqual(p.settings.qualityThreshold, 3, "a stored setting did not move")
@@ -129,9 +146,27 @@ test("Migrate v3: every stored setting, both lists and the saved view land in th
     assertEqual(p.blacklist[2589], true, "the blacklist did not move")
     assertEqual(p.whitelist[4306], true, "the whitelist did not move")
     assertEqual(p.savedView.groupBy, "store", "the saved view did not move")
-    for _, key in ipairs({ "settings", "blacklist", "whitelist", "savedView" }) do
+    for _, key in ipairs({ "blacklist", "whitelist", "savedView" }) do
       assertEqual(rawget(db.global, key), nil, key .. " was left in db.global")
     end
+    for _, key in ipairs({ "qualityThreshold", "trackMoney", "window" }) do
+      assertEqual(rawget(db.global.settings, key), nil, "settings." .. key .. " was left in db.global")
+    end
+  end)
+end)
+
+test("Migrate v3: the retention window stays in db.global and is not lifted (D6)", function()
+  -- A v2 store keeps its retention choice under global.settings; the lift leaves it there.
+  -- red under: the step lifting every settings key, retentionDays included, into the profile.
+  local sv = legacyStore()
+  sv.global.settings.retentionDays = 7
+  withDb(sv, function(db)
+    NS:RunMigrations()
+    assertEqual(rawget(db.global.settings, "retentionDays"), 7, "the player's window left db.global")
+    assertEqual(rawget(sv.profiles.Default.settings, "retentionDays"), nil,
+      "the window was lifted into the Default profile")
+    assertEqual(NS.Schema:Get("settings.retentionDays"), 7, "the row does not read the kept value")
+    assertEqual(sv.profiles.Default.settings.qualityThreshold, 3, "the other settings did not move")
   end)
 end)
 
@@ -172,7 +207,7 @@ test("Migrate v3: idempotent — a second run moves nothing and changes nothing"
     assertEqual(again, 0, "the second pass moved something")
     assertEqual(sv.profiles.Default.settings.qualityThreshold, 3, "the second pass changed a value")
     assertEqual(sv.profiles.Default.blacklist[2589], true, "the second pass dropped the list")
-    assertEqual(db.global.schemaVersion, 3)
+    assertEqual(db.global.schemaVersion, NS.SCHEMA_VERSION)
   end)
 end)
 
@@ -188,14 +223,81 @@ test("Migrate v3: a store with nothing to lift is stamped and gains no profile k
 end)
 
 test("Migrate v3: the [Migrate] line counts each value it moved", function()
-  -- Three settings, two lists and a view: six rows.
+  -- Three settings, two lists and a view: six rows. v4 finds nothing to move on this store.
   -- red under: a step that returns 0, or counts the keys rather than the values.
   local lines
   withDb(legacyStore(), function()
     lines = withTag(debugLines(function() NS:RunMigrations() end), "[Migrate]")
   end)
   assertEqual(#lines, 1, "one migration line")
-  assertTrue(lines[1]:find("v2 -> v3, 6 rows touched", 1, true) ~= nil, tostring(lines[1]))
+  assertTrue(lines[1]:find("v2 -> v4, 6 rows touched", 1, true) ~= nil, tostring(lines[1]))
+end)
+
+-- ── the v4 step: the retention window back to db.global (owner decision D6) ─────────────────────
+
+--- A store a pre-D6 build of v3 wrote: stamped 3, the settings in profiles, and the retention window
+--- lifted with them, into Default and into a second profile the player made afterwards.
+local function preD6Store()
+  return {
+    global = { schemaVersion = 3, ledger = { recentEntryAt(1) } },
+    profiles = {
+      Default = { settings = { qualityThreshold = 3, retentionDays = 7 } },
+      Alt = { settings = { retentionDays = 0 } },
+    },
+  }
+end
+
+test("Migrate v4: a profile's retention window goes back to db.global, the Default profile's value winning", function()
+  -- red under: a missing v4 (the window stays per profile and the row reads 30), a step that picks
+  -- Alt's value over Default's, or one that copies without clearing the profiles.
+  local sv = preD6Store()
+  withDb(sv, function(db)
+    local n = NS.MIGRATIONS[4](db.global, db)
+    db.global.schemaVersion = 4
+    assertEqual(n, 2, "one row per profile value removed")
+    assertEqual(rawget(db.global.settings, "retentionDays"), 7, "the Default profile's window did not win")
+    assertEqual(rawget(sv.profiles.Default.settings, "retentionDays"), nil, "Default still holds a window")
+    assertEqual(rawget(sv.profiles.Alt.settings, "retentionDays"), nil, "Alt still holds a window")
+    assertEqual(sv.profiles.Default.settings.qualityThreshold, 3, "another setting was touched")
+    assertEqual(#db.global.ledger, 1, "the ledger was touched")
+    assertEqual(NS.Schema:Get("settings.retentionDays"), 7, "the row does not read the moved value")
+  end)
+end)
+
+test("Migrate v4: idempotent — a second run moves nothing, and the runner stamps v4", function()
+  -- red under: a step that re-reads a cleared key, or one that resets global on an empty pass.
+  local sv = preD6Store()
+  withDb(sv, function(db)
+    NS:RunMigrations()
+    assertEqual(db.global.schemaVersion, 4, "stamped v4")
+    local again = NS.MIGRATIONS[4](db.global, db)
+    assertEqual(again, 0, "the second pass moved something")
+    assertEqual(rawget(db.global.settings, "retentionDays"), 7, "the second pass changed the window")
+  end)
+end)
+
+test("Migrate v4: a player choice already in db.global is kept over a profile's copy", function()
+  -- Global holds a value off the declared default, so the player chose it there; a profile's copy
+  -- is cleared, not promoted.
+  -- red under: a step that lets the first profile's value overwrite global unconditionally.
+  local sv = preD6Store()
+  sv.global.settings = { retentionDays = 90 }
+  withDb(sv, function(db)
+    NS.MIGRATIONS[4](db.global, db)
+    assertEqual(rawget(db.global.settings, "retentionDays"), 90, "global's own choice was overwritten")
+    assertEqual(rawget(sv.profiles.Default.settings, "retentionDays"), nil, "Default still holds a window")
+  end)
+end)
+
+test("Migrate v4: a store with no profile window is left alone", function()
+  -- A v2 upgrade takes the new v3, which never lifts the window, so v4 has nothing to do.
+  -- red under: a step that raises on a profile with no settings table, or counts nothing as a row.
+  local sv = { global = { schemaVersion = 3, ledger = {} },
+    profiles = { Default = { settings = { trackMoney = false } }, Bare = {} } }
+  withDb(sv, function(db)
+    assertEqual(NS.MIGRATIONS[4](db.global, db), 0, "rows were counted where nothing moved")
+    assertEqual(sv.profiles.Default.settings.trackMoney, false, "an unrelated setting was touched")
+  end)
 end)
 
 -- ── the adopt path (NS.OnProfileEvent) ───────────────────────────────────────────────────────
@@ -339,23 +441,16 @@ local function withoutRenderPasses(lines)
   return out
 end
 
-local function recentEntry(ts)
-  return { ts = ts, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
-    itemID = 2589, itemName = "Linen Cloth", quantity = 1 }
-end
-
-test("Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and no no-op [Prune] line", function()
-  -- debug-logging-§10: the act's line is the only one. The adopt path runs the retention prune, and
-  -- a prune that removes nothing is no material effect, so it must not add a [Prune] line. Counts
-  -- EVERY line, not one tag: the fixtures elsewhere set retentionDays = 0, which skips the prune.
-  -- red under: applyProfileEffects calling PruneOld without its quiet-if-none flag.
+test("Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and nothing else", function()
+  -- debug-logging-§10: the act's line is the only one. Counts EVERY line, not one tag, so a
+  -- [Prune] line (a profile event must not prune at all, D6) or a per-row [Set] line shows up.
+  -- red under: the adopt path running the retention prune, or any reactor logging beside the act.
   local now = T.mocks.__now
   local switch, copy, reset
-  withLedger({ recentEntry(now) }, function()
+  withLedger({ recentEntryAt(now) }, function()
     withAltProfile({ qualityThreshold = 2 }, function()
-      assertEqual(NS.db.profile.settings.retentionDays, 30, "precondition: Default keeps 30 days")
+      assertEqual(NS.Database:RetentionDays(), 30, "precondition: the account keeps 30 days")
       switch = debugLines(function() NS.db:SetProfile("Alt") end)
-      assertEqual(NS.db.profile.settings.retentionDays, 30, "precondition: Alt keeps 30 days")
       muted(function() NS.db:SetProfile("Default") end)
       copy = debugLines(function() NS.db:CopyProfile("Alt") end)
       reset = debugLines(function() NS.db:ResetProfile() end)
@@ -371,24 +466,109 @@ test("Profiles: under the shipped 30-day retention, a switch, a copy and a reset
   assertTrue(reset[1]:find("reset profile 'Default' to defaults", 1, true) ~= nil, tostring(reset[1]))
 end)
 
-test("Profiles: a profile event whose retention prune removes rows still reports them, as a material effect", function()
-  -- debug-logging-§10 lets a reactor log a material effect the act's line cannot show: history that
-  -- aged out under the new profile's window. docs/profiles.md names this one extra [Prune] line.
-  -- red under: the adopt path silencing the prune outright, so history goes with no trace.
+test("Profiles: a switch, a copy, a profile reset and the global reset never prune recorded history (D6)", function()
+  -- Owner decision D6: a profile event never prunes or deletes history. The ledger holds a movement
+  -- older than the 30-day window, one the next LOGIN would age out; no profile act may take it,
+  -- even when the profile switched to still carries a stale window of its own.
+  -- red under: the adopt path calling Database:PruneOld (any profile event would drop the old row),
+  -- or retention read from the profile (Alt's stale 1-day window).
   local now = T.mocks.__now
-  local lines
-  withLedger({ recentEntry(now), recentEntry(now - 60 * 86400) }, function()
-    withAltProfile({ retentionDays = 30 }, function()
-      lines = withoutRenderPasses(debugLines(function() NS.db:SetProfile("Alt") end))
+  local old, recent = recentEntryAt(now - 60 * 86400), recentEntryAt(now)
+  local after, prunes = {}, 0
+  withLedger({ old, recent }, function()
+    withAltProfile({ qualityThreshold = 2, retentionDays = 1 }, function()
+      assertEqual(NS.Database:RetentionDays(), 30, "precondition: the account keeps 30 days")
+      local acts = {
+        { "switch", function() NS.db:SetProfile("Alt") end },
+        { "switch back", function() NS.db:SetProfile("Default") end },
+        { "copy", function() NS.db:CopyProfile("Alt") end },
+        { "profile reset", function() NS.db:ResetProfile() end },
+        { "global reset", function() NS.Slash:ResetEverything() end },
+      }
+      for _, act in ipairs(acts) do
+        prunes = prunes + #withTag(debugLines(act[2]), "[Prune]")
+        after[#after + 1] = { act[1], #NS.db.global.ledger, NS.db.global.ledger[1] }
+      end
     end)
-    assertEqual(#NS.db.global.ledger, 1, "the 60-day-old entry was not aged out")
   end)
-  assertEqual(#lines, 2, "expected the switch line and one prune line:\n" .. table.concat(lines, "\n"))
-  local prune = withTag(lines, "[Prune]")
-  assertEqual(#prune, 1, "no [Prune] line for the removed row:\n" .. table.concat(lines, "\n"))
-  assertTrue(prune[1]:find("removed 1 entries", 1, true) ~= nil, tostring(prune[1]))
-  assertEqual(#withTag(lines, "[Profile]"), 1, "the switch line is missing")
+  for _, a in ipairs(after) do
+    assertEqual(a[2], 2, "the " .. a[1] .. " pruned recorded history")
+    assertTrue(a[3] == old, "the " .. a[1] .. " rewrote the ledger")
+  end
+  assertEqual(prunes, 0, "a profile event ran the retention prune")
 end)
+
+test("Profiles: a profile reset and the global reset leave the retention window alone", function()
+  -- D6: the window is account-wide, so no settings reset moves it. From Always (0) back to the
+  -- 30-day default would delete every older movement at the next login.
+  -- red under: the window stored in the profile (the reset takes it), or a reset that walks it.
+  local saved = NS.Schema:Get("settings.retentionDays")
+  local afterProfile, afterGlobal
+  local ok, err = pcall(function()
+    muted(function() NS.Schema:Set("settings.retentionDays", 0) end)
+    muted(function() NS.db:ResetProfile() end)
+    afterProfile = NS.Schema:Get("settings.retentionDays")
+    muted(function() NS.Slash:ResetEverything() end)
+    afterGlobal = NS.Schema:Get("settings.retentionDays")
+  end)
+  muted(function() NS.Schema:Set("settings.retentionDays", saved) end)
+  if not ok then error(err, 0) end
+  assertEqual(afterProfile, 0, "Reset Profile moved the account-wide window")
+  assertEqual(afterGlobal, 0, "Reset all settings moved the account-wide window")
+end)
+
+-- ── the retention window is account-wide (owner decision D6) ───────────────────────────────────
+
+test("Retention: a write lands in db.global, never in a profile, and every profile reads the one value", function()
+  -- D6: the window governs the SHARED ledger, so it is one value for the account.
+  -- red under: the row losing its own get/set (the seam's walk stores it in the profile), or
+  -- Database:RetentionDays / PruneOld reading db.profile again.
+  local saved = NS.Schema:Get("settings.retentionDays")
+  local inGlobal, inProfile, onAlt, pruneReads
+  local ok, err = pcall(withAltProfile, { qualityThreshold = 2 }, function()
+    muted(function() NS.Schema:Set("settings.retentionDays", 7) end)
+    inGlobal = rawget(NS.db.global.settings, "retentionDays")
+    inProfile = rawget(NS.db.profile.settings, "retentionDays")
+    muted(function() NS.db:SetProfile("Alt") end)
+    onAlt = NS.Schema:Get("settings.retentionDays")
+    pruneReads = NS.Database:RetentionDays()
+  end)
+  muted(function() NS.Schema:Set("settings.retentionDays", saved) end)
+  if not ok then error(err, 0) end
+  assertEqual(inGlobal, 7, "the write did not reach db.global.settings")
+  assertEqual(inProfile, nil, "the write reached the profile")
+  assertEqual(onAlt, 7, "another profile reads a window of its own")
+  assertEqual(pruneReads, 7, "the prune reads a window other than the account-wide one")
+end)
+
+test("Retention: a stale per-profile value is never what the prune reads", function()
+  -- A profile table carrying `retentionDays` (a pre-D6 build's leftover, or a hand edit) must not
+  -- decide what is pruned.
+  -- red under: PruneOld reading db.profile.settings.retentionDays.
+  local now = T.mocks.__now
+  local left
+  withLedger({ recentEntryAt(now), recentEntryAt(now - 60 * 86400) }, function()
+    local savedG = NS.Schema:Get("settings.retentionDays")
+    NS.db.global.settings.retentionDays = 0
+    NS.db.profile.settings.retentionDays = 30
+    local ok, err = pcall(function() muted(function() NS.Database:PruneOld() end) end)
+    NS.db.profile.settings.retentionDays = nil
+    NS.db.global.settings.retentionDays = savedG
+    if not ok then error(err, 0) end
+    left = #NS.db.global.ledger
+  end)
+  assertEqual(left, 2, "the profile's stale 30 days pruned history the account keeps Always")
+end)
+
+test("Retention: the Settings tooltip says the window is account-wide", function()
+  -- D6: the panel gives no other hint that this row is shared across profiles.
+  -- red under: the tooltip losing its account-wide sentence.
+  local row = NS.Schema:FindRow("settings.retentionDays")
+  assertTrue(row ~= nil and type(row.tooltip) == "string", "the row has no tooltip")
+  assertTrue(row.tooltip:find("Account-wide", 1, true) ~= nil, tostring(row.tooltip))
+  assertTrue(row.tooltip:find("every profile", 1, true) ~= nil, tostring(row.tooltip))
+end)
+
 
 test("Profiles: a copy logs one [Set] line naming both profiles, and takes the source's values", function()
   -- red under: the copy line carrying the active profile as its source (AceDB passes the SOURCE).
@@ -508,4 +688,81 @@ test("Profiles page: registered after General, with no Defaults button, over Ace
   local opened = mocks.__aceConfig.opened
   assertEqual(opened[#opened].app, "BankLedger-Profiles", "the first show did not open the table")
   assertTrue(opened[#opened].container.frame:IsShown(), "AceConfigDialog was handed a hidden frame")
+end)
+
+-- ── the global reset's veto, named once (options-ui-§3, options-ui-§12) ────────────────────────
+
+test("Reset veto: S.VetoedFromResetAll vetoes the Profiles page and every stored row, and passes the session-only rows", function()
+  -- options-ui-§3: the Profiles page is excluded from the global reset by the descriptor's
+  -- `skipRestoreAll`, named once; options-ui-§12: it vetoes the page and every row whose value lives
+  -- in the profile. The account-wide rows (minimap, retention) are stored too, and vetoed with them.
+  -- red under: a veto that lets a profile row, the retention row or a Profiles-page row through, or
+  -- one that vetoes a session-only row (the profile reset cannot reach it, so the walk must).
+  local S = NS.Schema
+  local veto = S.VetoedFromResetAll
+  assertTrue(type(veto) == "function", "no named veto")
+  assertEqual(S.PROFILES_PAGE, "profiles", "the Profiles page key")
+  assertTrue(veto({ page = S.PROFILES_PAGE, sessionOnly = true }), "a Profiles-page row got through")
+  for _, path in ipairs({ "settings.qualityThreshold", "settings.enabled", S.RETENTION_PATH,
+      S.MINIMAP_PATH }) do
+    local row = S:FindRow(path)
+    assertTrue(row ~= nil, "no row " .. path)
+    assertTrue(veto(row), path .. " is not vetoed")
+  end
+  for _, path in ipairs({ "state.testMode", "state.debugConsole" }) do
+    local row = S:FindRow(path)
+    assertTrue(row ~= nil and row.sessionOnly, "precondition: " .. path .. " is session-only")
+    assertFalse(veto(row), path .. " is vetoed, so a reset would leave it on")
+  end
+end)
+
+test("Reset veto: the Options descriptor passes it as skipRestoreAll, and the Profiles page keys itself by it", function()
+  -- The wiring, read from the source: the library keeps its descriptor private.
+  -- red under: dropping `skipRestoreAll` from settings/OptionsSetup.lua, or the page keyed by a
+  -- literal the veto does not name.
+  local function read(path)
+    local fh = assert(io.open(path, "rb"))
+    local body = fh:read("*a")
+    fh:close()
+    return body
+  end
+  assertTrue(read("settings/OptionsSetup.lua"):match("skipRestoreAll%s*=%s*NS%.Schema%.VetoedFromResetAll") ~= nil,
+    "the Options descriptor does not pass the veto as skipRestoreAll")
+  assertTrue(read("settings/Profiles.lua"):match("pageKey%s*=%s*NS%.Schema%.PROFILES_PAGE") ~= nil,
+    "the Profiles page is not keyed by the veto's page name")
+end)
+
+test("Reset veto: the library's global reset over this descriptor ends the session rows, resets the profile, and keeps the window and the history", function()
+  -- O.RestoreAllDefaults is not on a live path here (the addon's reset is Sl:ResetEverything), but
+  -- the descriptor hands it the veto, so the walk it would make is pinned: session rows restored,
+  -- the profile reset, the retention window and the recorded ledger untouched (D6).
+  -- red under: a veto that lets the retention row through (the walk would put Always back to 30
+  -- days), or one that stops the walk ending test mode.
+  local now = T.mocks.__now
+  local saved = NS.Schema:Get("settings.retentionDays")
+  local q, window, testMode, left
+  withLedger({ recentEntryAt(now - 900 * 86400) }, function()
+    local ok, err = pcall(function()
+      muted(function()
+        NS.Schema:Set("settings.retentionDays", 0)
+        NS.Schema:Set("settings.qualityThreshold", 4)
+        NS.Schema:Set("state.testMode", true)
+        NS.Helpers.RestoreAllDefaults()
+      end)
+      q = NS.Schema:Get("settings.qualityThreshold")
+      window = NS.Schema:Get("settings.retentionDays")
+      testMode = NS.LedgerTable:IsTestMode()
+      left = #NS.db.global.ledger
+    end)
+    NS.State.testRecords = nil
+    muted(function()
+      NS.Browser:Hide()
+      NS.Schema:Set("settings.retentionDays", saved)
+    end)
+    if not ok then error(err, 0) end
+  end)
+  assertEqual(q, 0, "the profile was not reset")
+  assertEqual(window, 0, "the reset moved the account-wide retention window")
+  assertFalse(testMode, "the reset left test mode on")
+  assertEqual(left, 1, "the reset pruned recorded history")
 end)

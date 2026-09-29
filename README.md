@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1127%2F1127_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1139%2F1139_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -73,7 +73,8 @@ back to defaults and keeps your history. Both ask before they do anything.
 Your settings live in a profile. Every character shares the one **Default** profile until you
 choose otherwise under Settings → AddOns → Ka0s Bank Ledger → **Profiles**, where you can give a
 character its own. The history is never part of a profile: every character on every profile reads and
-writes the same ledger.
+writes the same ledger. **Keep history for** is shared the same way, so switching, copying or
+resetting a profile never deletes history.
 
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.

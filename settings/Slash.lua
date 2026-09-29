@@ -67,14 +67,14 @@ end
 --- N is the stored rows the reset actually changes, so it is counted HERE, before the reset, while the
 --- old values are still there to compare, and handed over through NS.SetPendingResetRows. A row
 --- already at its default is not counted, and neither is a session-only row (its storage is not the
---- profile) or an exempt one (launcher-§3: the minimap row's key is account-wide and a profile reset
---- cannot reach it). Read through S:Get, which is where the minimap row's inversion lives. Nothing is
---- counted while logging is off.
+--- profile) or an account-wide one (S.GLOBAL_ROWS: the minimap row, launcher-§3, and the retention
+--- window, owner decision D6; a profile reset cannot reach either). Read through S:Get, which is
+--- where the minimap row's inversion lives. Nothing is counted while logging is off.
 local function countResetRows()
   if not (NS.State and NS.State.debug and NS.Debug) then return nil end
   local S, n = NS.Schema, 0
   for _, row in ipairs(S and S.Schema or {}) do
-    if not row.sessionOnly and not S.RESET_EXEMPT[row.path]
+    if not row.sessionOnly and not S.GLOBAL_ROWS[row.path]
       and not S.SameValue(S:Get(row.path), row.default) then
       n = n + 1
     end
@@ -91,7 +91,8 @@ end
 --- WHAT IT TAKES is everything the profile holds: every setting, both filter lists, the saved view
 --- and both windows' stored geometry. WHAT IT KEEPS is everything account-wide: the recorded ledger
 --- (deleting history is `/bl purge`, a separate, separately confirmed act, never folded into a
---- settings reset), LibDBIcon's table (launcher-§3), the profile list and every other profile.
+--- settings reset), the retention window that governs it (owner decision D6, so the reset cannot
+--- prune), LibDBIcon's table (launcher-§3), the profile list and every other profile.
 ---
 --- NOT a schema walk and NOT a hand-written list of keys. AceDB empties the profile in place and
 --- merges its defaults back, then fires OnProfileReset, and NS.OnProfileEvent does the rest: it ends
@@ -370,7 +371,8 @@ local cli = lib:New({
   findRow      = NS.SchemaRuntime.FindRow,
   allRows      = NS.SchemaRuntime.AllRows,
   -- ApplyDefault honors S.RESET_EXEMPT, so the sweep this feeds cannot walk the Minimap button row
-  -- back to shown (launcher-§3). The library reaches this from CliReset (one named path) too, and
+  -- back to shown (launcher-§3) or the retention window back to 30 days, which would prune history
+  -- (owner decision D6). The library reaches this from CliReset (one named path) too, and
   -- the veto there is inert by construction: it binds only inside the bracket below.
   applyDefault = NS.SchemaRuntime.ApplyDefault,
 

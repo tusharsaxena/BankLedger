@@ -8,6 +8,7 @@ local _, NS = ...
 -- Every key below was account-wide until schema v3. NS.MIGRATIONS[3] (core/Database.lua) lifted
 -- each stored value from db.global into the `Default` profile, which is the profile every character
 -- was already on (AceDB:New's defaultProfile = true), so an upgrade changes nothing a player sees.
+-- The retention window is the one setting that did not move (owner decision D6).
 NS.defaults = NS.defaults or {}
 NS.defaults.profile = {
   -- Item-id filter lists. Blacklisted ids are never recorded; whitelisted ids are always recorded,
@@ -31,7 +32,8 @@ NS.defaults.profile = {
     trackMoney       = true,
     qualityThreshold = 0,      -- Poor and above: a bank ledger cares about junk too
     excludedStores   = {},     -- set of muted Store keys
-    retentionDays    = 30,     -- 0 == keep Always
+    -- NOT retentionDays: it governs the shared ledger, so it is account-wide (defaults/Global.lua,
+    -- owner decision D6).
 
     -- The Master controls block (options-ui-§15). Each default is the composer's own, restated here
     -- because NS.Schema:Register resolves every schema path against this table — a composed row with

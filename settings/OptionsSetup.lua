@@ -107,8 +107,13 @@ local descriptor = {
   resetProfile = function() if NS.db and NS.db.ResetProfile then NS.db:ResetProfile() end end,
   profilesPage = true,   -- settings/Profiles.lua (options-ui-§3)
   --
-  -- No `skipRestoreAll`: with `resetProfile` supplied the library already skips every row that is
-  -- not session-only, and the Profiles page's AceDBOptions rows are not schema rows at all.
+  -- The global reset's one named veto (options-ui-§3, options-ui-§12), S.VetoedFromResetAll in
+  -- settings/Schema.lua: the Profiles page and every stored row, profile or account-wide, so a row
+  -- walk keeps only the session-only rows. The library narrows its walk the same way when
+  -- `resetProfile` is supplied; the veto is still passed, because the standard makes the exclusion
+  -- the addon's to state (the same shape KickCD, WhatGroup, PrettyChat and LootHistory ship), and so
+  -- the retention window and the Profiles page stay out whatever the library's narrowing becomes.
+  skipRestoreAll = NS.Schema.VetoedFromResetAll,
   --
   -- No `afterRestoreAll`: nothing a reset must clear lives outside the profile and the two
   -- session-only rows (NS.OnProfileEvent re-anchors the windows from the reset profile).

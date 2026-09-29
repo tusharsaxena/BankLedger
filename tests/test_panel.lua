@@ -800,8 +800,8 @@ test("Slash: every reset route has the SAME blast radius — the ledger survives
   -- route reaching db.global.ledger.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  -- Dated NOW on purpose: the reset re-applies settings.retentionDays, which re-runs the retention
-  -- cleanup, and a 1970-stamped row would be dropped as ancient rather than kept.
+  -- Dated NOW on purpose, so no retention pass could ever take the row: a reset no longer prunes
+  -- (the window is account-wide, owner decision D6), and a row gone here must be the reset's doing.
   local entry = { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 }
   local savedLedger, left, quality = NS.db.global.ledger, {}, {}
   local ok, err = pcall(function()

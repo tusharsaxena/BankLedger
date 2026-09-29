@@ -278,7 +278,7 @@ badge and any count quoted in the docs must agree with it.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
-- RunMigrations announces the v1->v3 pass the smoke step reads
+- RunMigrations announces the v1->v4 pass the smoke step reads
 - RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
 - RunMigrations stamps a stamp-less store whose ledger is nil, without raising
 - RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
@@ -1193,31 +1193,43 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
 
-### test_profiles.lua (23)
+### test_profiles.lua (35)
 
-- Profiles: the defaults split — the ledger and the minimap table are account-wide, everything configured is per profile
+- Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
 - Profiles: the filter lists are written into the active profile
 - Migrate v3: every stored setting, both lists and the saved view land in the Default profile, and leave db.global
+- Migrate v3: the retention window stays in db.global and is not lifted (D6)
 - Migrate v3: the recorded ledger and LibDBIcon's table are not touched
 - Migrate v3: reads resolve against the lifted profile, and unset rows read their defaults
 - Migrate v3: idempotent — a second run moves nothing and changes nothing
 - Migrate v3: a store with nothing to lift is stamped and gains no profile keys
 - Migrate v3: the [Migrate] line counts each value it moved
+- Migrate v4: a profile's retention window goes back to db.global, the Default profile's value winning
+- Migrate v4: idempotent — a second run moves nothing, and the runner stamps v4
+- Migrate v4: a player choice already in db.global is kept over a profile's copy
+- Migrate v4: a store with no profile window is left alone
 - Profiles: a switch re-reads every setting from the new profile
 - Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
 - Profiles: a switch to a disabled profile stands the addon down, and back stands it up
 - Profiles: a switch re-applies the master chrome and the stored geometry to a built window
 - Profiles: one profile event is one SettingsChanged and one LedgerChanged
 - Profiles: a switch logs exactly one [Profile] line naming the profile, and no [Set] line
-- Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and no no-op [Prune] line
-- Profiles: a profile event whose retention prune removes rows still reports them, as a material effect
+- Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and nothing else
+- Profiles: a switch, a copy, a profile reset and the global reset never prune recorded history (D6)
+- Profiles: a profile reset and the global reset leave the retention window alone
+- Retention: a write lands in db.global, never in a profile, and every profile reads the one value
+- Retention: a stale per-profile value is never what the prune reads
+- Retention: the Settings tooltip says the window is account-wide
 - Profiles: a copy logs one [Set] line naming both profiles, and takes the source's values
 - Profiles: AceDBOptions' own Reset Profile is the same act, and logs its line without a count
 - Profiles: AceDBOptions' own Reset Profile ends test mode and closes the debug console, as Reset all settings does
 - Profiles: a switch leaves test mode alone
 - Profiles: the global reset's blast radius is the active profile — the list, the other profiles and the ledger survive
 - Profiles page: registered after General, with no Defaults button, over AceDBOptions' table for NS.db
+- Reset veto: S.VetoedFromResetAll vetoes the Profiles page and every stored row, and passes the session-only rows
+- Reset veto: the Options descriptor passes it as skipRestoreAll, and the Profiles page keys itself by it
+- Reset veto: the library's global reset over this descriptor ends the session rows, resets the profile, and keeps the window and the history
 
 ### test_eol.lua (2)
 
@@ -1312,9 +1324,9 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
-| test_profiles.lua | 23 |
+| test_profiles.lua | 35 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1127** |
+| **Total** | **1139** |

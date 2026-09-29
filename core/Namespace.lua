@@ -10,7 +10,7 @@ NS.version = "1.2.0"
 -- highest key in NS.MIGRATIONS. It is NOT the shipped default -- defaults/Global.lua declares
 -- `schemaVersion = 0`, never a real version (savedvariables-§1), so AceDB's logout strip cannot take
 -- a real stamp out of the file.
-NS.SCHEMA_VERSION = 3
+NS.SCHEMA_VERSION = 4
 
 -- Shared chat tag. Cyan (00ffff) is the Ka0s Standard house color (slash-commands-§4) — every Ka0s
 -- addon prints the same cyan bracketed tag so a user running several recognizes them at a glance.

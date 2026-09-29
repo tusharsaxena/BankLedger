@@ -11,7 +11,9 @@ for a path that already has a row.
 
 1. Add the shipped value to `defaults/Profile.lua`, under `settings`. That is the **only** place a
    default is hardcoded (`savedvariables-§2`). Every schema path resolves against the active profile;
-   `defaults/Global.lua` is for recorded data and LibDBIcon's table only ([profiles.md](profiles.md)).
+   `defaults/Global.lua` is for recorded data, the settings that govern it (the retention window,
+   owner decision D6: its row carries its own `get`/`set` onto `db.global`) and LibDBIcon's table
+   only ([profiles.md](profiles.md)).
 2. Add the row to the schema table in `settings/Schema.lua`, at the position you want it to render —
    **rows render in schema order, so the table is also the panel layout.** `group` names the **tab**
    the row draws on (`options-ui-§13`), and the array's declaration order is the tab order, so a
@@ -78,7 +80,7 @@ back to the tab.
 
 ## Add a slash command
 
-Append one entry to `NS.COMMANDS` (`settings/Schema.lua:733`). `/bl help` and the settings landing
+Append one entry to `NS.COMMANDS` (`settings/Schema.lua:796`). `/bl help` and the settings landing
 page both read from that table, so nothing else needs editing — the README documents no command
 list of its own (`documentation-§1` item 7). See [slash-dispatch.md](slash-dispatch.md) for what the
 library owns versus what stays the host's.

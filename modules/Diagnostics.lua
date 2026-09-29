@@ -43,8 +43,9 @@ local ALWAYS = {
 
 local function yn(v) return v and "yes" or "no" end
 
--- The two scopes the report reads: the account-wide store (the ledger, LibDBIcon's table, the
--- schema stamp) and the active profile (every setting; docs/profiles.md).
+-- The two scopes the report reads: the account-wide store (the ledger, its retention window,
+-- LibDBIcon's table, the schema stamp) and the active profile (every other setting;
+-- docs/profiles.md).
 local function global()
   return NS.db and NS.db.global or {}
 end
@@ -166,7 +167,8 @@ function X.Ledger(out)
   out:joined("Ledger", "by direction:", pairsOf(out, byDir))
   out:joined("Ledger", "by kind:", pairsOf(out, byKind))
   stamps(out, ledger)
-  local s = profile().settings or {}
+  -- Account-wide, beside the ledger it governs (owner decision D6), never the profile's.
+  local s = g.settings or {}
   out:add("Ledger", "retention=%s day(s) (0 keeps everything)", s.retentionDays)
   tail(out, ledger)
 end

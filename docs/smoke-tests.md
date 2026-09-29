@@ -489,7 +489,8 @@ these are observable. All three are on **Settings ▸ General ▸ Master control
    visibility back to **Always**.
 10. **Reset ends it.** Tick **Test mode**, then click the page's **Defaults** button: the box unticks
     and the real data is back. Tick it again and run `/bl resetall`: same result. Leave **Reset all
-    settings** out of this step unless you mean it, because it wipes the recorded ledger (S-16).
+    settings** out of this step unless you mean it: it resets the current profile's settings,
+    though it keeps the recorded ledger (S-16).
     `/reload` with it ticked: it comes back off, because test mode is never saved.
 
 ## S-16 · Retention and purge
@@ -838,16 +839,16 @@ this step is for.
 document that touches a real ledger.
 
 1. Copy `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe.
-2. Hand-edit the file in place: delete the `["schemaVersion"] = 3,` line under `["global"]`, and add
+2. Hand-edit the file in place: delete the `["schemaVersion"] = 4,` line under `["global"]`, and add
    `["vendorPrice"] = 20,` to exactly one existing ledger entry. Note which entry. (On a store this
-   build has already stamped v3 the settings are in `["profiles"]`, so the v3 step finds nothing
-   under `["global"]` to lift and adds no rows to the count.)
+   build has already stamped v4 the settings are in `["profiles"]` and no profile holds a retention
+   window, so the v3 and v4 steps find nothing to move and add no rows to the count.)
 3. Log in. `/bl debug` on, and open the console.
-4. **Pass:** the console carries `[Migrate] v1 -> v3, 1 rows touched`. **Fail:** no migration line at
+4. **Pass:** the console carries `[Migrate] v1 -> v4, 1 rows touched`. **Fail:** no migration line at
    all — that is the defect this step exists to catch — or a row count that is not the one you
    planted.
 5. Log out fully (exit to desktop; the strip runs on `PLAYER_LOGOUT`). Reopen the file.
-6. **Pass:** `["schemaVersion"] = 3,` is present under `["global"]`, and the `vendorPrice` key is
+6. **Pass:** `["schemaVersion"] = 4,` is present under `["global"]`, and the `vendorPrice` key is
    gone from the entry you edited. **Fail:** the stamp is missing again, which would mean something
    declared a default equal to a real version and the next schema bump is already disarmed.
 7. Log back in once more and confirm the console shows **no** migration line the second time — the
@@ -890,7 +891,7 @@ green whether it is right or wrong — the test and the bug agree with each othe
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
   `core/Compat.lua:153-159`). These are `C_Item.GetItemInfo`'s **localized** type and sub-type
-  strings. They are not only displayed: `core/Database.lua:392-423` uses them as analytics **keys**
+  strings. They are not only displayed: `core/Database.lua:480-511` uses them as analytics **keys**
   (`byItemType`, `byItemSubType`, and `byTypeSub` keyed on `type\tsubType`), they are persisted into
   SavedVariables on every row, and `modules/Export.lua`'s `itemType` / `itemSubType` columns emit
   them raw. The same `C_Item.GetItemInfo` call returns the locale-independent `classID` /
@@ -903,7 +904,7 @@ green whether it is right or wrong — the test and the bug agree with each othe
   is "unambiguous across locales". That is true of the **order** and not of `%b`, which is the
   month's abbreviation in the client's own language.
 - **Case folding.** `modules/LedgerTable.lua:66`, `:85`, `:89` and `:94` sort on `:lower()`, and
-  `core/Database.lua:288` and `:305` lowercase the item name and the search text before matching.
+  `core/Database.lua:376` and `:393` lowercase the item name and the search text before matching.
   Lua's `string.lower` folds ASCII and nothing else, so `Ä` is not `ä` to any of them.
 
 **English by design, and not a failure here.** `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and
@@ -1040,9 +1041,10 @@ windows.
    minimum quality, a muted store, a row tint), blacklist one item, save a view and drag the ledger
    window somewhere. Install this build and log in. Every one of those is exactly as you left it,
    and History has every row. Log out and open `BankLedger.lua`: the settings, both lists and
-   `savedView` sit under `["profiles"]["Default"]`, and `["global"]` holds only `ledger`, `minimap`
-   and `schemaVersion = 3`. **Fail:** any setting back at its default, or a `settings` table still
-   under `["global"]`.
+   `savedView` sit under `["profiles"]["Default"]`, and `["global"]` holds only `ledger`, `minimap`,
+   `schemaVersion = 4` and, if you changed **Keep history for**, a `settings` table holding
+   `retentionDays` alone (it is account-wide, owner decision D6). **Fail:** any setting back at its
+   default, or any other key in a `settings` table under `["global"]`.
 2. **The page.** Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ **Profiles** is the last entry under
    General, has no **Defaults** button, and shows `Default` as the current profile.
 3. **A new profile is a fresh configuration over the same history.** Create a profile named `Alt`.
@@ -1061,4 +1063,11 @@ windows.
    and **Yes** keeps History.
 7. **One line per event.** `/bl debug on`, open the console, switch profile: exactly one
    `[Profile] switched to profile '<name>'` line. Copy `Alt` into the current profile: exactly one
-   `[Set] copied profile 'Alt' -> '<current>'` line. Then `/bl debug off`. Delete `Alt` when done.
+   `[Set] copied profile 'Alt' -> '<current>'` line. Then `/bl debug off`.
+8. **Retention is account-wide, and no profile act prunes (D6).** On `Default`, set
+   **Keep history for** to **Always**, and have at least one History row older than 30 days. Hover
+   the dropdown: the tooltip ends *Account-wide: one value for every profile, because the history it
+   trims is shared.* Switch to `Alt`: the dropdown still reads **Always**. Switch back, copy `Alt`
+   into `Default`, press **Reset Profile**, then `/bl resetall` and **Yes**: after each, the dropdown
+   still reads **Always** and History still has the old row. With `/bl debug on`, none of those acts
+   writes a `[Prune]` line. Delete `Alt` when done.

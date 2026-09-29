@@ -262,11 +262,13 @@ tests/
                            --   section costing one line, the cap's end marker, and `debug` testing
                            --   `diagnostics` first. The dispatcher half is the kit's shared
                            --   _kit/test_diagnostics_contract.lua, wired through Kit.diagnostics
-  test_profiles.lua        -- settings per AceDB profile (schema v3, docs/profiles.md): the
+  test_profiles.lua        -- settings per AceDB profile (schema v3/v4, docs/profiles.md): the
                            --   global/profile defaults split, the v3 lift into `Default` (values
-                           --   land, db.global cleared, the ledger untouched, idempotent), reads
-                           --   resolving against the profile, and NS.OnProfileEvent on a switch,
-                           --   a copy and a page-driven reset; plus the Profiles page itself
+                           --   land, db.global cleared, the ledger untouched, idempotent), the v4
+                           --   return of the retention window to db.global, the account-wide
+                           --   window (D6), reads resolving against the profile, NS.OnProfileEvent
+                           --   on a switch, a copy and a page-driven reset (and never a prune), the
+                           --   global reset's named veto; plus the Profiles page itself
   test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: left-click settings, the options
                            --   menu's four entries and the verb each runs (through
                            --   tests/menu_mock.lua, a fake MenuUtil), the folder-name

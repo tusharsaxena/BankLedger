@@ -1,10 +1,11 @@
 local addonName, NS = ...
 local C = NS.Constants
 
--- AceDB init. Two scopes (docs/profiles.md): the recorded ledger and LibDBIcon's table are
--- account-wide in NS.db.global; every setting, both filter lists and the saved view live in the
--- active profile, NS.db.profile. `true` is AceDB's defaultProfile: every character starts on the one
--- shared profile, "Default", which is where schema v3 lifted the old account-wide settings.
+-- AceDB init. Two scopes (docs/profiles.md): the recorded ledger, the retention window that governs
+-- it (owner decision D6) and LibDBIcon's table are account-wide in NS.db.global; every other
+-- setting, both filter lists and the saved view live in the active profile, NS.db.profile. `true` is
+-- AceDB's defaultProfile: every character starts on the one shared profile, "Default", which is
+-- where schema v3 lifted the old account-wide settings.
 function NS:InitDB()
   NS.db = LibStub("AceDB-3.0"):New(addonName .. "DB", NS.defaults, true)
   -- The runner goes FIRST, before anything reads db.profile (savedvariables-§1): the v3 step lifts
@@ -28,6 +29,13 @@ end
 -- filter lists) and the named non-setting state (the saved view) a profile carries beside it.
 NS.PROFILE_LIFT_KEYS = { "settings", "blacklist", "whitelist", "savedView" }
 
+-- The `settings` keys that are NOT lifted, and stay account-wide under db.global.settings: the ones
+-- that govern the recorded data rather than how the addon behaves (owner decision D6, 2026-09-29).
+-- The retention window prunes the SHARED ledger, so a per-profile window would let a profile switch,
+-- copy or reset delete history the other profiles still show. Its schema row reads and writes
+-- db.global itself (settings/Schema.lua, S.GLOBAL_ROWS).
+NS.GLOBAL_SETTINGS = { retentionDays = true }
+
 -- The migration steps, keyed by the version each one PRODUCES: NS.MIGRATIONS[n] takes a v(n-1)
 -- store to vn and returns the number of rows it touched (for the [Migrate] line). Every step MUST be
 -- idempotent -- a re-run over an already-migrated store is a no-op -- because a step that raises
@@ -48,7 +56,8 @@ NS.MIGRATIONS = {
   -- v2 -> v3: settings become per profile (docs/profiles.md). Every stored value under a lifted key
   -- moves from db.global into the `Default` profile's raw table -- the profile every character was
   -- already on, since this addon has always created its db with defaultProfile = true -- and leaves
-  -- db.global. The ledger stays where it is.
+  -- db.global. The ledger stays where it is, and so does every NS.GLOBAL_SETTINGS key: it is left in
+  -- db.global.settings, where v2 stored it and where its row reads it (D6).
   --
   -- WHAT IS STORED IS WHAT MOVES. AceDB's logout strip left only the values that differ from their
   -- defaults in db.global, and the new global defaults no longer declare any of these keys, so
@@ -57,24 +66,85 @@ NS.MIGRATIONS = {
   -- wrote the profile before this step); a list or the saved view replaces the profile's whole.
   --
   -- IDEMPOTENT by construction: the global key is cleared the moment it is copied, so a second run
-  -- finds nothing to move and touches nothing. Counts one row per value moved.
+  -- finds nothing to move and touches nothing. Counts one row per value moved. The settings table is
+  -- cleared key by key rather than whole, so the account-wide keys it still holds stay put.
   [3] = function(g, db)
     local sv = db and db.sv
     if type(sv) ~= "table" then return 0 end
     sv.profiles = sv.profiles or {}
     local n = 0
+    local function defaultProfile()
+      local p = sv.profiles.Default
+      if type(p) ~= "table" then p = {}; sv.profiles.Default = p end
+      return p
+    end
     for _, key in ipairs(NS.PROFILE_LIFT_KEYS) do
       local v = rawget(g, key)
-      if v ~= nil then
-        local p = sv.profiles.Default
-        if type(p) ~= "table" then p = {}; sv.profiles.Default = p end
-        if key == "settings" and type(v) == "table" then
-          if type(rawget(p, "settings")) ~= "table" then rawset(p, "settings", {}) end
-          for k, val in pairs(v) do p.settings[k] = val; n = n + 1 end
-        else
-          rawset(p, key, v); n = n + 1
+      if key == "settings" and type(v) == "table" then
+        for k, val in pairs(v) do
+          if not NS.GLOBAL_SETTINGS[k] then
+            local p = defaultProfile()
+            if type(rawget(p, "settings")) ~= "table" then rawset(p, "settings", {}) end
+            p.settings[k] = val
+            v[k] = nil
+            n = n + 1
+          end
         end
+      elseif v ~= nil then
+        rawset(defaultProfile(), key, v); n = n + 1
         g[key] = nil
+      end
+    end
+    return n
+  end,
+
+  -- v3 -> v4: the retention window goes back to db.global (owner decision D6, 2026-09-29). The first
+  -- build of v3 lifted it into the Default profile with every other setting; a profile could then
+  -- carry its own window, and switching to it pruned the history every profile shares. This step
+  -- walks every STORED profile raw (sv.profiles, before anything reads db.profile) and takes each
+  -- NS.GLOBAL_SETTINGS key out of it.
+  --
+  -- WHICH VALUE WINS, when more than one place holds one: a player choice already in db.global (a
+  -- value off the declared default) is kept; otherwise the Default profile's, which is where v3 put
+  -- the player's own pre-profile value; otherwise the first other profile's in name order. Every
+  -- profile's copy is cleared either way, so no profile is left holding a window nothing reads.
+  --
+  -- IDEMPOTENT: a second run finds no key in any profile and touches nothing. A store that took the
+  -- v3 above never had the key lifted, so this step is a no-op for every v2 upgrade. Counts one row
+  -- per profile value removed.
+  [4] = function(g, db)
+    local sv = db and db.sv
+    local profiles = type(sv) == "table" and sv.profiles
+    if type(profiles) ~= "table" then return 0 end
+    local names = {}
+    for name, p in pairs(profiles) do
+      if type(p) == "table" and type(rawget(p, "settings")) == "table" then names[#names + 1] = name end
+    end
+    table.sort(names, function(a, b)
+      if (a == "Default") ~= (b == "Default") then return a == "Default" end
+      return tostring(a) < tostring(b)
+    end)
+    local declared = (NS.defaults and NS.defaults.global and NS.defaults.global.settings) or {}
+    local gs = rawget(g, "settings")
+    local held = {}
+    for key in pairs(NS.GLOBAL_SETTINGS) do
+      local v = type(gs) == "table" and rawget(gs, key) or nil
+      held[key] = v ~= nil and v ~= declared[key]
+    end
+    local n = 0
+    for _, name in ipairs(names) do
+      local ps = rawget(profiles[name], "settings")
+      for key in pairs(NS.GLOBAL_SETTINGS) do
+        local v = rawget(ps, key)
+        if v ~= nil then
+          if not held[key] then
+            if type(gs) ~= "table" then gs = {}; rawset(g, "settings", gs) end
+            rawset(gs, key, v)
+            held[key] = true
+          end
+          rawset(ps, key, nil)
+          n = n + 1
+        end
       end
     end
     return n
@@ -95,10 +165,11 @@ NS.MIGRATIONS = {
 -- and the stamp stays at the last version that completed, so the next run retries that step rather
 -- than skipping it.
 --
--- ONE ACCOUNT-WIDE STAMP, and no per-profile one, because no step is profile-scoped. v3 is a lift
--- OUT of db.global into the one profile every character was on; a profile created after it passes
--- through untouched, which is savedvariables-§1's idempotence against a fresh default profile. The
--- first step that reshapes data INSIDE a profile has to walk sv.profiles or carry a per-profile stamp.
+-- ONE ACCOUNT-WIDE STAMP, and no per-profile one. v3 is a lift OUT of db.global into the one profile
+-- every character was on; v4 walks every stored profile once, raw, and takes the account-wide keys
+-- back out. A profile created after either passes through untouched -- the profile defaults declare
+-- no account-wide key, so it has nothing to move -- which is savedvariables-§1's idempotence against
+-- a fresh default profile. A step that reshapes data INSIDE a profile walks sv.profiles, as v4 does.
 function NS:RunMigrations()
   local g = NS.db and NS.db.global
   if not g then return end
@@ -121,6 +192,10 @@ end
 -- write seam, so no row's onChange runs. This is where the addon catches up, in one place for all
 -- three events: re-run the migrations (a no-op once stamped), re-sync the enable latch, re-apply
 -- every setting's effect from the new profile, refresh an open panel, and log exactly one line.
+--
+-- NEVER A PRUNE (owner decision D6). The retention window is account-wide (NS.GLOBAL_SETTINGS), so
+-- no profile event changes it, and nothing here deletes recorded history: the ledger a profile
+-- switch, copy or reset leaves behind is exactly the one it found.
 
 -- The reset's row count, handed over by Sl:ResetEverything, which counts the rows off their
 -- defaults BEFORE it resets (after, they are all back on them). Taken once, so a reset that arrives
@@ -169,11 +244,8 @@ local function applyProfileEffects()
   -- The row tint, repainted directly (Util.RefreshRowTint would send a second bus message).
   if NS.LedgerTable and NS.LedgerTable.Bind then NS.LedgerTable:Bind() end
   if SW and SW.Bind then SW:Bind() end
-  -- Retention is a setting like any other, and its effect is a prune of the SHARED ledger: the one
-  -- the next login would run anyway, run now against the new profile's window (docs/profiles.md).
-  -- Quiet when it removes nothing: the act's one line is the handler's (debug-logging-§10), and a
-  -- prune that aged nothing out is no material effect. One that did remove rows still says so.
-  if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld(true) end
+  -- No retention prune: the window is account-wide and no profile holds one (D6). The prune runs
+  -- at login and when the retention row itself is changed, never on a profile event.
 end
 
 --- The session-only rows a profile reset cannot reach, ended BY NAME (options-ui-§12, §15). Neither
@@ -212,7 +284,7 @@ end
 
 -- Pure [Init] session summary for the SetEnabled seam (debug-logging-§5/§8): addon name + version,
 -- schema version, active profile, and entry count — e.g.
--- "BankLedger v1.2.0, schema v3, profile 'Default', 412 entries".
+-- "BankLedger v1.2.0, schema v4, profile 'Default', 412 entries".
 -- Guarded so it can't error before the DB is ready. All values are plain constants/counts, so a raw
 -- tostring is secret-safe here.
 function NS.InitSummary()
@@ -797,14 +869,19 @@ function Database:StorageStats(now)
   return { count = #ledger, days = days, bytes = bytes }
 end
 
--- Retention cleanup. Drops entries older than settings.retentionDays (0 == Always). Rebuild-and-swap
--- avoids O(n^2) shifting and array holes. Fires LedgerChanged when it actually runs.
--- `quietIfNone` drops the [Prune] trace when nothing was removed. The profile adopt path passes it
--- (applyProfileEffects, above): there the act's one debug line is the handler's
--- (debug-logging-§10), and "removed 0 entries" is no material effect. Login and a retention change
--- keep the trace either way.
-function Database:PruneOld(quietIfNone)
-  local days = NS.db.profile.settings.retentionDays
+-- The retention window in days (0 == Always), read from the ACCOUNT-WIDE store: it governs the
+-- shared ledger, so it is one value whatever profile is active (owner decision D6).
+function Database:RetentionDays()
+  local s = NS.db and NS.db.global and NS.db.global.settings
+  return s and s.retentionDays
+end
+
+-- Retention cleanup. Drops entries older than the account-wide retention window (0 == Always).
+-- Rebuild-and-swap avoids O(n^2) shifting and array holes. Fires LedgerChanged when it actually runs.
+-- Two callers only: the once-per-session login pass (core/BankLedger.lua) and the retention row's
+-- own onChange. No profile event reaches it (D6).
+function Database:PruneOld()
+  local days = Database:RetentionDays()
   if not days or days == 0 then return 0 end
   local cutoff = time() - days * 86400
   local ledger = NS.db.global.ledger
@@ -818,7 +895,7 @@ function Database:PruneOld(quietIfNone)
   -- change, and a LedgerChanged with nothing changed repaints both windows and the Insights
   -- charts for no reason. The `days == 0` early return above is the other half of the same rule.
   if removed > 0 then fireLedgerChanged() end
-  if NS.State.debug and NS.Debug and not (quietIfNone and removed == 0) then
+  if NS.State.debug and NS.Debug then
     NS.Debug("Prune", "retention %sd: removed %s entries", tostring(days), tostring(removed))
   end
   return removed
