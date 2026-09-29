@@ -97,8 +97,9 @@ leaves its number unused.
   the panel. `/bl version`, `/bl list`, `/bl get settings.qualityThreshold`,
   `/bl set settings.qualityThreshold 3`, `/bl reset settings.qualityThreshold` all answer normally.
   `/bl help` prints the whole index with the refusal line under its header. `/bl wibble` answers
-  `unknown command 'wibble'` and the index, not the refusal. `/bl perf` answers the same way (reserved,
-  but this addon registers no `perf` verb). Re-enable. Result:
+  `unknown command 'wibble'`, then that same index, refusal line included; never the refusal line
+  alone. `/bl perf` answers the same way (reserved, but this addon registers no `perf` verb).
+  Re-enable. Result:
 - **SLASH-4. Feature verbs are refused once.** Disabled, run `/bl show`, `/bl toggle`, `/bl test`,
   `/bl purge` → each prints exactly one line, `Ka0s Bank Ledger is disabled — enable it with
   /bl enable` with the command in gold, and does nothing else; `/bl purge` raises no confirm dialog.
@@ -165,11 +166,14 @@ leaves its number unused.
   scale slider moves at once and both windows rescale together. Drag the slider → both rescale again,
   no `/reload`. Result:
 - **PANEL-17. Master scale clamps and resets.** `/bl set settings.windowScale 9` → the slider lands on
-  2.00 and the chat echo says `2.00x`. `/bl reset settings.windowScale` → back to 1.00. Result:
+  its maximum, its box reading `2`, and chat echoes `settings.windowScale = 2.00x`.
+  `/bl reset settings.windowScale` → the box reads `1` and chat echoes `settings.windowScale = 1.00x`.
+  Result:
 - **PANEL-18. Master alpha reaches every window.** `/bl show`, open a bank (the session window
   appears), open Export. Drag Master alpha to about a quarter → all three fade while you drag. Result:
-- **PANEL-19. The alpha floor.** Drag Master alpha to its far left → it stops at 0.10, and the windows
-  fade to that and no further: faint, still findable and clickable. Put it back to 1.00. Result:
+- **PANEL-19. The alpha floor.** Drag Master alpha to its far left → its box stops at `10%` (0.10),
+  and the windows fade to that and no further: faint, still findable and clickable. Put it back to
+  `100%`. Result:
 - **PANEL-20. Reset position.** Move the ledger and the session window well off center, then Reset
   position → both return to center at their default size; settings, filter lists and history are
   untouched. Result:
@@ -197,17 +201,19 @@ leaves its number unused.
   Reset all settings ▸ Yes → every setting at stock (tints back to 0.03 and 0.10), both lists empty,
   the saved view discarded (Clear lands on stock), test mode off, the console closed, both windows
   recentered, the minimap button still hidden. History keeps every row. Result:
-- **PANEL-29. The open views keep the history.** With History, Insights and the storage read-out on
-  screen, Reset all settings ▸ Yes → History and Insights keep every row, the read-out keeps its count,
-  and the Filters tab's lists empty at once. **Fail:** any history row goes, or a list keeps showing ids
-  until reopened. Result:
+- **PANEL-29. The open views keep the history.** `/bl show`, press Reset on the filter bar (the view
+  back to stock) and note the footer's `Showing n of N`, then switch to Insights and leave it on
+  screen. Open Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ General ▸ History beside it and note the
+  read-out's movement count. `/bl resetall` ▸ Yes → the read-out keeps its count, every Insights card
+  keeps its figure, and back on History the footer still reads `Showing n of N`. **Fail:** any
+  history row goes. Result:
 - **PANEL-30. Capture sees the reset without a reload.** Blacklist an item, Reset all settings ▸ Yes,
   then move that item at your bank → it is recorded, in History and the session window. **Fail:** the
   movement is dropped (or one that should drop is recorded) until you `/reload`. Result:
 - **PANEL-31. The reset repaints once.** With General open, `/bl resetall` ▸ Yes → every widget
-  repaints once, not per row, and History's Database size line updates. On Filters ▸ Blacklist add an
-  id, then `/bl resetall` ▸ Yes → the list empties while you watch. Close the settings window,
-  `/bl resetall` ▸ Yes → no errors, and reopening shows the reset values. Result:
+  repaints once, not per row. On Filters ▸ Blacklist add an id, then `/bl resetall` ▸ Yes → the list
+  empties while you watch. Close the settings window, `/bl resetall` ▸ Yes → no errors, and reopening
+  shows the reset values. Result:
 
 ## PROFILE
 
@@ -300,9 +306,11 @@ leaves its number unused.
   *Settings are locked during combat.* cover over the page; a click on a checkbox or tab does nothing
   and chat prints one gray line for the combat; Blizzard's settings window stays usable (no
   `ADDON_ACTION_BLOCKED`). Leave combat → the cover lifts and the page shows current values. Result:
-- **COMBAT-4. Combat ends test mode.** Tick Test mode, close the ledger, pull a dummy → one chat line,
-  `test mode off — combat started.`; the ledger does not open; the box is unticked. Still in combat,
-  tick it → one line saying test mode cannot start during combat, and it stays unticked. Result:
+- **COMBAT-4. Combat ends test mode.** Tick Test mode, close the ledger and the settings window, pull
+  a dummy → one chat line, `test mode off — combat started.`, and the ledger does not open. Still in
+  combat, `/bl test` → one line, `cannot start test mode during combat.`, and no sample opens (the box
+  itself cannot be clicked in combat: COMBAT-3's lock refuses it). Leave combat, `/bl config`, open
+  General → Test mode is unticked. Result:
 - **COMBAT-5. Only out of combat, window open.** Set General visibility to Only out of combat with the
   ledger open, pull a dummy → it hides on the pull and returns when combat ends. Result:
 - **COMBAT-6. Only out of combat, window closed.** Repeat COMBAT-5 with the ledger closed → it stays
@@ -347,15 +355,15 @@ leaves its number unused.
 - **CAPT-13. The guild bank disarms on close.** Close it, then move something in your bags → no further
   guild-bank scanning. If either half misbehaves, `/bl debug scan` says
   `guild bank frame hooks: NOT INSTALLED`. Result:
-- **CAPT-14. No guild session away from a bank.** `/bl debug on`, `/reload` somewhere with no bank in
-  sight and stay a few minutes (ideally while a guildmate uses the vault) → no session window and no
-  `[Store] GUILD_BANK opened` line. One with a `GUILD_BANK 0` baseline is the regression (issue #12).
-  Result:
-- **CAPT-15. An uncached item is refused, not guessed.** Set Minimum quality to Rare. `/reload`, then
-  at once move something unusual from a bank tab you have not opened → `/bl debug` shows it skipped
-  with cause `uncached`, not captured. Repeat the movement a few seconds later → judged properly
-  (captured, or skipped on quality). **Fail:** a row appearing at once at a quality nothing resolved.
-  Result:
+- **CAPT-14. No guild session away from a bank.** `/reload` somewhere with no bank in sight, then
+  `/bl debug on` at once (a reload turns logging off) and stay a few minutes, ideally while a
+  guildmate uses the vault → no session window and no `[Store] GUILD_BANK opened` line in the
+  console. One with a `GUILD_BANK 0` baseline is the regression (issue #12). Result:
+- **CAPT-15. An uncached item is refused, not guessed.** Set Minimum quality to Rare. `/reload`,
+  `/bl debug on` (a reload turns logging off) and `/bl debug` to open the console, then at once move
+  something unusual from a bank tab you have not opened → a `[Skip]` line for it ending `(uncached)`,
+  and no row. Repeat the movement a few seconds later → judged properly: a row, or a `[Skip]` line
+  ending `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
 - **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
   gone. Result:
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
@@ -527,8 +535,10 @@ leaves its number unused.
 - **INS-16. Resize.** Resize the window → cards re-flow, bars and strips re-stretch, the Top Of The List
   columns stay side by side. Result:
 - **INS-17. Live update.** With Insights open, move something at a bank → it updates. Result:
-- **INS-18. Empty ledger.** After a purge (CAPT-17) → the cards read 0 and one centered "no movements"
-  line replaces every section. Result:
+- **INS-18. Empty ledger.** After a purge (CAPT-17) → the cards read 0 and one centered line replaces
+  every section: `No movements match your filters.` while any filter is set (Character: Current, the
+  default, counts), or `No bank movements recorded yet. Open your bank and move something.` on
+  Character: All with nothing else set. Result:
 
 ## FILT
 
@@ -553,7 +563,7 @@ leaves its number unused.
   typed in full with Enter and no pick → nothing added, the orange line reads `Several items are named
   '<name>' — pick one from the list, or use the id.`, the ranks stay listed. Result:
 - **FILT-8. A name not seen this session.** `/reload`, then with a recorded (or listed) item not in
-  your bags, type its exact name, Enter → added, perhaps after a gray `Looking up items…`. On a large,
+  your bags, type its exact name, Enter → added, perhaps after a gray `Looking up items...`. On a large,
   uncached ledger the first name after a `/reload` can take up to about ten seconds; later ones answer
   at once. Result:
 - **FILT-9. A name nothing knows is refused.** Type the exact name of a real item you have not carried
@@ -662,11 +672,14 @@ leaves its number unused.
 - **DIAG-18. The buffer cap.** With logging on, keep logging (moves, or repeated `/bl diagnostics`) past
   3000 → the counter pins at `3000 / 3000 lines`, the oldest lines scroll away, and Copy still opens
   without a hitch. Result:
-- **DIAG-19. A reset logs one line.** `/bl debug on`, open the console. `/bl set
-  settings.qualityThreshold 4`, `/bl set settings.rowHoverAlpha 0.3`, `/bl resetall` ▸ Yes → exactly one
-  `[Set] reset profile 'Default' to defaults (2 rows)` and no `[Set] settings.… = …` line under it.
-  `/bl resetall` ▸ Yes again → one `… (0 rows)` line. General's Defaults ▸ Yes → the same one line
-  (`debug-logging-§10`). `/bl debug off`. Result:
+- **DIAG-19. A reset logs one line.** With logging off, `/bl resetall` ▸ Yes first: earlier checks
+  leave settings off their defaults (Minimum quality, Session window), and the count takes in every
+  one. `/bl debug on`, `/bl debug` to open the console. `/bl set settings.qualityThreshold 4`,
+  `/bl set settings.rowHoverAlpha 0.3`, `/bl resetall` ▸ Yes → the console closes (a reset ends it,
+  PANEL-28); `/bl debug` reopens it on exactly one
+  `[Set] reset profile 'Default' to defaults (2 rows)` line and no `[Set] settings.… = …` line under
+  it. `/bl resetall` ▸ Yes again, `/bl debug` → one `… (0 rows)` line. General's Defaults ▸ Yes,
+  `/bl debug` → one more `… (0 rows)` line (`debug-logging-§10`). `/bl debug off`. Result:
 
 ## DEGRADED
 
@@ -774,20 +787,37 @@ pass runs, record this section as unrun, not as coverage.
 
 ## Pending sign-off
 
-Checks carried over from the pre-rework document (the `S-n` sections and steps as of commit
-`16398dd`) that the owner has not yet run in a client: the ones never run at all, and the ones whose
-expectations SP-BL-01 rewrote for profiles and have not been run in their current form.
+Checks with no recorded pass in their current form, by new ID with their origin in the pre-rework
+document (the `S-n` sections and steps as of commit `16398dd`). That document kept no `Result:`
+lines; its only run record was the NOT YET RUN marks on S-24 to S-27, so the rows below are those
+never-run checks, plus every check that is new or whose expectation was corrected against the code
+since: by SP-BL-01 for profiles, and by SP-BL-03 and its review fixes (SP-BL-03R). Sign one off on
+its own `Result:` line, then remove its row here.
 
 | ID | Origin | Why it is owed |
 |---|---|---|
+| INSTALL-2 | S-1 step 2, corrected by SP-BL-03 | The old step expected a hardcoded `[BL] v1.2.0`; it now expects the version the TOC's `## Version` line carries |
 | INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`). Its `[Migrate]` expectation could never pass in a client (logging is off when the ladder runs), so the evidence is now `[State]`, the file and a profile switch |
+| SLASH-3 | S-28 step 6, corrected by SP-BL-03R | While disabled, `/bl wibble` and `/bl perf` print the index with its refusal line under the header; the old wording ("not the refusal") read as no refusal line at all |
 | PANEL-11 | S-26 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 3, `M4-01`) |
+| PANEL-17 | S-20 steps 4–5, corrected by SP-BL-03R | The slider's box reads `2` and `1`; the old step expected `2.00` and `1.00` there |
+| PANEL-19 | S-12 step 3 and S-12b step 2, corrected by SP-BL-03R | Master alpha is a percent slider, so its box stops at `10%`; the old step expected `0.10` there |
 | PANEL-27 | S-12 step 3 and S-16 step 3 as rewritten by SP-BL-01 | The popup now says it resets this profile and leaves the others alone; master's doc expected the old wording |
 | PANEL-28 | S-12 step 3 and S-16 step 3 as rewritten by SP-BL-01 | Yes now keeps every History row; master's doc expected Yes to empty History, the opposite |
-| PANEL-29 | S-16 step 5 as rewritten by SP-BL-01 | History, Insights and the read-out now keep their rows; master's doc expected them to go empty, the opposite |
+| PANEL-29 | S-16 step 5 as rewritten by SP-BL-01, corrected by SP-BL-03R | History, Insights and the read-out now keep their rows (master's doc expected them to go empty, the opposite); the setup is now one a client can arrange, and the list-empties half is PANEL-31's alone |
+| PANEL-31 | S-20 steps 6–8, corrected by SP-BL-03R | Yes keeps the ledger, so the Database size line no longer changes; old step 6 expected it to update |
 | PROFILE-1 – 7, PROFILE-14 | S-30 steps 1–8 | Added with profile support (SP-BL-01, 2026-09-29); never run |
+| PROFILE-8 – 13 | New (the `/bl profile` verb, SP-BL-02) | Never run |
+| COMBAT-4 | S-15 step 8, corrected by SP-BL-03R | A click on the box in combat meets the settings combat lock (COMBAT-3), not the test-mode refusal, so the refusal is now read from `/bl test` and the box after combat |
+| CAPT-14 | S-17 step 14, corrected by SP-BL-03R | A `/reload` turns logging off, so the old order (`/bl debug on`, then `/reload`) could never show the `[Store]` line it watched for |
+| CAPT-15 | S-23 step 4, corrected by SP-BL-03R | The same: the `uncached` skip is logged only with logging on, which the `/reload` had turned off |
+| LEDG-19 | S-23 step 3, corrected by SP-BL-03 | The old step exported with `/bl export`, which is not a verb; the export now goes through the Export button |
 | LEDG-28 – 32, LEDG-36 | S-24 steps 1–7 (merged with S-10 steps 1–3, S-21 step 2) | S-24 was NOT YET RUN since the `CopyWindow` adoption |
+| INS-18 | S-9 step 18, corrected by SP-BL-03R | The empty state is one of two named lines, and Character: Current counts as a filter; the old "no movements" line matched neither |
+| FILT-8 | S-11 step 9, corrected by SP-BL-03R | The lookup line ends in three periods (`Looking up items...`); the old step had an ellipsis character |
 | SESS-10 | S-17 step 15 as rewritten by SP-BL-01 | Geometry now belongs to the profile; master's doc expected it to be account-wide |
-| DIAG-19 | S-20 step 9 as rewritten by SP-BL-01 | The line is now `[Set] reset profile 'Default' to defaults (N rows)`; master's doc expected `[Set] reset all: N rows` |
+| DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
+| DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
+| DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
 | LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |
