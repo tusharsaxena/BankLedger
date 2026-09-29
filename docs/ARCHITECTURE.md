@@ -93,7 +93,8 @@ subcategory, registered after General, with no Defaults button. AceDB's three pr
 reach **`NS.OnProfileEvent`** (`core/Database.lua`), the one adopt path: the migration runner, the
 enable latch, one `SettingsChanged("profile")` and one `LedgerChanged`, every setting's effect
 re-applied (window geometry and chrome, the saved view, visibility, the row tint, the retention
-prune), the panel refreshed, and exactly one debug line (`debug-logging-§10`). The global reset is
+prune, quiet when it removes nothing), the panel refreshed, and exactly one debug line for the act
+(`debug-logging-§10`); a prune that does remove history adds its own `[Prune]` line. The global reset is
 `db:ResetProfile()` (`options-ui-§12`, the "addon with both" form), so it is the same act as the
 Profiles page's Reset Profile and it never deletes history; `/bl purge` does that, separately
 confirmed. Detail in **[profiles.md](profiles.md)**.

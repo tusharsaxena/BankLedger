@@ -171,7 +171,9 @@ local function applyProfileEffects()
   if SW and SW.Bind then SW:Bind() end
   -- Retention is a setting like any other, and its effect is a prune of the SHARED ledger: the one
   -- the next login would run anyway, run now against the new profile's window (docs/profiles.md).
-  if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+  -- Quiet when it removes nothing: the act's one line is the handler's (debug-logging-§10), and a
+  -- prune that aged nothing out is no material effect. One that did remove rows still says so.
+  if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld(true) end
 end
 
 --- The session-only rows a profile reset cannot reach, ended BY NAME (options-ui-§12, §15). Neither
@@ -797,7 +799,11 @@ end
 
 -- Retention cleanup. Drops entries older than settings.retentionDays (0 == Always). Rebuild-and-swap
 -- avoids O(n^2) shifting and array holes. Fires LedgerChanged when it actually runs.
-function Database:PruneOld()
+-- `quietIfNone` drops the [Prune] trace when nothing was removed. The profile adopt path passes it
+-- (applyProfileEffects, above): there the act's one debug line is the handler's
+-- (debug-logging-§10), and "removed 0 entries" is no material effect. Login and a retention change
+-- keep the trace either way.
+function Database:PruneOld(quietIfNone)
   local days = NS.db.profile.settings.retentionDays
   if not days or days == 0 then return 0 end
   local cutoff = time() - days * 86400
@@ -812,7 +818,7 @@ function Database:PruneOld()
   -- change, and a LedgerChanged with nothing changed repaints both windows and the Insights
   -- charts for no reason. The `days == 0` early return above is the other half of the same rule.
   if removed > 0 then fireLedgerChanged() end
-  if NS.State.debug and NS.Debug then
+  if NS.State.debug and NS.Debug and not (quietIfNone and removed == 0) then
     NS.Debug("Prune", "retention %sd: removed %s entries", tostring(days), tostring(removed))
   end
   return removed

@@ -46,15 +46,26 @@ for each, in this order:
    decide what the History table, Insights, the session window and the Filters tab show.
 5. **Every setting's effect re-applied** (`applyProfileEffects`): both windows re-anchored from the
    new profile's geometry, the ledger window put on the new profile's saved view (or stock), master
-   scale, alpha and lock, visibility, the row tint, and the retention prune.
+   scale, alpha and lock, visibility, the row tint, and the retention prune. The prune runs quiet
+   when it removes nothing (`Database:PruneOld(true)`): a "removed 0 entries" line is no material
+   effect, and the act's line below is the only one it would sit beside.
 6. **The open panel refreshed** (`options-ui-§11`).
-7. **Exactly one debug line** (`debug-logging-§10`), worded by the event:
+7. **Exactly one debug line for the act** (`debug-logging-§10`), worded by the event:
    - a switch: `[Profile] switched to profile '<name>'` (no rows are rewritten, so it is not a
      `[Set]` line);
    - a copy: `[Set] copied profile '<source>' -> '<current>'`;
    - a reset: `[Set] reset profile '<name>' to defaults (N rows)`, N counted by
      `Sl:ResetEverything` before the reset; a reset from the Profiles page's own button logs the
      same line without the count.
+
+   Two kinds of line can sit beside it, and neither restates the act. When the retention prune
+   **does** remove history under the new profile's window, it adds its own
+   `[Prune] retention <N>d: removed <M> entries`: that is a material effect (`debug-logging-§10`
+   lets a reactor log one), since history went and the act's line cannot say so. And a view that is
+   built repaints, as it does on any setting change, logging its one-per-pass render summary
+   (`[Table] rendered …`, `[Insights] computed …`, `debug-logging-§9`). `tests/test_profiles.lua`
+   counts every other line under the shipped 30-day retention, so neither a no-op `[Prune]` nor a
+   per-row `[Set]` can come back unseen.
 
 No row's `onChange` runs on a profile event: AceDB replaces the whole profile, which is not a write
 through the seam. A setting whose effect is more than the bus message has to be in

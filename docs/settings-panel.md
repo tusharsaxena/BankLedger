@@ -266,7 +266,9 @@ and no migration, and the old path now answers `Setting not found`.
 per-installation display preference, like the angle they dragged the button to, so `launcher-§3`
 requires it to survive both *Reset all settings* and this page's own **Defaults** button — and both
 reached it here until the standard's v2.54.0 amendment. `NS.Schema.RESET_EXEMPT` names the row once
-and `S:ApplyDefault` honors it; the wholesale reset holds the `minimap` table across its wipe.
+and `S:ApplyDefault` honors it. The global reset needs nothing more: since schema v3 it is
+`db:ResetProfile()`, and the `minimap` table lives in `db.global`, which no profile event reaches
+(until then the reset emptied `db.global` wholesale and held the table across the wipe).
 A targeted `/bl reset minimap.shown` is not a sweep and still works. See
 [ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher).
 
@@ -314,7 +316,9 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
 implementation rather than two kept in step. That action is `P:RestoreDefaults()`, which only calls
 `NS.Slash:RequestResetAll()` — the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, the same one
 *Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
-nothing without the player's Yes, and Yes is the wholesale reset, recorded history included.
+nothing without the player's Yes, and Yes is the profile reset (`db:ResetProfile()`): the active
+profile's settings, both filter lists and saved view go back to their defaults, and the recorded
+ledger, which is account-wide, is kept. `/bl purge` is the act that deletes history.
 
 ## The General page's tabs and the Filters tab
 

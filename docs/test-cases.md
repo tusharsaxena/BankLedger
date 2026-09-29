@@ -1193,7 +1193,7 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
 
-### test_profiles.lua (21)
+### test_profiles.lua (23)
 
 - Profiles: the defaults split — the ledger and the minimap table are account-wide, everything configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1210,6 +1210,8 @@ badge and any count quoted in the docs must agree with it.
 - Profiles: a switch re-applies the master chrome and the stored geometry to a built window
 - Profiles: one profile event is one SettingsChanged and one LedgerChanged
 - Profiles: a switch logs exactly one [Profile] line naming the profile, and no [Set] line
+- Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and no no-op [Prune] line
+- Profiles: a profile event whose retention prune removes rows still reports them, as a material effect
 - Profiles: a copy logs one [Set] line naming both profiles, and takes the source's values
 - Profiles: AceDBOptions' own Reset Profile is the same act, and logs its line without a count
 - Profiles: AceDBOptions' own Reset Profile ends test mode and closes the debug console, as Reset all settings does
@@ -1310,9 +1312,9 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
-| test_profiles.lua | 21 |
+| test_profiles.lua | 23 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1125** |
+| **Total** | **1127** |

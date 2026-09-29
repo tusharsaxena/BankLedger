@@ -309,6 +309,87 @@ test("Profiles: a switch logs exactly one [Profile] line naming the profile, and
   assertEqual(#set, 0, "a switch wrote a [Set] line: " .. table.concat(set, "\n"))
 end)
 
+--- Run `fn` with the account-wide ledger swapped for `entries`, and put the suite's own back
+--- afterwards whatever happens. The adopt path runs the retention prune, so a test that keeps the
+--- shipped 30-day window must choose what that prune can see.
+local function withLedger(entries, fn)
+  local saved = NS.db.global.ledger
+  NS.db.global.ledger = entries
+  local ok, err = pcall(fn)
+  NS.db.global.ledger = saved
+  if not ok then error(err, 0) end
+end
+
+--- Every line in `lines` except the views' one-per-pass render summaries (debug-logging-§9): the
+--- History table's `[Table] rendered …` and the Insights `[Insights] computed …`. A profile event
+--- repaints the built views, exactly as any setting change does, and each pass is its own flow's
+--- one line; they are not the act's log, which is what debug-logging-§10 counts. Anything else --
+--- a [Prune], a per-row [Set], a second [Profile] -- stays in, so the count below is every line
+--- the act and its reactors wrote.
+local RENDER_PASS = { "[Table] rendered ", "[Insights] computed " }
+local function withoutRenderPasses(lines)
+  local out = {}
+  for _, line in ipairs(lines) do
+    local render = false
+    for _, tag in ipairs(RENDER_PASS) do
+      if line:find(tag, 1, true) then render = true; break end
+    end
+    if not render then out[#out + 1] = line end
+  end
+  return out
+end
+
+local function recentEntry(ts)
+  return { ts = ts, char = "A-R", kind = "ITEM", direction = "DEPOSIT", store = "BANK",
+    itemID = 2589, itemName = "Linen Cloth", quantity = 1 }
+end
+
+test("Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and no no-op [Prune] line", function()
+  -- debug-logging-§10: the act's line is the only one. The adopt path runs the retention prune, and
+  -- a prune that removes nothing is no material effect, so it must not add a [Prune] line. Counts
+  -- EVERY line, not one tag: the fixtures elsewhere set retentionDays = 0, which skips the prune.
+  -- red under: applyProfileEffects calling PruneOld without its quiet-if-none flag.
+  local now = T.mocks.__now
+  local switch, copy, reset
+  withLedger({ recentEntry(now) }, function()
+    withAltProfile({ qualityThreshold = 2 }, function()
+      assertEqual(NS.db.profile.settings.retentionDays, 30, "precondition: Default keeps 30 days")
+      switch = debugLines(function() NS.db:SetProfile("Alt") end)
+      assertEqual(NS.db.profile.settings.retentionDays, 30, "precondition: Alt keeps 30 days")
+      muted(function() NS.db:SetProfile("Default") end)
+      copy = debugLines(function() NS.db:CopyProfile("Alt") end)
+      reset = debugLines(function() NS.db:ResetProfile() end)
+    end)
+    assertEqual(#NS.db.global.ledger, 1, "a recent entry was pruned")
+  end)
+  switch, copy, reset = withoutRenderPasses(switch), withoutRenderPasses(copy), withoutRenderPasses(reset)
+  assertEqual(#switch, 1, "a switch wrote more than its line:\n" .. table.concat(switch, "\n"))
+  assertTrue(switch[1]:find("[Profile] switched to profile 'Alt'", 1, true) ~= nil, tostring(switch[1]))
+  assertEqual(#copy, 1, "a copy wrote more than its line:\n" .. table.concat(copy, "\n"))
+  assertTrue(copy[1]:find("copied profile 'Alt' -> 'Default'", 1, true) ~= nil, tostring(copy[1]))
+  assertEqual(#reset, 1, "a reset wrote more than its line:\n" .. table.concat(reset, "\n"))
+  assertTrue(reset[1]:find("reset profile 'Default' to defaults", 1, true) ~= nil, tostring(reset[1]))
+end)
+
+test("Profiles: a profile event whose retention prune removes rows still reports them, as a material effect", function()
+  -- debug-logging-§10 lets a reactor log a material effect the act's line cannot show: history that
+  -- aged out under the new profile's window. docs/profiles.md names this one extra [Prune] line.
+  -- red under: the adopt path silencing the prune outright, so history goes with no trace.
+  local now = T.mocks.__now
+  local lines
+  withLedger({ recentEntry(now), recentEntry(now - 60 * 86400) }, function()
+    withAltProfile({ retentionDays = 30 }, function()
+      lines = withoutRenderPasses(debugLines(function() NS.db:SetProfile("Alt") end))
+    end)
+    assertEqual(#NS.db.global.ledger, 1, "the 60-day-old entry was not aged out")
+  end)
+  assertEqual(#lines, 2, "expected the switch line and one prune line:\n" .. table.concat(lines, "\n"))
+  local prune = withTag(lines, "[Prune]")
+  assertEqual(#prune, 1, "no [Prune] line for the removed row:\n" .. table.concat(lines, "\n"))
+  assertTrue(prune[1]:find("removed 1 entries", 1, true) ~= nil, tostring(prune[1]))
+  assertEqual(#withTag(lines, "[Profile]"), 1, "the switch line is missing")
+end)
+
 test("Profiles: a copy logs one [Set] line naming both profiles, and takes the source's values", function()
   -- red under: the copy line carrying the active profile as its source (AceDB passes the SOURCE).
   local lines, q

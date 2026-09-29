@@ -215,7 +215,8 @@ compliance. It has no `Documented deviations` row.
   - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
     button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
   - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
-    from that row's `onChange` and once per session, five seconds after `PLAYER_ENTERING_WORLD`
+    from that row's `onChange`, on every profile event (`NS.OnProfileEvent`, quiet when it removes
+    nothing; [profiles.md](profiles.md)) and once per session, five seconds after `PLAYER_ENTERING_WORLD`
     (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. The session latch is set when
     the prune runs, so a disable inside those five seconds postpones it to the next
     `PLAYER_ENTERING_WORLD` rather than skipping it.
