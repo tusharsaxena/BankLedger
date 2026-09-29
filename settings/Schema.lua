@@ -819,6 +819,13 @@ NS.COMMANDS = {
   -- profile's settings go, the history stays, and it asks first — the way `purge` says its half.
   { "resetall", "Reset this profile's settings to defaults; history is kept (asks first)",
     function() NS.Slash:CliResetAll() end },
+  -- THE PROFILE VERB (LibKa0s-Slash-1.0 minor 17). The library owns what it does: bare lists the
+  -- profiles with the current one marked, a name (quotes stripped, case kept) switches to an
+  -- EXISTING profile, and an unknown name is refused and never created. The switch fires AceDB's
+  -- OnProfileChanged, so NS.OnProfileEvent (core/Database.lua) adopts it and writes its one
+  -- [Profile] line. Live while disabled: settings/Slash.lua adds it to the descriptor's liveVerbs.
+  { "profile",  NS.L["List profiles, or switch to one: profile <name>"],
+    function(rest) NS.Slash:CliProfile(rest) end },
   { "session",  "Toggle the banking-session window (sample data outside a bank)",
     function()
       if not NS.SessionWindow then return end

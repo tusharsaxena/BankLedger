@@ -346,5 +346,5 @@ test("diagnostics: the verb is one COMMANDS row, and no alias of it exists", fun
       "an alias of the report is registered: " .. cmd[1])
   end
   assertEqual(#rows, 1, "exactly one diagnostics row")
-  assertEqual(#NS.COMMANDS, 18, "the verb table grew from 17 to 18")
+  assertEqual(#NS.COMMANDS, 19, "the verb table grew from 18 to 19 (profile)")
 end)

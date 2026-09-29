@@ -575,7 +575,7 @@ end)
 
 local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
 local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug", "diagnostics",
-                     "get", "set", "list", "reset", "resetall" }
+                     "get", "set", "list", "reset", "resetall", "profile" }
 
 --- The collection's one refusal line (slash-commands-§7), matched by SHAPE rather than by its
 --- words: LibKa0s-Slash-1.0 builds it from lib.DISABLED_LINE_FORMAT, and a suite that hard-coded
@@ -601,8 +601,9 @@ local function entryFor(verb)
 end
 
 test("Slash: every registered verb is either a feature verb or on the LIVE list, never neither", function()
-  -- The two lists in this file are the standard's, spelled out; the live set itself is the
-  -- library's (lib.LIVE_VERBS, Slash minor 14), because this addon passes no `liveVerbs`. This case
+  -- The two lists in this file are the standard's, spelled out, plus the one host verb this addon
+  -- adds to the live set: `profile`. The live set itself is the descriptor's `liveVerbs`, which is
+  -- lib.LIVE_VERBS plus that one verb (settings/Slash.lua, Slash minor 17). This case
   -- is what makes them agree: a verb added to NS.COMMANDS and to neither list below reddens here
   -- rather than quietly inheriting whichever behavior it happened to get. `perf` is reserved but
   -- unregistered in this addon (the performance-§12 exemption), so it appears on neither list.

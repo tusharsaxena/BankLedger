@@ -819,3 +819,131 @@ test("Reset veto: the library's global reset over this descriptor ends the sessi
   assertFalse(testMode, "the reset left test mode on")
   assertEqual(left, 1, "the reset pruned recorded history")
 end)
+
+-- ── the /bl profile verb (LibKa0s-Slash-1.0 minor 17) ────────────────────────────────────────
+--
+-- The verb's behavior is the library's (Sl:CliProfile, tests/test_slash_profile.lua in LibKa0s).
+-- What is pinned here is this addon's wiring: the COMMANDS row, the descriptor's `profiles` store
+-- read at call time, that a switch reaches the adopt path above, and that nothing is ever created.
+
+--- Every chat line `fn` prints.
+local function captureChat(fn)
+  local out = {}
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) out[#out + 1] = msg end
+  local ok, err = pcall(fn)
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+  return out
+end
+
+local function joinedChat(out) return table.concat(out, "\n") end
+
+--- The number of stored profiles, for "nothing was created".
+local function profileCount()
+  local n = 0
+  for _ in pairs(NS.db.sv.profiles) do n = n + 1 end
+  return n
+end
+
+test("Profile verb: one COMMANDS row, after resetall, described through NS.L", function()
+  -- red under: a missing row, a second one, or the row moved away from the settings verbs.
+  local at, rows, resetallAt = nil, 0, nil
+  for i, cmd in ipairs(NS.COMMANDS) do
+    if cmd[1] == "profile" then at, rows = i, rows + 1 end
+    if cmd[1] == "resetall" then resetallAt = i end
+  end
+  assertEqual(rows, 1, "exactly one profile row")
+  assertEqual(at, resetallAt + 1, "the profile row sits right after resetall")
+  assertEqual(NS.COMMANDS[at][2], "List profiles, or switch to one: profile <name>")
+  assertEqual(type(NS.COMMANDS[at][3]), "function")
+end)
+
+test("Profile verb: bare /bl profile lists every profile, current marked, then the hint", function()
+  -- red under: no `profiles` field on the descriptor (the unavailable line), or a store read once
+  -- at load, before InitDB built NS.db.
+  withAltProfile({ retentionDays = 0 }, function()
+    local out = captureChat(function() NS.Slash:OnSlash("profile") end)
+    assertEqual(#out, 4, "the header, Alt, Default and the hint:\n" .. joinedChat(out))
+    for _, line in ipairs(out) do
+      assertTrue(line:find("|cff00ffff[BL]|r", 1, true) ~= nil, "untagged: " .. line)
+      assertFalse(line:match(":%s*$") ~= nil, "a line ends in a colon: " .. line)
+    end
+    assertTrue(out[1]:find("Profiles", 1, true) ~= nil, out[1])
+    assertTrue(out[2]:find("  Alt", 1, true) ~= nil and not out[2]:find("(current)", 1, true), out[2])
+    assertTrue(out[3]:find("  Default (current)", 1, true) ~= nil, out[3])
+    assertTrue(out[4]:find("/bl profile <name>", 1, true) ~= nil, out[4])
+  end)
+end)
+
+test("Profile verb: /bl profile <name> switches, and the adopt path runs", function()
+  -- red under: a row that does not reach cli:CliProfile, or a store that is not NS.db.
+  local lines
+  withAltProfile({ qualityThreshold = 4, retentionDays = 0 }, function()
+    local out
+    lines = debugLines(function()
+      out = captureChat(function() NS.Slash:OnSlash("profile Alt") end)
+    end)
+    assertEqual(NS.db:GetCurrentProfile(), "Alt", "the verb did not switch")
+    assertEqual(NS.Schema:Get("settings.qualityThreshold"), 4, "the switch did not reach the seam")
+    assertEqual(#out, 1, joinedChat(out))
+    assertTrue(out[1]:find("Switched to profile 'Alt'.", 1, true) ~= nil, out[1])
+  end)
+  local prof = withTag(lines, "[Profile]")
+  assertEqual(#prof, 1, "the adopt path's one line:\n" .. table.concat(lines, "\n"))
+  assertTrue(prof[1]:find("switched to profile 'Alt'", 1, true) ~= nil, prof[1])
+end)
+
+test("Profile verb: quotes are stripped, and case and inner spaces are kept", function()
+  -- red under: the host lower-casing or re-splitting `rest` before the library sees it.
+  local sv = NS.db.sv
+  sv.profiles["My Alt"] = { settings = { retentionDays = 0 } }
+  local ok, err = pcall(function()
+    captureChat(function() NS.Slash:OnSlash('profile "My Alt"') end)
+    assertEqual(NS.db:GetCurrentProfile(), "My Alt", "a quoted name with a space did not switch")
+    captureChat(function() NS.Slash:OnSlash("PROFILE 'Default'") end)
+    assertEqual(NS.db:GetCurrentProfile(), "Default", "single quotes, upper-case verb")
+  end)
+  muted(function()
+    if NS.db:GetCurrentProfile() ~= "Default" then NS.db:SetProfile("Default") end
+  end)
+  NS.db:DeleteProfile("My Alt")
+  if not ok then error(err, 0) end
+end)
+
+test("Profile verb: an unknown name is refused, suggests the near match, and creates nothing", function()
+  -- red under: routing the name straight to db:SetProfile, which creates what it is handed.
+  withAltProfile({ retentionDays = 0 }, function()
+    local before = profileCount()
+    local out = captureChat(function() NS.Slash:OnSlash("profile alt") end)
+    assertEqual(NS.db:GetCurrentProfile(), "Default", "an unknown name switched")
+    assertEqual(profileCount(), before, "an unknown name created a profile")
+    assertTrue(NS.db.sv.profiles.alt == nil, "the typo is now a stored profile")
+    local all = joinedChat(out)
+    assertTrue(all:find("No profile named 'alt'.", 1, true) ~= nil, all)
+    assertTrue(all:find("Did you mean 'Alt'?", 1, true) ~= nil, all)
+    assertTrue(all:find("Default (current)", 1, true) ~= nil, "the list follows the refusal: " .. all)
+  end)
+end)
+
+test("Profile verb: the current profile answers already-on, and switches nothing", function()
+  local lines = debugLines(function()
+    local out = captureChat(function() NS.Slash:OnSlash("profile Default") end)
+    assertEqual(#out, 1, joinedChat(out))
+    assertTrue(out[1]:find("Already on profile 'Default'.", 1, true) ~= nil, out[1])
+  end)
+  assertEqual(#withTag(lines, "[Profile]"), 0, "a no-op fired the adopt path")
+end)
+
+test("Profile verb: a switch in combat is refused", function()
+  -- red under: the verb switching mid-combat; the adopt path re-applies window geometry.
+  local savedLockdown = mocks.InCombatLockdown
+  mocks.InCombatLockdown = function() return true end
+  local ok, err = pcall(withAltProfile, { retentionDays = 0 }, function()
+    local out = captureChat(function() NS.Slash:OnSlash("profile Alt") end)
+    assertEqual(NS.db:GetCurrentProfile(), "Default", "switched in combat")
+    assertTrue(joinedChat(out):find("Can't switch profiles in combat.", 1, true) ~= nil, joinedChat(out))
+  end)
+  mocks.InCombatLockdown = savedLockdown
+  if not ok then error(err, 0) end
+end)

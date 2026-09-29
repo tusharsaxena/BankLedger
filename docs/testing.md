@@ -268,7 +268,8 @@ tests/
                            --   return of the retention window to db.global, the account-wide
                            --   window (D6), reads resolving against the profile, NS.OnProfileEvent
                            --   on a switch, a copy and a page-driven reset (and never a prune), the
-                           --   global reset's named veto; plus the Profiles page itself
+                           --   global reset's named veto; plus the Profiles page itself and
+                           --   the /bl profile verb (list, switch, quotes, unknown, combat)
   test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: left-click settings, the options
                            --   menu's four entries and the verb each runs (through
                            --   tests/menu_mock.lua, a fake MenuUtil), the folder-name

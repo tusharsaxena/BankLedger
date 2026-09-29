@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1141%2F1141_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1150%2F1150_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -72,7 +72,8 @@ back to defaults and keeps your history. Both ask before they do anything.
 
 Your settings live in a profile. Every character shares the one **Default** profile until you
 choose otherwise under Settings → AddOns → Ka0s Bank Ledger → **Profiles**, where you can give a
-character its own. The history is never part of a profile: every character on every profile reads and
+character its own. From chat, `/bl profile` lists your profiles and `/bl profile <name>` switches to
+one you already have. The history is never part of a profile: every character on every profile reads and
 writes the same ledger. **Keep history for** is shared the same way, so switching, copying or
 resetting a profile never deletes history.
 
@@ -104,7 +105,7 @@ and questing, never ends up in the book.
 | -------- | ------ |
 | Does it track what's in my bank right now? | No, and that is what a bag addon is for. This one keeps the record of what crossed in and out. |
 | Is my history shared between characters? | Yes. One account-wide ledger, so an alt's deposits and your withdrawals sit in the same list. |
-| Can one character use different settings? | Yes. Settings, the two filter lists and the saved view belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. The history stays shared whatever profile you are on. |
+| Can one character use different settings? | Yes. Settings, the two filter lists and the saved view belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. `/bl profile <name>` switches from chat. The history stays shared whatever profile you are on. |
 | Does it record currencies like Valorstones? | No. The book covers items and gold; currencies are deliberately out of scope. |
 | Will it see what other people put in the guild bank? | No. It only sees what your own character does. |
 | What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |

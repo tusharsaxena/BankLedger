@@ -256,6 +256,8 @@ test("LibKa0s-Slash: every user-visible string resolves to prose, not to its own
   assertProse(joinLines(chat(function() Sl:CliReset("") end)), "the reset usage line")
   assertProse(joinLines(chat(function() Sl:CliGet("nope.nope") end)), "the not-found line")
   assertProse(joinLines(chat(function() Sl:OnSlash("wibble") end)), "the unknown-command line")
+  assertProse(joinLines(chat(function() Sl:OnSlash("profile") end)), "the profile list")
+  assertProse(joinLines(chat(function() Sl:OnSlash("profile nope") end)), "the unknown-profile lines")
 end)
 
 test("LibKa0s-Slash degraded: the verbs that never needed the library still work", function()
@@ -271,20 +273,25 @@ test("LibKa0s-Slash degraded: the verbs that never needed the library still work
   ns.COMMANDS[#ns.COMMANDS] = nil
 end)
 
-test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out",
+test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS plus profile",
   function()
     -- settings/Slash.lua's library-absent dispatcher keeps its own copy of lib.LIVE_VERBS, because
     -- there is no library to read it from. A literal copy does not inherit a verb the library adds
-    -- (Slash minor 16 added `diagnostics`), so this case walks the LIVE library's set and proves
-    -- the degraded gate lets each one through while the addon is off.
+    -- (Slash minor 16 added `diagnostics`), so this case walks the LIVE library's set, plus the
+    -- host verb both arms add to it (`profile`, Slash minor 17), and proves the degraded gate lets
+    -- each one through while the addon is off.
     --
-    -- red under: a verb in lib.LIVE_VERBS that the degraded LIVE_VERBS table leaves out.
+    -- red under: a verb in lib.LIVE_VERBS, or `profile`, that the degraded LIVE_VERBS table leaves
+    -- out.
     assertTrue(slashlib ~= nil and type(slashlib.LIVE_VERBS) == "table", "no live set to compare with")
     local ns, m = loadDegraded()
     local savedDisabled = ns.IsDisabled
     ns.IsDisabled = function() return true end
+    local walk = {}
+    for i, verb in ipairs(slashlib.LIVE_VERBS) do walk[i] = verb end
+    walk[#walk + 1] = "profile"
     local ok, err = pcall(function()
-      for _, verb in ipairs(slashlib.LIVE_VERBS) do
+      for _, verb in ipairs(walk) do
         local reached = false
         table.insert(ns.COMMANDS, 1, { verb, "probe", function() reached = true end })
         local out = captureChat(function() ns.Slash:OnSlash(verb) end, m)
@@ -302,6 +309,33 @@ test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE
     ns.IsDisabled = savedDisabled
     if not ok then error(err, 0) end
   end)
+
+test("LibKa0s-Slash degraded: /bl profile says the library is missing, and switches nothing", function()
+  -- Route (b) of the degradation stub (Slash version-17 docs): with no library there is no store
+  -- adapter to trust, so both members print the one library-absent line and neither switches.
+  -- red under: a stub that calls db:SetProfile itself, raises, or prints nothing.
+  -- The degraded build's one-time missing-library notice may precede the first line printed, so
+  -- the count is of the profile line itself.
+  local LINE = "/bl profile is unavailable: the LibKa0s library did not load."
+  local function profileLines(out)
+    local n = 0
+    for _, line in ipairs(out) do
+      if line:find(LINE, 1, true) then n = n + 1 end
+      assertTrue(line:find("Switched", 1, true) == nil, "the stub claimed a switch: " .. line)
+    end
+    return n
+  end
+  local ns, m = loadDegraded()
+  assertTrue(m.LibStub("LibKa0s-Slash-1.0", true) == nil, "the library is present after all")
+  local current = ns.db and ns.db.GetCurrentProfile and ns.db:GetCurrentProfile()
+  local out = captureChat(function() ns.Slash:OnSlash("profile Alt") end, m)
+  assertEqual(profileLines(out), 1, joinLines(out))
+  local switched
+  out = captureChat(function() switched = ns.Slash:ProfileSwitch("Alt") end, m)
+  assertEqual(switched, false, "the stub's ProfileSwitch must answer false")
+  assertEqual(profileLines(out), 1, joinLines(out))
+  if current then assertEqual(ns.db:GetCurrentProfile(), current, "the stub switched the db") end
+end)
 
 test("LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does", function()
   -- The stub mirrors Slash minor 11 (slash-commands-§4): bare and whitespace-only input run the

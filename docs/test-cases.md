@@ -1045,7 +1045,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
 
-### test_libka0s_slash.lua (22)
+### test_libka0s_slash.lua (23)
 
 - LibKa0s-Slash: the vendored major registered and the CLI is running on it
 - LibKa0s-Slash: the module needs the minor that carries the format hook
@@ -1062,7 +1062,8 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
-- LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out
+- LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS plus profile
+- LibKa0s-Slash degraded: /bl profile says the library is missing, and switches nothing
 - LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
@@ -1107,7 +1108,7 @@ badge and any count quoted in the docs must agree with it.
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
 
-### test_disabled.lua (17)
+### test_disabled.lua (18)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1119,6 +1120,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
 - disabled: every reserved verb and the bare /bl still answer normally
 - disabled: both diagnostics forms reach RunDiagnostics, each once, with no refusal
+- disabled: /bl profile lists and switches, with no refusal (a host live verb)
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
 - disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
@@ -1193,7 +1195,7 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
 
-### test_profiles.lua (37)
+### test_profiles.lua (44)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1232,6 +1234,13 @@ badge and any count quoted in the docs must agree with it.
 - Reset veto: S.VetoedFromResetAll vetoes the Profiles page and every stored row, and passes the session-only rows
 - Reset veto: the Options descriptor passes it as skipRestoreAll, and the Profiles page keys itself by it
 - Reset veto: the library's global reset over this descriptor ends the session rows, resets the profile, and keeps the window and the history
+- Profile verb: one COMMANDS row, after resetall, described through NS.L
+- Profile verb: bare /bl profile lists every profile, current marked, then the hint
+- Profile verb: /bl profile <name> switches, and the adopt path runs
+- Profile verb: quotes are stripped, and case and inner spaces are kept
+- Profile verb: an unknown name is refused, suggests the near match, and creates nothing
+- Profile verb: the current profile answers already-on, and switches nothing
+- Profile verb: a switch in combat is refused
 
 ### test_eol.lua (2)
 
@@ -1315,20 +1324,20 @@ badge and any count quoted in the docs must agree with it.
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 44 |
-| test_libka0s_slash.lua | 22 |
+| test_libka0s_slash.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
-| test_disabled.lua | 17 |
+| test_disabled.lua | 18 |
 | test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
-| test_profiles.lua | 37 |
+| test_profiles.lua | 44 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1141** |
+| **Total** | **1150** |

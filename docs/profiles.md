@@ -34,8 +34,30 @@ addon behaves exactly as it did when the settings were account-wide.
 AceDBOptions' own control set: choose a profile, create one, copy another into the current one,
 delete one, and reset the current one. It is drawn by AceConfigDialog into an AceGUI group inside a
 canvas subcategory, registered after General so it is last in the tree, with **no Defaults button**.
-It is the only AceConfig use in the addon. No slash verb switches profiles today; this page is the
-control.
+It is the only AceConfig use in the addon. `/bl profile` (below) switches from chat.
+
+## The `/bl profile` verb
+
+`/bl profile` prints the profiles, sorted without regard to case, with the current one marked
+`(current)`, then a line saying how to switch. `/bl profile <name>` switches to that profile:
+
+- The name must be an **existing** profile, matched exactly, case included. One pair of surrounding
+  quotes is stripped and inner spaces are kept, so `/bl profile "My Alt"` works.
+- An unknown name is refused (`No profile named '<name>'.`), with `Did you mean '<name>'?` when one
+  stored profile matches it apart from case, then the list. **It is never created**: new profiles
+  are made on the Profiles page.
+- The current profile answers `Already on profile '<name>'.` and changes nothing.
+- A switch in combat is refused (`Can't switch profiles in combat.`); the list still answers.
+- It answers while the addon is disabled, so a player on a profile with *Enable Bank Ledger* off
+  can leave it by the verb (`slash-commands-§7`). Switching to a profile where the addon is on
+  stands it back up, through the adopt path below.
+
+The verb is `LibKa0s-Slash-1.0`'s `CliProfile` (minor 17), over the descriptor's
+`profiles = function() return NS.db end`. A switch is `db:SetProfile`, so it is the same act as
+choosing the profile on the page: `OnProfileChanged` reaches the adopt path, which writes the one
+`[Profile] switched to profile '<name>'` line. Without the LibKa0s library the verb prints
+`/bl profile is unavailable: the LibKa0s library did not load.` and switches nothing. Wiring in
+[slash-dispatch.md](slash-dispatch.md).
 
 ## One adopt path for every profile event
 
@@ -135,7 +157,10 @@ ignored, the tooltip says so), the adopt path (a switch re-reads settings, re-ca
 the latch, re-applies chrome and geometry, sends one message of each kind and logs one line; a copy
 and a page-driven reset log theirs; a reset from the page ends test mode and closes the console;
 no switch, copy, profile reset or global reset prunes history or moves the window), the reset veto
-(what it vetoes, its `skipRestoreAll` wiring, and the library's walk over it) and the Profiles
-page's registration. The reset's blast radius (`options-ui-§12`: the active profile only, the profile list,
+(what it vetoes, its `skipRestoreAll` wiring, and the library's walk over it), the Profiles
+page's registration and the `/bl profile` verb (the row, the list, a switch reaching the adopt
+path, quotes, an unknown name refused and never created, already-current, combat). The verb's
+disabled answer is pinned in `tests/test_disabled.lua` and its library-absent line in
+`tests/test_libka0s_slash.lua`. The reset's blast radius (`options-ui-§12`: the active profile only, the profile list,
 the other profiles and the ledger untouched) is pinned there too, and the reset routes in
 `tests/test_reset_routes.lua` and `tests/test_panel.lua`.

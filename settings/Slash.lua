@@ -168,12 +168,14 @@ end
 -- left, and renders the line from lib.DISABLED_LINE_FORMAT so eleven addons cannot each word it
 -- differently.
 --
--- NO `liveVerbs` IS PASSED, deliberately. That field NARROWS or WIDENS the live set, and this addon
--- wants neither: every reserved verb answers while disabled, and the bare `/bl` opens the settings
--- panel. An earlier pass against Slash minor 12 cut the disabled surface to `enable` and `help`;
--- standard v2.57.0 reversed that, minor 13 implemented the reversal and minor 14 stopped refusing a
--- reserved verb the host never registered, so the right host-side change is to pass nothing and let
--- the library's default set stand.
+-- `liveVerbs` IS lib.LIVE_VERBS PLUS `profile`, and nothing else. That field NARROWS or WIDENS the
+-- live set. This addon never narrows it: every reserved verb answers while disabled, and the bare
+-- `/bl` opens the settings panel. An earlier pass against Slash minor 12 cut the disabled surface to
+-- `enable` and `help`; standard v2.57.0 reversed that, minor 13 implemented the reversal and minor
+-- 14 stopped refusing a reserved verb the host never registered. It widens it by one host verb:
+-- `profile` (Slash minor 17) is not reserved, so the library leaves it out of its own set, and a
+-- player on a disabled profile must be able to leave it by the verb (slash-commands-§7). The
+-- reserved half is built from lib.LIVE_VERBS at load, so a verb the library adds still arrives.
 --
 -- WHAT THE GATE DOES NOT REACH. A TYPO is not refused: the gate sits AFTER the COMMANDS lookup, so
 -- a word this addon does not ship still gets `unknown command '<verb>'` and the index -- and from
@@ -188,6 +190,10 @@ end
 local function addonIsEnabled()
   return not (NS.IsDisabled and NS.IsDisabled())
 end
+
+-- The host verbs this addon adds to the reserved live set, on BOTH arms: the descriptor's
+-- `liveVerbs` below and the library-absent gate's copy read this one list.
+local HOST_LIVE_VERBS = { "profile" }
 
 --- THE ONE DOOR EVERY VERB COMES THROUGH, on both arms.
 ---
@@ -247,6 +253,15 @@ if not lib then
   function Sl:CliVersion() print("v" .. tostring(Sl:Version())) end
   function Sl:LandingRows() return { UNAVAILABLE } end
 
+  -- The profile verb on route (b) of the degradation stub (Slash version-17 docs): with no library
+  -- there is no store adapter to trust, so both members print the one library-absent line and
+  -- switch nothing. Both are here because the live arm publishes both, and NS.Slash parity holds
+  -- the two arms to one surface.
+  local PROFILE_UNAVAILABLE = NS.L["%s is unavailable: the LibKa0s library did not load."]
+    :format("/bl profile")
+  function Sl:CliProfile() print(PROFILE_UNAVAILABLE) end
+  function Sl:ProfileSwitch() print(PROFILE_UNAVAILABLE); return false end
+
   -- The one verb that must keep WORKING rather than merely explaining itself, because a reset that
   -- silently did nothing is worse than a missing help index. It needs no library: it is the same
   -- confirm-gated request as the live arm (options-ui-§12), whose OnAccept is the host's own
@@ -279,8 +294,9 @@ if not lib then
   end
 
   -- The gate, reproduced for this arm alone. The live set is the standard's thirteen reserved verbs,
-  -- which is lib.LIVE_VERBS written out: every one of them answers while the addon is off, because
-  -- a player must be able to read and repair settings and to reach the panel -- which is precisely
+  -- which is lib.LIVE_VERBS written out, plus HOST_LIVE_VERBS (`profile`), the same widening the
+  -- live arm's descriptor passes. Every one of them answers while the addon is off, because a
+  -- player must be able to read and repair settings and to reach the panel -- which is precisely
   -- when they are most likely to need to -- and `enable` above all, or the pair is one-way.
   -- `perf` is on the list although this addon registers no such verb (it holds the
   -- performance-§12 no-combat-path exemption), because the verb is RESERVED everywhere and arming
@@ -290,6 +306,7 @@ if not lib then
     debug = true, perf = true, diagnostics = true,
     get = true, set = true, list = true, reset = true, resetall = true,
   }
+  for _, verb in ipairs(HOST_LIVE_VERBS) do LIVE_VERBS[verb] = true end
 
   -- Dispatch still has to work, so this is the library's loop reproduced at its smallest, gate and
   -- all. `Dispatch`, not `OnSlash`: Sl:OnSlash is the one door, defined once above the branch.
@@ -342,6 +359,12 @@ local function formatValue(row, v)
   return nil   -- nil means "not mine" — the caller falls through to the library's own renderer
 end
 
+-- The descriptor's live set: the library's reserved verbs, then this addon's HOST_LIVE_VERBS. A
+-- copy, so the library's own table is never appended to.
+local liveVerbs = {}
+for i, verb in ipairs(lib.LIVE_VERBS) do liveVerbs[i] = verb end
+for _, verb in ipairs(HOST_LIVE_VERBS) do liveVerbs[#liveVerbs + 1] = verb end
+
 local cli = lib:New({
   slash        = "/bl",
   slashAliases = { "/bankledger" },
@@ -350,10 +373,16 @@ local cli = lib:New({
   -- THE DISABLED GATE (Slash minor 12, reversed to the twelve reserved verbs at minor 13, refusing
   -- only verbs the host ships from minor 14). Asked at
   -- dispatch time, never cached. `brandName` is required alongside it and is the plain-text brand
-  -- the LDB object already wears, spelled once in core/LauncherSetup.lua. No `liveVerbs`: see the
-  -- block above the dispatcher on why passing one would be the wrong half of the reversal.
+  -- the LDB object already wears, spelled once in core/LauncherSetup.lua. `liveVerbs` is the
+  -- reserved set plus `profile`: see the block above the dispatcher.
   isEnabled    = addonIsEnabled,
   brandName    = NS.BRAND_NAME,
+  liveVerbs    = liveVerbs,
+
+  -- The profile store for `/bl profile` (Slash minor 17), asked at CALL time: NS.db is built at
+  -- ADDON_LOADED, after this file runs. AceDB's own shape, so the library needs nothing adapted.
+  profiles     = function() return NS.db end,
+
   print        = function(line) print(line) end,
   version      = function() return Sl:Version() end,
 
@@ -422,6 +451,8 @@ function Sl:CliGet(rest) return cli:CliGet(rest) end
 function Sl:CliSet(rest) return cli:CliSet(rest) end
 function Sl:CliReset(rest) return cli:CliReset(rest) end
 function Sl:CliVersion() return cli:CliVersion() end
+function Sl:CliProfile(rest) return cli:CliProfile(rest) end
+function Sl:ProfileSwitch(name) return cli:ProfileSwitch(name) end
 
 -- The collection's one refusal wording, built by the library from lib.DISABLED_LINE_FORMAT. MUST NOT
 -- be re-spelled host-side. The launcher's descriptor read it as `disabledLine` until Launcher minor 4

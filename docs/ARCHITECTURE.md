@@ -203,10 +203,12 @@ gets no close event either.
 ## Slash Commands
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
-page read one table. Eighteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+page read one table. Nineteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
 seam. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
-prints the list (`slash-commands-§4`). Verb table and the host/library split in
-**[slash-dispatch.md](slash-dispatch.md)**.
+prints the list (`slash-commands-§4`). `/bl profile` lists the profiles, and `/bl profile <name>`
+switches to an existing one through the library's `CliProfile` (Slash minor 17); it stays live while
+the addon is disabled, because the descriptor's `liveVerbs` is `lib.LIVE_VERBS` plus `profile`.
+Verb table and the host/library split in **[slash-dispatch.md](slash-dispatch.md)**.
 
 ## The stand-down — what *disabled* means
 
@@ -385,11 +387,11 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 18 verbs in `NS.COMMANDS` (threshold is 8) |
+| `slash-dispatch.md` | Present | 19 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
-| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift and the v4 return of the window, the profile events and the reset |
+| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift and the v4 return of the window, the profile events, the reset and the `/bl profile` verb |
 | `debug.md` | Present | The diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned topic dumps, `/bl debug scan` and `/bl debug panel`; which to paste with a bug report |
 | `perf-analysis/README.md` | Not applicable | The `performance-§12` no-combat-path exemption is held — see `## Documented deviations` |
 

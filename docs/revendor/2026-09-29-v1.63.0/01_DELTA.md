@@ -53,7 +53,8 @@ asks.
 ## Majors this addon consumes
 
 Bus, Compat, Core, DebugLog, Env, Item, Launcher, Lifecycle, Media, Options, Perf, Pool, Schema, Slash,
-Widgets. The only one whose file moved is Slash (`settings/Slash.lua:220`).
+Widgets. The only one whose file moved is Slash (its one lookup, `LibStub("LibKa0s-Slash-1.0", true)` in
+`settings/Slash.lua`).
 
 ## Blockers (contract changes under an unchanged signature)
 
