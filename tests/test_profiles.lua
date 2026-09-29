@@ -249,8 +249,13 @@ end
 
 test("Migrate v4: a profile's retention window goes back to db.global, the Default profile's value winning", function()
   -- red under: a missing v4 (the window stays per profile and the row reads 30), a step that picks
-  -- Alt's value over Default's, or one that copies without clearing the profiles.
+  -- Alt's value over Default's, or one that copies without clearing the profiles, or one that
+  -- counts a key's PRESENCE in db.global as the player's choice (savedvariables-§1): real AceDB
+  -- copyDefaults rawsets the declared 30 into db.global.settings on first access, before v4 runs,
+  -- and the mock keeps scalar defaults behind __index, so the fixture writes that backfill itself.
+  -- A presence-only step would let the backfilled 30 win and silently undo a player's Always (0).
   local sv = preD6Store()
+  sv.global.settings = { retentionDays = 30 }
   withDb(sv, function(db)
     local n = NS.MIGRATIONS[4](db.global, db)
     db.global.schemaVersion = 4

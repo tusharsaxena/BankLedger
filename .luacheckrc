@@ -106,7 +106,7 @@ files["core/BankLedger.lua"] = {
 }
 
 -- Two receivers in one file, both forced. `NS:InitDB` and `NS:RunMigrations` are called as
--- `NS:InitDB()` from core/BankLedger.lua:36 and `NS:RunMigrations()` at :13 and from
+-- `NS:InitDB()` from core/BankLedger.lua:36 and `NS:RunMigrations()` at :14 and from
 -- NS.OnProfileEvent in the same file; the rest are the
 -- `Database` surface reached as `NS.Database:Ledger()`, `:Add()`, `:QueryList()` and so on from
 -- the modules and from six suites. Both bodies read the store through `NS.db`, which is where it
