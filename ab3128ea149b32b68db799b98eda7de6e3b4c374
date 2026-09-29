@@ -1,0 +1,1 @@
+OK SP-BL-01 profiles + v3 lift + v4 D6 repair verified: gate 1141/0 and luacheck 0/0, D6 holds (no profile event prunes, retention global), 18/19 mutants killed (survivor is an equivalent no-op), citations/badge/test-cases/CRLF consistent
