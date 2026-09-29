@@ -787,37 +787,92 @@ pass runs, record this section as unrun, not as coverage.
 
 ## Pending sign-off
 
-Checks with no recorded pass in their current form, by new ID with their origin in the pre-rework
-document (the `S-n` sections and steps as of commit `16398dd`). That document kept no `Result:`
-lines; its only run record was the NOT YET RUN marks on S-24 to S-27, so the rows below are those
-never-run checks, plus every check that is new or whose expectation was corrected against the code
-since: by SP-BL-01 for profiles, and by SP-BL-03 and its review fixes (SP-BL-03R). Sign one off on
-its own `Result:` line, then remove its row here.
+A check is listed here until a client run records a pass for it in its current form: every check new
+in the 2026-09-29 rework, every check whose expectation was corrected against the code (by SP-BL-01
+for profiles, and by SP-BL-03 and its review fixes, SP-BL-03R), and every check carried over from the
+pre-rework document (the `S-n` sections and steps as of commit `16398dd`) with no recorded pass. That
+document kept no `Result:` lines, and Session BL of the 2026-09-23 remediation's in-client checklist,
+which ends by walking this whole document, is still owed, so most checks are here. Sign one off on
+its own `Result:` line, then remove its ID from this table.
+
+Not listed, because a recorded pass covers them and the rework did not change what they expect:
+INSTALL-3 – 5 (S-1 steps 4 and 5 and the menu half of step 6, passed in the owner's minimap re-check
+of 2026-09-25 on the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
+DIAG-13 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
+BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
+Ka0sAddonsCommonTasks repository.
 
 | ID | Origin | Why it is owed |
 |---|---|---|
+| INSTALL-1 | S-1 steps 1 and 3, S-23 step 1 | No recorded result |
 | INSTALL-2 | S-1 step 2, corrected by SP-BL-03 | The old step expected a hardcoded `[BL] v1.2.0`; it now expects the version the TOC's `## Version` line carries |
+| INSTALL-6 | S-1 step 6 (the Test mode and Locked entries) | X1.4's pass recorded the menu opening, not these entries' chat lines; no recorded result |
+| INSTALL-7 | S-1 step 7 | No recorded result |
 | INSTALL-8 – 10 | S-25 steps 1–7 | Marked NOT YET RUN since the 2026-09-07 remediation (session 2, `M2-05`). Its `[Migrate]` expectation could never pass in a client (logging is off when the ladder runs), so the evidence is now `[State]`, the file and a profile switch |
+| SLASH-1 | S-12 step 1 | No recorded result |
+| SLASH-2 | S-12 steps 4–5 | No recorded result |
 | SLASH-3 | S-28 step 6, corrected by SP-BL-03R | While disabled, `/bl wibble` and `/bl perf` print the index with its refusal line under the header; the old wording ("not the refusal") read as no refusal line at all |
+| SLASH-4 | S-28 step 7 | No recorded result |
+| PANEL-1 | S-12 step 2 | No recorded result |
+| PANEL-2 | S-11 step 6, S-30 step 2 | No recorded result; the Profiles entry came with S-30 (SP-BL-01), which has never run |
+| PANEL-3 – 10, PANEL-15 | S-12 step 3 (PANEL-6 also S-23 step 2) | No recorded result |
 | PANEL-11 | S-26 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 3, `M4-01`) |
+| PANEL-12 | S-12 step 6 | No recorded result |
+| PANEL-13 | S-21 step 8 | No recorded result |
+| PANEL-14 | S-19 steps 1–4 | No recorded result |
+| PANEL-16 | S-7 step 4, S-20 step 3 | No recorded result |
 | PANEL-17 | S-20 steps 4–5, corrected by SP-BL-03R | The slider's box reads `2` and `1`; the old step expected `2.00` and `1.00` there |
+| PANEL-18 | S-12b step 1 | No recorded result |
 | PANEL-19 | S-12 step 3 and S-12b step 2, corrected by SP-BL-03R | Master alpha is a percent slider, so its box stops at `10%`; the old step expected `0.10` there |
+| PANEL-20 | S-12b step 4 | No recorded result |
+| PANEL-21 – 25 | S-12a steps 1–6 | No recorded result |
+| PANEL-26 | S-20 steps 1–2 | No recorded result |
 | PANEL-27 | S-12 step 3 and S-16 step 3 as rewritten by SP-BL-01 | The popup now says it resets this profile and leaves the others alone; master's doc expected the old wording |
 | PANEL-28 | S-12 step 3 and S-16 step 3 as rewritten by SP-BL-01 | Yes now keeps every History row; master's doc expected Yes to empty History, the opposite |
 | PANEL-29 | S-16 step 5 as rewritten by SP-BL-01, corrected by SP-BL-03R | History, Insights and the read-out now keep their rows (master's doc expected them to go empty, the opposite); the setup is now one a client can arrange, and the list-empties half is PANEL-31's alone |
+| PANEL-30 | S-16 step 4 | No recorded result |
 | PANEL-31 | S-20 steps 6–8, corrected by SP-BL-03R | Yes keeps the ledger, so the Database size line no longer changes; old step 6 expected it to update |
 | PROFILE-1 – 7, PROFILE-14 | S-30 steps 1–8 | Added with profile support (SP-BL-01, 2026-09-29); never run |
 | PROFILE-8 – 13 | New (the `/bl profile` verb, SP-BL-02) | Never run |
+| STATE-1 – 3, STATE-5, STATE-6 | S-28 steps 1–4, 8 and 9 | No recorded result |
+| STATE-4 | S-28 step 5 | X1.4's pass recorded the disabled left-click and right-click; the grayed menu entries have no recorded result |
+| STATE-7 | S-16 step 6 | Step BL.13 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
+| STATE-8, STATE-9 | S-12b steps 3 and 5 | No recorded result |
+| COMBAT-1 – 3 | S-13 steps 1–5 | No recorded result |
 | COMBAT-4 | S-15 step 8, corrected by SP-BL-03R | A click on the box in combat meets the settings combat lock (COMBAT-3), not the test-mode refusal, so the refusal is now read from `/bl test` and the box after combat |
+| COMBAT-5, COMBAT-6 | S-12b steps 6–7 | Step BL.15 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
+| COMBAT-7 | S-12b step 8 | No recorded result |
+| CAPT-1 – 8 | S-2, S-3, S-4 steps 1–3, S-5 steps 1–7 | No recorded result |
+| CAPT-9 | S-6 steps 1–2 | Step BL.17 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
+| CAPT-10, CAPT-11 | S-6 step 3 | No recorded result |
+| CAPT-12 | S-6 step 4 and S-17 step 13, corrected by SP-BL-03R | The `[Store] GUILD_BANK opened` line is logged only with logging on, and S-17 step 13 never turned it on (S-14 steps 6–7 had turned it off and reloaded), so the check now reopens the guild bank after `/bl debug on` |
+| CAPT-13 | S-6 step 5, S-17 step 13 | No recorded result |
 | CAPT-14 | S-17 step 14, corrected by SP-BL-03R | A `/reload` turns logging off, so the old order (`/bl debug on`, then `/reload`) could never show the `[Store]` line it watched for |
 | CAPT-15 | S-23 step 4, corrected by SP-BL-03R | The same: the `uncached` skip is logged only with logging on, which the `/reload` had turned off |
+| CAPT-16 | S-16 step 1 | Step BL.16 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
+| CAPT-17 | S-16 step 2 | No recorded result |
+| LEDG-1 – 3 | S-7 steps 1–3 | No recorded result |
+| LEDG-4 – 18 | S-8 steps 1–15 (LEDG-5 also S-4 step 4) | No recorded result |
 | LEDG-19 | S-23 step 3, corrected by SP-BL-03 | The old step exported with `/bl export`, which is not a verb; the export now goes through the Export button |
+| LEDG-20 – 27 | S-15 steps 1–7, 9 and 10 (LEDG-21 also S-8 steps 8 and 16) | No recorded result |
 | LEDG-28 – 32, LEDG-36 | S-24 steps 1–7 (merged with S-10 steps 1–3, S-21 step 2) | S-24 was NOT YET RUN since the `CopyWindow` adoption |
+| LEDG-33, LEDG-34 | S-10 steps 4–5 | No recorded result |
+| LEDG-35, LEDG-37 – 41 | S-21 steps 1–7 | No recorded result |
+| LEDG-42 – 46 | S-22 steps 1–5 | No recorded result |
+| INS-1 – 17 | S-9 steps 1–17 | No recorded result |
 | INS-18 | S-9 step 18, corrected by SP-BL-03R | The empty state is one of two named lines, and Character: Current counts as a filter; the old "no movements" line matched neither |
+| FILT-1 – 7 | S-11 steps 1–8 | No recorded result |
 | FILT-8 | S-11 step 9, corrected by SP-BL-03R | The lookup line ends in three periods (`Looking up items...`); the old step had an ellipsis character |
+| FILT-9 | S-11 step 10 | No recorded result |
+| FILT-10 – 14 | S-29 steps 1–7 and its closing note | No recorded result |
+| SESS-1 – 8 | S-17 steps 1–12 | No recorded result |
+| SESS-9 | S-17 step 13 | Step BL.17 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
 | SESS-10 | S-17 step 15 as rewritten by SP-BL-01 | Geometry now belongs to the profile; master's doc expected it to be account-wide |
+| SESS-11, SESS-12 | S-17 steps 16–17 | No recorded result |
+| DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
 | DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
+| DEGRADED-8 – 10 | S-21 step 9 | No recorded result |
 | LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
 | LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |
