@@ -1242,7 +1242,7 @@ badge and any count quoted in the docs must agree with it.
 - Profile verb: the current profile answers already-on, and switches nothing
 - Profile verb: a switch in combat is refused
 
-### test_debug_coverage.lua (16)
+### test_debug_coverage.lua (17)
 
 - debug: the stand-down and the stand-up each write one [State] line
 - debug: a stand-down inside the login prune window says the prune was postponed
@@ -1251,6 +1251,7 @@ badge and any count quoted in the docs must agree with it.
 - debug: a combat edge the addon does not react to writes nothing
 - debug: a refused ledger-window show names the visibility guard
 - debug: a session start with the session window switched off says why it did not show
+- debug: `/bl session` traces each outcome, naming the guard that holds the window shut
 - debug: test mode traces its start, its stop and a refused start
 - debug: the guild frame showing over an armed bank frame says the context was kept
 - debug: the [Init] summary carries the dependency tail
@@ -1355,9 +1356,9 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
 | test_profiles.lua | 44 |
-| test_debug_coverage.lua | 16 |
+| test_debug_coverage.lua | 17 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1166** |
+| **Total** | **1167** |

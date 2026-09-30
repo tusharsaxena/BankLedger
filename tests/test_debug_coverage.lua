@@ -214,6 +214,38 @@ test("debug: a session start with the session window switched off says why it di
     table.concat(lines, " | "))
 end)
 
+test("debug: `/bl session` traces each outcome, naming the guard that holds the window shut", function()
+  -- red under: SW:TogglePreview writing no line. A refusal (a real session is open) and a preview
+  -- that SW:Show holds shut both print a chat reply while nothing changes on screen, so the trace
+  -- must say which guard was the reason.
+  local SW = NS.SessionWindow
+  local savedActive, savedPreview = NS.State.sessionActive, SW.previewSession
+  local lines
+  local ok, err = pcall(function()
+    NS.State.sessionActive, SW.previewSession = false, false
+    withSettings({ showSessionWindow = false }, function()
+      lines = debugLines(function()
+        SW:TogglePreview()
+        SW:TogglePreview()
+      end)
+    end)
+    assertTrue(hasLine(lines, "[Session] preview on, window not shown: session window off"),
+      table.concat(lines, " | "))
+    assertTrue(hasLine(lines, "[Session] preview off"), table.concat(lines, " | "))
+    lines = debugLines(function() SW:TogglePreview(); SW:TogglePreview() end)
+    assertFalse(hasLine(lines, "window not shown"), table.concat(lines, " | "))
+    assertTrue(hasLine(lines, "[Session] preview on"), table.concat(lines, " | "))
+    NS.State.sessionActive = true
+    lines = debugLines(function() SW:TogglePreview() end)
+    assertTrue(hasLine(lines, "[Session] preview refused: a real session is open"),
+      table.concat(lines, " | "))
+  end)
+  NS.State.sessionActive, SW.previewSession = savedActive, savedPreview
+  NS.State.sessionEntries = {}
+  SW:Hide()
+  if not ok then error(err, 0) end
+end)
+
 test("debug: test mode traces its start, its stop and a refused start", function()
   -- red under: LT:SetTestMode writing no line. `/bl test` goes through no write seam, so without
   -- these the log cannot say that the rows a reporter saw were the sample ledger.

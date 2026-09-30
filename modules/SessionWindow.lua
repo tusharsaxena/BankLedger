@@ -230,18 +230,37 @@ function SW:BuildPreviewSession()
   return out
 end
 
+-- One [Session] line per `/bl session` outcome, naming the guard (debug-logging-§8 refusals and
+-- no-ops): the refusal while a real session is open, and a preview turned on that SW:Show then holds
+-- shut, which chat still reports as "sample on" with nothing on screen.
+local function tracePreview(outcome, held)
+  if not (NS.State.debug and NS.Debug) then return end
+  if outcome == nil then
+    NS.Debug("Session", "preview refused: a real session is open")
+  elseif outcome then
+    NS.Debug("Session", "preview on%s", held and (", window not shown: " .. held) or "")
+  else
+    NS.Debug("Session", "preview off")
+  end
+end
+
 -- Toggle a synthetic session so the window can be positioned on demand. A no-op refusal while a REAL
 -- session is open — that data is the point, and replacing it with placeholders would be a lie.
 function SW:TogglePreview()
-  if NS.State.sessionActive and not SW.previewSession then return nil end
+  if NS.State.sessionActive and not SW.previewSession then
+    tracePreview(nil)
+    return nil
+  end
   if SW.previewSession then
     SW.previewSession = false
     NS.State.sessionEntries = {}
     self:Hide()
+    tracePreview(false)
     return false
   end
   SW.previewSession = true
   NS.State.sessionEntries = self:BuildPreviewSession()
+  tracePreview(true, NS.State.debug and self:ShowRefusal() or nil)
   self:Show()
   return true
 end

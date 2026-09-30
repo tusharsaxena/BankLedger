@@ -45,7 +45,7 @@ it in". Both go out in one **Copy**.
 | `[Diff]` | `modules/Ledger.lua` | One line per store per reconcile pass, **change-gated**: the first pass after an open, every pass that found a movement, and any pass whose summary differs from the last one written for that store. The settle hold's two edges (`one-sided change: baseline held`, `held change settled after Ns`) and its timeout (`never settled; baseline re-anchored`) |
 | `[Skip]` | `modules/Ledger.lua` | One line per store per pass that the capture gate refused movements in, listing each as `<item id or gold> <direction> (<reason>)`: `disabled`, `kind`, `store`, `blacklist`, `quality` or `uncached` |
 | `[Move]` | `modules/Ledger.lua` | One line per store per pass that found movements: recorded and skipped counts |
-| `[Session]` | `modules/SessionWindow.lua` | A banking session started (with `window not shown: <guard>` when the session window stays shut) and ended (with its movement count) |
+| `[Session]` | `modules/SessionWindow.lua` | A banking session started (with `window not shown: <guard>` when the session window stays shut) and ended (with its movement count); each `/bl session` outcome: `preview on` (with `window not shown: <guard>` when the window is held shut), `preview off`, and `preview refused: a real session is open` |
 | `[UI]` | `modules/Browser.lua` | The ledger window shown or hidden, a tab switch, and a refused show (`window show refused: stood down` or `visibility <mode>`) |
 | `[Table]` | `modules/LedgerTable.lua`, `LedgerTable_TestMode.lua` | Each table render, one summary line; test mode on (with the sample row count), off, or refused (`in combat`, `visibility <mode>`) |
 | `[Insights]` | `modules/Insights.lua` | Each Insights recompute, one summary line |
