@@ -69,38 +69,55 @@ function addon:OnEnable()
   -- checkbox and the two verbs make, and it is how the setting survives a /reload — the latch
   -- itself persists nothing.
   NS.SetDisabledHold(not NS.EnabledStored())
+  -- A load in the disabled state IS a latch edge, but it fires while logging is off (the flag is
+  -- session-only), so the library's [Lifecycle] line for it is gated off. The resulting STATE is
+  -- held for the enable edge instead. Not when logging is already on: then the library's line
+  -- landed, and this would be the second line for one edge.
+  if NS.IsStoodDown() and not (NS.State and NS.State.debug) then
+    local holds = NS.Lifecycle and NS.Lifecycle:Holds() or { NS.HOLD_DISABLED }
+    NS.DebugAtEnable("State", "stood down at login (holds: %s)", table.concat(holds, ", "))
+  end
   -- The latch is born believing the addon is UP and fires a callback only on an edge, so a load in
   -- the enabled state produces no edge and nothing would be registered. This is the bring-up for
   -- that case, and it is guarded on the hold set rather than on the stored path so it can never
   -- stand up an addon a hold is holding down.
-  if not NS.IsStoodDown() then NS.StandUp() end
+  if not NS.IsStoodDown() then NS.StandUp(true) end
   -- No [Init] line here: the debug flag is session-only and off at login, so a boot-time summary
   -- would always be gated off and never render. It rides the DebugLog:SetEnabled seam instead,
   -- emitted when capture is actually enabled (debug-logging-§5/§8).
 end
 
--- ── THE LIFECYCLE'S OWN TRACE (debug-logging-§8, diagnosis) ──────────────────────────────────
+-- ── WHAT THE HOST ADDS TO THE LIFECYCLE'S TRACE (debug-logging-§8, diagnosis) ────────────────
 --
--- One line per edge, behind the gate. The latch prints nothing of its own (Lifecycle's one line is
--- PrintHolds, on request), so without these a log could not say whether the addon was running at
--- all when a movement went unrecorded. The stand-up line carries the event record's totals and the
--- names this client refused: NS.RegisterEventSafely swallows a refused registration by design, and
--- this line is where that caught error reaches the log, once per stand-up rather than once per name.
+-- THE EDGE LINE IS THE LIBRARY'S. Lifecycle minor 3 writes one `[Lifecycle] stood down: added
+-- <key> (holds: <set>)` / `stood up: released <key> (holds: none)` line per edge, through the
+-- descriptor's `debug` (core/LifecycleSetup.lua), before the callback below runs. This file used to
+-- write its own `[State] stood down (holds: …)` / `stood up: …` line for the same edge; that would
+-- now be the second line for one edge (debug-logging-§4, a host MUST NOT duplicate a library line),
+-- so what is left here is only what the library cannot know:
+--
+--   * `[State] events: N registered, M unavailable[: names]` after each stand-up. NS.RegisterEvent-
+--     Safely swallows a refused registration by design, and this line is where that caught error
+--     reaches the log, once per stand-up rather than once per name. The load-time bring-up in
+--     addon:OnEnable is not a latch edge and runs while logging is off, so it goes to the console's
+--     at-enable queue as `events at login: …` and lands when the player turns logging on.
+--   * `[State] login prune postponed` when a stand-down canceled an armed prune.
 local function debugOn() return NS.State and NS.State.debug and NS.Debug end
 
-local function traceStandUp()
-  if not debugOn() then return end
+local function traceEvents(atLogin)
+  -- At login the line is a STATE line, built now (the counts are what login registered) and held
+  -- by the queue until logging is on; on an edge it is an event, and built only behind the gate.
+  if not (atLogin or debugOn()) then return end
   local rec = NS.EventRecord
   local refused = #rec.unavailable > 0 and (": " .. table.concat(rec.unavailable, ", ")) or ""
-  NS.Debug("State", "stood up: %s events registered, %s unavailable%s",
+  local write = atLogin and NS.DebugAtEnable or NS.Debug
+  write("State", atLogin and "events at login: %s registered, %s unavailable%s"
+    or "events: %s registered, %s unavailable%s",
     tostring(#rec.registered), tostring(#rec.unavailable), refused)
 end
 
-local function traceStandDown(prunePostponed)
-  if not debugOn() then return end
-  local holds = NS.Lifecycle and NS.Lifecycle:Holds() or { NS.HOLD_DISABLED }
-  NS.Debug("State", "stood down (holds: %s)%s", table.concat(holds, ", "),
-    prunePostponed and "; login prune postponed" or "")
+local function tracePrunePostponed(prunePostponed)
+  if prunePostponed and debugOn() then NS.Debug("State", "login prune postponed") end
 end
 
 --- Bring the FEATURES up, from the settings AS THEY ARE NOW.
@@ -108,7 +125,7 @@ end
 --- Never from a snapshot taken on the way down (performance-§6): a setting can be changed while the
 --- addon is disabled, and each module's Enable re-reads what it needs, so the rebuilt registration
 --- set reflects the new value rather than the old one.
-function NS.StandUp()
+function NS.StandUp(atLogin)
   local self = NS.addon
   -- Through the one isolating helper (core/CoreSetup.lua), never a bare self:RegisterEvent: these
   -- three run BEFORE the module Enables below, so a raise here would abort all three of them.
@@ -123,7 +140,7 @@ function NS.StandUp()
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
   -- the main ledger window has ever been built.
   if NS.SessionWindow and NS.SessionWindow.Enable then NS.SessionWindow:Enable() end
-  traceStandUp()
+  traceEvents(atLogin)
 end
 
 -- ── THE STAND-DOWN (slash-commands-§7) ─────────────────────────────────────────────────────────
@@ -232,12 +249,14 @@ function NS.StandDown()
   --    it claims to be off.
   if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
   if NS.SessionWindow and NS.SessionWindow.Hide then NS.SessionWindow:Hide() end
-  traceStandDown(prunePostponed)
+  tracePrunePostponed(prunePostponed)
 end
 
 -- AceAddon's arm onto the same body. It can disable and re-enable an addon at any point in a
 -- session, and when it does the addon must end up in exactly the state the latch would produce.
 function addon:OnDisable()
+  -- Not a latch edge, so the library writes no line for it; this one says which arm ran the body.
+  if debugOn() then NS.Debug("State", "stood down: AceAddon OnDisable") end
   NS.StandDown()
 end
 

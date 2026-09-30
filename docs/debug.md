@@ -24,16 +24,31 @@ on them, and it is also what lets the report fold the scan in as a section.
 ## Coverage
 
 What the gated sink `NS.Debug` writes while `/bl debug on` is set, tag by tag
-(`debug-logging-§8`, and `§9` for what stays quiet). Every line is one event and every one is
-built behind the gate, so with logging off none of this costs a string. The trace answers "what
-did the addon do, and why did it not do something else"; the report above answers "what state was
-it in". Both go out in one **Copy**.
+(`debug-logging-§8`, and `§9` for what stays quiet). Every event line is built behind the gate, so
+with logging off none of it costs a string. The trace answers "what did the addon do, and why did
+it not do something else"; the report above answers "what state was it in". Both go out in one
+**Copy**.
+
+**Which tags are the library's.** From LibKa0s v1.65.0 four modules log what they decide through
+the host's sink, which `core/DebugLogSetup.lua` publishes as `NS.DebugSink` and every descriptor
+is handed as its `debug` field (`debug-logging-§4`): `[Cmd]` (Slash), `[Lifecycle]`, `[Cfg]`
+(the Options combat lock) and `[Launcher]`, plus `[Debug]` and `[Init]` from the console itself.
+The addon writes no line of its own for a refusal or an edge the library logs, so each is one line,
+not two (`tests/test_debug_library.lua`). Every other tag below is the addon's.
+
+**State lines at login.** The flag is off at every login (`debug-logging-§5`), so a line written at
+`OnEnable` through the gated sink never lands. The few that describe STATE (the Launcher's
+registration, the login's event record, a load in the disabled state) go through the console's
+at-enable queue (`NS.DebugAtEnable`, DebugLogGates 1) instead: built at load, held, and written
+once, right after `[Init]`, the first time logging is turned on. Those are the only lines built
+while logging is off.
 
 | Tag | Emitted by | When |
 |---|---|---|
 | `[Debug]` | the library | `logging enabled` / `logging disabled`, on each flip of the flag |
-| `[Init]` | the library, from `NS.InitSummary` (`core/Database.lua`) | Once, as logging is switched on: build, schema, profile, entry count, then the **dependency tail**: the bank-replacing addons loaded (`bank addons: none` or their names, from `NS.Diagnostics.LoadedBankAddons`) and the launcher (`registered`, `unregistered` when LibDBIcon or LibDataBroker is missing, `degraded` without LibKa0s) |
-| `[State]` | `NS.StandUp` / `NS.StandDown` (`core/BankLedger.lua`) | Each stand-up (`stood up: N events registered, M unavailable`, with the refused names) and each stand-down (`stood down (holds: …)`, plus `; login prune postponed` when the stand-down canceled an armed prune) |
+| `[Init]` | the library, from `NS.InitSummary` (`core/Database.lua`) | Once, as logging is switched on: build, schema, profile, entry count, then the **dependency tail**: the bank-replacing addons loaded (`bank addons: none` or their names, from `NS.Diagnostics.LoadedBankAddons`). The launcher's state is the `[Launcher]` line written right after it |
+| `[Lifecycle]` | the library (LibKa0s-Lifecycle-1.0), through `core/LifecycleSetup.lua` | Each stand-down and stand-up edge, before the addon's callback runs: `stood down: added disabled (holds: disabled)`, `stood up: released disabled (holds: none)`. A call that changes nothing writes nothing |
+| `[State]` | `NS.StandUp` / `NS.StandDown` / `addon:OnEnable` / `addon:OnDisable` (`core/BankLedger.lua`) | What only the addon knows about an edge: after each stand-up `events: N registered, M unavailable` (with the refused names); `login prune postponed` when a stand-down canceled an armed prune; `stood down: AceAddon OnDisable`. Held at login and written after `[Init]`: `events at login: …`, or `stood down at login (holds: …)` for a load in the disabled state |
 | `[Combat]` | `addon:OnCombatChanged` (`core/BankLedger.lua`) | A combat edge the addon reacted to: `entered` / `left`, the visibility rule, and how many windows the pass hid and re-showed. Under `always` with no test mode to end, an edge writes nothing |
 | `[Set]` | the schema write seam (LibKa0s-Schema-1.0); `NS.OnProfileEvent` (`core/Database.lua`) | Every settings write, `path = value`, once (`debug-logging-§10`); a profile reset or copy as one line |
 | `[Profile]` | `NS.OnProfileEvent` | A profile switch |
@@ -49,21 +64,23 @@ it in". Both go out in one **Copy**.
 | `[UI]` | `modules/Browser.lua` | The ledger window shown or hidden, a tab switch, and a refused show (`window show refused: stood down` or `visibility <mode>`) |
 | `[Table]` | `modules/LedgerTable.lua`, `LedgerTable_TestMode.lua` | Each table render, one summary line; test mode on (with the sample row count), off, or refused (`in combat`, `visibility <mode>`) |
 | `[Insights]` | `modules/Insights.lua` | Each Insights recompute, one summary line |
-| `[Launcher]` | LibKa0s-Launcher-1.0, through `core/LauncherSetup.lua` | Its own registration outcome and refusals (at login, so usually before logging is on) |
+| `[Launcher]` | the library (LibKa0s-Launcher-1.0), through `core/LauncherSetup.lua` | Its registration state (`registered`, `LibDataBroker-1.1 absent; no launcher`, `LibDBIcon-1.0 absent; broker plugin only`, no minimap table) through `debugAtEnable`: held at login and written once after `[Init]`. Its events (a raised accessor) through `debug` |
+| `[Cmd]` | the library (LibKa0s-Slash-1.0), through `settings/Slash.lua` | Each refusal the dispatcher decides, after its chat line: `refused <verb>[ <arg>]: <guard>`, for the disabled gate (`disabled`), an unknown verb, `get` / `set` / `reset` usage and not-found, a parse or write refusal, and the `profile` verb's unavailable, already-current, in-combat and unknown-profile refusals |
+| `[Cfg]` | the library (LibKa0s-Options-1.0), through `settings/OptionsSetup.lua` | The settings panel's combat lock: `<what> refused (in combat)` for a write, a Defaults or reset button, a toggle or a tab switch, once per text per combat; `register parked (in combat)` and its `register flushed (combat ended)` |
 
 **Quiet steady state (`debug-logging-§9`).** An open bank is a repeating path: every
 `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED`
 drives a reconcile pass, and so does the settle deadline. A pass that changes nothing it reports
-writes nothing: the `[Diff]` line is compared with the last one written for that store, and a
-match with no movement is dropped. The comparison is behind the gate too. The gate starts fresh on
-every open, so a visit always says what it first saw. The console's `(xN)` folding is not relied
+writes nothing: the `[Diff]` line goes through the console's change gate (`D.DebugChanged`, keyed
+per store), so a match with no movement is dropped. The comparison is behind the gate too. The gate
+starts fresh on every open, so a visit always says what it first saw, and the console re-arms it on
+**Clear** and when logging is turned on, so a cleared console is never silent about an open bank. The console's `(xN)` folding is not relied
 on. Every other line above is written by a user action or a state edge, not by a timer.
 
 **Deliberately not traced.**
 
-- **A refused slash verb or a refused schema write.** Both refusals belong to LibKa0s
-  (Slash and Schema), print their own chat line, and log nothing. While the addon is disabled the
-  `[State] stood down` line already explains every refused feature verb.
+- **A refused schema write from the panel.** It belongs to LibKa0s-Schema, which prints its own
+  chat line and logs nothing; the same refusal through `/bl set` is the library's `[Cmd]` line.
 - **Guild-bank data arriving away from a bank.** `GUILDBANKBAGSLOTS_CHANGED` fires on login sync and
   on every guildmate's deposit; declining to arm on it is a high-frequency no-op, and a line per
   event would be the spam `§9` forbids. The absence of a `[Store] GUILD_BANK opened` line is the
@@ -71,9 +88,10 @@ on. Every other line above is written by a user action or a state edge, not by a
 - **Named non-setting state.** Window geometry, the saved view and the remembered tab are written
   outside the seam and are not logged per change (`debug-logging-§10`'s SHOULD NOT); a saved or
   reset view prints its own chat line.
-- **Lines at login.** The flag is off at every login (`debug-logging-§5`), so a migration, the first
-  stand-up and the login prune run before anything can be logged. The report's `state` section
-  carries what they left behind: the schema version, the stand-down state, and whether the prune ran.
+- **Events at login.** The flag is off at every login (`debug-logging-§5`), so a migration and the
+  login prune run before anything can be logged, and they are events, not state, so the at-enable
+  queue does not hold them. The report's `state` section carries what they left behind: the schema
+  version and whether the prune ran.
 
 ## The raw-append rule
 

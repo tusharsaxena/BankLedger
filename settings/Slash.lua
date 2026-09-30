@@ -386,6 +386,13 @@ local cli = lib:New({
   print        = function(line) print(line) end,
   version      = function() return Sl:Version() end,
 
+  -- The host's gated sink (Slash minor 18, debug-logging-§4). Every refusal the dispatcher decides
+  -- -- the disabled gate, an unknown verb, get/set/reset usage and not-found, a parse or write
+  -- refusal, the profile verb's four -- writes ONE `[Cmd] refused <verb>: <guard>` line after its
+  -- chat line. The library writes it, so nothing host-side logs or matches a refusal. With logging
+  -- off it writes nothing and costs no string.
+  debug        = NS.DebugSink,
+
   -- The schema seam. Every one of these is the SINGLE write/read path the settings panel already
   -- uses, so a slash change and a panel change take the same route: same validation, same debug
   -- trace, same onChange reaction.

@@ -56,6 +56,11 @@ if Lifecycle then
     standDown = function() NS.StandDown() end,
     standUp   = function() NS.StandUp() end,
     print     = function(line) NS.Print(line) end,
+    -- The host's gated sink (Lifecycle minor 3, debug-logging-§4): each stand-down and stand-up
+    -- EDGE writes one `[Lifecycle] stood down: added <key> (holds: <set>)` or `stood up: released
+    -- <key> (holds: none)` line before the callback runs, and a call that changes nothing writes
+    -- nothing. The edge line is the library's, so NS.StandDown / NS.StandUp write none of their own.
+    debug     = NS.DebugSink,
   })
 end
 
