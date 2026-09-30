@@ -159,9 +159,15 @@ this refusal line while disabled; that refusal and the `disabledLine` field that
   switches. It is asked at call time, because `NS.db` is built at `ADDON_LOADED`, after this file
   runs. A switch calls `NS.db:SetProfile`, and AceDB's `OnProfileChanged` reaches
   `NS.OnProfileEvent`, which adopts the profile and writes the one `[Profile]` line; the library
-  logs nothing. `Sl:CliProfile` and `Sl:ProfileSwitch` forward to the instance. The library-absent
+  logs nothing for a switch, only for a refusal (next bullet). `Sl:CliProfile` and `Sl:ProfileSwitch` forward to the instance. The library-absent
   arm carries both members, and each prints
   `/bl profile is unavailable: the LibKa0s library did not load.` and switches nothing.
+- **`debug = NS.DebugSink`** (Slash minor 18, `debug-logging-§4`), the host's gated sink. Every
+  refusal the dispatcher decides writes one `[Cmd] refused <verb>[ <arg>]: <guard>` line after its
+  unchanged chat line: the disabled gate, an unknown verb, `get` / `set` / `reset` usage and
+  not-found, a parse or write refusal, and the `profile` verb's four. The line is the library's, so
+  nothing host-side logs or matches a refusal ([debug.md](debug.md#coverage)); the degraded arm has
+  no console and writes none.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
 landing page both read from that one table.

@@ -23,7 +23,7 @@ leaves its number unused.
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 12 | Session window | The Current Banking Session window at every store |
-| DIAG-1 – 29 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on |
+| DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -620,7 +620,9 @@ leaves its number unused.
 
 - **DIAG-1. The console opens.** `/bl debug` → the console, header **Debug: OFF** in red. Result:
 - **DIAG-2. Logging on.** `/bl debug on` → a green ON ack, `[Debug] logging enabled` and an `[Init]`
-  summary naming the build, schema and profile, ending `bank addons: …, launcher registered`. Result:
+  summary naming the build, schema and profile, ending `bank addons: …` (no launcher fact), then
+  `[Launcher] registered` and `[State] events at login: N registered, 0 unavailable`, each once.
+  `/bl debug off`, `/bl debug on` → neither of those two lines comes back. Result:
 - **DIAG-3. One summary per pass.** Move something at your bank → one `[Move]` summary line per pass,
   not one per item. Result:
 - **DIAG-4. Scroll and counter.** The scrollbar follows the wheel both ways; the counter reads
@@ -703,9 +705,7 @@ leaves its number unused.
   a minute, opening and closing a bag or two → after the `[Store] BANK_FRAME opened` line and one
   `[Diff]` line per store, nothing more, however many passes ran. A pass that repeats an identical
   `[Diff]` line (or folds it into `(x2)`) is the regression ([debug.md](debug.md#coverage)). Result:
-- **DIAG-26. The edges are in the log.** With logging on, untick and re-tick Enable Bank Ledger →
-  one `[State] stood down (holds: disabled)` line and one `[State] stood up: N events registered, 0
-  unavailable` line. Set General visibility to Only out of combat with the ledger window open, pull a
+- **DIAG-26. The combat edges are in the log.** With logging on, set General visibility to Only out of combat with the ledger window open, pull a
   training dummy → `[Combat] entered: visibility outOfCombat, hid 1, re-showed 0`; leave combat → the
   window is back and a `[Combat] left: … re-showed 1` line. Put visibility back to Always. Result:
 - **DIAG-27. A refusal names its guard.** With logging on and General visibility on Never,
@@ -723,6 +723,17 @@ leaves its number unused.
   report and no second `[Debug] logging enabled` line. `/bl debug off`, then `/bl diagnostics` →
   logging is on again, the same way. `/reload`, `/bl debug` → Debug: OFF: the report turned logging
   on for that session only. Result:
+- **DIAG-30. A slash refusal shows in the console.** `/bl debug on`, `/bl debug`, then `/bl
+  frobnicate` → chat says `unknown command 'frobnicate'` as before, and the console has one `[Cmd]
+  refused frobnicate: unknown verb` line. Untick Enable Bank Ledger, `/bl show` → chat has the
+  disabled line, the console one `[Cmd] refused show: disabled` line and no second line repeating
+  it. Re-tick Enable Bank Ledger. Result:
+- **DIAG-31. A Lifecycle edge shows in the console, once.** With logging on, untick and re-tick
+  Enable Bank Ledger → one `[Lifecycle] stood down: added disabled (holds: disabled)` line, then
+  one `[Lifecycle] stood up: released disabled (holds: none)` line followed by `[State] events: N
+  registered, 0 unavailable`; no `[State] stood down` or `[State] stood up` line beside them. Now
+  untick Enable Bank Ledger, `/reload`, `/bl debug on` → after `[Init]`, one `[State] stood down at
+  login (holds: disabled)` line. Re-tick Enable Bank Ledger. Result:
 
 ## DEGRADED
 
@@ -917,12 +928,13 @@ Ka0sAddonsCommonTasks repository.
 | SESS-9 | S-17 step 13 | Step BL.17 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
 | SESS-10 | S-17 step 15 as rewritten by SP-BL-01 | Geometry now belongs to the profile; master's doc expected it to be account-wide |
 | SESS-11, SESS-12 | S-17 steps 16–17 | No recorded result |
-| DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps |
+| DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps. DIAG-2 corrected by DG-BL-01: the `[Init]` tail no longer names the launcher; the Launcher's own line and the login's event record follow it (LibKa0s v1.65.0) |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
 | DIAG-20 – 24 | New (resizable console and copy windows, DL-BL-01, LibKa0s v1.64.0) | Never run |
-| DIAG-25 – 27 | New (debug coverage, DL-BL-02) | Never run |
+| DIAG-25 – 27 | New (debug coverage, DL-BL-02); DIAG-26's stand-down/stand-up half moved to DIAG-31 by DG-BL-01 | Never run |
 | DIAG-13 | S-14 steps 14–17, corrected by DL-BL-03 | The report now turns logging on for the session (`debug-logging-§14`), so the header no longer reads Debug: OFF after it and a later move logs; the 2026-09-26 pass recorded the old expectation |
 | DIAG-28 – 29 | New (the Diagnostics link, and diagnostics turning logging on, DL-BL-03, LibKa0s v1.64.0) | Never run |
+| DIAG-30 – 31 | New (the library's own `[Cmd]` and `[Lifecycle]` lines, DG-BL-01, LibKa0s v1.65.0) | Never run |
 | DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the first `/bl show` prints the filter-bar line; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |
