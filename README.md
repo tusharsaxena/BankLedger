@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1150%2F1150_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1168%2F1168_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -43,27 +43,27 @@ tab, fills it with a sample. It turns itself off when you enter combat.
 
 You don't have to do anything to start recording. A first visit to the bank goes like this.
 
-1. Go to a bank. Open your character bank, the warband bank or your guild bank and move something
-   in or out. **Current Banking Session** opens alongside and lists each movement as you make it,
-   then closes when the bank does. It's only a view, and everything in it lands in your history
-   too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
-2. Open the ledger. Type `/bl show`, or tick **Show window** in the minimap button's right-click
-   menu. It opens on the History tab, one line per movement with the newest at the top, and it only
-   shows the character you're logged in as until you pick All. `/bl hide`, Escape or the X closes
-   it.
-3. Narrow it down. The bar above the table has a search box for item names and dropdowns for date,
-   direction, store, quality, type, sub-type and character. The Group dropdown folds rows into
-   blocks you can collapse, and a click on any column header sorts by it. **Save** keeps the view
-   as the one the window opens on. **Clear** brings you back to it, and **Reset** goes back to
-   stock.
-4. Act on a row. Hover it for the item's tooltip, or shift-click it to drop the item into chat.
-   Right-click gives you a menu to link it, delete that one line, or blacklist or whitelist the
-   item. The two lists only decide what gets recorded from now on, and what's already in the book
-   stays put.
-5. Look at the totals. The Insights tab turns whatever you've filtered into headline figures and
-   charts, so the two tabs always describe the same rows. **Export** hands you either tab as CSV,
-   all of it or just the current view, in a box you copy with Ctrl+C. History rows carry a Wowhead
-   link to the exact item.
+- Go to a bank. Open your character bank, the warband bank or your guild bank and move something
+  in or out. **Current Banking Session** opens alongside and lists each movement as you make it,
+  then closes when the bank does. It's only a view, and everything in it lands in your history
+  too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
+- Open the ledger. Type `/bl show`, or tick **Show window** in the minimap button's right-click
+  menu. It opens on the History tab, one line per movement with the newest at the top, and it only
+  shows the character you're logged in as until you pick All. `/bl hide`, Escape or the X closes
+  it.
+- Narrow it down. The bar above the table has a search box for item names and dropdowns for date,
+  direction, store, quality, type, sub-type and character. The Group dropdown folds rows into
+  blocks you can collapse, and a click on any column header sorts by it. **Save** keeps the view
+  as the one the window opens on. **Clear** brings you back to it, and **Reset** goes back to
+  stock.
+- Act on a row. Hover it for the item's tooltip, or shift-click it to drop the item into chat.
+  Right-click gives you a menu to link it, delete that one line, or blacklist or whitelist the
+  item. The two lists only decide what gets recorded from now on, and what's already in the book
+  stays put.
+- Look at the totals. The Insights tab turns whatever you've filtered into headline figures and
+  charts, so the two tabs always describe the same rows. **Export** hands you either tab as CSV,
+  all of it or just the current view, in a box you copy with Ctrl+C. History rows carry a Wowhead
+  link to the exact item.
 
 Movements older than 30 days are dropped at login, and **Keep history for** on the settings'
 History tab changes that. `/bl purge` deletes your history and leaves your settings alone.
@@ -86,15 +86,15 @@ The game never announces "you deposited this", so the addon works it out by watc
 does give an addon is a read of every bag and bank slot, plus an event each time one of them
 changes. The whole ledger is built from those two.
 
-1. When you open a bank, it takes a private snapshot of your bags and of that bank's contents.
-2. Every time something changes, it takes a fresh snapshot and compares the two.
-3. If an item's count went **down in your bags** and **up in the bank**, that is a deposit. The
-   other way round is a withdrawal.
-4. If something changed on only one side (say you looted an item into your bags while the bank
-   happened to be open), nothing is recorded, because nothing crossed between the two.
-5. Gold works the same way, but only at the guild bank and the warband bank. Those are the only two
-   with a gold slot, so a change in your money anywhere else came from something that was not a
-   deposit.
+- When you open a bank, it takes a private snapshot of your bags and of that bank's contents.
+- Every time something changes, it takes a fresh snapshot and compares the two.
+- If an item's count went **down in your bags** and **up in the bank**, that is a deposit. The
+  other way round is a withdrawal.
+- If something changed on only one side (say you looted an item into your bags while the bank
+  happened to be open), nothing is recorded, because nothing crossed between the two.
+- Gold works the same way, but only at the guild bank and the warband bank. Those are the only two
+  with a gold slot, so a change in your money anywhere else came from something that was not a
+  deposit.
 
 While every bank window is closed, the addon watches nothing. Ordinary play, looting and vendoring
 and questing, never ends up in the book.
@@ -130,9 +130,9 @@ and questing, never ends up in the book.
 
 ## Reporting a bug
 
-1. Type `/bl debug on` and reproduce the bug.
-2. Type `/bl diagnostics`.
-3. If the debug window isn't open, open it with `/bl debug`. Press **Copy**, copy the entire output, and include it with your bug report.
+- Type `/bl debug on` and reproduce the bug.
+- Type `/bl diagnostics`.
+- If the debug window isn't open, open it with `/bl debug`. Press **Copy**, copy the entire output, and include it with your bug report.
 
 The report is added after the debug trace in the same window, so one copy carries both.
 

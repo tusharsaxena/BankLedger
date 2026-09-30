@@ -1191,7 +1191,7 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: a bank-replacing addon that is loaded is named
 - diagnostics: a raising section costs exactly one line and the next section runs
 - diagnostics: an over-cap report ends in the truncated line, then the end marker
-- diagnostics: the report leaves the debug flag exactly as it found it
+- diagnostics: the report turns logging on for the session and never turns it off
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
 
@@ -1242,6 +1242,26 @@ badge and any count quoted in the docs must agree with it.
 - Profile verb: the current profile answers already-on, and switches nothing
 - Profile verb: a switch in combat is refused
 
+### test_debug_coverage.lua (17)
+
+- debug: the stand-down and the stand-up each write one [State] line
+- debug: a stand-down inside the login prune window says the prune was postponed
+- debug: a retention window of Always still writes the prune's one line
+- debug: a combat edge under a combat-bound visibility rule writes one [Combat] line
+- debug: a combat edge the addon does not react to writes nothing
+- debug: a refused ledger-window show names the visibility guard
+- debug: a session start with the session window switched off says why it did not show
+- debug: `/bl session` traces each outcome, naming the guard that holds the window shut
+- debug: test mode traces its start, its stop and a refused start
+- debug: the guild frame showing over an armed bank frame says the context was kept
+- debug: the [Init] summary carries the dependency tail
+- debug: a one-sided change writes one hold line, and its settling writes the flush
+- debug: a close that drops a held change says so
+- debug: reconcile passes that change nothing write nothing after the first
+- debug: a pass that records a movement still writes its [Diff] and [Move] lines
+- debug: a pass that skips several movements writes one [Skip] line naming each
+- debug: the [Diff] gate starts fresh on every open
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1281,13 +1301,15 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
-### test_diagnostics_contract.lua (7)
+### test_diagnostics_contract.lua (9)
 
 - diagnostics contract: both forms run the report
 - diagnostics contract: the debug word is matched in any case
 - diagnostics contract: both markers carry the brand and the end counts the report
 - diagnostics contract: the report appends after what the console already holds
-- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: the report lands with logging off and turns it on for the session
+- diagnostics contract: an addon that opts out lands the report and leaves logging off (skipped: this addon keeps the default (Kit.diagnostics.enablesLogging is not false), so its report turns logging on; the case above holds it)
+- diagnostics contract: with logging already on, the report writes no second enable line
 - diagnostics contract: both forms run while the addon is disabled
 - diagnostics contract: no other name runs the report
 
@@ -1336,8 +1358,9 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
 | test_profiles.lua | 44 |
+| test_debug_coverage.lua | 17 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 7 |
-| **Total** | **1150** |
+| test_diagnostics_contract.lua | 9 |
+| **Total** | **1169** |

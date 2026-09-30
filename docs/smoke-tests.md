@@ -23,7 +23,7 @@ leaves its number unused.
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 12 | Session window | The Current Banking Session window at every store |
-| DIAG-1 – 19 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report |
+| DIAG-1 – 29 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on |
 | DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -33,7 +33,7 @@ leaves its number unused.
 - A character with a character bank, the warband bank and a guild bank it can deposit to, some gold,
   and a few movements already recorded (so History, Insights and the session window have rows).
 - A training dummy nearby for the COMBAT checks and the combat halves of others.
-- A second Ka0s addon installed, for DIAG-11 and PANEL-4 (Ka0s Loot History for PANEL-4).
+- A second Ka0s addon installed, for DIAG-11, DIAG-24 and PANEL-4 (Ka0s Loot History for PANEL-4).
 - Back up `WTF/` before INSTALL-8 and PROFILE-14: both edit or replace a real SavedVariables file.
 - For DEGRADED, first run `/bl list` on the healthy install and keep the output for DEGRADED-11. Then
   quit the game and rename `Interface/AddOns/BankLedger/libs/LibKa0s` to `libs/LibKa0s.off`;
@@ -361,9 +361,9 @@ leaves its number unused.
   console. One with a `GUILD_BANK 0` baseline is the regression (issue #12). Result:
 - **CAPT-15. An uncached item is refused, not guessed.** Set Minimum quality to Rare. `/reload`,
   `/bl debug on` (a reload turns logging off) and `/bl debug` to open the console, then at once move
-  something unusual from a bank tab you have not opened → a `[Skip]` line for it ending `(uncached)`,
+  something unusual from a bank tab you have not opened → a `[Skip]` line naming it with `(uncached)`,
   and no row. Repeat the movement a few seconds later → judged properly: a row, or a `[Skip]` line
-  ending `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
+  naming it with `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
 - **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
   gone. Result:
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
@@ -620,7 +620,7 @@ leaves its number unused.
 
 - **DIAG-1. The console opens.** `/bl debug` → the console, header **Debug: OFF** in red. Result:
 - **DIAG-2. Logging on.** `/bl debug on` → a green ON ack, `[Debug] logging enabled` and an `[Init]`
-  summary naming the build, schema and profile. Result:
+  summary naming the build, schema and profile, ending `bank addons: …, launcher registered`. Result:
 - **DIAG-3. One summary per pass.** Move something at your bank → one `[Move]` summary line per pass,
   not one per item. Result:
 - **DIAG-4. Scroll and counter.** The scrollbar follows the wheel both ways; the counter reads
@@ -653,9 +653,9 @@ leaves its number unused.
   ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Result:
 - **DIAG-13. The report appends with logging off.** `/bl debug on`, move something, `/bl debug off`,
   then `/bl diagnostics` at the open bank → the `[Move]` lines sit above a `[Diag] ==== Ka0s Bank Ledger
-  diagnostics begin ====` line; the report is complete; the header still reads Debug: OFF, and another
-  move logs no `[Move]` line. Chat prints one line, *Diagnostic report written to the debug console: N
-  lines. Use Copy to share it.* Result:
+  diagnostics begin ====` line and the report is complete, although logging was off when it ran (the
+  run turns logging on first, DIAG-29). Chat prints one line, *Diagnostic report written to the debug
+  console: N lines. Use Copy to share it.* `/bl debug off`. Result:
 - **DIAG-14. The report's sections.** In order, each under its tag: `[State]`, `[Set]`, `[Filter]`,
   `[Ledger]`, `[Capture]`, `[Session]`, `[Scan]`, `[Window]`, `[Launcher]`, `[Env]`, ending
   `[Diag] ==== Ka0s Bank Ledger diagnostics end: N line(s) ====` with the chat line's N. A
@@ -680,6 +680,49 @@ leaves its number unused.
   `[Set] reset profile 'Default' to defaults (2 rows)` line and no `[Set] settings.… = …` line under
   it. `/bl resetall` ▸ Yes again, `/bl debug` → one `… (0 rows)` line. General's Defaults ▸ Yes,
   `/bl debug` → one more `… (0 rows)` line (`debug-logging-§10`). `/bl debug off`. Result:
+- **DIAG-20. The console resizes.** `/bl debug` → the console opens at its usual 700 × 344, with a
+  small size grip in the bottom-right corner. Drag the grip out and back in → the window follows on
+  both axes; the log reflows to the new width, the scrollbar still reaches the first and the last
+  line, the counter stays readable beside the grip, and copy, clear and close stay in the title bar.
+  The lines and the scroll position are the ones you had. Result:
+- **DIAG-21. The console's minimum holds.** Drag the grip as far up and left as it goes → it stops
+  while the title and all three marks still fit in the title bar and a few log lines still show
+  between the bars; nothing overlaps. Result:
+- **DIAG-22. The size is kept for the session only.** Resize the console, close it, `/bl debug` → it
+  reopens at the size you left. `/reload`, `/bl debug` → back at 700 × 344. Result:
+- **DIAG-23. Each copy window resizes on its own.** Copy on the console → the Copy box has its own
+  grip; resize it on both axes → the text box widens and narrows with it, the scroll bar's down button
+  stays clickable above the grip, and it will not shrink below about 240 × 140. Close and Copy again →
+  the size you left. Then History ▸ Export ▸ Export to CSV → the export's copy window opens at its own
+  default, not the Copy box's size; resize it, export again → it keeps its own size. `/reload` → both
+  back at their defaults. Result:
+- **DIAG-24. Another addon's console is unaffected.** With a second Ka0s addon installed, resize this
+  console, then open the other addon's console → it opens at its own size (700 × 344 on a fresh
+  session). Resize that one → this console keeps the size you gave it. Result:
+- **DIAG-25. An idle bank is quiet.** `/bl debug on`, `/bl debug`, open your bank and move nothing for
+  a minute, opening and closing a bag or two → after the `[Store] BANK_FRAME opened` line and one
+  `[Diff]` line per store, nothing more, however many passes ran. A pass that repeats an identical
+  `[Diff]` line (or folds it into `(x2)`) is the regression ([debug.md](debug.md#coverage)). Result:
+- **DIAG-26. The edges are in the log.** With logging on, untick and re-tick Enable Bank Ledger →
+  one `[State] stood down (holds: disabled)` line and one `[State] stood up: N events registered, 0
+  unavailable` line. Set General visibility to Only out of combat with the ledger window open, pull a
+  training dummy → `[Combat] entered: visibility outOfCombat, hid 1, re-showed 0`; leave combat → the
+  window is back and a `[Combat] left: … re-showed 1` line. Put visibility back to Always. Result:
+- **DIAG-27. A refusal names its guard.** With logging on and General visibility on Never,
+  `/bl show` → the window stays shut and the console has `[UI] window show refused: visibility
+  never`. In combat, `/bl test` → `[Table] test mode start refused: in combat`. Put visibility back.
+  Result:
+- **DIAG-28. The Diagnostics link.** `/bl debug` → in the title bar, top left, the word
+  **Diagnostics** in orange sits just after the Debug: OFF label with a small gap: plain text like that
+  label, no button art, brighter under the pointer. `/bl debug on` → the same gap after Debug: ON.
+  Click it → a full report is written into the console exactly as `/bl diagnostics` writes it, with
+  the same chat line. `/bl debug off`. Result:
+- **DIAG-29. Diagnostics turns logging on for the session.** With logging off, click Diagnostics →
+  the header flips to Debug: ON, and `[Debug] logging enabled` and an `[Init]` summary sit above the
+  report's begin marker; move something at your bank → a `[Move]` line. Click it again → a second
+  report and no second `[Debug] logging enabled` line. `/bl debug off`, then `/bl diagnostics` →
+  logging is on again, the same way. `/reload`, `/bl debug` → Debug: OFF: the report turned logging
+  on for that session only. Result:
 
 ## DEGRADED
 
@@ -743,7 +786,7 @@ string is green whether it is right or wrong.
 What this addon reads in the player's language:
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
-  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:497-528`
+  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:519-550`
   uses them as analytics keys (`byItemType`, `byItemSubType`, `byTypeSub`), they are persisted on every
   row, and the CSV emits them raw. `core/Compat.lua:156` discards the locale-independent `classID` /
   `subClassID`; unlike `quality` and `store`, these two have no `*Raw` column.
@@ -752,7 +795,7 @@ What this addon reads in the player's language:
 - **`Util.FormatDate`** (`core/Util.lua:20-22`): `date("%d-%b-%Y")`, whose `%b` is the month in the
   client's language.
 - **Case folding**: `modules/LedgerTable.lua:66`, `:85`, `:89`, `:94` sort on `:lower()`, and
-  `core/Database.lua:393` and `:410` lowercase names and search text. Lua's `string.lower` folds ASCII
+  `core/Database.lua:415` and `:432` lowercase names and search text. Lua's `string.lower` folds ASCII
   only.
 
 English by design, and not a failure: `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and every
@@ -801,7 +844,7 @@ its own `Result:` line, then remove its ID from this table.
 Not listed, because a recorded pass covers them and the rework did not change what they expect:
 INSTALL-4 (S-1 step 5, passed in the owner's minimap re-check of 2026-09-25 on
 the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
-DIAG-13 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
+DIAG-14 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
 BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
 Ka0sAddonsCommonTasks repository.
 
@@ -876,6 +919,10 @@ Ka0sAddonsCommonTasks repository.
 | SESS-11, SESS-12 | S-17 steps 16–17 | No recorded result |
 | DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
+| DIAG-20 – 24 | New (resizable console and copy windows, DL-BL-01, LibKa0s v1.64.0) | Never run |
+| DIAG-25 – 27 | New (debug coverage, DL-BL-02) | Never run |
+| DIAG-13 | S-14 steps 14–17, corrected by DL-BL-03 | The report now turns logging on for the session (`debug-logging-§14`), so the header no longer reads Debug: OFF after it and a later move logs; the 2026-09-26 pass recorded the old expectation |
+| DIAG-28 – 29 | New (the Diagnostics link, and diagnostics turning logging on, DL-BL-03, LibKa0s v1.64.0) | Never run |
 | DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the first `/bl show` prints the filter-bar line; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |

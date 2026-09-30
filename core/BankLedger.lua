@@ -79,6 +79,30 @@ function addon:OnEnable()
   -- emitted when capture is actually enabled (debug-logging-§5/§8).
 end
 
+-- ── THE LIFECYCLE'S OWN TRACE (debug-logging-§8, diagnosis) ──────────────────────────────────
+--
+-- One line per edge, behind the gate. The latch prints nothing of its own (Lifecycle's one line is
+-- PrintHolds, on request), so without these a log could not say whether the addon was running at
+-- all when a movement went unrecorded. The stand-up line carries the event record's totals and the
+-- names this client refused: NS.RegisterEventSafely swallows a refused registration by design, and
+-- this line is where that caught error reaches the log, once per stand-up rather than once per name.
+local function debugOn() return NS.State and NS.State.debug and NS.Debug end
+
+local function traceStandUp()
+  if not debugOn() then return end
+  local rec = NS.EventRecord
+  local refused = #rec.unavailable > 0 and (": " .. table.concat(rec.unavailable, ", ")) or ""
+  NS.Debug("State", "stood up: %s events registered, %s unavailable%s",
+    tostring(#rec.registered), tostring(#rec.unavailable), refused)
+end
+
+local function traceStandDown(prunePostponed)
+  if not debugOn() then return end
+  local holds = NS.Lifecycle and NS.Lifecycle:Holds() or { NS.HOLD_DISABLED }
+  NS.Debug("State", "stood down (holds: %s)%s", table.concat(holds, ", "),
+    prunePostponed and "; login prune postponed" or "")
+end
+
 --- Bring the FEATURES up, from the settings AS THEY ARE NOW.
 ---
 --- Never from a snapshot taken on the way down (performance-§6): a setting can be changed while the
@@ -99,6 +123,7 @@ function NS.StandUp()
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
   -- the main ledger window has ever been built.
   if NS.SessionWindow and NS.SessionWindow.Enable then NS.SessionWindow:Enable() end
+  traceStandUp()
 end
 
 -- ── THE STAND-DOWN (slash-commands-§7) ─────────────────────────────────────────────────────────
@@ -115,7 +140,7 @@ end
 -- subscription sits on a private target handed out by NS.NewBusTarget() that AceAddon has never
 -- seen and cannot reach. Releasing the latch alone would therefore have the next Enable stand a
 -- SECOND target up beside a first that is still subscribed, and SessionWindow:OnEntryAdded appends
--- unconditionally (modules/SessionWindow.lua:149-154) — one moved stack, two rows. So the targets
+-- unconditionally (modules/SessionWindow.lua:162-167) — one moved stack, two rows. So the targets
 -- go with the latch.
 --
 -- `_guildHooked` deliberately stays set. It is not part of this cycle: it records a `HookScript`
@@ -149,6 +174,9 @@ local TIMER_MODULES = { "Ledger", "Browser", "Insights" }
 --- keep exists to finish pending secure work, and there is none to finish.
 function NS.StandDown()
   local ad = NS.addon
+  -- Read before step 1 clears it: a login prune armed and then canceled here is deferred work that
+  -- is not flushed until the next PLAYER_ENTERING_WORLD, and the stand-down line says so.
+  local prunePostponed = NS.State and NS.State.cleanupPending ~= nil
 
   -- 1. EVERY TIMER. AceTimer's own cancel-all takes the handles, and each module drops the handle
   --    it remembers so the next stand-up can schedule again. The retention prune's handle is the
@@ -204,6 +232,7 @@ function NS.StandDown()
   --    it claims to be off.
   if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
   if NS.SessionWindow and NS.SessionWindow.Hide then NS.SessionWindow:Hide() end
+  traceStandDown(prunePostponed)
 end
 
 -- AceAddon's arm onto the same body. It can disable and re-enable an addon at any point in a
@@ -219,13 +248,38 @@ end
 -- in a fight. AceEvent hands the event name in, and only PLAYER_REGEN_DISABLED ends it. It goes first,
 -- so the visibility pass sees the real dataset, and it goes through LT:SetTestMode(false), which never
 -- opens a window and repaints the panel so the Test mode box unticks. One line says where it went.
+--
+-- The edge is traced when the addon REACTED to it (debug-logging-§8: an edge the addon does not react
+-- to needs no line): a visibility pass that hid or re-showed a window, a combat-bound visibility rule
+-- (whose answer this edge just changed, even with no window up to move), or test mode ended. Under
+-- `always` with nothing to end, the pass is a no-op and a pull writes nothing. Test mode's own
+-- `[Table] test mode off` line precedes this one and is not restated here.
+local COMBAT_BOUND = { inCombat = true, outOfCombat = true }
+
+local function visibilityMode()
+  local s = (NS.db and NS.db.profile and NS.db.profile.settings) or {}
+  return s.visibility or "always"
+end
+
+local function traceCombat(entering, hid, shown, endedTest)
+  if not debugOn() then return end
+  local mode = visibilityMode()
+  if hid + shown == 0 and not endedTest and not COMBAT_BOUND[mode] then return end
+  NS.Debug("Combat", "%s: visibility %s, hid %s, re-showed %s", entering and "entered" or "left",
+    tostring(mode), tostring(hid), tostring(shown))
+end
+
 function addon:OnCombatChanged(event)
   local LT = NS.LedgerTable
-  if event == "PLAYER_REGEN_DISABLED" and LT and LT.IsTestMode and LT:IsTestMode() then
+  local entering = event == "PLAYER_REGEN_DISABLED"
+  local endedTest = false
+  if entering and LT and LT.IsTestMode and LT:IsTestMode() then
     LT:SetTestMode(false)
     NS.Print("test mode off \226\128\148 combat started.")
+    endedTest = true
   end
-  NS.Util.ApplyVisibility()
+  local hid, shown = NS.Util.ApplyVisibility()
+  traceCombat(entering, hid, shown, endedTest)
 end
 
 -- Retention cleanup runs once per session, deferred off the login/zone spike.
@@ -244,4 +298,7 @@ function addon:OnEnterWorld()
     st.cleanupDone = true
     if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
   end, 5)
+  -- Deferred work, held (debug-logging-§8). Its flush is PruneOld's own [Prune] line, which it
+  -- writes on every run, retention off included; a stand-down inside the window says "postponed".
+  if debugOn() then NS.Debug("Prune", "login retention pass armed: runs in 5s") end
 end

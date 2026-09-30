@@ -94,8 +94,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.63.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.63.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.64.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.64.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -263,6 +263,14 @@ tests/
                            --   section costing one line, the cap's end marker, and `debug` testing
                            --   `diagnostics` first. The dispatcher half is the kit's shared
                            --   _kit/test_diagnostics_contract.lua, wired through Kit.diagnostics
+  test_debug_coverage.lua  -- what the debug console SAYS (debug-logging-8/9, docs/debug.md's
+                           --   Coverage): the stand-down and stand-up lines, the postponed login
+                           --   prune, the combat edge and its silence under `always`, refusals
+                           --   naming their guard (window show, session window, test mode, the
+                           --   guild frame over an armed bank), the [Init] dependency tail, the
+                           --   settle hold's two lines, one [Skip] line per pass however many
+                           --   movements it refused, and the reconcile pass's quiet steady
+                           --   state asserted on the whole buffer
   test_profiles.lua        -- settings per AceDB profile (schema v3/v4, docs/profiles.md): the
                            --   global/profile defaults split, the v3 lift into `Default` (values
                            --   land, db.global cleared, the ledger untouched, idempotent), the v4

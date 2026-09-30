@@ -1143,8 +1143,14 @@ end
 function B:Show()
   -- General visibility (options-ui-§15). Refused rather than deferred: a window that pops itself
   -- open the moment combat drops is the behavior options-ui-§2 refuses for the settings panel, and
-  -- for the same reason. NS.Util.ApplyVisibility is what puts it back on the transition.
-  if not NS.Util.VisibilityAllows() then return end
+  -- for the same reason. NS.Util.ApplyVisibility is what puts it back on the transition. The
+  -- refusal is traced with its guard: `/bl show` doing nothing is the report, the guard the answer.
+  if not NS.Util.VisibilityAllows() then
+    if NS.State.debug and NS.Debug then
+      NS.Debug("UI", "window show refused: %s", tostring(NS.Util.VisibilityRefusal()))
+    end
+    return
+  end
   local f = EnsureFrame()
   f:Show()
   -- Eager-build the History pane so the table attaches and matchCount is fresh — the shared footer

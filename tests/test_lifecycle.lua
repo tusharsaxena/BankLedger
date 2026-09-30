@@ -7,7 +7,7 @@
 -- latch is released, and the re-enable does not leave the PREVIOUS run's bus subscriptions behind
 -- it. The second half matters more than it looks — the modules subscribe on private AceEvent
 -- targets that AceAddon has never seen and cannot tear down for them, and SessionWindow's
--- EntryAdded handler appends unconditionally (modules/SessionWindow.lua:149-154), so a stale
+-- EntryAdded handler appends unconditionally (modules/SessionWindow.lua:162-167), so a stale
 -- second subscription records every moved stack twice.
 
 local T = _G.BL_TEST
@@ -15,7 +15,7 @@ local NS = T.NS
 local mocks = T.mocks
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
--- The four OnEnable arms: three directly, Insights through the Browser (modules/Browser.lua:1186).
+-- The four OnEnable arms: three directly, Insights through the Browser (modules/Browser.lua:1205).
 local MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
 
 local function entry()

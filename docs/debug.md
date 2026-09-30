@@ -21,12 +21,67 @@ dump opens the console first, then appends one line per entry of the array its `
 returns. `Diagnose()` returns plain strings rather than printing, which is what lets `tests/` assert
 on them, and it is also what lets the report fold the scan in as a section.
 
+## Coverage
+
+What the gated sink `NS.Debug` writes while `/bl debug on` is set, tag by tag
+(`debug-logging-§8`, and `§9` for what stays quiet). Every line is one event and every one is
+built behind the gate, so with logging off none of this costs a string. The trace answers "what
+did the addon do, and why did it not do something else"; the report above answers "what state was
+it in". Both go out in one **Copy**.
+
+| Tag | Emitted by | When |
+|---|---|---|
+| `[Debug]` | the library | `logging enabled` / `logging disabled`, on each flip of the flag |
+| `[Init]` | the library, from `NS.InitSummary` (`core/Database.lua`) | Once, as logging is switched on: build, schema, profile, entry count, then the **dependency tail**: the bank-replacing addons loaded (`bank addons: none` or their names, from `NS.Diagnostics.LoadedBankAddons`) and the launcher (`registered`, `unregistered` when LibDBIcon or LibDataBroker is missing, `degraded` without LibKa0s) |
+| `[State]` | `NS.StandUp` / `NS.StandDown` (`core/BankLedger.lua`) | Each stand-up (`stood up: N events registered, M unavailable`, with the refused names) and each stand-down (`stood down (holds: …)`, plus `; login prune postponed` when the stand-down canceled an armed prune) |
+| `[Combat]` | `addon:OnCombatChanged` (`core/BankLedger.lua`) | A combat edge the addon reacted to: `entered` / `left`, the visibility rule, and how many windows the pass hid and re-showed. Under `always` with no test mode to end, an edge writes nothing |
+| `[Set]` | the schema write seam (LibKa0s-Schema-1.0); `NS.OnProfileEvent` (`core/Database.lua`) | Every settings write, `path = value`, once (`debug-logging-§10`); a profile reset or copy as one line |
+| `[Profile]` | `NS.OnProfileEvent` | A profile switch |
+| `[Migrate]` | `NS:RunMigrations` (`core/Database.lua`) | Only when a migration runs |
+| `[Prune]` | `addon:OnEnterWorld`, `Database:PruneOld` | The login pass armed (`runs in 5s`), then its result on every run: `retention Nd: removed N entries`, or `retention always: nothing pruned` |
+| `[Data]` | `Database:Delete`, `DeleteAt`, `Purge` | Each user delete or purge, with the count |
+| `[Filters]` | `NS.Filters` | Each blacklist or whitelist change, with both sizes |
+| `[Store]` | `modules/Ledger.lua` | A store opened (with its baseline counts), closed (`, held change dropped` when a hold was thrown away), dropped by a stand-down, the guild bank's hooks installed, its tabs queried, its self-disarm, and the guild frame showing while another store is armed (`context kept`) |
+| `[Diff]` | `modules/Ledger.lua` | One line per store per reconcile pass, **change-gated**: the first pass after an open, every pass that found a movement, and any pass whose summary differs from the last one written for that store. The settle hold's two edges (`one-sided change: baseline held`, `held change settled after Ns`) and its timeout (`never settled; baseline re-anchored`) |
+| `[Skip]` | `modules/Ledger.lua` | One line per store per pass that the capture gate refused movements in, listing each as `<item id or gold> <direction> (<reason>)`: `disabled`, `kind`, `store`, `blacklist`, `quality` or `uncached` |
+| `[Move]` | `modules/Ledger.lua` | One line per store per pass that found movements: recorded and skipped counts |
+| `[Session]` | `modules/SessionWindow.lua` | A banking session started (with `window not shown: <guard>` when the session window stays shut) and ended (with its movement count); each `/bl session` outcome: `preview on` (with `window not shown: <guard>` when the window is held shut), `preview off`, and `preview refused: a real session is open` |
+| `[UI]` | `modules/Browser.lua` | The ledger window shown or hidden, a tab switch, and a refused show (`window show refused: stood down` or `visibility <mode>`) |
+| `[Table]` | `modules/LedgerTable.lua`, `LedgerTable_TestMode.lua` | Each table render, one summary line; test mode on (with the sample row count), off, or refused (`in combat`, `visibility <mode>`) |
+| `[Insights]` | `modules/Insights.lua` | Each Insights recompute, one summary line |
+| `[Launcher]` | LibKa0s-Launcher-1.0, through `core/LauncherSetup.lua` | Its own registration outcome and refusals (at login, so usually before logging is on) |
+
+**Quiet steady state (`debug-logging-§9`).** An open bank is a repeating path: every
+`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED`
+drives a reconcile pass, and so does the settle deadline. A pass that changes nothing it reports
+writes nothing: the `[Diff]` line is compared with the last one written for that store, and a
+match with no movement is dropped. The comparison is behind the gate too. The gate starts fresh on
+every open, so a visit always says what it first saw. The console's `(xN)` folding is not relied
+on. Every other line above is written by a user action or a state edge, not by a timer.
+
+**Deliberately not traced.**
+
+- **A refused slash verb or a refused schema write.** Both refusals belong to LibKa0s
+  (Slash and Schema), print their own chat line, and log nothing. While the addon is disabled the
+  `[State] stood down` line already explains every refused feature verb.
+- **Guild-bank data arriving away from a bank.** `GUILDBANKBAGSLOTS_CHANGED` fires on login sync and
+  on every guildmate's deposit; declining to arm on it is a high-frequency no-op, and a line per
+  event would be the spam `§9` forbids. The absence of a `[Store] GUILD_BANK opened` line is the
+  evidence (smoke CAPT-14).
+- **Named non-setting state.** Window geometry, the saved view and the remembered tab are written
+  outside the seam and are not logged per change (`debug-logging-§10`'s SHOULD NOT); a saved or
+  reset view prints its own chat line.
+- **Lines at login.** The flag is off at every login (`debug-logging-§5`), so a migration, the first
+  stand-up and the login prune run before anything can be logged. The report's `state` section
+  carries what they left behind: the schema version, the stand-down state, and whether the prune ran.
+
 ## The raw-append rule
 
 The report and both dumps write through the library's raw append (`NS.DebugLog:Add(tag, line)`,
 which `RunDiagnostics` uses too), and **not** through the gated sink `NS.Debug`. So they print
 whether logging is on or off: you do not need `/bl debug on` first, and turning logging on adds
-nothing to them. A dump the player asked for explicitly is not idle cost, and a console that stays
+nothing to them (running the report does turn logging on for the session, below, but it writes
+in full either way). A dump the player asked for explicitly is not idle cost, and a console that stays
 empty because the flag happened to be off reads as a broken verb (`debug-logging-§4`).
 
 Two consequences follow:
@@ -51,9 +106,22 @@ left behind travel in one **Copy**.
 `off`, `scan` and `panel`. There is no `diag`, `dump` or `dx` alias: `/bl debug diag` is an ordinary
 unknown word, which toggles the console like any other.
 
-**What it does to the console.** It never clears it, it never reads or changes the logging flag
-beyond printing it, and it shows the console if it was hidden. Then it prints one chat line:
-*Diagnostic report written to the debug console: N lines. Use Copy to share it.*
+**The Diagnostics link.** The console's title bar carries an orange **Diagnostics** text link
+beside the Debug On/Off label. Clicking it runs the same `NS.DebugLog:RunDiagnostics()` the two
+slash forms run, so everything below holds for it too.
+
+**It turns logging on for the session.** When logging is off, running the report (either slash
+form or the link) first turns debug logging on, through the flag's one seam (`SetEnabled(true)`),
+so the `[Debug] logging enabled` line and the `[Init]` summary land above the report and your next
+reproduction is traced (`debug-logging-§14`). It never turns logging off, and with logging already
+on it writes no second enable line. The flag is session-only, so a `/reload` turns it off again.
+This addon keeps the library's default: its descriptor does not set
+`diagnosticsEnablesLogging = false`. The report's sections only print the flag; they never change
+it.
+
+**What it does to the console.** It never clears it, and it shows the console if it was hidden.
+Then it prints one chat line: *Diagnostic report written to the debug console: N lines. Use Copy to
+share it.*
 
 **The shape.** The library writes the frame and this addon writes the sections:
 
