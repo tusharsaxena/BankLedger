@@ -80,7 +80,8 @@ on. Every other line above is written by a user action or a state edge, not by a
 The report and both dumps write through the library's raw append (`NS.DebugLog:Add(tag, line)`,
 which `RunDiagnostics` uses too), and **not** through the gated sink `NS.Debug`. So they print
 whether logging is on or off: you do not need `/bl debug on` first, and turning logging on adds
-nothing to them. A dump the player asked for explicitly is not idle cost, and a console that stays
+nothing to them (running the report does turn logging on for the session, below, but it writes
+in full either way). A dump the player asked for explicitly is not idle cost, and a console that stays
 empty because the flag happened to be off reads as a broken verb (`debug-logging-§4`).
 
 Two consequences follow:
@@ -105,9 +106,22 @@ left behind travel in one **Copy**.
 `off`, `scan` and `panel`. There is no `diag`, `dump` or `dx` alias: `/bl debug diag` is an ordinary
 unknown word, which toggles the console like any other.
 
-**What it does to the console.** It never clears it, it never reads or changes the logging flag
-beyond printing it, and it shows the console if it was hidden. Then it prints one chat line:
-*Diagnostic report written to the debug console: N lines. Use Copy to share it.*
+**The Diagnostics link.** The console's title bar carries an orange **Diagnostics** text link
+beside the Debug On/Off label. Clicking it runs the same `NS.DebugLog:RunDiagnostics()` the two
+slash forms run, so everything below holds for it too.
+
+**It turns logging on for the session.** When logging is off, running the report (either slash
+form or the link) first turns debug logging on, through the flag's one seam (`SetEnabled(true)`),
+so the `[Debug] logging enabled` line and the `[Init]` summary land above the report and your next
+reproduction is traced (`debug-logging-§14`). It never turns logging off, and with logging already
+on it writes no second enable line. The flag is session-only, so a `/reload` turns it off again.
+This addon keeps the library's default: its descriptor does not set
+`diagnosticsEnablesLogging = false`. The report's sections only print the flag; they never change
+it.
+
+**What it does to the console.** It never clears it, and it shows the console if it was hidden.
+Then it prints one chat line: *Diagnostic report written to the debug console: N lines. Use Copy to
+share it.*
 
 **The shape.** The library writes the frame and this addon writes the sections:
 

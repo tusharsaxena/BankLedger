@@ -23,7 +23,7 @@ leaves its number unused.
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 12 | Session window | The Current Banking Session window at every store |
-| DIAG-1 – 24 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows |
+| DIAG-1 – 29 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on |
 | DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -653,9 +653,9 @@ leaves its number unused.
   ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Result:
 - **DIAG-13. The report appends with logging off.** `/bl debug on`, move something, `/bl debug off`,
   then `/bl diagnostics` at the open bank → the `[Move]` lines sit above a `[Diag] ==== Ka0s Bank Ledger
-  diagnostics begin ====` line; the report is complete; the header still reads Debug: OFF, and another
-  move logs no `[Move]` line. Chat prints one line, *Diagnostic report written to the debug console: N
-  lines. Use Copy to share it.* Result:
+  diagnostics begin ====` line and the report is complete, although logging was off when it ran (the
+  run turns logging on first, DIAG-29). Chat prints one line, *Diagnostic report written to the debug
+  console: N lines. Use Copy to share it.* `/bl debug off`. Result:
 - **DIAG-14. The report's sections.** In order, each under its tag: `[State]`, `[Set]`, `[Filter]`,
   `[Ledger]`, `[Capture]`, `[Session]`, `[Scan]`, `[Window]`, `[Launcher]`, `[Env]`, ending
   `[Diag] ==== Ka0s Bank Ledger diagnostics end: N line(s) ====` with the chat line's N. A
@@ -712,6 +712,17 @@ leaves its number unused.
   `/bl show` → the window stays shut and the console has `[UI] window show refused: visibility
   never`. In combat, `/bl test` → `[Table] test mode start refused: in combat`. Put visibility back.
   Result:
+- **DIAG-28. The Diagnostics link.** `/bl debug` → in the title bar, top left, the word
+  **Diagnostics** in orange sits just after the Debug: OFF label with a small gap: plain text like that
+  label, no button art, brighter under the pointer. `/bl debug on` → the same gap after Debug: ON.
+  Click it → a full report is written into the console exactly as `/bl diagnostics` writes it, with
+  the same chat line. `/bl debug off`. Result:
+- **DIAG-29. Diagnostics turns logging on for the session.** With logging off, click Diagnostics →
+  the header flips to Debug: ON, and `[Debug] logging enabled` and an `[Init]` summary sit above the
+  report's begin marker; move something at your bank → a `[Move]` line. Click it again → a second
+  report and no second `[Debug] logging enabled` line. `/bl debug off`, then `/bl diagnostics` →
+  logging is on again, the same way. `/reload`, `/bl debug` → Debug: OFF: the report turned logging
+  on for that session only. Result:
 
 ## DEGRADED
 
@@ -833,7 +844,7 @@ its own `Result:` line, then remove its ID from this table.
 Not listed, because a recorded pass covers them and the rework did not change what they expect:
 INSTALL-4 (S-1 step 5, passed in the owner's minimap re-check of 2026-09-25 on
 the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
-DIAG-13 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
+DIAG-14 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
 BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
 Ka0sAddonsCommonTasks repository.
 
@@ -910,6 +921,8 @@ Ka0sAddonsCommonTasks repository.
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
 | DIAG-20 – 24 | New (resizable console and copy windows, DL-BL-01, LibKa0s v1.64.0) | Never run |
 | DIAG-25 – 27 | New (debug coverage, DL-BL-02) | Never run |
+| DIAG-13 | S-14 steps 14–17, corrected by DL-BL-03 | The report now turns logging on for the session (`debug-logging-§14`), so the header no longer reads Debug: OFF after it and a later move logs; the 2026-09-26 pass recorded the old expectation |
+| DIAG-28 – 29 | New (the Diagnostics link, and diagnostics turning logging on, DL-BL-03, LibKa0s v1.64.0) | Never run |
 | DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the first `/bl show` prints the filter-bar line; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |

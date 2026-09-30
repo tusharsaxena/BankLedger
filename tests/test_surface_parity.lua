@@ -160,8 +160,8 @@ test("LibKa0s-DebugLog degraded: the stub carries the live surface the addon rea
   --
   -- The four `_...ForTest` seams are the one thing the by-name form ADDED to this list, and they are
   -- a fact about the live arm rather than about the stub. The library stamps them on the instance
-  -- when it BUILDS the console and the copy window (libs/LibKa0s/DebugLog.lua:566, :571, :861,
-  -- :862); two of them are on the instance by the time this case runs because tests/test_debuglog.lua
+  -- when it BUILDS the console and the copy window (libs/LibKa0s/DebugLog.lua:609, :614, :904,
+  -- :905); two of them are on the instance by the time this case runs because tests/test_debuglog.lua
   -- showed the console. A library-less build has no window to build, so their absence from the stub
   -- is the condition under test, not a gap in it. Single underscore, so Kit.publicMembers does not
   -- filter them — that exclusion is the `__` prefix. All four are named, not the two set today: they

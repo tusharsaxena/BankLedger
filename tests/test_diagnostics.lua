@@ -314,12 +314,15 @@ test("diagnostics: an over-cap report ends in the truncated line, then the end m
     "the end marker counts the capped report: " .. tostring(buf[#buf]))
 end)
 
-test("diagnostics: the report leaves the debug flag exactly as it found it", function()
-  -- red under: a report that turns logging on to write, or off afterwards
+test("diagnostics: the report turns logging on for the session and never turns it off", function()
+  -- red under: a vendored LibKa0s older than DebugLogDiagnostics 2 (the flag left off), a
+  -- descriptor that opts out (diagnosticsEnablesLogging = false), or a run that switches it off
+  -- (debug-logging-§14 at v2.71.0)
   for _, on in ipairs({ false, true }) do
     NS.State.debug = on
     D:RunDiagnostics()
-    assertEqual(NS.State.debug, on, "the flag moved")
+    assertEqual(NS.State.debug, true, "logging is on after a run that began with it "
+      .. (on and "on" or "off"))
   end
   NS.State.debug = false
 end)
