@@ -23,7 +23,7 @@ leaves its number unused.
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 12 | Session window | The Current Banking Session window at every store |
-| DIAG-1 – 19 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report |
+| DIAG-1 – 24 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows |
 | DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -33,7 +33,7 @@ leaves its number unused.
 - A character with a character bank, the warband bank and a guild bank it can deposit to, some gold,
   and a few movements already recorded (so History, Insights and the session window have rows).
 - A training dummy nearby for the COMBAT checks and the combat halves of others.
-- A second Ka0s addon installed, for DIAG-11 and PANEL-4 (Ka0s Loot History for PANEL-4).
+- A second Ka0s addon installed, for DIAG-11, DIAG-24 and PANEL-4 (Ka0s Loot History for PANEL-4).
 - Back up `WTF/` before INSTALL-8 and PROFILE-14: both edit or replace a real SavedVariables file.
 - For DEGRADED, first run `/bl list` on the healthy install and keep the output for DEGRADED-11. Then
   quit the game and rename `Interface/AddOns/BankLedger/libs/LibKa0s` to `libs/LibKa0s.off`;
@@ -680,6 +680,25 @@ leaves its number unused.
   `[Set] reset profile 'Default' to defaults (2 rows)` line and no `[Set] settings.… = …` line under
   it. `/bl resetall` ▸ Yes again, `/bl debug` → one `… (0 rows)` line. General's Defaults ▸ Yes,
   `/bl debug` → one more `… (0 rows)` line (`debug-logging-§10`). `/bl debug off`. Result:
+- **DIAG-20. The console resizes.** `/bl debug` → the console opens at its usual 700 × 344, with a
+  small size grip in the bottom-right corner. Drag the grip out and back in → the window follows on
+  both axes; the log reflows to the new width, the scrollbar still reaches the first and the last
+  line, the counter stays readable beside the grip, and copy, clear and close stay in the title bar.
+  The lines and the scroll position are the ones you had. Result:
+- **DIAG-21. The console's minimum holds.** Drag the grip as far up and left as it goes → it stops
+  while the title and all three marks still fit in the title bar and a few log lines still show
+  between the bars; nothing overlaps. Result:
+- **DIAG-22. The size is kept for the session only.** Resize the console, close it, `/bl debug` → it
+  reopens at the size you left. `/reload`, `/bl debug` → back at 700 × 344. Result:
+- **DIAG-23. Each copy window resizes on its own.** Copy on the console → the Copy box has its own
+  grip; resize it on both axes → the text box widens and narrows with it, the scroll bar's down button
+  stays clickable above the grip, and it will not shrink below about 240 × 140. Close and Copy again →
+  the size you left. Then History ▸ Export ▸ Export to CSV → the export's copy window opens at its own
+  default, not the Copy box's size; resize it, export again → it keeps its own size. `/reload` → both
+  back at their defaults. Result:
+- **DIAG-24. Another addon's console is unaffected.** With a second Ka0s addon installed, resize this
+  console, then open the other addon's console → it opens at its own size (700 × 344 on a fresh
+  session). Resize that one → this console keeps the size you gave it. Result:
 
 ## DEGRADED
 
@@ -876,6 +895,7 @@ Ka0sAddonsCommonTasks repository.
 | SESS-11, SESS-12 | S-17 steps 16–17 | No recorded result |
 | DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
+| DIAG-20 – 24 | New (resizable console and copy windows, DL-BL-01, LibKa0s v1.64.0) | Never run |
 | DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the first `/bl show` prints the filter-bar line; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |
