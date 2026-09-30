@@ -94,18 +94,18 @@ end
 
 -- ── State edges: the stand-down and the stand-up ──────────────────────────────
 
-test("debug: the stand-down and the stand-up each write one [State] line", function()
-  -- red under: dropping traceStandDown / traceStandUp from core/BankLedger.lua. The latch prints
-  -- nothing of its own, so without them a log cannot say whether the addon was running at all when
-  -- a movement went unrecorded, and a refused event registration never reaches the log.
+test("debug: a stand-up writes the event record's one [State] line, and a stand-down none", function()
+  -- red under: dropping traceEvents from NS.StandUp (core/BankLedger.lua), or bringing back a host
+  -- `stood down` / `stood up` line. The EDGE is the library's `[Lifecycle]` line
+  -- (tests/test_debug_library.lua); what only the host knows is how many events the stand-up
+  -- registered and which names this client refused, since NS.RegisterEventSafely swallows those.
   local lines = debugLines(function()
     S:Set(ENABLED_PATH, false)
     S:Set(ENABLED_PATH, true)
   end)
   local state = tagged(lines, "State")
-  assertEqual(#state, 2, "one line per edge, got: " .. table.concat(state, " | "))
-  assertTrue(state[1]:find("stood down (holds: disabled)", 1, true) ~= nil, state[1])
-  assertTrue(state[2]:find("stood up: %d+ events registered, 0 unavailable") ~= nil, state[2])
+  assertEqual(#state, 1, "one line, after the stand-up, got: " .. table.concat(state, " | "))
+  assertTrue(state[1]:find("%[State%] events: %d+ registered, 0 unavailable") ~= nil, state[1])
 end)
 
 test("debug: a stand-down inside the login prune window says the prune was postponed", function()
@@ -122,7 +122,7 @@ test("debug: a stand-down inside the login prune window says the prune was postp
       S:Set(ENABLED_PATH, true)
     end)
     assertTrue(hasLine(lines, "[Prune] login retention pass armed: runs in 5s"), "no armed line")
-    assertTrue(hasLine(lines, "stood down (holds: disabled); login prune postponed"),
+    assertTrue(hasLine(lines, "[State] login prune postponed"),
       "the stand-down did not say the prune was postponed")
   end)
   if st.cleanupPending and NS.addon.CancelTimer then NS.addon:CancelTimer(st.cleanupPending) end
@@ -290,9 +290,12 @@ test("debug: the [Init] summary carries the dependency tail", function()
   -- red under: dropping dependencySummary from NS.InitSummary. The loaded bank-replacing addons are
   -- the first suspect when a visit records nothing, and the line the library writes when logging is
   -- switched on is the one moment "once, at enable" can be read.
+  -- The launcher is NOT in the tail any more: its own Register lines land through the console's
+  -- at-enable queue right after this one (tests/test_debug_library.lua), so a launcher fact here
+  -- would be the second line for one state.
   local s = NS.InitSummary()
-  assertTrue(s:find(", bank addons: ", 1, true) ~= nil, s)
-  assertTrue(s:find(", launcher (%a+)$") ~= nil, s)
+  assertTrue(s:find(", bank addons: [^,]+$") ~= nil, s)
+  assertEqual(s:find("launcher", 1, true), nil, s)
 end)
 
 -- ── Deferred work: the settle hold ─────────────────────────────────────────────
@@ -424,7 +427,7 @@ test("debug: a pass that skips several movements writes one [Skip] line naming e
 end)
 
 test("debug: the [Diff] gate starts fresh on every open", function()
-  -- red under: OpenContext not resetting L._lastDiff. A second visit that finds the same store as
+  -- red under: OpenContext not forgetting its stores' [Diff] gate keys. A second visit that finds the same store as
   -- the first would otherwise open with no [Diff] line at all.
   local count = 0
   withContainers({

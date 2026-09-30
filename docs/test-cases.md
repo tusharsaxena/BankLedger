@@ -1244,7 +1244,7 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_debug_coverage.lua (17)
 
-- debug: the stand-down and the stand-up each write one [State] line
+- debug: a stand-up writes the event record's one [State] line, and a stand-down none
 - debug: a stand-down inside the login prune window says the prune was postponed
 - debug: a retention window of Always still writes the prune's one line
 - debug: a combat edge under a combat-bound visibility rule writes one [Combat] line
@@ -1261,6 +1261,19 @@ badge and any count quoted in the docs must agree with it.
 - debug: a pass that records a movement still writes its [Diff] and [Move] lines
 - debug: a pass that skips several movements writes one [Skip] line naming each
 - debug: the [Diff] gate starts fresh on every open
+
+### test_debug_library.lua (10)
+
+- library lines: an unknown verb's refusal is one [Cmd] line in this console, beside its chat line
+- library lines: the disabled gate's refusal is one [Cmd] line naming the verb and the guard
+- library lines: a refused /bl set names the path and the guard
+- library lines: with logging off a Slash refusal writes nothing
+- library lines: each Lifecycle edge is one [Lifecycle] line, and the host writes no second
+- library lines: a hold call that changes nothing writes no edge
+- library lines: a write the Options combat lock refuses is one [Cfg] line in this console
+- library lines: the Launcher's and the login's state lines land once, after [Init], on enable
+- library lines: a load in the disabled state says so once logging is on, and no edge line twice
+- library lines: the [Diff] change gate is the console's, re-armed by a Clear
 
 ### test_eol.lua (2)
 
@@ -1359,8 +1372,9 @@ badge and any count quoted in the docs must agree with it.
 | test_diagnostics.lua | 26 |
 | test_profiles.lua | 44 |
 | test_debug_coverage.lua | 17 |
+| test_debug_library.lua | 10 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **1169** |
+| **Total** | **1179** |

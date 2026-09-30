@@ -73,6 +73,8 @@ if not lib then
 
   NS.DebugLog = D
   NS.Debug = function() end
+  NS.DebugSink = function() end
+  NS.DebugAtEnable = function() end
   return
 end
 
@@ -174,3 +176,19 @@ NS.DebugLog = lib:New(descriptor)
 -- The global debug sink, republished under the name all 29 call sites already use. A plain dot
 -- function on the instance, so it needs no self and binds bare.
 NS.Debug = NS.DebugLog.Debug
+
+-- THE SINK EVERY LibKa0s DESCRIPTOR IS HANDED as its `debug(tag, message)` (debug-logging-§4,
+-- LibKa0s v1.65.0): Slash's refusals, Lifecycle's edges, the Options combat lock's refusals and the
+-- Launcher's events all reach this console through this one function, so each is written once, by
+-- the library, and never again by a host line beside it. The library hands a FINISHED string, so
+-- "%s" rather than the message itself: a verb or a button text carrying a stray `%` is the
+-- player's text, never a format. NS.Debug is resolved at call time, so a test that swaps the sink
+-- is heard here too.
+function NS.DebugSink(tag, message)
+  if NS.Debug then NS.Debug(tag, "%s", tostring(message)) end
+end
+
+-- The console's at-enable queue (DebugLogGates 1): a STATE line written while logging is off is
+-- held and written when the player turns logging on (the flag is off at every login, so a line
+-- written at OnEnable through NS.Debug would never land). Takes a format, as NS.Debug does.
+NS.DebugAtEnable = NS.DebugLog.DebugAtEnable

@@ -38,7 +38,9 @@ local descriptor = {
   mainPanelName = "BankLedgerMainPanel",
 
   print = function(line) print(line) end,
-  debug = function(tag, fmt, ...) if NS.Debug then NS.Debug(tag, fmt, ...) end end,
+  -- The host's gated sink (debug-logging-§4): the combat lock's `[Cfg] <what> refused (in combat)`
+  -- lines and a parked registration's flush line (Options minor 27) are the library's.
+  debug = NS.DebugSink,
 
   -- The schema seams: the LibKa0s-Schema-1.0 instance's own members, handed over as values
   -- (settings/Schema.lua builds it; the TOC loads that file first). Its Set is this addon's SINGLE

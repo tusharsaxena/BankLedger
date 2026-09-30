@@ -610,26 +610,26 @@ local function recordMoves(self, moves)
   return recorded, skipped, why
 end
 
--- The last [Diff] line written for each store, reset on every open. The quiet-steady-state gate
--- (debug-logging-§9): a pass whose summary matches the last one written for that store, and which
--- found no movement, writes nothing. An open bank sees many passes that change nothing it reports
--- (the settle deadline re-checking, a guild member's deposit landing in a tab, PLAYER_MONEY at a
--- vendor window beside the bank) and each used to repeat the same line per store. A pass that
--- found a movement always writes, and so does the first pass after an open. The one-sided change
--- such a pass cannot show (a stack count moving, the kinds unchanged) has its own hold line in
--- settleBaseline. Only ever read and written behind the gate.
-L._lastDiff = {}
+-- The quiet-steady-state gate (debug-logging-§9) is THE CONSOLE'S change gate, keyed per store:
+-- a pass whose summary matches the last one written for that store, and which found no movement,
+-- writes nothing. An open bank sees many passes that change nothing it reports (the settle deadline
+-- re-checking, a guild member's deposit landing in a tab, PLAYER_MONEY at a vendor window beside
+-- the bank) and each used to repeat the same line per store. A pass that found a movement always
+-- writes (its key is forgotten first), and so does the first pass after an open (OpenContext
+-- forgets the context's keys). The one-sided change such a pass cannot show (a stack count moving,
+-- the kinds unchanged) has its own hold line in settleBaseline. It replaced a hand-rolled memo a
+-- Clear never re-armed; D.DebugChanged is re-armed by Clear and by turning logging on.
+function L.DiffGateKey(store) return "Diff:" .. tostring(store) end
 
 -- The pass's [Diff] line for one store. Emitted before reconcileStore's skip, so a store that found
 -- nothing still says what it saw. Silence is not a diagnosis: it cannot distinguish "this store
 -- scanned empty" from "nothing moved".
 local function traceDiff(store, after, moveCount)
-  if not (NS.State.debug and NS.Debug) then return end
-  local line = L.DiffSummary(store, countKinds(after.bags),
-    countKinds((after.stores or {})[store]), moveCount)
-  if moveCount == 0 and L._lastDiff[store] == line then return end
-  L._lastDiff[store] = line
-  NS.Debug("Diff", "%s", line)
+  if not (NS.State.debug and NS.DebugLog) then return end
+  local D, key = NS.DebugLog, L.DiffGateKey(store)
+  if moveCount > 0 then D.DebugForget(key) end
+  D.DebugChanged(key, "Diff", "%s", L.DiffSummary(store, countKinds(after.bags),
+    countKinds((after.stores or {})[store]), moveCount))
 end
 
 -- Diff one store between the two snapshots and record what moved. Returns the entries written.
@@ -835,7 +835,8 @@ end
 function L:OpenContext(context)
   NS.State.openContext = context
   L._settleSince = nil
-  L._lastDiff = {}
+  -- Each visit's first pass writes its [Diff] line: the gate starts fresh for this context's stores.
+  for _, store in ipairs(self:StoresFor(context)) do NS.DebugLog.DebugForget(L.DiffGateKey(store)) end
   -- The guild bank only holds data for tabs that have been queried, so ask for all of them up
   -- front. The replies arrive asynchronously on GUILDBANKBAGSLOTS_CHANGED and reconcile normally.
   if context == C.Context.GUILD_BANK then

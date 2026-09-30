@@ -227,10 +227,14 @@ NS.Launcher = Launcher:New({
   -- other line this addon emits (events-frames-taint-§8).
   print = function(line) NS.Print(line) end,
 
-  -- debug(tag, message) — the library hands a finished string, and NS.Debug takes a format. "%s"
-  -- rather than the message itself: a message carrying a stray `%` would otherwise raise inside
-  -- string.format, from a log line.
-  debug = function(tag, message)
-    if NS.Debug then NS.Debug(tag, "%s", tostring(message)) end
-  end,
+  -- debug(tag, message) — the host's gated sink (core/DebugLogSetup.lua), for the Launcher's EVENTS
+  -- (a raised accessor, a refused click).
+  debug = NS.DebugSink,
+
+  -- debugAtEnable(tag, message) — Launcher minor 5: Register's STATE lines (LibDataBroker-1.1 or
+  -- LibDBIcon-1.0 absent, no minimap table, `registered`) run at OnEnable, while logging is off by
+  -- design, so they go to the console's at-enable queue and land the first time the player turns
+  -- logging on, after the [Init] line (debug-logging-§8, dependencies once at enable). "%s" for the
+  -- reason NS.DebugSink gives.
+  debugAtEnable = function(tag, message) NS.DebugAtEnable(tag, "%s", tostring(message)) end,
 })

@@ -301,28 +301,25 @@ end
 
 -- The dependency tail of the [Init] line (debug-logging-§8, dependencies: found or missing, once,
 -- at enable). The flag is off at every login, so "at enable" is the moment logging is switched on,
--- which is when the library writes this line. Two facts: the bank-replacing addons loaded (the
--- first suspect when a visit records nothing), and the launcher's state: `degraded` when
--- LibKa0s-Launcher-1.0 is missing, `unregistered` when it loaded but did not register (LibDBIcon or
--- LibDataBroker absent), `registered` otherwise. Addon names and fixed words only, so the joins
--- are secret-free.
-local function launcherState()
-  local LN = NS.Launcher
-  if not LN or LN.__degraded then return "degraded" end
-  return (LN.IsRegistered and LN:IsRegistered()) and "registered" or "unregistered"
-end
-
+-- which is when the library writes this line. One fact: the bank-replacing addons loaded (the
+-- first suspect when a visit records nothing). Addon names and fixed words only, so the join is
+-- secret-free.
+--
+-- NOT the launcher's state any more. This tail carried `launcher registered / unregistered /
+-- degraded` while the Launcher's own Register lines were gated off at OnEnable and never landed.
+-- From Launcher minor 5 they go to the console's at-enable queue (core/LauncherSetup.lua's
+-- `debugAtEnable`) and land right after this line, so a launcher fact here would be the second line
+-- for one state (debug-logging-§4). `degraded` needs no line: without LibKa0s there is no console.
 local function dependencySummary()
   local X = NS.Diagnostics
   local loaded = X and X.LoadedBankAddons and X.LoadedBankAddons()
   local bank = loaded == nil and "unreadable" or (#loaded == 0 and "none" or table.concat(loaded, " "))
-  return ("bank addons: %s, launcher %s"):format(bank, launcherState())
+  return ("bank addons: %s"):format(bank)
 end
 
 -- Pure [Init] session summary for the SetEnabled seam (debug-logging-§5/§8): addon name + version,
 -- schema version, active profile, entry count, then the dependency tail — e.g.
--- "BankLedger v1.2.0, schema v4, profile 'Default', 412 entries, bank addons: none, launcher
--- registered".
+-- "BankLedger v1.2.0, schema v4, profile 'Default', 412 entries, bank addons: none".
 -- Guarded so it can't error before the DB is ready. All values are plain constants/counts, so a raw
 -- tostring is secret-safe here.
 function NS.InitSummary()
