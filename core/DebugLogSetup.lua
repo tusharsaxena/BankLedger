@@ -54,6 +54,14 @@ if not lib then
   function D:BuildDiagnostics() return { lines = {}, dropped = 0, capped = false, capsHit = false } end
   function D:DebugVerb() return false end
 
+  -- The change gates and the at-enable queue (DebugLogGates 1, LibKa0s v1.65.0). Plain dot
+  -- functions on the live instance, like D.Debug; with no console there is nothing to write to, so
+  -- each answers nothing.
+  function D.DebugOnce() end
+  function D.DebugChanged() end
+  function D.DebugForget() end
+  function D.DebugAtEnable() end
+
   -- The flag still flips. It gates more than the console — settings/Schema.lua's write seam checks
   -- it before tracing — so silently refusing to set it would be a second, invisible behavior change
   -- on top of a missing window.
