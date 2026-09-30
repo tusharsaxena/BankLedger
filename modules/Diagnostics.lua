@@ -259,14 +259,24 @@ local function addonLoaded()
   return api
 end
 
-function X.Environment(out)
+--- The loaded bank-replacing addons from the fixed list, in list order, or nil when this client
+--- has no load-state API to ask. Read-only. Shared by the report's `environment` section and the
+--- `[Init]` line (core/Database.lua's NS.InitSummary), which carries the dependency state once, at
+--- the moment logging is switched on (debug-logging-§8, dependencies).
+function X.LoadedBankAddons()
   local api = addonLoaded()
-  if not api then return out:add("Env", "bank-replacing addons loaded: unreadable (no API)") end
+  if not api then return nil end
   local loaded = {}
   for _, name in ipairs(BANK_ADDONS) do
     local ok, on = pcall(api, name)
     if ok and on then loaded[#loaded + 1] = name end
   end
+  return loaded
+end
+
+function X.Environment(out)
+  local loaded = X.LoadedBankAddons()
+  if not loaded then return out:add("Env", "bank-replacing addons loaded: unreadable (no API)") end
   out:joined("Env", "bank-replacing addons loaded:", loaded)
 end
 

@@ -128,9 +128,22 @@ function SW:StartSession(context)
   SW.previewSession = false
   SW.context = context
   if NS.State.debug and NS.Debug then
-    NS.Debug("Session", "started (%s)", tostring(context))
+    local held = self:ShowRefusal()
+    NS.Debug("Session", "started (%s)%s", tostring(context),
+      held and (", window not shown: " .. held) or "")
   end
   if self:Enabled() then self:Show() else self:Hide() end
+end
+
+--- Which guard keeps the window off screen at a session start, or nil when it may show: the
+--- window's own switch, the capture switch (SW:Enabled's two conditions), then General visibility.
+--- For the started line only, so a bank visit with no session window says why.
+function SW:ShowRefusal()
+  if not self:Enabled() then
+    local s = (NS.db and NS.db.profile and NS.db.profile.settings) or {}
+    return s.enabled == false and "capture off" or "session window off"
+  end
+  return NS.Util.VisibilityRefusal()
 end
 
 function SW:EndSession()

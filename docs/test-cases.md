@@ -1242,6 +1242,25 @@ badge and any count quoted in the docs must agree with it.
 - Profile verb: the current profile answers already-on, and switches nothing
 - Profile verb: a switch in combat is refused
 
+### test_debug_coverage.lua (16)
+
+- debug: the stand-down and the stand-up each write one [State] line
+- debug: a stand-down inside the login prune window says the prune was postponed
+- debug: a retention window of Always still writes the prune's one line
+- debug: a combat edge under a combat-bound visibility rule writes one [Combat] line
+- debug: a combat edge the addon does not react to writes nothing
+- debug: a refused ledger-window show names the visibility guard
+- debug: a session start with the session window switched off says why it did not show
+- debug: test mode traces its start, its stop and a refused start
+- debug: the guild frame showing over an armed bank frame says the context was kept
+- debug: the [Init] summary carries the dependency tail
+- debug: a one-sided change writes one hold line, and its settling writes the flush
+- debug: a close that drops a held change says so
+- debug: reconcile passes that change nothing write nothing after the first
+- debug: a pass that records a movement still writes its [Diff] and [Move] lines
+- debug: a pass that skips several movements writes one [Skip] line naming each
+- debug: the [Diff] gate starts fresh on every open
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1336,8 +1355,9 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
 | test_profiles.lua | 44 |
+| test_debug_coverage.lua | 16 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1150** |
+| **Total** | **1166** |

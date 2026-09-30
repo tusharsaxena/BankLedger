@@ -234,21 +234,51 @@ end
 --
 -- Every change repaints an open settings panel, so the checkbox follows the starts and stops it did
 -- not make itself.
+--
+-- Each outcome is one `[Table]` line (debug-logging-§8): the dataset swap is the material effect a
+-- reader cannot infer from the `[Set] state.testMode` line (debug-logging-§10), `/bl test` writes no
+-- `[Set]` line at all, and a refused start names its guard.
+
+-- Why a start is refused, or nil: the player's line, and the guard for the trace.
+local function startRefusal()
+  if InCombatLockdown and InCombatLockdown() then
+    return "cannot start test mode during combat.", "combat"
+  end
+  if NS.Util.VisibilityAllows and not NS.Util.VisibilityAllows() then
+    return "cannot start test mode \226\128\148 General visibility is keeping the ledger "
+      .. "window closed.", "visibility"
+  end
+end
+
+local function traceTestMode(on, rows, guard)
+  if not (NS.State.debug and NS.Debug) then return end
+  if guard == "combat" then
+    NS.Debug("Table", "test mode start refused: in combat")
+  elseif guard then
+    NS.Debug("Table", "test mode start refused: %s",
+      tostring(NS.Util.VisibilityRefusal and NS.Util.VisibilityRefusal()))
+  elseif on then
+    NS.Debug("Table", "test mode on: %s sample rows", tostring(rows))
+  else
+    NS.Debug("Table", "test mode off")
+  end
+end
+
 function LT:SetTestMode(on)
   on = on and true or false
   if on == self:IsTestMode() then return on end
   if on then
-    if InCombatLockdown and InCombatLockdown() then
-      return false, "cannot start test mode during combat."
-    end
-    if NS.Util.VisibilityAllows and not NS.Util.VisibilityAllows() then
-      return false, "cannot start test mode \226\128\148 General visibility is keeping the ledger "
-        .. "window closed."
+    local refusal, guard = startRefusal()
+    if refusal then
+      traceTestMode(on, nil, guard)
+      return false, refusal
     end
     NS.State.testRecords = self:BuildTestData()
+    traceTestMode(on, #NS.State.testRecords)
     if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
   else
     NS.State.testRecords = nil
+    traceTestMode(on)
   end
   if NS.Browser and NS.Browser.OnDatasetChanged then
     NS.Browser:OnDatasetChanged()

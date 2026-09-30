@@ -299,9 +299,30 @@ function NS.MigrationSummary(from, to, rows)
   return ("v%s -> v%s, %s rows touched"):format(tostring(from), tostring(to), tostring(rows))
 end
 
+-- The dependency tail of the [Init] line (debug-logging-§8, dependencies: found or missing, once,
+-- at enable). The flag is off at every login, so "at enable" is the moment logging is switched on,
+-- which is when the library writes this line. Two facts: the bank-replacing addons loaded (the
+-- first suspect when a visit records nothing), and the launcher's state: `degraded` when
+-- LibKa0s-Launcher-1.0 is missing, `unregistered` when it loaded but did not register (LibDBIcon or
+-- LibDataBroker absent), `registered` otherwise. Addon names and fixed words only, so the joins
+-- are secret-free.
+local function launcherState()
+  local LN = NS.Launcher
+  if not LN or LN.__degraded then return "degraded" end
+  return (LN.IsRegistered and LN:IsRegistered()) and "registered" or "unregistered"
+end
+
+local function dependencySummary()
+  local X = NS.Diagnostics
+  local loaded = X and X.LoadedBankAddons and X.LoadedBankAddons()
+  local bank = loaded == nil and "unreadable" or (#loaded == 0 and "none" or table.concat(loaded, " "))
+  return ("bank addons: %s, launcher %s"):format(bank, launcherState())
+end
+
 -- Pure [Init] session summary for the SetEnabled seam (debug-logging-§5/§8): addon name + version,
--- schema version, active profile, and entry count — e.g.
--- "BankLedger v1.2.0, schema v4, profile 'Default', 412 entries".
+-- schema version, active profile, entry count, then the dependency tail — e.g.
+-- "BankLedger v1.2.0, schema v4, profile 'Default', 412 entries, bank addons: none, launcher
+-- registered".
 -- Guarded so it can't error before the DB is ready. All values are plain constants/counts, so a raw
 -- tostring is secret-safe here.
 function NS.InitSummary()
@@ -309,8 +330,9 @@ function NS.InitSummary()
   local schema = (g and g.schemaVersion) or 0
   local profile = (NS.db and NS.db.GetCurrentProfile and NS.db:GetCurrentProfile()) or "?"
   local entries = (g and g.ledger and #g.ledger) or 0
-  return ("%s v%s, schema v%s, profile '%s', %s entries"):format(
-    tostring(NS.name), tostring(NS.version), tostring(schema), tostring(profile), tostring(entries))
+  return ("%s v%s, schema v%s, profile '%s', %s entries, %s"):format(
+    tostring(NS.name), tostring(NS.version), tostring(schema), tostring(profile), tostring(entries),
+    dependencySummary())
 end
 
 NS.Database = NS.Database or {}
@@ -899,7 +921,12 @@ end
 -- own onChange. No profile event reaches it (D6).
 function Database:PruneOld()
   local days = Database:RetentionDays()
-  if not days or days == 0 then return 0 end
+  if not days or days == 0 then
+    -- Still one line: the login pass's "armed" line (core/BankLedger.lua) needs its flush, and a
+    -- retention window of Always is the answer to "why was nothing pruned".
+    if NS.State.debug and NS.Debug then NS.Debug("Prune", "retention always: nothing pruned") end
+    return 0
+  end
   local cutoff = time() - days * 86400
   local ledger = NS.db.global.ledger
   local kept = {}

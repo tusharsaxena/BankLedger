@@ -361,9 +361,9 @@ leaves its number unused.
   console. One with a `GUILD_BANK 0` baseline is the regression (issue #12). Result:
 - **CAPT-15. An uncached item is refused, not guessed.** Set Minimum quality to Rare. `/reload`,
   `/bl debug on` (a reload turns logging off) and `/bl debug` to open the console, then at once move
-  something unusual from a bank tab you have not opened → a `[Skip]` line for it ending `(uncached)`,
+  something unusual from a bank tab you have not opened → a `[Skip]` line naming it with `(uncached)`,
   and no row. Repeat the movement a few seconds later → judged properly: a row, or a `[Skip]` line
-  ending `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
+  naming it with `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
 - **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
   gone. Result:
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
@@ -620,7 +620,7 @@ leaves its number unused.
 
 - **DIAG-1. The console opens.** `/bl debug` → the console, header **Debug: OFF** in red. Result:
 - **DIAG-2. Logging on.** `/bl debug on` → a green ON ack, `[Debug] logging enabled` and an `[Init]`
-  summary naming the build, schema and profile. Result:
+  summary naming the build, schema and profile, ending `bank addons: …, launcher registered`. Result:
 - **DIAG-3. One summary per pass.** Move something at your bank → one `[Move]` summary line per pass,
   not one per item. Result:
 - **DIAG-4. Scroll and counter.** The scrollbar follows the wheel both ways; the counter reads
@@ -699,6 +699,19 @@ leaves its number unused.
 - **DIAG-24. Another addon's console is unaffected.** With a second Ka0s addon installed, resize this
   console, then open the other addon's console → it opens at its own size (700 × 344 on a fresh
   session). Resize that one → this console keeps the size you gave it. Result:
+- **DIAG-25. An idle bank is quiet.** `/bl debug on`, `/bl debug`, open your bank and move nothing for
+  a minute, opening and closing a bag or two → after the `[Store] BANK_FRAME opened` line and one
+  `[Diff]` line per store, nothing more, however many passes ran. A pass that repeats an identical
+  `[Diff]` line (or folds it into `(x2)`) is the regression ([debug.md](debug.md#coverage)). Result:
+- **DIAG-26. The edges are in the log.** With logging on, untick and re-tick Enable Bank Ledger →
+  one `[State] stood down (holds: disabled)` line and one `[State] stood up: N events registered, 0
+  unavailable` line. Set General visibility to Only out of combat with the ledger window open, pull a
+  training dummy → `[Combat] entered: visibility outOfCombat, hid 1, re-showed 0`; leave combat → the
+  window is back and a `[Combat] left: … re-showed 1` line. Put visibility back to Always. Result:
+- **DIAG-27. A refusal names its guard.** With logging on and General visibility on Never,
+  `/bl show` → the window stays shut and the console has `[UI] window show refused: visibility
+  never`. In combat, `/bl test` → `[Table] test mode start refused: in combat`. Put visibility back.
+  Result:
 
 ## DEGRADED
 
@@ -762,7 +775,7 @@ string is green whether it is right or wrong.
 What this addon reads in the player's language:
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
-  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:497-528`
+  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:519-550`
   uses them as analytics keys (`byItemType`, `byItemSubType`, `byTypeSub`), they are persisted on every
   row, and the CSV emits them raw. `core/Compat.lua:156` discards the locale-independent `classID` /
   `subClassID`; unlike `quality` and `store`, these two have no `*Raw` column.
@@ -771,7 +784,7 @@ What this addon reads in the player's language:
 - **`Util.FormatDate`** (`core/Util.lua:20-22`): `date("%d-%b-%Y")`, whose `%b` is the month in the
   client's language.
 - **Case folding**: `modules/LedgerTable.lua:66`, `:85`, `:89`, `:94` sort on `:lower()`, and
-  `core/Database.lua:393` and `:410` lowercase names and search text. Lua's `string.lower` folds ASCII
+  `core/Database.lua:415` and `:432` lowercase names and search text. Lua's `string.lower` folds ASCII
   only.
 
 English by design, and not a failure: `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and every
@@ -896,6 +909,7 @@ Ka0sAddonsCommonTasks repository.
 | DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
 | DIAG-20 – 24 | New (resizable console and copy windows, DL-BL-01, LibKa0s v1.64.0) | Never run |
+| DIAG-25 – 27 | New (debug coverage, DL-BL-02) | Never run |
 | DEGRADED-1 – 5, DEGRADED-7, DEGRADED-11 | S-18 steps 1–8 as rewritten by SP-BL-03R | Login now prints the notice and the settings-panel line; `/bl version` prints no notice; `/bl list` and `/bl get` print the CLI-unavailable line, not a listing; `/bl config` opens nothing; `/bl debug` opens no console; the first `/bl show` prints the filter-bar line; the Media check keeps to reachable surfaces; the restore compares against a healthy listing taken first. Several are the opposite of what S-18 asked |
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |

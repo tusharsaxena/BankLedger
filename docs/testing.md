@@ -263,6 +263,14 @@ tests/
                            --   section costing one line, the cap's end marker, and `debug` testing
                            --   `diagnostics` first. The dispatcher half is the kit's shared
                            --   _kit/test_diagnostics_contract.lua, wired through Kit.diagnostics
+  test_debug_coverage.lua  -- what the debug console SAYS (debug-logging-8/9, docs/debug.md's
+                           --   Coverage): the stand-down and stand-up lines, the postponed login
+                           --   prune, the combat edge and its silence under `always`, refusals
+                           --   naming their guard (window show, session window, test mode, the
+                           --   guild frame over an armed bank), the [Init] dependency tail, the
+                           --   settle hold's two lines, one [Skip] line per pass however many
+                           --   movements it refused, and the reconcile pass's quiet steady
+                           --   state asserted on the whole buffer
   test_profiles.lua        -- settings per AceDB profile (schema v3/v4, docs/profiles.md): the
                            --   global/profile defaults split, the v3 lift into `Default` (values
                            --   land, db.global cleared, the ledger untouched, idempotent), the v4

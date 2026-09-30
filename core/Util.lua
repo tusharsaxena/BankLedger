@@ -274,25 +274,40 @@ function Util.VisibilityAllows()
   return true
 end
 
+--- Which guard VisibilityAllows answered no by, for a refusal's trace line (debug-logging-§8: the
+--- line names the guard): `stood down`, or `visibility <mode>`. nil when the display is allowed.
+function Util.VisibilityRefusal()
+  if Util.VisibilityAllows() then return nil end
+  if NS.IsStoodDown and NS.IsStoodDown() then return "stood down" end
+  local g = (NS.db and NS.db.profile and NS.db.profile.settings) or {}
+  return "visibility " .. tostring(g.visibility or "always")
+end
+
 --- Re-evaluate visibility across every window, on a settings change and on each combat transition.
 ---
 --- A window hidden by this rule is REMEMBERED, so the transition back re-shows exactly the windows
 --- the rule took and never one the player had closed themselves.
+---
+--- Answers how many windows the pass hid and how many it re-showed, for the combat edge's
+--- `[Combat]` line (core/BankLedger.lua). Counting costs two integers, so it is not gated.
 function Util.ApplyVisibility()
   local allowed = Util.VisibilityAllows()
   local hidden = NS.State.hiddenByVisibility
+  local hid, shown = 0, 0
   for _, key in ipairs(VISIBILITY_OWNERS) do
     local owner = NS[key]
     local frame = owner and owner.GetWindow and owner:GetWindow()
     if not allowed then
       -- Only a window that is actually up is remembered, so the transition back cannot open one
       -- the player never had open.
-      if frame and frame:IsShown() then hidden[key] = true; owner:Hide() end
+      if frame and frame:IsShown() then hidden[key] = true; owner:Hide(); hid = hid + 1 end
     elseif hidden[key] then
       hidden[key] = nil
       owner:Show()
+      shown = shown + 1
     end
   end
+  return hid, shown
 end
 
 --- Re-center both persistent windows at their default size. The Master controls tab's "Reset

@@ -512,17 +512,20 @@ function L:BuildEntry(move)
   return entry
 end
 
--- Gate, build, store. Returns the new entry's index, or nil when the gate dropped it.
+-- Gate, build, store. Returns the new entry's index, or nil and the gate's reason when the gate
+-- dropped it. The skip is traced by the caller, once per pass (recordMoves), never here: a pass
+-- that moves thirty blacklisted stacks is one [Skip] line, not thirty (debug-logging-§9).
 function L:Record(move)
   local reason = self:GateReason(move)
-  if reason then
-    if NS.State.debug and NS.Debug then
-      NS.Debug("Skip", "%s %s %s (%s)", tostring(move.store), tostring(move.direction),
-        tostring(move.itemID or "gold"), reason)
-    end
-    return nil
-  end
+  if reason then return nil, reason end
   return NS.Database:Add(self:BuildEntry(move))
+end
+
+-- One skipped movement, as the [Skip] line lists it: the item id (or `gold`), the direction and the
+-- gate's reason. Only ever called behind the gate.
+function L.SkipItem(move, reason)
+  return ("%s %s (%s)"):format(tostring(move.itemID or "gold"), tostring(move.direction),
+    tostring(reason))
 end
 
 -- A BANKING SESSION is exactly the span an open storage frame is armed for — the same span
@@ -587,43 +590,92 @@ L.SETTLE_MIN_RECHECK_SECONDS = 0.5
 -- pass a second later saw "warband +1, bags unchanged" and rejected that half too.
 
 -- Write every movement of one pass through the capture gate, counting what stuck and what the gate
--- rejected (the [Move] trace reports both).
+-- rejected (the [Move] trace reports both). With logging on it also answers the skipped movements,
+-- each with its reason, for the pass's one [Skip] line; with it off it builds nothing.
 local function recordMoves(self, moves)
-  local recorded, skipped = 0, 0
+  local recorded, skipped, why = 0, 0, nil
+  local tracing = NS.State.debug and NS.Debug
   for _, move in ipairs(moves) do
-    if self:Record(move) then recorded = recorded + 1 else skipped = skipped + 1 end
+    local index, reason = self:Record(move)
+    if index then
+      recorded = recorded + 1
+    else
+      skipped = skipped + 1
+      if tracing and reason then
+        why = why or {}
+        why[#why + 1] = L.SkipItem(move, reason)
+      end
+    end
   end
-  return recorded, skipped
+  return recorded, skipped, why
+end
+
+-- The last [Diff] line written for each store, reset on every open. The quiet-steady-state gate
+-- (debug-logging-§9): a pass whose summary matches the last one written for that store, and which
+-- found no movement, writes nothing. An open bank sees many passes that change nothing it reports
+-- (the settle deadline re-checking, a guild member's deposit landing in a tab, PLAYER_MONEY at a
+-- vendor window beside the bank) and each used to repeat the same line per store. A pass that
+-- found a movement always writes, and so does the first pass after an open. The one-sided change
+-- such a pass cannot show (a stack count moving, the kinds unchanged) has its own hold line in
+-- settleBaseline. Only ever read and written behind the gate.
+L._lastDiff = {}
+
+-- The pass's [Diff] line for one store. Emitted before reconcileStore's skip, so a store that found
+-- nothing still says what it saw. Silence is not a diagnosis: it cannot distinguish "this store
+-- scanned empty" from "nothing moved".
+local function traceDiff(store, after, moveCount)
+  if not (NS.State.debug and NS.Debug) then return end
+  local line = L.DiffSummary(store, countKinds(after.bags),
+    countKinds((after.stores or {})[store]), moveCount)
+  if moveCount == 0 and L._lastDiff[store] == line then return end
+  L._lastDiff[store] = line
+  NS.Debug("Diff", "%s", line)
 end
 
 -- Diff one store between the two snapshots and record what moved. Returns the entries written.
 local function reconcileStore(self, before, after, store)
   local moves = L.Diff(storeView(before, store), storeView(after, store), store)
-  -- Emitted before the skip, so a store that found nothing still says what it saw. Silence is not
-  -- a diagnosis: it cannot distinguish "this store scanned empty" from "nothing moved".
-  if NS.State.debug and NS.Debug then
-    NS.Debug("Diff", "%s", L.DiffSummary(store, countKinds(after.bags),
-      countKinds((after.stores or {})[store]), #moves))
-  end
+  traceDiff(store, after, #moves)
   if #moves == 0 then return 0 end
-  local recorded, skipped = recordMoves(self, moves)
+  local recorded, skipped, why = recordMoves(self, moves)
   if NS.State.debug and NS.Debug then
+    -- The skips first, as one line for the pass, so a missing row's reason sits above the count.
+    if why then NS.Debug("Skip", "%s: %s", tostring(store), table.concat(why, ", ")) end
     NS.Debug("Move", "%s", L.MoveSummary(store, recorded, skipped))
   end
   return recorded
+end
+
+-- The held baseline's two edges (debug-logging-§8, deferred work): one line when a one-sided change
+-- starts a hold, one when a hold ends by settling. The third way a hold ends, the timeout, keeps its
+-- own re-anchor line below, and a close or a stand-down that drops a hold says so on its own line.
+-- A hold line with nothing after it is the evidence of a change that never balanced.
+local function traceHold(since, now, recorded)
+  if not (NS.State.debug and NS.Debug) then return end
+  if since == nil then
+    NS.Debug("Diff", "one-sided change: baseline held, settles within %ss",
+      tostring(L.SETTLE_TIMEOUT_SECONDS))
+  else
+    NS.Debug("Diff", "held change settled after %ss, %s recorded",
+      ("%.1f"):format(now - since), tostring(recorded))
+  end
 end
 
 -- Advance the baseline, or hold it because a transaction is still in flight.
 local function settleBaseline(self, before, after, totalRecorded, now)
   if totalRecorded > 0 or not L.SnapshotsDiffer(before, after) then
     -- Settled: either the movement completed, or nothing is in flight.
+    if L._settleSince then traceHold(L._settleSince, now, totalRecorded) end
     NS.State.lastSnapshot = after
     L._settleSince = nil
     return
   end
   -- A one-sided change: the other half may still be on its way from the server. HOLD the baseline
   -- so the next pass can still see this half, and look again shortly.
-  L._settleSince = L._settleSince or now
+  if not L._settleSince then
+    traceHold(nil, now)
+    L._settleSince = now
+  end
   if now - L._settleSince >= L.SETTLE_TIMEOUT_SECONDS then
     -- It never balanced, so it was never a movement (an item looted into the bags while the bank
     -- happened to be open, say). Accept the new state as the baseline and stop waiting, otherwise
@@ -748,8 +800,14 @@ function L:HookGuildBankFrame()
   -- is one-way, and it MUST NOT be generalized to anything that has a real unregister.
   frame:HookScript("OnShow", function()
     if NS.IsStoodDown and NS.IsStoodDown() then return end
-    -- Never steal the context from a frame that is already open; that one has its own events.
-    if not NS.State.openContext then L:OpenContext(C.Context.GUILD_BANK) end
+    -- Never steal the context from a frame that is already open; that one has its own events. The
+    -- refusal is traced, because a guild visit made with the bank frame still armed records nothing
+    -- on the guild side, and the guard is the answer to "my guild deposit is missing".
+    local open = NS.State.openContext
+    if not open then return L:OpenContext(C.Context.GUILD_BANK) end
+    if open ~= C.Context.GUILD_BANK and NS.State.debug and NS.Debug then
+      NS.Debug("Store", "GUILD_BANK shown while %s is open: context kept", tostring(open))
+    end
   end)
   frame:HookScript("OnHide", function()
     if NS.IsStoodDown and NS.IsStoodDown() then return end
@@ -777,6 +835,7 @@ end
 function L:OpenContext(context)
   NS.State.openContext = context
   L._settleSince = nil
+  L._lastDiff = {}
   -- The guild bank only holds data for tabs that have been queried, so ask for all of them up
   -- front. The replies arrive asynchronously on GUILDBANKBAGSLOTS_CHANGED and reconcile normally.
   if context == C.Context.GUILD_BANK then
@@ -834,10 +893,15 @@ function L:CloseContext()
   -- last action's second half may still be in flight.
   self:CancelPendingReconcile()
   self:Reconcile()
+  -- Read after the final pass: a hold still open here is a one-sided change the close throws away,
+  -- and the hold line before it would otherwise have no end in the log.
+  local held = L._settleSince ~= nil
   NS.State.openContext = nil
   NS.State.lastSnapshot = nil
   L._settleSince = nil
-  if NS.State.debug and NS.Debug then NS.Debug("Store", "%s closed", tostring(context)) end
+  if NS.State.debug and NS.Debug then
+    NS.Debug("Store", "%s closed%s", tostring(context), held and ", held change dropped" or "")
+  end
   fireSessionChanged(false, context)
 end
 
@@ -853,11 +917,13 @@ end
 --- moment of disabling belongs to a period the player asked not to have captured.
 function L:DropContext()
   local context = NS.State.openContext
+  local held = L._settleSince ~= nil
   self:CancelPendingReconcile()
   NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
   if context then
     if NS.State.debug and NS.Debug then
-      NS.Debug("Store", "%s dropped (stand-down)", tostring(context))
+      NS.Debug("Store", "%s dropped (stand-down)%s", tostring(context),
+        held and ", held change dropped" or "")
     end
     fireSessionChanged(false, context)
   end
