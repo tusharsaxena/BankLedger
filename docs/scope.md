@@ -8,10 +8,10 @@ What Bank Ledger is for, and — the load-bearing half — what it deliberately 
 |---|---|
 | Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
 | Client | Retail (Mainline) only — a single `## Interface:` line, currently `120100` |
-| SavedVariables | `BankLedgerDB`, **account-wide `global` only** |
+| SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window and the Minimap button account-wide, every other setting per AceDB profile ([profiles.md](profiles.md)) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 31 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 34 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## In scope
@@ -50,8 +50,10 @@ These are decisions, not gaps. Each one has a reason that would still apply tomo
 - **Retroactive cleanup of pre-corroboration gold rows.** Nothing in a stored row distinguishes a real
   warband deposit from a bank-tab purchase that was recorded as one, so the addon cannot find them
   after the fact. Filter to Gold + Warband Bank in the History tab and delete by hand.
-- **Per-character settings.** Account-wide is the design, not a simplification — see
-  [schema.md](schema.md).
+- **Per-character or per-profile history.** The ledger is account-wide by design, not as a
+  simplification: you deposit on one character and withdraw on another. Settings are per AceDB
+  profile (every character shares `Default` unless the player picks otherwise); the history is in no
+  profile — see [profiles.md](profiles.md) and [schema.md](schema.md).
 
 ## Boundaries with the collection
 

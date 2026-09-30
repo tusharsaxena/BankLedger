@@ -73,7 +73,7 @@ test("Schema:Set refuses a value its row's validate rejects, and stores and call
   assertEqual(answers.n, 2, "a validate refusal answers two values")
   assertEqual(answers[1], false)
   assertEqual(answers[2], "invalid value")
-  assertEqual(NS.db.global.settings.qualityThreshold, 0, "nothing was stored")
+  assertEqual(NS.db.profile.settings.qualityThreshold, 0, "nothing was stored")
   assertEqual(#log, 0, "no line, no reaction, no repaint: " .. table.concat(log, " | "))
 end)
 
@@ -92,7 +92,7 @@ end)
 test("Schema:Set on an unknown path stores nothing, anywhere", function()
   S:Set("settings.nonesuch", 1)
   S:Set("nonesuch", 1)
-  assertEqual(NS.db.global.settings.nonesuch, nil)
+  assertEqual(NS.db.profile.settings.nonesuch, nil)
   assertEqual(NS.db.global.nonesuch, nil)
 end)
 
@@ -178,13 +178,13 @@ test("Schema degraded: a write lands, reads back, reacts and answers as the live
   row.onChange = saved
   assertEqual(n, 1)
   assertEqual(ok, true)
-  assertEqual(ns.db.global.settings.qualityThreshold, 4)
+  assertEqual(ns.db.profile.settings.qualityThreshold, 4)
   assertEqual(ns.Schema:Get(PATH), 4)
   assertEqual(reacted, 4)
   local refused = { ns.Schema:Set("settings.nonesuch", 1) }
   assertEqual(refused[1], false)
   assertEqual(refused[2], "unknown path: settings.nonesuch")
-  assertEqual(ns.db.global.settings.nonesuch, nil)
+  assertEqual(ns.db.profile.settings.nonesuch, nil)
 end)
 
 test("Schema degraded: a table value is stored as a copy, and the default stays whole", function()
@@ -192,15 +192,15 @@ test("Schema degraded: a table value is stored as a copy, and the default stays 
   local given = { BANK = true }
   ns.Schema:Set("settings.excludedStores", given)
   given.GUILD_BANK = true
-  assertEqual(ns.db.global.settings.excludedStores.GUILD_BANK, nil, "the store aliases the caller")
+  assertEqual(ns.db.profile.settings.excludedStores.GUILD_BANK, nil, "the store aliases the caller")
   ns.Schema:Set("settings.excludedStores", ns.Schema:Default("settings.excludedStores"))
-  ns.db.global.settings.excludedStores.BANK = true
+  ns.db.profile.settings.excludedStores.BANK = true
   assertEqual(ns.Schema:Default("settings.excludedStores").BANK, nil, "the default was poisoned")
 end)
 
 test("Schema degraded: a bracketed sweep writes every row back and closes its bracket", function()
   -- Driven through the stub's own bracket and ApplyDefault, the shape any sweep takes. It used to
-  -- ride on the degraded `/bl resetall`, which carried its own walk; that verb is the wholesale
+  -- ride on the degraded `/bl resetall`, which carried its own walk; that verb is the profile reset
   -- Sl:ResetEverything now (options-ui-§12), so the stub's bracket is pinned directly.
   -- red under: the stub's ApplyDefault writing nothing, or a BulkEnd that leaves the bracket open.
   local ns, m = degraded()
@@ -219,7 +219,7 @@ test("Schema degraded: a bracketed sweep writes every row back and closes its br
   assertEqual(ns.Schema:Get("settings.trackItems"), true)
   -- The bracket closed: a later write is a plain write again.
   assertEqual(ns.Schema:Set(PATH, 1), true)
-  assertEqual(ns.db.global.settings.qualityThreshold, 1)
+  assertEqual(ns.db.profile.settings.qualityThreshold, 1)
 end)
 
 -- ── what the adoption of LibKa0s-Schema-1.0 changed, on purpose ─────────────────────────────

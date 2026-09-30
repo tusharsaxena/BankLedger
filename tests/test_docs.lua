@@ -12,8 +12,9 @@ local test, assertTrue = T.test, T.assertTrue
 -- a path that keys off a display string is green in this suite whether it is right or wrong: the
 -- test and the bug agree with each other. This addon has three such paths and one of them --
 -- entry.itemType / entry.itemSubType, which are localized display strings used as analytics keys
--- and persisted into SavedVariables -- is the collection\'s worked anti-pattern. S-27 is the only
--- place any of that is looked at, so the section going missing would take the coverage with it.
+-- and persisted into SavedVariables -- is the collection\'s worked anti-pattern. The Non-English
+-- client section (LOC-1 on) is the only place any of that is looked at, so the section going
+-- missing would take the coverage with it.
 --
 -- The failure vocabulary is matched loosely on purpose: pinning one spelling would redden the tree
 -- for a rewording.

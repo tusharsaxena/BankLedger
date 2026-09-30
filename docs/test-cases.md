@@ -278,7 +278,7 @@ badge and any count quoted in the docs must agree with it.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
-- RunMigrations announces the v1->v2 pass the smoke step reads
+- RunMigrations announces the v1->v4 pass in one [Migrate] line
 - RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
 - RunMigrations stamps a stamp-less store whose ledger is nil, without raising
 - RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
@@ -427,7 +427,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
 - Browser: a saved date range is stored as the OPTION, not a resolved timestamp
 - Browser:ApplyView tolerates a scalar filter value in a stored view
-- Slash:CliResetAll (the wholesale reset) also discards the saved view
+- Slash:CliResetAll (the profile reset) also discards the saved view
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -771,7 +771,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash:CliReset echoes a table default through the shared formatter
 - Slash:CliReset echoes the colored key = value shape, like get and set
 - Slash:CliReset echoes the stored value, not the requested one
-- Slash: /bl resetall is the wholesale reset — the schema, the filter lists AND the ledger
+- Slash: /bl resetall is the profile reset — the schema and the filter lists, NOT the ledger
 - Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and no per-row [Set]
 - Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
 - Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED
@@ -835,21 +835,21 @@ badge and any count quoted in the docs must agree with it.
 - Panel:Diagnose says so and stops when no defaults button was ever built
 - Panel:Diagnose stops at a button with no frame
 - Panel:Diagnose dumps the frame, its parent chain and every scrap of its art
-- Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current
-- Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table
+- Slash: ResetEverything resets the WHOLE PROFILE, and nothing account-wide
+- Slash: ResetEverything keeps the profile table's IDENTITY, and db.global's
 - Slash: the restored store does not ALIAS the defaults table
-- Slash: both global resets end test mode, which no store wipe can reach
+- Slash: both global resets end test mode, which no profile reset can reach
 - Minimap row: the page Defaults button does not un-hide the button
 - Minimap row: Reset all settings does not un-hide the button, or move it
 - Minimap row: a TARGETED /bl reset minimap.shown is not a sweep, and still works
 - Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now
 - Slash: ResetEverything while disabled stands the addon back up
 - Slash: ResetEverything announces LedgerChanged exactly once
-- Slash: ResetEverything traces the recorded entries it wiped, once
+- Slash: ResetEverything keeps the recorded ledger, and traces no purge
 - Panel: Defaults logs ONE [Set] line, and no per-row [Set]
 - Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row
-- Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line
-- Slash: every reset route has the SAME blast radius — the ledger survives none of them
+- Slash: ResetEverything logs its profile reset as ONE [Set] line, and no [Data] line
+- Slash: every reset route has the SAME blast radius — the ledger survives all of them
 
 ### test_panel_filters.lua (40)
 
@@ -898,9 +898,9 @@ badge and any count quoted in the docs must agree with it.
 
 - Reset routes: every reset control raises the one confirm popup and changes nothing before accept
 - Reset routes: RequestResetAll is the single entry point, and the popup's Yes is ResetEverything
-- Reset routes: accepting the popup empties the ledger, both filter lists and savedView, ends test mode, closes the debug console and keeps db.global.minimap whole
+- Reset routes: accepting the popup resets both filter lists, savedView and the settings, keeps the ledger, ends test mode, closes the debug console and keeps db.global.minimap whole
 - Reset routes: accepting the popup puts the ledger window's live view back to stock
-- Reset routes: the resetall verb and the Defaults tooltip say history goes, and that it asks first
+- Reset routes: the resetall verb, the Defaults tooltip and the popup say it is this profile, that history is kept, and that it asks first
 - Reset routes degraded: library-absent /bl resetall raises the same popup
 
 ### test_harness.lua (8)
@@ -1045,7 +1045,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
 
-### test_libka0s_slash.lua (22)
+### test_libka0s_slash.lua (23)
 
 - LibKa0s-Slash: the vendored major registered and the CLI is running on it
 - LibKa0s-Slash: the module needs the minor that carries the format hook
@@ -1057,12 +1057,13 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Slash: a numeric dropdown now REFUSES a value outside its list
 - LibKa0s-Slash: a slider value out of range CLAMPS rather than storing what was typed
 - LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN be edited
-- LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk
+- LibKa0s-Slash: CliResetAll is the host's profile reset, not the library's walk
 - LibKa0s-Slash: the landing page and the chat help render the SAME rows
 - LibKa0s-Slash: reset takes a PATH and resetall takes none — already converged
 - LibKa0s-Slash: every user-visible string resolves to prose, not to its own key
 - LibKa0s-Slash degraded: the verbs that never needed the library still work
-- LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out
+- LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS plus profile
+- LibKa0s-Slash degraded: /bl profile says the library is missing, and switches nothing
 - LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does
 - LibKa0s-Slash degraded: with no config verb, a bare /bl falls back to help
 - LibKa0s-Slash degraded: the CLI explains itself through the SHARED cause clause
@@ -1107,7 +1108,7 @@ badge and any count quoted in the docs must agree with it.
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
 
-### test_disabled.lua (17)
+### test_disabled.lua (18)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1119,6 +1120,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: the CONTROL -- the write and print surveys really would catch a survivor
 - disabled: every reserved verb and the bare /bl still answer normally
 - disabled: both diagnostics forms reach RunDiagnostics, each once, with no refusal
+- disabled: /bl profile lists and switches, with no refusal (a host live verb)
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
 - disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
@@ -1192,6 +1194,53 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: the report leaves the debug flag exactly as it found it
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
+
+### test_profiles.lua (44)
+
+- Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
+- Profiles: a schema write lands in the active profile, never in db.global
+- Profiles: the filter lists are written into the active profile
+- Migrate v3: every stored setting, both lists and the saved view land in the Default profile, and leave db.global
+- Migrate v3: the retention window stays in db.global and is not lifted (D6)
+- Migrate v3: the recorded ledger and LibDBIcon's table are not touched
+- Migrate v3: reads resolve against the lifted profile, and unset rows read their defaults
+- Migrate v3: idempotent — a second run moves nothing and changes nothing
+- Migrate v3: a store with nothing to lift is stamped and gains no profile keys
+- Migrate v3: the [Migrate] line counts each value it moved
+- Migrate v4: a profile's retention window goes back to db.global, the Default profile's value winning
+- Migrate v4: idempotent — a second run moves nothing, and the runner stamps v4
+- Migrate v4: a player choice already in db.global is kept over a profile's copy
+- Migrate v4: a Default profile with no stored window keeps its implicit 30 over another profile's shorter one
+- Migrate v4: a store with no Default profile resolves to the pre-D6 default, not the first other profile
+- Migrate v4: a store with no profile window is left alone
+- Profiles: a switch re-reads every setting from the new profile
+- Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
+- Profiles: a switch to a disabled profile stands the addon down, and back stands it up
+- Profiles: a switch re-applies the master chrome and the stored geometry to a built window
+- Profiles: one profile event is one SettingsChanged and one LedgerChanged
+- Profiles: a switch logs exactly one [Profile] line naming the profile, and no [Set] line
+- Profiles: under the shipped 30-day retention, a switch, a copy and a reset each log their one line and nothing else
+- Profiles: a switch, a copy, a profile reset and the global reset never prune recorded history (D6)
+- Profiles: a profile reset and the global reset leave the retention window alone
+- Retention: a write lands in db.global, never in a profile, and every profile reads the one value
+- Retention: a stale per-profile value is never what the prune reads
+- Retention: the Settings tooltip says the window is account-wide
+- Profiles: a copy logs one [Set] line naming both profiles, and takes the source's values
+- Profiles: AceDBOptions' own Reset Profile is the same act, and logs its line without a count
+- Profiles: AceDBOptions' own Reset Profile ends test mode and closes the debug console, as Reset all settings does
+- Profiles: a switch leaves test mode alone
+- Profiles: the global reset's blast radius is the active profile — the list, the other profiles and the ledger survive
+- Profiles page: registered after General, with no Defaults button, over AceDBOptions' table for NS.db
+- Reset veto: S.VetoedFromResetAll vetoes the Profiles page and every stored row, and passes the session-only rows
+- Reset veto: the Options descriptor passes it as skipRestoreAll, and the Profiles page keys itself by it
+- Reset veto: the library's global reset over this descriptor ends the session rows, resets the profile, and keeps the window and the history
+- Profile verb: one COMMANDS row, after resetall, described through NS.L
+- Profile verb: bare /bl profile lists every profile, current marked, then the hint
+- Profile verb: /bl profile <name> switches, and the adopt path runs
+- Profile verb: quotes are stripped, and case and inner spaces are kept
+- Profile verb: an unknown name is refused, suggests the near match, and creates nothing
+- Profile verb: the current profile answers already-on, and switches nothing
+- Profile verb: a switch in combat is refused
 
 ### test_eol.lua (2)
 
@@ -1275,19 +1324,20 @@ badge and any count quoted in the docs must agree with it.
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 44 |
-| test_libka0s_slash.lua | 22 |
+| test_libka0s_slash.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 10 |
-| test_disabled.lua | 17 |
+| test_disabled.lua | 18 |
 | test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
+| test_profiles.lua | 44 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1104** |
+| **Total** | **1150** |

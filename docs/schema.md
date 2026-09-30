@@ -1,17 +1,26 @@
 # Schema
 
-What Bank Ledger persists: the single account-wide saved variable, one entry per movement, the
-storage-only carve-outs, the filter id-set registry, and the migration seam. The controls that write settings are
+What Bank Ledger persists: the one saved variable and its two scopes (account-wide and per profile),
+one entry per movement, the storage-only carve-outs, the filter id-set registry, and the migration
+seam. The controls that write settings are
 [settings-panel.md](settings-panel.md); how an entry comes to exist is [data-flow.md](data-flow.md).
 
 ## The saved variable
 
-One SavedVariable, `BankLedgerDB`, **account-wide `global` scope only**. AceDB still creates the
-profile namespace — the addon calls `AceDB:New("BankLedgerDB", NS.defaults, true)` — but it is
-deliberately unused: you deposit on one character and withdraw on another, so a per-character profile
-would split the very history the addon exists to join up. `defaults/Global.lua` is the single place a
-default value is hardcoded, and there is deliberately no `defaults/Profile.lua` (a ratified deviation
-— see `ARCHITECTURE.md` → `## Documented deviations`).
+One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.defaults, true)`, in
+**two scopes** since schema v3 ([profiles.md](profiles.md)):
+
+| Scope | Defaults file | Holds |
+|---|---|---|
+| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp |
+| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`), both filter lists, the saved view |
+
+The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
+per-character history would split the very record the addon exists to join up. What a player
+configures is per profile, and every character starts on the one shared `Default` profile (the
+`true` above). The one exception is the retention window: it decides how much of the shared ledger
+is kept, so it is account-wide too (owner decision D6), and no profile event changes it or prunes.
+Each default value is hardcoded in exactly one of the two files (`savedvariables-§2`).
 
 One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 
@@ -52,7 +61,7 @@ drop it from `CONTEXT_STORES`, and let the history keep rendering.
 
 #### Schema v2 — the value dimension is gone
 
-`db.global.schemaVersion` is now **2**. Vendor price was a poor proxy for worth, so the addon stopped
+Schema v2 made `vendorPrice` go. Vendor price was a poor proxy for worth, so the addon stopped
 deriving, capturing and persisting it entirely: `Util.EntryValue`/`Util.SignedValue` are deleted,
 `Compat.GetItemDetails` returns 5 values (`name, quality, itemType, itemSubType, link`, no vendor
 price), and a ledger entry never carries `vendorPrice`. Gold is unaffected — a `MONEY` row's amount
@@ -63,6 +72,54 @@ sets `e.vendorPrice = nil` on every entry and returns the rows it touched. `NS:R
 stamps `schemaVersion = 2`, and emits the standard `[Migrate]` debug line via `NS.MigrationSummary`.
 It is idempotent — a v2 database is skipped entirely, and clearing an already-absent field on a
 partially-migrated one is a no-op.
+
+#### Schema v3 — settings move into the profile
+
+The v2 → v3 step is `NS.MIGRATIONS[3]` in
+`core/Database.lua`, and it is the load pass that made settings per profile (owner decision D5,
+2026-09-29: settings only, recorded data stays account-wide). For each of the four keys in
+`NS.PROFILE_LIFT_KEYS` — `settings`, `blacklist`, `whitelist`, `savedView` — it moves whatever
+`db.global` stores into the raw `Default` profile (`db.sv.profiles.Default`, created if absent) and
+clears it from `db.global`. A `settings` value overwrites the profile's own, key by key; a list or the
+saved view replaces the profile's whole. It counts one row per value moved. The account-wide
+settings keys, `NS.GLOBAL_SETTINGS` (today `retentionDays` alone, D6), are not lifted: they stay in
+`db.global.settings`, where v2 stored them, so the `settings` table is cleared key by key rather
+than whole.
+
+- **Why `Default`.** It is the profile every character was already on, because the db has always
+  been created with `defaultProfile = true`. An upgrade therefore changes nothing a player sees.
+- **Why a present key is a player's choice here.** AceDB's logout strip left only non-default values
+  in `db.global`, and the v3 global defaults declare none of these keys, so AceDB fills nothing in
+  under them. The runner also runs straight after `AceDB:New`, before anything reads `db.profile`
+  (`savedvariables-§1`).
+- **Idempotent.** Each global key is cleared the moment it is copied, so a second run moves nothing.
+- **Not profile-scoped.** The step lifts **out of** `db.global` into the one profile that existed; a
+  profile created later passes through it untouched. So the account-wide stamp is the right gate and
+  there is no per-profile stamp.
+
+#### Schema v4 — the retention window goes back to db.global
+
+`db.global.schemaVersion` is now **4**. An earlier build of v3 lifted `retentionDays` into the
+profile with every other setting, so a profile could carry its own window and a switch pruned the
+history every profile shares. Owner decision D6 (2026-09-29) made the window account-wide, and the
+v3 → v4 step, `NS.MIGRATIONS[4]` in `core/Database.lua`, repairs a store that build wrote. It walks
+every stored profile raw (`db.sv.profiles`, before anything reads `db.profile`) and removes each
+`NS.GLOBAL_SETTINGS` key from it, counting one row per value removed.
+
+- **Which value is kept.** A player choice already in `db.global.settings` (a value off the declared
+  default) wins; otherwise the `Default` profile's, which is where v3 put the player's pre-profile
+  value. No other profile's value is ever promoted. Every profile's copy is cleared either way.
+- **A `Default` profile without the key holds 30.** The earlier build declared a 30-day window in
+  the profile defaults, and AceDB's logout strip drops a stored value equal to its default, so an
+  absent key in that build's `Default` profile *is* 30 (frozen in the step as
+  `V3_PROFILE_DEFAULTS`). The step compares against that default rather than testing for the key
+  (savedvariables-§1); reading the absence as "no value" would let another profile's shorter window
+  become the account's, and the next login prune would delete history `Default` kept. A store with
+  no `Default` profile resolves to 30 the same way.
+- **Idempotent.** A second run finds the key in no profile and touches nothing. A v2 upgrade runs the
+  current v3, which never lifts the key, so v4 has nothing to do for it.
+- **Walks the profiles, and still needs no per-profile stamp.** The profile defaults no longer
+  declare the key, so a profile created after the step never carries one.
 
 #### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
 
@@ -81,12 +138,13 @@ retries that step. Reading an unstamped store as v1 covers a legacy pre-stamp st
 a fresh install alike: every step over an empty ledger is a no-op, so a fresh install costs one loop
 and ends stamped current.
 
-`Sl:ResetEverything` runs the runner again after its wipe, because the merged-back defaults carry the
-declared 0. Without that, a reset store would read v0 until the next login.
+The stamp is account-wide and no reset touches it: the global reset is a profile reset
+(`db:ResetProfile()`), which never reaches `db.global`. `NS.OnProfileEvent` runs the runner on every
+profile event anyway, where it returns at once while the stamp is current.
 
-There is **no profile scope** to walk. `savedvariables-§1`'s per-profile rule has nothing to act on
-here: this addon stores only `db.global` (the `savedvariables-§2` register row), so every step takes
-`db.global`.
+No step so far is **profile-scoped**. The first one that reshapes data inside a profile has to walk
+`db.sv.profiles` or carry a per-profile stamp (`savedvariables-§1`); the account-wide stamp alone
+would run it for the active profile only.
 
 #### Accepted deviation — the CSV export contract broke
 
@@ -119,13 +177,16 @@ one instance, `NS.SchemaRuntime`, over `S.Schema`, and binds every name callers 
 `S.SameValue`, `S.BulkBegin`, `S.BulkEnd` and `S:Register` (now the library's `Validate`). The
 Options and Slash descriptors take the instance's members directly, as values; there is no gate in
 front of the seam for that to bypass. The descriptor supplies what is ours: every stored path
-resolves against `NS.db.global`, the post-write tail is the panel repaint (`options-ui-§11`), the
+resolves against `NS.db.profile` (resolved per call, because AceDB swaps the table on a switch), the
+post-write tail is the panel repaint (`options-ui-§11`), the
 `[Set]` line goes to `NS.Debug` only while logging is on, the sweep veto is `S.RESET_EXEMPT`
 (`launcher-§3`), and `L` keeps this addon's refusal wording (`unknown path: <path>`,
 `invalid value`). Each write runs refuse unknown path, `validate`, store (a table value is copied
 in), tally or log, `onChange`, repaint, in that order. The Minimap button row's inversion is the
 row's own `set`, so no other code knows which way round its boolean is. `S:Register` now reports a
-row whose path is missing from `defaults/Global.lua` even when the row carries a `default` of its own;
+row whose path is missing from `defaults/Profile.lua` even when the row carries a `default` of its own
+(the two `S.GLOBAL_ROWS` resolve against `defaults/Global.lua` instead: the Minimap row against its
+`minimap.hide`, the retention row against `settings.retentionDays`, D6);
 before the adoption that row passed, although AceDB would still have read it as nil.
 
 ## Without the library: the degradation stub and write-through
@@ -157,15 +218,17 @@ session state switched through `LT:SetTestMode` and `NS.DebugLog`, never through
 
 **One structural registry** (`architecture-§5`): the filter id-sets, which the player adds item ids
 to and removes them from.
-- **Storage keys.** `db.global.blacklist` and `db.global.whitelist`, both shipped empty in
-  `defaults/Global.lua`.
+- **Storage keys.** `db.profile.blacklist` and `db.profile.whitelist`, both shipped empty in
+  `defaults/Profile.lua`.
 - **Writer.** `NS.Filters` in `modules/Filters.lua`: `F:_move`, `F:_remove`, `F:ClearList` and
   `F:ClearAll`, with `AddBlacklist` / `AddWhitelist` / `RemoveBlacklist` / `RemoveWhitelist` over the
   first two. The Filters tab, the ledger's right-click menu and the two clear popups call it, and
   nothing else writes either key.
-- **Load pass.** There is none. AceDB supplies the empty defaults, and `NS:RunMigrations`
-  (`core/Database.lua`), the only load-time pass, never touches them. `Sl:ResetEverything` empties the
-  whole store, which is not a registry write.
+- **Load pass.** `NS.MIGRATIONS[3]` (`core/Database.lua`), once: it lifted both lists out of
+  `db.global` into the `Default` profile (schema v3, above). No other step touches them, and AceDB
+  supplies the empty defaults. A profile switch, copy or reset replaces them wholesale, which is not a
+  registry write; `NS.OnProfileEvent` then re-caches the capture gate and fires `LedgerChanged`, as
+  the writer does after its own writes.
 
 **The movement log is recorded data**, `architecture-§5` named non-setting state. The addon records
 every entry, and the player authors none, so it is not a registry, and naming it is the
@@ -181,39 +244,40 @@ compliance. It has no `Documented deviations` row.
     as the index-delete seam.
   - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
     button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
-  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows. It runs
-    from that row's `onChange` and once per session, five seconds after `PLAYER_ENTERING_WORLD`
-    (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. The session latch is set when
+  - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows, read from
+    `db.global.settings` (`Database:RetentionDays`; the window is account-wide, owner decision D6).
+    It runs from that row's `onChange` and once per session, five seconds after
+    `PLAYER_ENTERING_WORLD` (`addon:OnEnterWorld`), on an AceTimer the stand-down cancels. It never
+    runs on a profile event ([profiles.md](profiles.md)). The session latch is set when
     the prune runs, so a disable inside those five seconds postpones it to the next
     `PLAYER_ENTERING_WORLD` rather than skipping it.
 - **Why none of those is a player choice.** Deleting entries, purging the log and pruning it by the
   retention row are the owner's operations on recorded data. The rule allows all three.
 - **Load pass.** `NS:RunMigrations` may rewrite entries in place, as its v1 → v2 step does when it
-  strips `vendorPrice`, and is not a writer to name. `Sl:ResetEverything` empties `db.global`
-  wholesale, ledger included, which is not a writer either. Test mode reads `NS.State.testRecords`
-  and never writes the log.
+  strips `vendorPrice`, and is not a writer to name. No reset reaches the log: the global reset is a
+  profile reset, and the ledger is in no profile. Test mode reads `NS.State.testRecords` and never
+  writes the log.
 
 **Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
 and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That
 naming is what makes them compliant, so none has a `Documented deviations` row. A reset below only
 empties the state or puts back the shipped default, and *Save* captures what is on screen, so
 neither chooses a value. The Master controls tab's *Reset position* is one of those resets.
-- **Main window geometry.** Storage key `db.global.settings.window` (`point`, `x`, `y`, `w`, `h`).
+- **Main window geometry.** Storage key `db.profile.settings.window` (`point`, `x`, `y`, `w`, `h`).
   Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
   drag-stop, on the resize grip's mouse-up, on every `OnHide`, and at `PLAYER_LOGOUT` through
-  `B:OnLogout`. `B:ResetWindow` empties it. Two routes reach that reset: `NS.Util.ResetWindowPositions`
-  (the Master controls tab's *Reset position*), and `Sl:ResetEverything` once its wholesale reset is
-  done — which is where *Reset all settings*, the General page's *Defaults* and `/bl resetall` all
-  land after the confirm.
-- **Session window geometry.** Storage key `db.global.settings.sessionWindow`, same shape. Owner
+  `B:OnLogout`. `B:ResetWindow` empties it, reached from `NS.Util.ResetWindowPositions` (the Master
+  controls tab's *Reset position*). A profile event re-anchors the live frame from the new profile's
+  value through `B:ApplyGeometry`, which writes nothing.
+- **Session window geometry.** Storage key `db.profile.settings.sessionWindow`, same shape. Owner
   `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
   occasions (drag-stop, grip mouse-up, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and
-  `SW:ResetWindow`, which empties it and is reached by the same two routes as `B:ResetWindow`.
-- **Saved ledger view.** Storage key `db.global.savedView`, absent until the player saves. Owner
+  `SW:ResetWindow`, which empties it and is reached by the same route as `B:ResetWindow`.
+- **Saved ledger view.** Storage key `db.profile.savedView`, absent until the player saves. Owner
   `NS.Browser`. Writers: `B:SaveView`, from the filter bar's **Save** button, which stores the view on
   screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
-  calls `B:ResetView`. `Sl:ResetEverything` empties the key with the rest of `db.global`, then calls
-  `B:ResetView` silently so the view still painted on the bar goes back to stock too.
+  calls `B:ResetView`. A profile event puts the bar on the new profile's view (or stock) through
+  `B:ClearFilters`, which writes nothing.
 - **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner **`NS.Launcher`**
   (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
   Writer: LibDBIcon itself, when the player drags the button
@@ -223,13 +287,12 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   it from `defaults/Global.lua`, and the seam has no seed of its own. It was `NS.Browser`'s
   `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
 
-`NS:RunMigrations` touches none of the four. `Sl:ResetEverything` empties `db.global` wholesale and
-merges the defaults back, then re-runs `NS:RunMigrations` so the declared `schemaVersion = 0` is
-re-stamped to the current version at once (the stamp is under *The SavedVariables stamp* above). The wipe
-replaces the first three along with everything else; the standard
-does not count a wholesale replacement as a writer to name. **The fourth is the exception**: the
-whole `db.global.minimap` table is held across that wipe and put back, because both keys in it are
-per-installation display preferences rather than settings (`launcher-§3` — see [ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher)).
+`NS.MIGRATIONS[3]` lifted the first three out of `db.global` once (schema v3); no other step touches
+any of the four. AceDB's profile switch, copy and reset replace the first three along with everything
+else in the profile; the standard does not count a wholesale replacement as a writer to name. **The
+fourth is account-wide**: `db.global.minimap` is in no profile, so no profile event reaches it, and
+both keys in it are per-installation display preferences rather than settings (`launcher-§3` — see
+[ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher)).
 
 ## Storage carve-outs
 
@@ -238,38 +301,39 @@ no row addresses them, and each is written by its one owner module rather than t
 `Schema:Set`:
 - `settings.window`, the main window's geometry (owner `modules/Browser.lua`);
 - `settings.sessionWindow`, the session window's geometry (owner `modules/SessionWindow.lua`);
-- `db.global.savedView`, the filter bar's saved baseline (owner `modules/Browser.lua`).
+- `db.profile.savedView`, the filter bar's saved baseline (owner `modules/Browser.lua`).
 
 `db.global.minimap.minimapPos` is the fourth, with a different writer: LibDBIcon stores the
 button's position there on a drag, in the table **`NS.Launcher`** (`core/LauncherSetup.lua`) hands
 it at `Register` time. That table also holds `hide`, the Minimap button row's stored key (CLI path
 `minimap.shown`), so the addon never replaces it
-whole — and it is the one part of `db.global` the wholesale *Reset all settings* holds back and
-puts back, because both keys in it are per-installation display preferences rather than settings
-(`launcher-§3`). It comes from the AceDB default, and the seam has no seed of its own. `B:SetupMinimap` did
+whole — and it is account-wide, so *Reset all settings*, a profile reset, never reaches it: both keys
+in it are per-installation display preferences rather than settings (`launcher-§3`). It comes from the AceDB default, and the seam has no seed of its own. `B:SetupMinimap` did
 this until the launcher was adopted (`launcher-§1`). [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers)
 names every writer of all four and the act that reaches each. That naming is what makes them
 compliant, so none has a `Documented deviations` row. A new writer of any of them joins that list.
 
 **The filter id-sets are a structural registry, not a carve-out** (`architecture-§5`).
-`db.global.blacklist` and `db.global.whitelist` are item-id sets the player adds to and removes from,
-and no row path names them. Their one writer is `NS.Filters` (`modules/Filters.lua`), which writes
-copy-on-write, re-caches the capture gate and fires `LedgerChanged`. They have no load pass: AceDB
-supplies the empty defaults, and `NS:RunMigrations` never writes them. See
+`db.profile.blacklist` and `db.profile.whitelist` are item-id sets the player adds to and removes
+from, and no row path names them. Their one runtime writer is `NS.Filters` (`modules/Filters.lua`),
+which writes copy-on-write, re-caches the capture gate and fires `LedgerChanged`. Their one load pass
+is `NS.MIGRATIONS[3]`, which lifted them out of `db.global`. See
 [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers).
 
-**The saved view** — `db.global.savedView` holds the grouping, sort, date range, search text and the
+**The saved view** — `db.profile.savedView` holds the grouping, sort, date range, search text and the
 five multi-select column filters, captured by the filter bar's **Save** button. It is *absent* until
 the user saves: no key is what "nothing saved" means, so an empty table stays available to mean a
 deliberately all-cleared save. **Clear** returns to it (or to `STOCK_VIEW` when absent); **Reset**
 discards it, as does the global reset (`Sl:ResetEverything`, behind every reset control). The character
 scope is deliberately *not* part of a view — it is a per-session default of Current that widens on
-demand, so a stale save can never pin the window to one alt. Applied once, at frame build, so
-closing and reopening the window mid-session keeps whatever you were working with.
+demand, so a stale save can never pin the window to one alt. Applied at frame build and again on
+every profile event (the new profile's view), so closing and reopening the window mid-session keeps
+whatever you were working with.
 
 **The movement log is recorded data, not a carve-out or a registry** (`architecture-§5` named
 non-setting state). `db.global.ledger` is owned by `NS.Database`, and only its `Add`, `Delete`,
-`DeleteAt`, `Purge` and `PruneOld` write it. `PruneOld` runs off the `settings.retentionDays` row.
+`DeleteAt`, `Purge` and `PruneOld` write it. `PruneOld` runs off the account-wide
+`settings.retentionDays` row.
 [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers) names the act that reaches each
 writer.
 
@@ -278,4 +342,4 @@ written to SavedVariables. The current banking session's movements are `NS.State
 references to already-stored entries, held only while a bank frame is open and never persisted.
 The sample ledger is `NS.State.testRecords`, never persisted either. Its switch, `state.testMode`
 (the Master controls **Test mode** box), is a schema row but a **session-only** one: it answers
-through `LT:IsTestMode()` and writes nothing under `db.global`.
+through `LT:IsTestMode()` and writes nothing to SavedVariables.

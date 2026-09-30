@@ -85,7 +85,7 @@ rather than on the art, so it survives the fall to the Blizzard rung.
 addon's `B:MakeDropdown` hands it, is the one inline mark still at full white, and that is the
 intended look.** It sits on a menu row drawn in plain white text, not in gold, so it has nothing to
 match; it is marginally brighter than the label beside it. **This is a recorded decision, not a
-regression** — S-21 step 3 says so too, so the next reviewer does not file it.
+regression** — smoke check LEDG-37 says so too, so the next reviewer does not file it.
 
 **The debug console's three marks are not in that table, and they are not this addon's to draw.**
 The console and its **Copy** box are LibKa0s-DebugLog-1.0's windows, so the library builds its own
@@ -94,7 +94,7 @@ path from, which is why `core/DebugLogSetup.lua` passes `addonName` beside `name
 questions answered with the same string. Without it the library falls back to the *words* `Copy` and
 `Clear` and to a font `×`, and nothing errors: the give-away is geometry, since clear goes from 18
 wide to 42 and copy's derived offset slides from `-54` to `-78`. `tests/test_libka0s.lua` pins that
-offset for exactly this reason, and S-14 is where a human looks at it.
+offset for exactly this reason, and smoke check DIAG-8 is where a human looks at it.
 
 The settings panel is deliberately unmarked: its rows, page headers and Defaults button are
 LibKa0s-Options-1.0 widgets, and marking them is this addon reaching into another repo's surface.
@@ -103,13 +103,14 @@ fails is the one nothing else notices — a texture that does not load draws not
 
 ## Logo art
 
-`media/logos/` holds one master and three derivatives. Only the `.tga` is loaded by the addon; WoW
-cannot read `.png` or `.jpg` at runtime.
+`media/logos/` holds one master and four derivatives. Only the two `.tga` files are loaded by the
+client; WoW cannot read `.png` or `.jpg` at runtime.
 
 | File | Size | Role |
 |---|---|---|
 | `bankledger.logo.png` | 2000×2000 | The master. Never shipped to the client; the `.tga` and the 256 avatar are derived from it. |
 | `bankledger.logo.tga` | 512×512, 24-bit RLE | **The runtime asset** — `C.LOGO_PATH`, drawn on the settings landing page at 300px. |
+| `bankledger.logo.128.tga` | 128×128, uncompressed 32-bit | **The addon icon** — the TOC's `## IconTexture` and the launcher's icon (`NS.LOGO_ICON`, `core/LauncherSetup.lua`; `launcher-§4`). Not produced by the recipe below. |
 | `bankledger.logo.jpg` | 2000×2000 | The README / CDN image. Supplied alongside the master at full size, not downscaled from it. |
 | `bankledger.logo.256.jpg` | 256×256 | The CurseForge project avatar. |
 

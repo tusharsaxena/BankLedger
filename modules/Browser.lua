@@ -144,7 +144,7 @@ end
 
 function B:SaveGeometry()
   if not frame then return false end
-  local settings = NS.db and NS.db.global and NS.db.global.settings
+  local settings = NS.db and NS.db.profile and NS.db.profile.settings
   if not settings then return false end
   local point, _, _, x, y = frame:GetPoint(1)
   -- A frame with no anchor has nothing worth saving, and a point-less table would make
@@ -159,7 +159,7 @@ end
 
 function B:ApplyGeometry()
   if not frame then return end
-  local w = NS.db and NS.db.global.settings.window
+  local w = NS.db and NS.db.profile.settings.window
   frame:ClearAllPoints()
   if w and w.point then
     frame:SetPoint(w.point, UIParent, w.point, w.x or 0, w.y or 0)
@@ -181,8 +181,8 @@ end
 -- Reset the persisted geometry and recenter the live frame. Three routes reach it: "Reset position"
 -- and the General page's Defaults (both via NS.Util.ResetWindowPositions), and Sl:ResetEverything.
 function B:ResetWindow()
-  if NS.db and NS.db.global and NS.db.global.settings then
-    NS.db.global.settings.window = {}
+  if NS.db and NS.db.profile and NS.db.profile.settings then
+    NS.db.profile.settings.window = {}
   end
   if frame then
     frame:ClearAllPoints()
@@ -604,8 +604,8 @@ end
 -- ── The view: group + sort + column filters ───────────────────────────────────
 -- A "view" is everything the filter bar expresses EXCEPT the character scope: the grouping, the
 -- sort, the six multi-select column filters, the date range and the search text. STOCK_VIEW is the
--- out-of-the-box baseline; the user's own baseline, once they press Save, lives account-wide in
--- NS.db.global.savedView.
+-- out-of-the-box baseline; the user's own baseline, once they press Save, lives in the profile at
+-- NS.db.profile.savedView.
 --
 -- Character is deliberately NOT part of a view. "What did I move?" is the question the window is
 -- opened to answer far more often than "what did all my alts move?", so the scope is a per-session
@@ -623,7 +623,7 @@ local STOCK_VIEW = {
 -- The baseline Clear returns to: the saved view when one exists, else stock. Type-checked, so a
 -- SavedVariables value corrupted to a scalar degrades to stock rather than erroring on first paint.
 local function savedViewOrStock()
-  local v = NS.db and NS.db.global and NS.db.global.savedView
+  local v = NS.db and NS.db.profile and NS.db.profile.savedView
   if type(v) == "table" then return v end
   return STOCK_VIEW
 end
@@ -752,12 +752,12 @@ function B:ClearFilters()
   self:ApplyView(savedViewOrStock(), "current")
 end
 
--- Save what is on screen as the account-wide baseline. Account-wide, like the ledger itself: a bank
--- ledger is cross-character by design, so a per-alt view would fragment the one thing the addon
--- exists to join up.
+-- Save what is on screen as the profile's baseline. Per PROFILE, not per character: every character
+-- shares the Default profile unless the player chooses otherwise, so by default one saved view
+-- serves the whole account, as the one ledger does.
 function B:SaveView()
-  if not (NS.db and NS.db.global) then return end
-  NS.db.global.savedView = self:CaptureView()
+  if not (NS.db and NS.db.profile) then return end
+  NS.db.profile.savedView = self:CaptureView()
   print("view saved as your default.")
 end
 
@@ -765,7 +765,7 @@ end
 -- programmatic callers (Sl:ResetEverything prints its own single confirmation); the bar's Reset
 -- button passes nothing and keeps the message.
 function B:ResetView(silent)
-  if NS.db and NS.db.global then NS.db.global.savedView = nil end
+  if NS.db and NS.db.profile then NS.db.profile.savedView = nil end
   self:ApplyView(STOCK_VIEW, "current")
   if not silent then print("view reset to stock defaults.") end
 end

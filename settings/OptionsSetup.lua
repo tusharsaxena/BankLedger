@@ -97,13 +97,26 @@ local descriptor = {
   -- No `colorDecode`/`colorEncode`: no schema row is `type = "color"`. Adding one means adding
   -- these, because this addon has no stored color shape for the library to default to.
   --
-  -- No `skipRestoreAll`: every row here is a plain setting and a global reset should touch all of
-  -- them. This addon has no profiles page whose rows are user data.
+  -- The global reset is a PROFILE reset (options-ui-§12), and these two say so to the library. It
+  -- reads them for one thing only here: the Master controls "Reset all settings" tooltip, which
+  -- names the current profile and the equivalence with Profiles -> Reset Profile. `resetProfile` is
+  -- what RestoreAllDefaults would call, and this addon never calls RestoreAllDefaults: the global
+  -- reset is one host-owned implementation (options-ui-§12, LIBKA0S-22, closed issue #10),
+  -- Sl:ResetEverything, behind the confirm popup Sl:RequestResetAll raises for Reset all settings,
+  -- both Defaults controls and `/bl resetall` alike. See settings/Panel.lua's P:RestoreDefaults.
+  resetProfile = function() if NS.db and NS.db.ResetProfile then NS.db:ResetProfile() end end,
+  profilesPage = true,   -- settings/Profiles.lua (options-ui-§3)
   --
-  -- No `afterRestoreAll` and no use of the library's RestoreAllDefaults. The global reset is one
-  -- host-owned implementation (options-ui-§12, LIBKA0S-22, closed issue #10): Sl:ResetEverything,
-  -- behind the confirm popup Sl:RequestResetAll raises for Reset all settings, both Defaults
-  -- controls and `/bl resetall` alike. See settings/Panel.lua's P:RestoreDefaults.
+  -- The global reset's one named veto (options-ui-§3, options-ui-§12), S.VetoedFromResetAll in
+  -- settings/Schema.lua: the Profiles page and every stored row, profile or account-wide, so a row
+  -- walk keeps only the session-only rows. The library narrows its walk the same way when
+  -- `resetProfile` is supplied; the veto is still passed, because the standard makes the exclusion
+  -- the addon's to state (the same shape KickCD, WhatGroup, PrettyChat and LootHistory ship), and so
+  -- the retention window and the Profiles page stay out whatever the library's narrowing becomes.
+  skipRestoreAll = NS.Schema.VetoedFromResetAll,
+  --
+  -- No `afterRestoreAll`: nothing a reset must clear lives outside the profile and the two
+  -- session-only rows (NS.OnProfileEvent re-anchors the windows from the reset profile).
   --
   -- No `getLSM`: no row is LSM-backed. The vendored console font is a Constants path, not a media
   -- picker.

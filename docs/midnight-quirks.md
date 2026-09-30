@@ -118,7 +118,7 @@ header's fixed gold. The direction glyph does **not** follow them, and the reaso
 four are ONE color written down in one place, while the direction glyph takes the direction's red
 or green per row from the same `SetTextColor` that paints the label beside it — a mark there would
 need a second tail rebuilt per row and kept in step with it by hand. Alignment is not part of the argument — the Blizzard arrow art on the lower rung of those two
-marks is what a degraded install draws and what S-21 step 9 tells a tester is CORRECT there, so a
+marks is what a degraded install draws and what smoke check DEGRADED-9 tells a tester is CORRECT there, so a
 claim here that it sits visibly off-baseline would wave a real degraded-install regression through as
 a known quirk. See [media.md](media.md).
 

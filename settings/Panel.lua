@@ -704,7 +704,7 @@ end
 
 -- ── Registration ───────────────────────────────────────────────────────────────
 --
--- TWO pages now: the landing page and General. The Filters sub-page is GONE — its two lists are two
+-- THREE pages now: the landing page, General and Profiles. The Filters sub-page is GONE — its two lists are two
 -- of General's tabs (R3), and the registration was removed rather than left registered-and-empty.
 -- The library owns the shell and the TIMING of every body — first show, and again
 -- after a refresh marked the page dirty while it was hidden, because those are the two moments only
@@ -743,12 +743,12 @@ function P:Register()
       pageKey = "general",
       defaultsButton = true,
       -- Names everything the one global reset takes (options-ui-§12): P:RestoreDefaults raises the
-      -- same confirm popup as Reset all settings, and Yes empties db.global wholesale -- the
-      -- settings, both filter lists, the saved view and the recorded history -- then recenters
-      -- both windows. A tooltip that named less would understate the button.
-      defaultsTooltip = "Reset Bank Ledger to a fresh install: every setting, the item blacklist "
-        .. "and whitelist, and your recorded history, and recenter the ledger and session windows. "
-        .. "Asks first.",
+      -- same confirm popup as Reset all settings, and Yes resets the active profile -- the
+      -- settings, both filter lists and the saved view -- then recenters both windows. It also says
+      -- what survives, because until schema v3 this button took the recorded history too.
+      defaultsTooltip = "Reset the current profile to Bank Ledger's defaults: every setting, the "
+        .. "item blacklist and whitelist and the saved view, and recenter the ledger and session "
+        .. "windows. Your recorded history and your other profiles are kept. Asks first.",
     })
     P.general = ctx
     -- Confirm-gated on both routes: the action only raises KA0S_BANKLEDGER_RESETALL, the same popup
@@ -770,6 +770,12 @@ function P:Register()
 
     Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, "General")
   end)
+
+  -- The Profiles sub-page (options-ui-§3), registered LAST so the Settings tree reads General,
+  -- Profiles: the library builds pages in registration order. Its builder is settings/Profiles.lua's.
+  if NS.ProfilesPage and NS.ProfilesPage.Build then
+    O.RegisterOptionsPage("profiles", "Profiles", NS.ProfilesPage.Build)
+  end
 
   O.CreateOptionsPanel()
 end

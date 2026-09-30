@@ -11,6 +11,7 @@ only. The finer tree is everything below it.
 | Page | Tabs | Covers |
 | --- | --- | ------ |
 | General | Master controls · Capture · Interface · History · Filters | The whole addon, on one strip |
+| Profiles | none | AceDBOptions' profile controls: choose, create, copy, delete and reset a profile ([profiles.md](profiles.md)) |
 
 | Tab | Covers |
 | --- | ------ |
@@ -22,11 +23,18 @@ only. The finer tree is everything below it.
 
 ## Shape
 
-**Two** pages registered with `LibKa0s-Options-1.0`, which owns the shell, the widget makers, the
-flow engine and the render timing: the **landing page** and **General**. `settings/Panel.lua` keeps
+**Three** pages registered with `LibKa0s-Options-1.0`, which owns the shell, the widget makers, the
+flow engine and the render timing: the **landing page**, **General** and **Profiles**. `settings/Panel.lua` keeps
 only what did **not** generalize: the inverted store grid, the History tab's storage read-out, the
 Filters tab's secondary strip over the two item-id lists, the landing-page body, `P:Diagnose` and
 the `P:Batch` refresh coalescer.
+
+**Profiles** (`settings/Profiles.lua`, `options-ui-§3`) is AceDBOptions drawn by AceConfigDialog into
+an AceGUI group inside the canvas, opened on first show and re-opened on every render so it reads the
+current profile. `P:Register` registers it straight after General, so it is the last entry in the
+Settings tree. It has **no Defaults button**: its own Reset Profile is the same act as the global
+reset below, and nothing on it is a schema row. Without AceDBOptions, AceConfig, AceConfigDialog or
+AceGUI the builder answers nil and the library skips the page.
 
 The **Filters** sub-page is gone. It held no schema rows at all, so it was never a page's worth of
 settings — its two lists are one **Filters** tab of General's own strip now, divided by a secondary
@@ -178,31 +186,37 @@ frameless** and every frame-only row applies.
     the box goes back to unticked.
   - **Combat ends it.** `addon:OnCombatChanged` stops it on `PLAYER_REGEN_DISABLED` and prints
     `test mode off — combat started.`. A stop never opens the ledger window.
-  - **The global reset ends it.** Test mode lives in `NS.State`, never in `db.global`, so the wipe
-    cannot reach it; `Sl:ResetEverything` ends it by name, and closes the debug console the same
-    way (`state.debugConsole` defaults to false).
+  - **The global reset ends it.** Test mode lives in `NS.State`, never in the profile, so the
+    profile reset cannot reach it; the profile handler (`NS.OnProfileEvent`) ends it by name on
+    every reset, and closes the debug console the same way (`state.debugConsole` defaults to
+    false).
 - **Reset position** is a real button now. The act existed only as a side effect folded into
   `P:RestoreDefaults`; it calls `NS.Util.ResetWindowPositions()`, which is the one body.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
-  `options-ui-§12`'s second canonical wording byte for byte (the one for an addon with no profile).
-  `OnAccept` runs `NS.Slash:ResetEverything`, which empties `db.global` **wholesale** — every
-  setting, both filter lists, the saved view, both windows' geometry **and the recorded ledger** —
-  then merges `NS.defaults.global` back (holding the `minimap` table across the wipe,
-  `launcher-§3`), ends the session-only rows by name and re-anchors the windows. It used to be the
-  right half of History's button pair and **moved rather than being duplicated**.
+  `options-ui-§12`'s first canonical wording byte for byte (the one for an addon with a profile).
+  `OnAccept` runs `NS.Slash:ResetEverything`, which calls `db:ResetProfile()`: the **active
+  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved view and both windows' geometry. The **recorded ledger**,
+  the retention window that governs it and LibDBIcon's `minimap` table are account-wide and are
+  **kept**, and so are the other profiles.
+  AceDB's `OnProfileReset` reaches `NS.OnProfileEvent`, which ends the session-only rows by name,
+  re-applies everything and re-anchors the windows. Since schema v3 this is the "addon with both"
+  form of `options-ui-§12`; until then it emptied `db.global` wholesale, history included. It used to be the right half of History's button
+  pair and **moved rather than being duplicated**.
 
   **It is the ONE global reset (`options-ui-§12`).** The header **Defaults** button, Blizzard's
   footer **Defaults** (which forwards to it) and `/bl resetall` all reach the same popup through
   `NS.Slash:RequestResetAll`, the single entry point; with no popup API it runs the reset directly.
-  Nothing changes before the player says Yes, and Yes discards recorded history on every route.
-  `/bl purge` is the act that deletes history alone. The `resetall` verb is described as *Reset
-  everything to defaults, including recorded history (asks first)*. Until BankLedger-A-02 the
-  Defaults pair and `/bl resetall` ran a non-destructive schema walk instead — three routes over
-  two implementations, carried as a register row that is now closed.
+  The Profiles page's **Reset Profile** is the same act without the popup, because AceDBOptions asks
+  nothing. Nothing changes before the player says Yes, and no route deletes recorded history:
+  `/bl purge` is that act, confirmed separately. The `resetall` verb is described as *Reset this
+  profile's settings to defaults; history is kept (asks first)*. Until BankLedger-A-02 the Defaults
+  pair and `/bl resetall` ran a non-destructive schema walk instead — three routes over two
+  implementations, carried as a register row that is now closed.
 
-  With logging on, the act writes one settings line (`debug-logging-§10`), never a line per row:
-  `[Set] reset account-wide settings to defaults (N rows)`, N the stored rows that changed, beside
-  its `[Data] reset-all wiped N ledger entries` line.
+  With logging on, the profile handler writes one line (`debug-logging-§10`), never a line per row:
+  `[Set] reset profile '<name>' to defaults (N rows)`, N the stored rows that changed, counted by
+  `Sl:ResetEverything` before the reset. A reset from the Profiles page logs the same line without
+  the count.
 
 ## Rows
 
@@ -235,7 +249,15 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.showSessionWindow` | bool | `true` | Interface | Windows | alone under its heading |
 | `settings.rowStripeAlpha` | number | `0.03` | Interface | Table rows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
-| `settings.retentionDays` | number | `30` | History | — | |
+| `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
+
+**The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of
+the shared ledger is kept, so every profile reads the one value (`db.global.settings.retentionDays`,
+[profiles.md](profiles.md)), and its tooltip ends *Account-wide: one value for every profile,
+because the history it trims is shared.* No profile switch, copy or reset changes it, so none of them
+can prune history. It is on `NS.Schema.RESET_EXEMPT` beside the minimap row, so a row sweep skips it
+(a sweep putting *Always* back to 30 days would prune); a targeted
+`/bl reset settings.retentionDays` still applies.
 
 **The `minimap.shown` row is stored backwards, and that is deliberate.** Its label and its CLI
 path say SHOWN — ticked, or `/bl set minimap.shown true`, means the button is on the minimap —
@@ -253,7 +275,9 @@ and no migration, and the old path now answers `Setting not found`.
 per-installation display preference, like the angle they dragged the button to, so `launcher-§3`
 requires it to survive both *Reset all settings* and this page's own **Defaults** button — and both
 reached it here until the standard's v2.54.0 amendment. `NS.Schema.RESET_EXEMPT` names the row once
-and `S:ApplyDefault` honors it; the wholesale reset holds the `minimap` table across its wipe.
+and `S:ApplyDefault` honors it. The global reset needs nothing more: since schema v3 it is
+`db:ResetProfile()`, and the `minimap` table lives in `db.global`, which no profile event reaches
+(until then the reset emptied `db.global` wholesale and held the table across the wipe).
 A targeted `/bl reset minimap.shown` is not a sweep and still works. See
 [ARCHITECTURE.md → Launcher](ARCHITECTURE.md#launcher).
 
@@ -301,7 +325,9 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
 implementation rather than two kept in step. That action is `P:RestoreDefaults()`, which only calls
 `NS.Slash:RequestResetAll()` — the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, the same one
 *Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
-nothing without the player's Yes, and Yes is the wholesale reset, recorded history included.
+nothing without the player's Yes, and Yes is the profile reset (`db:ResetProfile()`): the active
+profile's settings, both filter lists and saved view go back to their defaults, and the recorded
+ledger, which is account-wide, is kept. `/bl purge` is the act that deletes history.
 
 ## The General page's tabs and the Filters tab
 
@@ -368,9 +394,9 @@ per row.
   `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`
   with no bracket and would have swept the Minimap row.
 - `Sl:ResetEverything`, the one global reset that Reset all settings, both Defaults controls and
-  `/bl resetall` reach through `Sl:RequestResetAll`, is a wholesale wipe, not a walk through the
-  seam. It logs one `[Set] reset account-wide settings to defaults (N rows)` line, N the stored rows that were not
-  already at their default, beside its `[Data] reset-all wiped N ledger entries` line.
+  `/bl resetall` reach through `Sl:RequestResetAll`, is `db:ResetProfile()`, not a walk through the
+  seam. The profile handler logs one `[Set] reset profile '<name>' to defaults (N rows)` line, N the
+  stored rows that were not already at their default.
 
 ## In a degraded install
 

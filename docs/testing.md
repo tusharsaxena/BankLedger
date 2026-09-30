@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 75 today). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 81 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
@@ -94,8 +94,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.62.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.62.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.63.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.63.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -244,14 +244,15 @@ tests/
                            --   assertion reads the kit's recording registry -- registrations,
                            --   timers, shown frames, SavedVariables writes, printed lines --
                            --   and NONE reads a handler's return value, because an early
-                           --   return is exactly what a draw gate does. Seventeen cases:
+                           --   return is exactly what a draw gate does. Eighteen cases:
                            --   baseline and empty registration set (through the one write
                            --   seam), no armed timer, the prune postponed rather than
                            --   canceled, the two at-the-bank cases, no shown frame, fire
                            --   everything at it anyway (registered and unconditionally), the
                            --   CONTROL proving the write and print surveys can see a survivor,
                            --   the slash surface walked over every NS.COMMANDS entry, both
-                           --   diagnostics forms reaching RunDiagnostics while down, the
+                           --   diagnostics forms reaching RunDiagnostics while down, /bl
+                           --   profile listing and switching unrefused (a host live verb), the
                            --   feature-verb refusal, the launcher's clicks and grayed menu, its
                            --   tooltip, no host gate on it, restore-from-current-state, the
                            --   two-hold latch, and the `disabled` hold re-taken at load
@@ -262,6 +263,14 @@ tests/
                            --   section costing one line, the cap's end marker, and `debug` testing
                            --   `diagnostics` first. The dispatcher half is the kit's shared
                            --   _kit/test_diagnostics_contract.lua, wired through Kit.diagnostics
+  test_profiles.lua        -- settings per AceDB profile (schema v3/v4, docs/profiles.md): the
+                           --   global/profile defaults split, the v3 lift into `Default` (values
+                           --   land, db.global cleared, the ledger untouched, idempotent), the v4
+                           --   return of the retention window to db.global, the account-wide
+                           --   window (D6), reads resolving against the profile, NS.OnProfileEvent
+                           --   on a switch, a copy and a page-driven reset (and never a prune), the
+                           --   global reset's named veto; plus the Profiles page itself and
+                           --   the /bl profile verb (list, switch, quotes, unknown, combat)
   test_launcher.lua        -- the LibKa0s-Launcher-1.0 seam: left-click settings, the options
                            --   menu's four entries and the verb each runs (through
                            --   tests/menu_mock.lua, a fake MenuUtil), the folder-name

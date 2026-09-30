@@ -18,10 +18,14 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   is no Classic build.
 - There is **no** `## Dependencies` line. The `## OptionalDeps` line (`BankLedger.toc:8`) names
   Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1 and LibDBIcon-1.0, and
-  every one of them is **vendored** under `libs/` and committed (`BankLedger.toc:16-29`,
+  every one of them is **vendored** under `libs/` and committed (`BankLedger.toc:16-31`,
   `.pkgmeta:3`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
   player happens to have one; it never means the player must install anything.
-- LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:29`).
+- The Ace3 set vendored is AceAddon, AceEvent, AceTimer, AceConsole, AceDB, AceGUI, **AceConfig-3.0**
+  (with its AceConfigRegistry, AceConfigCmd and AceConfigDialog parts) and **AceDBOptions-3.0**
+  (`BankLedger.toc:24-25`). The last two draw the Profiles page (`settings/Profiles.lua`) and nothing
+  else; they are the same Ace3 release the rest of the collection vendors, byte for byte.
+- LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:31`).
   **Which release, is not written here.** The one answer is the provenance line in the root
   [`CLAUDE.md`](CLAUDE.md), and `tests/test_vendor_sync.lua` machine-reads *that* line and compares
   both vendored payloads against the tag it names. A version restated in prose does not move with
@@ -156,9 +160,9 @@ item exists for one job that is done rarely and by hand.
 
 ### Python 3 + Pillow — regenerating the logo derivatives only
 
-`media/logos/bankledger.logo.png` is the 2000×2000 master. The `.tga` the client actually loads and
-the two `.jpg` renders for the project page are produced from it by a short Pillow script recorded
-verbatim in **`docs/media.md:132-140`** (`from PIL import Image, ImageFilter`, `LANCZOS`
+`media/logos/bankledger.logo.png` is the 2000×2000 master. The 512×512 `.tga` the settings page loads and
+the 256×256 `.jpg` project avatar are produced from it by a short Pillow script recorded
+verbatim in **`docs/media.md:133-141`** (`from PIL import Image, ImageFilter`, `LANCZOS`
 downscales, an unsharp mask on the 256). The derivatives are **committed**, so this is needed only
 when the artwork changes.
 

@@ -3,7 +3,7 @@
 The console itself is **`LibKa0s-DebugLog-1.0`**'s, wired by `core/DebugLogSetup.lua`: the window,
 the buffer (3000 lines, `lib.MAX_BUFFER`), the **Copy** box, the `on`/`off` seam and the chat
 acknowledgment are the library's, and `/bl debug`, `/bl debug on` and `/bl debug off` drive it the
-way they drive every Ka0s console (`debug-logging`; the in-game walk is `S-14` in
+way they drive every Ka0s console (`debug-logging`; the in-game walk is the DIAG checks in
 [smoke-tests.md](smoke-tests.md)).
 
 This page covers what the library does not: the **diagnostics report**, whose sections this addon
@@ -61,10 +61,10 @@ beyond printing it, and it shows the console if it was hidden. Then it prints on
 |---|---|---|---|
 | Begin marker | `[Diag]` | the library | `==== Ka0s Bank Ledger diagnostics begin ====` |
 | Identity header | `[Diag]` | the library | The `[Init]` summary line (build, schema, profile), the client version, build, date and interface, the locale, the debug flag, `InCombatLockdown()` and `UnitAffectingCombat("player")`, and every LibKa0s file **running** in the client with its minor. Running, because under LibStub another addon's newer copy may be the one loaded |
-| `state` | `[State]` | `X.State` | Stored enabled, disabled, stood down; the Lifecycle holds; the schema version stored and in code (settings are account-wide, so there is no profile); test mode and its sample-row count; whether this session's retention prune has run or is armed |
+| `state` | `[State]` | `X.State` | Stored enabled, disabled, stood down; the Lifecycle holds; the schema version stored and in code, and the active profile's name; test mode and its sample-row count; whether this session's retention prune has run or is armed |
 | `settings` | `[Set]` | `X.Settings` | The six capture-critical rows always (`enabled`, `trackItems`, `trackMoney`, `qualityThreshold`, `excludedStores`, `retentionDays`), every other row only when it differs from its default, each as `path = value (default)`. `excludedStores` prints as its members, the way `/bl get` shows it |
 | `filters` | `[Filter]` | `X.Filters` | The blacklist and the whitelist, each as its size and its sorted ids |
-| `ledger` | `[Ledger]` | `X.Ledger` | Entry count (the real ledger, even while test mode is showing sample rows), counts by store, by direction and by kind, the oldest and newest timestamps, the retention days, and the last 20 entries as stored: timestamp, store, direction, kind, quantity, item id, item name as plain text, character |
+| `ledger` | `[Ledger]` | `X.Ledger` | Entry count (the real ledger, even while test mode is showing sample rows), counts by store, by direction and by kind, the oldest and newest timestamps, the account-wide retention days, and the last 20 entries as stored: timestamp, store, direction, kind, quantity, item id, item name as plain text, character |
 | `capture` | `[Capture]` | `X.Capture` | `openContext`, whether a pre-move snapshot is held and what it holds (distinct items per store, money), whether a settle is pending and the debounce armed, and the gate's cached upvalues from `L:GateState()`: enabled, the two track switches, the quality floor, the excluded stores and both filter sizes |
 | `session` | `[Session]` | `X.Session` | Whether a banking session is active, its entry count, and whether the session window is on preview data |
 | `scan` | `[Scan]` | `X.Scan` | `NS.Ledger:Diagnose()`, line for line: everything `/bl debug scan` prints (below) |

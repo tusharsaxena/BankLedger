@@ -410,7 +410,7 @@ test("disabled: the CONTROL -- the write and print surveys really would catch a 
   disable()
   watchStore()
   mocks.__resetPrinted()
-  local settings = NS.db.global.settings
+  local settings = NS.db.profile.settings
   local savedLocked = settings.locked
   NS.addon.PLAYER_REGEN_DISABLED = function()
     settings.locked = not settings.locked
@@ -435,12 +435,17 @@ end)
 
 local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
 
--- The live set is the LIBRARY'S (lib.LIVE_VERBS), because this addon passes no `liveVerbs`. Read
--- from the library rather than retyped, so this suite and the dispatcher cannot disagree about it.
+-- The live set is the library's reserved verbs (lib.LIVE_VERBS) plus the one host verb this addon
+-- widens it with, `profile` (Slash minor 17: the library leaves `profile` out of its own set and a
+-- host that wants it live passes `liveVerbs`). The reserved half is read from the library rather
+-- than retyped, so this suite and the dispatcher cannot disagree about it; the host half is named
+-- here, because it is the decision this suite pins.
+local HOST_LIVE_VERBS = { "profile" }
 local LIVE = {}
 do
   local slashLib = mocks.LibStub and mocks.LibStub("LibKa0s-Slash-1.0", true)
   for _, verb in ipairs(slashLib and slashLib.LIVE_VERBS or {}) do LIVE[verb] = true end
+  for _, verb in ipairs(HOST_LIVE_VERBS) do LIVE[verb] = true end
 end
 
 local function isRefusal(line)
@@ -459,8 +464,9 @@ test("disabled: every reserved verb and the bare /bl still answer normally", fun
   -- feature verbs. The disable is re-asserted before EVERY verb, because `enable` and `resetall`
   -- legitimately turn the addon back on, and a walk without it would test the rest enabled.
   --
-  -- red under: passing a `liveVerbs` to the Slash descriptor, re-introducing a host-side gate in
-  -- front of the dispatcher, or a new verb that refuses without being a feature verb.
+  -- red under: a `liveVerbs` that narrows the reserved set or drops `profile`, re-introducing a
+  -- host-side gate in front of the dispatcher, or a new verb that refuses without being a feature
+  -- verb.
   local saved = S:Get(ENABLED_PATH)
   local ok, err = pcall(function()
     assertTrue(next(LIVE) ~= nil, "no live set to classify against: LibKa0s-Slash-1.0 did not load")
@@ -554,6 +560,36 @@ test("disabled: both diagnostics forms reach RunDiagnostics, each once, with no 
   end)
   NS.DebugLog.RunDiagnostics = savedRun
   if NS.DebugLog.Hide then NS.DebugLog:Hide() end
+  S:Set(ENABLED_PATH, saved)
+  if not ok then error(err, 0) end
+end)
+
+test("disabled: /bl profile lists and switches, with no refusal (a host live verb)", function()
+  -- slash-commands-§7: a player on a disabled profile must be able to leave it by the verb, not only
+  -- through the panel. `profile` is not in lib.LIVE_VERBS (Slash minor 17), so this is the case
+  -- that fails when the descriptor stops passing it in `liveVerbs`.
+  --
+  -- red under: a `liveVerbs` without `profile`, or no `liveVerbs` at all.
+  local saved = S:Get(ENABLED_PATH)
+  local sv = NS.db.sv
+  sv.profiles.Alt = { settings = { enabled = false, retentionDays = 0 } }
+  local ok, err = pcall(function()
+    disable()
+    local list = captureChat(function() NS.Slash:OnSlash("profile") end)
+    assertTrue(#list > 2, "the profile list was refused rather than printed")
+    for _, line in ipairs(list) do
+      assertFalse(isRefusal(line), "`/bl profile` was refused: " .. line)
+    end
+    local out = captureChat(function() NS.Slash:OnSlash("profile Alt") end)
+    assertEqual(NS.db:GetCurrentProfile(), "Alt", "`/bl profile Alt` did not switch while disabled")
+    for _, line in ipairs(out) do
+      assertFalse(isRefusal(line), "`/bl profile Alt` was refused: " .. line)
+    end
+  end)
+  captureChat(function()
+    if NS.db:GetCurrentProfile() ~= "Default" then NS.db:SetProfile("Default") end
+  end)
+  NS.db:DeleteProfile("Alt")
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
 end)

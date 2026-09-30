@@ -416,68 +416,70 @@ end)
 
 -- ── the destructive reset (options-ui-§12) ──────────────────────────────────────────────────────
 
-test("Slash: ResetEverything is WHOLESALE, not a list of things somebody kept current", function()
-  -- This addon has NO PROFILE -- NS.defaults.global carries the ledger, the filter lists AND the
-  -- settings -- so db:ResetProfile() would be a no-op and the rule translates: empty the
-  -- account-wide store wholesale and merge the declared defaults back.
+test("Slash: ResetEverything resets the WHOLE PROFILE, and nothing account-wide", function()
+  -- options-ui-§12 for an addon with BOTH scopes: the act is db:ResetProfile(), which empties the
+  -- active profile wholesale and merges its defaults back -- never a hand-written list of keys,
+  -- which fails one release later, when something new is stored beside the ones the list names.
+  -- The account-wide store is not settings and is not touched.
   --
-  -- The old body was five enumerations (a purge, a schema walk, a filter-list clear and two window
-  -- carve-outs) which between them happened to cover the whole table. That is the shape the rule
-  -- forbids, for the reason it forbids a row-by-row sweep: it fails one release later, when
-  -- something new is stored beside the ones the list names, and it fails silently.
-  --
-  -- The probe key is one no enumeration could have named, because it exists nowhere in this addon.
-  -- red under: reinstating the purge + CliResetAll + ResetWindow composition.
+  -- The probe keys are ones no enumeration could have named, because they exist nowhere in this
+  -- addon: the profile's goes, db.global's stays.
+  -- red under: a key-by-key reset (the profile probe survives), or a reset that wipes db.global
+  -- again (the global probe goes).
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  NS.db.global.__probeNothingNames = { deep = { value = 1 } }
+  NS.db.profile.__probeNothingNames = { deep = { value = 1 } }
+  NS.db.global.__probeAccountWide = true
 
   NS.Slash:ResetEverything()
 
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
-  assertEqual(NS.db.global.__probeNothingNames, nil,
-    "a key no enumeration names survived the reset")
-  -- And the declared defaults came back rather than the store being left empty.
-  assertTrue(type(NS.db.global.settings) == "table", "the defaults did not come back")
+  local profileProbe, globalProbe = NS.db.profile.__probeNothingNames, NS.db.global.__probeAccountWide
+  NS.db.global.__probeAccountWide = nil
+  assertEqual(profileProbe, nil, "a profile key no enumeration names survived the reset")
+  assertEqual(globalProbe, true, "the reset reached into the account-wide store")
+  -- And the declared defaults came back rather than the profile being left empty.
+  assertTrue(type(NS.db.profile.settings) == "table", "the defaults did not come back")
 end)
 
-test("Slash: ResetEverything keeps db.global's IDENTITY, so nothing is left on a stale table", function()
-  -- Modules capture NS.db.global at load. Replacing the table would leave every one of them
-  -- pointing at the old one -- and a suite that re-reads NS.db.global on every access cannot see
-  -- that. So the wipe is in place, which is what the real library does to a profile.
-  -- red under: `db.global = deepcopyGlobal(NS.defaults.global)`.
+test("Slash: ResetEverything keeps the profile table's IDENTITY, and db.global's", function()
+  -- AceDB empties a profile IN PLACE, so anything holding NS.db.profile keeps the live table; and a
+  -- profile reset has no business replacing the account-wide one at all.
+  -- red under: a reset that swaps either table for a fresh one.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  local before = NS.db.global
+  local profile, global = NS.db.profile, NS.db.global
 
   NS.Slash:ResetEverything()
 
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
-  assertEqual(NS.db.global, before, "the store was replaced rather than emptied")
+  assertEqual(NS.db.profile, profile, "the profile was replaced rather than emptied")
+  assertEqual(NS.db.global, global, "the account-wide store was replaced")
 end)
 
 test("Slash: the restored store does not ALIAS the defaults table", function()
-  -- A later write into db.global would otherwise reach back into NS.defaults.global and change what
-  -- the NEXT reset restores -- a bug that only shows up on the second reset of a session.
+  -- A later write into db.profile would otherwise reach back into NS.defaults.profile and change
+  -- what the NEXT reset restores -- a bug that only shows up on the second reset of a session.
   -- red under: copying the defaults by reference instead of deep.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
 
   NS.Slash:ResetEverything()
-  NS.db.global.settings.__probeAlias = true
+  NS.db.profile.settings.__probeAlias = true
 
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
-  assertEqual(NS.defaults.global.settings.__probeAlias, nil,
+  assertEqual(NS.defaults.profile.settings.__probeAlias, nil,
     "the store aliases the defaults table")
 end)
 
-test("Slash: both global resets end test mode, which no store wipe can reach", function()
+test("Slash: both global resets end test mode, which no profile reset can reach", function()
   -- options-ui-§15 (standard v2.47.0): test mode is ended by Reset all settings, which is why the
   -- composed row declares `default = false`. Every control is one act now (options-ui-§12):
-  -- `/bl resetall` reaches Sl:ResetEverything through the same request as the button. The wipe
-  -- empties db.global, and test mode was never in db.global, so ResetEverything ends it by name.
+  -- `/bl resetall` reaches Sl:ResetEverything through the same request as the button. The reset
+  -- empties the profile, and test mode was never in the profile, so the profile handler
+  -- (NS.OnProfileEvent) ends it by name on OnProfileReset.
   --
-  -- red under: dropping the test-mode line from Sl:ResetEverything.
+  -- red under: dropping the test-mode line from NS.OnProfileEvent's reset branch.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
   local ok, err = pcall(function()
@@ -503,13 +505,13 @@ end)
 -- is -- not because of where it is stored. Until v2.54.0 the standard argued the second thing: that
 -- *Reset all settings* is a profile reset and the table is global, so the reset cannot reach it.
 --
--- BOTH HALVES OF THAT ARGUMENT FAIL IN THIS ADDON, which is one of the two shapes the amended rule
--- names. It has no profile, so its Reset all settings is a wholesale wipe of the account-wide store
--- that merged `minimap = { hide = false }` straight back. And the argument only ever spoke about
--- that one control, so the page-scoped Defaults button -- which walks every schema row carrying a
--- default -- reached the row from the other side. These two cases run the real acts and read the
--- STORED byte back, in both directions, because a case that only proved the row was declared
--- exempt would pass over a sweep that wrote it anyway.
+-- UNTIL SCHEMA V3 BOTH HALVES OF THAT ARGUMENT FAILED IN THIS ADDON, one of the two shapes the
+-- amended rule names: it had no profile, so its Reset all settings was a wholesale wipe of the
+-- account-wide store that merged `minimap = { hide = false }` straight back. It is a profile reset
+-- now and the table is account-wide, so the argument holds -- but only for that one control, and a
+-- row walk would still reach the row from the other side. These two cases run the real acts and
+-- read the STORED byte back, in both directions, because a case that only proved the row was
+-- declared exempt would pass over a reset that wrote it anyway.
 
 local function withHiddenButton(fn)
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
@@ -523,11 +525,12 @@ end
 
 test("Minimap row: the page Defaults button does not un-hide the button", function()
   -- The button is P:RestoreDefaults -> Sl:RequestResetAll -> (no popup API in the mock, so
-  -- straight to) Sl:ResetEverything, the wholesale wipe (options-ui-§12). Before BankLedger-A-02
-  -- it was the library's walk over every schema row, which S.RESET_EXEMPT held off the row; now it
-  -- is the wipe's carve-out of the whole `minimap` table that holds it.
+  -- straight to) Sl:ResetEverything, the profile reset (options-ui-§12). Before BankLedger-A-02
+  -- it was the library's walk over every schema row, which S.RESET_EXEMPT held off the row; until
+  -- schema v3 it was the wholesale wipe's carve-out of the `minimap` table; now it is that the table
+  -- is account-wide, and a profile reset never reaches db.global.
   --
-  -- red under: removing the carve-out from Sl:ResetEverything.
+  -- red under: a reset that reaches db.global again.
   withHiddenButton(function()
     -- The player hid it, through the row's own sense: the checkbox says SHOWN, the key says hidden.
     NS.Schema:Set("minimap.shown", false)
@@ -552,28 +555,27 @@ end)
 
 test("Minimap row: Reset all settings does not un-hide the button, or move it", function()
   -- Sl:ResetEverything: the confirm-gated Master controls button, and the one options-ui-§12 calls
-  -- for in an addon with no profile -- empty db.global wholesale, merge the declared defaults back.
-  -- `minimap = { hide = false }` is one of those declared defaults.
+  -- for in an addon with both a profile and an account-wide store -- db:ResetProfile(). The
+  -- `minimap` table, with its declared `hide = false` default, is account-wide.
   --
   -- LibDBIcon's `minimapPos` rides along in the same table and is asserted here for the same
-  -- reason it is exempt: it is the angle the player dragged the button to, and the carve-out holds
-  -- the TABLE rather than one key so a future key in it needs no second edit.
+  -- reason it is exempt: it is the angle the player dragged the button to.
   --
-  -- red under: removing the carve-out from Sl:ResetEverything, or narrowing it to `hide` alone.
+  -- red under: a reset that reaches db.global, or moves the `minimap` table into the profile.
   withHiddenButton(function()
     NS.Schema:Set("minimap.shown", false)
     NS.db.global.minimap.minimapPos = 217.5
     assertEqual(NS.db.global.minimap.hide, true, "precondition: the button is hidden")
-    NS.db.global.settings.qualityThreshold = 4
+    NS.db.profile.settings.qualityThreshold = 4
 
     NS.Slash:ResetEverything()
 
     assertEqual(NS.db.global.minimap.hide, true,
-      "the wholesale wipe put the button back on the player's minimap")
+      "the reset put the button back on the player's minimap")
     assertEqual(NS.db.global.minimap.minimapPos, 217.5,
       "and back at the library's default angle")
-    assertEqual(NS.db.global.settings.qualityThreshold, 0,
-      "the wipe did not run at all, so this case proves nothing")
+    assertEqual(NS.db.profile.settings.qualityThreshold, 0,
+      "the reset did not run at all, so this case proves nothing")
   end)
 end)
 
@@ -600,14 +602,14 @@ test("Minimap row: a TARGETED /bl reset minimap.shown is not a sweep, and still 
 end)
 
 test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches now", function()
-  -- BANKLEDGER-R-01. The reset empties db.global and merges the declared defaults back, which
-  -- changes every setting the Ledger caches on its hot path -- and it changed them silently. The
+  -- BANKLEDGER-R-01. The reset empties the profile and merges the declared defaults back, which
+  -- changes every setting the Ledger caches on its hot path -- and it once changed them silently. The
   -- Ledger re-caches on Ka0s_BankLedger_SettingsChanged and on nothing else, so until the next
   -- /reload the gate went on judging bank movements by the settings the player just destroyed.
   --
   -- ONCE, not once per key. The reset is one act; a broadcast per restored default would have
-  -- every subscriber rebuild several times over for it, and the reason string would be a lie
-  -- about what happened.
+  -- every subscriber rebuild several times over for it. The reason is "profile": the one adopt
+  -- path every profile event takes (NS.OnProfileEvent), a reset among them, sends it.
   -- red under: dropping the SendMessage, or moving it inside the merge loop.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
@@ -626,7 +628,7 @@ test("Slash: ResetEverything tells the bus ONCE, so the capture gate re-caches n
 
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertEqual(#seen, 1, "one reset, one broadcast")
-  assertEqual(seen[1], "reset", "the reason names the act")
+  assertEqual(seen[1], "profile", "the reason names the act")
   assertEqual(NS.Ledger:GateReason(move), nil,
     "the gate is still judging movements by the settings the reset destroyed")
 end)
@@ -658,9 +660,10 @@ test("Slash: ResetEverything while disabled stands the addon back up", function(
 end)
 
 test("Slash: ResetEverything announces LedgerChanged exactly once", function()
-  -- BANKLEDGER-R-03. The wipe empties the ledger, and History, Insights, the session window and the
-  -- storage read-out refresh on LedgerChanged and nothing else, so they went on showing the deleted
-  -- rows. Database stays the one sender (architecture-§4): the reset asks it to announce.
+  -- BANKLEDGER-R-03, restated for the profile reset. The ledger survives now, but both filter lists
+  -- are reset with the profile, and what they hide or keep is what History, Insights, the session
+  -- window and the storage read-out repaint on LedgerChanged and nothing else. Database stays the one
+  -- sender (architecture-§4): the profile handler asks it to announce.
   -- red under: removing the NS.Database:FireLedgerChanged call from Sl:ResetEverything.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
@@ -679,18 +682,18 @@ test("Slash: ResetEverything announces LedgerChanged exactly once", function()
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   if not ok then error(err, 0) end
   assertEqual(seen, 1, "one reset, one LedgerChanged")
-  assertEqual(browserRan, 1, "History did not refresh off the emptied ledger")
-  assertEqual(pruneRan, 1, "the session window did not prune the deleted rows")
+  assertEqual(browserRan, 1, "History did not refresh off the reset lists")
+  assertEqual(pruneRan, 1, "the session window did not re-check its rows")
 end)
 
-test("Slash: ResetEverything traces the recorded entries it wiped, once", function()
-  -- The wholesale reset empties db.global, and the recorded ledger goes with it. That is a purge of
-  -- recorded data, which debug-logging-§8 requires traced (standard v2.44.0, debug-logging-§10),
-  -- exactly as Database:Purge traces `/bl purge`. It traced nothing.
-  -- red under: dropping the NS.Debug line from Sl:ResetEverything.
+test("Slash: ResetEverything keeps the recorded ledger, and traces no purge", function()
+  -- options-ui-§12, "an addon with both": the account-wide store is not settings, and clearing it
+  -- is a separate, separately-confirmed act (`/bl purge`), never folded into a settings reset. So
+  -- the reset takes no row of history, and writes no [Data] purge line for one.
+  -- red under: a reset that empties db.global.ledger, or a [Data] "wiped" line with nothing wiped.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  local savedDebug = NS.State.debug
+  local savedDebug, savedLedger = NS.State.debug, NS.db.global.ledger
   NS.db.global.ledger = {
     { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
     { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 4306 },
@@ -701,16 +704,16 @@ test("Slash: ResetEverything traces the recorded entries it wiped, once", functi
   NS.Slash:ResetEverything()
   local lines = {}
   for _, line in ipairs(NS.DebugLog.buffer) do
-    if line:find("reset-all", 1, true) then lines[#lines + 1] = line end
+    if line:find("[Data]", 1, true) then lines[#lines + 1] = line end
   end
+  local kept = #NS.db.global.ledger
   NS.DebugLog:Clear()
   NS.State.debug = savedDebug
+  NS.db.global.ledger = savedLedger
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
 
-  assertEqual(#lines, 1, "one line for the one act")
-  assertTrue(lines[1]:find("[Data]", 1, true) ~= nil, "under the [Data] tag the other purges use")
-  assertTrue(lines[1]:find("wiped 2 ledger entries", 1, true) ~= nil,
-    "the line names the count, got: " .. tostring(lines[1]))
+  assertEqual(kept, 2, "the reset took recorded history")
+  assertEqual(#lines, 0, "a purge was traced for a reset that purged nothing")
 end)
 
 -- ── A bulk reset is ONE [Set] line (debug-logging-§10) ─────────────────────────────────────────
@@ -742,16 +745,16 @@ end
 
 test("Panel: Defaults logs ONE [Set] line, and no per-row [Set]", function()
   -- The header/footer Defaults button is P:RestoreDefaults, which is the one global reset
-  -- (options-ui-§12): with no popup API in the mock it runs Sl:ResetEverything straight away, whose
-  -- one [Set] line is worded by the act. Before BankLedger-A-02 it was the library's walk and
-  -- logged `[Set] reset all: 2 rows`.
-  -- red under: routing Defaults back to the walk, or the wipe logging per row.
+  -- (options-ui-§12): with no popup API in the mock it runs Sl:ResetEverything straight away, and
+  -- the profile handler writes the one [Set] line, worded by the act. Before BankLedger-A-02 it was
+  -- the library's walk and logged `[Set] reset all: 2 rows`.
+  -- red under: routing Defaults back to the walk, or the reset logging per row.
   actLines(function() P:RestoreDefaults() end)   -- baseline: every row at its default
   NS.Schema:Set("settings.rowHoverAlpha", 0.3)
   NS.Schema:Set("settings.rowStripeAlpha", 0.2)
   local set = withTag(actLines(function() P:RestoreDefaults() end), "[Set]")
   assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
-  assertTrue(set[1]:find("[Set] reset account-wide settings to defaults (2 rows)", 1, true) ~= nil,
+  assertTrue(set[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "got: " .. tostring(set[1]))
   assertEqual(NS.Schema:Get("settings.rowHoverAlpha"), 0.10, "the reset still happened")
 end)
@@ -761,51 +764,46 @@ test("Panel: Defaults on a page already at its defaults logs 0 rows, and nothing
   actLines(function() P:RestoreDefaults() end)
   local set = withTag(actLines(function() P:RestoreDefaults() end), "[Set]")
   assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
-  assertTrue(set[1]:find("[Set] reset account-wide settings to defaults (0 rows)", 1, true) ~= nil,
+  assertTrue(set[1]:find("[Set] reset profile 'Default' to defaults (0 rows)", 1, true) ~= nil,
     "got: " .. tostring(set[1]))
 end)
 
-test("Slash: ResetEverything logs its settings reset as ONE [Set] line, beside the [Data] line", function()
-  -- The wholesale reset replaces every stored setting along with the ledger. It is not a walk through
-  -- the helper, so the seam never runs, but debug-logging-§10 still wants the settings reset logged
-  -- once, as a [Set] line worded by the act (the no-profile form of `reset profile '<name>' to
-  -- defaults (N rows)`). N is the stored rows the wipe actually changes: a row already at its
-  -- default is not counted, nor is the session-only console row, which lives outside db.global.
-  -- The wording deliberately avoids "reset-all", so the [Data] case above still sees ONE such line.
-  -- red under: dropping the [Set] line from Sl:ResetEverything, or counting every stored row (14).
+test("Slash: ResetEverything logs its profile reset as ONE [Set] line, and no [Data] line", function()
+  -- debug-logging-§10: a profile reset is wholesale replacement, logged ONCE by the profile-event
+  -- handler as `[Set] reset profile '<name>' to defaults (N rows)`. N is the stored rows the reset
+  -- actually changes, counted by Sl:ResetEverything before the reset and handed over: a row already
+  -- at its default is not counted, nor is a session-only row. Nothing is purged, so no [Data] line.
+  -- red under: dropping the handler's line, a second line from a bracket, or counting every row.
   actLines(function() NS.Slash:ResetEverything() end)   -- baseline: every row at its default
   NS.Schema:Set("settings.qualityThreshold", 4)
   NS.Schema:Set("settings.trackMoney", false)
-  NS.db.global.ledger = {
-    { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
-  }
   local lines = actLines(function() NS.Slash:ResetEverything() end)
   local set, data = withTag(lines, "[Set]"), withTag(lines, "[Data]")
 
-  assertEqual(#data, 1, "the [Data] line for the ledger wipe is unchanged")
-  assertEqual(#set, 1, "one [Set] line for the settings reset, got:\n" .. table.concat(set, "\n"))
-  assertTrue(set[1]:find("[Set] reset account-wide settings to defaults (2 rows)", 1, true) ~= nil,
+  assertEqual(#data, 0, "a profile reset purges nothing")
+  assertEqual(#set, 1, "one [Set] line for the profile reset, got:\n" .. table.concat(set, "\n"))
+  assertTrue(set[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "got: " .. tostring(set[1]))
-  assertTrue(set[1]:find("reset-all", 1, true) == nil, "must not collide with the [Data] line's word")
 end)
 
 -- ── Every reset control is ONE act (options-ui-§12) ─────────────────────────────────────────────
 --
 -- Reset all settings, the header/footer Defaults button and `/bl resetall` sit behind one
--- implementation (BankLedger-A-02, Option A). The routes, the confirm and what Yes does are pinned in
--- tests/test_reset_routes.lua; the case below holds the blast radius, which used to be two.
+-- implementation (BankLedger-A-02, Option A), and since schema v3 that implementation is a profile
+-- reset. The routes, the confirm and what Yes does are pinned in tests/test_reset_routes.lua; the
+-- case below holds the blast radius, which used to be two.
 
-test("Slash: every reset route has the SAME blast radius — the ledger survives none of them", function()
-  -- Before, this case pinned two blast radii: /bl resetall and Defaults kept recorded history and
-  -- the button did not. The label case that stood beside it (the two acts must not share a name)
-  -- has no subject any more; tests/test_reset_routes.lua pins the verb's new words instead.
-  -- red under: pointing Sl:CliResetAll or P:RestoreDefaults anywhere but Sl:RequestResetAll.
+test("Slash: every reset route has the SAME blast radius — the ledger survives all of them", function()
+  -- Before BankLedger-A-02 this case pinned two blast radii; then one that took recorded history.
+  -- Since schema v3 the one act is db:ResetProfile(), and history is account-wide.
+  -- red under: pointing Sl:CliResetAll or P:RestoreDefaults anywhere but Sl:RequestResetAll, or any
+  -- route reaching db.global.ledger.
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  -- Dated NOW on purpose: resetting settings.retentionDays re-runs the retention cleanup, and a
-  -- 1970-stamped row would be dropped as ancient rather than as part of a reset.
+  -- Dated NOW on purpose, so no retention pass could ever take the row: a reset no longer prunes
+  -- (the window is account-wide, owner decision D6), and a row gone here must be the reset's doing.
   local entry = { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 }
-  local left = {}
+  local savedLedger, left, quality = NS.db.global.ledger, {}, {}
   local ok, err = pcall(function()
     for _, route in ipairs({
       function() NS.Slash:CliResetAll() end,
@@ -813,13 +811,17 @@ test("Slash: every reset route has the SAME blast radius — the ledger survives
       function() NS.Slash:ResetEverything() end,
     }) do
       NS.db.global.ledger = { entry }
+      NS.Schema:Set("settings.qualityThreshold", 4)
       route()
       left[#left + 1] = #NS.db.global.ledger
+      quality[#quality + 1] = NS.Schema:Get("settings.qualityThreshold")
     end
   end)
+  NS.db.global.ledger = savedLedger
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   if not ok then error(err, 0) end
-  assertEqual(left[1], 0, "/bl resetall kept recorded history")
-  assertEqual(left[2], 0, "the Defaults button kept recorded history")
-  assertEqual(left[3], 0, "Reset all settings kept recorded history")
+  assertEqual(left[1], 1, "/bl resetall took recorded history")
+  assertEqual(left[2], 1, "the Defaults button took recorded history")
+  assertEqual(left[3], 1, "Reset all settings took recorded history")
+  for i, q in ipairs(quality) do assertEqual(q, 0, "route " .. i .. " did not reset the profile") end
 end)

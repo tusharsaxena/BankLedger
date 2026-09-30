@@ -233,20 +233,26 @@ test("Slash:CliReset echoes the stored value, not the requested one", function()
   assertTrue(joined(out):find(("%.2fx"):format(stored), 1, true) ~= nil, joined(out))
 end)
 
-test("Slash: /bl resetall is the wholesale reset — the schema, the filter lists AND the ledger", function()
-  -- options-ui-§12 (BankLedger-A-02, Option A): the verb is the same act as Reset all settings. The
-  -- mock has no StaticPopup_Show, so the request runs the act directly; the confirm is pinned in
-  -- tests/test_reset_routes.lua. Before, this case pinned a schema walk that kept the ledger.
-  -- red under: Sl:CliResetAll going back to the library's walk (the ledger survives).
+test("Slash: /bl resetall is the profile reset — the schema and the filter lists, NOT the ledger", function()
+  -- options-ui-§12 for an addon with BOTH a profile and an account-wide store: the verb is the same
+  -- act as Reset all settings, and that act is db:ResetProfile(). The recorded ledger is not
+  -- settings; deleting it is `/bl purge`, confirmed separately. The mock has no StaticPopup_Show, so
+  -- the request runs the act directly; the confirm is pinned in tests/test_reset_routes.lua.
+  -- red under: Sl:CliResetAll going back to the library's walk (the lists survive), or the reset
+  -- wiping db.global again (the ledger goes).
+  local saved = NS.db.global.ledger
   captureChat(function() Sl:CliSet("settings.qualityThreshold 4") end)
   NS.Filters:AddBlacklist(2589)
   NS.db.global.ledger = {
     { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
   }
   captureChat(function() Sl:CliResetAll() end)
-  assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0)
-  assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0)
-  assertEqual(#NS.db.global.ledger, 0, "the verb kept recorded history")
+  local q, bl, n = NS.Schema:Get("settings.qualityThreshold"),
+    NS.Filters:Count(NS.Filters:Blacklist()), #NS.db.global.ledger
+  NS.db.global.ledger = saved
+  assertEqual(q, 0)
+  assertEqual(bl, 0)
+  assertEqual(n, 1, "the verb took recorded history with the settings")
 end)
 
 -- ── A bulk reset is ONE [Set] line (debug-logging-§10) ─────────────────────────────────────────
@@ -256,8 +262,8 @@ end)
 -- Slash minor 8 brackets its row walk (`bulkBegin` / `bulkEnd`), and the seam mutes itself inside
 -- the bracket.
 --
--- `/bl resetall` NO LONGER RUNS THAT WALK. It is the wholesale Sl:ResetEverything (options-ui-§12),
--- which is not a walk through the seam and logs its own one line, worded by the act. The walk cases
+-- `/bl resetall` NO LONGER RUNS THAT WALK. It is Sl:ResetEverything's db:ResetProfile()
+-- (options-ui-§12), which is not a walk through the seam; the profile handler logs its one line. The walk cases
 -- below drive the library's CliResetAll on an instance built from the SAME seam members the Slash
 -- descriptor hands over (settings/Slash.lua), because the descriptor still hands the library the
 -- bracket pair and what they pin is the seam's half of that contract.
@@ -296,8 +302,8 @@ local function librarySweep() return sweepCli:CliResetAll() end
 
 test("Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and no per-row [Set]", function()
   -- N is the stored rows whose value actually changed (debug-logging-§10), worded by the act: the
-  -- wholesale reset's `reset account-wide settings to defaults (N rows)`, not the walk's
-  -- `reset all: N rows`, since the verb is Sl:ResetEverything now (options-ui-§12).
+  -- profile handler's `reset profile '<name>' to defaults (N rows)`, not the walk's
+  -- `reset all: N rows`, since the verb is Sl:ResetEverything's profile reset (options-ui-§12).
   -- red under: routing the verb back to the library's walk (`reset all: 2 rows`), or counting every
   -- stored row rather than the changed ones.
   captureChat(function() Sl:CliResetAll() end)   -- baseline: every row at its default
@@ -307,7 +313,7 @@ test("Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and 
   captureChat(function() lines = setLines(function() Sl:OnSlash("resetall") end) end)
   assertEqual(#NS.Schema.Schema, 16, "the schema still carries sixteen rows")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
-  assertTrue(lines[1]:find("[Set] reset account-wide settings to defaults (2 rows)", 1, true) ~= nil,
+  assertTrue(lines[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "the line names the act and the rows changed, got: " .. tostring(lines[1]))
   assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
 end)
@@ -319,7 +325,7 @@ test("Slash: /bl resetall with every row already at its default logs 0 rows, and
   local lines
   captureChat(function() lines = setLines(function() Sl:CliResetAll() end) end)
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
-  assertTrue(lines[1]:find("[Set] reset account-wide settings to defaults (0 rows)", 1, true) ~= nil,
+  assertTrue(lines[1]:find("[Set] reset profile 'Default' to defaults (0 rows)", 1, true) ~= nil,
     tostring(lines[1]))
 end)
 
@@ -414,12 +420,13 @@ test("Slash: a row that raises mid-sweep logs ONE line marked as stopped, re-rai
   -- stopped. The host's depth counter must unwind on that path, or one bad row mutes the seam for
   -- the rest of the session.
   -- red under: BulkEnd ignoring `err` (no marker), or the host swallowing the error.
-  -- qualityThreshold comes before retentionDays in schema order, so it is reset and counted before
-  -- the raise. retentionDays is written, counted, and then raises from its onChange.
+  -- qualityThreshold comes before rowHoverAlpha in schema order, so it is reset and counted before
+  -- the raise. rowHoverAlpha is written, counted, and then raises from its onChange. (Not the
+  -- retention row: it is exempt from a sweep, owner decision D6, so the sweep never reaches it.)
   librarySweep()   -- baseline: every row at its default
   NS.Schema:Set("settings.qualityThreshold", 4)
-  NS.Schema:Set("settings.retentionDays", 7)
-  local row = NS.Schema:FindRow("settings.retentionDays")
+  NS.Schema:Set("settings.rowHoverAlpha", 0.2)
+  local row = NS.Schema:FindRow("settings.rowHoverAlpha")
   local orig = row.onChange
   row.onChange = function() error("boom", 0) end
   local lines, ok, err
@@ -442,7 +449,7 @@ test("Slash: a sweep row raising nil logs the line without the marker (the libra
   -- Characterizes the documented upstream limit: the library hands bulkEnd the raw pcall value, so
   -- a raise of nil reaches the host as `err = nil` and cannot be told from success. The line is
   -- still emitted once and the seam still unmutes.
-  local row = NS.Schema:FindRow("settings.retentionDays")
+  local row = NS.Schema:FindRow("settings.rowHoverAlpha")
   local orig = row.onChange
   row.onChange = function() error(nil) end
   local lines, ok
@@ -568,7 +575,7 @@ end)
 
 local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
 local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug", "diagnostics",
-                     "get", "set", "list", "reset", "resetall" }
+                     "get", "set", "list", "reset", "resetall", "profile" }
 
 --- The collection's one refusal line (slash-commands-§7), matched by SHAPE rather than by its
 --- words: LibKa0s-Slash-1.0 builds it from lib.DISABLED_LINE_FORMAT, and a suite that hard-coded
@@ -594,8 +601,9 @@ local function entryFor(verb)
 end
 
 test("Slash: every registered verb is either a feature verb or on the LIVE list, never neither", function()
-  -- The two lists in this file are the standard's, spelled out; the live set itself is the
-  -- library's (lib.LIVE_VERBS, Slash minor 14), because this addon passes no `liveVerbs`. This case
+  -- The two lists in this file are the standard's, spelled out, plus the one host verb this addon
+  -- adds to the live set: `profile`. The live set itself is the descriptor's `liveVerbs`, which is
+  -- lib.LIVE_VERBS plus that one verb (settings/Slash.lua, Slash minor 17). This case
   -- is what makes them agree: a verb added to NS.COMMANDS and to neither list below reddens here
   -- rather than quietly inheriting whichever behavior it happened to get. `perf` is reserved but
   -- unregistered in this addon (the performance-§12 exemption), so it appears on neither list.

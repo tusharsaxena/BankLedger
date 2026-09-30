@@ -4,8 +4,8 @@ local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
 local function clean()
-  NS.db.global.blacklist = {}
-  NS.db.global.whitelist = {}
+  NS.db.profile.blacklist = {}
+  NS.db.profile.whitelist = {}
 end
 
 test("Filters: an added id reads back as blacklisted", function()

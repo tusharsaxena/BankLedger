@@ -192,7 +192,7 @@ end
 
 --- Run `fn` with the master settings temporarily set, then put every one of them back.
 local function withSettings(values, fn)
-  local g = NS.db.global.settings
+  local g = NS.db.profile.settings
   local saved = {}
   for k, v in pairs(values) do saved[k] = g[k]; g[k] = v end
   local ok, err = pcall(fn)
@@ -328,11 +328,11 @@ test("Util.ResetWindowPositions clears BOTH windows' stored geometry", function(
   -- The Master controls tab's "Reset position" button and the General page's Defaults button share
   -- this one body. Before the tab existed the act was only ever reachable as a side effect of the
   -- second, which is why it is a named seam now rather than two lines in P:RestoreDefaults.
-  NS.db.global.settings.window = { x = 400, y = 300 }
-  NS.db.global.settings.sessionWindow = { x = 120, y = 90 }
+  NS.db.profile.settings.window = { x = 400, y = 300 }
+  NS.db.profile.settings.sessionWindow = { x = 120, y = 90 }
   NS.Util.ResetWindowPositions()
-  assertEqual(next(NS.db.global.settings.window or {}), nil, "the ledger window's geometry survived")
-  assertEqual(next(NS.db.global.settings.sessionWindow or {}), nil,
+  assertEqual(next(NS.db.profile.settings.window or {}), nil, "the ledger window's geometry survived")
+  assertEqual(next(NS.db.profile.settings.sessionWindow or {}), nil,
     "the session window's geometry survived")
 end)
 

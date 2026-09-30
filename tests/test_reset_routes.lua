@@ -7,9 +7,10 @@
 -- confirm-gated wholesale wipe, and the other three ran a schema walk that kept recorded history.
 --
 -- The owner took Option A (unify up). Every route now goes through `NS.Slash:RequestResetAll`, which
--- raises the confirm popup `KA0S_BANKLEDGER_RESETALL`; its OnAccept is `Sl:ResetEverything`. So a
--- Defaults press or a `/bl resetall` now discards recorded history -- after the same confirm the
--- button always asked for.
+-- raises the confirm popup `KA0S_BANKLEDGER_RESETALL`; its OnAccept is `Sl:ResetEverything`. Since
+-- schema v3 that one act is a PROFILE reset (options-ui-§12, "an addon with both"): it takes the
+-- settings, both filter lists and the saved view, and keeps the account-wide recorded history,
+-- which only `/bl purge` deletes.
 --
 -- A sibling of tests/test_panel.lua rather than more of it: that file sits at ~835 lines, and this
 -- is one question (which act does each control reach, and what does the act do) asked across the
@@ -57,23 +58,23 @@ local function muted(fn)
 end
 
 -- A store that is NOT the fresh install: a recorded row, one id on each list, a saved view and a
--- changed setting. Dated NOW, because resetting settings.retentionDays re-runs the retention
--- cleanup and a 1970 row would be dropped as ancient rather than by a reset.
+-- changed setting. Dated NOW, so no retention pass could take the row: a reset no longer prunes
+-- (the window is account-wide, owner decision D6), and a row gone here must be the reset's doing.
 local function seedStore()
   NS.db.global.ledger = {
     { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 },
   }
-  NS.db.global.blacklist = { [2589] = true }
-  NS.db.global.whitelist = { [4306] = true }
-  NS.db.global.savedView = { tab = "insights" }
-  NS.db.global.settings.qualityThreshold = 4
+  NS.db.profile.blacklist = { [2589] = true }
+  NS.db.profile.whitelist = { [4306] = true }
+  NS.db.profile.savedView = { tab = "insights" }
+  NS.db.profile.settings.qualityThreshold = 4
 end
 
 local function assertStoreUntouched(route)
   assertEqual(#NS.db.global.ledger, 1, route .. " changed the ledger before the confirm")
   assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 1, route .. " cleared the blacklist")
   assertEqual(NS.Filters:Count(NS.Filters:Whitelist()), 1, route .. " cleared the whitelist")
-  assertTrue(NS.db.global.savedView ~= nil, route .. " discarded the saved view")
+  assertTrue(NS.db.profile.savedView ~= nil, route .. " discarded the saved view")
   assertEqual(NS.Schema:Get("settings.qualityThreshold"), 4, route .. " reset a setting")
 end
 
@@ -139,11 +140,11 @@ end)
 
 -- ── what Yes does ──────────────────────────────────────────────────────────────────────────────
 
-test("Reset routes: accepting the popup empties the ledger, both filter lists and savedView, ends test mode, closes the debug console and keeps db.global.minimap whole", function()
-  -- The session-only rows are swept BY NAME (options-ui-§12): a store wipe cannot reach them, since
-  -- neither lives in db.global. The console row's declared default is false (S.MASTER_SPEC).
-  -- red under: dropping the DebugLog:Hide line from Sl:ResetEverything (the console stays open), or
-  -- the minimap carve-out.
+test("Reset routes: accepting the popup resets both filter lists, savedView and the settings, keeps the ledger, ends test mode, closes the debug console and keeps db.global.minimap whole", function()
+  -- The session-only rows are swept BY NAME (options-ui-§12): a profile reset cannot reach them,
+  -- since neither lives in the profile. The console row's declared default is false (S.MASTER_SPEC).
+  -- red under: dropping the DebugLog:Hide line from Sl:ResetEverything (the console stays open), a
+  -- reset reaching db.global (the ledger or the minimap table), or one that skips the profile.
   local savedHide, savedPos = NS.db.global.minimap.hide, NS.db.global.minimap.minimapPos
   local ok, err = pcall(function()
     muted(function()
@@ -158,10 +159,10 @@ test("Reset routes: accepting the popup empties the ledger, both filter lists an
 
     muted(function() mocks.StaticPopupDialogs[POPUP].OnAccept() end)
 
-    assertEqual(#NS.db.global.ledger, 0, "the ledger survived")
+    assertEqual(#NS.db.global.ledger, 1, "the reset took recorded history")
     assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0, "the blacklist survived")
     assertEqual(NS.Filters:Count(NS.Filters:Whitelist()), 0, "the whitelist survived")
-    assertEqual(NS.db.global.savedView, nil, "the saved view survived")
+    assertEqual(NS.db.profile.savedView, nil, "the saved view survived")
     assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0, "a setting survived")
     assertFalse(NS.LedgerTable:IsTestMode(), "test mode is still on")
     assertFalse(NS.DebugLog:IsShown(), "the debug console is still open")
@@ -177,11 +178,11 @@ test("Reset routes: accepting the popup empties the ledger, both filter lists an
 end)
 
 test("Reset routes: accepting the popup puts the ledger window's live view back to stock", function()
-  -- Characterization of an in-memory copy. The wipe empties db.global.savedView, but the Browser
-  -- holds the view it last painted in B.activeFilter; the old /bl resetall reached it through
-  -- B:ResetView. The wholesale reset now asks the same owner to repaint rather than re-implementing
-  -- it, so the window does not keep filtering by a view the reset discarded.
-  -- red under: dropping NS.Browser:ResetView from Sl:ResetEverything's refresh fan-out.
+  -- Characterization of an in-memory copy. The reset empties db.profile.savedView, but the Browser
+  -- holds the view it last painted in B.activeFilter. The profile handler asks the same owner to
+  -- repaint (B:ClearFilters, onto the reset profile's view: stock) rather than re-implementing it,
+  -- so the window does not keep filtering by a view the reset discarded.
+  -- red under: dropping NS.Browser:ClearFilters from NS.OnProfileEvent's re-apply.
   local B = NS.Browser
   local ok, err = pcall(function()
     muted(function() B:ApplyView({ store = "BANK" }, "current") end)
@@ -195,18 +196,24 @@ end)
 
 -- ── the words a player reads ────────────────────────────────────────────────────────────────────
 
-test("Reset routes: the resetall verb and the Defaults tooltip say history goes, and that it asks first", function()
-  -- Two acts sharing no label was the mitigation while the split stood. With one act behind every
-  -- control, what matters is that none of them promises the history survives.
-  -- red under: restoring "Reset every setting to defaults", or the tooltip's "never touched".
+test("Reset routes: the resetall verb, the Defaults tooltip and the popup say it is this profile, that history is kept, and that it asks first", function()
+  -- Until schema v3 every control here said history went with the reset, because it did. It is a
+  -- profile reset now, and a player about to press it needs to know the ledger is safe.
+  -- red under: restoring "including recorded history", or the no-profile popup wording.
   local verb
   for _, cmd in ipairs(NS.COMMANDS) do
     if cmd[1] == "resetall" then verb = cmd[2] end
   end
-  assertEqual(verb, "Reset everything to defaults, including recorded history (asks first)")
+  assertEqual(verb, "Reset this profile's settings to defaults; history is kept (asks first)")
   local tip = panel("General").defaultsTooltip or ""
-  assertTrue(tip:find("never touched", 1, true) == nil, "the Defaults tooltip still promises: " .. tip)
+  assertTrue(tip:find("current profile", 1, true) ~= nil,
+    "the Defaults tooltip does not name the profile: " .. tip)
   assertTrue(tip:find("history", 1, true) ~= nil, "the Defaults tooltip does not name history: " .. tip)
+  assertTrue(tip:find("kept", 1, true) ~= nil, "the Defaults tooltip does not say history is kept: " .. tip)
+  -- options-ui-§12's FIRST canonical wording, byte for byte: the one for an addon with a profile.
+  assertEqual(mocks.StaticPopupDialogs[POPUP].text,
+    "Reset this profile to the addon's defaults? Everything you have configured or added in it is "
+      .. "discarded \226\128\148 your other profiles are not affected.")
 end)
 
 -- ── the degraded install ────────────────────────────────────────────────────────────────────────
@@ -227,12 +234,12 @@ test("Reset routes degraded: library-absent /bl resetall raises the same popup",
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 4, "the reset ran before the confirm")
   assertEqual(#ns.db.global.ledger, 1, "the ledger went before the confirm")
 
-  -- Yes, on the same arm, is the wholesale reset.
+  -- Yes, on the same arm, is the same profile reset.
   local saved = m.DEFAULT_CHAT_FRAME.AddMessage
   m.DEFAULT_CHAT_FRAME.AddMessage = function() end
   local ok, err = pcall(function() m.StaticPopupDialogs[POPUP].OnAccept() end)
   m.DEFAULT_CHAT_FRAME.AddMessage = saved
   if not ok then error(err, 0) end
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0, "Yes did not reset the settings")
-  assertEqual(#ns.db.global.ledger, 0, "Yes did not empty the ledger")
+  assertEqual(#ns.db.global.ledger, 1, "Yes took recorded history")
 end)

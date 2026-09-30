@@ -1,8 +1,18 @@
 local _, NS = ...
 
--- Account-wide defaults. The ledger and the settings both live under `global`: a bank ledger is
--- inherently cross-character (you deposit on one alt and withdraw on another), so a per-character
--- profile would split the very history the addon exists to join up.
+-- Account-wide defaults: the RECORDED DATA, the one setting that governs it, and the
+-- per-installation launcher state. A bank ledger is inherently cross-character (you deposit on one
+-- alt and withdraw on another), so the history stays here, one ledger for the whole account,
+-- whatever profile a character is on. Everything else a player CONFIGURES -- the settings, the two
+-- filter lists, the saved view -- lives in the profile (defaults/Profile.lua) since schema v3, which
+-- lifted it there from this table (core/Database.lua, NS.MIGRATIONS[3]). docs/profiles.md says what
+-- a profile holds and what stays here.
+--
+-- `settings.retentionDays` STAYS HERE (owner decision D6, 2026-09-29). It decides how much of the
+-- SHARED history is kept, so it is one value for the whole account: a per-profile window would let
+-- a profile switch, copy or reset prune history every other profile still shows. It never left
+-- this table for a player upgrading from v2, and NS.MIGRATIONS[4] brings it back from any profile a
+-- pre-D6 build of v3 had lifted it into.
 NS.defaults = NS.defaults or {}
 NS.defaults.global = {
   -- The migration stamp, declared as 0 (savedvariables-§1, standard v2.65.0). 0 is never a real
@@ -16,58 +26,15 @@ NS.defaults.global = {
 
   ledger = {},   -- array of movement entries, oldest first
 
-  -- Item-id filter lists. Blacklisted ids are never recorded; whitelisted ids are always recorded,
-  -- bypassing the quality gate. Managed via a custom UI (Settings ▸ General ▸ Blacklist /
-  -- Whitelist, the two tabs the retired Filters page became) and the ledger table's
-  -- right-click menu — NOT Schema rows. They are an architecture-§5 structural registry: NS.Filters
-  -- is their one writer (copy-on-write, never Schema:Set), and there is no load pass.
-  blacklist = {},
-  whitelist = {},
-
-  -- savedView — the ledger window's saved filter/group/sort baseline, written by the filter bar's
-  -- Save button (NS.Browser:SaveView). Deliberately ABSENT from these defaults: "no key" is what
-  -- "nothing saved" means, and seeding it as {} would make an empty table indistinguishable from a
-  -- deliberate save of an all-cleared view. A storage carve-out like `window`, not a registry like
-  -- the id-lists above — a captured view has no Schema widget to drive it, so it is written directly
-  -- rather than through Schema:Set. Character scope is never part of it (Browser's STOCK_VIEW).
-
+  -- The retention window, account-wide (D6, above). The same `settings.` path the schema row and
+  -- `/bl set settings.retentionDays` name, and the key v2 always stored it under.
   settings = {
-    enabled          = true,
-    trackItems       = true,
-    trackMoney       = true,
-    qualityThreshold = 0,      -- Poor and above: a bank ledger cares about junk too
-    excludedStores   = {},     -- set of muted Store keys
-    retentionDays    = 30,     -- 0 == keep Always
-
-    -- The Master controls block (options-ui-§15). Each default is the composer's own, restated here
-    -- because NS.Schema:Register resolves every schema path against this table — a composed row with
-    -- no default here is a path that reads nil forever, and that check is what catches it.
-    --
-    -- `visibility` is a DROPDOWN, not a boolean, and it starts life as one: this addon never shipped
-    -- a "show only in combat" checkbox, so there is no stored value to migrate and SCHEMA_VERSION is
-    -- unmoved. Honored in NS.Util.VisibilityAllows.
-    visibility       = "always",  -- always | inCombat | outOfCombat | never
-    -- "Master scale". Already addon-wide before it was promoted onto that tab: modules/Browser.lua
-    -- and modules/SessionWindow.lua both read this one key.
-    windowScale      = 1.0,
-    alpha            = 1.0,    -- "Master alpha" — NS.Util.ApplyMasterChrome
-    locked           = false,  -- "Lock frame"   — NS.Util.ApplyMasterChrome
-    window           = {},     -- persisted position/size (standalone-windows carve-out)
-
-    -- The pooled-row tint, shared by the History table and the session window. Each value IS the
-    -- literal it was promoted from (modules/LedgerTable.lua and modules/SessionWindow.lua both
-    -- built every row with these two numbers), so an install that touches neither slider is drawn
-    -- exactly as it was before they existed. Read through NS.Util.RowTintAlpha, which clamps:
-    -- these arrive from SavedVariables, where a hand-edited 5 is not an error, it is a table
-    -- drawn opaque white.
-    rowStripeAlpha    = 0.03,  -- every second row's zebra band
-    rowHoverAlpha     = 0.10,  -- the gold wash under the cursor
-
-    -- The live "Current Banking Session" window: shown automatically whenever a bank frame is open.
-    showSessionWindow = true,
-    sessionWindow     = {},    -- its own persisted position/size (same carve-out as `window`)
+    retentionDays = 30,     -- 0 == keep Always
   },
 
+  -- LibDBIcon's own table: whether the button is shown and the angle it was dragged to. A
+  -- per-installation display preference rather than a setting (launcher-§3), so it stays account-wide
+  -- and no profile reset reaches it.
   minimap = { hide = false },  -- LibDBIcon state
   -- debug is session-only (NS.State.debug), never persisted here (debug-logging-§5).
 }

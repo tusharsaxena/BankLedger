@@ -179,20 +179,20 @@ test("LibKa0s-Slash: a set-typed row refuses a chat edit, and says where it CAN 
     NS.Schema:Set("settings.excludedStores", saved or {})
   end)
 
-test("LibKa0s-Slash: CliResetAll is the host's wholesale reset, not the library's walk", function()
+test("LibKa0s-Slash: CliResetAll is the host's profile reset, not the library's walk", function()
   -- The library's CliResetAll walks the schema and acknowledges; it cannot know about state that has
-  -- no Schema row (the filter id-sets, the saved view, the recorded ledger). The host used to wrap
-  -- that walk with the missing pieces. Now `/bl resetall` is the one global reset (options-ui-§12):
-  -- the popup's Sl:ResetEverything, which empties db.global wholesale and so reaches all of it with
-  -- no list to keep. The mock has no popup API, so the request runs the act directly.
+  -- no Schema row (the filter id-sets, the saved view). The host used to wrap that walk with the
+  -- missing pieces. Now `/bl resetall` is the one global reset (options-ui-§12): the popup's
+  -- Sl:ResetEverything, whose db:ResetProfile() empties the whole profile and so reaches all of it
+  -- with no list to keep. The mock has no popup API, so the request runs the act directly.
   -- red under: Sl:CliResetAll calling cli:CliResetAll again (the library's line comes back).
   NS.Filters:AddBlacklist(2589)
-  NS.db.global.savedView = { tab = "insights" }
+  NS.db.profile.savedView = { tab = "insights" }
   local out = chat(function() Sl:CliResetAll() end)
   assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0, "the filter lists are cleared")
-  assertTrue(NS.db.global.savedView == nil, "the saved ledger view is cleared")
+  assertTrue(NS.db.profile.savedView == nil, "the saved ledger view is cleared")
   assertEqual(#out, 1, "still exactly one confirmation line")
-  assertEqual(out[1], NS.PREFIX .. " this addon reset to defaults.")
+  assertEqual(out[1], NS.PREFIX .. " profile 'Default' reset to defaults.")
 end)
 
 test("LibKa0s-Slash: the landing page and the chat help render the SAME rows", function()
@@ -256,6 +256,8 @@ test("LibKa0s-Slash: every user-visible string resolves to prose, not to its own
   assertProse(joinLines(chat(function() Sl:CliReset("") end)), "the reset usage line")
   assertProse(joinLines(chat(function() Sl:CliGet("nope.nope") end)), "the not-found line")
   assertProse(joinLines(chat(function() Sl:OnSlash("wibble") end)), "the unknown-command line")
+  assertProse(joinLines(chat(function() Sl:OnSlash("profile") end)), "the profile list")
+  assertProse(joinLines(chat(function() Sl:OnSlash("profile nope") end)), "the unknown-profile lines")
 end)
 
 test("LibKa0s-Slash degraded: the verbs that never needed the library still work", function()
@@ -271,20 +273,25 @@ test("LibKa0s-Slash degraded: the verbs that never needed the library still work
   ns.COMMANDS[#ns.COMMANDS] = nil
 end)
 
-test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS, written out",
+test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE_VERBS plus profile",
   function()
     -- settings/Slash.lua's library-absent dispatcher keeps its own copy of lib.LIVE_VERBS, because
     -- there is no library to read it from. A literal copy does not inherit a verb the library adds
-    -- (Slash minor 16 added `diagnostics`), so this case walks the LIVE library's set and proves
-    -- the degraded gate lets each one through while the addon is off.
+    -- (Slash minor 16 added `diagnostics`), so this case walks the LIVE library's set, plus the
+    -- host verb both arms add to it (`profile`, Slash minor 17), and proves the degraded gate lets
+    -- each one through while the addon is off.
     --
-    -- red under: a verb in lib.LIVE_VERBS that the degraded LIVE_VERBS table leaves out.
+    -- red under: a verb in lib.LIVE_VERBS, or `profile`, that the degraded LIVE_VERBS table leaves
+    -- out.
     assertTrue(slashlib ~= nil and type(slashlib.LIVE_VERBS) == "table", "no live set to compare with")
     local ns, m = loadDegraded()
     local savedDisabled = ns.IsDisabled
     ns.IsDisabled = function() return true end
+    local walk = {}
+    for i, verb in ipairs(slashlib.LIVE_VERBS) do walk[i] = verb end
+    walk[#walk + 1] = "profile"
     local ok, err = pcall(function()
-      for _, verb in ipairs(slashlib.LIVE_VERBS) do
+      for _, verb in ipairs(walk) do
         local reached = false
         table.insert(ns.COMMANDS, 1, { verb, "probe", function() reached = true end })
         local out = captureChat(function() ns.Slash:OnSlash(verb) end, m)
@@ -302,6 +309,33 @@ test("LibKa0s-Slash degraded: the disabled gate's live set is the library's LIVE
     ns.IsDisabled = savedDisabled
     if not ok then error(err, 0) end
   end)
+
+test("LibKa0s-Slash degraded: /bl profile says the library is missing, and switches nothing", function()
+  -- Route (b) of the degradation stub (Slash version-17 docs): with no library there is no store
+  -- adapter to trust, so both members print the one library-absent line and neither switches.
+  -- red under: a stub that calls db:SetProfile itself, raises, or prints nothing.
+  -- The degraded build's one-time missing-library notice may precede the first line printed, so
+  -- the count is of the profile line itself.
+  local LINE = "/bl profile is unavailable: the LibKa0s library did not load."
+  local function profileLines(out)
+    local n = 0
+    for _, line in ipairs(out) do
+      if line:find(LINE, 1, true) then n = n + 1 end
+      assertTrue(line:find("Switched", 1, true) == nil, "the stub claimed a switch: " .. line)
+    end
+    return n
+  end
+  local ns, m = loadDegraded()
+  assertTrue(m.LibStub("LibKa0s-Slash-1.0", true) == nil, "the library is present after all")
+  local current = ns.db and ns.db.GetCurrentProfile and ns.db:GetCurrentProfile()
+  local out = captureChat(function() ns.Slash:OnSlash("profile Alt") end, m)
+  assertEqual(profileLines(out), 1, joinLines(out))
+  local switched
+  out = captureChat(function() switched = ns.Slash:ProfileSwitch("Alt") end, m)
+  assertEqual(switched, false, "the stub's ProfileSwitch must answer false")
+  assertEqual(profileLines(out), 1, joinLines(out))
+  if current then assertEqual(ns.db:GetCurrentProfile(), current, "the stub switched the db") end
+end)
 
 test("LibKa0s-Slash degraded: a bare /bl runs the config verb, as the library does", function()
   -- The stub mirrors Slash minor 11 (slash-commands-§4): bare and whitespace-only input run the
@@ -346,9 +380,11 @@ end)
 test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining itself", function()
   -- A reset that silently did nothing is worse than a missing help index. The degraded arm needs no
   -- library for it: `/bl resetall` is the same confirm-gated request as the live arm
-  -- (options-ui-§12), and the popup's Yes is the host's own Sl:ResetEverything. Before
-  -- BankLedger-A-02 this arm carried its own bracketed schema walk, which kept the ledger.
-  -- red under: restoring the degraded walk (the ledger survives, the library-shaped line returns).
+  -- (options-ui-§12), and the popup's Yes is the host's own Sl:ResetEverything: a profile reset,
+  -- which needs AceDB and not LibKa0s. Before BankLedger-A-02 this arm carried its own bracketed
+  -- schema walk.
+  -- red under: restoring the degraded walk (the library-shaped line returns), or a reset that takes
+  -- the account-wide ledger.
   local ns, m = loadDegraded()
   ns:InitDB()
   ns.Schema:Set("settings.qualityThreshold", 4)
@@ -357,14 +393,14 @@ test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining
   }
   local out = captureChat(function() ns.Slash:CliResetAll() end, m)
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0)
-  assertEqual(#ns.db.global.ledger, 0, "the degraded reset kept recorded history")
-  assertEqual(out[#out], "|cff00ffff[BL]|r this addon reset to defaults.")
+  assertEqual(#ns.db.global.ledger, 1, "the degraded reset took recorded history")
+  assertEqual(out[#out], "|cff00ffff[BL]|r profile 'Default' reset to defaults.")
 end)
 
 test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line", function()
   -- The degraded schema runtime is settings/Schema.lua's log-silent stub, so a row walk through it
-  -- would log nothing. The wholesale reset is not a walk: it logs its own one line, counted before
-  -- the wipe (debug-logging-§10), on this arm as on the live one. The case installs a recorder in
+  -- would log nothing. The profile reset is not a walk: the profile handler logs its one line,
+  -- counted before the reset (debug-logging-§10), on this arm as on the live one. The case installs a recorder in
   -- NS.Debug's place, because the degraded DebugLog stub discards every line. Before BankLedger-A-02
   -- the degraded walk logged nothing here, and the two raising-walk cases that followed it pinned a
   -- bracket this arm no longer opens; they went with the walk.
@@ -383,7 +419,7 @@ test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs i
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
   assertEqual(ns.Schema:Get("settings.trackItems"), true, "every changed row was written back")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
-  assertEqual(lines[1], "[Set] reset account-wide settings to defaults (2 rows)")
+  assertEqual(lines[1], "[Set] reset profile 'Default' to defaults (2 rows)")
 end)
 
 test("LibKa0s-Slash: the seam loads after the schema it reads", function()

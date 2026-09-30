@@ -1,9 +1,9 @@
 # Slash dispatch
 
 `/bl`, aliased `/bankledger`. `settings/Slash.lua` is the **LibKa0s-Slash-1.0 seam**: the dispatcher,
-the help renderer and the `list`/`get`/`set`/`reset` CLI are the library's; what stays the host's is
-AceConsole registration, the four confirm dialogs, `Sl:Version`, and the full reset, which is what
-`resetall` reaches (after its confirm).
+the help renderer, the `list`/`get`/`set`/`reset` CLI and the `profile` verb are the library's; what
+stays the host's is AceConsole registration, the four confirm dialogs, `Sl:Version`, and the full
+reset, which is what `resetall` reaches (after its confirm).
 
 `/bl`, aliased `/bankledger`. The table below is generated from `NS.COMMANDS`, so `/bl help` and the
 settings landing page both read from one place.
@@ -16,7 +16,8 @@ settings landing page both read from one place.
 | `/bl enable` / `disable` | Turn the addon on or off. **Aliases**, not a second switch: both write `settings.enabled` — the path the Master controls **Enable Bank Ledger** checkbox writes — through `NS.Schema:Set`, and hold no state of their own (`slash-commands-§2`). `/bl set settings.enabled true|false` is the same write by its long name. The dispatcher keeps answering while the addon is disabled, so the pair is never one-way. |
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` | Read and write settings |
-| `/bl resetall` | Reset everything to defaults, **including recorded history**. Asks first: the same confirm popup, and the same act, as *Reset all settings* and both **Defaults** controls (`options-ui-§12`) |
+| `/bl resetall` | Reset the **current profile's** settings to defaults; **recorded history is kept**. Asks first: the same confirm popup, and the same act, as *Reset all settings* and both **Defaults** controls (`options-ui-§12`); the Profiles page's Reset Profile is the same act too |
+| `/bl profile` / `profile <name>` | Bare, list the profiles with the current one marked. With a name, switch to that **existing** profile: exact case, one pair of surrounding quotes stripped, spaces allowed (`/bl profile "My Alt"`). An unknown name is refused with a did-you-mean and the list, and is never created. Refused in combat. Live while disabled. The verb is `LibKa0s-Slash-1.0`'s `CliProfile` (minor 17); see [profiles.md](profiles.md) |
 | `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box) |
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
 | `/bl purge` | Delete all history (confirm-gated) |
@@ -67,7 +68,7 @@ the settings registration are **setup**, not features, so the pair is never one-
 | | Verbs |
 |---|---|
 | Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `session`, `test`, `purge` |
-| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — and the bare `/bl`, which opens the settings panel |
+| Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — `profile`, and the bare `/bl`, which opens the settings panel |
 
 The live set is the standard's, and its reasoning is that a player must be able to **read and repair
 settings**, and to **reach the panel**, while the addon is off — which is precisely when they are most
@@ -89,11 +90,16 @@ dispatch time and never cached, and `brandName`, the plain-text brand the broker
 (spelled once, in `core/LauncherSetup.lua`). The library keeps `lib.LIVE_VERBS` and renders the line
 from `lib.DISABLED_LINE_FORMAT`.
 
-**No `liveVerbs` is passed, deliberately.** That field narrows or widens the live set, and this
-addon wants neither. Standard v2.56.0 *did* narrow the disabled surface to `enable` and `help`, and
-v2.57.0 reversed it the same day: the bare `/bl` on a disabled addon answered with a refusal instead
-of opening the settings panel, which is the one surface a player uses to switch it back on by hand.
-Passing nothing is what keeps this addon on the restored side of that reversal.
+**`liveVerbs` is `lib.LIVE_VERBS` plus `profile`, and nothing else.** That field narrows or widens
+the live set. This addon never narrows it. Standard v2.56.0 *did* narrow the disabled surface to
+`enable` and `help`, and v2.57.0 reversed it the same day: the bare `/bl` on a disabled addon
+answered with a refusal instead of opening the settings panel, which is the one surface a player
+uses to switch it back on by hand. It widens it by one host verb. `profile` is not reserved, so
+`LibKa0s-Slash-1.0` leaves it out of `lib.LIVE_VERBS` (minor 17), and a player on a disabled profile
+has to be able to leave it by the verb. `settings/Slash.lua` names the widening once, as
+`HOST_LIVE_VERBS`, and both arms read it: the descriptor's `liveVerbs` is a copy of `lib.LIVE_VERBS`
+with it appended, so a verb the library adds to its set still arrives, and the library-absent
+gate's hand-copied set gains the same entry.
 
 An **unknown** verb is never refused: the gate sits **after** the `COMMANDS` lookup, so a word this
 addon does not ship still gets `unknown command '<verb>'` and the index. Telling a player who
@@ -132,9 +138,10 @@ this refusal line while disabled; that refusal and the `disabledLine` field that
   (`options-ui-§12`): `Sl:CliResetAll` returns `Sl:RequestResetAll()`, the single entry point that
   the Master controls tab's *Reset all settings*, the General page's **Defaults** and Blizzard's
   footer **Defaults** share too. It raises the confirm popup `KA0S_BANKLEDGER_RESETALL`, whose
-  `OnAccept` is `Sl:ResetEverything` — `db.global` emptied wholesale, recorded history, both filter
-  lists and the saved view included, then the defaults merged back with the `minimap` table held
-  across the wipe (`launcher-§3`), test mode ended and the debug console closed by name. With no
+  `OnAccept` is `Sl:ResetEverything` — `db:ResetProfile()`: the active profile's settings, both filter lists and the saved view back to
+  their defaults, with the account-wide ledger and the `minimap` table untouched (`launcher-§3`) and
+  the rest done by the profile handler, `NS.OnProfileEvent` ([profiles.md](profiles.md)), which also
+  ends test mode and closes the debug console by name. With no
   popup API it runs the reset directly. The degraded arm defines the same one-line member, so
   `NS.Slash` keeps its shape with or without the library. `/bl purge` deletes history alone.
 - **The bulk bracket** (`bulkBegin` / `bulkEnd`, Slash minor 8), so a library row walk logs one line
@@ -145,9 +152,16 @@ this refusal line while disabled; that refusal and the `disabledLine` field that
   when everything was already at its default. A walk that raises part-way logs the same line once
   with ` (stopped by an error)` appended, then the error is re-raised. The library hands `bulkEnd`
   `err = nil` for a raise of nil or false, so that raise gets no marker. **No host route runs that
-  walk any more** — `/bl resetall` is the wholesale reset above, which logs its own one
-  `[Set] reset account-wide settings to defaults (N rows)` line — but the descriptor keeps the pair
+  walk any more** — `/bl resetall` is the profile reset above, whose one
+  `[Set] reset profile '<name>' to defaults (N rows)` line the profile handler writes — but the descriptor keeps the pair
   so the library's seam stays whole, and `tests/test_slash.lua` drives the walk directly.
+- **`profiles = function() return NS.db end`** (Slash minor 17), the store `/bl profile` lists and
+  switches. It is asked at call time, because `NS.db` is built at `ADDON_LOADED`, after this file
+  runs. A switch calls `NS.db:SetProfile`, and AceDB's `OnProfileChanged` reaches
+  `NS.OnProfileEvent`, which adopts the profile and writes the one `[Profile]` line; the library
+  logs nothing. `Sl:CliProfile` and `Sl:ProfileSwitch` forward to the instance. The library-absent
+  arm carries both members, and each prints
+  `/bl profile is unavailable: the LibKa0s library did not load.` and switches nothing.
 
 Adding a verb is one entry in `NS.COMMANDS` (`settings/Schema.lua`); `/bl help` and the settings
 landing page both read from that one table.
