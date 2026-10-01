@@ -426,7 +426,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (41)
+### test_browser.lua (45)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -458,6 +458,10 @@ badge and any count quoted in the docs must agree with it.
 - the ledger window saves its geometry when it hides
 - the ledger window closes an open dropdown menu when it hides
 - the ledger window saves its geometry at logout
+- the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release
+- the ledger window is resizable with its floor as the minimum bound
+- a size change outside the grip neither saves nor rebuilds the display list
+- the footer's size text stays clear of the grip
 - Browser:ExportWidth leaves the Export button a usable width
 - Browser: a burst of search keystrokes costs ONE filter application
 - Browser: the debounced filter still applies when there is no timer library
@@ -510,7 +514,7 @@ badge and any count quoted in the docs must agree with it.
 - Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
 
-### test_sessionwindow.lua (32)
+### test_sessionwindow.lua (35)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -544,6 +548,9 @@ badge and any count quoted in the docs must agree with it.
 - a full save/reload round trip lands the window back where it was
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
+- the session window's grip sizes from BOTTOMRIGHT and saves geometry on release
+- the session window is resizable with its floor as the minimum bound
+- a size change outside the grip writes no geometry
 
 ### test_insights.lua (79)
 
@@ -1385,9 +1392,9 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 55 |
-| test_browser.lua | 41 |
+| test_browser.lua | 45 |
 | test_launcher.lua | 37 |
-| test_sessionwindow.lua | 32 |
+| test_sessionwindow.lua | 35 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
@@ -1423,4 +1430,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1217** |
+| **Total** | **1224** |
