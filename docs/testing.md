@@ -226,6 +226,8 @@ tests/
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
     run-automated-tests.sh --   the consolidated four-suite runner and bundle writer
+    lizard_sighted.lua     --   the sanitized shadow the complexity suite measures, and its parity
+                           --   check (kit revision 35; wired as the test_lizard_sighted gate)
     README.md
   run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
