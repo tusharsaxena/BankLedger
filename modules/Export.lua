@@ -97,116 +97,146 @@ local function rankedRows(map, labelOf)
   return rows
 end
 
-function E:InsightsCSV(stats)
-  stats = stats or {}
-  local t = stats.totals or {}
-  local lines = { "Section,Label,Count,Value" }
-  local function row(section, label, count, valueCopper)
-    lines[#lines + 1] = table.concat({
-      csvField(section), csvField(label),
-      count ~= nil and csvField(count) or "",
-      valueCopper ~= nil and csvField(NS.Util.PlainMoney(valueCopper)) or "",
-    }, ",")
-  end
-  local function section(name, rows)
-    for _, r in ipairs(rows) do row(name, r.label, r.count, r.value) end
-  end
+-- One CSV line: Section, Label, Count, Value. A nil count or value is an empty cell; a value is
+-- copper, written as plain money.
+local function addRow(lines, section, label, count, valueCopper)
+  lines[#lines + 1] = table.concat({
+    csvField(section), csvField(label),
+    count ~= nil and csvField(count) or "",
+    valueCopper ~= nil and csvField(NS.Util.PlainMoney(valueCopper)) or "",
+  }, ",")
+end
 
-  -- Summary (the stat cards).
-  row("Summary", "Movements", t.entries or 0)
-  row("Summary", "Distinct items", t.distinctItems or 0)
-  row("Summary", "Characters", t.distinctChars or 0)
-  row("Summary", "Items deposited", t.itemsDeposited or 0)
-  row("Summary", "Items withdrawn", t.itemsWithdrawn or 0)
-  row("Summary", "Net items", t.netItems or 0)
-  row("Summary", "Gold in", nil, t.moneyIn or 0)
-  row("Summary", "Gold out", nil, t.moneyOut or 0)
-  row("Summary", "Net gold", nil, t.netMoney or 0)
-  row("Summary", "Gold moved", nil, t.moneyMoved or 0)
-  row("Summary", "Active days", t.activeDays or 0)
+local function addSection(lines, name, rows)
+  for _, r in ipairs(rows) do addRow(lines, name, r.label, r.count, r.value) end
+end
+
+-- A map's keys in ascending order.
+local function sortedKeys(map)
+  local keys = {}
+  for k in pairs(map or {}) do keys[#keys + 1] = k end
+  table.sort(keys)
+  return keys
+end
+
+-- The stat cards, in card order: { label, totals field }. A missing figure reads 0.
+local SUMMARY_COUNTS = {
+  { "Movements", "entries" }, { "Distinct items", "distinctItems" }, { "Characters", "distinctChars" },
+  { "Items deposited", "itemsDeposited" }, { "Items withdrawn", "itemsWithdrawn" },
+  { "Net items", "netItems" },
+}
+local SUMMARY_MONEY = {
+  { "Gold in", "moneyIn" }, { "Gold out", "moneyOut" }, { "Net gold", "netMoney" },
+  { "Gold moved", "moneyMoved" },
+}
+
+-- Summary (the stat cards).
+local function addSummary(lines, t)
+  for _, c in ipairs(SUMMARY_COUNTS) do addRow(lines, "Summary", c[1], t[c[2]] or 0) end
+  for _, c in ipairs(SUMMARY_MONEY) do addRow(lines, "Summary", c[1], nil, t[c[2]] or 0) end
+  addRow(lines, "Summary", "Active days", t.activeDays or 0)
   if t.firstTs and t.lastTs then
-    row("Summary", "Date range",
+    addRow(lines, "Summary", "Date range",
       NS.Util.FormatDate(t.firstTs) .. " to " .. NS.Util.FormatDate(t.lastTs))
   end
   if t.busiestDay then
-    row("Summary", "Busiest day", t.busiestDay.day .. " (" .. t.busiestDay.count .. ")")
+    addRow(lines, "Summary", "Busiest day", t.busiestDay.day .. " (" .. t.busiestDay.count .. ")")
   end
+end
 
-  local storeLabel = function(k) return C.StoreLabel[k] or k end
-  section("By Store", rankedRows(stats.byStore, storeLabel))
+local function storeLabel(k) return C.StoreLabel[k] or k end
+
+local function addStores(lines, stats)
+  addSection(lines, "By Store", rankedRows(stats.byStore, storeLabel))
   -- Net flow per store, signed and counted in MOVEMENTS (schema v2): a store you keep draining
   -- reads negative.
+  local netByStore, moneyByStore = stats.netByStore or {}, stats.moneyByStore or {}
   for _, s in ipairs(C.StoreOrder) do
-    local net = (stats.netByStore or {})[s]
-    if net ~= nil then row("Net by Store", storeLabel(s), net) end
+    if netByStore[s] ~= nil then addRow(lines, "Net by Store", storeLabel(s), netByStore[s]) end
   end
   -- Gross coin moved per store.
   for _, s in ipairs(C.StoreOrder) do
-    local amount = (stats.moneyByStore or {})[s]
-    if amount ~= nil then row("Money By Store", storeLabel(s), nil, amount) end
+    if moneyByStore[s] ~= nil then addRow(lines, "Money By Store", storeLabel(s), nil, moneyByStore[s]) end
   end
-  section("By Direction", rankedRows(stats.byDirection, function(k) return C.DirectionLabel[k] or k end))
-  section("By Kind", rankedRows(stats.byKind, function(k) return C.KindLabel[k] or k end))
-  section("By Item Type", rankedRows(stats.byItemType))
-  section("By Sub-type", rankedRows(stats.byItemSubType))
+end
 
+local function directionLabel(k) return C.DirectionLabel[k] or k end
+local function kindLabel(k) return C.KindLabel[k] or k end
+
+local function addBreakdowns(lines, stats)
+  addSection(lines, "By Direction", rankedRows(stats.byDirection, directionLabel))
+  addSection(lines, "By Kind", rankedRows(stats.byKind, kindLabel))
+  addSection(lines, "By Item Type", rankedRows(stats.byItemType))
+  addSection(lines, "By Sub-type", rankedRows(stats.byItemSubType))
   -- Quality in ASCENDING quality order rather than by count: Poor→Legendary is the meaningful
   -- ordering, and a spreadsheet reader gets it for free that way.
-  local qualityIDs = {}
-  for q in pairs(stats.byQuality or {}) do qualityIDs[#qualityIDs + 1] = q end
-  table.sort(qualityIDs)
-  for _, q in ipairs(qualityIDs) do
-    row("By Quality", NS.Item.QualityLabel(q), stats.byQuality[q])
+  for _, q in ipairs(sortedKeys(stats.byQuality)) do
+    addRow(lines, "By Quality", NS.Item.QualityLabel(q), stats.byQuality[q])
   end
+  addSection(lines, "By Zone", rankedRows(stats.byZone))
+end
 
-  section("By Zone", rankedRows(stats.byZone))
-
+local function addCharacters(lines, byChar)
   local charRows = {}
-  for _, ce in pairs(stats.byChar or {}) do
+  for _, ce in pairs(byChar or {}) do
     charRows[#charRows + 1] = { label = ce.char, count = ce.count }
   end
   table.sort(charRows, function(a, b)
     if a.count ~= b.count then return a.count > b.count end
     return tostring(a.label) < tostring(b.label)
   end)
-  section("By Character", charRows)
+  addSection(lines, "By Character", charRows)
+end
 
-  -- The item index, ranked two ways — the same two lists the Insights panel shows, so an export
-  -- answers "what moved most" and "what moved in bulk" without re-sorting.
-  local function itemName(it) return it.itemName or ("item " .. tostring(it.itemID)) end
+-- The item index, ranked two ways — the same two lists the Insights panel shows, so an export
+-- answers "what moved most" and "what moved in bulk" without re-sorting.
+local function itemName(it) return it.itemName or ("item " .. tostring(it.itemID)) end
+
+local function addItems(lines, stats)
   for _, it in ipairs(stats.topItems or {}) do
-    row("Top Items", itemName(it), it.moves)
+    addRow(lines, "Top Items", itemName(it), it.moves)
   end
   for _, it in ipairs(stats.topItemsByQuantity or {}) do
-    row("Top Items By Quantity", itemName(it), it.quantity)
+    addRow(lines, "Top Items By Quantity", itemName(it), it.quantity)
   end
+end
 
-  -- Per-day activity, chronological. The coin column follows in its own section so a day's gold
-  -- traffic is separable from its item traffic.
-  local dayKeys = {}
-  for day in pairs(stats.byDay or {}) do dayKeys[#dayKeys + 1] = day end
-  table.sort(dayKeys)
-  for _, day in ipairs(dayKeys) do
-    row("By Day", day, stats.byDay[day])
+-- Per-day activity, chronological. The coin column follows in its own section so a day's gold
+-- traffic is separable from its item traffic.
+local function addDays(lines, stats)
+  for _, day in ipairs(sortedKeys(stats.byDay)) do
+    addRow(lines, "By Day", day, stats.byDay[day])
   end
-  local moneyDays = {}
-  for day in pairs(stats.moneyByDay or {}) do moneyDays[#moneyDays + 1] = day end
-  table.sort(moneyDays)
-  for _, day in ipairs(moneyDays) do
-    row("Gold By Day", day, nil, stats.moneyByDay[day])
+  for _, day in ipairs(sortedKeys(stats.moneyByDay)) do
+    addRow(lines, "Gold By Day", day, nil, stats.moneyByDay[day])
   end
+end
 
-  -- When the banking happens. Fixed 24-hour and Sunday-first weekday grids rather than only the
-  -- buckets that fired, so an empty hour reads as a quiet hour instead of a missing row.
+local WEEKDAY = { [0] = "Sunday", [1] = "Monday", [2] = "Tuesday", [3] = "Wednesday",
+                  [4] = "Thursday", [5] = "Friday", [6] = "Saturday" }
+
+-- When the banking happens. Fixed 24-hour and Sunday-first weekday grids rather than only the
+-- buckets that fired, so an empty hour reads as a quiet hour instead of a missing row.
+local function addClock(lines, stats)
+  local byHour, byWeekday = stats.byHour or {}, stats.byWeekday or {}
   for h = 0, 23 do
-    row("By Hour", ("%02d:00"):format(h), (stats.byHour or {})[h] or 0)
+    addRow(lines, "By Hour", ("%02d:00"):format(h), byHour[h] or 0)
   end
-  local WEEKDAY = { [0] = "Sunday", [1] = "Monday", [2] = "Tuesday", [3] = "Wednesday",
-                    [4] = "Thursday", [5] = "Friday", [6] = "Saturday" }
   for d = 0, 6 do
-    row("By Weekday", WEEKDAY[d], (stats.byWeekday or {})[d] or 0)
+    addRow(lines, "By Weekday", WEEKDAY[d], byWeekday[d] or 0)
   end
+end
 
+function E:InsightsCSV(stats)
+  stats = stats or {}
+  local lines = { "Section,Label,Count,Value" }
+  addSummary(lines, stats.totals or {})
+  addStores(lines, stats)
+  addBreakdowns(lines, stats)
+  addCharacters(lines, stats.byChar)
+  addItems(lines, stats)
+  addDays(lines, stats)
+  addClock(lines, stats)
   return table.concat(lines, "\r\n") .. "\r\n"
 end
 
