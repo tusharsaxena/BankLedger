@@ -1,0 +1,1 @@
+OK GI-BL-02 — characterization cases pass on pre-refactor tree (verified from 27e6245 archive), L:Diagnose peel is a verbatim move keeping Ledger.lua out of the band (A2), splits are behavior-preserving (StandDown order, shared comparator identical), sighted complexity 0 warnings / maxCcn 15 / blind 0; 02R restores the doc comment placement
