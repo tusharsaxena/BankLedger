@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 81 today). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 86 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
@@ -40,7 +40,8 @@ the bodies reach the module through that file-local upvalue and through `NS`, ne
 receiver. The receiver is still load-bearing, because every call site is a colon call through the
 namespace (`NS.Browser:Show()`, `NS.Schema:Set(path, v)`) -- roughly 900 of them across the addon
 and the suites -- so deleting it would shift every argument one place to the left at all of them.
-Each of the 12 files therefore carries a `files[...]` stanza naming that one file and that one
+Each of those 12 files therefore carries a `files[...]` stanza (14 stanzas today: later files of the
+same shape, most recently `modules/Ledger_Diagnose.lua`, took one each) naming that one file and that one
 variable, with a comment saying which convention forces it. Re-measured 2026-09-14 with those
 stanzas stripped: still 119 `212/self` findings across the same 12 of the 61 linted files, and
 nothing else.

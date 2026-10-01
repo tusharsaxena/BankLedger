@@ -368,10 +368,10 @@ leaves its number unused.
   `Item <id>` rows (deposit something the client has not cached, then `/reload` at once), log in,
   `/bl debug on`, wait about 10 seconds, open History → those rows show their real names, and the
   console shows a `[Backfill] done: …` line. **Fail:** a row still reading `Item <id>` with no
-  `unresolved` count to explain it. Result:
+  `unresolved` count to explain it. Result: pass (owner, 2026-10-02)
 - **CAPT-19. Insights counts them, once.** Open Insights → the previously unnamed items appear under
   Type, Sub-type and Quality. `/reload` again → no duplicate rows, nothing changes, and no
-  `[Backfill]` line (nothing left to fill). Result:
+  `[Backfill]` line (nothing left to fill). Result: pass (owner, 2026-10-02)
 - **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
   gone. Result:
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
@@ -864,8 +864,10 @@ Not listed, because a recorded pass covers them and the rework did not change wh
 INSTALL-4 (S-1 step 5, passed in the owner's minimap re-check of 2026-09-25 on
 the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
 DIAG-14 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
-BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
-Ka0sAddonsCommonTasks repository.
+BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report), and CAPT-18 and CAPT-19
+(new with the login backfill, GI-BL-01, and passed in the owner's run of 2026-10-02 as rows BL-1 – BL-3
+of the 2026-10-01 GitHub issue pass's smoke tests). The records are in the Ka0sAddonsCommonTasks
+repository.
 
 | ID | Origin | Why it is owed |
 |---|---|---|
@@ -916,7 +918,6 @@ Ka0sAddonsCommonTasks repository.
 | CAPT-13 | S-6 step 5, S-17 step 13 | No recorded result |
 | CAPT-14 | S-17 step 14, corrected by SP-BL-03R | A `/reload` turns logging off, so the old order (`/bl debug on`, then `/reload`) could never show the `[Store]` line it watched for |
 | CAPT-15 | S-23 step 4, corrected by SP-BL-03R | The same: the `uncached` skip is logged only with logging on, which the `/reload` had turned off |
-| CAPT-18, CAPT-19 | New (the login backfill, GI-BL-01, BankLedger#2) | Never run |
 | CAPT-16 | S-16 step 1 | Step BL.16 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
 | CAPT-17 | S-16 step 2 | No recorded result |
 | LEDG-1 – 3 | S-7 steps 1–3 | No recorded result |
