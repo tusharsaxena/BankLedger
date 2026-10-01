@@ -463,10 +463,10 @@ end
 
 -- Turn a movement into a stored ledger entry: stamp who/where/when and, for an item, whatever the
 -- client has cached about it. An item the client hasn't cached yet stores its id alone and the
--- table shows "Item <id>". There is NO backfill: the stored row keeps only its id, so such an item
--- stays invisible to the Type / Sub-type / Quality breakdowns for good. This is why GateReason
--- refuses to admit an uncached item under a non-zero quality threshold rather than recording it and
--- hoping — a row that can never be classified is not one a threshold ever asked for.
+-- table shows "Item <id>" until the login backfill (modules/Backfill.lua) fills its nil fields in
+-- on a later login, resolving through the same link-first rule as here. GateReason still refuses to
+-- admit an uncached item under a non-zero quality threshold: a row the threshold cannot judge now
+-- is not one it asked for, whatever a later login learns about it.
 function L:BuildEntry(move)
   local zone, subzone = NS.Zone()
   local _, classFile = UnitClass("player")

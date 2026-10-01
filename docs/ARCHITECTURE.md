@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window (owner decision D6) and the Minimap button **account-wide** (`global`), every other setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 34 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 35 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,7 +34,7 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-34 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+35 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
 the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` holds the account-wide
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles).
@@ -69,7 +69,10 @@ stored outside the rows is named per `architecture-§5`:
   `LedgerChanged` exactly as `NS.Filters` does.
 - **The movement log is recorded data** — `db.global.ledger`, account-wide and in no profile,
   written only by `NS.Database` (`core/Database.lua`): `Add`, `Delete`, `DeleteAt`, `Purge` and
-  `PruneOld`.
+  `PruneOld`. One repair pass fills fields on rows that are already there: the login backfill,
+  `NS.Backfill` (`modules/Backfill.lua`), writes an item row's **nil** name, quality, type,
+  sub-type and link, never overwrites a present field and never adds or removes a row; it reports
+  the change through `Database:FireLedgerChanged`, so Database stays the message's one sender.
 - **Named non-setting state** — four storage carve-outs written outside `NS.Schema:Set`, none with a
   `Documented deviations` row:
   - **Main window geometry**, `db.profile.settings.window`, owned by `NS.Browser`.
@@ -286,8 +289,9 @@ draw gate does.
 
 ## Event Subscriptions
 
-Twelve registrations **while the addon is enabled**; **none** while it is disabled (see *The
-stand-down* above). **All twelve** go through one helper, `NS.RegisterEventSafely(target, event,
+Twelve registrations **while the addon is enabled**, plus a thirteenth for the few seconds the
+login backfill waits (below); **none** while it is disabled (see *The stand-down* above). **All of
+them** go through one helper, `NS.RegisterEventSafely(target, event,
 handler)` in `core/CoreSetup.lua`, over `LibKa0s-Core-1.0`'s `SafeRegisterEvent`
 (`events-frames-taint-§1`, standard v2.65.0). Modern retail **raises** on an unknown event name, so a
 bare registration turns one retired name into an aborted block: a silently deaf capture loop, or a
@@ -309,6 +313,13 @@ no window, per `options-ui-§15`), and
 `PLAYER_LOGOUT` on each window's private bus target, the one `NS.NewBusTarget()` hands out
 (`B.__ev` in `B:Enable`, `modules/Browser.lua`; `SW.__ev` in `SW:Enable`,
 `modules/SessionWindow.lua`; geometry flush).
+
+**One registration is transient.** The login backfill (`modules/Backfill.lua`, BankLedger#2) runs once
+per session, right after the retention prune, and registers `GET_ITEM_INFO_RECEIVED` on the addon
+object only while it waits for the client to answer about the item ids it asked to load: it lets go
+when every id has answered or after `C.BACKFILL_TIMEOUT` (10s), and drops the name from
+`NS.EventRecord` again. Being on the addon object, the stand-down's `UnregisterAllEvents` reaches
+it, and the module's `CancelPending` drops the pass.
 
 Change events are debounced into one reconcile pass per user action, and the baseline is held
 whenever a pass sees a one-sided change.
@@ -355,10 +366,14 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
 - **A movement made while capture is off is lost**, not backfilled.
 - **Pre-corroboration gold rows cannot be cleaned up retroactively** — nothing in a stored row
   distinguishes them.
-- **An uncached item is skipped when a minimum quality is set**, and there is no name backfill.
+- **An uncached item is skipped when a minimum quality is set.**
+- **The login backfill resolves at most 40 item ids per login** (`C.BACKFILL_MAX_IDS`), so a large
+  legacy ledger of `Item <id>` rows fills in over several logins. An id the client answers with
+  `success = false` (an item that no longer exists) stays unfilled and is asked about again next login.
 - **Rows recorded before the link-enrichment fix keep their base-item quality** — they were written
   from the itemID, so a bonus-upgraded drop was stored at the quality its base item has. Nothing
-  re-resolves a stored row, so those rows stay as recorded.
+  re-resolves a field a stored row already has (the login backfill fills nil fields only), so those
+  rows stay as recorded.
 - **Two variants of one itemID in a single snapshot resolve to the same link** — the scan keeps the
   first hyperlink it sees per id and the counts map is keyed by id alone, so it cannot tell an
   upgraded copy from a base one when both are present.

@@ -170,7 +170,7 @@ local BUS_MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
 -- AceTimer level alone is not enough: each module remembers its own handle and refuses to schedule
 -- while one is outstanding, so a handle left behind a stand-down is a debounce that never fires
 -- again after the stand-up.
-local TIMER_MODULES = { "Ledger", "Browser", "Insights" }
+local TIMER_MODULES = { "Ledger", "Browser", "Insights", "Backfill" }
 
 --- Make the addon INERT. Every registration gone, every timer canceled, every window shut.
 ---
@@ -316,6 +316,8 @@ function addon:OnEnterWorld()
     if NS.IsStoodDown and NS.IsStoodDown() then return end
     st.cleanupDone = true
     if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+    -- After the prune, so it never resolves a row the prune is about to take (BankLedger#2).
+    if NS.Backfill and NS.Backfill.Run then NS.Backfill:Run() end
   end, 5)
   -- Deferred work, held (debug-logging-§8). Its flush is PruneOld's own [Prune] line, which it
   -- writes on every run, retention off included; a stand-down inside the window says "postponed".

@@ -179,6 +179,24 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
 
+### test_backfill.lua (15)
+
+- backfill: Collect lists distinct incomplete item ids in ledger order, capped, with their rows
+- backfill: Apply fills nil fields only, counts the rows it changed, and is idempotent
+- backfill: an uncached row gains name, quality, type and sub-type once the client answers
+- backfill: a present name or quality is never overwritten
+- backfill: a second pass changes nothing and sends nothing
+- backfill: at most BACKFILL_MAX_IDS distinct ids are requested per pass
+- backfill: gold rows and complete rows are never touched
+- backfill: a stored link resolves through the link, not the base id
+- backfill: answers arriving one by one still send exactly one LedgerChanged
+- backfill: a pass that fills nothing sends nothing
+- backfill: a stand-down mid-pass lets go of the event and writes nothing afterwards
+- backfill: the timeout ends the pass and leaves unresolved rows untouched
+- backfill: the login timer runs it once, right after the retention prune
+- backfill: the debug console says what the pass filled, asked for and left
+- backfill: a ledger with nothing to fill writes no line (quiet steady state)
+
 ### test_ledger_guildbank.lua (26)
 
 - Ledger:ScanGuildBank sees nothing from a tab that was never queried
@@ -1346,6 +1364,7 @@ badge and any count quoted in the docs must agree with it.
 | test_constants.lua | 21 |
 | test_filters.lua | 14 |
 | test_ledger.lua | 72 |
+| test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
@@ -1389,4 +1408,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1187** |
+| **Total** | **1202** |

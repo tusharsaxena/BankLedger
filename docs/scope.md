@@ -45,8 +45,9 @@ These are decisions, not gaps. Each one has a reason that would still apply tomo
   changes no bag count, and the "both sides must change" rule requires the bags to be one of the two
   sides. Recording it would need a second rule pairing two stores against each other.
 - **Backfilling.** A movement made while capture is off is lost, not reconstructed — the baseline
-  snapshot is only taken while capture is on. Likewise there is no name backfill: a row stored before
-  the client cached the item keeps only its id.
+  snapshot is only taken while capture is on. A row stored before the client cached the item is
+  different: the login backfill (`modules/Backfill.lua`) fills its name, quality, type and sub-type
+  in, up to 40 item ids per login.
 - **Retroactive cleanup of pre-corroboration gold rows.** Nothing in a stored row distinguishes a real
   warband deposit from a bank-tab purchase that was recorded as one, so the addon cannot find them
   after the fact. Filter to Gold + Warband Bank in the History tab and delete by hand.

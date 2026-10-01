@@ -364,6 +364,14 @@ leaves its number unused.
   something unusual from a bank tab you have not opened → a `[Skip]` line naming it with `(uncached)`,
   and no row. Repeat the movement a few seconds later → judged properly: a row, or a `[Skip]` line
   naming it with `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
+- **CAPT-18. Unnamed rows fill in at login.** With Minimum quality at 0 and a History holding
+  `Item <id>` rows (deposit something the client has not cached, then `/reload` at once), log in,
+  `/bl debug on`, wait about 10 seconds, open History → those rows show their real names, and the
+  console shows a `[Backfill] done: …` line. **Fail:** a row still reading `Item <id>` with no
+  `unresolved` count to explain it. Result:
+- **CAPT-19. Insights counts them, once.** Open Insights → the previously unnamed items appear under
+  Type, Sub-type and Quality. `/reload` again → no duplicate rows, nothing changes, and no
+  `[Backfill]` line (nothing left to fill). Result:
 - **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
   gone. Result:
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
@@ -908,6 +916,7 @@ Ka0sAddonsCommonTasks repository.
 | CAPT-13 | S-6 step 5, S-17 step 13 | No recorded result |
 | CAPT-14 | S-17 step 14, corrected by SP-BL-03R | A `/reload` turns logging off, so the old order (`/bl debug on`, then `/reload`) could never show the `[Store]` line it watched for |
 | CAPT-15 | S-23 step 4, corrected by SP-BL-03R | The same: the `uncached` skip is logged only with logging on, which the `/reload` had turned off |
+| CAPT-18, CAPT-19 | New (the login backfill, GI-BL-01, BankLedger#2) | Never run |
 | CAPT-16 | S-16 step 1 | Step BL.16 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
 | CAPT-17 | S-16 step 2 | No recorded result |
 | LEDG-1 – 3 | S-7 steps 1–3 | No recorded result |

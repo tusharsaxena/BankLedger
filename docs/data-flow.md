@@ -70,7 +70,8 @@ warband movement, because no event announces one.
 
 | Event | Handler |
 |---|---|
-| `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune |
+| `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune, then the login backfill (`modules/Backfill.lua`) |
+| `GET_ITEM_INFO_RECEIVED` | Registered only while the login backfill waits: fills the answered id's rows (nil fields only); the pass ends when every id has answered or after 10s, with one `LedgerChanged` if a row changed |
 | `PLAYER_REGEN_DISABLED`, `PLAYER_REGEN_ENABLED` | Re-evaluate **General visibility** at each combat edge (`addon:OnCombatChanged` → `NS.Util.ApplyVisibility`). `PLAYER_REGEN_DISABLED` first ends test mode (`LT:SetTestMode(false)`, no window opened, one chat line). Outside the capture pipeline entirely — no snapshot, no diff, no row |
 | `BANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches. The guild bank has no open event — see below |
 | `BANKFRAME_CLOSED` | Final reconcile, then disarm. The guild bank has no close event — see below |
