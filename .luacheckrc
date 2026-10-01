@@ -20,8 +20,9 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit
 -- event argument it would have landed green under a 0/0 badge.
 --
 -- Removing the two lines reported 119 findings, every one of them `212/self`, across 12 of the 60
--- files. What replaced the blanket is the 12 `files[...]` stanzas at the foot of this file, each
--- naming one file and the one variable that earns it.
+-- files. What replaced the blanket is the `212/self` `files[...]` stanzas at the foot of this file,
+-- each naming one file and the one variable that earns it: 12 then, 14 today, as later files of the
+-- same shape (most recently modules/Ledger_Diagnose.lua) took one each.
 --
 -- Fixed at source rather than re-silenced, in the same commit: 18 files opened
 -- `local addonName, NS = ...   -- luacheck: ignore addonName` over a folder name they never read.
