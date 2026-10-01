@@ -81,6 +81,9 @@ defaults\Profile.lua
 # Modules (Filters before Ledger — the capture gate reads the lists)
 modules\Filters.lua
 modules\Ledger.lua
+# Ledger's /bl debug scan dump (L:Diagnose), peeled out of it (GI-BL-02). Conventional: reached at
+# run time through NS.Ledger.
+modules\Ledger_Diagnose.lua
 # The login backfill (BankLedger#2). After Ledger, whose BuildEntry rule it follows; it reaches
 # NS.Compat, NS.Item and NS.Database at call time, so the position is conventional.
 modules\Backfill.lua

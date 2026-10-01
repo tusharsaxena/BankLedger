@@ -12,7 +12,7 @@ writes, and the two **addon-owned** topic dumps that also write into that consol
 | Verb | Runs | Console tag | Answers |
 |---|---|---|---|
 | `/bl diagnostics` or `/bl debug diagnostics` | `NS.DebugLog:RunDiagnostics()` over `NS.Diagnostics.Sections()` (`modules/Diagnostics.lua`) | `[Diag]` markers, one tag per section | Everything a maintainer asks first: build, state, settings, filters, the ledger, the capture engine, the session, the container model, windows, the launcher and other bank addons |
-| `/bl debug scan` | `NS.Ledger:Diagnose()` (`modules/Ledger.lua`) | `[Scan]` | What the client's container, money and guild-bank model actually is, and which events registered |
+| `/bl debug scan` | `NS.Ledger:Diagnose()` (`modules/Ledger_Diagnose.lua`) | `[Scan]` | What the client's container, money and guild-bank model actually is, and which events registered |
 | `/bl debug panel` | `NS.Panel:Diagnose()` (`settings/Panel.lua`) | `[Panel]` | What the settings header's **Defaults** button actually is at runtime |
 
 All three are wired in `NS.COMMANDS` (`settings/Schema.lua`): the report as its own `diagnostics`

@@ -40,7 +40,7 @@ NS.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of K
 
 -- THE EVENT RECORD: which names this build accepted and which it refused, across EVERY
 -- registration the addon makes (events-frames-taint-§1). Read by `/bl debug scan`
--- (modules/Ledger.lua, L:Diagnose) and reset by NS.StandDown, so a disabled addon reports an empty
+-- (modules/Ledger_Diagnose.lua, L:Diagnose) and reset by NS.StandDown, so a disabled addon reports an empty
 -- record and a stand-up rebuilds it from what actually bound. Set OUTSIDE the branch below because
 -- both arms of NS.RegisterEventSafely write it, and the parity case (tests/test_surface_parity.lua)
 -- holds each arm to the other's namespace.
