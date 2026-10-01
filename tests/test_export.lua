@@ -397,3 +397,92 @@ test("Export: the copy window is built once and reused", function()
   NS.Export.__showCopy("second")
   assertTrue(NS.Export.__copyWindow:GetFrame() == f, "no rebuild per open")
 end)
+
+-- ── Characterization: the whole InsightsCSV document (GI-BL-02) ──────────────────────────────
+-- Pinned byte for byte before E:InsightsCSV was split below CCN 15, so the split is provably a
+-- move: every section, its order, the quoting, the money format, the fixed hour/weekday grids, the
+-- tie-breaks and the fallbacks for an absent field.
+
+local CHAR_STATS = {
+  totals = {
+    entries = 5, distinctItems = 3, distinctChars = 2, itemsDeposited = 12, itemsWithdrawn = 4,
+    netItems = 8, moneyIn = 12345, moneyOut = 100, netMoney = 12245, moneyMoved = 12445,
+    activeDays = 2, firstTs = NOW - 86400, lastTs = NOW,
+    busiestDay = { day = "2026-01-02", count = 3 },
+  },
+  byStore = { BANK = 3, GUILD_BANK = 2 },
+  netByStore = { WARBAND_BANK = -1, BANK = 2 },
+  moneyByStore = { GUILD_BANK = 12345 },
+  byDirection = { DEPOSIT = 3, WITHDRAW = 2 },
+  byKind = { ITEM = 4, MONEY = 1 },
+  byItemType = { Tradegoods = 2, Consumable = 2 },
+  byItemSubType = { ["Cloth, Fine"] = 1 },
+  byQuality = { [3] = 1, [1] = 2 },
+  byZone = { Testville = 4 },
+  byChar = { a = { char = "Zed-Realm", count = 2 }, b = { char = "Abe-Realm", count = 2 },
+             c = { char = "Mid-Realm", count = 5 } },
+  topItems = { { itemName = "Linen Cloth", moves = 3 }, { itemID = 999, moves = 1 } },
+  topItemsByQuantity = { { itemName = "Linen Cloth", quantity = 10 } },
+  byDay = { ["2026-01-02"] = 3, ["2026-01-01"] = 2 },
+  moneyByDay = { ["2026-01-02"] = 12345 },
+  byHour = { [9] = 2, [23] = 1 },
+  byWeekday = { [0] = 1, [6] = 4 },
+}
+
+local function grids(byHour, byWeekday)
+  local out = {}
+  for h = 0, 23 do out[#out + 1] = ("By Hour,%02d:00,%d,"):format(h, byHour[h] or 0) end
+  local days = { [0] = "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
+  for d = 0, 6 do out[#out + 1] = ("By Weekday,%s,%d,"):format(days[d], byWeekday[d] or 0) end
+  return out
+end
+
+local function joined(list) return table.concat(list, "\r\n") .. "\r\n" end
+
+test("Export:InsightsCSV characterization: the full document, byte for byte", function()
+  local Q1, Q3 = NS.Item.QualityLabel(1), NS.Item.QualityLabel(3)
+  local expected = {
+    "Section,Label,Count,Value",
+    "Summary,Movements,5,", "Summary,Distinct items,3,", "Summary,Characters,2,",
+    "Summary,Items deposited,12,", "Summary,Items withdrawn,4,", "Summary,Net items,8,",
+    "Summary,Gold in,,1g 23s 45c", "Summary,Gold out,,0g 1s 0c", "Summary,Net gold,,1g 22s 45c",
+    "Summary,Gold moved,,1g 24s 45c", "Summary,Active days,2,",
+    "Summary,Date range," .. NS.Util.FormatDate(NOW - 86400) .. " to " .. NS.Util.FormatDate(NOW) .. ",",
+    "Summary,Busiest day,2026-01-02 (3),",
+    "By Store,Character Bank,3,", "By Store,Guild Bank,2,",
+    "Net by Store,Character Bank,2,", "Net by Store,Warband Bank,-1,",
+    "Money By Store,Guild Bank,,1g 23s 45c",
+    "By Direction,Deposit,3,", "By Direction,Withdraw,2,",
+    "By Kind,Item,4,", "By Kind,Gold,1,",
+    "By Item Type,Consumable,2,", "By Item Type,Tradegoods,2,",
+    'By Sub-type,"Cloth, Fine",1,',
+    "By Quality," .. Q1 .. ",2,", "By Quality," .. Q3 .. ",1,",
+    "By Zone,Testville,4,",
+    "By Character,Mid-Realm,5,", "By Character,Abe-Realm,2,", "By Character,Zed-Realm,2,",
+    "Top Items,Linen Cloth,3,", "Top Items,item 999,1,",
+    "Top Items By Quantity,Linen Cloth,10,",
+    "By Day,2026-01-01,2,", "By Day,2026-01-02,3,",
+    "Gold By Day,2026-01-02,,1g 23s 45c",
+  }
+  for _, line in ipairs(grids(CHAR_STATS.byHour, CHAR_STATS.byWeekday)) do expected[#expected + 1] = line end
+  assertEqual(NS.Export:InsightsCSV(CHAR_STATS), joined(expected))
+end)
+
+test("Export:InsightsCSV characterization: empty and absent stats give the same zero document", function()
+  local expected = {
+    "Section,Label,Count,Value",
+    "Summary,Movements,0,", "Summary,Distinct items,0,", "Summary,Characters,0,",
+    "Summary,Items deposited,0,", "Summary,Items withdrawn,0,", "Summary,Net items,0,",
+    "Summary,Gold in,,0g 0s 0c", "Summary,Gold out,,0g 0s 0c", "Summary,Net gold,,0g 0s 0c",
+    "Summary,Gold moved,,0g 0s 0c", "Summary,Active days,0,",
+  }
+  for _, line in ipairs(grids({}, {})) do expected[#expected + 1] = line end
+  assertEqual(NS.Export:InsightsCSV({}), joined(expected))
+  assertEqual(NS.Export:InsightsCSV(nil), joined(expected))
+end)
+
+test("Export:InsightsCSV characterization: a range needs both ends, a busiest day stands alone", function()
+  local csv = NS.Export:InsightsCSV({ totals = { firstTs = NOW, busiestDay = { day = "d", count = 1 } } })
+  assertEqual(csv:find("Date range", 1, true), nil, "a range with one end was written")
+  assertTrue(csv:find("Summary,Busiest day,d (1),", 1, true) ~= nil)
+end)

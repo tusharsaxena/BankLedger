@@ -202,3 +202,112 @@ test("the stand-down clears the event record", function()
   assertEqual(registered, 0, "the stand-down left names in NS.EventRecord.registered")
   assertEqual(unavailable, 0, "the stand-down left names in NS.EventRecord.unavailable")
 end)
+
+-- ── Characterization: NS.StandDown's steps, in order (GI-BL-02) ──────────────────────────────
+-- Pinned against recording fakes before the body was split below CCN 15, so the split keeps every
+-- step, its order and its nil-guards. The real modules, addon object, event record and prune
+-- handle are swapped out for the call and handed back after it.
+
+local STANDDOWN_NAMES = { "addon", "Ledger", "Browser", "SessionWindow", "Insights", "Backfill",
+  "EventRecord", "Debug" }
+
+local function withStandDownFakes(fakes, fn)
+  local saved = {}
+  for _, k in ipairs(STANDDOWN_NAMES) do saved[k] = NS[k]; NS[k] = fakes[k] end
+  local st = NS.State
+  local savedPending, savedDebug = st.cleanupPending, st.debug
+  st.cleanupPending, st.debug = fakes.cleanupPending, fakes.debug
+  local ok, err = pcall(fn)
+  st.cleanupPending, st.debug = savedPending, savedDebug
+  for _, k in ipairs(STANDDOWN_NAMES) do NS[k] = saved[k] end
+  if not ok then error(err, 0) end
+end
+
+local function recorder(trace, name, methods)
+  local t = {}
+  for _, m in ipairs(methods) do
+    t[m] = function() trace[#trace + 1] = name .. ":" .. m end
+  end
+  return t
+end
+
+test("NS.StandDown characterization: every step, in order, on a full set of modules", function()
+  local trace = {}
+  local function module(name, methods)
+    local m = recorder(trace, name, methods)
+    m.__ev = recorder(trace, name .. ".__ev", { "UnregisterAllMessages", "UnregisterAllEvents" })
+    m._enabled = true
+    return m
+  end
+  local fakes = {
+    addon = recorder(trace, "addon", { "CancelAllTimers", "UnregisterAllEvents" }),
+    Ledger = module("Ledger", { "CancelPending", "RefreshUpvalues", "DropContext" }),
+    Browser = module("Browser", { "CancelPending", "Hide" }),
+    SessionWindow = module("SessionWindow", { "Hide" }),
+    Insights = module("Insights", { "CancelPending" }),
+    Backfill = recorder(trace, "Backfill", { "CancelPending" }),
+    EventRecord = { registered = { "X" }, unavailable = { "Y" } },
+    Debug = function(tag, msg) trace[#trace + 1] = "debug:[" .. tag .. "] " .. msg end,
+    cleanupPending = {}, debug = true,
+  }
+  local record, after
+  withStandDownFakes(fakes, function()
+    NS.StandDown()
+    record = NS.EventRecord
+    after = {
+      pending = NS.State.cleanupPending,
+      ev = (NS.Ledger.__ev == nil and NS.Browser.__ev == nil and NS.SessionWindow.__ev == nil
+        and NS.Insights.__ev == nil),
+      enabled = (NS.Ledger._enabled == nil and NS.Browser._enabled == nil
+        and NS.SessionWindow._enabled == nil and NS.Insights._enabled == nil),
+    }
+  end)
+  assertEqual(table.concat(trace, "\n"), table.concat({
+    "addon:CancelAllTimers",
+    "Ledger:CancelPending", "Browser:CancelPending", "Insights:CancelPending", "Backfill:CancelPending",
+    "addon:UnregisterAllEvents",
+    "Ledger:RefreshUpvalues", "Ledger:DropContext",
+    "Ledger.__ev:UnregisterAllMessages", "Ledger.__ev:UnregisterAllEvents",
+    "Browser.__ev:UnregisterAllMessages", "Browser.__ev:UnregisterAllEvents",
+    "SessionWindow.__ev:UnregisterAllMessages", "SessionWindow.__ev:UnregisterAllEvents",
+    "Insights.__ev:UnregisterAllMessages", "Insights.__ev:UnregisterAllEvents",
+    "Browser:Hide", "SessionWindow:Hide",
+    "debug:[State] login prune postponed",
+  }, "\n"))
+  assertEqual(after.pending, nil, "the prune handle survived")
+  assertTrue(after.ev, "a bus target survived")
+  assertTrue(after.enabled, "a module latch survived")
+  assertEqual(#record.registered, 0, "the event record was not emptied")
+  assertEqual(#record.unavailable, 0, "the event record was not emptied")
+end)
+
+test("NS.StandDown characterization: bare modules and no addon object raise nothing", function()
+  local trace = {}
+  local fakes = {
+    Ledger = { _enabled = true }, Browser = {}, SessionWindow = { _enabled = true },
+    Insights = { __ev = recorder(trace, "Insights.__ev", { "UnregisterAllMessages" }), _enabled = true },
+    EventRecord = { registered = {}, unavailable = {} },
+    Debug = function(tag, msg) trace[#trace + 1] = "debug:[" .. tag .. "] " .. msg end,
+    debug = true,
+  }
+  local state
+  withStandDownFakes(fakes, function()
+    NS.StandDown()
+    state = { NS.Ledger._enabled, NS.SessionWindow._enabled, NS.Insights._enabled, NS.Insights.__ev }
+  end)
+  assertEqual(table.concat(trace, "\n"), "Insights.__ev:UnregisterAllMessages",
+    "a nil method was called, or the postponed line was written with no prune armed")
+  assertEqual(state[1], nil); assertEqual(state[2], nil); assertEqual(state[3], nil)
+  assertEqual(state[4], nil, "a half-capable bus target was kept")
+end)
+
+test("NS.StandDown characterization: the postponed line needs logging on", function()
+  local trace = {}
+  local fakes = {
+    EventRecord = { registered = {}, unavailable = {} },
+    Debug = function(tag, msg) trace[#trace + 1] = tag .. msg end,
+    cleanupPending = {}, debug = false,
+  }
+  withStandDownFakes(fakes, function() NS.StandDown() end)
+  assertEqual(#trace, 0)
+end)
