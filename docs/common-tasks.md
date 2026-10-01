@@ -176,9 +176,9 @@ owners. Anchor geometry persistence to the **guaranteed** moments —
 `SaveGeometry()` on every `OnHide` and on `PLAYER_LOGOUT`, `ApplyGeometry()` once at frame build.
 For the grip, call `NS.MakeResizable(frame, { minWidth = ..., minHeight = ..., onResizeStop = ... })`
 rather than hand-rolling one, and save in `onResizeStop`, never in `onResize`, which also runs on
-every `OnSizeChanged`. Drag-stop and resize-stop are conveniences on top, not the contract: releasing a resize grip a pixel
-outside a 16×16 button never delivers its `OnMouseUp`, and the in-memory frame then masks the fault
-for a whole session. See [windows.md](windows.md).
+every `OnSizeChanged`. Drag-stop and resize-stop are conveniences on top, not the contract:
+releasing a resize grip a pixel outside a 16×16 button never delivers its `OnMouseUp`, and the
+in-memory frame then masks the fault for a whole session. See [windows.md](windows.md).
 
 ## Add a section to the diagnostics report
 
