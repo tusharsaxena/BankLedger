@@ -535,6 +535,21 @@ test("the footer's size text stays clear of the grip", function()
   B:Hide()
 end)
 
+test("one grip implementation per arm: neither window hand-builds a grip", function()
+  -- The grip is core/CoreSetup.lua's NS.MakeResizable on both arms (BankLedger#21): Core's on a
+  -- working install, the moved pre-library grip on a degraded one. A window that sized itself again
+  -- would be a third implementation, free to drift from both.
+  local offenders = {}
+  for _, file in ipairs({ "modules/Browser.lua", "modules/SessionWindow.lua" }) do
+    local fh = assert(io.open(file, "r"))
+    local src = fh:read("*a"); fh:close()
+    for _, needle in ipairs({ "StartSizing(", "SizeGrabber", "SetResizable(", "SetResizeBounds(" }) do
+      if src:find(needle, 1, true) then offenders[#offenders + 1] = file .. ": " .. needle end
+    end
+  end
+  assertEqual(table.concat(offenders, ", "), "")
+end)
+
 test("Browser:ExportWidth leaves the Export button a usable width", function()
   -- The filter dropdowns grew; Export takes the slack and must not collapse to nothing.
   assertTrue(B:ExportWidth() >= 110, "got " .. B:ExportWidth())

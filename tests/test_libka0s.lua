@@ -56,6 +56,14 @@ test("LibKa0s-Core: the vendored major registered and the addon is running on it
   assertTrue(NS.IsConcatSafe == lib.IsConcatSafe, "NS.IsConcatSafe is not the library's")
 end)
 
+test("LibKa0s-Core: NS.MakeResizable is the library's", function()
+  -- Both windows reach their grip through this one name (BankLedger#21). The library's needs Core
+  -- minor 10 for `onResizeStop`, the release-only callback the windows save geometry in.
+  assertTrue(NS.MakeResizable == lib.MakeResizable,
+    "NS.MakeResizable is not the library's -- core/CoreSetup.lua took its fallback branch")
+  assertTrue(lib.MINOR >= 10, "the vendored Core predates onResizeStop")
+end)
+
 test("LibKa0s-Core: this addon does NOT republish the library's close factory", function()
     -- A DELIBERATE ABSENCE, pinned so it cannot drift back. `lib.MakeCloseButton` takes a third
     -- argument — the addon FOLDER the library builds its texture path from — and a wrapper that

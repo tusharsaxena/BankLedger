@@ -121,6 +121,40 @@ if not lib then
     if f.divider then f.divider:SetColorTexture(0.24, 0.24, 0.27, 0.85) end
   end
 
+  -- The pre-library resize grip, kept in THIS branch for the reason the skin above is. The live
+  -- definition is Core.MakeResizable (Core minor 10). The library's own doc offers a one-line stub
+  -- answering nil; this arm WORKS instead, because this seam's policy is working fallbacks (the
+  -- comment at the top of this branch): a degraded install still resizes and still saves its size.
+  -- It is the grip modules/Browser.lua and modules/SessionWindow.lua each built for themselves
+  -- before the seam, moved byte for byte: 16x16 at -2,2, no pressed art, any button sizes, and
+  -- every mouse-up stops sizing and runs onResizeStop. Of the library's options it honors the
+  -- three this addon passes (minWidth, minHeight, onResizeStop) and no other; in particular it
+  -- never runs onResize, which nothing here passes.
+  function NS.MakeResizable(f, opts)
+    if type(f) ~= "table" or type(CreateFrame) ~= "function" then return nil end
+    if type(f.SetResizable) ~= "function" or type(f.StartSizing) ~= "function" then return nil end
+    opts = type(opts) == "table" and opts or {}
+    local minW, minH = opts.minWidth or f:GetWidth(), opts.minHeight or f:GetHeight()
+    f:SetResizable(true)
+    if f.SetResizeBounds then
+      f:SetResizeBounds(minW, minH)
+    elseif f.SetMinResize then
+      f:SetMinResize(minW, minH)
+    end
+    local grip = CreateFrame("Button", nil, f)
+    grip:SetSize(16, 16)
+    grip:SetPoint("BOTTOMRIGHT", -2, 2)
+    grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    grip:SetScript("OnMouseDown", function() f:StartSizing("BOTTOMRIGHT") end)
+    grip:SetScript("OnMouseUp", function()
+      f:StopMovingOrSizing()
+      if type(opts.onResizeStop) == "function" then opts.onResizeStop(f:GetWidth(), f:GetHeight()) end
+    end)
+    f.resizeGrip = grip
+    return grip
+  end
+
   -- The one rung left without the library: no IsEventValid front gate, but the pcall still keeps a
   -- refused name from raising into the caller. Modern retail RAISES on an unknown event name, and a
   -- raise inside NS.StandUp would abort every module Enable after it.
@@ -140,6 +174,14 @@ end
 -- as a flat NS member for the same reason NS.SafeToString is: the fallback branch owes the
 -- caller the same name.
 NS.ApplySkin = lib.ApplySkin
+
+-- The resize grip both of this addon's windows wear (standalone-windows): Core's, so the corner, the
+-- pressed art, the left-button rule and the user-placed restore are the collection's rather than a
+-- copy of them. Published flat for the reason NS.ApplySkin is: the fallback branch owes the caller
+-- the same name. Persisting the size is the HOST's (architecture-§5), done in `onResizeStop`, which
+-- runs once per release; never in `onResize`, which also runs on every OnSizeChanged and would make
+-- ApplyGeometry and ResetWindow write geometry (docs/schema.md).
+NS.MakeResizable = lib.MakeResizable
 
 -- EVERY event registration in this addon goes through here (events-frames-taint-§1): the stand-up's
 -- three on the addon object, the capture engine's set in modules/Ledger.lua, and the two windows'

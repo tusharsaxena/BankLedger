@@ -479,13 +479,7 @@ local function ensureFrame()
   frame:SetFrameStrata("HIGH")
   frame:EnableMouse(true)
   frame:SetMovable(true)
-  frame:SetResizable(true)
   frame:SetClampedToScreen(true)
-  if frame.SetResizeBounds then
-    frame:SetResizeBounds(minW, MIN_H)
-  elseif frame.SetMinResize then
-    frame:SetMinResize(minW, MIN_H)
-  end
 
   local skin = (NS.Browser and NS.Browser.SKIN) or { titleBarH = 30 }
 
@@ -554,18 +548,16 @@ local function ensureFrame()
   empty:Hide()
   SW.emptyText = empty
 
-  local grip = CreateFrame("Button", nil, frame)
-  grip:SetSize(16, 16)
-  grip:SetPoint("BOTTOMRIGHT", -2, 2)
-  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-  grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-  grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
-  grip:SetScript("OnMouseUp", function()
-    frame:StopMovingOrSizing()
-    SW:SaveGeometry()
-    SW:Refresh()
-  end)
-  frame.resizeGrip = grip
+  -- The resize grip is LibKa0s-Core's, through core/CoreSetup.lua's NS.MakeResizable seam, the same
+  -- as the ledger window's (modules/Browser.lua says why the save is in `onResizeStop`, once per
+  -- release, and never in `onResize`). The rows re-bind live through the scroll's OnSizeChanged.
+  NS.MakeResizable(frame, {
+    minWidth = minW, minHeight = MIN_H,
+    onResizeStop = function()
+      SW:SaveGeometry()
+      SW:Refresh()
+    end,
+  })
 
   if NS.Browser and NS.Browser.ApplySkin then
     NS.Browser:ApplySkin(frame)

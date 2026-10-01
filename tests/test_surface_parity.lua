@@ -96,6 +96,37 @@ test("Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent", f
   assertEqual(degraded.EventRecord.registered[1], "BAG_UPDATE_DELAYED")
 end)
 
+test("Core degraded: NS.MakeResizable still builds a working grip", function()
+  -- The degraded arm WORKS rather than answering nil (core/CoreSetup.lua says why): a library-absent
+  -- install still resizes both windows and still saves on release. It honors the three options
+  -- this addon passes -- minWidth, minHeight and onResizeStop -- and runs onResizeStop on a release,
+  -- never on a size change.
+  -- red under: the library doc's one-line `function() return nil end` stub.
+  local degraded, dm = loadUpTo("core/CoreSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-Core-1.0", true) == nil,
+    "the degraded arm still has the library — this case would prove nothing")
+  local f = dm.CreateFrame("Frame")
+  f:SetSize(500, 300)
+  local sizedFrom, bounds, stops = {}, nil, {}
+  f.StartSizing = function(_, point) sizedFrom[#sizedFrom + 1] = point end
+  f.SetResizeBounds = function(_, ...) bounds = { ... } end
+  local grip = degraded.MakeResizable(f, {
+    minWidth = 400, minHeight = 200,
+    onResizeStop = function(w, h) stops[#stops + 1] = w .. "x" .. h end,
+  })
+  assertTrue(grip ~= nil, "the degraded arm built no grip")
+  assertTrue(f.resizeGrip == grip, "the grip is not kept as frame.resizeGrip")
+  assertEqual(bounds[1], 400)
+  assertEqual(bounds[2], 200)
+  grip:__fire("OnMouseDown", "LeftButton")
+  assertEqual(table.concat(sizedFrom, ","), "BOTTOMRIGHT")
+  f:SetSize(640, 360)
+  grip:__fire("OnMouseUp", "LeftButton")
+  f:__fire("OnSizeChanged", 700, 400)
+  assertEqual(table.concat(stops, ","), "640x360", "onResizeStop runs once, on the release only")
+  assertTrue(degraded.MakeResizable({}, {}) == nil, "a frame that cannot size still got a grip")
+end)
+
 -- ── LibKa0s-Lifecycle-1.0 ────────────────────────────────────────────────────────────────────
 
 test("LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface", function()
