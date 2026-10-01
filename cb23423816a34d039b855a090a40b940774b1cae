@@ -1,0 +1,1 @@
+OK CA-BL-01 lua tests/run.lua 1226 passed/0 failed/1 skipped; luacheck 0/0 in 86 files; vendor diff empty; test-cases.md == --list; NS.MakeResizable CCN 11, no touched fn >15; CRLF kept
