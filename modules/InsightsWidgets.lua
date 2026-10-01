@@ -313,6 +313,18 @@ function W.BuildStackRows(matrix, catOrder, opts)
   return rows
 end
 
+-- One back-to-back row's magnitudes, label and color; each side clamped at 0.
+local function backToBackRow(key, mags, rightKey, leftKey, opts)
+  mags = mags or {}
+  local rightMag = math.max(0, mags[rightKey] or 0)
+  local leftMag = math.max(0, mags[leftKey] or 0)
+  return {
+    key = key, label = (opts.labelOf or tostring)(key),
+    labelColor = opts.labelColorOf and opts.labelColorOf(key) or nil,
+    rightMag = rightMag, leftMag = leftMag, total = rightMag + leftMag,
+  }
+end
+
 -- Back-to-back ("butterfly") rows from a two-category matrix: one category grows LEFT of a fixed
 -- center axis, the other grows RIGHT. Returns the rows and the shared scale.
 --
@@ -326,18 +338,6 @@ end
 --   labelOf(rowKey) → display label   labelColorOf(rowKey) → the label's {r,g,b}
 --   valueFmt(total) → the value string
 -- Rows sort total-desc then label-asc, so ties are deterministic.
--- One back-to-back row's magnitudes, label and color; each side clamped at 0.
-local function backToBackRow(key, mags, rightKey, leftKey, opts)
-  mags = mags or {}
-  local rightMag = math.max(0, mags[rightKey] or 0)
-  local leftMag = math.max(0, mags[leftKey] or 0)
-  return {
-    key = key, label = (opts.labelOf or tostring)(key),
-    labelColor = opts.labelColorOf and opts.labelColorOf(key) or nil,
-    rightMag = rightMag, leftMag = leftMag, total = rightMag + leftMag,
-  }
-end
-
 function W.BuildBackToBackRows(matrix, rightKey, leftKey, opts)
   opts = opts or {}
   local valueFmt = opts.valueFmt or tostring
