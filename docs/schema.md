@@ -266,9 +266,10 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
 - **Main window geometry.** Storage key `db.profile.settings.window` (`point`, `x`, `y`, `w`, `h`).
   Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
   drag-stop, on the resize grip's release (its `onResizeStop`, never on a size change), on every
-  `OnHide`, and at `PLAYER_LOGOUT` through `B:OnLogout`. `B:ResetWindow` empties it, reached from `NS.Util.ResetWindowPositions` (the Master
-  controls tab's *Reset position*). A profile event re-anchors the live frame from the new profile's
-  value through `B:ApplyGeometry`, which writes nothing.
+  `OnHide`, and at `PLAYER_LOGOUT` through `B:OnLogout`. `B:ResetWindow` empties it, reached from
+  `NS.Util.ResetWindowPositions` (the Master controls tab's *Reset position*). A profile event
+  re-anchors the live frame from the new profile's value through `B:ApplyGeometry`, which writes
+  nothing.
 - **Session window geometry.** Storage key `db.profile.settings.sessionWindow`, same shape. Owner
   `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
   occasions (drag-stop, grip release, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and

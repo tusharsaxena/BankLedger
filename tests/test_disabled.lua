@@ -378,7 +378,14 @@ function()
   disable()
   watchStore()
   mocks.__resetPrinted()
-  local shownBefore = #mocks.__shownFrames()
+  -- The frames already up are HELD here and compared by identity, never counted. The mock tracks
+  -- frames weak-keyed, so a raw count drops whenever the collector reaps a shown frame nobody
+  -- holds between the two surveys, and that hid a new frame behind a reaped one.
+  --
+  -- red under (the raw count, harness only): a clean checkout of CA-BL-01, where the new
+  -- characterization suites moved the collector's timing (expected 1261, got 1254).
+  collectgarbage("collect")
+  local shownBefore = mocks.__shownFrames()
 
   local delivered = 0
   for event in pairs(events) do delivered = delivered + mocks.__fire(event) end
@@ -395,7 +402,8 @@ function()
     "a SavedVariables write originated from a game event while disabled: "
     .. (writes[1] and writes[1].path or ""))
   assertEqual(#mocks.__printed(), 0, "a disabled addon said something to the player")
-  assertEqual(#mocks.__shownFrames(), shownBefore, "an event put a frame on screen while disabled")
+  assertEqual(#newlyShown(shownBefore, mocks.__shownFrames()), 0,
+    "an event put a frame on screen while disabled")
   enable()
 end)
 
@@ -660,7 +668,8 @@ function()
   NS.Panel.Open = function() opened = opened + 1 end
   disable()
   watchStore()
-  local shownBefore = #mocks.__shownFrames()
+  collectgarbage("collect")
+  local shownBefore = mocks.__shownFrames() -- held, compared by identity (see step 6)
   local ok, err = pcall(function()
     local out = captureChat(function() object.OnClick(object, "LeftButton") end)
     assertEqual(#out, 0, "the left click printed: " .. table.concat(out, "\n"))
@@ -686,7 +695,8 @@ function()
     assertEqual(toggles, 0, "Show window reached Browser:Toggle while disabled")
     assertEqual(testToggles, 0, "Test mode reached LT:ToggleTestMode while disabled")
     assertEqual(#mocks.__svWrites(), 0, "the clicks wrote the stored tree of a disabled addon")
-    assertEqual(#mocks.__shownFrames(), shownBefore, "the clicks put a frame on screen")
+    assertEqual(#newlyShown(shownBefore, mocks.__shownFrames()), 0,
+      "the clicks put a frame on screen")
 
     -- Enabled is the way back, through /bl enable's own handler.
     captureChat(function() menu:Click("Enabled") end)
