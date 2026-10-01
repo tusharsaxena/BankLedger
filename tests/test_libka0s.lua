@@ -671,6 +671,39 @@ end)
 
 -- ── LibKa0s-Options-1.0 ──────────────────────────────────────────────────────────────────────
 --
--- No cases here, on purpose, and the absence is worth a line rather than a silent gap. What this
--- seam needs beyond tests/test_panel.lua's render assertions is the stub-surface parity case, and
--- since M4-09 all four of those live together in tests/test_surface_parity.lua.
+-- Only the descriptor's `addonName` lives here. What this seam otherwise needs beyond
+-- tests/test_panel.lua's render assertions is the stub-surface parity case, and since M4-09 all
+-- four of those live together in tests/test_surface_parity.lua.
+
+test("LibKa0s-Options: the descriptor tells the library the FOLDER name (LibKa0s#42)", function()
+  -- The Options descriptor's `addonName` is the route OptionsIdList takes to the vendored `info`
+  -- help-mark art (libs/LibKa0s/media/icons/info.tga). Leave it out and every help mark silently
+  -- falls back to Blizzard's blue disc. No IdList here carries `help` today (settings/Panel.lua
+  -- builds both item lists without it), so nothing on screen would say the field is missing: the
+  -- source line is the only witness. It must be the first vararg, the folder, and never a display
+  -- label such as NS.BRAND_NAME.
+  --
+  -- Source-level, non-comment lines only, for the same reason as the DebugLog case above.
+  local found, n = false, 0
+  for line in io.lines("settings/OptionsSetup.lua") do
+    n = n + 1
+    if not line:match("^%s*%-%-") and line:match("^%s*addonName%s*=%s*addonName%s*,") then
+      found = true
+    end
+  end
+  assertTrue(n > 0, "settings/OptionsSetup.lua could not be read")
+  assertTrue(found, "the Options descriptor never passes `addonName = addonName`")
+  local f = assert(io.open("settings/OptionsSetup.lua", "r"))
+  local first = f:read("*l")
+  f:close()
+  assertTrue(first:match("^local addonName, NS = %.%.%.") ~= nil,
+    "settings/OptionsSetup.lua must keep its first vararg as `addonName`")
+end)
+
+test("LibKa0s-Options: the help-mark art the descriptor points at is vendored", function()
+  -- The library's loaded-addon guard catches a wrong FOLDER name, not a missing file under the
+  -- right one. This pins the file at the default vendorPath the library builds its path from.
+  local f = io.open("libs/LibKa0s/media/icons/info.tga", "rb")
+  assertTrue(f ~= nil, "libs/LibKa0s/media/icons/info.tga is missing")
+  if f then f:close() end
+end)

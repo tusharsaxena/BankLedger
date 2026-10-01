@@ -1026,7 +1026,7 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (44)
+### test_libka0s.lua (46)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
 - LibKa0s-Core: this addon does NOT republish the library's close factory
@@ -1072,6 +1072,8 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
+- LibKa0s-Options: the descriptor tells the library the FOLDER name (LibKa0s#42)
+- LibKa0s-Options: the help-mark art the descriptor points at is vendored
 
 ### test_libka0s_slash.lua (23)
 
@@ -1401,7 +1403,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 44 |
+| test_libka0s.lua | 46 |
 | test_libka0s_slash.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
@@ -1421,4 +1423,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1215** |
+| **Total** | **1217** |

@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 
 -- settings/OptionsSetup.lua — wires the addon into LibKa0s-Options-1.0 (options-ui).
 --
@@ -36,6 +36,9 @@ local buildMainBody
 local descriptor = {
   parentTitle   = PARENT_TITLE,
   mainPanelName = "BankLedgerMainPanel",
+  -- The FOLDER name (the first vararg), never NS.BRAND_NAME: OptionsIdList builds the path to the
+  -- vendored `info` help-mark art from it and checks it against the loaded-addon list (LibKa0s#42).
+  addonName     = addonName,
 
   print = function(line) print(line) end,
   -- The host's gated sink (debug-logging-§4): the combat lock's `[Cfg] <what> refused (in combat)`

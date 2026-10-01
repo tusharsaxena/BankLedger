@@ -21,7 +21,7 @@ leaves its number unused.
 | CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
 | LEDG-1 – 46 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
-| FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
+| FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 12 | Session window | The Current Banking Session window at every store |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
@@ -593,6 +593,11 @@ leaves its number unused.
   `/console uiScale 1`) → below about 580px of panel the lists draw one full-width column, correctly
   formed; never icons over wrapped names or an X on its own row. Widen and reopen → two columns. (If
   you cannot get narrow enough, FILT-10 passing is still the meaningful result.) Result:
+- **FILT-15. The lists after the help-art descriptor.** With entries on both lists, open Settings ▸
+  General ▸ Filters ▸ Blacklist, then Whitelist → each renders exactly as in FILT-3 and FILT-10, with
+  no help mark on any entry (none carries help) and no Lua error on opening the panel or either tab.
+  This build passes the addon's folder name to the settings library for its help-mark art
+  (LibKa0s#42); nothing here draws one yet, so a pass means nothing broke. Result:
 
 ## SESS
 
@@ -934,6 +939,7 @@ repository.
 | FILT-8 | S-11 step 9, corrected by SP-BL-03R | The lookup line ends in three periods (`Looking up items...`); the old step had an ellipsis character |
 | FILT-9 | S-11 step 10 | No recorded result |
 | FILT-10 – 14 | S-29 steps 1–7 and its closing note | No recorded result |
+| FILT-15 | New (the Options descriptor's `addonName`, CA-BL-NM, LibKa0s#42, LibKa0s v1.67.0) | Never run |
 | SESS-1 – 8 | S-17 steps 1–12 | No recorded result |
 | SESS-9 | S-17 step 13 | Step BL.17 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
 | SESS-10 | S-17 step 15 as rewritten by SP-BL-01 | Geometry now belongs to the profile; master's doc expected it to be account-wide |
