@@ -93,7 +93,9 @@ sudo apt install -y pipx && pipx ensurepath && pipx install lizard
 
 Open a new shell (or `source ~/.profile`) afterwards so `~/.local/bin` is on `PATH`.
 
-**Verify:** `lizard --version` → `1.23.0` (any recent release; not pinned).
+**Verify:** `lizard --version` → `1.24.0`. Pinned: lizard reads Lua through a non-Lua reader, and
+the kit's sighted shadow (kit revision 35) neutralizes the blind spots measured against 1.24.0; an
+upgrade may move them, which the suite's function-count parity then reports as `blindFiles`.
 
 <details>
 <summary>Documented alternative, if you would rather not use pipx</summary>
@@ -209,7 +211,7 @@ the release-time report.
 ```sh
 lua tests/run.lua                                    # every suite green; non-zero exit on failure
 luacheck .                                           # 0 errors, 0 warnings
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .    # the complexity report (performance-§10)
+bash tests/_kit/run-automated-tests.sh --suite complexity --no-bundle   # sighted complexity (automated-tests-§3)
 ```
 
 What each of them means, and the rest of the verification story — the vendor gate, the case

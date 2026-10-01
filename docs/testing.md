@@ -94,8 +94,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.65.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.65.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.66.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.66.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -162,7 +162,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** (`testing-§4`) | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** (`testing-§4`) | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard `-L 1500` over the kit's sighted shadow, with function-count parity) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 **This addon has no `tests/perf.lua`**, and that is ratified, not missing: the `performance-§12`
 no-combat-path exemption in [ARCHITECTURE.md ▸ Documented deviations](ARCHITECTURE.md#documented-deviations).

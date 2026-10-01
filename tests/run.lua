@@ -38,6 +38,9 @@ local SUITES = {
   -- Kit revision 27's diagnostics contract (debug-logging-§14), run against this addon's own
   -- dispatcher through Kit.diagnostics below. tests/test_diagnostics.lua adds the domain cases.
   { name = "test_diagnostics_contract", dir = "tests/_kit/" },
+  -- Kit revision 35's sighted-lizard gate (automated-tests-§3): pins the sanitizer the complexity
+  -- suite measures through, and runs lizard on a hazard fixture when it is on PATH.
+  { name = "test_lizard_sighted", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
