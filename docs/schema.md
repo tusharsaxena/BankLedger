@@ -32,7 +32,7 @@ One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 | `direction` | `DEPOSIT` (bags → store) or `WITHDRAW` (store → bags). |
 | `store` | `BANK`, `WARBAND_BANK`, `GUILD_BANK`. |
 | `guild` | Set on guild-bank rows only. |
-| `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType` | Item rows. An item the client has not cached yet stores its id alone. `itemLink` is the link the **scan** saw, so it carries the item's bonus IDs (see [Bonus IDs survive the scan](#bonus-ids-survive-the-scan)). |
+| `itemID`, `itemLink`, `itemName`, `quality`, `itemType`, `itemSubType` | Item rows. An item the client has not cached yet stores its id alone, until the login backfill (`modules/Backfill.lua`) fills the nil fields in on a later login. `itemLink` is the link the **scan** saw, so it carries the item's bonus IDs (see [Bonus IDs survive the scan](#bonus-ids-survive-the-scan)). |
 | `quantity` | Stack size for an item row; copper for a `MONEY` row. |
 | `zone`, `subzone`, `mapID` | Where the movement happened. |
 

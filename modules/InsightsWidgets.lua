@@ -313,6 +313,18 @@ function W.BuildStackRows(matrix, catOrder, opts)
   return rows
 end
 
+-- One back-to-back row's magnitudes, label and color; each side clamped at 0.
+local function backToBackRow(key, mags, rightKey, leftKey, opts)
+  mags = mags or {}
+  local rightMag = math.max(0, mags[rightKey] or 0)
+  local leftMag = math.max(0, mags[leftKey] or 0)
+  return {
+    key = key, label = (opts.labelOf or tostring)(key),
+    labelColor = opts.labelColorOf and opts.labelColorOf(key) or nil,
+    rightMag = rightMag, leftMag = leftMag, total = rightMag + leftMag,
+  }
+end
+
 -- Back-to-back ("butterfly") rows from a two-category matrix: one category grows LEFT of a fixed
 -- center axis, the other grows RIGHT. Returns the rows and the shared scale.
 --
@@ -328,21 +340,13 @@ end
 -- Rows sort total-desc then label-asc, so ties are deterministic.
 function W.BuildBackToBackRows(matrix, rightKey, leftKey, opts)
   opts = opts or {}
-  local labelOf = opts.labelOf or tostring
-  local colorOfLabel = opts.labelColorOf
   local valueFmt = opts.valueFmt or tostring
 
   local rows, scale = {}, 0
   for key, mags in pairs(matrix or {}) do
-    local rightMag = math.max(0, (mags or {})[rightKey] or 0)
-    local leftMag = math.max(0, (mags or {})[leftKey] or 0)
-    if rightMag > scale then scale = rightMag end
-    if leftMag > scale then scale = leftMag end
-    rows[#rows + 1] = {
-      key = key, label = labelOf(key),
-      labelColor = colorOfLabel and colorOfLabel(key) or nil,
-      rightMag = rightMag, leftMag = leftMag, total = rightMag + leftMag,
-    }
+    local row = backToBackRow(key, mags, rightKey, leftKey, opts)
+    scale = math.max(scale, row.rightMag, row.leftMag)
+    rows[#rows + 1] = row
   end
   -- A list whose every magnitude is 0 keeps 0-width halves rather than dividing by zero.
   for _, row in ipairs(rows) do
@@ -350,10 +354,7 @@ function W.BuildBackToBackRows(matrix, rightKey, leftKey, opts)
     row.leftFrac = scale > 0 and (row.leftMag / scale) or 0
     row.value = valueFmt(row.total)
   end
-  table.sort(rows, function(a, b)
-    if a.total ~= b.total then return a.total > b.total end
-    return tostring(a.label) < tostring(b.label)
-  end)
+  table.sort(rows, byTotalThenLabel)
   return rows, scale
 end
 

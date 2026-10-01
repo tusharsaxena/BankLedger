@@ -104,7 +104,7 @@ badge and any count quoted in the docs must agree with it.
 - Filters: a list change re-caches the capture gate's upvalues
 - Filters: the Clear all confirms report the count as printer arguments
 
-### test_ledger.lua (72)
+### test_ledger.lua (76)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -178,6 +178,28 @@ badge and any count quoted in the docs must agree with it.
 - Ledger:BuildEntry takes the quality from the moved link, not the base item
 - Ledger:BuildEntry still enriches from the id when the move carries no link
 - Ledger:GateReason judges the quality gate on the moved link
+- Ledger:Diagnose characterization: the whole dump, line for line
+- Ledger:Diagnose characterization: a raising money reader reads ERROR, an absent one absent
+- Ledger:Diagnose characterization: no C_Bank, no BankType, no Account member
+- Ledger:Diagnose characterization: no BagIndex, ties sorted by name, unhooked, nothing refused
+
+### test_backfill.lua (15)
+
+- backfill: Collect lists distinct incomplete item ids in ledger order, capped, with their rows
+- backfill: Apply fills nil fields only, counts the rows it changed, and is idempotent
+- backfill: an uncached row gains name, quality, type and sub-type once the client answers
+- backfill: a present name or quality is never overwritten
+- backfill: a second pass changes nothing and sends nothing
+- backfill: at most BACKFILL_MAX_IDS distinct ids are requested per pass
+- backfill: gold rows and complete rows are never touched
+- backfill: a stored link resolves through the link, not the base id
+- backfill: answers arriving one by one still send exactly one LedgerChanged
+- backfill: a pass that fills nothing sends nothing
+- backfill: a stand-down mid-pass lets go of the event and writes nothing afterwards
+- backfill: the timeout ends the pass and leaves unresolved rows untouched
+- backfill: the login timer runs it once, right after the retention prune
+- backfill: the debug console says what the pass filled, asked for and left
+- backfill: a ledger with nothing to fill writes no line (quiet steady state)
 
 ### test_ledger_guildbank.lua (26)
 
@@ -523,7 +545,7 @@ badge and any count quoted in the docs must agree with it.
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
 
-### test_insights.lua (76)
+### test_insights.lua (79)
 
 - InsightsWidgets.PaletteColor returns an rgb triple for rank 1
 - InsightsWidgets.PaletteColor gives adjacent ranks different colors
@@ -601,8 +623,11 @@ badge and any count quoted in the docs must agree with it.
 - Insights: a bar's tip carries its untruncated label AND its value
 - Insights: the headline split puts withdrawals left, deposits right, peak-scaled
 - Insights: a back-to-back half's tip carries its count and its share of the row
+- InsightsWidgets.BuildBackToBackRows characterization: every field, with the defaults
+- InsightsWidgets.BuildBackToBackRows characterization: the three opts hooks
+- InsightsWidgets.BuildBackToBackRows characterization: nothing in, nothing out
 
-### test_export.lua (42)
+### test_export.lua (45)
 
 - Export:CSV emits a header row even with no data
 - Export:CSV emits one row per entry
@@ -646,6 +671,9 @@ badge and any count quoted in the docs must agree with it.
 - Export: the copy window comes from LibKa0s-Widgets-1.0
 - Export: showing the copy window puts the text in it
 - Export: the copy window is built once and reused
+- Export:InsightsCSV characterization: the full document, byte for byte
+- Export:InsightsCSV characterization: empty and absent stats give the same zero document
+- Export:InsightsCSV characterization: a range needs both ends, a busiest day stands alone
 
 ### test_debuglog.lua (18)
 
@@ -1095,7 +1123,7 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
 
-### test_lifecycle.lua (10)
+### test_lifecycle.lua (13)
 
 - addon:OnDisable releases the _enabled latch on every module OnEnable arms
 - a disable then enable cycle leaves all four modules live again
@@ -1107,6 +1135,9 @@ badge and any count quoted in the docs must agree with it.
 - a rejected event name in the stand-up does not stop Ledger:Enable
 - C_EventUtils.IsEventValid rejects a name before any RegisterEvent call
 - the stand-down clears the event record
+- NS.StandDown characterization: every step, in order, on a full set of modules
+- NS.StandDown characterization: bare modules and no addon object raise nothing
+- NS.StandDown characterization: the postponed line needs logging on
 
 ### test_disabled.lua (18)
 
@@ -1326,6 +1357,17 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics contract: both forms run while the addon is disabled
 - diagnostics contract: no other name runs the report
 
+### test_lizard_sighted.lua (8)
+
+- lizard sighted: every hazard lizard loses a function over is neutralized
+- lizard sighted: fields, strings, comments and look-alike names come through unchanged
+- lizard sighted: a method definition is rewritten to its dot form with self
+- lizard sighted: no line is added or removed, CRLF included
+- lizard sighted: countFunctions counts the keyword, not strings, comments or longer names
+- lizard sighted: listedCounts reads the per-file table, once per file
+- lizard sighted: parity names every file whose counts differ, and only those
+- lizard sighted: lizard lists every function of a hazard fixture once it is sanitized
+
 ## Totals
 
 | Suite | Cases |
@@ -1334,7 +1376,8 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 14 |
-| test_ledger.lua | 72 |
+| test_ledger.lua | 76 |
+| test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
@@ -1343,8 +1386,8 @@ badge and any count quoted in the docs must agree with it.
 | test_browser.lua | 41 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 32 |
-| test_insights.lua | 76 |
-| test_export.lua | 42 |
+| test_insights.lua | 79 |
+| test_export.lua | 45 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 53 |
 | test_schema_runtime.lua | 18 |
@@ -1363,7 +1406,7 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
-| test_lifecycle.lua | 10 |
+| test_lifecycle.lua | 13 |
 | test_disabled.lua | 18 |
 | test_surface_parity.lua | 19 |
 | test_register.lua | 1 |
@@ -1377,4 +1420,5 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **1179** |
+| test_lizard_sighted.lua | 8 |
+| **Total** | **1215** |

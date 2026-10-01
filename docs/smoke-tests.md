@@ -364,6 +364,14 @@ leaves its number unused.
   something unusual from a bank tab you have not opened → a `[Skip]` line naming it with `(uncached)`,
   and no row. Repeat the movement a few seconds later → judged properly: a row, or a `[Skip]` line
   naming it with `(quality)`. **Fail:** a row appearing at once at a quality nothing resolved. Result:
+- **CAPT-18. Unnamed rows fill in at login.** With Minimum quality at 0 and a History holding
+  `Item <id>` rows (deposit something the client has not cached, then `/reload` at once), log in,
+  `/bl debug on`, wait about 10 seconds, open History → those rows show their real names, and the
+  console shows a `[Backfill] done: …` line. **Fail:** a row still reading `Item <id>` with no
+  `unresolved` count to explain it. Result: pass (owner, 2026-10-02)
+- **CAPT-19. Insights counts them, once.** Open Insights → the previously unnamed items appear under
+  Type, Sub-type and Quality. `/reload` again → no duplicate rows, nothing changes, and no
+  `[Backfill]` line (nothing left to fill). Result: pass (owner, 2026-10-02)
 - **CAPT-16. Retention.** `/bl set settings.retentionDays 7`, `/reload` → entries older than 7 days are
   gone. Result:
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
@@ -856,8 +864,10 @@ Not listed, because a recorded pass covers them and the rework did not change wh
 INSTALL-4 (S-1 step 5, passed in the owner's minimap re-check of 2026-09-25 on
 the launcher-menu builds, step X1.4 of the 2026-09-23 remediation's checklist), and
 DIAG-14 – 18 and COMBAT-8 (S-14 steps 14–17, passed in the owner's run of 2026-09-26 as rows
-BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report). Both records are in the
-Ka0sAddonsCommonTasks repository.
+BL-S1 – BL-S5, BL-S7, BL-S8 and BL-X1 of the diagnostics rollout's report), and CAPT-18 and CAPT-19
+(new with the login backfill, GI-BL-01, and passed in the owner's run of 2026-10-02 as rows BL-1 – BL-3
+of the 2026-10-01 GitHub issue pass's smoke tests). The records are in the Ka0sAddonsCommonTasks
+repository.
 
 | ID | Origin | Why it is owed |
 |---|---|---|

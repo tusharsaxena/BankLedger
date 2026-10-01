@@ -25,7 +25,7 @@ for a warning it did not have, and the first handler to drop its event argument 
 green.
 
 Removing the two lines reported **119** findings, every one of them `212/self`, in 12 of the 60
-files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 81 today). Eighteen
+files linted at the time (61 once `M4c-06` itself added `tests/test_lintconfig.lua`; 86 today). Eighteen
 further suppressions were sitting inline, one per file --
 `local addonName, NS = ...   -- luacheck: ignore addonName`, over a folder name the file never read.
 All eighteen were fixed at source rather than moved somewhere narrower: seventeen files now open
@@ -40,7 +40,8 @@ the bodies reach the module through that file-local upvalue and through `NS`, ne
 receiver. The receiver is still load-bearing, because every call site is a colon call through the
 namespace (`NS.Browser:Show()`, `NS.Schema:Set(path, v)`) -- roughly 900 of them across the addon
 and the suites -- so deleting it would shift every argument one place to the left at all of them.
-Each of the 12 files therefore carries a `files[...]` stanza naming that one file and that one
+Each of those 12 files therefore carries a `files[...]` stanza (14 stanzas today: later files of the
+same shape, most recently `modules/Ledger_Diagnose.lua`, took one each) naming that one file and that one
 variable, with a comment saying which convention forces it. Re-measured 2026-09-14 with those
 stanzas stripped: still 119 `212/self` findings across the same 12 of the 61 linted files, and
 nothing else.
@@ -94,8 +95,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.65.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.65.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.66.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.66.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -162,7 +163,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** (`testing-§4`) | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** (`testing-§4`) | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard `-L 1500` over the kit's sighted shadow, with function-count parity) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 **This addon has no `tests/perf.lua`**, and that is ratified, not missing: the `performance-§12`
 no-combat-path exemption in [ARCHITECTURE.md ▸ Documented deviations](ARCHITECTURE.md#documented-deviations).
@@ -226,6 +227,8 @@ tests/
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
     run-automated-tests.sh --   the consolidated four-suite runner and bundle writer
+    lizard_sighted.lua     --   the sanitized shadow the complexity suite measures, and its parity
+                           --   check (kit revision 35; wired as the test_lizard_sighted gate)
     README.md
   run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)

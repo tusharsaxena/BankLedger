@@ -12,7 +12,7 @@ writes, and the two **addon-owned** topic dumps that also write into that consol
 | Verb | Runs | Console tag | Answers |
 |---|---|---|---|
 | `/bl diagnostics` or `/bl debug diagnostics` | `NS.DebugLog:RunDiagnostics()` over `NS.Diagnostics.Sections()` (`modules/Diagnostics.lua`) | `[Diag]` markers, one tag per section | Everything a maintainer asks first: build, state, settings, filters, the ledger, the capture engine, the session, the container model, windows, the launcher and other bank addons |
-| `/bl debug scan` | `NS.Ledger:Diagnose()` (`modules/Ledger.lua`) | `[Scan]` | What the client's container, money and guild-bank model actually is, and which events registered |
+| `/bl debug scan` | `NS.Ledger:Diagnose()` (`modules/Ledger_Diagnose.lua`) | `[Scan]` | What the client's container, money and guild-bank model actually is, and which events registered |
 | `/bl debug panel` | `NS.Panel:Diagnose()` (`settings/Panel.lua`) | `[Panel]` | What the settings header's **Defaults** button actually is at runtime |
 
 All three are wired in `NS.COMMANDS` (`settings/Schema.lua`): the report as its own `diagnostics`
@@ -54,6 +54,7 @@ while logging is off.
 | `[Profile]` | `NS.OnProfileEvent` | A profile switch |
 | `[Migrate]` | `NS:RunMigrations` (`core/Database.lua`) | Only when a migration runs |
 | `[Prune]` | `addon:OnEnterWorld`, `Database:PruneOld` | The login pass armed (`runs in 5s`), then its result on every run: `retention Nd: removed N entries`, or `retention always: nothing pruned` |
+| `[Backfill]` | `modules/Backfill.lua` | The login backfill, only when the ledger holds rows to fill: `N rows over M ids filled now, K requested` as it starts, then `done: N rows filled, K unresolved` when every id has answered or the 10s window closes. A ledger with nothing to fill writes nothing |
 | `[Data]` | `Database:Delete`, `DeleteAt`, `Purge` | Each user delete or purge, with the count |
 | `[Filters]` | `NS.Filters` | Each blacklist or whitelist change, with both sizes |
 | `[Store]` | `modules/Ledger.lua` | A store opened (with its baseline counts), closed (`, held change dropped` when a hold was thrown away), dropped by a stand-down, the guild bank's hooks installed, its tabs queried, its self-disarm, and the guild frame showing while another store is armed (`context kept`) |

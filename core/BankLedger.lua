@@ -170,7 +170,68 @@ local BUS_MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
 -- AceTimer level alone is not enough: each module remembers its own handle and refuses to schedule
 -- while one is outstanding, so a handle left behind a stand-down is a debounce that never fires
 -- again after the stand-up.
-local TIMER_MODULES = { "Ledger", "Browser", "Insights" }
+local TIMER_MODULES = { "Ledger", "Browser", "Insights", "Backfill" }
+
+-- 1. EVERY TIMER. AceTimer's own cancel-all takes the handles, and each module drops the handle it
+--    remembers so the next stand-up can schedule again. The retention prune's handle is the addon
+--    object's own, so it is dropped here: the next PEW after a stand-up re-arms it.
+local function cancelTimers(ad)
+  if ad and ad.CancelAllTimers then ad:CancelAllTimers() end
+  if NS.State then NS.State.cleanupPending = nil end
+  for _, name in ipairs(TIMER_MODULES) do
+    local module = NS[name]
+    if module and module.CancelPending then module:CancelPending() end
+  end
+end
+
+-- 2. EVERY EVENT ON THE ADDON OBJECT — the three this file registers, and the Ledger's entire
+--    bank/bag/mail/guild capture set, which is registered there too. UnregisterAllEvents rather
+--    than a list to keep current: a list is what goes stale on the first event added to
+--    modules/Ledger.lua, and this addon has exactly one AceEvent target of its own.
+--    The event record goes with them: `/bl debug scan` on a disabled addon reports nothing bound,
+--    and the next stand-up rebuilds it from what actually registers.
+local function dropEvents(ad)
+  if ad and ad.UnregisterAllEvents then ad:UnregisterAllEvents() end
+  NS.EventRecord.registered, NS.EventRecord.unavailable = {}, {}
+end
+
+-- 3. THE CAPTURE GATE'S CACHED ANSWER, refreshed before the bus target that carries the refresh
+--    is dropped below. The gate is a BELT behind unregistered events rather than the mechanism —
+--    it is unreachable once step 2 has run — but a belt reading a cache from before the switch
+--    was thrown is a belt that says "capture is on" about an addon that is off.
+-- 3b. THE CAPTURE CONTEXT — the open context, its baseline, the settle window and the banking
+--    session. Every path that normally clears them is an event step 2 just unregistered, so left
+--    alone they outlive the switch and the stand-up diffs against a pre-disable baseline. Before
+--    step 4, because SessionWindow's bus target must still be subscribed to hear
+--    SessionChanged(false) and end the session. No flush: nothing moved at the moment of
+--    disabling is captured.
+local function dropCaptureState()
+  local ledger = NS.Ledger
+  if not ledger then return end
+  if ledger.RefreshUpvalues then ledger:RefreshUpvalues() end
+  if ledger.DropContext then ledger:DropContext() end
+end
+
+-- 4. THE FOUR PRIVATE BUS TARGETS, and the latches that would otherwise refuse to rebuild them.
+local function dropBusTarget(module)
+  local ev = module.__ev
+  if ev then
+    if ev.UnregisterAllMessages then ev:UnregisterAllMessages() end
+    if ev.UnregisterAllEvents then ev:UnregisterAllEvents() end
+    module.__ev = nil
+  end
+  module._enabled = nil
+end
+
+-- 5. THE WINDOWS. Hidden here, but held shut AT THE SOURCE — NS.Util.VisibilityAllows answers no
+--    while the latch is down, and every Show in this addon consults it. Hiding imperatively and
+--    stopping there is the other half of the draw gate: a hidden frame comes back on a combat
+--    transition, a target swap or a settings change, and the addon is then visibly running while
+--    it claims to be off.
+local function hideWindows()
+  if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
+  if NS.SessionWindow and NS.SessionWindow.Hide then NS.SessionWindow:Hide() end
+end
 
 --- Make the addon INERT. Every registration gone, every timer canceled, every window shut.
 ---
@@ -189,66 +250,20 @@ local TIMER_MODULES = { "Ledger", "Browser", "Insights" }
 --- so there is nothing that combat lockdown could refuse. That is also why it keeps NO event
 --- registration at all while disabled — the PLAYER_REGEN_ENABLED a disabled addon is permitted to
 --- keep exists to finish pending secure work, and there is none to finish.
+---
+--- The five steps below run in this order, each in its own helper above.
 function NS.StandDown()
   local ad = NS.addon
   -- Read before step 1 clears it: a login prune armed and then canceled here is deferred work that
   -- is not flushed until the next PLAYER_ENTERING_WORLD, and the stand-down line says so.
   local prunePostponed = NS.State and NS.State.cleanupPending ~= nil
-
-  -- 1. EVERY TIMER. AceTimer's own cancel-all takes the handles, and each module drops the handle
-  --    it remembers so the next stand-up can schedule again. The retention prune's handle is the
-  --    addon object's own, so it is dropped here: the next PEW after a stand-up re-arms it.
-  if ad and ad.CancelAllTimers then ad:CancelAllTimers() end
-  if NS.State then NS.State.cleanupPending = nil end
-  for _, name in ipairs(TIMER_MODULES) do
-    local module = NS[name]
-    if module and module.CancelPending then module:CancelPending() end
-  end
-
-  -- 2. EVERY EVENT ON THE ADDON OBJECT — the three this file registers, and the Ledger's entire
-  --    bank/bag/mail/guild capture set, which is registered there too. UnregisterAllEvents rather
-  --    than a list to keep current: a list is what goes stale on the first event added to
-  --    modules/Ledger.lua, and this addon has exactly one AceEvent target of its own.
-  if ad and ad.UnregisterAllEvents then ad:UnregisterAllEvents() end
-  --    The event record goes with them: `/bl debug scan` on a disabled addon reports nothing bound,
-  --    and the next stand-up rebuilds it from what actually registers.
-  NS.EventRecord.registered, NS.EventRecord.unavailable = {}, {}
-
-  -- 3. THE CAPTURE GATE'S CACHED ANSWER, refreshed before the bus target that carries the refresh
-  --    is dropped below. The gate is a BELT behind unregistered events rather than the mechanism —
-  --    it is unreachable once step 2 has run — but a belt reading a cache from before the switch
-  --    was thrown is a belt that says "capture is on" about an addon that is off.
-  if NS.Ledger and NS.Ledger.RefreshUpvalues then NS.Ledger:RefreshUpvalues() end
-
-  -- 3b. THE CAPTURE CONTEXT — the open context, its baseline, the settle window and the banking
-  --    session. Every path that normally clears them is an event step 2 just unregistered, so left
-  --    alone they outlive the switch and the stand-up diffs against a pre-disable baseline. Before
-  --    step 4, because SessionWindow's bus target must still be subscribed to hear
-  --    SessionChanged(false) and end the session. No flush: nothing moved at the moment of
-  --    disabling is captured.
-  if NS.Ledger and NS.Ledger.DropContext then NS.Ledger:DropContext() end
-
-  -- 4. THE FOUR PRIVATE BUS TARGETS, and the latches that would otherwise refuse to rebuild them.
+  cancelTimers(ad)
+  dropEvents(ad)
+  dropCaptureState()
   for _, name in ipairs(BUS_MODULES) do
-    local module = NS[name]
-    if module then
-      local ev = module.__ev
-      if ev then
-        if ev.UnregisterAllMessages then ev:UnregisterAllMessages() end
-        if ev.UnregisterAllEvents then ev:UnregisterAllEvents() end
-        module.__ev = nil
-      end
-      module._enabled = nil
-    end
+    if NS[name] then dropBusTarget(NS[name]) end
   end
-
-  -- 5. THE WINDOWS. Hidden here, but held shut AT THE SOURCE — NS.Util.VisibilityAllows answers no
-  --    while the latch is down, and every Show in this addon consults it. Hiding imperatively and
-  --    stopping there is the other half of the draw gate: a hidden frame comes back on a combat
-  --    transition, a target swap or a settings change, and the addon is then visibly running while
-  --    it claims to be off.
-  if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
-  if NS.SessionWindow and NS.SessionWindow.Hide then NS.SessionWindow:Hide() end
+  hideWindows()
   tracePrunePostponed(prunePostponed)
 end
 
@@ -316,6 +331,8 @@ function addon:OnEnterWorld()
     if NS.IsStoodDown and NS.IsStoodDown() then return end
     st.cleanupDone = true
     if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
+    -- After the prune, so it never resolves a row the prune is about to take (BankLedger#2).
+    if NS.Backfill and NS.Backfill.Run then NS.Backfill:Run() end
   end, 5)
   -- Deferred work, held (debug-logging-§8). Its flush is PruneOld's own [Prune] line, which it
   -- writes on every run, retention off included; a stand-down inside the window says "postponed".

@@ -804,12 +804,15 @@ test("Slash: every reset route has the SAME blast radius — the ledger survives
   -- (the window is account-wide, owner decision D6), and a row gone here must be the reset's doing.
   local entry = { ts = os.time(), kind = "ITEM", direction = "DEPOSIT", store = "BANK", itemID = 2589 }
   local savedLedger, left, quality = NS.db.global.ledger, {}, {}
+  -- Hoisted out of the `for ... in` header: lizard does not list a function literal written there,
+  -- and the kit's sighted complexity suite reports the file as blind (kit revision 35).
+  local routes = {
+    function() NS.Slash:CliResetAll() end,
+    function() P:RestoreDefaults() end,
+    function() NS.Slash:ResetEverything() end,
+  }
   local ok, err = pcall(function()
-    for _, route in ipairs({
-      function() NS.Slash:CliResetAll() end,
-      function() P:RestoreDefaults() end,
-      function() NS.Slash:ResetEverything() end,
-    }) do
+    for _, route in ipairs(routes) do
       NS.db.global.ledger = { entry }
       NS.Schema:Set("settings.qualityThreshold", 4)
       route()

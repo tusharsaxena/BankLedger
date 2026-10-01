@@ -721,3 +721,129 @@ test("Ledger:GateReason judges the quality gate on the moved link", function()
     end)
   end)
 end)
+
+-- ── Characterization: the whole /bl debug scan dump (GI-BL-02) ───────────────────────────────
+-- Pinned line for line before L:Diagnose was split below CCN 15. The event record and the hook
+-- latch are swapped for fixed values so the golden does not depend on suite order.
+
+local DIAG_MONEY = { __money = 1000000, __guildBankMoney = 65537936844, __warbandMoney = 16348260386,
+  __characterBankMoney = 0 }
+
+local function diagnoseWith(over, fn)
+  local savedRec, savedHook = NS.EventRecord, NS.Ledger._guildHooked
+  local saved = {}
+  for k, v in pairs(DIAG_MONEY) do if over[k] == nil then over[k] = v end end
+  for k, v in pairs(over) do saved[k] = mocks[k]; mocks[k] = (v ~= false) and v or nil end
+  NS.EventRecord = { registered = { "A_EVENT", "B_EVENT" }, unavailable = { "GONE" } }
+  NS.Ledger._guildHooked = true
+  mocks.__containers[0] = { slots = 2, [1] = { itemID = 2589, count = 20 } }
+  local ok, out = pcall(function() return NS.Ledger:Diagnose() end)
+  mocks.__containers[0] = nil
+  NS.EventRecord, NS.Ledger._guildHooked = savedRec, savedHook
+  for k in pairs(over) do mocks[k] = saved[k] end
+  if not ok then error(out, 0) end
+  return fn(out)
+end
+
+local DIAG_GOLDEN = {
+  "openContext=nil snapshot=no",
+  "Enum.BagIndex has 20 members",
+  "  BagIndex.Accountbanktab = -3", "  BagIndex.Characterbanktab = -2", "  BagIndex.Keyring = -1",
+  "  BagIndex.Backpack = 0", "  BagIndex.Bag_1 = 1", "  BagIndex.Bag_2 = 2", "  BagIndex.Bag_3 = 3",
+  "  BagIndex.Bag_4 = 4", "  BagIndex.ReagentBag = 5",
+  "  BagIndex.CharacterBankTab_1 = 6", "  BagIndex.CharacterBankTab_2 = 7",
+  "  BagIndex.CharacterBankTab_3 = 8", "  BagIndex.CharacterBankTab_4 = 9",
+  "  BagIndex.CharacterBankTab_5 = 10", "  BagIndex.CharacterBankTab_6 = 11",
+  "  BagIndex.AccountBankTab_1 = 12", "  BagIndex.AccountBankTab_2 = 13",
+  "  BagIndex.AccountBankTab_3 = 14", "  BagIndex.AccountBankTab_4 = 15",
+  "  BagIndex.AccountBankTab_5 = 16",
+  "group BAGS = [0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11]",
+  "group WARBAND_BANK = [12, 13, 14, 15, 16]",
+  "container probe (id: slots / filled / distinct ids)",
+  "  0: 2 / 1 / 1",
+  "money=1000000",
+  "money API: purse=function guildBank=function bankFetch=function bankTypes=true",
+  "  Enum.BankType: Account=2, Character=0, Guild=1",
+  "  GetGuildBankMoney(): 65537936844",
+  "  C_Bank.FetchDepositedMoney(Account): 16348260386",
+  "  C_Bank.FetchDepositedMoney(Character): 0",
+  "guild bank API: link=function info=function query=function numTabs=function current=1 visible=true",
+  "guild bank frame hooks: installed (frame=table)",
+  "guild bank tabs=8 (tab: filled / distinct ids)",
+  "  tab 1: 0 / 0", "  tab 2: 0 / 0", "  tab 3: 0 / 0", "  tab 4: 0 / 0",
+  "  tab 5: 0 / 0", "  tab 6: 0 / 0", "  tab 7: 0 / 0", "  tab 8: 0 / 0",
+  "events registered (2): A_EVENT, B_EVENT",
+  "events UNAVAILABLE (1): GONE",
+}
+
+local function indexOf(lines, text)
+  for i, l in ipairs(lines) do if l == text then return i end end
+  return nil
+end
+
+test("Ledger:Diagnose characterization: the whole dump, line for line", function()
+  diagnoseWith({}, function(out)
+    assertEqual(table.concat(out, "\n"), table.concat(DIAG_GOLDEN, "\n"))
+  end)
+end)
+
+test("Ledger:Diagnose characterization: a raising money reader reads ERROR, an absent one absent", function()
+  diagnoseWith({ GetGuildBankMoney = function() error("boom", 0) end }, function(out)
+    assertTrue(indexOf(out, "  GetGuildBankMoney(): ERROR boom") ~= nil, table.concat(out, " | "))
+  end)
+  diagnoseWith({ GetGuildBankMoney = false }, function(out)
+    assertTrue(indexOf(out, "  GetGuildBankMoney(): absent") ~= nil)
+    assertTrue(indexOf(out,
+      "money API: purse=function guildBank=nil bankFetch=function bankTypes=true") ~= nil)
+  end)
+end)
+
+test("Ledger:Diagnose characterization: no C_Bank, no BankType, no Account member", function()
+  diagnoseWith({ C_Bank = false }, function(out)
+    assertTrue(indexOf(out, "money API: purse=function guildBank=function bankFetch=nil bankTypes=true") ~= nil)
+    assertEqual(indexOf(out, "  C_Bank.FetchDepositedMoney(Account): 16348260386"), nil)
+    assertTrue(indexOf(out, "  Enum.BankType: Account=2, Character=0, Guild=1") ~= nil)
+  end)
+  local enum = {}
+  for k, v in pairs(mocks.Enum) do enum[k] = v end
+  enum.BankType = nil
+  diagnoseWith({ Enum = enum }, function(out)
+    assertTrue(indexOf(out, "money API: purse=function guildBank=function bankFetch=function bankTypes=false") ~= nil)
+    for _, l in ipairs(out) do
+      assertEqual(l:find("Enum.BankType", 1, true), nil, "a BankType line with no BankType")
+      assertEqual(l:find("FetchDepositedMoney", 1, true), nil, "a fetch probe with no BankType")
+    end
+  end)
+  local charOnly = {}
+  for k, v in pairs(mocks.Enum) do charOnly[k] = v end
+  charOnly.BankType = { Character = 0, Label = "x" }
+  diagnoseWith({ Enum = charOnly }, function(out)
+    assertTrue(indexOf(out, "  Enum.BankType: Character=0") ~= nil, "a non-number member was listed")
+    assertEqual(indexOf(out, "  C_Bank.FetchDepositedMoney(Account): 16348260386"), nil)
+    assertTrue(indexOf(out, "  C_Bank.FetchDepositedMoney(Character): 0") ~= nil)
+  end)
+end)
+
+test("Ledger:Diagnose characterization: no BagIndex, ties sorted by name, unhooked, nothing refused", function()
+  local enum = {}
+  for k, v in pairs(mocks.Enum) do enum[k] = v end
+  enum.BagIndex = { Zeta = 1, Alpha = 1, Skip = "x" }
+  diagnoseWith({ Enum = enum }, function(out)
+    assertEqual(out[2], "Enum.BagIndex has 2 members")
+    assertEqual(out[3], "  BagIndex.Alpha = 1")
+    assertEqual(out[4], "  BagIndex.Zeta = 1")
+  end)
+  enum.BagIndex = nil
+  diagnoseWith({ Enum = enum }, function(out)
+    assertEqual(out[2], "Enum.BagIndex has 0 members")
+  end)
+  local savedRec, savedHook = NS.EventRecord, NS.Ledger._guildHooked
+  NS.EventRecord = { registered = {}, unavailable = {} }
+  NS.Ledger._guildHooked = nil
+  local ok, out = pcall(function() return NS.Ledger:Diagnose() end)
+  NS.EventRecord, NS.Ledger._guildHooked = savedRec, savedHook
+  assertTrue(ok, out)
+  assertTrue(indexOf(out, "guild bank frame hooks: NOT INSTALLED (frame=table)") ~= nil)
+  assertEqual(out[#out - 1], "events registered (0): ")
+  assertEqual(out[#out], "events UNAVAILABLE (0): none")
+end)

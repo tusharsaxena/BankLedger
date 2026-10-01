@@ -790,3 +790,41 @@ test("Insights: a back-to-back half's tip carries its count and its share of the
   assertEqual(captured[1].leftTip, "Withdraw: 1 (25%)")
   NS.db.global.ledger = {}
 end)
+
+-- ── Characterization: BuildBackToBackRows' whole row shape (GI-BL-02) ────────────────────────
+-- Pinned field by field before the function was split below CCN 15.
+
+local function rowString(r)
+  return table.concat({ tostring(r.key), tostring(r.label), tostring(r.labelColor),
+    tostring(r.rightMag), tostring(r.leftMag), tostring(r.total), tostring(r.rightFrac),
+    tostring(r.leftFrac), tostring(r.value) }, "|")
+end
+
+test("InsightsWidgets.BuildBackToBackRows characterization: every field, with the defaults", function()
+  local rows, scale = W.BuildBackToBackRows({ A = { R = 4, L = -2 }, B = false, C = { R = 1 } }, "R", "L")
+  assertEqual(scale, 4)
+  assertEqual(#rows, 3)
+  assertEqual(rowString(rows[1]), "A|A|nil|4|0|4|1|0|4", "a negative magnitude is not clamped to 0")
+  assertEqual(rowString(rows[2]), "C|C|nil|1|0|1|0.25|0|1")
+  assertEqual(rowString(rows[3]), "B|B|nil|0|0|0|0|0|0", "a missing magnitude table is not all-zero")
+end)
+
+test("InsightsWidgets.BuildBackToBackRows characterization: the three opts hooks", function()
+  local color = { 1, 0, 0 }
+  local rows = W.BuildBackToBackRows({ k = { R = 2, L = 6 } }, "R", "L", {
+    labelOf = function(key) return "label-" .. key end,
+    labelColorOf = function() return color end,
+    valueFmt = function(total) return total .. " moves" end,
+  })
+  assertEqual(rows[1].label, "label-k")
+  assertTrue(rows[1].labelColor == color)
+  assertEqual(rows[1].value, "8 moves")
+  assertEqual(rows[1].rightFrac, 2 / 6)
+  assertEqual(rows[1].leftFrac, 1)
+end)
+
+test("InsightsWidgets.BuildBackToBackRows characterization: nothing in, nothing out", function()
+  local rows, scale = W.BuildBackToBackRows(nil, "R", "L")
+  assertEqual(#rows, 0)
+  assertEqual(scale, 0)
+end)

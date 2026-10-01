@@ -162,6 +162,12 @@ C.STORE_CONTAINERS = {
 -- declared-but-not-honored gap the standard forbids. Move this and both halves move together.
 C.MASTER_ALPHA_MIN = 0.1
 
+-- The login backfill (modules/Backfill.lua, BankLedger#2): at most this many distinct item ids are
+-- resolved per login, and the pass waits this many seconds for the client's answers before it lets
+-- go. A large legacy ledger drains over several logins rather than flooding the item cache in one.
+C.BACKFILL_MAX_IDS = 40
+C.BACKFILL_TIMEOUT = 10
+
 -- Retention presets; 0 means "Always" (cleanup disabled).
 C.RETENTION_OPTIONS = {
   { value = 7,   text  = "7 days" },
