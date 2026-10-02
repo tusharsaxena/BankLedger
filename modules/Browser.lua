@@ -1015,13 +1015,7 @@ local function EnsureFrame()
   frame:SetFrameStrata("HIGH")
   frame:EnableMouse(true)   -- capture clicks over the whole window; no click-through to the world
   frame:SetMovable(true)
-  frame:SetResizable(true)
   frame:SetClampedToScreen(true)
-  if frame.SetResizeBounds then
-    frame:SetResizeBounds(minW, minH)
-  elseif frame.SetMinResize then
-    frame:SetMinResize(minW, minH)
-  end
 
   local titleBar = CreateFrame("Frame", nil, frame)
   titleBar:SetPoint("TOPLEFT", 1, -1)
@@ -1082,7 +1076,8 @@ local function EnsureFrame()
   frame.filterHost = filterHost
 
   -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
-  -- size text left of the 16px resize grip so the two never overlap.
+  -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so
+  -- the two never overlap.
   local footer = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 8, 3)
   B._footer = footer
@@ -1098,18 +1093,19 @@ local function EnsureFrame()
   B:ClearFilters()
   B:UpdateDbSize()
 
-  local grip = CreateFrame("Button", nil, frame)
-  grip:SetSize(16, 16)
-  grip:SetPoint("BOTTOMRIGHT", -2, 2)
-  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-  grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-  grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
-  grip:SetScript("OnMouseUp", function()
-    frame:StopMovingOrSizing()
-    B:SaveGeometry()
-    if NS.LedgerTable and NS.LedgerTable.Refresh then NS.LedgerTable:Refresh() end
-  end)
-  frame.resizeGrip = grip
+  -- The resize grip is LibKa0s-Core's, through core/CoreSetup.lua's NS.MakeResizable seam: it makes
+  -- the frame resizable, bounds it at the window floor and sets frame.resizeGrip. The save and the
+  -- table refresh run in `onResizeStop`, once per release. Not in `onResize`: that also runs on
+  -- every OnSizeChanged, so it would rebuild the display list on every drag tick and make
+  -- ApplyGeometry write geometry (docs/schema.md). The table re-flows live without it, through the
+  -- scroll frame's own OnSizeChanged (modules/LedgerTable.lua).
+  NS.MakeResizable(frame, {
+    minWidth = minW, minHeight = minH,
+    onResizeStop = function()
+      B:SaveGeometry()
+      if NS.LedgerTable and NS.LedgerTable.Refresh then NS.LedgerTable:Refresh() end
+    end,
+  })
 
   -- The single seam for the [UI] show/hide trace, so it fires once per visibility change whatever
   -- the call path. The dropdown popup is LibKa0s-Widgets-1.0's process-wide singleton, parented to

@@ -426,7 +426,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (41)
+### test_browser.lua (46)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -458,6 +458,11 @@ badge and any count quoted in the docs must agree with it.
 - the ledger window saves its geometry when it hides
 - the ledger window closes an open dropdown menu when it hides
 - the ledger window saves its geometry at logout
+- the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release
+- the ledger window is resizable with its floor as the minimum bound
+- a size change outside the grip neither saves nor rebuilds the display list
+- the footer's size text stays clear of the grip
+- one grip implementation per arm: neither window hand-builds a grip
 - Browser:ExportWidth leaves the Export button a usable width
 - Browser: a burst of search keystrokes costs ONE filter application
 - Browser: the debounced filter still applies when there is no timer library
@@ -510,7 +515,7 @@ badge and any count quoted in the docs must agree with it.
 - Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
 
-### test_sessionwindow.lua (32)
+### test_sessionwindow.lua (35)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -544,6 +549,9 @@ badge and any count quoted in the docs must agree with it.
 - a full save/reload round trip lands the window back where it was
 - SessionWindow:ResetWindow clears the persisted geometry carve-out
 - the session window's geometry is a separate carve-out from the main window's
+- the session window's grip sizes from BOTTOMRIGHT and saves geometry on release
+- the session window is resizable with its floor as the minimum bound
+- a size change outside the grip writes no geometry
 
 ### test_insights.lua (79)
 
@@ -1026,9 +1034,10 @@ badge and any count quoted in the docs must agree with it.
 - marks: nothing under settings/ resolves a mark — that panel is the Options library's
 - marks: the art that is NOT a mark was left alone
 
-### test_libka0s.lua (44)
+### test_libka0s.lua (47)
 
 - LibKa0s-Core: the vendored major registered and the addon is running on it
+- LibKa0s-Core: NS.MakeResizable is the library's
 - LibKa0s-Core: this addon does NOT republish the library's close factory
 - LibKa0s-Media: the folder name the seam passes is the FIRST VARARG, not a hand-typed literal
 - LibKa0s-Core: the sentinel is the library's, not a hand-copied literal
@@ -1072,6 +1081,8 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-DebugLog: modules/DebugLog.lua is gone from the TOC and from disk
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
+- LibKa0s-Options: the descriptor tells the library the FOLDER name (LibKa0s#42)
+- LibKa0s-Options: the help-mark art the descriptor points at is vendored
 
 ### test_libka0s_slash.lua (23)
 
@@ -1160,10 +1171,11 @@ badge and any count quoted in the docs must agree with it.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (19)
+### test_surface_parity.lua (20)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
+- Core degraded: NS.MakeResizable still builds a working grip
 - LibKa0s-Lifecycle degraded: the fallback carries the whole host latch surface
 - LibKa0s-DebugLog degraded: the stub carries the live surface the addon reaches
 - LibKa0s-Slash degraded: the stub carries the whole live surface
@@ -1383,9 +1395,9 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 55 |
-| test_browser.lua | 41 |
+| test_browser.lua | 46 |
 | test_launcher.lua | 37 |
-| test_sessionwindow.lua | 32 |
+| test_sessionwindow.lua | 35 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
@@ -1401,14 +1413,14 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 13 |
 | test_envsetup.lua | 9 |
 | test_marks.lua | 22 |
-| test_libka0s.lua | 44 |
+| test_libka0s.lua | 47 |
 | test_libka0s_slash.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 9 |
 | test_lifecycle.lua | 13 |
 | test_disabled.lua | 18 |
-| test_surface_parity.lua | 19 |
+| test_surface_parity.lua | 20 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
@@ -1421,4 +1433,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1215** |
+| **Total** | **1227** |

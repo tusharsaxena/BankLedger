@@ -19,12 +19,12 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
-| LEDG-1 – 46 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus |
+| LEDG-1 – 48 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
-| FILT-1 – 14 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
-| SESS-1 – 12 | Session window | The Current Banking Session window at every store |
+| FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
+| SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
-| DEGRADED-1 – 11 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore |
+| DEGRADED-1 – 12 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -498,6 +498,16 @@ leaves its number unused.
   character owns, Save, switch to a character with none of it (or `/bl test` and back) → the Type
   button reads the type's name, not "Type: All", and the row count is unchanged. The same for Store,
   Quality and Sub-type (Character always has its All and Current rows). Result:
+- **LEDG-47. The ledger grip is the library's.** `/bl show` → a size grip sits in the bottom-right
+  corner, 1px inside the edge, and darkens while pressed. Drag it out and in on both axes → the table
+  and its header cells re-flow live. It stops at the width that shows every column, and the DB-size
+  text in the footer never sits under the grip. Right-click the grip and drag → nothing happens.
+  Result:
+- **LEDG-48. Resize-only geometry survives a reload.** Without dragging the title bar, resize the
+  ledger, releasing on the grip, then `/reload` and `/bl show` → the size you chose returns. Repeat,
+  releasing well outside the grip, and `/reload` with the window open → it is still kept. Then Master
+  controls ▸ Reset position, `/reload` → the default size and center return, not the old size.
+  Result:
 
 ## INS
 
@@ -593,6 +603,11 @@ leaves its number unused.
   `/console uiScale 1`) → below about 580px of panel the lists draw one full-width column, correctly
   formed; never icons over wrapped names or an X on its own row. Widen and reopen → two columns. (If
   you cannot get narrow enough, FILT-10 passing is still the meaningful result.) Result:
+- **FILT-15. The lists after the help-art descriptor.** With entries on both lists, open Settings ▸
+  General ▸ Filters ▸ Blacklist, then Whitelist → each renders exactly as in FILT-3 and FILT-10, with
+  no help mark on any entry (none carries help) and no Lua error on opening the panel or either tab.
+  This build passes the addon's folder name to the settings library for its help-mark art
+  (LibKa0s#42); nothing here draws one yet, so a pass means nothing broke. Result:
 
 ## SESS
 
@@ -623,6 +638,11 @@ leaves its number unused.
   Untick it while shown → it closes at once. Result:
 - **SESS-12. The preview.** Away from any bank, `/bl session` → it opens on a sample visit; again →
   dismissed. During a real session, `/bl session` → refuses and says so. Result:
+- **SESS-13. The session window grip is the library's.** Open a bank → resize the session window
+  from its grip → the rows re-bind live, and the scroll bar's down arrow stays clickable above the
+  grip. Close the bank, `/reload`, reopen → same size. Reset position, `/reload`, reopen → the default
+  size, right of center. With Lock frame ticked the window still resizes, which is today's behavior,
+  but cannot be dragged; say if the lock should gate the grip too. Result:
 
 ## DIAG
 
@@ -794,6 +814,10 @@ on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, 
 - **DEGRADED-11. Restore.** Quit, rename `libs/LibKa0s.off` back, log in → no notice, `/bl list`
   byte for byte the healthy listing kept before the rename (Before you start), the console monospace
   again with its three marks. Result:
+- **DEGRADED-12. Windows still resize without the library.** Run it before DEGRADED-11's restore.
+  `/bl show` → the grip is there at the old 2px inset with no pressed art, and dragging it resizes
+  the window. Open a bank → the session window's grip does the same. `/reload` → both sizes are
+  kept. Result:
 
 ## Non-English client
 
@@ -928,16 +952,19 @@ repository.
 | LEDG-33, LEDG-34 | S-10 steps 4–5 | No recorded result |
 | LEDG-35, LEDG-37 – 41 | S-21 steps 1–7 | No recorded result |
 | LEDG-42 – 46 | S-22 steps 1–5 | No recorded result |
+| LEDG-47, LEDG-48 | New (the library's resize grip, CA-BL-01, BankLedger#21, LibKa0s v1.67.0) | Never run |
 | INS-1 – 17 | S-9 steps 1–17 | No recorded result |
 | INS-18 | S-9 step 18, corrected by SP-BL-03R | The empty state is one of two named lines, and Character: Current counts as a filter; the old "no movements" line matched neither |
 | FILT-1 – 7 | S-11 steps 1–8 | No recorded result |
 | FILT-8 | S-11 step 9, corrected by SP-BL-03R | The lookup line ends in three periods (`Looking up items...`); the old step had an ellipsis character |
 | FILT-9 | S-11 step 10 | No recorded result |
 | FILT-10 – 14 | S-29 steps 1–7 and its closing note | No recorded result |
+| FILT-15 | New (the Options descriptor's `addonName`, CA-BL-NM, LibKa0s#42, LibKa0s v1.67.0) | Never run |
 | SESS-1 – 8 | S-17 steps 1–12 | No recorded result |
 | SESS-9 | S-17 step 13 | Step BL.17 of the 2026-09-23 checklist's Session BL, still owed; no recorded result |
 | SESS-10 | S-17 step 15 as rewritten by SP-BL-01 | Geometry now belongs to the profile; master's doc expected it to be account-wide |
 | SESS-11, SESS-12 | S-17 steps 16–17 | No recorded result |
+| SESS-13 | New (the library's resize grip, CA-BL-01, BankLedger#21, LibKa0s v1.67.0) | Never run |
 | DIAG-1 – 12 | S-14 steps 1–13 | No recorded result; the 2026-09-26 diagnostics run recorded only the report steps. DIAG-2 corrected by DG-BL-01: the `[Init]` tail no longer names the launcher; the Launcher's own line and the login's event record follow it (LibKa0s v1.65.0) |
 | DIAG-19 | S-20 step 9 as rewritten by SP-BL-01, corrected by SP-BL-03R | The line is now `[Set] reset profile 'Default' to defaults (N rows)` (master's doc expected `[Set] reset all: N rows`); the check now starts from stock, since leftovers from earlier checks change the count, and reopens the console each reset closes |
 | DIAG-20 – 24 | New (resizable console and copy windows, DL-BL-01, LibKa0s v1.64.0) | Never run |
@@ -949,5 +976,6 @@ repository.
 | DEGRADED-6 | New (the `/bl profile` verb, SP-BL-02) | Never run |
 | DEGRADED-8 | S-21 step 9, corrected by SP-BL-03R | No recorded result. The filter-bar line now belongs to DEGRADED-5's first `/bl show`, the one that builds the window; the old step saw it because it began with its own rename and `/reload` |
 | DEGRADED-9 – 10 | S-21 step 9 | No recorded result |
+| DEGRADED-12 | New (the fallback resize grip, CA-BL-01, BankLedger#21, LibKa0s v1.67.0) | Never run |
 | LOC-1 – 4 | S-27 steps 1–4 | NOT YET RUN since the 2026-09-07 remediation (session 6, `M5-08`); needs a deDE or frFR client |
 | LOC-5 | S-23 step 2 (last sentence) | No record of a run on a non-English client |

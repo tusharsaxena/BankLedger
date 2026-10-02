@@ -406,3 +406,96 @@ test("the session window's geometry is a separate carve-out from the main window
   SW:ResetWindow()
   assertEqual(NS.db.profile.settings.window.x, 1, "resetting one window must not move the other")
 end)
+
+-- ── The resize grip (BankLedger#21) ───────────────────────────────────────────────
+-- The same contract tests/test_browser.lua pins for the ledger window: sizing from the bottom-right,
+-- the window's floor as its minimum, and geometry written once, on the grip's release, never on a
+-- size change that is not one. The mock's SetSize never fires OnSizeChanged, so the cases fire it.
+
+local MIN_H = 200   -- modules/SessionWindow.lua's file-local floor, restated so a change is seen
+
+-- Count calls to `owner[key]` while `fn` runs, calling through, and put the real one back.
+local function counting(owner, key, fn)
+  local real, n = owner[key], 0
+  owner[key] = function(...) n = n + 1; return real(...) end
+  local ok, err = pcall(fn)
+  owner[key] = real
+  if not ok then error(err, 0) end
+  return n
+end
+
+test("the session window's grip sizes from BOTTOMRIGHT and saves geometry on release", function()
+  reset()
+  NS.db.profile.settings.sessionWindow = {}
+  SW:Show()
+  local f = SW:GetWindow()
+  local grip = f.resizeGrip
+  assertTrue(grip ~= nil, "the session window has no resize grip")
+  local sizedFrom = {}
+  f.StartSizing = function(_, point) sizedFrom[#sizedFrom + 1] = point end
+  local saves, refreshes
+  local ok, err = pcall(function()
+    refreshes = counting(SW, "Refresh", function()
+      saves = counting(SW, "SaveGeometry", function()
+        f:ClearAllPoints()
+        f:SetPoint("CENTER", T.mocks.UIParent, "CENTER", 420, 0)
+        grip:__fire("OnMouseDown", "LeftButton")
+        f:SetSize(900, 400)
+        grip:__fire("OnMouseUp", "LeftButton")
+      end)
+    end)
+  end)
+  f.StartSizing = nil
+  if not ok then error(err, 0) end
+  assertEqual(table.concat(sizedFrom, ","), "BOTTOMRIGHT", "one sizing, from the bottom-right")
+  assertEqual(saves, 1, "the release saves geometry exactly once")
+  assertEqual(NS.db.profile.settings.sessionWindow.w, 900)
+  assertEqual(NS.db.profile.settings.sessionWindow.h, 400)
+  assertEqual(refreshes, 1, "the release refreshes the rows exactly once")
+  SW:Hide()
+end)
+
+test("the session window is resizable with its floor as the minimum bound", function()
+  -- A fresh, fully loaded addon, because the shared NS built this window long ago and the bounds
+  -- are set once, at construction.
+  local m = T.makeMocks()
+  local seen = {}
+  local realCreateFrame = m.CreateFrame
+  m.CreateFrame = function(kind, name, ...)
+    local f = realCreateFrame(kind, name, ...)
+    if name == "BankLedgerSessionWindow" then
+      f.SetResizable = function(self, v) seen.resizable = v; return self end
+      f.SetResizeBounds = function(self, ...) seen.bounds = { ... }; return self end
+    end
+    return f
+  end
+  local ns = {}
+  T.Loader.loadAll(T.libka0sFiles, ns, m)
+  T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  ns.SessionWindow:Show()
+  assertTrue(ns.SessionWindow:GetWindow() ~= nil, "the session window was not built")
+  assertTrue(seen.resizable == true, "the session window was never made resizable")
+  assertTrue(seen.bounds ~= nil, "the session window was never bounded")
+  -- Only the first two: the minimum is this window's, and a maximum is whatever the grip adds.
+  assertEqual(seen.bounds[1], ns.SessionWindow:MinFrameWidth())
+  assertEqual(seen.bounds[2], MIN_H)
+  ns.SessionWindow:Hide()
+end)
+
+test("a size change outside the grip writes no geometry", function()
+  reset()
+  SW:Show()
+  local f = SW:GetWindow()
+  NS.db.profile.settings.sessionWindow = {}
+  local saves = counting(SW, "SaveGeometry", function()
+    SW:ResetWindow()
+    f:__fire("OnSizeChanged", 900, 400)
+  end)
+  assertEqual(saves, 0, "a size change wrote geometry")
+  assertEqual(next(NS.db.profile.settings.sessionWindow), nil,
+    "Reset position left geometry behind")
+  SW:Hide()
+end)

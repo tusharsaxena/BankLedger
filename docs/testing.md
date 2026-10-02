@@ -95,8 +95,8 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.66.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.66.0**, and all four commands above come back empty, because
+It is **not** the state as this is written. `../LibKa0s` sits on **v1.67.0**,
+[`CLAUDE.md`](../CLAUDE.md) names **v1.67.0**, and all four commands above come back empty, because
 this addon has taken the newest tag the library has published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
@@ -345,10 +345,12 @@ tests/
   and fall back to real `_G`. It also provides `Loader.tocFiles`, which is what removed the
   hand-maintained load list. `libs\` lines are skipped — it cannot see inside an XML — so a vendored
   library the suites need must be spelled out in `run.lua`.
-  Both varargs are passed to every file; only the **seven** that actually need the addon FOLDER
+  Both varargs are passed to every file; only the **eleven** that actually need the addon FOLDER
   name bind the first one as `addonName` -- `core/Namespace.lua` (`NS.name`), `core/EnvSetup.lua`,
-  `core/MediaSetup.lua`, `core/Database.lua` (the AceDB store name), `core/DebugLogSetup.lua`,
-  `core/BankLedger.lua` (the AceAddon name) and `modules/Export.lua`. Every other file opens
+  `core/Constants.lua` (the message-bus catalog), `core/MediaSetup.lua`, `core/Database.lua` (the
+  AceDB store name), `core/DebugLogSetup.lua`, `core/LifecycleSetup.lua`, `core/LauncherSetup.lua`,
+  `core/BankLedger.lua` (the AceAddon name), `modules/Export.lua` and `settings/OptionsSetup.lua`
+  (the Options descriptor's `addonName`, LibKa0s#42). Every other file opens
   `local _, NS = ...` (`M4c-06`).
 - `_kit/framework.lua` **skips** a listed suite whose file is missing rather than raising, which is
   the opposite of the old runner. `test_harness.lua` closes that hole: it asserts the suite list and

@@ -423,6 +423,133 @@ test("the ledger window saves its geometry at logout", function()
   NS.Browser:Hide()
 end)
 
+-- ── The resize grip (BankLedger#21) ───────────────────────────────────────────
+-- Characterization of the grip, written against the hand-built one and kept through the move onto
+-- LibKa0s-Core's MakeResizable. What it pins is the CONTRACT, not the art: sizing starts from the
+-- bottom-right corner, the floor is the window's minimum, and geometry is written ONCE, on the
+-- grip's release. A size change that is not a release — a drag tick, ApplyGeometry, ResetWindow's
+-- SetSize — writes nothing (docs/schema.md: ApplyGeometry writes nothing). That is the half a host
+-- breaks by wiring its save onto `onResize`, which also runs on every OnSizeChanged; the mock's
+-- SetSize never fires OnSizeChanged, so these cases fire it by hand.
+
+-- A fresh, fully loaded addon whose window `frameName` records its SetResizable and SetResizeBounds
+-- calls. Fresh because the shared NS built its windows long before this suite ran, and the bounds
+-- are set once, at construction. `open` builds the window in that environment.
+local function buildRecordingBounds(frameName, open)
+  local m = T.makeMocks()
+  local seen = {}
+  local realCreateFrame = m.CreateFrame
+  m.CreateFrame = function(kind, name, ...)
+    local f = realCreateFrame(kind, name, ...)
+    if name == frameName then
+      f.SetResizable = function(self, v) seen.resizable = v; return self end
+      f.SetResizeBounds = function(self, ...) seen.bounds = { ... }; return self end
+    end
+    return f
+  end
+  local ns = {}
+  T.Loader.loadAll(T.libka0sFiles, ns, m)
+  T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  open(ns)
+  return ns, seen
+end
+
+-- Count calls to `owner[key]` while `fn` runs, calling through, and put the real one back.
+local function counting(owner, key, fn)
+  local real, n = owner[key], 0
+  owner[key] = function(...) n = n + 1; return real(...) end
+  local ok, err = pcall(fn)
+  owner[key] = real
+  if not ok then error(err, 0) end
+  return n
+end
+
+test("the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release", function()
+  NS.db.profile.settings.window = {}
+  B:Show()
+  local f = B:GetWindow()
+  local grip = f.resizeGrip
+  assertTrue(grip ~= nil, "the ledger window has no resize grip")
+  local sizedFrom = {}
+  f.StartSizing = function(_, point) sizedFrom[#sizedFrom + 1] = point end
+  local saves, refreshes
+  local ok, err = pcall(function()
+    refreshes = counting(NS.LedgerTable, "Refresh", function()
+      saves = counting(B, "SaveGeometry", function()
+        f:ClearAllPoints()
+        f:SetPoint("CENTER", T.mocks.UIParent, "CENTER", 0, 0)
+        grip:__fire("OnMouseDown", "LeftButton")
+        f:SetSize(1300, 800)
+        grip:__fire("OnMouseUp", "LeftButton")
+      end)
+    end)
+  end)
+  f.StartSizing = nil
+  if not ok then error(err, 0) end
+  assertEqual(table.concat(sizedFrom, ","), "BOTTOMRIGHT", "one sizing, from the bottom-right")
+  assertEqual(saves, 1, "the release saves geometry exactly once")
+  assertEqual(NS.db.profile.settings.window.w, 1300)
+  assertEqual(NS.db.profile.settings.window.h, 800)
+  assertEqual(refreshes, 1, "the release refreshes the table exactly once")
+  B:Hide()
+end)
+
+test("the ledger window is resizable with its floor as the minimum bound", function()
+  local ns, seen = buildRecordingBounds("BankLedgerWindow", function(ns) ns.Browser:Show() end)
+  assertTrue(seen.resizable == true, "the ledger window was never made resizable")
+  assertTrue(seen.bounds ~= nil, "the ledger window was never bounded")
+  -- Only the first two: the minimum is this window's, and a maximum is whatever the grip adds.
+  assertEqual(seen.bounds[1], ns.Browser:MinWidth())
+  assertEqual(seen.bounds[2], ns.Browser.SKIN.minH)
+  ns.Browser:Hide()
+end)
+
+test("a size change outside the grip neither saves nor rebuilds the display list", function()
+  NS.db.profile.settings.window = {}
+  B:Show()
+  local f = B:GetWindow()
+  local saves
+  local refreshes = counting(NS.LedgerTable, "Refresh", function()
+    saves = counting(B, "SaveGeometry", function()
+      f:__fire("OnSizeChanged", 1300, 800)
+      B:ApplyGeometry()
+    end)
+  end)
+  assertEqual(saves, 0, "a size change wrote geometry")
+  assertEqual(refreshes, 0, "a size change rebuilt the display list")
+  B:Hide()
+end)
+
+test("the footer's size text stays clear of the grip", function()
+  B:Show()
+  local grip = B:GetWindow().resizeGrip
+  local point, _, _, gx = grip:GetPoint(1)
+  assertEqual(point, "BOTTOMRIGHT")
+  local _, _, _, fx = B._dbFooter:GetPoint(1)
+  assertEqual(fx, -20, "the DB-size text moved off its right inset")
+  assertTrue(grip:GetWidth() + math.abs(gx) < math.abs(fx),
+    "the DB-size text sits under the grip")
+  B:Hide()
+end)
+
+test("one grip implementation per arm: neither window hand-builds a grip", function()
+  -- The grip is core/CoreSetup.lua's NS.MakeResizable on both arms (BankLedger#21): Core's on a
+  -- working install, the moved pre-library grip on a degraded one. A window that sized itself again
+  -- would be a third implementation, free to drift from both.
+  local offenders = {}
+  for _, file in ipairs({ "modules/Browser.lua", "modules/SessionWindow.lua" }) do
+    local fh = assert(io.open(file, "r"))
+    local src = fh:read("*a"); fh:close()
+    for _, needle in ipairs({ "StartSizing(", "SizeGrabber", "SetResizable(", "SetResizeBounds(" }) do
+      if src:find(needle, 1, true) then offenders[#offenders + 1] = file .. ": " .. needle end
+    end
+  end
+  assertEqual(table.concat(offenders, ", "), "")
+end)
+
 test("Browser:ExportWidth leaves the Export button a usable width", function()
   -- The filter dropdowns grew; Export takes the slack and must not collapse to nothing.
   assertTrue(B:ExportWidth() >= 110, "got " .. B:ExportWidth())

@@ -49,6 +49,17 @@ method names:
 | `SaveGeometry()` | Every `OnHide`; `PLAYER_LOGOUT`; plus drag-stop and resize-stop, which keep the stored value current mid-session |
 | `ApplyGeometry()` | Once, when the frame is built on first show |
 
+**The resize grip is LibKa0s-Core's.** Both windows call `NS.MakeResizable(frame, { minWidth, minHeight,
+onResizeStop })`, the `core/CoreSetup.lua` seam over `Core.MakeResizable`. It makes the frame
+resizable, bounds it at the window's floor and draws the grip in the bottom-right corner, 1px inside
+the edge. *Resize-stop* above is the grip's `onResizeStop`, which runs once per release and runs
+`SaveGeometry()` and then the table refresh. Neither window passes `onResize`: it also runs on every
+`OnSizeChanged`, so a save there would write on every drag tick and make `ApplyGeometry()` and
+*Reset position* write geometry. The tables re-flow live through their scroll frames' own
+`OnSizeChanged`. *Lock frame* gates only the drag, so a locked window still resizes. With the library
+absent, the seam's fallback is the pre-library grip (2px inset, no pressed art), and it still saves
+on release.
+
 `SaveGeometry()` refuses to write a point-less table — one would make `ApplyGeometry()` fall through
 to the default and silently discard a real position — and `ApplyGeometry()` clamps a restored size to
 the window's floor on the way *in* as well as out, so a size saved against an older column set (or a
