@@ -26,8 +26,10 @@ only. The finer tree is everything below it.
 **Three** pages registered with `LibKa0s-Options-1.0`, which owns the shell, the widget makers, the
 flow engine and the render timing: the **landing page**, **General** and **Profiles**. `settings/Panel.lua` keeps
 only what did **not** generalize: the inverted store grid, the History tab's storage read-out, the
-Filters tab's secondary strip over the two item-id lists, the landing-page body, `P:Diagnose` and
-the `P:Batch` refresh coalescer.
+Filters tab's secondary strip over the two item-id lists, the landing-page body and `P:Diagnose`.
+It also carries `P:Batch`, a refresh coalescer that only `tests/test_panel.lua` calls: the global
+reset is one `db:ResetProfile()` that walks no rows, and `NS.OnProfileEvent` refreshes the panel
+once after it.
 
 **Profiles** (`settings/Profiles.lua`, `options-ui-§3`) is AceDBOptions drawn by AceConfigDialog into
 an AceGUI group inside the canvas, opened on first show and re-opened on every render so it reads the
@@ -388,7 +390,7 @@ per row.
   still clears and the error is re-raised unchanged. The library hands `bulkEnd` `err = nil` for a
   raise of nil or false (documented upstream), so that raise gets no marker.
 - Nested brackets log once, for the outermost act, and a level reporting `info.profileReset` silences
-  the line. `P:Batch` coalesces repaints and is not a bracket.
+  the line. `P:Batch` is not a bracket either. It only coalesces repaints, and only tests call it.
 - The Options descriptor carries the same pair and `applyDefault`, so `O.RestoreDefaults` would skip
   the Minimap button row and log `[Set] reset general: N rows`. Nothing here calls it or
   `O.RestoreAllDefaults` today; before LibKa0s v1.55.0 that field wrote `S:Set(path, S:Default(path))`

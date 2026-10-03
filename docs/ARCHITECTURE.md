@@ -171,8 +171,9 @@ both are gone, and `tests/test_launcher.lua` fails if either comes back.
 
 ## Message bus
 
-Four messages, one sender each. Consumers **must** register on their own `NS.NewBusTarget()`
-target, never on the shared bus-as-self: CallbackHandler keys callbacks by `(message, target)`, so
+Four messages. Three have one sending module each; `SettingsChanged` has several, listed in the
+table below. Consumers **must** register on their own `NS.NewBusTarget()` target, never on the
+shared bus-as-self: CallbackHandler keys callbacks by `(message, target)`, so
 two consumers sharing a target silently clobber each other.
 
 **Declared once, in `core/Constants.lua`, as `NS.MSG`** (`architecture-§4`). Every `SendMessage` and
@@ -192,7 +193,7 @@ shape names them. `tests/test_surface_parity.lua` holds it to the live major wit
 |---|---|---|---|
 | `Ka0s_BankLedger_EntryAdded` (`ENTRY_ADDED`) | `Database:Add` | `entry, index` | Browser, Insights, SessionWindow, Panel (storage stats) |
 | `Ka0s_BankLedger_LedgerChanged` (`LEDGER_CHANGED`) | `Database` (delete / purge / prune / `FireLedgerChanged`) | — | Browser, Insights, SessionWindow (prunes deleted rows), Panel (storage stats + the Filters tab's id lists) |
-| `Ka0s_BankLedger_SettingsChanged` (`SETTINGS_CHANGED`) | `Schema` row `onChange` handlers, and `NS.OnProfileEvent` once per profile switch, copy or reset (the global reset among them) | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `profile`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
+| `Ka0s_BankLedger_SettingsChanged` (`SETTINGS_CHANGED`) | `Schema` row `onChange` handlers (the two row-tint rows send theirs through `Util.RefreshRowTint`), and `NS.OnProfileEvent` once per profile switch, copy or reset (the global reset among them) | a short reason string (`enabled`, `sessionWindow`, `windowScale`, `quality`, `trackItems`, `trackMoney`, `stores`, `rowTint`, `profile`) | Ledger (re-caches its gate upvalues), Browser, SessionWindow |
 | `Ka0s_BankLedger_SessionChanged` (`SESSION_CHANGED`) | `Ledger` (`OpenContext` / `CloseContext` / the guild-bank self-disarm / the stand-down's `DropContext`) | `active` (boolean), `context` | SessionWindow |
 
 `SessionChanged` exists so the session window rides the span the capture engine already arms
@@ -455,8 +456,8 @@ library adoptions or scope, not rules of the standard (#5 and #9 are cited by th
 per file, with its terminal state: an open issue naming the seam a peel would follow, a ratified
 deviation row above, or a scheduled peel.
 
-Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1221 lines,
-measured 2026-09-24 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
+Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1223 lines,
+measured 2026-10-03 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
 wc -l | sort -n`. The figure is prose, not a pin; `tests/_kit/test_layout_cap.lua` asserts membership
 in both directions -- an over-cap file missing from this census, or a row here naming a file that
 is no longer over the cap -- and the dated number is not what it checks.

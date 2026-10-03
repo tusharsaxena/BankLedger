@@ -111,7 +111,7 @@ and questing, never ends up in the book.
 | What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |
 | Why does the session window forget everything when I reopen the bank? | Because it covers the visit you are on and nothing else. Anything older is in the main window. |
 | Does it slow the game down? | It only does anything while a bank window is open, and both windows build rows only for what fits on screen. |
-| Why did old history disappear? | By default, movements older than 30 days are removed at login. Keep them longer under Settings ▸ History ▸ **Keep history for**; **Always** keeps everything. |
+| Why did old history disappear? | By default, movements older than 30 days are removed at login. Keep them longer under Settings ▸ General ▸ History ▸ **Keep history for**; **Always** keeps everything. |
 | Where is my data kept? | In the addon's SavedVariables file, on your own machine. Nothing is sent anywhere. |
 
 ## Troubleshooting
@@ -155,5 +155,5 @@ lives.
 
 The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1, and the
 ledger window's close, search, dropdown and checkbox marks and the export dialog's icon are drawn
-from [Open Iconic](https://github.com/iconic/open-iconic) (MIT). Both ship inside the bundled
-LibKa0s payload, with their license text beside them.
+from [Open Iconic](https://github.com/iconic/open-iconic) (MIT). Each ships with its license
+text.

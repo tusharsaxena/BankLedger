@@ -97,6 +97,11 @@ Open a new shell (or `source ~/.profile`) afterwards so `~/.local/bin` is on `PA
 the kit's sighted shadow (kit revision 35) neutralizes the blind spots measured against 1.24.0; an
 upgrade may move them, which the suite's function-count parity then reports as `blindFiles`.
 
+The headless harness reaches it too: `tests/run.lua:43` wires the kit's `test_lizard_sighted` gate,
+whose end-to-end case runs `lizard` on a fixture when it is on `PATH` and records a **skip** with its
+reason when it is not (`tests/_kit/test_lizard_sighted.lua:188`). So a missing `lizard` never reddens
+`lua tests/run.lua`, but it does leave that one case unexercised.
+
 <details>
 <summary>Documented alternative, if you would rather not use pipx</summary>
 

@@ -270,7 +270,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- `__print` IS NO LONGER ON THIS LIST, and that is the whole reason this case moved to the by-name
   -- form. It joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
   -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
-  -- (libs/LibKa0s/Options.lua:499, read at OptionsWidgets.lua:404). Its own comment there calls it
+  -- (libs/LibKa0s/Options.lua:507, read at OptionsWidgets.lua:413). Its own comment there calls it
   -- internal rather than surface and says a degradation stub does not mirror it, BECAUSE
   -- Kit.assertSurfaceParity skips the `__` prefix — which was true of the by-name form and not of
   -- the four-argument form this case used, so the exemption had to be typed here by hand and the
@@ -354,7 +354,7 @@ end)
 -- NS.SchemaRuntime from whichever it got, and publishes the resolved library as NS.__schemaLib. The
 -- stub is TRIMMED to what this addon calls, and the trimmed members are named here as live-only,
 -- each for the same reason: no BankLedger file calls it.
---   Callers from: grep -rnE "SchemaRuntime[.:][A-Za-z]+|S\.Bulk[A-Za-z]+|Schema[.:](Set|Get|Default|ApplyDefault|FindRow|ReadPath|WritePath|SameValue|Register)\b" core modules settings
+--   Callers from: grep -rnE "SchemaRuntime[.:][A-Za-z]+|S\.Bulk[A-Za-z]+|Schema[.:](Set|Get|Default|ApplyDefault|FindRow|SameValue|Register)\b" core modules settings
 --   * BulkRun, BulkAdd, InBulk -- the addon brackets with the BulkBegin/BulkEnd pair and nothing else.
 --   * Reindex -- the one head splice goes through AddRows, which re-indexes on its own.
 --   * CountOffDefault, ResetCounted, ConsumeResetCount -- the profile reset's count. Sl:ResetEverything

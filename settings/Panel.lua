@@ -56,10 +56,8 @@ local function setDefaultsAction(panel, fn)
 end
 
 -- ── createPanel — a Frame for RegisterCanvasLayout(Sub)category, plus its render context ──
--- Depth counter for P:Batch. A bulk write (a full reset walks every schema row) would otherwise pay
--- one refresh PER ROW, and one of General's refreshers walks the whole ledger to estimate the
--- SavedVariables size. Coalesced into one refresh at the end, which is also what options-ui-§11
--- describes for a global reset: the hook first, the refresh once, after.
+-- Depth counter for P:Batch, a test seam (see P:Batch below). While it is above zero P:Refresh does
+-- nothing, so a batch of writes through the seam pays one refresh at the end, not one per row.
 local bulkDepth = 0
 
 -- The host copy of "a paired action button" is GONE. It existed to inset a button to
@@ -682,10 +680,11 @@ end
 
 --- Run `fn` with panel refreshes coalesced into exactly ONE, at the end.
 ---
---- For a bulk write — a full reset walks every schema row, and every one of those goes through the
---- write seam. Without this the ledger gets walked once per row while the General page is open.
---- Re-entrant, and the depth is unwound on the error path too: latched above zero, the panel would
---- silently stop refreshing for the rest of the session.
+--- TEST SEAM: no production code calls it. The global reset (Sl:ResetEverything) is one
+--- db:ResetProfile() that walks no schema rows, and NS.OnProfileEvent refreshes the panel once
+--- after it. Only tests/test_panel.lua calls this, to pin that a row walk through the write seam
+--- can be coalesced. Re-entrant, and the depth is unwound on the error path too: latched above
+--- zero, the panel would silently stop refreshing for the rest of the session.
 function P:Batch(fn)
   bulkDepth = bulkDepth + 1
   local ok, err = pcall(fn)

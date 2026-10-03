@@ -173,8 +173,8 @@ what the stable-column-set promise allows.
 `docs/api/Schema/version-1-docs.md`). The rows are this addon's; the path walk, the row index, the
 write seam, the bulk bracket and the load-time check are the library's. `settings/Schema.lua` builds
 one instance, `NS.SchemaRuntime`, over `S.Schema`, and binds every name callers already used to it:
-`S:Set`, `S:Get`, `S:Default`, `S:ApplyDefault`, `S:FindRow`, `S:ReadPath`, `S:WritePath`,
-`S.SameValue`, `S.BulkBegin`, `S.BulkEnd` and `S:Register` (now the library's `Validate`). The
+`S:Set`, `S:Get`, `S:Default`, `S:ApplyDefault`, `S:FindRow`, `S.SameValue`,
+`S.BulkBegin`, `S.BulkEnd` and `S:Register` (now the library's `Validate`). The
 Options and Slash descriptors take the instance's members directly, as values; there is no gate in
 front of the seam for that to bypass. The descriptor supplies what is ours: every stored path
 resolves against `NS.db.profile` (resolved per call, because AceDB swaps the table on a switch), the

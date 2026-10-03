@@ -483,8 +483,8 @@ end
 -- single write seam, the bulk bracket (debug-logging-§10) and the load-time shape check -- is
 -- LibKa0s-Schema-1.0's (docs/api/Schema/version-1-docs.md in LibKa0s), adopted at LibKa0s v1.55.0.
 -- Every public name a caller used before is still here, bound to the instance below, so no call
--- site moved: S:Set, S:Get, S:Default, S:ApplyDefault, S:FindRow, S:ReadPath, S:WritePath,
--- S.SameValue, S.BulkBegin, S.BulkEnd and S:Register.
+-- site moved: S:Set, S:Get, S:Default, S:ApplyDefault, S:FindRow, S.SameValue, S.BulkBegin,
+-- S.BulkEnd and S:Register.
 --
 -- What the descriptor supplies is what is genuinely ours:
 --   * resolveRoot -- every stored path resolves against NS.db.profile, the active profile
@@ -713,8 +713,6 @@ local inst = SchemaLib:New({
 NS.SchemaRuntime = inst
 
 function S:FindRow(path) return inst.FindRow(path) end
-function S:ReadPath(root, path) return SchemaLib.Read(root, path) end
-function S:WritePath(root, path, value) return SchemaLib.Write(root, path, value) end
 S.SameValue = SchemaLib.SameValue
 
 -- The bulk bracket (debug-logging-§10). A bulk reset through this seam is logged as ONE
