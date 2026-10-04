@@ -79,7 +79,7 @@ pinned and nothing here depends on one).
 
 Drives the `complexity` suite of `tests/_kit/run-automated-tests.sh`, recorded in every run bundle.
 It never fails a **run** and never gates a **commit**; the **tag** is gated on all four suites plus
-zero functions above CCN 15, evaluated by `/wow-addon:bump-version` from the release run's
+zero functions above CCN 15, evaluated by `/dev-copilot:bump-version` from the release run's
 `manifest.json` (`automated-tests-§3`, *The release gate*). A missing `lizard` records the suite as
 a **skip** with its reason, not that the addon is broken, and at the tag a skip is **NOT EVALUATED**
 rather than a pass.

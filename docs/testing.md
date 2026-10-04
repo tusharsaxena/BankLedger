@@ -180,7 +180,7 @@ the gate protects nothing and the habit remains. They contribute `amber`, which 
 than a stop. **A missing tool is a skip recorded with its reason**, never a pass.
 
 **The tag is gated on all four suites at `pass`, plus zero functions above CCN 15**, evaluated by
-`/wow-addon:bump-version` from the release run's `manifest.json` — not by the runner, whose exit code
+`/dev-copilot:bump-version` from the release run's `manifest.json` — not by the runner, whose exit code
 is unchanged. A `skip` there is **not evaluated** rather than passed: install the tool and re-run.
 
 The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
