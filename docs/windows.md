@@ -67,7 +67,7 @@ hand-edited SavedVariables) cannot reopen a window too small to read.
 
 | Window | Frame | Opened by | Contents |
 |---|---|---|---|
-| Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one shared filter bar |
+| Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one filter bar; each tab keeps its own filter state and saved view |
 | Current Banking Session | `BankLedgerSessionWindow` | a bank frame opening (`SessionChanged`), or `/bl session` | One slim table of this visit's movements |
 
 The session window is **not** a second `NS.LedgerTable` instance. That module is a stateful singleton

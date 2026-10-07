@@ -19,7 +19,7 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
-| LEDG-1 – 48 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip |
+| LEDG-1 – 50 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
@@ -65,18 +65,18 @@ leaves its number unused.
   registered twice). Result:
 - **INSTALL-8. The migration ladder runs on a real store.** Copy
   `WTF/Account/<ACCOUNT>/SavedVariables/BankLedger.lua` somewhere safe. Edit the file: delete the
-  `["schemaVersion"] = 4,` line under `["global"]` and add `["vendorPrice"] = 20,` to one ledger entry
+  `["schemaVersion"] = 5,` line under `["global"]` and add `["vendorPrice"] = 20,` to one ledger entry
   (note which). Log in → zero Lua errors, and `/bl debug diagnostics` → its `[State]` section reads
-  `schema stored=4 code=4`. **Fail:** `stored=0`, the default showing through because the ladder did
+  `schema stored=5 code=5`. **Fail:** `stored=0`, the default showing through because the ladder did
   not run. Do not look for a `[Migrate]` line: the ladder runs in `addon:OnInitialize`, before any
   slash command can turn logging on, and logging is off at every login, so the line never reaches a
   client's console. The stamp alone cannot tell a walked store from one left alone; INSTALL-9 reads
   what the walk did from the file. Result:
 - **INSTALL-9. The walk shows in the file, and the stamp survives a logout.** After INSTALL-8, exit to
-  desktop (the strip runs on `PLAYER_LOGOUT`) and reopen the file → `["schemaVersion"] = 4,` is under
+  desktop (the strip runs on `PLAYER_LOGOUT`) and reopen the file → `["schemaVersion"] = 5,` is under
   `["global"]`, the planted `vendorPrice` key is gone from the entry you noted, and the settings still
-  sit under `["profiles"]` (on a store already at v4 no profile holds a retention window, so the v3
-  and v4 steps find nothing to move). **Fail:** `vendorPrice` still there (the v2 step did not run),
+  sit under `["profiles"]` (on a store already at v5 no profile holds a retention window or a
+  single `savedView`, so the v3, v4 and v5 steps find nothing to move). **Fail:** `vendorPrice` still there (the v2 step did not run),
   or the stamp missing again, meaning something declared a default equal to a real version
   (`savedvariables-§1`). Result:
 - **INSTALL-10. A stamped store is left alone.** After INSTALL-9, log back in. `/bl debug on`, open the
@@ -262,8 +262,9 @@ leaves its number unused.
 - **PROFILE-14. The schema v3 lift keeps your settings.** On a build before schema v3, set a minimum
   quality, a muted store and a row tint, blacklist an item, save a view and move the ledger. Install
   this build and log in → all of it as you left it, History complete. Log out and open
-  `BankLedger.lua` → settings, both lists and `savedView` under `["profiles"]["Default"]`; `["global"]`
-  holds only `ledger`, `minimap`, `schemaVersion = 4` and, if you changed Keep history for, a
+  `BankLedger.lua` → settings and both lists under `["profiles"]["Default"]`, and the saved view as
+  `savedViews` with the same view under both `History` and `Insights` (v5); `["global"]`
+  holds only `ledger`, `minimap`, `schemaVersion = 5` and, if you changed Keep history for, a
   `settings` table holding `retentionDays` alone (D6). **Fail:** a setting back at its default, or any
   other key in a `settings` table under `["global"]`. Result:
 
@@ -402,18 +403,22 @@ leaves its number unused.
 - **LEDG-12. Class icons.** Every character row and option shows its class icon and color;
   "Character: Current" has no icon. Result:
 - **LEDG-13. More groupings.** Group by Type, Sub-type and Quality → Quality groups run Poor→Legendary
-  and gold sits in its own "None" group. Result:
-- **LEDG-14. Clear.** With no saved view, change filters, grouping and sort, press Clear → all back to
-  their defaults. Result:
+  and gold sits in its own "None" group. Group: Type & SubType → one header per pair, read
+  "Type: Armor · Cloth", in type then sub-type order; an item with no sub-type reads "Type: Armor"
+  (no trailing dot) ahead of its siblings, gold reads plain "Type: Gold". With it picked, the closed
+  Group dropdown reads the whole "Group: Type & SubType", not clipped or ellipsized, clear of the ▼.
+  Save the view, `/reload` → it comes back grouped the same way. Result:
+- **LEDG-14. Clear.** With no saved view on History, change filters, grouping and sort, press Clear →
+  all back to their defaults. Result:
 - **LEDG-15. The button cluster.** Save · Reset · Clear sit in one cluster above Export, right edges
   flush with it, and stay put as the window widens. Result:
-- **LEDG-16. Save a view.** Set a grouping, two column filters and a search term, press Save → a "view
-  saved as your default" line in chat. Change filters, press Clear → back on the saved view. `/reload`
+- **LEDG-16. Save a view.** Set a grouping, two column filters and a search term, press Save → a
+  "History view saved as your default" line in chat. Change filters, press Clear → back on the saved view. `/reload`
   → the window opens on it. Result:
 - **LEDG-17. Character scope is not saved.** Set Character: All, Save, `/reload` → opens on Current.
   Result:
-- **LEDG-18. Reset the view.** Press Reset → chat confirms, the bar returns to stock, and Clear now
-  lands on stock. Result:
+- **LEDG-18. Reset the view.** Press Reset → chat confirms ("History view reset to stock defaults"),
+  the bar returns to stock, and Clear now lands on stock. Result:
 - **LEDG-19. Quality words.** The Quality column and the Quality filter read the quality names, and an
   export writes the same names into its rows. Result:
 - **LEDG-20. Test mode.** `/bl test` → the window opens on a sample ledger with a red TEST MODE badge
@@ -508,6 +513,23 @@ leaves its number unused.
   releasing well outside the grip, and `/reload` with the window open → it is still kept. Then Master
   controls ▸ Reset position, `/reload` → the default size and center return, not the old size.
   Result:
+- **LEDG-49. Search suggestions.** On History, type two letters of an item you have moved → a list
+  drops directly under the search box, exactly as wide as it, its top edge one gray line with the
+  box's bottom edge, rows in quality colors (a gold movement reads "Gold" in pale gold), names that
+  start with the letters first, at most eight. Down/Up move a gold highlight; Enter picks it → the
+  box reads that name, the list closes and the table filters to it at once. Type again, press Escape
+  → the list closes and the typed text stays. Type again and click a table row or the window title →
+  the list closes. Filter Store to one store → only that store's names are offered. Widen and
+  narrow the window → the list stays the box's width. Repeat the pick on Insights → the charts
+  follow it. `/bl test` → the suggestions are the sample's names. Result:
+- **LEDG-50. Each tab keeps its own filters and its own saved view.** On History set Store to one
+  store, Character: All and a search term; switch to Insights → the bar reads its own state (stock
+  on a first visit, Character: Current), not History's. Set Quality to Epic there and switch back
+  → History's store, All and search term are exactly as you left them; back on Insights → Epic is
+  still set. Save on each tab with different filters → each chat line names its tab. Press Clear on
+  Insights → Insights' saved view, never History's; History is untouched. Press Reset on Insights →
+  Insights goes to stock, then switch to History and press Clear → History's saved view is still
+  there. `/reload` → each tab opens on its own saved view. Result:
 
 ## INS
 
@@ -548,8 +570,10 @@ leaves its number unused.
   in quality color, a truncated one full on hover. No Top Items By Value. Result:
 - **INS-14. The GOLD block.** Move gold, refresh → the GOLD divider and its two charts. Filter out every
   gold movement → the whole block disappears rather than rendering empty. Result:
-- **INS-15. One filter, both tabs.** Filter on History, switch to Insights → every number and bar
-  reflects that filter. Result:
+- **INS-15. Insights keeps its own filter.** Filter on History, switch to Insights → the numbers and
+  bars reflect Insights' own filter state (stock on a first visit), not History's. Filter Insights to
+  one store → every number and bar reflects that store; switch to History and back → still that
+  store. Result:
 - **INS-16. Resize.** Resize the window → cards re-flow, bars and strips re-stretch, the Top Of The List
   columns stay side by side. Result:
 - **INS-17. Live update.** With Insights open, move something at a bank → it updates. Result:
@@ -953,7 +977,10 @@ repository.
 | LEDG-35, LEDG-37 – 41 | S-21 steps 1–7 | No recorded result |
 | LEDG-42 – 46 | S-22 steps 1–5 | No recorded result |
 | LEDG-47, LEDG-48 | New (the library's resize grip, CA-BL-01, BankLedger#21, LibKa0s v1.67.0) | Never run |
-| INS-1 – 17 | S-9 steps 1–17 | No recorded result |
+| LEDG-49 | New (the search box's suggestion list, P9, LibKa0s v1.70.0) | Never run |
+| LEDG-50 | New (per-tab filter views, owner request 2026-10-07, schema v5) | Never run |
+| INS-1 – 14, INS-16, INS-17 | S-9 steps 1–14, 16 and 17 | No recorded result |
+| INS-15 | S-9 step 15, rewritten for per-tab views (2026-10-07) | The old step asserted one filter shared by both tabs; each tab now keeps its own |
 | INS-18 | S-9 step 18, corrected by SP-BL-03R | The empty state is one of two named lines, and Character: Current counts as a filter; the old "no movements" line matched neither |
 | FILT-1 – 7 | S-11 steps 1–8 | No recorded result |
 | FILT-8 | S-11 step 9, corrected by SP-BL-03R | The lookup line ends in three periods (`Looking up items...`); the old step had an ellipsis character |

@@ -13,7 +13,7 @@ One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.de
 | Scope | Defaults file | Holds |
 |---|---|---|
 | `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp |
-| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`), both filter lists, the saved view |
+| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`), both filter lists, the saved views (one per tab) |
 
 The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
 per-character history would split the very record the addon exists to join up. What a player
@@ -120,6 +120,28 @@ every stored profile raw (`db.sv.profiles`, before anything reads `db.profile`) 
   current v3, which never lifts the key, so v4 has nothing to do for it.
 - **Walks the profiles, and still needs no per-profile stamp.** The profile defaults no longer
   declare the key, so a profile created after the step never carries one.
+
+#### Schema v5 — one saved view per ledger-window tab
+
+`db.global.schemaVersion` is now **5**. The ledger window's History and Insights tabs each keep their
+own filter state and their own saved view (owner request 2026-10-07), so the profile's single
+`savedView` becomes `savedViews = { History = view, Insights = view }`. The v4 → v5 step,
+`NS.MIGRATIONS[5]` in `core/Database.lua`, walks every stored profile raw (`db.sv.profiles`, before
+anything reads `db.profile`), as v4 does. Counts one row per profile that held the old key.
+
+- **Both slots get the old view.** A table under `savedView` is copied into each slot of
+  `savedViews` that is still empty, a separate deep copy per slot, so an in-place edit of one tab's
+  view can never reach the other's. The slot names are frozen in the step (`V5_VIEW_TABS`), like
+  v4's `V3_PROFILE_DEFAULTS`, so a tab added later does not change what the step wrote.
+- **The old key leaves.** `savedView` is removed whatever it held. A value corrupted to a scalar is
+  not a view, so it is dropped without making a slot.
+- **Nothing saved stays nothing.** A profile with no `savedView` gains no `savedViews` key: "no key"
+  is what "nothing saved" means, so an empty table is never seeded.
+- **Idempotent.** The old key is cleared as it is read, so a second run finds nothing; a slot that
+  already holds a view is never overwritten.
+- **After v3.** A v2 store still keeps its view under `db.global.savedView`; v3 lifts it into
+  `Default` (it is still in `NS.PROFILE_LIFT_KEYS`), and v5 then splits it. The stamp default stays
+  0 (below).
 
 #### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
 
@@ -274,11 +296,14 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   `NS.SessionWindow` (`modules/SessionWindow.lua`). Writers: `SW:SaveGeometry`, on the same four
   occasions (drag-stop, grip release, `OnHide`, and `PLAYER_LOGOUT` through `SW:OnLogout`), and
   `SW:ResetWindow`, which empties it and is reached by the same route as `B:ResetWindow`.
-- **Saved ledger view.** Storage key `db.profile.savedView`, absent until the player saves. Owner
-  `NS.Browser`. Writers: `B:SaveView`, from the filter bar's **Save** button, which stores the view on
-  screen whole (`B:CaptureView`), and `B:ResetView`, which clears it. The bar's **Reset** button
-  calls `B:ResetView`. A profile event puts the bar on the new profile's view (or stock) through
-  `B:ClearFilters`, which writes nothing.
+- **Saved ledger views.** Storage key `db.profile.savedViews`, one slot per ledger-window tab
+  (`History`, `Insights`), absent until the player saves. Owner `NS.Browser`. Writers: `B:SaveView`,
+  from the filter bar's **Save** button, which stores the view on screen whole (`B:CaptureView`) in
+  the active tab's slot, and `B:ResetView`, which clears that slot (and the table with its last
+  slot). The bar's **Reset** button calls `B:ResetView`. Neither touches the other tab's slot. A
+  profile event puts every tab back on the new profile's view for it (or stock) through
+  `B:ClearAllTabs`, which writes nothing. `NS.MIGRATIONS[5]` made the slots from the old single
+  `savedView` once (schema v5).
 - **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner **`NS.Launcher`**
   (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
   Writer: LibDBIcon itself, when the player drags the button
@@ -288,8 +313,9 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
   it from `defaults/Global.lua`, and the seam has no seed of its own. It was `NS.Browser`'s
   `B:SetupMinimap` until the launcher was adopted (`launcher-§1`).
 
-`NS.MIGRATIONS[3]` lifted the first three out of `db.global` once (schema v3); no other step touches
-any of the four. AceDB's profile switch, copy and reset replace the first three along with everything
+`NS.MIGRATIONS[3]` lifted the first three out of `db.global` once (schema v3), and
+`NS.MIGRATIONS[5]` split the saved view into its per-tab slots once (schema v5); no other step
+touches any of the four. AceDB's profile switch, copy and reset replace the first three along with everything
 else in the profile; the standard does not count a wholesale replacement as a writer to name. **The
 fourth is account-wide**: `db.global.minimap` is in no profile, so no profile event reaches it, and
 both keys in it are per-installation display preferences rather than settings (`launcher-§3` — see
@@ -302,7 +328,7 @@ no row addresses them, and each is written by its one owner module rather than t
 `Schema:Set`:
 - `settings.window`, the main window's geometry (owner `modules/Browser.lua`);
 - `settings.sessionWindow`, the session window's geometry (owner `modules/SessionWindow.lua`);
-- `db.profile.savedView`, the filter bar's saved baseline (owner `modules/Browser.lua`).
+- `db.profile.savedViews`, the filter bar's saved baseline per tab (owner `modules/Browser.lua`).
 
 `db.global.minimap.minimapPos` is the fourth, with a different writer: LibDBIcon stores the
 button's position there on a drag, in the table **`NS.Launcher`** (`core/LauncherSetup.lua`) hands
@@ -321,14 +347,19 @@ which writes copy-on-write, re-caches the capture gate and fires `LedgerChanged`
 is `NS.MIGRATIONS[3]`, which lifted them out of `db.global`. See
 [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers).
 
-**The saved view** — `db.profile.savedView` holds the grouping, sort, date range, search text and the
-five multi-select column filters, captured by the filter bar's **Save** button. It is *absent* until
-the user saves: no key is what "nothing saved" means, so an empty table stays available to mean a
-deliberately all-cleared save. **Clear** returns to it (or to `STOCK_VIEW` when absent); **Reset**
-discards it, as does the global reset (`Sl:ResetEverything`, behind every reset control). The character
+**The saved views** — `db.profile.savedViews[tab]` holds, for each ledger-window tab (`History`,
+`Insights`), the grouping, sort, date range, search text and the five multi-select column filters,
+captured by the filter bar's **Save** button on that tab. A slot is *absent* until the user saves on
+that tab: no key is what "nothing saved" means, so an empty table stays available to mean a
+deliberately all-cleared save. **Clear** returns the active tab to its own slot (or to `STOCK_VIEW`
+when absent); **Reset** discards the active tab's slot only; the global reset
+(`Sl:ResetEverything`, behind every reset control) discards them all. Each tab also keeps its own
+**live** filter state for the session: a tab switch captures the outgoing tab's view and character
+selection and paints the incoming tab's (`B:SwapTabState`), or, on a tab's first visit, its
+baseline. The live states are never persisted. The character
 scope is deliberately *not* part of a view — it is a per-session default of Current that widens on
 demand, so a stale save can never pin the window to one alt. Applied at frame build and again on
-every profile event (the new profile's view), so closing and reopening the window mid-session keeps
+every profile event (the new profile's views), so closing and reopening the window mid-session keeps
 whatever you were working with.
 
 **The movement log is recorded data, not a carve-out or a registry** (`architecture-§5` named

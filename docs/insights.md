@@ -1,7 +1,7 @@
 # Insights
 
-One `Database:Stats(filter)` pass per refresh, against the Browser's shared filter, feeds the whole
-panel — so the charts and the History table always describe the same slice. The panel is split in two:
+One `Database:Stats(filter)` pass per refresh, against the Insights tab's own filter state (the
+filter bar holds it while Insights is on screen; History keeps its own), feeds the whole panel. The panel is split in two:
 
 * `modules/InsightsWidgets.lua` — **how** things are drawn. Pooled primitives (KPI card, horizontal
   bar, back-to-back bar, split bar, stacked bar, vertical strip, ranked list panel, legend, section

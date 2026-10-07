@@ -121,11 +121,19 @@ local function fakeSearch()
   return s
 end
 
--- Run `fn` against a fake bar and a parked saved view, restoring the real ones (and the shared
+-- The active tab's saved-view slot (NS.db.profile.savedViews[tab]): what Save writes and Reset
+-- clears. Read through the module's own active-tab accessor, so these cases follow whichever tab an
+-- earlier suite left on screen rather than assuming History.
+local function slot()
+  local s = NS.db.profile.savedViews
+  return type(s) == "table" and s[B:ActiveTab()] or nil
+end
+
+-- Run `fn` against a fake bar and parked saved views, restoring the real ones (and the shared
 -- filter) whether it passes or throws.
 local function withFakeBar(fn)
   local savedDd, savedSearch = B._dd, B._search
-  local savedView = NS.db.profile.savedView
+  local savedViews = NS.db.profile.savedViews
   local savedGroup, savedSort, savedAsc =
     NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc
   local dd = {}
@@ -133,10 +141,10 @@ local function withFakeBar(fn)
     dd[k] = fakeDropdown()
   end
   B._dd, B._search = dd, fakeSearch()
-  NS.db.profile.savedView = nil
+  NS.db.profile.savedViews = nil
   local ok, err = pcall(function() withCleanFilter(function() fn(dd) end) end)
   B._dd, B._search = savedDd, savedSearch
-  NS.db.profile.savedView = savedView
+  NS.db.profile.savedViews = savedViews
   NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc =
     savedGroup, savedSort, savedAsc
   if not ok then error(err, 0) end
@@ -150,8 +158,10 @@ end)
 
 test("Browser: a corrupt saved view degrades to stock rather than erroring", function()
   withFakeBar(function()
-    NS.db.profile.savedView = "not a table"
+    NS.db.profile.savedViews = { [B:ActiveTab()] = "not a table" }
     assertEqual(B._savedViewOrStock(), B._STOCK_VIEW, "a scalar is not a view")
+    NS.db.profile.savedViews = "not a table either"
+    assertEqual(B._savedViewOrStock(), B._STOCK_VIEW, "a scalar is not a set of views")
   end)
 end)
 
@@ -183,6 +193,18 @@ test("Browser:SaveView then ClearFilters returns to the SAVED view, not stock", 
   end)
 end)
 
+test("Browser: a 'typesub' grouping survives SaveView and comes back on Clear", function()
+  withFakeBar(function(dd)
+    NS.LedgerTable.groupBy = "typesub"
+    B:SaveView()
+    assertEqual(slot().groupBy, "typesub", "stored verbatim")
+    NS.LedgerTable.groupBy = "none"
+    B:ClearFilters()
+    assertEqual(NS.LedgerTable.groupBy, "typesub")
+    assertEqual(dd.group._value, "typesub", "the Group dropdown shows the saved mode")
+  end)
+end)
+
 test("Browser:ResetView drops the saved view, and Clear then lands on stock", function()
   withFakeBar(function(dd)
     NS.LedgerTable.groupBy = "store"
@@ -190,7 +212,7 @@ test("Browser:ResetView drops the saved view, and Clear then lands on stock", fu
     B:SaveView()
     B:ResetView(true)
 
-    assertEqual(NS.db.profile.savedView, nil, "the saved view is gone from storage")
+    assertEqual(slot(), nil, "the saved view is gone from storage")
     assertEqual(NS.LedgerTable.groupBy, "none")
     assertEqual(B.activeFilter.store, nil)
     assertEqual(B._savedViewOrStock(), B._STOCK_VIEW)
@@ -201,7 +223,7 @@ test("Browser:ResetView drops the saved view, and Clear then lands on stock", fu
   end)
 end)
 
--- Regression: CaptureView's return is written verbatim to NS.db.profile.savedView, so its SHAPE is a
+-- Regression: CaptureView's return is written verbatim to a NS.db.profile.savedViews slot, so its SHAPE is a
 -- SavedVariables shape. With no table module the sort direction must be a nil in the constructor,
 -- which leaves the `sortAsc` KEY ABSENT from the stored view — a refactor that defaulted it to
 -- `false` instead would start writing a key that was never on disk before, and an absent key and a
@@ -258,7 +280,7 @@ test("Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved
     dd.store:SetSelected({ BANK = true })
     B:SaveView()
     dd.store:SetSelected({ BANK = true, GUILD_BANK = true })   -- the user keeps filtering
-    assertEqual(NS.db.profile.savedView.store.GUILD_BANK, nil)
+    assertEqual(slot().store.GUILD_BANK, nil)
   end)
 end)
 
@@ -268,8 +290,8 @@ test("Browser: a saved date range is stored as the OPTION, not a resolved timest
   withFakeBar(function(dd)
     dd.date:SelectValue("7d")
     B:SaveView()
-    assertEqual(NS.db.profile.savedView.date, "7d")
-    assertEqual(NS.db.profile.savedView.from, nil)
+    assertEqual(slot().date, "7d")
+    assertEqual(slot().from, nil)
   end)
 end)
 
@@ -283,12 +305,187 @@ end)
 
 test("Slash:CliResetAll (the profile reset) also discards the saved view", function()
   -- `/bl resetall` is Sl:ResetEverything now (options-ui-§12), and its db:ResetProfile() takes
-  -- savedView with the rest of the profile. red under: a reset that keeps savedView.
+  -- savedViews with the rest of the profile. red under: a reset that keeps savedViews.
   withFakeBar(function(dd)
     dd.store:SetSelected({ BANK = true })
     B:SaveView()
     NS.Slash:CliResetAll()
-    assertEqual(NS.db.profile.savedView, nil)
+    assertEqual(NS.db.profile.savedViews, nil)
+  end)
+end)
+
+-- ── Per-tab views (owner request 2026-10-07) ────────────────────────────────────
+-- History and Insights each keep their OWN live filter state and their OWN saved view. The bar is
+-- one set of widgets, so a tab switch captures the outgoing tab's state and paints the incoming
+-- tab's; Save, Reset and Clear act on the tab on screen and never reach the other. Driven through
+-- the real window, so the widgets, SelectTab and the stash all run as they do in game.
+
+local function muted(fn)
+  local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
+  local ok, err = pcall(fn)
+  mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+  if not ok then error(err, 0) end
+end
+
+local function withTabs(fn)
+  local savedViews = NS.db.profile.savedViews
+  local savedGroup, savedSort, savedAsc =
+    NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc
+  NS.db.profile.savedViews = nil
+  local ok, err = pcall(function()
+    muted(function()
+      B:Show()
+      B:SelectTab("History")
+      B:ClearAllTabs()
+    end)
+    fn(B._dd)
+  end)
+  muted(function()
+    B:SelectTab("History")
+    NS.db.profile.savedViews = savedViews
+    B:ClearAllTabs()
+    B:Hide()
+  end)
+  NS.LedgerTable.groupBy, NS.LedgerTable.sortKey, NS.LedgerTable.sortAsc =
+    savedGroup, savedSort, savedAsc
+  if not ok then error(err, 0) end
+end
+
+local function views() return NS.db.profile.savedViews or {} end
+
+test("Per-tab views: Save on a tab writes that tab's slot and never the other's", function()
+  -- red under: one shared savedView (Save on Insights rewrites the view History comes back to).
+  withTabs(function()
+    muted(function()
+      B:ApplyView({ store = { BANK = true } }, "current")
+      B:SaveView()
+      B:SelectTab("Insights")
+      B:ApplyView({ quality = { [4] = true } }, "current")
+      B:SaveView()
+    end)
+    assertEqual(views().History.store.BANK, true, "History's slot holds History's view")
+    assertEqual(next(views().History.quality), nil, "Insights' Save reached History's slot")
+    assertEqual(views().Insights.quality[4], true, "Insights' slot holds Insights' view")
+    assertEqual(next(views().Insights.store), nil, "History's Save reached Insights' slot")
+  end)
+end)
+
+test("Per-tab views: Reset on a tab drops only that tab's saved view", function()
+  -- red under: a Reset that clears every saved view, or the one shared key.
+  withTabs(function()
+    muted(function()
+      B:ApplyView({ store = { BANK = true } }, "current")
+      B:SaveView()
+      B:SelectTab("Insights")
+      B:ApplyView({ quality = { [4] = true } }, "current")
+      B:SaveView()
+      B:ResetView(true)
+    end)
+    assertEqual(views().Insights, nil, "Insights' saved view survived its Reset")
+    assertEqual(B.activeFilter.quality, nil, "Reset did not land Insights on stock")
+    assertEqual(views().History.store.BANK, true, "Insights' Reset discarded History's saved view")
+    muted(function()
+      B:SelectTab("History")
+      B:ResetView(true)
+    end)
+    assertEqual(NS.db.profile.savedViews, nil, "an emptied set of views is left in the profile")
+  end)
+end)
+
+test("Per-tab views: Clear on a tab returns to that tab's own saved view", function()
+  -- red under: Clear reading another tab's slot, or touching the other tab's live state.
+  withTabs(function(dd)
+    muted(function()
+      B:ApplyView({ store = { BANK = true } }, "current")
+      B:SaveView()
+      B:SelectTab("Insights")
+      B:ApplyView({ quality = { [4] = true } }, "current")
+      B:SaveView()
+      B:ApplyView({ direction = { WITHDRAW = true } }, "all")   -- wander off Insights' baseline
+      B:ClearFilters()
+    end)
+    assertEqual((B.activeFilter.quality or {})[4], true, "Insights' Clear missed its own saved view")
+    assertEqual(B.activeFilter.store, nil, "Insights' Clear applied History's saved view")
+    assertEqual(B.activeFilter.direction, nil, "Clear left the wandered-off filter on")
+    muted(function()
+      B:ApplyView({ direction = { DEPOSIT = true } }, "current")   -- History's live state
+      B:SelectTab("History")
+    end)
+    assertEqual((B.activeFilter.store or {}).BANK, true, "History's live state was lost to the Clear")
+    muted(function() B:ClearFilters() end)
+    assertEqual((B.activeFilter.store or {}).BANK, true, "History's Clear missed its own saved view")
+    assertEqual(B.activeFilter.quality, nil, "History's Clear applied Insights' saved view")
+    assertTrue(dd.quality._selected[4] == nil, "the bar shows Insights' quality on History")
+  end)
+end)
+
+test("Per-tab views: switching tabs restores each tab's live state exactly", function()
+  -- Filters, date, search, group, sort AND the character scope each come back as the player left
+  -- them on that tab. red under: one shared live filter (the Insights edits show on History).
+  withTabs(function(dd)
+    muted(function()
+      B:ApplyView({ groupBy = "store", sortKey = "qty", sortAsc = true, store = { BANK = true },
+                    date = "7d", search = "linen" }, "all")
+      B:SelectTab("Insights")
+    end)
+    assertEqual(B.activeFilter.store, nil, "Insights opened on History's live filter")
+    assertEqual(B._search:GetText(), "", "Insights opened on History's search text")
+    assertEqual((B.activeFilter.char or {})[NS.Util.PlayerKey()], true,
+      "an unvisited tab opens scoped to the current character")
+    muted(function()
+      B:ApplyView({ groupBy = "day", quality = { [3] = true }, search = "silk" },
+        { ["Alt-Realm"] = true })
+      B:SelectTab("History")
+    end)
+    assertEqual(NS.LedgerTable.groupBy, "store")
+    assertEqual(NS.LedgerTable.sortKey, "qty")
+    assertEqual(NS.LedgerTable.sortAsc, true)
+    assertEqual(dd.store._selected.BANK, true)
+    assertEqual(dd.quality._selected[3], nil, "Insights' quality leaked onto History")
+    assertEqual(dd.date._value, "7d")
+    assertEqual(B._search:GetText(), "linen")
+    assertEqual((B.activeFilter.store or {}).BANK, true)
+    assertEqual(B.activeFilter.text, "linen")
+    assertEqual(B.activeFilter.char, nil, "History's All scope was not restored")
+    muted(function() B:SelectTab("Insights") end)
+    assertEqual(NS.LedgerTable.groupBy, "day")
+    assertEqual(dd.quality._selected[3], true)
+    assertEqual(dd.store._selected.BANK, nil, "History's store leaked onto Insights")
+    assertEqual(B.activeFilter.text, "silk")
+    assertEqual((B.activeFilter.char or {})["Alt-Realm"], true, "Insights' character scope was lost")
+    assertEqual((B.activeFilter.char or {})[NS.Util.PlayerKey()], nil)
+  end)
+end)
+
+test("Per-tab views: a tab's first visit opens on its own saved view", function()
+  -- red under: the unvisited tab inheriting the outgoing tab's live state or saved view.
+  withTabs(function()
+    NS.db.profile.savedViews = { Insights = { groupBy = "day", quality = { [4] = true } } }
+    muted(function()
+      B:ClearAllTabs()
+      B:ApplyView({ store = { BANK = true } }, "current")
+      B:SelectTab("Insights")
+    end)
+    assertEqual((B.activeFilter.quality or {})[4], true, "Insights did not open on its saved view")
+    assertEqual(B.activeFilter.store, nil, "Insights opened on History's live state")
+    assertEqual(NS.LedgerTable.groupBy, "day")
+  end)
+end)
+
+test("Per-tab views: a profile event drops every tab's live state onto the new profile's views", function()
+  -- NS.OnProfileEvent repaints through B:ClearAllTabs, so the tab off screen does not come back
+  -- on a live state captured under the old profile. red under: NS.OnProfileEvent calling only
+  -- B:ClearFilters (the Insights stash survives the profile change).
+  withTabs(function()
+    muted(function()
+      B:SelectTab("Insights")
+      B:ApplyView({ store = { BANK = true } }, "current")
+      B:SelectTab("History")
+      NS.OnProfileEvent("OnProfileChanged")
+      B:SelectTab("Insights")
+    end)
+    assertEqual(B.activeFilter.store, nil, "Insights came back on a live state the profile change discarded")
   end)
 end)
 
@@ -369,6 +566,41 @@ test("the ledger window saves its geometry when it hides", function()
   assertEqual(saved.point, "TOPLEFT", "closing the window persisted the position")
   assertEqual(saved.x, 111)
   assertEqual(saved.w, 980)
+end)
+
+test("the Group dropdown offers 'Type & SubType' right after Sub-type", function()
+  NS.Browser:Show()
+  local dd = B._dd and B._dd.group
+  assertTrue(dd ~= nil, "the group dropdown exists once the filter bar is built")
+  local values, label = {}, nil
+  for _, o in ipairs(dd._options or {}) do
+    values[#values + 1] = o.value
+    if o.value == "typesub" then label = o.label end
+  end
+  assertEqual(table.concat(values, ","),
+    "none,day,store,direction,kind,type,subtype,typesub,quality,char")
+  assertEqual(label, "Group: Type & SubType")
+  NS.Browser:Hide()
+end)
+
+test("the Group dropdown is wide enough for its longest closed label, and Search keeps its floor", function()
+  NS.Browser:Show()
+  local dd = B._dd and B._dd.group
+  assertTrue(dd ~= nil, "the group dropdown exists once the filter bar is built")
+  assertEqual(dd:GetWidth(), B._GROUP_W, "Group is built at GROUP_W, not a literal")
+  -- The closed label gets the width minus 6 px left and 16 px right (the arrow) and never wraps;
+  -- ~6 px a character in GameFontHighlightSmall is the budget every option label must fit.
+  local longest = 0
+  for _, o in ipairs(dd._options or {}) do longest = math.max(longest, #o.label) end
+  assertEqual(longest, #"Group: Type & SubType", "Type & SubType is the longest Group label")
+  assertTrue(B._GROUP_W - 22 >= longest * 6,
+    "closed label budget " .. (B._GROUP_W - 22) .. " px < " .. longest * 6 .. " px")
+  -- Row 1 spans exactly the row-2 dropdowns (Search's right edge is pinned to Character's), so a
+  -- wider Group narrows only Search; at the window's minimum width it must keep SEARCH_MIN.
+  local searchAtMin = B._DROPDOWNS_W - B._GROUP_W - 8
+  assertTrue(searchAtMin >= B._SEARCH_MIN,
+    "search at min width " .. searchAtMin .. " < " .. B._SEARCH_MIN)
+  NS.Browser:Hide()
 end)
 
 -- The regression this addon shipped once: the popup menu is LibKa0s-Widgets-1.0's process-wide

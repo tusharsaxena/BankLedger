@@ -77,7 +77,8 @@ stored outside the rows is named per `architecture-§5`:
   `Documented deviations` row:
   - **Main window geometry**, `db.profile.settings.window`, owned by `NS.Browser`.
   - **Session window geometry**, `db.profile.settings.sessionWindow`, owned by `NS.SessionWindow`.
-  - **Saved ledger view**, `db.profile.savedView`, owned by `NS.Browser`.
+  - **Saved ledger views**, `db.profile.savedViews` (one per ledger-window tab, keyed `History` /
+    `Insights`; schema v5 split the single `savedView` into it), owned by `NS.Browser`.
   - **Minimap button position**, `db.global.minimap.minimapPos`, written by LibDBIcon into the
     account-wide table `NS.Launcher` hands it; no profile event reaches it (`launcher-§3`, see
     **Launcher** below).
@@ -407,7 +408,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
-| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift and the v4 return of the window, the profile events, the reset and the `/bl profile` verb |
+| `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift, the v4 return of the window and the v5 per-tab saved views, the profile events, the reset and the `/bl profile` verb |
 | `debug.md` | Present | The trace's **Coverage** (every tag, what emits it and when, and the reconcile pass's quiet steady state, `debug-logging-§8`/`§9`); the diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned topic dumps, `/bl debug scan` and `/bl debug panel`; which to paste with a bug report |
 | `perf-analysis/README.md` | Not applicable | The `performance-§12` no-combat-path exemption is held — see `## Documented deviations` |
 
@@ -456,8 +457,8 @@ library adoptions or scope, not rules of the standard (#5 and #9 are cited by th
 per file, with its terminal state: an open issue naming the seam a peel would follow, a ratified
 deviation row above, or a scheduled peel.
 
-Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1223 lines,
-measured 2026-10-03 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
+Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1328 lines,
+measured 2026-10-07 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
 wc -l | sort -n`. The figure is prose, not a pin; `tests/_kit/test_layout_cap.lua` asserts membership
 in both directions -- an over-cap file missing from this census, or a row here naming a file that
 is no longer over the cap -- and the dated number is not what it checks.

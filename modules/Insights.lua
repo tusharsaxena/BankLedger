@@ -165,8 +165,10 @@ function I:Attach(pane)
   self:Refresh()
 end
 
--- Which filter the view computes against: the browser's shared filter, so the Insights numbers and
--- the table rows always describe the same slice of the ledger.
+-- Which filter the view computes against: the Insights tab's own filter state, which the Browser's
+-- filter bar holds (B:CurrentFilter) whenever Insights is the tab on screen. History keeps its own;
+-- a tab switch trades them (B:SwapTabState) and B:SelectTab then refreshes this view, so a refresh
+-- that ran while History was on screen is repainted from Insights' own filter on the way back.
 local function currentFilter()
   if NS.Browser and NS.Browser.CurrentFilter then return NS.Browser:CurrentFilter() end
   return {}

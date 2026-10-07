@@ -239,6 +239,13 @@ tests/
                            --   LibKa0s's repo-local tests/mock_menu.lua; installed per case by
                            --   test_launcher.lua and test_disabled.lua. Not a suite
   test_<module>.lua        -- one suite per module
+  test_autocomplete.lua    -- the search box's suggestion list (P9): the B:MakeAutocomplete seam
+                           --   (copied opts, nil without the library), the list hung under the
+                           --   box at its width, B.SuggestNames (distinct names, prefix first,
+                           --   Gold in its pale gold, quality colors, the other filters honored
+                           --   and the typed text set aside, at most eight, the test-mode sample),
+                           --   a pick applying once and at once, a row click, a tab switch, the
+                           --   window close and the stand-down closing the list
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
   test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
                            --   one module: the four _enabled latches released together, and
@@ -280,10 +287,11 @@ tests/
                            --   Launcher's and the login's state lines through the at-enable
                            --   queue, and the [Diff] gate re-armed by a Clear; each landing here
                            --   and written once, with no host line beside it
-  test_profiles.lua        -- settings per AceDB profile (schema v3/v4, docs/profiles.md): the
+  test_profiles.lua        -- settings per AceDB profile (schema v3/v4/v5, docs/profiles.md): the
                            --   global/profile defaults split, the v3 lift into `Default` (values
                            --   land, db.global cleared, the ledger untouched, idempotent), the v4
-                           --   return of the retention window to db.global, the account-wide
+                           --   return of the retention window to db.global, the v5 per-tab saved
+                           --   views, the account-wide
                            --   window (D6), reads resolving against the profile, NS.OnProfileEvent
                            --   on a switch, a copy and a page-driven reset (and never a prune), the
                            --   global reset's named veto; plus the Profiles page itself and

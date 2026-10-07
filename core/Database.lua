@@ -27,6 +27,8 @@ end
 -- The profile keys schema v3 lifted out of db.global, in the order they are moved. `settings` is
 -- every schema row's root; the other three are the architecture-§5 structural registry (the two
 -- filter lists) and the named non-setting state (the saved view) a profile carries beside it.
+-- `savedView` is the v2 store's key and stays here for that store: v5 below then splits what v3
+-- lifted into the per-tab `savedViews`.
 NS.PROFILE_LIFT_KEYS = { "settings", "blacklist", "whitelist", "savedView" }
 
 -- The `settings` keys that are NOT lifted, and stay account-wide under db.global.settings: the ones
@@ -41,6 +43,18 @@ NS.GLOBAL_SETTINGS = { retentionDays = true }
 -- from the live defaults, because v4 interprets a store THAT build wrote: a later change to the
 -- declared window must not change what an absent key in one of its profiles meant.
 local V3_PROFILE_DEFAULTS = { retentionDays = 30 }
+
+-- The ledger window's tabs as the v5 step writes them: the `savedViews` slot names. Frozen here,
+-- like V3_PROFILE_DEFAULTS, rather than read from modules/Browser.lua's TABS: the step produces the
+-- shape the v5 build reads, and a tab added later must not change what the step wrote.
+local V5_VIEW_TABS = { "History", "Insights" }
+
+--- A deep copy of a stored view (its sets are tables), for the v5 step's one copy per slot.
+local function copyView(v)
+  local out = {}
+  for k, val in pairs(v) do out[k] = (type(val) == "table") and copyView(val) or val end
+  return out
+end
 
 --- A stored profile's raw `settings` table, or nil. Raw, so no AceDB default is read as stored.
 local function rawProfileSettings(p)
@@ -166,6 +180,39 @@ NS.MIGRATIONS = {
     end
     return n
   end,
+
+  -- v4 -> v5: one saved view per ledger-window tab (owner request 2026-10-07). The profile's single
+  -- `savedView` becomes `savedViews = { History = view, Insights = view }`: every STORED profile
+  -- is walked raw, as v4 does, and a table under the old key is copied into each tab slot that is
+  -- still empty -- a COPY per slot, so a later in-place edit of one tab's view cannot reach the
+  -- other's -- and the old key leaves. A value corrupted to a scalar is not a view: it is dropped,
+  -- and no slot is made for it. A profile that never saved a view gains nothing: "no key" is what
+  -- "nothing saved" means (defaults/Profile.lua).
+  --
+  -- IDEMPOTENT: the old key is cleared the moment it is read, so a second run finds nothing and
+  -- touches nothing; a slot that already holds a view is never overwritten. Counts one row per
+  -- profile that held the old key.
+  [5] = function(_, db)
+    local sv = db and db.sv
+    local profiles = type(sv) == "table" and sv.profiles
+    if type(profiles) ~= "table" then return 0 end
+    local n = 0
+    for _, p in pairs(profiles) do
+      local old = type(p) == "table" and rawget(p, "savedView") or nil
+      if old ~= nil then
+        if type(old) == "table" then
+          local slots = rawget(p, "savedViews")
+          if type(slots) ~= "table" then slots = {}; rawset(p, "savedViews", slots) end
+          for _, tab in ipairs(V5_VIEW_TABS) do
+            if slots[tab] == nil then slots[tab] = copyView(old) end
+          end
+        end
+        rawset(p, "savedView", nil)
+        n = n + 1
+      end
+    end
+    return n
+  end,
 }
 
 -- Schema-migration runner (toc-file-§2 / savedvariables-§1, standard v2.65.0). Invoked once at init,
@@ -249,11 +296,11 @@ end
 --- optional because a profile can change before a module has built its frame.
 local function applyProfileEffects()
   local U, B, SW = NS.Util, NS.Browser, NS.SessionWindow
-  -- Stored geometry and the saved view belong to the profile: re-anchor both windows from it, and
-  -- put the ledger window on the new profile's view (or stock), silently.
+  -- Stored geometry and the saved views belong to the profile: re-anchor both windows from it, and
+  -- put every ledger-window tab back on the new profile's view for that tab (or stock), silently.
   if B and B.ApplyGeometry then B:ApplyGeometry() end
   if SW and SW.ApplyGeometry then SW:ApplyGeometry() end
-  if B and B.ClearFilters then B:ClearFilters() end
+  if B and B.ClearAllTabs then B:ClearAllTabs() end
   if U then
     U.ApplyMasterChrome()
     U.ApplyVisibility()
