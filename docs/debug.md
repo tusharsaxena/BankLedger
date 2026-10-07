@@ -86,9 +86,10 @@ on. Every other line above is written by a user action or a state edge, not by a
   on every guildmate's deposit; declining to arm on it is a high-frequency no-op, and a line per
   event would be the spam `§9` forbids. The absence of a `[Store] GUILD_BANK opened` line is the
   evidence (smoke CAPT-14).
-- **Named non-setting state.** Window geometry, the saved view and the remembered tab are written
-  outside the seam and are not logged per change (`debug-logging-§10`'s SHOULD NOT); a saved or
-  reset view prints its own chat line.
+- **Named non-setting state.** Window geometry and the saved views (one per ledger-window tab) are
+  written outside the seam and are not logged per change (`debug-logging-§10`'s SHOULD NOT); a saved
+  or reset view prints its own chat line. The active tab (`lastTab` in `modules/Browser.lua`) is
+  remembered for the session only and is never written to SavedVariables.
 - **Events at login.** The flag is off at every login (`debug-logging-§5`), so a migration and the
   login prune run before anything can be logged, and they are events, not state, so the at-enable
   queue does not hold them. The report's `state` section carries what they left behind: the schema

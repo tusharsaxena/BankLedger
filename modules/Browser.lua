@@ -294,8 +294,8 @@ B.activeFilter = {}
 -- consuming addon's name, and a vendored copy does not know which folder it was copied into. So the
 -- three pieces of art a Bank Ledger dropdown wears are resolved on this side and handed over.
 --
--- FONT_MONO for the glyph because the row font has no ▲/▼, which is the same documented deviation
--- the Direction column in modules/LedgerTable.lua carries, for the same reason.
+-- FONT_MONO for the glyph because the row font has no ▲/▼: the same debug-logging-§2 mono-face
+-- exception the Direction column in modules/LedgerTable.lua uses, for the same reason.
 function B:MakeDropdown(parent, width)
   if not W then return nil end
   return W.Dropdown(parent, width, {

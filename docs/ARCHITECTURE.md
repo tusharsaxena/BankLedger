@@ -90,8 +90,8 @@ The runtime and its stub, and every writer of each with the act that reaches it,
 ## Profiles
 
 AceDB profiles, since schema v3. A profile holds **everything a player configures** but the
-retention window: every other schema row, both filter lists, the saved view and both windows'
-geometry. The **recorded ledger**, the **retention window** that governs it and LibDBIcon's table
+retention window: every other schema row, both filter lists, the saved views (one per
+ledger-window tab) and both windows' geometry. The **recorded ledger**, the **retention window** that governs it and LibDBIcon's table
 stay **account-wide** in `db.global`, so switching profile never changes what was recorded or how
 much of it is kept (owner decisions D5 and D6, 2026-09-29). Every character starts on the one shared
 `Default` profile, which is where `NS.MIGRATIONS[3]` lifted the old account-wide settings;
@@ -101,7 +101,7 @@ The **Profiles** page (`settings/Profiles.lua`, `options-ui-§3`) is AceDBOption
 subcategory, registered after General, with no Defaults button. AceDB's three profile callbacks all
 reach **`NS.OnProfileEvent`** (`core/Database.lua`), the one adopt path: the migration runner, the
 enable latch, one `SettingsChanged("profile")` and one `LedgerChanged`, every setting's effect
-re-applied (window geometry and chrome, the saved view, visibility, the row tint), the panel
+re-applied (window geometry and chrome, each tab's saved view, visibility, the row tint), the panel
 refreshed, and exactly one debug line for the act (`debug-logging-§10`). It never runs the retention
 prune: no profile event deletes history (D6). The global reset is `db:ResetProfile()`
 (`options-ui-§12`, the "addon with both" form), so it is the same act as the Profiles page's Reset

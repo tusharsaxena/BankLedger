@@ -25,9 +25,9 @@ local COL_GAP = 8      -- horizontal space between columns
 -- It needs the MONO face: the default WoW font has no ▲/▼ and renders a box, while JetBrains Mono
 -- carries both. The face is no longer this addon's own — it arrives with the LibKa0s payload and
 -- C.FONT_MONO resolves to it through core/MediaSetup.lua, falling back to the client font (and so
--- to a box) only where the library is missing. That is an accepted, documented deviation: the mono
--- face is a sanctioned styling exception scoped to the debug console (debug-logging-§2), and this
--- extends it to one glyph. See docs/ARCHITECTURE.md ▸ Documented deviations.
+-- to a box) only where the library is missing. The mono face is the sanctioned mono-face exception
+-- of debug-logging-§2, used here for one glyph the client font cannot draw; it needs no register
+-- row.
 local ARROW_SIZE, ARROW_GAP = 12, 2
 
 -- Gold movements name themselves "Gold" in the Item column. A quality color would be a lie (gold

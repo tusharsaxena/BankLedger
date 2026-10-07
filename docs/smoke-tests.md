@@ -110,7 +110,7 @@ leaves its number unused.
 - **PANEL-1. Landing page.** `/bl config` → the logo, the tagline and every slash command, `profile`
   included. The logo is present and crisp: blank is a real failure (a missing texture draws nothing
   and raises nothing), soft or jagged means the `.tga` was regenerated at a size that is not a power of
-  two (ARCHITECTURE ▸ Logo art). Result:
+  two (media.md ▸ Logo art). Result:
 - **PANEL-2. The settings tree.** Settings ▸ AddOns ▸ Ka0s Bank Ledger → General, then Profiles, and no
   Filters page (an entry there would open onto nothing). Result:
 - **PANEL-3. General's header.** Open General → a breadcrumb header, a gold divider and a Defaults
@@ -196,10 +196,11 @@ leaves its number unused.
   the same popup (`options-ui-§12`). No → nothing changes. On General change a setting, then footer
   Defaults ▸ Yes → the PANEL-28 reset runs (settings at stock, both lists empty, History keeps its
   row count), which proves the framework calls the addon. Result:
-- **PANEL-28. What Yes resets.** Save a view, blacklist and whitelist an item, change a few settings
-  (row tints included), tick Test mode, open the console, hide the minimap button, move both windows.
-  Reset all settings ▸ Yes → every setting at stock (tints back to 0.03 and 0.10), both lists empty,
-  the saved view discarded (Clear lands on stock), test mode off, the console closed, both windows
+- **PANEL-28. What Yes resets.** Save a view on History AND a different one on Insights, blacklist
+  and whitelist an item, change a few settings (row tints included), tick Test mode, open the
+  console, hide the minimap button, move both windows. Reset all settings ▸ Yes → every setting at
+  stock (tints back to 0.03 and 0.10), both lists empty, both saved views discarded (Clear on History
+  and Clear on Insights each land on stock), test mode off, the console closed, both windows
   recentered, the minimap button still hidden. History keeps every row. Result:
 - **PANEL-29. The open views keep the history.** `/bl show`, press Reset on the filter bar (the view
   back to stock) and note the footer's `Showing n of N`, then switch to Insights and leave it on

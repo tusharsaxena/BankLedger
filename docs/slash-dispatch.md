@@ -138,7 +138,7 @@ this refusal line while disabled; that refusal and the `disabledLine` field that
   (`options-ui-§12`): `Sl:CliResetAll` returns `Sl:RequestResetAll()`, the single entry point that
   the Master controls tab's *Reset all settings*, the General page's **Defaults** and Blizzard's
   footer **Defaults** share too. It raises the confirm popup `KA0S_BANKLEDGER_RESETALL`, whose
-  `OnAccept` is `Sl:ResetEverything` — `db:ResetProfile()`: the active profile's settings, both filter lists and the saved view back to
+  `OnAccept` is `Sl:ResetEverything` — `db:ResetProfile()`: the active profile's settings, both filter lists and the saved views (one per tab) back to
   their defaults, with the account-wide ledger and the `minimap` table untouched (`launcher-§3`) and
   the rest done by the profile handler, `NS.OnProfileEvent` ([profiles.md](profiles.md)), which also
   ends test mode and closes the debug console by name. With no

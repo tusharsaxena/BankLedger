@@ -232,7 +232,7 @@ C.FONT_MONO_NAME = "JetBrains Mono"
 -- .jpg/.png at runtime, so the shipped runtime asset is a 512×512 24-bit RLE .tga — a power of two,
 -- because the client rescales anything else and the master art is 1254×1254. A missing file renders
 -- nothing and raises no error, which is exactly how this shipped blank for a while, so treat the
--- .tga as required rather than optional. See docs/ARCHITECTURE.md ▸ Logo art.
+-- .tga as required rather than optional. See docs/media.md ▸ Logo art.
 C.LOGO_PATH = "Interface\\AddOns\\BankLedger\\media\\logos\\bankledger.logo.tga"
 
 -- Convenience aliases.

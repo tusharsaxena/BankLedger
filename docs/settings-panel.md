@@ -197,7 +197,7 @@ frameless** and every frame-only row applies.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
   `options-ui-§12`'s first canonical wording byte for byte (the one for an addon with a profile).
   `OnAccept` runs `NS.Slash:ResetEverything`, which calls `db:ResetProfile()`: the **active
-  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved view and both windows' geometry. The **recorded ledger**,
+  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved views (one per tab) and both windows' geometry. The **recorded ledger**,
   the retention window that governs it and LibDBIcon's `minimap` table are account-wide and are
   **kept**, and so are the other profiles.
   AceDB's `OnProfileReset` reaches `NS.OnProfileEvent`, which ends the session-only rows by name,
