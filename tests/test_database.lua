@@ -320,9 +320,9 @@ end)
 -- ── Migrations ─────────────────────────────────────────────────────────────────
 
 test("RunMigrations stamps a schema version onto a fresh database", function()
-  -- Schema v4 shipped alongside this suite, so a freshly-initialized database is already migrated.
+  -- Schema v5 shipped alongside this suite, so a freshly-initialized database is already migrated.
   assertEqual(NS.db.global.schemaVersion, NS.SCHEMA_VERSION)
-  assertEqual(NS.SCHEMA_VERSION, 4, "v4 moved the retention window back to db.global")
+  assertEqual(NS.SCHEMA_VERSION, 5, "v5 split the saved view into one per ledger-window tab")
 end)
 
 test("RunMigrations is idempotent — running it twice changes nothing", function()
@@ -338,7 +338,7 @@ end)
 test("NS.InitSummary identifies the build, schema, profile and size", function()
   local s = NS.InitSummary()
   assertTrue(s:find("BankLedger", 1, true) ~= nil, "names the addon")
-  assertTrue(s:find("schema v4", 1, true) ~= nil, "names the schema version")
+  assertTrue(s:find("schema v5", 1, true) ~= nil, "names the schema version")
   assertTrue(s:find("profile 'Default'", 1, true) ~= nil, "names the profile")
   assertTrue(s:find("entries", 1, true) ~= nil, "carries the entry count")
 end)
@@ -410,7 +410,7 @@ local function migrationLines(fn)
   return out
 end
 
-test("RunMigrations announces the v1->v4 pass in one [Migrate] line", function()
+test("RunMigrations announces the v1->v5 pass in one [Migrate] line", function()
   -- The exact [Migrate] string, pinned here because no in-game check can read it (see the note above)
   -- and a rename of MigrationSummary would otherwise break it silently.
   -- red under: the disarmed runner this item removed — no line at all was emitted.
@@ -425,7 +425,7 @@ test("RunMigrations announces the v1->v4 pass in one [Migrate] line", function()
   end)
   NS.db.global.ledger, NS.db.global.schemaVersion = saved, savedVer
   assertEqual(#lines, 1, "exactly one migration line")
-  assertTrue(lines[1]:find("v1 -> v4, 1 rows touched", 1, true) ~= nil,
+  assertTrue(lines[1]:find("v1 -> v5, 1 rows touched", 1, true) ~= nil,
     "the line names the ladder and the row count: " .. tostring(lines[1]))
 end)
 

@@ -145,7 +145,9 @@ test("Migrate v3: every stored setting, both lists and the saved view land in th
     assertEqual(p.settings.window.point, "TOP", "a stored geometry table did not move")
     assertEqual(p.blacklist[2589], true, "the blacklist did not move")
     assertEqual(p.whitelist[4306], true, "the whitelist did not move")
-    assertEqual(p.savedView.groupBy, "store", "the saved view did not move")
+    -- The lifted view then takes v5 into both tabs' slots (the v5 cases below).
+    assertEqual(p.savedViews.History.groupBy, "store", "the saved view did not move")
+    assertEqual(p.savedViews.Insights.groupBy, "store", "the saved view did not reach Insights")
     for _, key in ipairs({ "blacklist", "whitelist", "savedView" }) do
       assertEqual(rawget(db.global, key), nil, key .. " was left in db.global")
     end
@@ -223,14 +225,15 @@ test("Migrate v3: a store with nothing to lift is stamped and gains no profile k
 end)
 
 test("Migrate v3: the [Migrate] line counts each value it moved", function()
-  -- Three settings, two lists and a view: six rows. v4 finds nothing to move on this store.
+  -- Three settings, two lists and a view: six rows. v4 finds nothing to move on this store; v5
+  -- splits the lifted view into the two tabs' slots, one more row.
   -- red under: a step that returns 0, or counts the keys rather than the values.
   local lines
   withDb(legacyStore(), function()
     lines = withTag(debugLines(function() NS:RunMigrations() end), "[Migrate]")
   end)
   assertEqual(#lines, 1, "one migration line")
-  assertTrue(lines[1]:find("v2 -> v4, 6 rows touched", 1, true) ~= nil, tostring(lines[1]))
+  assertTrue(lines[1]:find("v2 -> v5, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
 end)
 
 -- ── the v4 step: the retention window back to db.global (owner decision D6) ─────────────────────
@@ -269,12 +272,12 @@ test("Migrate v4: a profile's retention window goes back to db.global, the Defau
   end)
 end)
 
-test("Migrate v4: idempotent — a second run moves nothing, and the runner stamps v4", function()
+test("Migrate v4: idempotent — a second run moves nothing, and the runner stamps past v4", function()
   -- red under: a step that re-reads a cleared key, or one that resets global on an empty pass.
   local sv = preD6Store()
   withDb(sv, function(db)
     NS:RunMigrations()
-    assertEqual(db.global.schemaVersion, 4, "stamped v4")
+    assertEqual(db.global.schemaVersion, NS.SCHEMA_VERSION, "stamped current")
     local again = NS.MIGRATIONS[4](db.global, db)
     assertEqual(again, 0, "the second pass moved something")
     assertEqual(rawget(db.global.settings, "retentionDays"), 7, "the second pass changed the window")
@@ -350,6 +353,64 @@ test("Migrate v4: a store with no profile window is left alone", function()
   withDb(sv, function(db)
     assertEqual(NS.MIGRATIONS[4](db.global, db), 0, "rows were counted where nothing moved")
     assertEqual(sv.profiles.Default.settings.trackMoney, false, "an unrelated setting was touched")
+  end)
+end)
+
+-- ── the v5 step: one saved view per ledger-window tab (owner request 2026-10-07) ────────────────
+
+--- A store a v4 build wrote: one saved view in Default, none in Bare, and a corrupt scalar in Odd.
+local function v4ViewStore()
+  return {
+    global = { schemaVersion = 4, ledger = {} },
+    profiles = {
+      Default = { savedView = { groupBy = "store", store = { BANK = true } } },
+      Bare = { settings = { trackMoney = false } },
+      Odd = { savedView = "not a view" },
+    },
+  }
+end
+
+test("Migrate v5: a profile's saved view is copied into BOTH tabs' slots and the old key leaves", function()
+  -- red under: a missing v5 (the old key stays and no tab reads it), a step that fills only the
+  -- History slot, or one that aliases one table into both slots.
+  local sv = v4ViewStore()
+  withDb(sv, function(db)
+    local n = NS.MIGRATIONS[5](db.global, db)
+    assertEqual(n, 2, "one row per profile that held a saved view")
+    local d = sv.profiles.Default
+    assertEqual(rawget(d, "savedView"), nil, "the old key was left in the profile")
+    assertEqual(d.savedViews.History.groupBy, "store", "History did not get the saved view")
+    assertEqual(d.savedViews.Insights.groupBy, "store", "Insights did not get the saved view")
+    assertEqual(d.savedViews.Insights.store.BANK, true, "a set did not survive the copy")
+    assertTrue(d.savedViews.History ~= d.savedViews.Insights, "both slots alias one table")
+    assertTrue(d.savedViews.History.store ~= d.savedViews.Insights.store, "both slots alias one set")
+    assertEqual(rawget(sv.profiles.Odd, "savedView"), nil, "a corrupt saved view was left behind")
+    assertEqual(rawget(sv.profiles.Odd, "savedViews"), nil, "a corrupt saved view was copied")
+  end)
+end)
+
+test("Migrate v5: a profile with no saved view gains nothing", function()
+  -- red under: a step that seeds an empty savedViews table, which would read as a deliberate save.
+  local sv = v4ViewStore()
+  withDb(sv, function(db)
+    NS.MIGRATIONS[5](db.global, db)
+    assertEqual(rawget(sv.profiles.Bare, "savedViews"), nil, "a profile with no view gained slots")
+    assertEqual(sv.profiles.Bare.settings.trackMoney, false, "an unrelated setting was touched")
+  end)
+end)
+
+test("Migrate v5: idempotent, and a slot a later build already wrote is never overwritten", function()
+  -- red under: a second pass that counts rows, or a step that lets the old key win over a slot.
+  local sv = v4ViewStore()
+  sv.profiles.Default.savedViews = { Insights = { groupBy = "day" } }
+  withDb(sv, function(db)
+    NS:RunMigrations()
+    assertEqual(db.global.schemaVersion, NS.SCHEMA_VERSION, "stamped current")
+    local d = sv.profiles.Default
+    assertEqual(d.savedViews.History.groupBy, "store", "the empty slot did not take the view")
+    assertEqual(d.savedViews.Insights.groupBy, "day", "an existing slot was overwritten")
+    assertEqual(NS.MIGRATIONS[5](db.global, db), 0, "the second pass moved something")
+    assertEqual(d.savedViews.History.groupBy, "store", "the second pass changed a slot")
   end)
 end)
 

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1249%2F1249_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1258%2F1258_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -53,9 +53,10 @@ You don't have to do anything to start recording. A first visit to the bank goes
   it.
 - Narrow it down. The bar above the table has a search box for item names and dropdowns for date,
   direction, store, quality, type, sub-type and character. The Group dropdown folds rows into
-  blocks you can collapse, and a click on any column header sorts by it. **Save** keeps the view
-  as the one the window opens on. **Clear** brings you back to it, and **Reset** goes back to
-  stock.
+  blocks you can collapse, and a click on any column header sorts by it. History and Insights each
+  keep their own filters. **Save** keeps the tab's view as the one that tab opens on. **Clear**
+  brings that tab back to it, and **Reset** sends that tab back to stock. The other tab's filters
+  and saved view are left alone.
 - Act on a row. Hover it for the item's tooltip, or shift-click it to drop the item into chat.
   Right-click gives you a menu to link it, delete that one line, or blacklist or whitelist the
   item. The two lists only decide what gets recorded from now on, and what's already in the book
@@ -105,7 +106,7 @@ and questing, never ends up in the book.
 | -------- | ------ |
 | Does it track what's in my bank right now? | No, and that is what a bag addon is for. This one keeps the record of what crossed in and out. |
 | Is my history shared between characters? | Yes. One account-wide ledger, so an alt's deposits and your withdrawals sit in the same list. |
-| Can one character use different settings? | Yes. Settings, the two filter lists and the saved view belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. `/bl profile <name>` switches from chat. The history stays shared whatever profile you are on. |
+| Can one character use different settings? | Yes. Settings, the two filter lists and the saved views belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. `/bl profile <name>` switches from chat. The history stays shared whatever profile you are on. |
 | Does it record currencies like Valorstones? | No. The book covers items and gold; currencies are deliberately out of scope. |
 | Will it see what other people put in the guild bank? | No. It only sees what your own character does. |
 | What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |

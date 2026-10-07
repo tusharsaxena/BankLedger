@@ -287,10 +287,11 @@ tests/
                            --   Launcher's and the login's state lines through the at-enable
                            --   queue, and the [Diff] gate re-armed by a Clear; each landing here
                            --   and written once, with no host line beside it
-  test_profiles.lua        -- settings per AceDB profile (schema v3/v4, docs/profiles.md): the
+  test_profiles.lua        -- settings per AceDB profile (schema v3/v4/v5, docs/profiles.md): the
                            --   global/profile defaults split, the v3 lift into `Default` (values
                            --   land, db.global cleared, the ledger untouched, idempotent), the v4
-                           --   return of the retention window to db.global, the account-wide
+                           --   return of the retention window to db.global, the v5 per-tab saved
+                           --   views, the account-wide
                            --   window (D6), reads resolving against the profile, NS.OnProfileEvent
                            --   on a switch, a copy and a page-driven reset (and never a prune), the
                            --   global reset's named veto; plus the Profiles page itself and

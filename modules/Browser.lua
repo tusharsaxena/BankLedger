@@ -9,8 +9,9 @@ local frame
 
 -- The standalone ledger window (standalone-windows): a plain, non-secure, movable/resizable frame,
 -- so it touches nothing protected and needs no combat gate. It hosts two tabs — the History table
--- and the Insights charts — over ONE shared filter bar, so both views always describe the same
--- slice of the ledger.
+-- and the Insights charts — over ONE set of filter-bar widgets, but each tab keeps its OWN filter
+-- state and its own saved view: a tab switch captures the outgoing tab's state and paints the
+-- incoming tab's onto the bar, and Save · Reset · Clear act on the tab on screen alone.
 
 -- The window CHROME this addon owns: the tab strip's two label colors and every height the
 -- layout is measured from. The window EDGE is NOT here — background, 1px black border, 1px gray
@@ -200,9 +201,13 @@ end
 local TABS = { "History", "Insights" }
 local lastTab = "History"   -- remembered within a session
 
+--- The tab on screen (or the one the window will reopen on): the tab whose filter state the bar
+--- holds, whose saved view Save · Reset · Clear act on.
+function B:ActiveTab() return lastTab end
+
 -- Let the owning module build its pane content the first time the tab is shown (lazy per-tab build,
 -- standalone-windows). The filter bar and footer are NOT here — they are shared window chrome built
--- once in EnsureFrame, so both panes render off the same singleton filter.
+-- once in EnsureFrame; what each pane renders off is the active tab's filter (B:SwapTabState).
 local function BuildPane(name)
   local pane = frame.panes[name]
   if pane._built then return end
@@ -216,6 +221,7 @@ end
 
 function B:SelectTab(name)
   if not frame then return end
+  local prev = lastTab
   lastTab = name
   for _, t in ipairs(TABS) do
     local active = (t == name)
@@ -224,6 +230,9 @@ function B:SelectTab(name)
     frame.tabs[t].underline:SetShown(active)
   end
   BuildPane(name)
+  -- After lastTab moves, so the incoming tab's filter is applied as that tab's (ApplyFilter reads
+  -- lastTab), and after the pane is built, so Insights has somewhere to paint it.
+  B:SwapTabState(prev, name)
   -- A list left open from the other tab would sit over this one's first rows.
   if B._autocomplete then B._autocomplete:Close() end
   if name == "History" and NS.LedgerTable and NS.LedgerTable.Refresh then
@@ -509,9 +518,10 @@ function B.ResolveCharFilter(set, playerKey)
   return n > 0 and copy or nil
 end
 
--- Push the current filter to the table and refresh the footer. The filter is a singleton for the
--- whole window: it always drives the table (keeping matchCount and the footer current on either
--- tab), and it drives the Insights charts live while Insights is the tab on screen.
+-- Push the current filter to the table and refresh the footer. B.activeFilter is the ACTIVE TAB's
+-- filter (each tab keeps its own; B:SwapTabState trades them on a switch): it always drives the
+-- table, keeping matchCount and the footer current on either tab, and it drives the Insights charts
+-- live while Insights is the tab on screen. Switching back to History re-applies History's own.
 local function ApplyFilter()
   -- A COPY, not the live table. Handing over B.activeFilter itself meant a later dropdown toggle
   -- mutated the filter the table was already painting under, so the table could show results for
@@ -590,8 +600,8 @@ end
 
 -- ── Search suggestions (P9) ───────────────────────────────────────────────────
 -- What the search box's autocomplete offers, and what a pick does. ONE provider for both tabs,
--- because both tabs read the one shared filter: the distinct item names among the rows the other
--- filters let through, from whatever the table is showing (the synthetic dataset in test mode).
+-- reading the active tab's filter: the distinct item names among the rows the other filters let
+-- through, from whatever the table is showing (the synthetic dataset in test mode).
 local SUGGEST_MAX = 8
 
 local function trimLower(text)
@@ -629,7 +639,7 @@ local function suggestColor(e)
 end
 
 --- The search box's suggestions: the distinct item names (and "Gold", when a gold movement is in
---- the slice) among the rows the shared filter shows with the typed text set aside, each in the
+--- the slice) among the rows the active tab's filter shows with the typed text set aside, each in the
 --- color the table paints it. A name is offered once, colored by the first row that carries it.
 function B.SuggestNames(text)
   if trimLower(text) == "" then return {} end
@@ -709,7 +719,9 @@ end
 -- A "view" is everything the filter bar expresses EXCEPT the character scope: the grouping, the
 -- sort, the six multi-select column filters, the date range and the search text. STOCK_VIEW is the
 -- out-of-the-box baseline; the user's own baseline, once they press Save, lives in the profile at
--- NS.db.profile.savedView.
+-- NS.db.profile.savedViews[tab] -- one per tab, keyed by the TABS name ("History", "Insights").
+-- Before schema v5 there was one, NS.db.profile.savedView; NS.MIGRATIONS[5] copied it into both
+-- slots (core/Database.lua).
 --
 -- Character is deliberately NOT part of a view. "What did I move?" is the question the window is
 -- opened to answer far more often than "what did all my alts move?", so the scope is a per-session
@@ -724,10 +736,27 @@ local STOCK_VIEW = {
   date = "all", search = "",
 }
 
--- The baseline Clear returns to: the saved view when one exists, else stock. Type-checked, so a
--- SavedVariables value corrupted to a scalar degrades to stock rather than erroring on first paint.
-local function savedViewOrStock()
-  local v = NS.db and NS.db.profile and NS.db.profile.savedView
+-- The profile's per-tab saved views, or nil. `create` makes the table for a Save; nothing else
+-- does, so "no key" keeps meaning "nothing saved on any tab" (defaults/Profile.lua). A value
+-- corrupted to a scalar reads as nothing saved, and a Save replaces it.
+local function savedSlots(create)
+  local p = NS.db and NS.db.profile
+  if not p then return nil end
+  local s = p.savedViews
+  if type(s) ~= "table" then
+    if not create then return nil end
+    s = {}
+    p.savedViews = s
+  end
+  return s
+end
+
+-- The baseline Clear returns to on `tab` (the active tab when omitted): that tab's saved view when
+-- one exists, else stock. Type-checked, so a SavedVariables value corrupted to a scalar degrades to
+-- stock rather than erroring on first paint.
+local function savedViewOrStock(tab)
+  local s = savedSlots(false)
+  local v = s and s[tab or lastTab]
   if type(v) == "table" then return v end
   return STOCK_VIEW
 end
@@ -828,12 +857,16 @@ local function buildActiveFilter(chars, sets, date, search)
 end
 
 -- Paint a view: the table's group/sort, every dropdown, the search box and the resolved filter. The
--- character scope is not in the view — it resets to `scope` ("all" for everyone, anything else for
--- the current player). That scope write goes last and carries the single ApplyFilterNow that paints
--- everything set above it, so a view swap costs one query, not nine.
+-- character scope is not in the view — it resets to `scope` ("all" for everyone, a selection set
+-- for exactly that selection — what a tab switch restores — anything else for the current player).
+-- That scope write goes last and carries the single ApplyFilterNow that paints everything set above
+-- it, so a view swap costs one query, not nine.
 function B:ApplyView(view, scope)
   view = view or STOCK_VIEW
-  local chars = (scope == "all") and {} or defaultCharSelection()
+  local chars
+  if type(scope) == "table" then chars = scope
+  elseif scope == "all" then chars = {}
+  else chars = defaultCharSelection() end
   local date   = view.date or "all"
   local search = view.search or ""
 
@@ -849,29 +882,87 @@ function B:ApplyView(view, scope)
   B:ApplyFilterNow()
 end
 
--- Return the bar to its baseline: the saved view when there is one, else stock, always scoped to the
--- current character. This is what the Clear button, a dataset swap and the first build all use, so
--- "the view you start from" has exactly one definition.
+-- Return the bar to the ACTIVE TAB's baseline: that tab's saved view when there is one, else stock,
+-- always scoped to the current character. This is what the Clear button, a dataset swap, a tab's
+-- first visit and the first build all use, so "the view you start from" has exactly one definition.
+-- The other tab's live state and saved view are not touched.
 function B:ClearFilters()
   self:ApplyView(savedViewOrStock(), "current")
 end
 
--- Save what is on screen as the profile's baseline. Per PROFILE, not per character: every character
--- shares the Default profile unless the player chooses otherwise, so by default one saved view
--- serves the whole account, as the one ledger does.
+-- Save what is on screen as the ACTIVE TAB's baseline; the other tab's saved view is not touched.
+-- Per PROFILE, not per character: every character shares the Default profile unless the player
+-- chooses otherwise, so by default one saved view per tab serves the whole account, as the one
+-- ledger does.
 function B:SaveView()
-  if not (NS.db and NS.db.profile) then return end
-  NS.db.profile.savedView = self:CaptureView()
-  print("view saved as your default.")
+  local s = savedSlots(true)
+  if not s then return end
+  s[lastTab] = self:CaptureView()
+  print(("%s view saved as your default."):format(lastTab))
 end
 
--- Drop the saved baseline back to stock and apply it now. `silent` suppresses the chat line for
--- programmatic callers (Sl:ResetEverything prints its own single confirmation); the bar's Reset
--- button passes nothing and keeps the message.
+-- Drop the ACTIVE TAB's saved baseline back to stock and apply it now; the other tab keeps its own.
+-- The last slot out takes the savedViews table with it, so a profile with nothing saved stores no
+-- key, as it did before anything was saved. `silent` suppresses the chat line for programmatic
+-- callers; the bar's Reset button passes nothing and keeps the message.
 function B:ResetView(silent)
-  if NS.db and NS.db.profile then NS.db.profile.savedView = nil end
+  local s = savedSlots(false)
+  if s then
+    s[lastTab] = nil
+    if next(s) == nil then NS.db.profile.savedViews = nil end
+  end
   self:ApplyView(STOCK_VIEW, "current")
-  if not silent then print("view reset to stock defaults.") end
+  if not silent then print(("%s view reset to stock defaults."):format(lastTab)) end
+end
+
+-- ── Per-tab live state ────────────────────────────────────────────────────────
+-- The bar is one set of widgets, but each tab keeps its OWN live filter state: switching captures
+-- the outgoing tab's view AND its character selection here, and paints the incoming tab's from its
+-- capture -- or, on that tab's first visit, from its baseline. Session state, never persisted: what
+-- persists is each tab's saved view. The character selection is captured raw (the Current sentinel
+-- unresolved), so a restored "Current" still means whoever is logged in.
+local tabLive = {}
+
+-- The baseline a tab with no live state starts from: stock across ALL characters in test mode (the
+-- synthetic alts; a saved Store/Type filter would very likely match nothing), else ClearFilters.
+local function applyBaseline()
+  if NS.LedgerTable and NS.LedgerTable:IsTestMode() then
+    B:ApplyView(STOCK_VIEW, "all")
+  else
+    B:ClearFilters()
+  end
+end
+
+local function forgetTabStates()
+  for k in pairs(tabLive) do tabLive[k] = nil end
+end
+
+--- Trade the bar's state from tab `from` to tab `to`. A no-op on the same tab, so reopening the
+--- window (B:Show re-selects the tab it closed on) keeps what was on screen.
+function B:SwapTabState(from, to)
+  if from == to then return end
+  if from then
+    local dd = self._dd
+    tabLive[from] = {
+      view  = self:CaptureView(),
+      -- nil without a bar: there is no selection to keep, and the restore scopes to Current.
+      chars = dd and (setToFilter(dd.char._selected) or {}) or nil,
+    }
+  end
+  local live = tabLive[to]
+  if live then
+    self:ApplyView(live.view, live.chars or "current")
+  else
+    applyBaseline()
+  end
+end
+
+--- Every tab back to its baseline: the live states are dropped, and the tab on screen is repainted
+--- from its saved view (or stock). A profile event's repaint (core/Database.lua), so the tab off
+--- screen cannot come back on a state captured under the profile it replaced.
+function B:ClearAllTabs()
+  forgetTabStates()
+  self:ClearFilters()
 end
 
 -- Test seams: the module-locals the view machinery is built on, exposed by name rather than
@@ -882,14 +973,12 @@ B._savedViewOrStock = savedViewOrStock
 -- The dataset changed under the bar (entering/leaving test mode): rebuild the dropdowns from the
 -- new data, since the old values may not exist in it. Entering test mode opens on the STOCK view
 -- across ALL characters — the test data is synthetic alts, so a saved Store/Type filter would very
--- likely match nothing and the window would look broken. Leaving it restores the saved view.
+-- likely match nothing and the window would look broken. Leaving it restores the saved view. Every
+-- tab's live state goes with the old dataset, so the other tab starts from its baseline too.
 function B:OnDatasetChanged()
   self:RefreshFilterOptions()
-  if NS.LedgerTable and NS.LedgerTable:IsTestMode() then
-    self:ApplyView(STOCK_VIEW, "all")
-  else
-    self:ClearFilters()
-  end
+  forgetTabStates()
+  applyBaseline()
   self:UpdateFooter()
   self:UpdateDbSize()
   self:UpdateTestBadge()
@@ -925,7 +1014,8 @@ local function MakeSearchMark(box)
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
--- EnsureFrame, above both tab panes, so one filter drives the table AND the charts.
+-- EnsureFrame, above both tab panes. Its widgets show the ACTIVE tab's filter state; each tab keeps
+-- its own (B:SwapTabState).
 --   Row 1: Group by · [search…] · Clear
 --   Row 2: Date · Direction · Store · Type · Character · Export
 function B:BuildFilterBar(bar)
@@ -968,16 +1058,16 @@ function B:BuildFilterBar(bar)
   -- widths sum exactly.
   local btnW = math.floor((exportW - 12) / 3)
   local clear = makeBarButton(bar, "Clear", btnW, function() B:ClearFilters() end,
-    "Return the filters, grouping and sort to your saved view "
+    "Return this tab's filters, grouping and sort to its saved view "
     .. "(or the stock defaults when nothing is saved). Character goes back to Current, not All.")
   clear:SetPoint("TOPRIGHT", exportBtn, "TOPRIGHT", 0, ROW1 - ROW2)
 
   local resetBtn = makeBarButton(bar, "Reset", btnW, function() B:ResetView() end,
-    "Discard your saved view, returning the defaults to stock.")
+    "Discard this tab's saved view, returning its defaults to stock. The other tab keeps its own.")
   resetBtn:SetPoint("RIGHT", clear, "LEFT", -6, 0)
 
   local saveBtn = makeBarButton(bar, "Save", exportW - 12 - 2 * btnW, function() B:SaveView() end,
-    "Save the current grouping, sort and filters as your default view. "
+    "Save the current grouping, sort and filters as this tab's default view. "
     .. "Character scope is not saved \226\128\148 it always starts at Current.")
   saveBtn:SetPoint("RIGHT", resetBtn, "LEFT", -6, 0)
 
@@ -1085,7 +1175,7 @@ function B:BuildFilterBar(bar)
 end
 
 -- Route the Export button to the right dataset for the active tab. History exports the ledger rows;
--- Insights exports the summary computed off the SAME shared filter.
+-- Insights exports the summary computed off the Insights tab's own filter.
 function B:OpenExport()
   local title = "Export " .. tostring(lastTab)
   if lastTab == "Insights" then
@@ -1164,7 +1254,8 @@ local function EnsureFrame()
   close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
   frame.closeButton = close
 
-  -- Shared window chrome: one singleton filter bar above both panes, one shared footer below them.
+  -- Shared window chrome: one filter bar above both panes (each tab's own state painted onto it),
+  -- one shared footer below them.
   -- Layout, top to bottom: title bar · tab strip · gap · FILTER BAR · panes · FOOTER.
   local FILTERBAR_H, FILTER_GAP, FOOTER_H = 46, 8, 18
   local barTop  = SKIN.titleBarH + SKIN.tabStripH + SKIN.contentGap
@@ -1295,7 +1386,7 @@ function B:OnSettingsChanged()
   if frame then NS.Util.ApplyMasterFrame(frame) end
 end
 
--- Keep the window current when the ledger changes underneath it. The shared filter bar and footer
+-- Keep the window current when the ledger changes underneath it. The filter bar's options and footer
 -- refresh on either tab; the table repaints only when History is the visible tab, and Insights
 -- live-refreshes itself through its own bus subscription.
 function B:OnLedgerChanged()

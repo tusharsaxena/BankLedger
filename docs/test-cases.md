@@ -300,7 +300,7 @@ badge and any count quoted in the docs must agree with it.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
-- RunMigrations announces the v1->v4 pass in one [Migrate] line
+- RunMigrations announces the v1->v5 pass in one [Migrate] line
 - RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
 - RunMigrations stamps a stamp-less store whose ledger is nil, without raising
 - RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
@@ -431,7 +431,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (49)
+### test_browser.lua (55)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -456,6 +456,12 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a saved date range is stored as the OPTION, not a resolved timestamp
 - Browser:ApplyView tolerates a scalar filter value in a stored view
 - Slash:CliResetAll (the profile reset) also discards the saved view
+- Per-tab views: Save on a tab writes that tab's slot and never the other's
+- Per-tab views: Reset on a tab drops only that tab's saved view
+- Per-tab views: Clear on a tab returns to that tab's own saved view
+- Per-tab views: switching tabs restores each tab's live state exactly
+- Per-tab views: a tab's first visit opens on its own saved view
+- Per-tab views: a profile event drops every tab's live state onto the new profile's views
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -1264,7 +1270,7 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
 
-### test_profiles.lua (44)
+### test_profiles.lua (47)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1277,11 +1283,14 @@ badge and any count quoted in the docs must agree with it.
 - Migrate v3: a store with nothing to lift is stamped and gains no profile keys
 - Migrate v3: the [Migrate] line counts each value it moved
 - Migrate v4: a profile's retention window goes back to db.global, the Default profile's value winning
-- Migrate v4: idempotent — a second run moves nothing, and the runner stamps v4
+- Migrate v4: idempotent — a second run moves nothing, and the runner stamps past v4
 - Migrate v4: a player choice already in db.global is kept over a profile's copy
 - Migrate v4: a Default profile with no stored window keeps its implicit 30 over another profile's shorter one
 - Migrate v4: a store with no Default profile resolves to the pre-D6 default, not the first other profile
 - Migrate v4: a store with no profile window is left alone
+- Migrate v5: a profile's saved view is copied into BOTH tabs' slots and the old key leaves
+- Migrate v5: a profile with no saved view gains nothing
+- Migrate v5: idempotent, and a slot a later build already wrote is never overwritten
 - Profiles: a switch re-reads every setting from the new profile
 - Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
 - Profiles: a switch to a disabled profile stands the addon down, and back stands it up
@@ -1421,7 +1430,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 60 |
-| test_browser.lua | 49 |
+| test_browser.lua | 55 |
 | test_autocomplete.lua | 15 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
@@ -1452,7 +1461,7 @@ badge and any count quoted in the docs must agree with it.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
-| test_profiles.lua | 44 |
+| test_profiles.lua | 47 |
 | test_debug_coverage.lua | 17 |
 | test_debug_library.lua | 10 |
 | test_eol.lua | 2 |
@@ -1460,4 +1469,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1250** |
+| **Total** | **1259** |

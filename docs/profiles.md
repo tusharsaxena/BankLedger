@@ -9,7 +9,7 @@ how the old account-wide settings got into a profile. The stored shape is in
 
 | Scope | Where | What |
 |---|---|---|
-| **Profile** (`db.profile`) | `defaults/Profile.lua` | Every schema row but the two account-wide ones, retention and the Minimap button (`settings.*`: enabled, capture, visibility, scale, alpha, lock, row tints, the session window switch), both item-id filter lists (`blacklist`, `whitelist`), the saved ledger view (`savedView`), and both windows' stored geometry (`settings.window`, `settings.sessionWindow`) |
+| **Profile** (`db.profile`) | `defaults/Profile.lua` | Every schema row but the two account-wide ones, retention and the Minimap button (`settings.*`: enabled, capture, visibility, scale, alpha, lock, row tints, the session window switch), both item-id filter lists (`blacklist`, `whitelist`), the saved ledger views (`savedViews`, one per tab: `History`, `Insights`), and both windows' stored geometry (`settings.window`, `settings.sessionWindow`) |
 | **Account-wide** (`db.global`) | `defaults/Global.lua` | The recorded ledger (`ledger`), the retention window that governs it (`settings.retentionDays`, *Keep history for*), LibDBIcon's `minimap` table (whether the button is shown, and its angle), the `schemaVersion` stamp |
 | **Session only** | `NS.State` | Test mode, the debug console window, the debug logging flag, the open banking session |
 
@@ -74,7 +74,8 @@ for each, in this order:
 4. **One `LedgerChanged`**, through `Database:FireLedgerChanged` — the new profile's filter lists
    decide what the History table, Insights, the session window and the Filters tab show.
 5. **Every setting's effect re-applied** (`applyProfileEffects`): both windows re-anchored from the
-   new profile's geometry, the ledger window put on the new profile's saved view (or stock), master
+   new profile's geometry, every ledger-window tab put back on the new profile's saved view for that
+   tab (or stock), each tab's live filter state dropped (`B:ClearAllTabs`), master
    scale, alpha and lock, visibility, and the row tint. **No retention prune**: the window is
    account-wide and a profile event never deletes history (D6).
 6. **The open panel refreshed** (`options-ui-§11`).
@@ -126,7 +127,7 @@ the same shape KickCD, WhatGroup, PrettyChat and Loot History ship. The retentio
 Minimap button row are also on `S.RESET_EXEMPT`, so the Slash library's sweep skips both, while
 `/bl reset settings.retentionDays` (the player naming the row) still applies.
 
-## Schema v3 and v4: how the settings got into the profile
+## Schema v3, v4 and v5: how the settings got into the profile
 
 Until schema v3 every setting, both filter lists and the saved view lived in `db.global`.
 `NS.MIGRATIONS[3]` moves each stored value of `settings`, `blacklist`, `whitelist` and `savedView`
@@ -146,12 +147,22 @@ shorter window in another profile never becomes the account's. A second run find
 profile, and a v2 upgrade (whose v3 never lifted the key) has nothing to move. Detail in
 [schema.md](schema.md) → *Schema v3*.
 
+`NS.MIGRATIONS[5]` gives each ledger-window tab its own saved view (owner request 2026-10-07). It
+walks every stored profile raw and copies a profile's single `savedView` into both slots of
+`savedViews` (`History`, `Insights`), a separate copy per slot, then removes the old key. A slot
+already holding a view is never overwritten, a corrupt scalar is dropped without making a slot, and
+a profile that never saved a view gains nothing. A second run finds no `savedView` and does nothing.
+A v2 store takes v3 first (which lifts `savedView` into `Default`) and then v5. Detail in
+[schema.md](schema.md) → *Schema v5*.
+
 ## Tests
 
 `tests/test_profiles.lua` pins the split, the v3 lift (values land in `Default`, `db.global` is
 cleared, the retention window stays, the ledger is untouched, a second run is a no-op, reads resolve
 against the profile), the v4 return of the window (the `Default` profile's value wins, its implicit 30 included, a
-global choice is kept, every profile is cleared, a second run is a no-op), the account-wide window (a write
+global choice is kept, every profile is cleared, a second run is a no-op), the v5 split of the saved
+view (both slots get separate copies, the old key leaves, a profile with none gains nothing, an
+existing slot is kept, a second run is a no-op), the account-wide window (a write
 lands in `db.global`, every profile and the prune read the one value, a stale profile copy is
 ignored, the tooltip says so), the adopt path (a switch re-reads settings, re-caches the gate, drives
 the latch, re-applies chrome and geometry, sends one message of each kind and logs one line; a copy

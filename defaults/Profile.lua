@@ -19,12 +19,14 @@ NS.defaults.profile = {
   blacklist = {},
   whitelist = {},
 
-  -- savedView — the ledger window's saved filter/group/sort baseline, written by the filter bar's
-  -- Save button (NS.Browser:SaveView). Deliberately ABSENT from these defaults: "no key" is what
-  -- "nothing saved" means, and seeding it as {} would make an empty table indistinguishable from a
-  -- deliberate save of an all-cleared view. A storage carve-out like `window`, not a registry like
-  -- the id-lists above — a captured view has no Schema widget to drive it, so it is written directly
-  -- rather than through Schema:Set. Character scope is never part of it (Browser's STOCK_VIEW).
+  -- savedViews — the ledger window's saved filter/group/sort baseline PER TAB, { History = view,
+  -- Insights = view }, each slot written by the filter bar's Save button on that tab
+  -- (NS.Browser:SaveView). Deliberately ABSENT from these defaults, table and slots alike: "no key"
+  -- is what "nothing saved" means, and seeding one as {} would make an empty table
+  -- indistinguishable from a deliberate save of an all-cleared view. A storage carve-out like
+  -- `window`, not a registry like the id-lists above — a captured view has no Schema widget to drive
+  -- it, so it is written directly rather than through Schema:Set. Character scope is never part of
+  -- it (Browser's STOCK_VIEW). Schema v5 (NS.MIGRATIONS[5]) split the old single `savedView` into it.
 
   settings = {
     enabled          = true,
