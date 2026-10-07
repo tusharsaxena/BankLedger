@@ -328,6 +328,56 @@ test("LedgerTable:GroupEntries 'typesub' group order flips with groupAsc", funct
   end)
 end)
 
+-- Characterization for the GroupEntries comparator hoist (BL-R-01 / BL-A-02): the group order the
+-- inline closure produced, pinned before the comparators moved to module scope. Two typesub groups
+-- whose raw values differ only in case share a sort key (the lowercased raw) and are split by the
+-- namespaced key, ascending, in BOTH directions.
+local function typesubTieEntries()
+  return { e({ itemType = "armor", itemSubType = "cloth" }),
+           e({ itemType = "Weapon" }),
+           e({ itemType = "Armor", itemSubType = "Cloth" }) }
+end
+
+test("LedgerTable:GroupEntries 'typesub' ascending breaks a sort-key tie on the key", function()
+  -- red under: a tie-break that falls back to first-seen order, or compares the keys descending.
+  withGroup("typesub", function()
+    local saved = LT.groupAsc
+    LT.groupAsc = true
+    local list = LT:GroupEntries(typesubTieEntries())
+    LT.groupAsc = saved
+    assertEqual(typesubLabels(list),
+      "Type: Armor \194\183 Cloth | Type: armor \194\183 cloth | Type: Weapon")
+  end)
+end)
+
+test("LedgerTable:GroupEntries 'typesub' descending still breaks a sort-key tie key-ascending",
+function()
+  -- red under: a descending comparator that flips the tie-break too, or ignores groupAsc = false.
+  withGroup("typesub", function()
+    local saved = LT.groupAsc
+    LT.groupAsc = false
+    local list = LT:GroupEntries(typesubTieEntries())
+    LT.groupAsc = saved
+    assertEqual(typesubLabels(list),
+      "Type: Weapon | Type: Armor \194\183 Cloth | Type: armor \194\183 cloth")
+  end)
+end)
+
+test("LedgerTable:GroupEntries orders a column-backed grouping by the column's sortFn", function()
+  -- The Character column sorts case-insensitively; the raw labels would put "Bob" before "alice".
+  -- red under: a sort key that prefers the arm's group order or the label over the column's sortFn.
+  withGroup("char", function()
+    local saved = LT.groupAsc
+    LT.groupAsc = true
+    local asc = LT:GroupEntries({ e({ char = "Bob-Realm" }), e({ char = "alice-Realm" }) })
+    LT.groupAsc = false
+    local desc = LT:GroupEntries({ e({ char = "alice-Realm" }), e({ char = "Bob-Realm" }) })
+    LT.groupAsc = saved
+    assertEqual(typesubLabels(asc), "Character: alice-Realm | Character: Bob-Realm")
+    assertEqual(typesubLabels(desc), "Character: Bob-Realm | Character: alice-Realm")
+  end)
+end)
+
 test("LedgerTable:GroupEntries orders quality groups Poor to Legendary", function()
   withGroup("quality", function()
     local list = LT:GroupEntries({ e({ quality = 4 }), e({ quality = 1 }) })

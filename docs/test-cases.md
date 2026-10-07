@@ -370,7 +370,7 @@ Total.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (60)
+### test_ledgertable.lua (63)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -405,6 +405,9 @@ Total.
 - LedgerTable:GroupEntries 'typesub' groups gold as plain Gold, never 'Gold · Gold'
 - LedgerTable:GroupEntries 'typesub' keys are namespaced apart from the Type grouping
 - LedgerTable:GroupEntries 'typesub' group order flips with groupAsc
+- LedgerTable:GroupEntries 'typesub' ascending breaks a sort-key tie on the key
+- LedgerTable:GroupEntries 'typesub' descending still breaks a sort-key tie key-ascending
+- LedgerTable:GroupEntries orders a column-backed grouping by the column's sortFn
 - LedgerTable:GroupEntries orders quality groups Poor to Legendary
 - LedgerTable:GroupEntries puts gold in its own quality group
 - LedgerTable:GroupEntries emits the exact key and label for every group mode
@@ -1431,7 +1434,7 @@ Total.
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 60 |
+| test_ledgertable.lua | 63 |
 | test_browser.lua | 55 |
 | test_autocomplete.lua | 15 |
 | test_launcher.lua | 37 |
@@ -1472,4 +1475,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1258** |
+| **Total** | **1261** |
