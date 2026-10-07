@@ -1,8 +1,10 @@
 # Test Cases
 
 The full inventory of every headless test case in this repo, grouped by the suite file it
-lives in. The `## Totals` table below is the **authoritative pass count** — the README test
-badge and any count quoted in the docs must agree with it.
+lives in. The `## Totals` table below counts the cases that run: its **Total** is the
+authoritative pass count, and the README test badge and any count quoted in the docs must equal
+it. A declared skip is listed by name in its group and counted on the `Skipped` row, never in
+Total.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
@@ -368,7 +370,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (60)
+### test_ledgertable.lua (63)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -403,6 +405,9 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable:GroupEntries 'typesub' groups gold as plain Gold, never 'Gold · Gold'
 - LedgerTable:GroupEntries 'typesub' keys are namespaced apart from the Type grouping
 - LedgerTable:GroupEntries 'typesub' group order flips with groupAsc
+- LedgerTable:GroupEntries 'typesub' ascending breaks a sort-key tie on the key
+- LedgerTable:GroupEntries 'typesub' descending still breaks a sort-key tie key-ascending
+- LedgerTable:GroupEntries orders a column-backed grouping by the column's sortFn
 - LedgerTable:GroupEntries orders quality groups Poor to Legendary
 - LedgerTable:GroupEntries puts gold in its own quality group
 - LedgerTable:GroupEntries emits the exact key and label for every group mode
@@ -431,7 +436,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (55)
+### test_browser.lua (57)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -462,6 +467,8 @@ badge and any count quoted in the docs must agree with it.
 - Per-tab views: switching tabs restores each tab's live state exactly
 - Per-tab views: a tab's first visit opens on its own saved view
 - Per-tab views: a profile event drops every tab's live state onto the new profile's views
+- Per-tab views: a tab switch paints the incoming pane once, not twice
+- Per-tab views: Save and Reset name the tab as a printer argument, same line as ever
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -489,7 +496,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_autocomplete.lua (15)
+### test_autocomplete.lua (17)
 
 - Autocomplete: the seam answers a library handle on a real box, nil on a box it cannot hook
 - Autocomplete: the seam copies the caller's opts rather than handing the table over
@@ -502,6 +509,8 @@ badge and any count quoted in the docs must agree with it.
 - Autocomplete: suggestions honor the other filters and set the typed text aside
 - Autocomplete: no more than eight suggestions
 - Autocomplete: in test mode the suggestions come from the sample, not the live ledger
+- Search: a query with stray whitespace filters as the suggestions read it, on every path
+- Search: ApplyView applies its search once, leaving no typing debounce to re-run it
 - Autocomplete: a pick sets the exact name in Search and applies it once, at once
 - Autocomplete: clicking a row in the list picks its name
 - Autocomplete: on Insights a pick filters the shared view too
@@ -1029,7 +1038,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
 - LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
 
-### test_envsetup.lua (9)
+### test_envsetup.lua (10)
 
 - EnvSetup: NS.Meta asks about THIS addon's folder, not its title or its frame prefix
 - EnvSetup: NS.Meta degrades to nil when the client exposes no manifest reader
@@ -1039,6 +1048,7 @@ badge and any count quoted in the docs must agree with it.
 - EnvSetup: NS.Zone answers "" rather than nil when the client has no zone text
 - EnvSetup: NS.PlayerMapID answers the map id
 - EnvSetup degraded: an install with no LibKa0s still reads its TOC and stamps its zone
+- EnvSetup degraded: NS.Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: the deleted shims are gone from Compat
 
 ### test_marks.lua (22)
@@ -1429,9 +1439,9 @@ badge and any count quoted in the docs must agree with it.
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 60 |
-| test_browser.lua | 55 |
-| test_autocomplete.lua | 15 |
+| test_ledgertable.lua | 63 |
+| test_browser.lua | 57 |
+| test_autocomplete.lua | 17 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
 | test_insights.lua | 79 |
@@ -1447,7 +1457,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
-| test_envsetup.lua | 9 |
+| test_envsetup.lua | 10 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 47 |
 | test_libka0s_slash.lua | 23 |
@@ -1467,6 +1477,7 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 9 |
+| test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1259** |
+| Skipped | 1 |
+| **Total** | **1266** |

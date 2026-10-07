@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1258%2F1258_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1266%2F1266_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -68,8 +68,8 @@ You don't have to do anything to start recording. A first visit to the bank goes
 
 Movements older than 30 days are dropped at login, and **Keep history for** on the settings'
 History tab changes that. `/bl purge` deletes your history and leaves your settings alone.
-`/bl resetall` does the opposite: it puts the current profile's settings, filter lists and saved view
-back to defaults and keeps your history. Both ask before they do anything.
+`/bl resetall` does the opposite: it puts the current profile's settings, filter lists and saved views
+(one per tab) back to defaults and keeps your history. Both ask before they do anything.
 
 Your settings live in a profile. Every character shares the one **Default** profile until you
 choose otherwise under Settings → AddOns → Ka0s Bank Ledger → **Profiles**, where you can give a
@@ -123,7 +123,7 @@ and questing, never ends up in the book.
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Filters ▸ Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then resets the current profile's settings, filter lists and saved view as well. Your recorded history is kept; `/bl purge` is what deletes it. |
+| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then resets the current profile's settings, filter lists and saved views (one per tab) as well. Your recorded history is kept; `/bl purge` is what deletes it. |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
 | The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns the current profile to its defaults, and a fresh profile is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
 | The addon switched itself off (or on) when I changed profile | *Enable Bank Ledger* is a setting like any other, so it belongs to the profile. Switching to a profile where it is off turns the addon off. Tick it again on that profile, or switch back. |

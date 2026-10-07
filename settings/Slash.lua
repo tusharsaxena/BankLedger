@@ -88,7 +88,7 @@ end
 --- footer Defaults, `/bl resetall` -- reaches the popup through Sl:RequestResetAll below. AceDBOptions'
 --- own Reset Profile on the Profiles page is the same act by construction.
 ---
---- WHAT IT TAKES is everything the profile holds: every setting, both filter lists, the saved view
+--- WHAT IT TAKES is everything the profile holds: every setting, both filter lists, the saved views
 --- and both windows' stored geometry. WHAT IT KEEPS is everything account-wide: the recorded ledger
 --- (deleting history is `/bl purge`, a separate, separately confirmed act, never folded into a
 --- settings reset), the retention window that governs it (owner decision D6, so the reset cannot
@@ -108,8 +108,8 @@ function Sl:ResetEverything()
     NS.SetPendingResetRows(countResetRows())
     db:ResetProfile()
   end
-  print("profile '" .. tostring(db and db.GetCurrentProfile and db:GetCurrentProfile() or "?")
-    .. "' reset to defaults.")
+  -- The profile name rides as its own printer argument (events-frames-taint-§8).
+  print("profile", db and db.GetCurrentProfile and db:GetCurrentProfile() or "?", "reset to defaults.")
 end
 
 --- THE SINGLE ENTRY POINT to the global reset (options-ui-§12). Reset all settings, the General
@@ -474,6 +474,6 @@ function Sl:LandingRows() return cli:LandingRows() end
 
 -- `/bl resetall` is the ONE global reset (options-ui-§12), not the library's schema walk: it asks
 -- through the same confirm popup as Reset all settings and both Defaults controls, and Yes resets the
--- active profile -- the settings, the filter lists and the saved view. Recorded history is kept.
+-- active profile -- the settings, the filter lists and the saved views. Recorded history is kept.
 -- The member name stays CliResetAll for NS.Slash parity with the degraded arm.
 function Sl:CliResetAll() return Sl:RequestResetAll() end

@@ -197,7 +197,7 @@ frameless** and every frame-only row applies.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
   `options-ui-§12`'s first canonical wording byte for byte (the one for an addon with a profile).
   `OnAccept` runs `NS.Slash:ResetEverything`, which calls `db:ResetProfile()`: the **active
-  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved view and both windows' geometry. The **recorded ledger**,
+  profile** is emptied and its defaults merged back — every setting, both filter lists, the saved views (one per tab) and both windows' geometry. The **recorded ledger**,
   the retention window that governs it and LibDBIcon's `minimap` table are account-wide and are
   **kept**, and so are the other profiles.
   AceDB's `OnProfileReset` reaches `NS.OnProfileEvent`, which ends the session-only rows by name,
@@ -328,8 +328,8 @@ implementation rather than two kept in step. That action is `P:RestoreDefaults()
 `NS.Slash:RequestResetAll()` — the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, the same one
 *Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
 nothing without the player's Yes, and Yes is the profile reset (`db:ResetProfile()`): the active
-profile's settings, both filter lists and saved view go back to their defaults, and the recorded
-ledger, which is account-wide, is kept. `/bl purge` is the act that deletes history.
+profile's settings, both filter lists and the saved views (one per tab) go back to their defaults,
+and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act that deletes history.
 
 ## The General page's tabs and the Filters tab
 

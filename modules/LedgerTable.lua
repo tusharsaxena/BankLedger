@@ -25,9 +25,9 @@ local COL_GAP = 8      -- horizontal space between columns
 -- It needs the MONO face: the default WoW font has no ▲/▼ and renders a box, while JetBrains Mono
 -- carries both. The face is no longer this addon's own — it arrives with the LibKa0s payload and
 -- C.FONT_MONO resolves to it through core/MediaSetup.lua, falling back to the client font (and so
--- to a box) only where the library is missing. That is an accepted, documented deviation: the mono
--- face is a sanctioned styling exception scoped to the debug console (debug-logging-§2), and this
--- extends it to one glyph. See docs/ARCHITECTURE.md ▸ Documented deviations.
+-- to a box) only where the library is missing. The mono face is the sanctioned mono-face exception
+-- of debug-logging-§2, used here for one glyph the client font cannot draw; it needs no register
+-- row.
 local ARROW_SIZE, ARROW_GAP = 12, 2
 
 -- Gold movements name themselves "Gold" in the Item column. A quality color would be a lie (gold
@@ -313,6 +313,29 @@ function LT:ToggleCollapse(key)
   self:Refresh()
 end
 
+-- GroupEntries' group ordering, hoisted to module scope to bring it back under the
+-- automated-tests-§3 CCN 15 release gate (BL-R-01 / BL-A-02): lizard counts every and/or as a
+-- decision, and the sort-key default alone carried three.
+--
+-- A group's sort value: the grouped column's sortFn when the mode has a column (so groups order the
+-- way that column sorts), else the arm's own group order (typesub), else the header's value label.
+local function groupSortKey(sortFn, e, groupOrder, valueLabel)
+  return sortFn and sortFn(e) or groupOrder or valueLabel
+end
+
+-- The two group-order comparators: by sortKey in the chosen direction, a tie broken on the
+-- namespaced key ASCENDING either way, so equal-keyed groups keep one stable order. Named and
+-- module-level, never a per-call closure capturing the direction.
+local function groupAscending(a, b)
+  if a.sortKey ~= b.sortKey then return a.sortKey < b.sortKey end
+  return a.key < b.key
+end
+
+local function groupDescending(a, b)
+  if a.sortKey ~= b.sortKey then return a.sortKey > b.sortKey end
+  return a.key < b.key
+end
+
 -- Turn an (already-sorted) entry array into the flat display list. With no grouping every entry is
 -- a { kind = "row" } item; with grouping, entries are partitioned under { kind = "header" } items
 -- labeled "<Column>: <Value>" with a count. A collapsed group emits only its header. The active
@@ -336,21 +359,14 @@ function LT:GroupEntries(entries)
     local g = byKey[key]
     if not g then
       g = { key = key, label = prefix .. ": " .. valueLabel, rows = {},
-            sortKey = sortFn and sortFn(e) or groupOrder or valueLabel }
+            sortKey = groupSortKey(sortFn, e, groupOrder, valueLabel) }
       byKey[key] = g
       order[#order + 1] = g
     end
     g.rows[#g.rows + 1] = e
   end
 
-  local asc = self.groupAsc ~= false
-  table.sort(order, function(a, b)
-    if a.sortKey ~= b.sortKey then
-      if asc then return a.sortKey < b.sortKey end
-      return a.sortKey > b.sortKey
-    end
-    return a.key < b.key
-  end)
+  table.sort(order, (self.groupAsc ~= false) and groupAscending or groupDescending)
 
   for _, g in ipairs(order) do
     local collapsed = self.collapsed[g.key] or false

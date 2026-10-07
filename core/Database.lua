@@ -3,9 +3,9 @@ local C = NS.Constants
 
 -- AceDB init. Two scopes (docs/profiles.md): the recorded ledger, the retention window that governs
 -- it (owner decision D6) and LibDBIcon's table are account-wide in NS.db.global; every other
--- setting, both filter lists and the saved view live in the active profile, NS.db.profile. `true` is
--- AceDB's defaultProfile: every character starts on the one shared profile, "Default", which is
--- where schema v3 lifted the old account-wide settings.
+-- setting, both filter lists and the saved views (one per tab) live in the active profile,
+-- NS.db.profile. `true` is AceDB's defaultProfile: every character starts on the one shared profile,
+-- "Default", which is where schema v3 lifted the old account-wide settings.
 function NS:InitDB()
   NS.db = LibStub("AceDB-3.0"):New(addonName .. "DB", NS.defaults, true)
   -- The runner goes FIRST, before anything reads db.profile (savedvariables-§1): the v3 step lifts

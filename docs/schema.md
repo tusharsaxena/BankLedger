@@ -328,7 +328,7 @@ no row addresses them, and each is written by its one owner module rather than t
 `Schema:Set`:
 - `settings.window`, the main window's geometry (owner `modules/Browser.lua`);
 - `settings.sessionWindow`, the session window's geometry (owner `modules/SessionWindow.lua`);
-- `db.profile.savedViews`, the filter bar's saved baseline per tab (owner `modules/Browser.lua`).
+- `db.profile.savedViews`, the filter bar's saved baseline per tab (owner `modules/Browser_Views.lua`).
 
 `db.global.minimap.minimapPos` is the fourth, with a different writer: LibDBIcon stores the
 button's position there on a drag, in the table **`NS.Launcher`** (`core/LauncherSetup.lua`) hands

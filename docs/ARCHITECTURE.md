@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window (owner decision D6) and the Minimap button **account-wide** (`global`), every other setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 36 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 37 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,13 +34,14 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-36 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+37 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
 the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` holds the account-wide
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles).
 
-Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
-derives from the TOC. File-by-file table, load-order notes and the locale seam in
+Load order is load-bearing in seven places (the newest: `modules/Browser_Views.lua` loads straight
+after `modules/Browser.lua`, whose `B._viewSeam` it captures at file load), and `tests/test_harness.lua`
+guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 
 ## Settings Schema
@@ -89,8 +90,8 @@ The runtime and its stub, and every writer of each with the act that reaches it,
 ## Profiles
 
 AceDB profiles, since schema v3. A profile holds **everything a player configures** but the
-retention window: every other schema row, both filter lists, the saved view and both windows'
-geometry. The **recorded ledger**, the **retention window** that governs it and LibDBIcon's table
+retention window: every other schema row, both filter lists, the saved views (one per
+ledger-window tab) and both windows' geometry. The **recorded ledger**, the **retention window** that governs it and LibDBIcon's table
 stay **account-wide** in `db.global`, so switching profile never changes what was recorded or how
 much of it is kept (owner decisions D5 and D6, 2026-09-29). Every character starts on the one shared
 `Default` profile, which is where `NS.MIGRATIONS[3]` lifted the old account-wide settings;
@@ -100,7 +101,7 @@ The **Profiles** page (`settings/Profiles.lua`, `options-ui-§3`) is AceDBOption
 subcategory, registered after General, with no Defaults button. AceDB's three profile callbacks all
 reach **`NS.OnProfileEvent`** (`core/Database.lua`), the one adopt path: the migration runner, the
 enable latch, one `SettingsChanged("profile")` and one `LedgerChanged`, every setting's effect
-re-applied (window geometry and chrome, the saved view, visibility, the row tint), the panel
+re-applied (window geometry and chrome, each tab's saved view, visibility, the row tint), the panel
 refreshed, and exactly one debug line for the act (`debug-logging-§10`). It never runs the retention
 prune: no profile event deletes history (D6). The global reset is `db:ResetProfile()`
 (`options-ui-§12`, the "addon with both" form), so it is the same act as the Profiles page's Reset
@@ -457,8 +458,9 @@ library adoptions or scope, not rules of the standard (#5 and #9 are cited by th
 per file, with its terminal state: an open issue naming the seam a peel would follow, a ratified
 deviation row above, or a scheduled peel.
 
-Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1328 lines,
-measured 2026-10-07 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
-wc -l | sort -n`. The figure is prose, not a pin; `tests/_kit/test_layout_cap.lua` asserts membership
+Nothing is over the cap today. The largest authored file is `modules/Browser.lua`; read its
+current size with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l |
+sort -n`. This page carries no line figure on purpose (the live one is the watch list in
+`docs/automated-tests/RESULTS.md`); `tests/_kit/test_layout_cap.lua` asserts membership
 in both directions -- an over-cap file missing from this census, or a row here naming a file that
-is no longer over the cap -- and the dated number is not what it checks.
+is no longer over the cap -- and a line count is not what it checks.

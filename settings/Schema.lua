@@ -469,7 +469,7 @@ end
 --      same four by SW:SaveGeometry (modules/SessionWindow.lua; the grip's in ensureFrame); emptied by
 --      SW:ResetWindow.
 --   3. `savedViews` — the profile's column/sort baseline, one slot per ledger-window tab. Owner
---      Browser. Written by B:SaveView (modules/Browser.lua) into the active tab's slot, cleared by
+--      Browser. Written by B:SaveView (modules/Browser_Views.lua) into the active tab's slot, cleared by
 --      B:ResetView from it. NS.MIGRATIONS[5] made it once from the old single `savedView`.
 --   4. `minimap.minimapPos` — LibDBIcon writes it on a button drag, into the account-wide table
 --      core/LauncherSetup.lua hands it (db.global.minimap). That table also holds `hide`, the

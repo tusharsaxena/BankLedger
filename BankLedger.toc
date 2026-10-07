@@ -88,6 +88,10 @@ modules\Ledger_Diagnose.lua
 # NS.Compat, NS.Item and NS.Database at call time, so the position is conventional.
 modules\Backfill.lua
 modules\Browser.lua
+# LOAD-BEARING: extends NS.Browser with the per-tab view API (ApplyView, Save/Reset/ClearFilters,
+# SwapTabState) and captures B._viewSeam at file load, so it must come after modules\Browser.lua,
+# which publishes that seam, and before anything that calls the view API at OnEnable.
+modules\Browser_Views.lua
 modules\LedgerTable.lua
 # Extends NS.LedgerTable with the test dataset and LT:SetTestMode. Conventional rather than
 # load-bearing: both files open NS.LedgerTable = NS.LedgerTable or {}, and every caller reaches the

@@ -202,6 +202,57 @@ case("Autocomplete: in test mode the suggestions come from the sample, not the l
   assertEqual(#B.SuggestNames("qwerty"), 0, "a live-ledger name leaked into test mode")
 end)
 
+-- ── the query matches what the list offers ──
+
+case("Search: a query with stray whitespace filters as the suggestions read it, on every path", function()
+  -- The list trims before it matches (B._rankSuggestions), so ' linen' and 'cloth ' offer Linen
+  -- Cloth; the query must normalize the same way or the table empties under a list that offers rows.
+  -- red under: storing the raw box text in activeFilter.text (OnTextChanged, SetSearchText,
+  -- buildActiveFilter).
+  B:SetSearchText(" linen")
+  assertEqual(B.activeFilter.text, "linen")
+  assertEqual(NS.LedgerTable.matchCount, 2, "' linen' emptied the table")
+  assertEqual(B._search:GetText(), " linen", "the box keeps what the player typed")
+  B:SetSearchText("cloth ")
+  assertEqual(B.activeFilter.text, "cloth")
+  assertEqual(NS.LedgerTable.matchCount, 3, "'cloth ' emptied the table")
+  B:SetSearchText("   ")
+  assertEqual(B.activeFilter.text, nil, "a whitespace-only query is no clause at all")
+  typeText(" linen")
+  assertEqual(B.activeFilter.text, "linen", "the box's OnTextChanged stored the raw text")
+  assertEqual(NS.LedgerTable.matchCount, 2)
+  B:ApplyView({ search = " linen" }, "all")
+  assertEqual(B.activeFilter.text, "linen", "ApplyView stored the raw view search")
+  assertEqual(NS.LedgerTable.matchCount, 2)
+end)
+
+case("Search: ApplyView applies its search once, leaving no typing debounce to re-run it", function()
+  -- In the client SetText fires OnTextChanged, which arms the 0.2 s debounce; ApplyView applies at
+  -- once, so a debounce left armed ran the same filter a second time (BL-R-03). The mock's SetText
+  -- does not fire the script, so this box does it the way the client would.
+  -- red under: ApplyView not dropping the debounce after SetText.
+  local box = B._search
+  local own = rawget(box, "SetText")
+  local realSet = box.SetText
+  box.SetText = function(self2, t)
+    realSet(self2, t)
+    self2:__fire("OnTextChanged", false)
+  end
+  local calls, real = 0, NS.LedgerTable.SetFilter
+  NS.LedgerTable.SetFilter = function(self, f) calls = calls + 1; return real(self, f) end
+  local ok, err = pcall(function()
+    B:CancelPending()
+    mocks.__timers = {}
+    B:ApplyView({ search = "linen" }, "all")
+    mocks.__fireTimers()
+  end)
+  NS.LedgerTable.SetFilter = real
+  box.SetText = own
+  if not ok then error(err, 0) end
+  assertEqual(calls, 1, "ApplyView's search was applied more than once")
+  assertEqual(B.activeFilter.text, "linen")
+end)
+
 -- ── the pick ──
 
 case("Autocomplete: a pick sets the exact name in Search and applies it once, at once", function()
