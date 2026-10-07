@@ -6,7 +6,7 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- view on the shared filter bar, Save · Reset · Clear, and the per-tab live state a tab switch
 -- trades. Peeled out of modules/Browser.lua (BL-R-02: that file sat at 1427 of layout-§1's 1500
 -- lines, with this seam named on the RESULTS.md watch list). A MOVE, not a rewrite: every public B
--- method keeps its name and behaviour, and the test seams B._STOCK_VIEW / B._savedViewOrStock keep
+-- method keeps its name and behavior, and the test seams B._STOCK_VIEW / B._savedViewOrStock keep
 -- theirs.
 --
 -- What it needs of Browser.lua's file locals comes through ONE explicit seam table,
