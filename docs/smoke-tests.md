@@ -404,8 +404,9 @@ leaves its number unused.
 - **LEDG-13. More groupings.** Group by Type, Sub-type and Quality → Quality groups run Poor→Legendary
   and gold sits in its own "None" group. Group: Type & SubType → one header per pair, read
   "Type: Armor · Cloth", in type then sub-type order; an item with no sub-type reads "Type: Armor"
-  (no trailing dot) ahead of its siblings, gold reads plain "Type: Gold". Save the view, `/reload` →
-  it comes back grouped the same way. Result:
+  (no trailing dot) ahead of its siblings, gold reads plain "Type: Gold". With it picked, the closed
+  Group dropdown reads the whole "Group: Type & SubType", not clipped or ellipsized, clear of the ▼.
+  Save the view, `/reload` → it comes back grouped the same way. Result:
 - **LEDG-14. Clear.** With no saved view, change filters, grouping and sort, press Clear → all back to
   their defaults. Result:
 - **LEDG-15. The button cluster.** Save · Reset · Clear sit in one cluster above Export, right edges

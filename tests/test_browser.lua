@@ -398,6 +398,26 @@ test("the Group dropdown offers 'Type & SubType' right after Sub-type", function
   NS.Browser:Hide()
 end)
 
+test("the Group dropdown is wide enough for its longest closed label, and Search keeps its floor", function()
+  NS.Browser:Show()
+  local dd = B._dd and B._dd.group
+  assertTrue(dd ~= nil, "the group dropdown exists once the filter bar is built")
+  assertEqual(dd:GetWidth(), B._GROUP_W, "Group is built at GROUP_W, not a literal")
+  -- The closed label gets the width minus 6 px left and 16 px right (the arrow) and never wraps;
+  -- ~6 px a character in GameFontHighlightSmall is the budget every option label must fit.
+  local longest = 0
+  for _, o in ipairs(dd._options or {}) do longest = math.max(longest, #o.label) end
+  assertEqual(longest, #"Group: Type & SubType", "Type & SubType is the longest Group label")
+  assertTrue(B._GROUP_W - 22 >= longest * 6,
+    "closed label budget " .. (B._GROUP_W - 22) .. " px < " .. longest * 6 .. " px")
+  -- Row 1 spans exactly the row-2 dropdowns (Search's right edge is pinned to Character's), so a
+  -- wider Group narrows only Search; at the window's minimum width it must keep SEARCH_MIN.
+  local searchAtMin = B._DROPDOWNS_W - B._GROUP_W - 8
+  assertTrue(searchAtMin >= B._SEARCH_MIN,
+    "search at min width " .. searchAtMin .. " < " .. B._SEARCH_MIN)
+  NS.Browser:Hide()
+end)
+
 -- The regression this addon shipped once: the popup menu is LibKa0s-Widgets-1.0's process-wide
 -- singleton, parented to UIParent rather than to this window, so this window's own Hide/OnHide
 -- cannot reach it on its own. modules/Browser.lua must call W.CloseMenu() from every place it

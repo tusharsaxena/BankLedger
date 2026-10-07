@@ -431,7 +431,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (48)
+### test_browser.lua (49)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -463,6 +463,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser:SaveGeometry refuses to write a point-less table
 - the ledger window saves its geometry when it hides
 - the Group dropdown offers 'Type & SubType' right after Sub-type
+- the Group dropdown is wide enough for its longest closed label, and Search keeps its floor
 - the ledger window closes an open dropdown menu when it hides
 - the ledger window saves its geometry at logout
 - the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release
@@ -1420,7 +1421,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 60 |
-| test_browser.lua | 48 |
+| test_browser.lua | 49 |
 | test_autocomplete.lua | 15 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
@@ -1459,4 +1460,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1249** |
+| **Total** | **1250** |

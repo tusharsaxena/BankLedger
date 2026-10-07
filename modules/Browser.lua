@@ -40,6 +40,12 @@ B.SKIN = SKIN
 local DD_W = { date = 110, direction = 110, store = 130, quality = 100, type = 110,
                subtype = 110, char = 140 }
 local DD_GAP = 8
+-- Row 1's Group dropdown. The library's collapsed label sits 6 px in from the left and 16 px in from
+-- the right (the arrow) and never wraps, so the longest label, "Group: Type & SubType" (21 chars),
+-- needs ~6 px a character + 22 px of inset: 150. It is NOT part of DROPDOWNS_W: row 1 spans exactly
+-- the row-2 dropdowns (Search's right edge is pinned to Character's), so a wider Group only narrows
+-- Search, and SEARCH_MIN is the floor the suite holds that to at the window's minimum width.
+local GROUP_W, SEARCH_MIN = 150, 120
 local DROPDOWNS_W = DD_W.date + DD_W.direction + DD_W.store + DD_W.type + DD_W.subtype
                   + DD_W.quality + DD_W.char + 6 * DD_GAP
 local EXPORT_MIN  = 110
@@ -659,6 +665,7 @@ function B:SetSearchText(text)
 end
 
 B._SUGGEST_MAX = SUGGEST_MAX
+B._GROUP_W, B._SEARCH_MIN, B._DROPDOWNS_W, B._DD_GAP = GROUP_W, SEARCH_MIN, DROPDOWNS_W, DD_GAP
 
 function B:UpdateFooter()
   if not self._footer then return end
@@ -933,7 +940,7 @@ function B:BuildFilterBar(bar)
   local dd = {}
   self._dd = dd
 
-  dd.group = self:MakeDropdown(bar, 110)
+  dd.group = self:MakeDropdown(bar, GROUP_W)
   dd.group:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, ROW1)
   dd.group:SetOptions(GROUP_OPTIONS)
   dd.group:SetValue("none", "Group: None")
