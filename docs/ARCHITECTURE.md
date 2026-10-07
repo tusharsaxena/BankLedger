@@ -39,8 +39,9 @@ the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` ho
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles).
 
-Load order is load-bearing in six places, and `tests/test_harness.lua` guards the order the harness
-derives from the TOC. File-by-file table, load-order notes and the locale seam in
+Load order is load-bearing in seven places (the newest: `modules/Browser_Views.lua` loads straight
+after `modules/Browser.lua`, whose `B._viewSeam` it captures at file load), and `tests/test_harness.lua`
+guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 
 ## Settings Schema
@@ -457,8 +458,9 @@ library adoptions or scope, not rules of the standard (#5 and #9 are cited by th
 per file, with its terminal state: an open issue naming the seam a peel would follow, a ratified
 deviation row above, or a scheduled peel.
 
-Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1328 lines,
-measured 2026-10-07 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
-wc -l | sort -n`. The figure is prose, not a pin; `tests/_kit/test_layout_cap.lua` asserts membership
+Nothing is over the cap today. The largest authored file is `modules/Browser.lua`; read its
+current size with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l |
+sort -n`. This page carries no line figure on purpose (the live one is the watch list in
+`docs/automated-tests/RESULTS.md`); `tests/_kit/test_layout_cap.lua` asserts membership
 in both directions -- an over-cap file missing from this census, or a row here naming a file that
-is no longer over the cap -- and the dated number is not what it checks.
+is no longer over the cap -- and a line count is not what it checks.
