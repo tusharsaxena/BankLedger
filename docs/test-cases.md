@@ -1038,7 +1038,7 @@ Total.
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
 - LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
 
-### test_envsetup.lua (9)
+### test_envsetup.lua (10)
 
 - EnvSetup: NS.Meta asks about THIS addon's folder, not its title or its frame prefix
 - EnvSetup: NS.Meta degrades to nil when the client exposes no manifest reader
@@ -1048,6 +1048,7 @@ Total.
 - EnvSetup: NS.Zone answers "" rather than nil when the client has no zone text
 - EnvSetup: NS.PlayerMapID answers the map id
 - EnvSetup degraded: an install with no LibKa0s still reads its TOC and stamps its zone
+- EnvSetup degraded: NS.Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: the deleted shims are gone from Compat
 
 ### test_marks.lua (22)
@@ -1456,7 +1457,7 @@ Total.
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
 | test_mediasetup.lua | 13 |
-| test_envsetup.lua | 9 |
+| test_envsetup.lua | 10 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 47 |
 | test_libka0s_slash.lua | 23 |
@@ -1479,4 +1480,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1265** |
+| **Total** | **1266** |

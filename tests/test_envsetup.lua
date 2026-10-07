@@ -118,6 +118,22 @@ test("EnvSetup degraded: an install with no LibKa0s still reads its TOC and stam
     assertEqual(sub, "The Vault")
   end)
 
+test("EnvSetup degraded: NS.Meta never reads the bare GetAddOnMetadata global", function()
+  -- red under: the bare-global rung. The 11.0 AddOns purge removed the bare global, and no client
+  -- this TOC admits (## Interface 120100) still carries it, so a rung below C_AddOns is dead code
+  -- that only a stale mock could ever reach. With the library and C_AddOns both absent the answer
+  -- is nil, and the planted global must never be asked.
+  local ns, m = loadDegraded("core\\EnvSetup.lua")
+  m.C_AddOns = nil
+  local calls = 0
+  m.GetAddOnMetadata = function()
+    calls = calls + 1
+    return "bare-global"
+  end
+  assertEqual(ns.Meta("Version"), nil)
+  assertEqual(calls, 0)
+end)
+
 test("EnvSetup: the deleted shims are gone from Compat", function()
   -- A seam that leaves the old copy in place is a second answer nobody removed, and the next caller
   -- reaches for whichever one autocomplete offers first.

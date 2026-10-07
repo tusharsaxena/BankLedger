@@ -40,7 +40,7 @@ read_globals = {
   "InCombatLockdown", "PlaySound", "GetLocale", "C_Timer", "hooksecurefunc",
   "Settings", "CreateColor", "Enum",
   -- Item / container / bank APIs the Compat layer wraps
-  "C_Item", "C_Container", "C_Map", "C_AddOns", "GetAddOnMetadata",
+  "C_Item", "C_Container", "C_Map", "C_AddOns",
   "GetGuildBankItemLink", "GetGuildBankItemInfo", "GetNumGuildBankTabs",
   "MAX_GUILDBANK_SLOTS_PER_TAB", "QueryGuildBankTab", "GetCurrentGuildBankTab", "GuildBankFrame",
   -- Store-held coin balances: the corroboration side of a money movement

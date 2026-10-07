@@ -44,15 +44,16 @@ local Env = LibStub and LibStub("LibKa0s-Env-1.0", true)
 --- at all, which is exactly what a headless run looks like. A field the TOC does not carry also
 --- answers nil on a perfectly healthy client. Callers that need a value supply their own.
 ---
+--- TWO RUNGS, then nil: the library, else C_AddOns.GetAddOnMetadata. There is deliberately no third
+--- rung on the bare GetAddOnMetadata global: the 11.0 AddOns purge removed it, no client this TOC
+--- admits carries it, and the library dropped its own copy (Env minor 2, LibKa0s v1.71.0).
+---
 --- @param field string  a TOC key: "Version", "Title", "Notes", "Author", …
 --- @return string|nil
 function NS.Meta(field)
   if Env then return Env.GetAddOnMetadata(addonName, field) end
   if C_AddOns and C_AddOns.GetAddOnMetadata then
     return C_AddOns.GetAddOnMetadata(addonName, field)
-  end
-  if type(GetAddOnMetadata) == "function" then
-    return GetAddOnMetadata(addonName, field)
   end
   return nil
 end
