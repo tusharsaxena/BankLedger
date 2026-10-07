@@ -95,9 +95,9 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It is **not** the state as this is written. `../LibKa0s` sits on **v1.67.0**,
-[`CLAUDE.md`](../CLAUDE.md) names **v1.67.0**, and all four commands above come back empty, because
-this addon has taken the newest tag the library has published. The next library release puts the
+It was **not** the state on 2026-10-07, at the v1.71.0 re-vendor. `../LibKa0s` sat on **v1.71.0**,
+[`CLAUDE.md`](../CLAUDE.md) named **v1.71.0**, and all four commands above came back empty, because
+this addon had taken the newest tag the library had published. The next library release puts the
 two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
 lands.
 
@@ -222,7 +222,10 @@ tests/
   _kit/                    -- VENDORED from LibKa0s (testkit/). Never edited here — see The vendor gate.
     framework.lua          --   the registry, the suite loader, the runner and the --list renderer
     asserts.lua            --   the assertions and the surface-parity gate (kit revision 26)
-    inventory.lua          --   the suite inventory and its path helpers (kit revision 28)
+    inventory.lua          --   the suite inventory and its path helpers (kit revision 28), and the
+                           --   --list renderer (kit revision 38)
+    secrets.lua            --   the shared secret-value simulator (Kit.secret, Kit.installSecretValue);
+                           --   opt-in, unused here so far (kit revision 38)
     loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
@@ -422,5 +425,10 @@ change**:
 ```sh
 lua tests/run.lua --list > docs/test-cases.md
 ```
+
+Its `## Totals` table counts only the cases that run (kit revision 38): a declared skip is listed by
+name in its group and counted on a separate `| Skipped | N |` row, never in **Total**. The badge
+tracks **Total**, so it reads `<Total>/<Total>` while the skip (today the diagnostics contract's
+declared opt-out) stands apart.
 
 There is no CI. This is deliberately local and hand-run.
