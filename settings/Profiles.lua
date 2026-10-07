@@ -4,7 +4,7 @@ local _, NS = ...
 -- AceDBOptions table into an AceGUI group inside our canvas; the flow engine never renders it, so
 -- the tab strip does not apply (options-ui-§13).
 --
--- A profile holds every setting but one, both item-id filter lists and the saved view; the recorded
+-- A profile holds every setting but one, both item-id filter lists and the saved views; the recorded
 -- ledger and the retention window that governs it are account-wide, and no control on this page
 -- reaches either (docs/profiles.md, owner decision D6). Switching, copying or
 -- resetting a profile reaches NS.OnProfileEvent (core/Database.lua), which re-applies the new

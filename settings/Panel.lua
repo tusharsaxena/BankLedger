@@ -743,10 +743,10 @@ function P:Register()
       defaultsButton = true,
       -- Names everything the one global reset takes (options-ui-§12): P:RestoreDefaults raises the
       -- same confirm popup as Reset all settings, and Yes resets the active profile -- the
-      -- settings, both filter lists and the saved view -- then recenters both windows. It also says
+      -- settings, both filter lists and the saved views -- then recenters both windows. It also says
       -- what survives, because until schema v3 this button took the recorded history too.
       defaultsTooltip = "Reset the current profile to Bank Ledger's defaults: every setting, the "
-        .. "item blacklist and whitelist and the saved view, and recenter the ledger and session "
+        .. "item blacklist and whitelist and each tab's saved view, and recenter the ledger and session "
         .. "windows. Your recorded history and your other profiles are kept. Asks first.",
     })
     P.general = ctx

@@ -328,8 +328,8 @@ implementation rather than two kept in step. That action is `P:RestoreDefaults()
 `NS.Slash:RequestResetAll()` — the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, the same one
 *Reset all settings* raises (`options-ui-§12`). Blizzard's un-gated footer control therefore changes
 nothing without the player's Yes, and Yes is the profile reset (`db:ResetProfile()`): the active
-profile's settings, both filter lists and saved view go back to their defaults, and the recorded
-ledger, which is account-wide, is kept. `/bl purge` is the act that deletes history.
+profile's settings, both filter lists and the saved views (one per tab) go back to their defaults,
+and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act that deletes history.
 
 ## The General page's tabs and the Filters tab
 
