@@ -183,6 +183,18 @@ test("Browser:SaveView then ClearFilters returns to the SAVED view, not stock", 
   end)
 end)
 
+test("Browser: a 'typesub' grouping survives SaveView and comes back on Clear", function()
+  withFakeBar(function(dd)
+    NS.LedgerTable.groupBy = "typesub"
+    B:SaveView()
+    assertEqual(NS.db.profile.savedView.groupBy, "typesub", "stored verbatim")
+    NS.LedgerTable.groupBy = "none"
+    B:ClearFilters()
+    assertEqual(NS.LedgerTable.groupBy, "typesub")
+    assertEqual(dd.group._value, "typesub", "the Group dropdown shows the saved mode")
+  end)
+end)
+
 test("Browser:ResetView drops the saved view, and Clear then lands on stock", function()
   withFakeBar(function(dd)
     NS.LedgerTable.groupBy = "store"
@@ -369,6 +381,21 @@ test("the ledger window saves its geometry when it hides", function()
   assertEqual(saved.point, "TOPLEFT", "closing the window persisted the position")
   assertEqual(saved.x, 111)
   assertEqual(saved.w, 980)
+end)
+
+test("the Group dropdown offers 'Type & SubType' right after Sub-type", function()
+  NS.Browser:Show()
+  local dd = B._dd and B._dd.group
+  assertTrue(dd ~= nil, "the group dropdown exists once the filter bar is built")
+  local values, label = {}, nil
+  for _, o in ipairs(dd._options or {}) do
+    values[#values + 1] = o.value
+    if o.value == "typesub" then label = o.label end
+  end
+  assertEqual(table.concat(values, ","),
+    "none,day,store,direction,kind,type,subtype,typesub,quality,char")
+  assertEqual(label, "Group: Type & SubType")
+  NS.Browser:Hide()
 end)
 
 -- The regression this addon shipped once: the popup menu is LibKa0s-Widgets-1.0's process-wide

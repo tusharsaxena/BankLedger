@@ -360,6 +360,7 @@ local GROUP_OPTIONS = {
   { value = "kind",      label = "Group: Item/Gold" },
   { value = "type",      label = "Group: Type" },
   { value = "subtype",   label = "Group: Sub-type" },
+  { value = "typesub",   label = "Group: Type & SubType" },
   { value = "quality",   label = "Group: Quality" },
   { value = "char",      label = "Group: Character" },
 }

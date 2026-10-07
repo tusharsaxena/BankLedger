@@ -262,6 +262,72 @@ test("LedgerTable:GroupEntries labels an untyped item group Unknown", function()
   end)
 end)
 
+-- "Type & SubType" (P9): one group per type + sub-type pair, ordered by type then sub-type.
+local function typesubLabels(list)
+  local out = {}
+  for _, item in ipairs(list) do
+    if item.kind == "header" then out[#out + 1] = item.label end
+  end
+  return table.concat(out, " | ")
+end
+
+test("LedgerTable:GroupEntries 'typesub' orders by type then sub-type, bare type first", function()
+  withGroup("typesub", function()
+    local list = LT:GroupEntries({
+      e({ itemType = "Armor Kit", itemSubType = "Leather" }),
+      e({ itemType = "Armor", itemSubType = "Leather" }),
+      e({ kind = "MONEY" }),
+      e({ itemType = NIL }),
+      e({ itemType = "Armor", itemSubType = "cloth" }),
+      e({ itemType = "Armor" }),
+    })
+    -- "Armor · cloth" sits beside "Armor" rather than after "Armor Kit", and the sub-type compares
+    -- case-insensitively ("cloth" before "Leather").
+    assertEqual(typesubLabels(list),
+      "Type: Armor | Type: Armor \194\183 cloth | Type: Armor \194\183 Leather"
+      .. " | Type: Armor Kit \194\183 Leather | Type: Gold | Type: Unknown")
+  end)
+end)
+
+test("LedgerTable:GroupEntries 'typesub' reads a missing or blank sub-type as the bare type", function()
+  withGroup("typesub", function()
+    local list = LT:GroupEntries({ e({ itemType = "Armor", itemSubType = "" }),
+                                   e({ itemType = "Armor" }) })
+    assertEqual(#list, 3, "blank and absent sub-types share one group")
+    assertEqual(list[1].label, "Type: Armor", "no trailing separator")
+    assertEqual(list[1].count, 2)
+  end)
+end)
+
+test("LedgerTable:GroupEntries 'typesub' groups gold as plain Gold, never 'Gold · Gold'", function()
+  withGroup("typesub", function()
+    local list = LT:GroupEntries({ e({ kind = "MONEY" }), e({ kind = "MONEY" }) })
+    assertEqual(#list, 3)
+    assertEqual(list[1].label, "Type: Gold")
+  end)
+end)
+
+test("LedgerTable:GroupEntries 'typesub' keys are namespaced apart from the Type grouping", function()
+  withGroup("typesub", function()
+    local key = LT:GroupEntries({ e({ itemType = "Armor", itemSubType = "Cloth" }) })[1].key
+    assertEqual(key, "typesub\001Armor\001Cloth")
+    LT.groupBy = "type"
+    local typeKey = LT:GroupEntries({ e({ itemType = "Armor", itemSubType = "Cloth" }) })[1].key
+    assertTrue(key ~= typeKey, "the two modes cannot share a collapsed-state key")
+  end)
+end)
+
+test("LedgerTable:GroupEntries 'typesub' group order flips with groupAsc", function()
+  withGroup("typesub", function()
+    local saved = LT.groupAsc
+    LT.groupAsc = false
+    local list = LT:GroupEntries({ e({ itemType = "Armor" }),
+                                   e({ itemType = "Armor", itemSubType = "Cloth" }) })
+    LT.groupAsc = saved
+    assertEqual(typesubLabels(list), "Type: Armor \194\183 Cloth | Type: Armor")
+  end)
+end)
+
 test("LedgerTable:GroupEntries orders quality groups Poor to Legendary", function()
   withGroup("quality", function()
     local list = LT:GroupEntries({ e({ quality = 4 }), e({ quality = 1 }) })
@@ -294,6 +360,8 @@ test("LedgerTable:GroupEntries emits the exact key and label for every group mod
       label = "Type: Tradegoods" },
     { mode = "subtype",    entry = { itemSubType = "Cloth" }, key = "subtype\001Cloth",
       label = "Sub-type: Cloth" },
+    { mode = "typesub",    entry = { itemSubType = "Cloth" }, key = "typesub\001Tradegoods\001Cloth",
+      label = "Type: Tradegoods \194\183 Cloth" },
     { mode = "quality",    entry = {},                       key = "quality\0011",
       label = "Quality: Common" },
     { mode = "char",       entry = {},                       key = "char\001Mock-Realm",
@@ -329,6 +397,8 @@ function()
       label = "Type: Unknown" },
     { mode = "subtype", entry = {},                 key = "subtype\001Unknown",
       label = "Sub-type: Unknown" },
+    { mode = "typesub", entry = { itemType = NIL }, key = "typesub\001Unknown",
+      label = "Type: Unknown" },
   }
   for _, c in ipairs(cases) do
     withGroup(c.mode, function()

@@ -368,7 +368,7 @@ badge and any count quoted in the docs must agree with it.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (55)
+### test_ledgertable.lua (60)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -398,6 +398,11 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable:GroupEntries groups by item type and sub-type
 - LedgerTable:GroupEntries gathers gold under Gold when grouping by type
 - LedgerTable:GroupEntries labels an untyped item group Unknown
+- LedgerTable:GroupEntries 'typesub' orders by type then sub-type, bare type first
+- LedgerTable:GroupEntries 'typesub' reads a missing or blank sub-type as the bare type
+- LedgerTable:GroupEntries 'typesub' groups gold as plain Gold, never 'Gold · Gold'
+- LedgerTable:GroupEntries 'typesub' keys are namespaced apart from the Type grouping
+- LedgerTable:GroupEntries 'typesub' group order flips with groupAsc
 - LedgerTable:GroupEntries orders quality groups Poor to Legendary
 - LedgerTable:GroupEntries puts gold in its own quality group
 - LedgerTable:GroupEntries emits the exact key and label for every group mode
@@ -426,7 +431,7 @@ badge and any count quoted in the docs must agree with it.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (46)
+### test_browser.lua (48)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -441,6 +446,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser: with nothing saved, the baseline IS the stock view
 - Browser: a corrupt saved view degrades to stock rather than erroring
 - Browser:SaveView then ClearFilters returns to the SAVED view, not stock
+- Browser: a 'typesub' grouping survives SaveView and comes back on Clear
 - Browser:ResetView drops the saved view, and Clear then lands on stock
 - Browser:CaptureView omits sortAsc entirely when the table module is not loaded
 - Browser:CaptureView never captures the character scope
@@ -456,6 +462,7 @@ badge and any count quoted in the docs must agree with it.
 - Browser:ApplyGeometry never restores a size below the window floor
 - Browser:SaveGeometry refuses to write a point-less table
 - the ledger window saves its geometry when it hides
+- the Group dropdown offers 'Type & SubType' right after Sub-type
 - the ledger window closes an open dropdown menu when it hides
 - the ledger window saves its geometry at logout
 - the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release
@@ -1412,8 +1419,8 @@ badge and any count quoted in the docs must agree with it.
 | test_ledger_settling.lua | 26 |
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 55 |
-| test_browser.lua | 46 |
+| test_ledgertable.lua | 60 |
+| test_browser.lua | 48 |
 | test_autocomplete.lua | 15 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
@@ -1452,4 +1459,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1242** |
+| **Total** | **1249** |

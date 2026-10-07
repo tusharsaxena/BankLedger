@@ -188,8 +188,24 @@ local function typeGroup(v)
   return v, v
 end
 
--- One arm per group-by mode, each returning `label, raw` — the label the header shows and the raw
--- value the namespaced key is built from.
+-- "typesub": one group per Type + SubType pair, headed "Type: Armor · Cloth". The third value is
+-- the group ORDER, since this mode has no column: the lowercased raw key, so groups sort by type and
+-- then sub-type (\001 sorts below every printable byte, so "Armor · Cloth" stays beside "Armor"
+-- rather than after "Armor Kit"). A missing sub-type reads as the bare type with no trailing
+-- separator and leads its siblings. Gold has no real sub-type (EntrySubType answers "Gold" only so
+-- the column reads), so it groups as plain "Gold" rather than "Gold · Gold".
+local function typeSubGroup(e)
+  local ty = NS.Util.EntryType(e)
+  if ty == "" then ty = "Unknown" end
+  local st = (e.kind ~= "MONEY") and NS.Util.EntrySubType(e) or ""
+  if st == "" then return ty, ty, ty:lower() end
+  local raw = ty .. "\001" .. st
+  return ty .. " \194\183 " .. st, raw, raw:lower()
+end
+
+-- One arm per group-by mode, each returning `label, raw[, order]` — the label the header shows, the
+-- raw value the namespaced key is built from and, for a mode with no table column, an optional
+-- group sort value (else the label orders the groups).
 --
 -- MODULE-LEVEL, built once at file load: groupOf runs once per entry inside BuildDisplayList, over
 -- a ledger that can be thousands of rows, so the dispatch must allocate nothing per call. It also
@@ -206,6 +222,7 @@ local GROUP_OF = {
   end,
   type = function(e) return typeGroup(NS.Util.EntryType(e)) end,
   subtype = function(e) return typeGroup(NS.Util.EntrySubType(e)) end,
+  typesub = typeSubGroup,
   -- Keyed on the quality id, so the group sorts Poor→Legendary rather than alphabetically. Gold
   -- has no quality; it gathers under its own group instead of vanishing into "Poor".
   quality = function(e)
@@ -224,12 +241,13 @@ local GROUP_OF = {
 
 -- Group identity + display label for an entry under the active group-by. The key is namespaced by
 -- group mode, so the collapsed-state map can never collide across modes. \001 is an unprintable
--- separator. An unknown mode answers "?" on both halves, never nil.
+-- separator. An unknown mode answers "?" on both halves, never nil. The third return is the arm's
+-- optional group order (nil for every mode but typesub).
 local function groupOf(groupBy, e)
   local arm = GROUP_OF[groupBy]
-  local label, raw = "?", "?"
-  if arm then label, raw = arm(e) end
-  return groupBy .. "\001" .. raw, label
+  local label, raw, order = "?", "?", nil
+  if arm then label, raw, order = arm(e) end
+  return groupBy .. "\001" .. raw, label, order
 end
 
 -- groupBy mode → the table column it corresponds to (which drives the header arrow and the
@@ -239,7 +257,7 @@ local GROUP_COLUMN = { store = "store", direction = "direction", char = "char", 
 -- "kind" is the Item/Gold split, NOT the Type column — its prefix says so, now that Type groups too.
 local GROUP_PREFIX = { store = "Store", direction = "Direction", kind = "Item/Gold",
                        char = "Character", day = "Day", type = "Type", subtype = "Sub-type",
-                       quality = "Quality" }
+                       typesub = "Type", quality = "Quality" }
 
 -- Stable sort by the active column into a NEW array (entries are never mutated). Lua 5.1's
 -- table.sort is not stable, so equal keys tiebreak on the original index to keep their prior order.
@@ -314,11 +332,11 @@ function LT:GroupEntries(entries)
 
   local order, byKey = {}, {}
   for _, e in ipairs(entries) do
-    local key, valueLabel = groupOf(groupBy, e)
+    local key, valueLabel, groupOrder = groupOf(groupBy, e)
     local g = byKey[key]
     if not g then
       g = { key = key, label = prefix .. ": " .. valueLabel, rows = {},
-            sortKey = sortFn and sortFn(e) or valueLabel }
+            sortKey = sortFn and sortFn(e) or groupOrder or valueLabel }
       byKey[key] = g
       order[#order + 1] = g
     end
