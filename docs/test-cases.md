@@ -475,6 +475,24 @@ badge and any count quoted in the docs must agree with it.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
+### test_autocomplete.lua (15)
+
+- Autocomplete: the seam answers a library handle on a real box, nil on a box it cannot hook
+- Autocomplete: the seam copies the caller's opts rather than handing the table over
+- Autocomplete: with no Autocomplete in the Widgets library the seam answers nil
+- Autocomplete: typing in Search opens the list directly under the box, as wide as it
+- Autocomplete: switching tab and closing the window both close the list
+- Autocomplete: suggestions are the distinct names containing the text, prefix matches first
+- Autocomplete: Gold is offered when a gold movement is in the slice, in the table's pale gold
+- Autocomplete: an item suggestion wears its quality color
+- Autocomplete: suggestions honor the other filters and set the typed text aside
+- Autocomplete: no more than eight suggestions
+- Autocomplete: in test mode the suggestions come from the sample, not the live ledger
+- Autocomplete: a pick sets the exact name in Search and applies it once, at once
+- Autocomplete: clicking a row in the list picks its name
+- Autocomplete: on Insights a pick filters the shared view too
+- Autocomplete: disabling the addon closes an open list, and the list asks nothing after
+
 ### test_launcher.lua (37)
 
 - Launcher: the seam is published, and it is the library's instance
@@ -1396,6 +1414,7 @@ badge and any count quoted in the docs must agree with it.
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 55 |
 | test_browser.lua | 46 |
+| test_autocomplete.lua | 15 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
 | test_insights.lua | 79 |
@@ -1433,4 +1452,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1227** |
+| **Total** | **1242** |

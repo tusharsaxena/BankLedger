@@ -19,7 +19,7 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
-| LEDG-1 – 48 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip |
+| LEDG-1 – 49 | History window | Window, filter bar, saved view, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
@@ -508,6 +508,15 @@ leaves its number unused.
   releasing well outside the grip, and `/reload` with the window open → it is still kept. Then Master
   controls ▸ Reset position, `/reload` → the default size and center return, not the old size.
   Result:
+- **LEDG-49. Search suggestions.** On History, type two letters of an item you have moved → a list
+  drops directly under the search box, exactly as wide as it, its top edge one gray line with the
+  box's bottom edge, rows in quality colors (a gold movement reads "Gold" in pale gold), names that
+  start with the letters first, at most eight. Down/Up move a gold highlight; Enter picks it → the
+  box reads that name, the list closes and the table filters to it at once. Type again, press Escape
+  → the list closes and the typed text stays. Type again and click a table row or the window title →
+  the list closes. Filter Store to one store → only that store's names are offered. Widen and
+  narrow the window → the list stays the box's width. Repeat the pick on Insights → the charts
+  follow it. `/bl test` → the suggestions are the sample's names. Result:
 
 ## INS
 
@@ -953,6 +962,7 @@ repository.
 | LEDG-35, LEDG-37 – 41 | S-21 steps 1–7 | No recorded result |
 | LEDG-42 – 46 | S-22 steps 1–5 | No recorded result |
 | LEDG-47, LEDG-48 | New (the library's resize grip, CA-BL-01, BankLedger#21, LibKa0s v1.67.0) | Never run |
+| LEDG-49 | New (the search box's suggestion list, P9, LibKa0s v1.70.0) | Never run |
 | INS-1 – 17 | S-9 steps 1–17 | No recorded result |
 | INS-18 | S-9 step 18, corrected by SP-BL-03R | The empty state is one of two named lines, and Character: Current counts as a filter; the old "no movements" line matched neither |
 | FILT-1 – 7 | S-11 steps 1–8 | No recorded result |

@@ -239,6 +239,13 @@ tests/
                            --   LibKa0s's repo-local tests/mock_menu.lua; installed per case by
                            --   test_launcher.lua and test_disabled.lua. Not a suite
   test_<module>.lua        -- one suite per module
+  test_autocomplete.lua    -- the search box's suggestion list (P9): the B:MakeAutocomplete seam
+                           --   (copied opts, nil without the library), the list hung under the
+                           --   box at its width, B.SuggestNames (distinct names, prefix first,
+                           --   Gold in its pale gold, quality colors, the other filters honored
+                           --   and the typed text set aside, at most eight, the test-mode sample),
+                           --   a pick applying once and at once, a row click, a tab switch, the
+                           --   window close and the stand-down closing the list
   test_harness.lua         -- the harness's own guard rail (suite list, TOC order)
   test_lifecycle.lua       -- core/BankLedger.lua's enable/disable cycle, which belongs to no
                            --   one module: the four _enabled latches released together, and

@@ -456,8 +456,8 @@ library adoptions or scope, not rules of the standard (#5 and #9 are cited by th
 per file, with its terminal state: an open issue naming the seam a peel would follow, a ratified
 deviation row above, or a scheduled peel.
 
-Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1223 lines,
-measured 2026-10-03 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
+Nothing is over the cap today. The largest authored file is `modules/Browser.lua` at 1328 lines,
+measured 2026-10-07 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs
 wc -l | sort -n`. The figure is prose, not a pin; `tests/_kit/test_layout_cap.lua` asserts membership
 in both directions -- an over-cap file missing from this census, or a row here naming a file that
 is no longer over the cap -- and the dated number is not what it checks.

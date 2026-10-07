@@ -218,6 +218,8 @@ function B:SelectTab(name)
     frame.tabs[t].underline:SetShown(active)
   end
   BuildPane(name)
+  -- A list left open from the other tab would sit over this one's first rows.
+  if B._autocomplete then B._autocomplete:Close() end
   if name == "History" and NS.LedgerTable and NS.LedgerTable.Refresh then
     NS.LedgerTable:Refresh()
     B:RefreshFilterOptions()
@@ -278,6 +280,22 @@ function B:MakeDropdown(parent, width)
     check     = NS.Icon and NS.Icon("confirm"),
     glyphFont = C.FONT_MONO,
   })
+end
+
+-- The search box's suggestion list (P9) is LibKa0s-Widgets-1.0's Autocomplete, and this is its seam,
+-- beside the dropdown's for the same reason: the library is reached here and nowhere else in the
+-- filter bar. It hangs directly under the box, as wide as it and in the box's own gray skin, so it
+-- follows the box through every window resize with no handler of its own. What the rows say and
+-- what a pick does stay on this side (B.SuggestNames / B.PickName below).
+--
+-- The caller's opts are COPIED, so the library never holds a table this file goes on to edit. NIL
+-- IS A REAL ANSWER -- no library, or a Widgets shell from another addon's older copy that refused
+-- this file's pairing -- and the box simply stays a plain filter box: typing still filters.
+function B:MakeAutocomplete(editBox, opts)
+  if not (W and W.Autocomplete) then return nil end
+  local o = {}
+  for k, v in pairs(opts or {}) do o[k] = v end
+  return W.Autocomplete(editBox, o)
 end
 
 -- A small flat-skin text button for the filter bar.
@@ -562,6 +580,84 @@ function B:CurrentFilter()
   for k, v in pairs(self.activeFilter or {}) do out[k] = v end
   return out
 end
+
+-- ── Search suggestions (P9) ───────────────────────────────────────────────────
+-- What the search box's autocomplete offers, and what a pick does. ONE provider for both tabs,
+-- because both tabs read the one shared filter: the distinct item names among the rows the other
+-- filters let through, from whatever the table is showing (the synthetic dataset in test mode).
+local SUGGEST_MAX = 8
+
+local function trimLower(text)
+  return ((text or ""):match("^%s*(.-)%s*$") or ""):lower()
+end
+
+--- `items` ({ text, ... }) narrowed to the names containing `text`, names that START with it first,
+--- then alphabetical, at most `limit`. Pure.
+function B._rankSuggestions(items, text, limit)
+  local t, out, prefix = trimLower(text), {}, {}
+  if t == "" then return out end
+  for _, it in ipairs(items) do
+    local at = it.text:lower():find(t, 1, true)
+    if at then prefix[it] = (at == 1); out[#out + 1] = it end
+  end
+  table.sort(out, function(a, b)
+    if prefix[a] ~= prefix[b] then return prefix[a] end
+    local la, lb = a.text:lower(), b.text:lower()
+    if la ~= lb then return la < lb end
+    return a.text < b.text
+  end)
+  for i = #out, (limit or SUGGEST_MAX) + 1, -1 do out[i] = nil end
+  return out
+end
+
+-- A row's suggestion color is the color its name wears in the table: the quality color for an item,
+-- the table's pale gold for a gold movement (which has no quality), none when the quality is unknown.
+local function suggestColor(e)
+  if e.kind == C.Kind.MONEY then
+    local m = NS.LedgerTable and NS.LedgerTable.MONEY_RGB
+    return m and { m[1], m[2], m[3] } or nil
+  end
+  local c = type(e.quality) == "number" and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[e.quality]
+  return c and { c.r, c.g, c.b } or nil
+end
+
+--- The search box's suggestions: the distinct item names (and "Gold", when a gold movement is in
+--- the slice) among the rows the shared filter shows with the typed text set aside, each in the
+--- color the table paints it. A name is offered once, colored by the first row that carries it.
+function B.SuggestNames(text)
+  if trimLower(text) == "" then return {} end
+  local f = B:CurrentFilter()
+  f.text = nil
+  local seen, items = {}, {}
+  for _, e in ipairs(NS.Database:QueryList(dataset(), f)) do
+    local name = e.itemName
+    if type(name) == "string" and name ~= "" and not seen[name] then
+      seen[name] = true
+      items[#items + 1] = { text = name, value = name, color = suggestColor(e) }
+    end
+  end
+  return B._rankSuggestions(items, text, SUGGEST_MAX)
+end
+
+--- A picked name: the search box reads exactly that name and the filter applies.
+function B.PickName(item)
+  B:SetSearchText(item and item.text or "")
+end
+
+--- Put `text` in the search box and apply it NOW, once. In the client SetText fires the box's
+--- OnTextChanged, which arms the typing debounce; that pending apply is dropped here and the filter
+--- applied immediately instead, so a pick neither waits out the debounce nor pays for two queries.
+function B:SetSearchText(text)
+  text = text or ""
+  if self._search then self._search:SetText(text) end
+  self.activeFilter.text = (text ~= "") and text or nil
+  local addon = NS.addon
+  if pendingFilterTimer and addon and addon.CancelTimer then addon:CancelTimer(pendingFilterTimer) end
+  pendingFilterTimer = nil
+  ApplyFilter()
+end
+
+B._SUGGEST_MAX = SUGGEST_MAX
 
 function B:UpdateFooter()
   if not self._footer then return end
@@ -905,6 +1001,14 @@ function B:BuildFilterBar(bar)
   search:SetScript("OnEscapePressed", function(self2) self2:ClearFocus() end)
   search:SetScript("OnEnterPressed", function(self2) self2:ClearFocus() end)
   self._search = search
+  -- The suggestion list under the box (P9). AFTER the scripts above, because the library HOOKS
+  -- them: the box's own filter, Enter and Escape run first and keep running. nil without the
+  -- library, where the box stays a plain filter box.
+  self._autocomplete = self:MakeAutocomplete(search, {
+    maxRows  = SUGGEST_MAX,
+    provider = function(text) return B.SuggestNames(text) end,
+    onPick   = function(item) B.PickName(item) end,
+  })
 
   -- Row 2, left→right in the same order the columns appear in the table.
   dd.date = self:MakeDropdown(bar, DD_W.date)
@@ -1158,6 +1262,7 @@ end
 
 function B:Hide()
   if W then W.CloseMenu() end
+  if self._autocomplete then self._autocomplete:Close() end
   if frame then frame:Hide() end
 end
 

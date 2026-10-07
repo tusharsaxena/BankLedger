@@ -34,6 +34,8 @@ local ARROW_SIZE, ARROW_GAP = 12, 2
 -- has no quality), so they take a pale gold — deliberately LIGHTER than the 1/0.82/0 the column
 -- headers and window title use, so a gold row reads as data and never as a heading.
 local MONEY_RGB = { 1.00, 0.91, 0.55 }
+-- Published for the search suggestions (modules/Browser.lua), which color a "Gold" row the same way.
+LT.MONEY_RGB = MONEY_RGB
 
 local EM_DASH = "\226\128\148"
 
