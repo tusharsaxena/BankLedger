@@ -108,8 +108,8 @@ function Sl:ResetEverything()
     NS.SetPendingResetRows(countResetRows())
     db:ResetProfile()
   end
-  print("profile '" .. tostring(db and db.GetCurrentProfile and db:GetCurrentProfile() or "?")
-    .. "' reset to defaults.")
+  -- The profile name rides as its own printer argument (events-frames-taint-§8).
+  print("profile", db and db.GetCurrentProfile and db:GetCurrentProfile() or "?", "reset to defaults.")
 end
 
 --- THE SINGLE ENTRY POINT to the global reset (options-ui-§12). Reset all settings, the General

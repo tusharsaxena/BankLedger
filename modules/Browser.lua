@@ -219,6 +219,19 @@ local function BuildPane(name)
   end
 end
 
+-- The incoming pane's own refresh. On a real switch SwapTabState's ApplyView has just painted it,
+-- so painting it again would be a second full query (History) or Stats pass (Insights): only a
+-- re-select of the tab on screen (B:Show, the first build), which swaps nothing, repaints here.
+-- History's filter options are rebuilt either way.
+local function paintIncoming(name, repaint)
+  if name == "History" and NS.LedgerTable and NS.LedgerTable.Refresh then
+    if repaint then NS.LedgerTable:Refresh() end
+    B:RefreshFilterOptions()
+  elseif name == "Insights" and repaint and NS.Insights and NS.Insights.Refresh then
+    NS.Insights:Refresh()
+  end
+end
+
 function B:SelectTab(name)
   if not frame then return end
   local prev = lastTab
@@ -235,12 +248,7 @@ function B:SelectTab(name)
   B:SwapTabState(prev, name)
   -- A list left open from the other tab would sit over this one's first rows.
   if B._autocomplete then B._autocomplete:Close() end
-  if name == "History" and NS.LedgerTable and NS.LedgerTable.Refresh then
-    NS.LedgerTable:Refresh()
-    B:RefreshFilterOptions()
-  elseif name == "Insights" and NS.Insights and NS.Insights.Refresh then
-    NS.Insights:Refresh()
-  end
+  paintIncoming(name, prev == name)
   B:UpdateFooter()
   B:UpdateDbSize()
   if NS.State.debug and NS.Debug then NS.Debug("UI", "tab -> %s", tostring(name)) end
@@ -551,6 +559,14 @@ end
 local FILTER_DEBOUNCE = 0.20
 local pendingFilterTimer
 
+-- Drop an armed typing debounce. An apply made NOW (a pick, a view swap) already covers the text the
+-- debounce was waiting on, and letting it run would pay for the same filter a second time.
+local function dropFilterDebounce()
+  local addon = NS.addon
+  if pendingFilterTimer and addon and addon.CancelTimer then addon:CancelTimer(pendingFilterTimer) end
+  pendingFilterTimer = nil
+end
+
 function B:ScheduleApplyFilter()
   local addon = NS.addon
   -- No timer library (a headless run): apply inline rather than silently drop the edit.
@@ -584,12 +600,10 @@ end
 --- stand-up can schedule again. The handles are file locals, so AceTimer's own cancel-all cannot
 --- reach them and a handle left behind is a debounce that never fires for the rest of the session.
 function B:CancelPending()
+  dropFilterDebounce()
   local addon = NS.addon
-  if addon and addon.CancelTimer then
-    if pendingFilterTimer then addon:CancelTimer(pendingFilterTimer) end
-    if pendingRefreshTimer then addon:CancelTimer(pendingRefreshTimer) end
-  end
-  pendingFilterTimer, pendingRefreshTimer = nil, nil
+  if pendingRefreshTimer and addon and addon.CancelTimer then addon:CancelTimer(pendingRefreshTimer) end
+  pendingRefreshTimer = nil
 end
 
 function B:CurrentFilter()
@@ -606,6 +620,15 @@ local SUGGEST_MAX = 8
 
 local function trimLower(text)
   return ((text or ""):match("^%s*(.-)%s*$") or ""):lower()
+end
+
+-- The search box's text as a filter clause: trimmed exactly as trimLower trims (case kept, since the
+-- query lowers it), nil when nothing is left. The suggestions and the query then read one string,
+-- so ' linen' cannot offer Linen Cloth over an empty table. The box itself keeps the raw text.
+local function searchClause(text)
+  local t = (text or ""):match("^%s*(.-)%s*$") or ""
+  if t == "" then return nil end
+  return t
 end
 
 --- `items` ({ text, ... }) narrowed to the names containing `text`, names that START with it first,
@@ -667,10 +690,8 @@ end
 function B:SetSearchText(text)
   text = text or ""
   if self._search then self._search:SetText(text) end
-  self.activeFilter.text = (text ~= "") and text or nil
-  local addon = NS.addon
-  if pendingFilterTimer and addon and addon.CancelTimer then addon:CancelTimer(pendingFilterTimer) end
-  pendingFilterTimer = nil
+  self.activeFilter.text = searchClause(text)
+  dropFilterDebounce()
   ApplyFilter()
 end
 
@@ -842,7 +863,7 @@ local function paintDropdowns(dd, view, sets, date, chars)
 end
 
 -- The resolved filter the table and Insights actually query with. `date == "all"` means no lower
--- bound at all (nil, never 0), and an empty search means no text clause.
+-- bound at all (nil, never 0), and an empty or whitespace-only search means no text clause.
 local function buildActiveFilter(chars, sets, date, search)
   return {
     char        = B.ResolveCharFilter(chars),
@@ -852,7 +873,7 @@ local function buildActiveFilter(chars, sets, date, search)
     itemType    = setToFilter(sets.itemType),
     itemSubType = setToFilter(sets.itemSubType),
     from = (date ~= "all") and NS.Util.RangeFrom(date) or nil,
-    text = (search ~= "") and search or nil,
+    text = searchClause(search),
   }
 end
 
@@ -877,6 +898,8 @@ function B:ApplyView(view, scope)
   -- activeFilter.text itself, so doing it the other way round would let the widget clobber the
   -- value we just resolved.
   if self._search then self._search:SetText(search) end
+  -- That SetText armed the typing debounce in the client; the apply below covers it.
+  dropFilterDebounce()
 
   self.activeFilter = buildActiveFilter(chars, sets, date, search)
   B:ApplyFilterNow()
@@ -898,7 +921,7 @@ function B:SaveView()
   local s = savedSlots(true)
   if not s then return end
   s[lastTab] = self:CaptureView()
-  print(("%s view saved as your default."):format(lastTab))
+  print(lastTab, "view saved as your default.")
 end
 
 -- Drop the ACTIVE TAB's saved baseline back to stock and apply it now; the other tab keeps its own.
@@ -912,7 +935,7 @@ function B:ResetView(silent)
     if next(s) == nil then NS.db.profile.savedViews = nil end
   end
   self:ApplyView(STOCK_VIEW, "current")
-  if not silent then print(("%s view reset to stock defaults."):format(lastTab)) end
+  if not silent then print(lastTab, "view reset to stock defaults.") end
 end
 
 -- ── Per-tab live state ────────────────────────────────────────────────────────
@@ -1093,7 +1116,7 @@ function B:BuildFilterBar(bar)
   search:SetScript("OnTextChanged", function(self2)
     local t = self2:GetText()
     ph:SetShown(t == "")
-    B.activeFilter.text = (t ~= "") and t or nil
+    B.activeFilter.text = searchClause(t)
     B:ScheduleApplyFilter()
   end)
   search:SetScript("OnEscapePressed", function(self2) self2:ClearFocus() end)

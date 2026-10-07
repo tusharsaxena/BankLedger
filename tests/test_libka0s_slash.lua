@@ -192,7 +192,7 @@ test("LibKa0s-Slash: CliResetAll is the host's profile reset, not the library's 
   assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0, "the filter lists are cleared")
   assertTrue(NS.db.profile.savedView == nil, "the saved ledger view is cleared")
   assertEqual(#out, 1, "still exactly one confirmation line")
-  assertEqual(out[1], NS.PREFIX .. " profile 'Default' reset to defaults.")
+  assertEqual(out[1], NS.PREFIX .. " profile Default reset to defaults.")
 end)
 
 test("LibKa0s-Slash: the landing page and the chat help render the SAME rows", function()
@@ -394,7 +394,7 @@ test("LibKa0s-Slash degraded: resetall still WORKS rather than merely explaining
   local out = captureChat(function() ns.Slash:CliResetAll() end, m)
   assertEqual(ns.Schema:Get("settings.qualityThreshold"), 0)
   assertEqual(#ns.db.global.ledger, 1, "the degraded reset took recorded history")
-  assertEqual(out[#out], "|cff00ffff[BL]|r profile 'Default' reset to defaults.")
+  assertEqual(out[#out], "|cff00ffff[BL]|r profile Default reset to defaults.")
 end)
 
 test("LibKa0s-Slash degraded: resetall writes every changed row back, and logs its ONE [Set] line", function()

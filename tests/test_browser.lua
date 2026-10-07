@@ -489,6 +489,50 @@ test("Per-tab views: a profile event drops every tab's live state onto the new p
   end)
 end)
 
+test("Per-tab views: a tab switch paints the incoming pane once, not twice", function()
+  -- SwapTabState's ApplyView already repaints the incoming tab; SelectTab painting it again was a
+  -- second full query (History) or Stats pass (Insights) per switch (BL-R-03). The History filter
+  -- options are still rebuilt on the way in.
+  -- red under: SelectTab refreshing the incoming pane on a real switch.
+  withTabs(function()
+    local ins, lt, opts = 0, 0, 0
+    local realIns, realLt, realOpts = NS.Insights.Refresh, NS.LedgerTable.Refresh, B.RefreshFilterOptions
+    NS.Insights.Refresh = function(...) ins = ins + 1; return realIns(...) end
+    NS.LedgerTable.Refresh = function(...) lt = lt + 1; return realLt(...) end
+    B.RefreshFilterOptions = function(...) opts = opts + 1; return realOpts(...) end
+    local insOnSwitch, ltOnSwitch
+    local ok, err = pcall(function()
+      muted(function() B:SelectTab("Insights") end)
+      insOnSwitch = ins
+      lt, opts = 0, 0
+      muted(function() B:SelectTab("History") end)
+      ltOnSwitch = lt
+    end)
+    NS.Insights.Refresh, NS.LedgerTable.Refresh, B.RefreshFilterOptions = realIns, realLt, realOpts
+    if not ok then error(err, 0) end
+    assertTrue(insOnSwitch <= 1, "Insights painted " .. tostring(insOnSwitch) .. " times on one switch")
+    assertTrue(ltOnSwitch <= 1, "History's table painted " .. tostring(ltOnSwitch) .. " times on one switch")
+    assertTrue(opts >= 1, "the History filter options were not rebuilt on the way in")
+  end)
+end)
+
+test("Per-tab views: Save and Reset name the tab as a printer argument, same line as ever", function()
+  -- events-frames-taint-§8 (BL-A-05): the tab rides as its own argument, not a pre-formatted string.
+  withTabs(function()
+    local lines = {}
+    local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
+    mocks.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) lines[#lines + 1] = msg end
+    local ok, err = pcall(function()
+      B:SaveView()
+      B:ResetView()
+    end)
+    mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
+    if not ok then error(err, 0) end
+    assertEqual(lines[1], NS.PREFIX .. " History view saved as your default.")
+    assertEqual(lines[2], NS.PREFIX .. " History view reset to stock defaults.")
+  end)
+end)
+
 -- ── Toolbar geometry ───────────────────────────────────────────────────────────
 
 test("Browser:MinWidth fits every table column and the whole toolbar", function()

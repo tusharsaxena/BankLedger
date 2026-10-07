@@ -436,7 +436,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (55)
+### test_browser.lua (57)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -467,6 +467,8 @@ Total.
 - Per-tab views: switching tabs restores each tab's live state exactly
 - Per-tab views: a tab's first visit opens on its own saved view
 - Per-tab views: a profile event drops every tab's live state onto the new profile's views
+- Per-tab views: a tab switch paints the incoming pane once, not twice
+- Per-tab views: Save and Reset name the tab as a printer argument, same line as ever
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -494,7 +496,7 @@ Total.
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
 
-### test_autocomplete.lua (15)
+### test_autocomplete.lua (17)
 
 - Autocomplete: the seam answers a library handle on a real box, nil on a box it cannot hook
 - Autocomplete: the seam copies the caller's opts rather than handing the table over
@@ -507,6 +509,8 @@ Total.
 - Autocomplete: suggestions honor the other filters and set the typed text aside
 - Autocomplete: no more than eight suggestions
 - Autocomplete: in test mode the suggestions come from the sample, not the live ledger
+- Search: a query with stray whitespace filters as the suggestions read it, on every path
+- Search: ApplyView applies its search once, leaving no typing debounce to re-run it
 - Autocomplete: a pick sets the exact name in Search and applies it once, at once
 - Autocomplete: clicking a row in the list picks its name
 - Autocomplete: on Insights a pick filters the shared view too
@@ -1435,8 +1439,8 @@ Total.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 63 |
-| test_browser.lua | 55 |
-| test_autocomplete.lua | 15 |
+| test_browser.lua | 57 |
+| test_autocomplete.lua | 17 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
 | test_insights.lua | 79 |
@@ -1475,4 +1479,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1261** |
+| **Total** | **1265** |
