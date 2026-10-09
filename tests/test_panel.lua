@@ -53,6 +53,26 @@ test("Panel: the landing page's OnDefault is inert — it manages no settings", 
   rawget(p, "OnDefault")()   -- must not raise
 end)
 
+-- Owner report: the landing page showed the logo twice, the second under the Slash Commands
+-- heading. A private body drew it on a pooled AceGUI frame and never took it off; the library's
+-- BuildLandingPage hides it on release. The page body must go through the library's builder.
+test("Panel: the landing page is drawn by the library's BuildLandingPage, logo and commands", function()
+  local O = NS.Helpers
+  local seen
+  local real = O.BuildLandingPage
+  O.BuildLandingPage = function(ctx, spec) seen = spec; return real(ctx, spec) end
+  local ok, err = pcall(S.renderPage, "Ka0s Bank Ledger")
+  O.BuildLandingPage = real
+  if not ok then error(err, 0) end
+  -- red under: the private logoGroup.frame:CreateTexture body in settings/Panel.lua
+  assertTrue(seen ~= nil, "the landing body delegates to the library")
+  assertEqual(seen.logo, NS.Constants.LOGO_PATH)
+  assertEqual(seen.logoSize, 300)
+  assertEqual(#seen.sections, 1)
+  assertEqual(seen.sections[1].heading, "Slash Commands")
+  assertEqual(#seen.sections[1].rows(), #NS.Slash:LandingRows())
+end)
+
 -- The header Defaults button and Blizzard's own footer control must be ONE implementation, not two
 -- that can drift.
 --

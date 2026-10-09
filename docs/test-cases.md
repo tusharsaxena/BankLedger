@@ -890,11 +890,12 @@ Total.
 - bus: without LibKa0s, NS.MSG is the same four names as a plain table
 - bus: no addon file but core/Constants.lua types a message's wire name
 
-### test_panel.lua (34)
+### test_panel.lua (35)
 
 - Panel: every registered canvas frame is handed to the Settings framework
 - Panel: each canvas frame defines OnCommit, OnDefault and OnRefresh
 - Panel: the landing page's OnDefault is inert — it manages no settings
+- Panel: the landing page is drawn by the library's BuildLandingPage, logo and commands
 - Panel: OnDefault runs the same action as the header Defaults button
 - Panel: the General defaults action only asks, and changes nothing before the confirm
 - Panel: OnCommit and OnRefresh are inert — writes land immediately and OnShow refreshes
@@ -1450,7 +1451,7 @@ Total.
 | test_schema_runtime.lua | 18 |
 | test_slash.lua | 53 |
 | test_bus.lua | 10 |
-| test_panel.lua | 34 |
+| test_panel.lua | 35 |
 | test_panel_filters.lua | 40 |
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
@@ -1479,4 +1480,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1265** |
+| **Total** | **1266** |
