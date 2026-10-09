@@ -39,7 +39,7 @@ the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` ho
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles).
 
-Load order is load-bearing in seven places (the newest: `modules/Browser_Views.lua` loads straight
+Load order is load-bearing in nine places (the newest: `modules/Browser_Views.lua` loads straight
 after `modules/Browser.lua`, whose `B._viewSeam` it captures at file load), and `tests/test_harness.lua`
 guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.

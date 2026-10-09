@@ -11,7 +11,7 @@ What Bank Ledger is for, and — the load-bearing half — what it deliberately 
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window and the Minimap button account-wide, every other setting per AceDB profile ([profiles.md](profiles.md)) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 34 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 37 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## In scope

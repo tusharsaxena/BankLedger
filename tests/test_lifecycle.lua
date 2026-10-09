@@ -15,7 +15,7 @@ local NS = T.NS
 local mocks = T.mocks
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
--- The four OnEnable arms: three directly, Insights through the Browser (modules/Browser.lua:1205).
+-- The four OnEnable arms: three directly, Insights through the Browser (modules/Browser.lua:1157).
 local MODULES = { "Ledger", "Browser", "SessionWindow", "Insights" }
 
 local function entry()

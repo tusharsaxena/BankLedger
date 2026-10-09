@@ -791,9 +791,10 @@ leaves its number unused.
 ## DEGRADED
 
 With `libs/LibKa0s` renamed aside (Before you start). Nothing about the addon's own function depends
-on the library; the nine seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
-`core/ItemSetup.lua`, `core/LifecycleSetup.lua`, `core/MediaSetup.lua`, `core/PoolSetup.lua`,
-`settings/OptionsSetup.lua`, `settings/Slash.lua`) each degrade rather than error.
+on the library; the eleven seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`,
+`core/ItemSetup.lua`, `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `core/MediaSetup.lua`,
+`core/PoolSetup.lua`, `settings/OptionsSetup.lua`, `settings/Schema.lua`, `settings/Slash.lua`) each
+degrade rather than error.
 
 - **DEGRADED-1. Zero errors, two lines at login.** Log in → not one Lua error, and the addon prints
   exactly two lines: the notice (DEGRADED-2), then `[BL] The LibKa0s library is missing from this
