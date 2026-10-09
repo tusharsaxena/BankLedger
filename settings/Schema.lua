@@ -475,7 +475,7 @@ end
 --      core/LauncherSetup.lua hands it (db.global.minimap). That table also holds `hide`, the
 --      Minimap button row's stored key (CLI path `minimap.shown`), so nothing here replaces it whole.
 -- NOT on this list: `blacklist` / `whitelist`, the filter id-sets. They are an architecture-§5
--- structural registry written only by NS.Filters (F:_move, F:_remove, F:ClearList, F:ClearAll in
+-- structural registry written only by NS.Filters (F:_move, F:_remove and F:ClearList in
 -- modules/Filters.lua), which then calls Database:FireLedgerChanged itself.
 
 -- ── The runtime: LibKa0s-Schema-1.0 (architecture-§5) ───────────────────────────────────────

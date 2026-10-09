@@ -96,16 +96,6 @@ test("Filters.ClearList ignores an unknown list name", function()
   assertEqual(NS.Filters:ClearList("nonesuch"), 0)
 end)
 
-test("Filters.ClearAll empties both lists in one go", function()
-  clean()
-  NS.Filters:AddBlacklist(2589)
-  NS.Filters:AddWhitelist(4306)
-  assertEqual(NS.Filters:ClearAll(), 2)
-  assertEqual(NS.Filters:Count(NS.Filters:Blacklist()), 0)
-  assertEqual(NS.Filters:Count(NS.Filters:Whitelist()), 0)
-  clean()
-end)
-
 test("Filters: a list change re-caches the capture gate's upvalues", function()
   -- The gate reads cached upvalues for speed, so a list edit that failed to re-cache would leave
   -- the newly blacklisted item recording until the next /reload.

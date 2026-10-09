@@ -89,7 +89,7 @@ Total.
 - Constants: every open-frame context has a Ledger store list
 - Constants: C.Context is its own axis, not a subset of C.Store
 
-### test_filters.lua (14)
+### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
 - Filters: adding the same id twice is a no-op the second time
@@ -102,7 +102,6 @@ Total.
 - Filters.ClearList empties one list and reports how many went
 - Filters.ClearList on an empty list reports zero
 - Filters.ClearList ignores an unknown list name
-- Filters.ClearAll empties both lists in one go
 - Filters: a list change re-caches the capture gate's upvalues
 - Filters: the Clear all confirms report the count as printer arguments
 
@@ -1432,7 +1431,7 @@ Total.
 | test_util.lua | 38 |
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
-| test_filters.lua | 14 |
+| test_filters.lua | 13 |
 | test_ledger.lua | 76 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
@@ -1480,4 +1479,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1266** |
+| **Total** | **1265** |

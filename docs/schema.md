@@ -242,8 +242,8 @@ session state switched through `LT:SetTestMode` and `NS.DebugLog`, never through
 to and removes them from.
 - **Storage keys.** `db.profile.blacklist` and `db.profile.whitelist`, both shipped empty in
   `defaults/Profile.lua`.
-- **Writer.** `NS.Filters` in `modules/Filters.lua`: `F:_move`, `F:_remove`, `F:ClearList` and
-  `F:ClearAll`, with `AddBlacklist` / `AddWhitelist` / `RemoveBlacklist` / `RemoveWhitelist` over the
+- **Writer.** `NS.Filters` in `modules/Filters.lua`: `F:_move`, `F:_remove` and
+  `F:ClearList`, with `AddBlacklist` / `AddWhitelist` / `RemoveBlacklist` / `RemoveWhitelist` over the
   first two. The Filters tab, the ledger's right-click menu and the two clear popups call it, and
   nothing else writes either key.
 - **Load pass.** `NS.MIGRATIONS[3]` (`core/Database.lua`), once: it lifted both lists out of

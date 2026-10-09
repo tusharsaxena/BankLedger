@@ -13,7 +13,7 @@ local F = NS.Filters
 -- The lists are stored in the PROFILE, NS.db.profile.{blacklist,whitelist} — NOT under settings, and
 -- NOT as Schema rows. They are an architecture-§5 structural registry (the player adds and removes
 -- ids, and no row path names one), and this module is its one runtime writer: F:_move, F:_remove,
--- F:ClearList and F:ClearAll. None of it goes through Schema:Set. Two things replace the lists
+-- and F:ClearList. None of it goes through Schema:Set. Two things replace the lists
 -- wholesale without coming through here, and both are named in docs/ARCHITECTURE.md beside this
 -- writer: the load pass NS.MIGRATIONS[3] (core/Database.lua), which lifted them out of db.global
 -- once, and AceDB itself on a profile switch, copy or reset -- after which NS.OnProfileEvent re-caches
@@ -118,18 +118,6 @@ function F:ClearList(listKey)
   local removed = self:Count(currentSet(listKey))
   if removed == 0 then return 0 end
   NS.db.profile[listKey] = {}
-  self:_notify()
-  return removed
-end
-
--- Empty BOTH lists with a single _notify. Returns the total ids removed. No reset path calls it
--- since BankLedger-A-02: the global reset (Sl:ResetEverything) resets the whole profile, both lists
--- with it. It stays the registry's one bulk writer.
-function F:ClearAll()
-  local removed = self:Count(self:Blacklist()) + self:Count(self:Whitelist())
-  if removed == 0 then return 0 end
-  NS.db.profile.blacklist = {}
-  NS.db.profile.whitelist = {}
   self:_notify()
   return removed
 end
