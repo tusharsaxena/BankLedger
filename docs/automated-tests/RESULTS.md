@@ -12,7 +12,7 @@ the analysis of a given run is its `ANALYSIS.md`.
 read and compared, not thresholded (`performance-§9`, `performance-§10`).
 
 **The tag is gated on all four suites at `pass`, plus zero functions above CCN 15**
-(`automated-tests-§3`, *The release gate*), evaluated by `/wow-addon:bump-version` from the
+(`automated-tests-§3`, *The release gate*), evaluated by `/dev-copilot:bump-version` from the
 `manifest.json` the release run writes — not by this script, whose exit code is unchanged.
 
 A `skip` is a suite that did not run at all. It is never a pass, and at the release gate it is
@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20261009-191733`](20261009-191733/) | `6aedd39` | clean | 1.2.0 → 1.3.0 | 0/0 | 88 | 1265/1/1266 | skip | 22780 | 3657 | 6.2 | 2.0 | 15 | 0 | **green** |
 | [`20260927-031851`](20260927-031851/) | `b97fd24` | clean | 1.2.0 | 0/0 | 78 | 1104/0/1104 | skip | 19210 | 2920 | 5.9 | 2.0 | 15 | 0 | **green** |
 | [`20260927-030326`](20260927-030326/) | `e9c5cae` | clean | 1.1.0 → 1.2.0 | 0/0 | 76 | 1104/0/1104 | skip | 19199 | 2921 | 6.0 | 2.0 | 15 | 0 | **green** |
 | [`20260926-193102`](20260926-193102/) | `d67564c` | clean | 1.1.0 | 0/0 | 76 | 1104/0/1104 | skip | 19199 | 2921 | 6.0 | 2.0 | 15 | 0 | **green** |
@@ -51,19 +52,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**1104 cases** — 1104 passed, 0 failed, 0 skipped. The generated inventory
-[`20260927-031851/test-cases.md`](20260927-031851/test-cases.md) is the authority on which cases existed at this run;
+**1266 cases** — 1265 passed, 0 failed, 1 skipped. The generated inventory
+[`20261009-191733/test-cases.md`](20261009-191733/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-The count has been **flat at 1104 across the last 4 runs**. A suite that stopped growing while
-the addon did is a coverage gap, and it is the one thing the table above cannot show.
+Moved **1104 → 1266** since the previous run.
 
-No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
-that was not exercised.
+**1 case(s) reported a `skip`.** A skip is counted in the total and never in `passed`, and at
+the release gate it is NOT EVALUATED rather than passed (`automated-tests-§3`).
 
 ## Lint
 
-**0 warnings / 0 errors over 78 files** (`luacheck .`).
+**0 warnings / 0 errors over 88 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 5 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `_dev/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -80,8 +80,8 @@ combat path for one to measure, not because the question was never asked.
 
 ## Complexity watch list
 
-Current as of [`20260927-031851`](20260927-031851/) — **this run's measurement, not its diff.** Max CCN **15** across 2920
-functions, **0** of them warned on; 2 file(s) in the 1000–1500 band and 0 over the 1500 cap
+Current as of [`20261009-191733`](20261009-191733/) — **this run's measurement, not its diff.** Max CCN **15** across 3657
+functions, **0** of them warned on; 4 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
 Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
@@ -100,8 +100,10 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `modules/Browser.lua` | 1179 | **Accepted — already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`). The per-tab view seam is **cut**: it had grown to 1450 (the per-tab view state and the search suggestions, BL-R-02 in the 2026-10-07 review), and the view machinery moved whole into `modules/Browser_Views.lua` (303), leaving 1179 by `wc -l` at the BL-03 commit, ahead of the next battery run. The remaining named seam is the skin/close-button factory and the geometry persistence, which lift into a sibling file if the file climbs again. Tracked, so the three-consecutive-releases rule is already discharged. |
-| 1000–1500 (on notice) | `modules/Insights.lua` | 1002 | **Accepted.** 1002 at `20260927-031851`, unchanged since it crossed at `20260924-105040` (992 → 1002, the stand-down latch in `a769125`, +10, not a new renderer), and so at the 1.2.0 release run `20260927-030326`. Avg CCN 3.6 over 65 functions ([`20260927-031851/complexity.txt`](20260927-031851/complexity.txt)): section renderers, not tangle; `I` at `:505` sits at CCN 15, on the line. Peel seam: `I:Layout` / `I:LayoutSections` and the `I:Render*` section renderers they drive lift into a sibling file. Shelf life: **first** release run in the band (it was under 1000 at 1.1.0's `20260910-234511`). Re-check trigger: 1300 LOC, or a new section renderer. |
+| 1000–1500 (on notice) | `modules/Browser.lua` | 1179 | **Accepted — already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`). 1221 at the 1.2.0 release record; it grew to 1450 with the per-tab view state and the search suggestions (BL-R-02 in the 2026-10-07 review), and BL-03 cut that seam, moving the view machinery whole into `modules/Browser_Views.lua` (303). This 1.3.0 release run measures 1179, net −42 across the release. The remaining named seam is the skin/close-button factory and the geometry persistence, which lift into a sibling file if the file climbs again. Tracked, so the three-consecutive-releases rule is already discharged. |
+| 1000–1500 (on notice) | `modules/Insights.lua` | 1004 | **Accepted.** 1002 → 1004 since `20260927-031851`: the per-tab views change (`e8d264a`, +4/−2) reads the Insights tab's own filter state, not a new renderer. In the band since `20260924-105040` (992 → 1002, the stand-down latch in `a769125`). Section renderers, not tangle; max CCN in the file stays at 15. Peel seam: `I:Layout` / `I:LayoutSections` and the `I:Render*` section renderers they drive lift into a sibling file. Shelf life: **second** release run in the band (1.2.0's `20260927-030326`, now 1.3.0's `20261009-191733`); a third Accepted at the next release is owed a fix or a tracked deviation ID (anti-pattern #53). Re-check trigger: 1300 LOC, or a new section renderer. |
+| 1000–1500 (on notice) | `tests/test_browser.lua` | 1103 | **Newly crossed** (700 at `20260927-031851`). Growth is coverage for this release's features: Group by Type & SubType, the resize-grip characterization (BankLedger#21), and the per-tab views block (`:317`, about 220 lines driven through the real window). **Accepted** for this release, first release run in the band. Peel seam: the per-tab views block and the saved-view cases above it (`:100`–`:535`) lift into `tests/test_browser_views.lua`, mirroring the `modules/Browser_Views.lua` split. Re-check trigger: 1300 LOC, or the next Browser feature that adds a suite block here. |
+| 1000–1500 (on notice) | `tests/test_profiles.lua` | 1010 | **Newly crossed** (the file is new since `20260927-031851`, added by SP-BL-01 and grown by the v4 and v5 migration steps and the `/bl profile` verb). **Accepted** for this release, first release run in the band. Peel seam: the three migration steps (v3 lift `:132`, v4 retention `:239`, v5 per-tab views `:359`) lift into `tests/test_profiles_migrations.lua`, leaving the adopt path, the Profiles page, the reset veto and the verb. Re-check trigger: 1200 LOC, or a v6 migration step. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN

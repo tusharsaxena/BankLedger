@@ -366,7 +366,7 @@ end
 
 -- Pure [Init] session summary for the SetEnabled seam (debug-logging-§5/§8): addon name + version,
 -- schema version, active profile, entry count, then the dependency tail — e.g.
--- "BankLedger v1.2.0, schema v4, profile 'Default', 412 entries, bank addons: none".
+-- "BankLedger v1.3.0, schema v4, profile 'Default', 412 entries, bank addons: none".
 -- Guarded so it can't error before the DB is ready. All values are plain constants/counts, so a raw
 -- tostring is secret-safe here.
 function NS.InitSummary()

@@ -4,7 +4,7 @@ local addonName, NS = ...
 NS.name = addonName
 -- Fallback only: `/bl version` and the help header both resolve through Sl:Version(), which prefers
 -- the TOC's ## Version and degrades to this when the metadata API is unavailable (headlessly, say).
-NS.version = "1.2.0"
+NS.version = "1.3.0"
 
 -- The persisted-DB shape this build writes: the migration runner's target (NS:RunMigrations) and the
 -- highest key in NS.MIGRATIONS. It is NOT the shipped default -- defaults/Global.lua declares
