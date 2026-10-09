@@ -38,7 +38,8 @@ local ADDON_TAGLINE =
 -- a host page legitimately needs are published on the instance — O.ROW_VSPACER,
 -- O.SECTION_HEADING_H, O.BUTTON_PAIR_REL — and are read from there below.
 --
--- LOGO_SIZE has no library equivalent: the landing-page logo is this addon's own art.
+-- LOGO_SIZE stays host-side: the landing-page logo is this addon's own art, so its size is handed
+-- to O.BuildLandingPage as spec data rather than left to the library's unpublished default.
 local LOGO_SIZE = 300
 
 local registered
@@ -504,50 +505,29 @@ end
 GENERAL_AFTER_TAB[FILTERS_TAB] = buildFiltersTab
 
 -- ── Landing page: logo + tagline + slash-command list (options-ui-§5) ───────────
+-- Drawn by the library's builder, O.BuildLandingPage, which also owns the ClearScroll. It replaced a
+-- private body that drew the logo as a texture straight on a pooled AceGUI SimpleGroup frame and
+-- never took it off: after a re-render the frame came back as another SimpleGroup (the spacer under
+-- the Slash Commands heading) still carrying the logo, so the page showed it twice. The builder
+-- keeps one texture per frame and hides it in the group's OnRelease.
+--
+-- The command rows come from NS.Slash:LandingRows(), which is LibKa0s-Slash-1.0's ONE command-row
+-- formatter — the same one `/bl help` uses, un-indented because here each row is its own label
+-- (options-ui-§5, slash-commands-§4). This page used to carry a SECOND formatter for the same
+-- data; collapsing them was a deliberate, user-visible convergence, recorded in this repo's GitHub
+-- issues rather than left to look like an accident.
 local function buildMainContent(ctx)
-  local scroll = O.EnsureScroll(ctx)
-
-  local logoGroup = O.AceGUI:Create("SimpleGroup")
-  logoGroup:SetLayout(nil); logoGroup:SetFullWidth(true); logoGroup:SetHeight(LOGO_SIZE)
-  local tex = logoGroup.frame:CreateTexture(nil, "ARTWORK")
-  tex:SetTexture(NS.Constants.LOGO_PATH)
-  tex:SetSize(LOGO_SIZE, LOGO_SIZE)
-  tex:SetPoint("TOPLEFT", logoGroup.frame, "TOPLEFT", 0, 0)
-  scroll:AddChild(logoGroup)
-  O.AddSpacer(scroll, 8)
-
-  local desc = O.AceGUI:Create("Label")
-  desc:SetFullWidth(true); desc:SetText(ADDON_TAGLINE)
-  if desc.label and desc.label.SetFontObject and _G.GameFontHighlight then
-    desc.label:SetFontObject(_G.GameFontHighlight)
-  end
-  scroll:AddChild(desc)
-  O.AddSpacer(scroll, 12)
-
-  local heading = O.AceGUI:Create("Heading")
-  heading:SetFullWidth(true); heading:SetHeight(O.SECTION_HEADING_H); heading:SetText("Slash Commands")
-  if heading.label and heading.label.SetFontObject and _G.GameFontNormalLarge then
-    heading.label:SetFontObject(_G.GameFontNormalLarge)
-  end
-  scroll:AddChild(heading)
-  O.AddSpacer(scroll, 6)
-
-  -- Rendered through NS.Slash:LandingRows(), which is LibKa0s-Slash-1.0's ONE command-row
-  -- formatter — the same one `/bl help` uses, un-indented because here each row is its own
-  -- label (options-ui-§5, slash-commands-§4).
-  --
-  -- This page used to carry a SECOND formatter for the same data: doubled spaces around an em
-  -- dash that was explicitly wrapped white, with the description left bare. Two renderers for
-  -- one table in one repo drift the moment either is touched, and this one had already drifted
-  -- from the chat help. Collapsing them is a deliberate, user-visible convergence — the spacing
-  -- tightens, the dash loses its color span and the description gains one. Recorded in
-  -- this repo's GitHub issues rather than left to look like an accident.
-  for _, row in ipairs((NS.Slash and NS.Slash.LandingRows and NS.Slash:LandingRows()) or {}) do
-    local labelRow = O.AceGUI:Create("Label")
-    labelRow:SetFullWidth(true)
-    labelRow:SetText(row)
-    scroll:AddChild(labelRow)
-  end
+  O.BuildLandingPage(ctx, {
+    logo     = NS.Constants.LOGO_PATH,
+    logoSize = LOGO_SIZE,
+    notes    = ADDON_TAGLINE,
+    sections = { {
+      heading = "Slash Commands",
+      rows    = function()
+        return (NS.Slash and NS.Slash.LandingRows and NS.Slash:LandingRows()) or {}
+      end,
+    } },
+  })
 end
 
 -- ── Diagnostics ────────────────────────────────────────────────────────────────
@@ -725,7 +705,6 @@ function P:Register()
   -- The landing page's body. Handed over rather than registered as a page: it belongs to the parent
   -- category, which the library creates itself from the descriptor's `mainPanelName`.
   O.SetMainBuilder(function(ctx)
-    O.ClearScroll(ctx)
     buildMainContent(ctx)
     if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
   end)

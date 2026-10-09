@@ -26,7 +26,8 @@ only. The finer tree is everything below it.
 **Three** pages registered with `LibKa0s-Options-1.0`, which owns the shell, the widget makers, the
 flow engine and the render timing: the **landing page**, **General** and **Profiles**. `settings/Panel.lua` keeps
 only what did **not** generalize: the inverted store grid, the History tab's storage read-out, the
-Filters tab's secondary strip over the two item-id lists, the landing-page body and `P:Diagnose`.
+Filters tab's secondary strip over the two item-id lists, the landing-page spec (logo, tagline, command rows — drawn by the library's
+`O.BuildLandingPage`, which hides the logo when its pooled frame is released) and `P:Diagnose`.
 It also carries `P:Batch`, a refresh coalescer that only `tests/test_panel.lua` calls: the global
 reset is one `db:ResetProfile()` that walks no rows, and `NS.OnProfileEvent` refreshes the panel
 once after it.
