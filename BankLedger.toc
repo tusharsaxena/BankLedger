@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120105
 ## Title: Ka0s Bank Ledger
 ## Notes: A passbook of every item and gold movement between your bags and your banks.
 ## Author: add1kted2ka0s

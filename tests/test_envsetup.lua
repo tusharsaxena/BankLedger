@@ -120,7 +120,7 @@ test("EnvSetup degraded: an install with no LibKa0s still reads its TOC and stam
 
 test("EnvSetup degraded: NS.Meta never reads the bare GetAddOnMetadata global", function()
   -- red under: the bare-global rung. The 11.0 AddOns purge removed the bare global, and no client
-  -- this TOC admits (## Interface 120100) still carries it, so a rung below C_AddOns is dead code
+  -- this TOC admits (## Interface 120105) still carries it, so a rung below C_AddOns is dead code
   -- that only a stale mock could ever reach. With the library and C_AddOns both absent the answer
   -- is nil, and the planted global must never be asked.
   local ns, m = loadDegraded("core\\EnvSetup.lua")
