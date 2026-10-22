@@ -69,6 +69,10 @@ guild-bank frame opening. The reasoning was first written up in closed issue
 [**LIBKA0S-17**](https://github.com/tusharsaxena/BankLedger/issues/9), when `LibKa0s-Perf-1.0`
 was declined; that issue is the argument, and the register row is the ratification.
 
+The simulator's idle seam (`core/SimSetup.lua`, BankLedger#24) costs one boolean test per `NS.Compat`
+call, about 3,200 per full reconcile pass, and adds no combat path: it arms no event, no timer and
+no `OnUpdate`, so the exemption stands.
+
 ## What ends this
 
 **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms

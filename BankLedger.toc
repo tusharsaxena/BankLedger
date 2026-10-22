@@ -36,6 +36,8 @@ locales\PostLoad.lua
 
 # Core (Compat loads first)
 core\Compat.lua
+# LOAD-BEARING: wraps every NS.Compat member at load, before any file could read one (Sim-1.0 host contract H2).
+core\SimSetup.lua
 # The LibKa0s-Env seam. After Compat, whose three world/metadata shims it replaced, and before
 # every file that reads a version, a zone or a map id. Nothing here resolves at load beyond the
 # LibStub lookup, so unlike core\MediaSetup.lua below this position is conventional.

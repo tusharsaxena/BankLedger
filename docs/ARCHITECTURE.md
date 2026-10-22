@@ -34,14 +34,15 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-38 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` holds the account-wide
+39 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the nine LibKa0s seams; `defaults/` holds the account-wide
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles). The root `Bindings.xml`
 (not in the TOC; the client reads it by name) declares the Show window key binding (`launcher-§6`).
 
-Load order is load-bearing in nine places (the newest: `modules/Browser_Views.lua` loads straight
-after `modules/Browser.lua`, whose `B._viewSeam` it captures at file load), and `tests/test_harness.lua`
+Load order is load-bearing in ten places (the newest: `core/SimSetup.lua` loads straight after
+`core/Compat.lua`, so the simulator's seam wraps every `NS.Compat` member before any file could read
+one; Sim-1.0 host contract H2), and `tests/test_harness.lua`
 guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 

@@ -1251,7 +1251,7 @@ Total.
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 
-### test_surface_parity.lua (20)
+### test_surface_parity.lua (23)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
@@ -1273,6 +1273,9 @@ Total.
 - Slash stub DisabledLine format is the library's bytes
 - Slash stub: /bl version prints the live arm's bytes
 - Slash stub: an unknown verb is answered in the live arm's words
+- LibKa0s-Sim degraded: the session stub carries the whole live instance surface
+- LibKa0s-Sim degraded: the seam stub carries the live seam surface
+- LibKa0s-Sim degraded: nothing is wrapped and RunVerb prints the absent line once
 
 ### test_register.lua (1)
 
@@ -1401,6 +1404,21 @@ Total.
 - library lines: a load in the disabled state says so once logging is on, and no edge line twice
 - library lines: the [Diff] change gate is the console's, re-armed by a Clear
 
+### test_sim_seam.lua (12)
+
+- Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its seam
+- Sim seam: Keys() is the 12 wrapped Compat members, sorted
+- Sim seam: the three pure members are not wrapped
+- Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract H2)
+- Sim seam: with no session, every wrapped member answers what the bare Compat answers
+- Sim seam: SetProvider on a pure key raises
+- Sim seam: a second SetProvider on one key raises; release with nil first
+- Sim seam: Live(fn) restores bypass when fn raises, and re-raises the same value
+- Sim seam: a guarded QueryGuildBankTab never reaches the client during a session
+- Sim seam: the guarded query is inert with no sim world and no session
+- TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
+- Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1504,7 +1522,7 @@ Total.
 | test_itemsetup.lua | 12 |
 | test_lifecycle.lua | 13 |
 | test_disabled.lua | 19 |
-| test_surface_parity.lua | 20 |
+| test_surface_parity.lua | 23 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
@@ -1512,10 +1530,11 @@ Total.
 | test_profiles.lua | 47 |
 | test_debug_coverage.lua | 17 |
 | test_debug_library.lua | 10 |
+| test_sim_seam.lua | 12 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1304** |
+| **Total** | **1319** |

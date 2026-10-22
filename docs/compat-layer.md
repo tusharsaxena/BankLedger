@@ -35,6 +35,25 @@ plain `function Compat.X` members, never cached at load. The one direct read lef
 close-button tint (`B:MakeCloseButton`): cosmetic, applied once at build and never stored. A source
 scan in `tests/test_compat.lua` holds the boundary.
 
+## The simulator's seam wraps every member
+
+`core/SimSetup.lua` loads straight after this file and wraps `NS.Compat` in place with
+`LibKa0s-Sim-1.0`'s `Sim:NewSeam` (BankLedger#24). Every function member is wrapped but three, so
+while a simulation runs the simulator answers it and otherwise the live member does, at one field
+test per call:
+
+- **Pure, never wrapped:** `GuildBankTabSize` (a constant), and `GetItemDetails` and `ItemNameQuality`
+  (real facts about real cached items: the simulator's item pool comes from the player's own bags,
+  so the client's answer is the right one).
+- **Guarded:** `QueryGuildBankTab`, the addon's one outward request. While a session runs its live
+  body never runs, inside `Live` included; the guarded answer marks the tab queried in the simulated
+  world and fires the asynchronous `GUILDBANKBAGSLOTS_CHANGED` reply on the session timer.
+- **Wrapped:** the other twelve, `PlayerName` and `PlayerClass` included.
+
+A member added after the seam is built, or one replaced by assignment, would escape it, and so would
+a member captured as `local x = NS.Compat.X`. `tests/test_sim_seam.lua` asserts the seam's
+`Unwrapped()` list is empty after the whole addon loads and scans the source for captured reads.
+
 ## Why every reader returns `nil` rather than a number
 
 A reader that guesses is worse than one that declines, and the money readers are the case that proves

@@ -18,7 +18,7 @@ leaves its number unused.
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
-| CAPT-1 – 20 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table regression |
+| CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
 | LEDG-1 – 56 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
@@ -398,6 +398,13 @@ leaves its number unused.
   `GUILDBANK_FRAME_SHOWN` or `GUILDBANK_FRAME_HIDDEN` among the registered events. **Fail:** a
   missing or doubled row, a session window that stays up after the frame closes, or either name in
   the event list. Result:
+- **CAPT-21. The idle simulator seam is invisible (regression, SM-BL-17).** Every `NS.Compat` read now
+  passes through the simulator's seam, which answers live while no simulation runs. With the addon
+  loaded normally, `/bl show` opens the ledger window as before; a bank visit (deposit and withdraw an
+  item and some gold) and a guild-bank visit (deposit and withdraw an item, every tab's contents
+  loading as you click through them) record exactly the rows CAPT-1, CAPT-4, CAPT-9 and CAPT-10
+  describe. **Fail:** a missing or doubled row, a guild tab that stays empty, or any Lua error.
+  Result:
 
 ## LEDG
 
@@ -968,3 +975,6 @@ SLASH-7 (new: binding and toggling, the refusal while disabled, combat).
 
 **Owed after the capture dispatch table (2026-10-22, BankLedger#24).** CAPT-20 (new: a bank visit and
 a guild-bank visit record exactly as before, and the session window follows the frames).
+
+**Owed after the simulator's seam wrapped `NS.Compat` (2026-10-22, BankLedger#24).** CAPT-21 (new:
+`/bl show`, a bank visit and a guild-bank visit behave exactly as before while no simulation runs).

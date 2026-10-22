@@ -548,3 +548,43 @@ test("Slash stub: an unknown verb is answered in the live arm's words", function
   assertEqual(got[1], want[1])
   assertEqual(got[1], "|cff00ffff[BL]|r unknown command 'wibble'")
 end)
+
+-- ── LibKa0s-Sim degraded (BL-08, host contract H9) ────────────────────────────────────────────────
+--
+-- core/SimSetup.lua stands up two stubs when LibKa0s-Sim-1.0 is absent: the session (NS.Sim) and
+-- the seam (NS.SimSeam). The session mirrors an INSTANCE, so its live half is the reference instance
+-- tests/run.lua registers with Kit.setSurfaceSource; the seam stub is compared two-table against
+-- the live NS.SimSeam. Both with no ignore set: the stub carries the whole surface and nothing more.
+
+test("LibKa0s-Sim degraded: the session stub carries the whole live instance surface", function()
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Sim-1.0", true) == nil, "the degraded arm still has the library")
+  T.assertSurfaceParity(degraded.Sim, "LibKa0s-Sim-1.0")
+end)
+
+test("LibKa0s-Sim degraded: the seam stub carries the live seam surface", function()
+  local degraded = loadDegraded()
+  T.assertSurfaceParity(NS.SimSeam, degraded.SimSeam, "NS.SimSeam vs its degraded stub")
+  assertEqual(#degraded.SimSeam:Keys(), 0, "the degraded seam wrapped something")
+  assertEqual(#degraded.SimSeam:Unwrapped(), 0)
+  assertEqual(degraded.SimSeam:Live(function(a, b) return a + b end, 2, 3), 5, "the stub's Live did not call through")
+end)
+
+test("LibKa0s-Sim degraded: nothing is wrapped and RunVerb prints the absent line once", function()
+  local degraded, dm = degradedEnabled(nil)
+  local before = degraded.Compat.GetMoney
+  assertTrue(type(before) == "function")
+  local sim = degraded.Sim
+  assertTrue(sim:IsActive() == false and sim:IsDelivering() == false and sim:IsPanelShown() == false)
+  assertEqual(sim:Fire("BAG_UPDATE"), 0)
+  assertEqual(sim:DeliverForCleanup("BAG_UPDATE"), 0)
+  assertTrue(sim:After(1, function() end) == nil)
+  assertTrue(sim:Stop() == false)
+  assertTrue(sim:Session() == nil)
+  assertTrue(sim:Status().active == false)
+  local ok, code = sim:RunVerb("start bank")
+  assertTrue(ok == false and code == "absent", "RunVerb did not answer false, \"absent\"")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("The simulator needs LibKa0s-Sim-1.0.", 1, true) ~= nil, lines[1])
+end)
