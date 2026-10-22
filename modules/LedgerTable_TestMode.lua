@@ -226,7 +226,7 @@ end
 -- caller to print. Asking for the state already in force changes nothing and builds nothing.
 --
 -- A START opens the ledger window, because the sample is only worth anything on screen. It is refused
--- in combat (combat ends test mode, so one started inside a fight would be the one that covers it) and
+-- while a simulation runs (the two datasets are exclusive), in combat (combat ends test mode, so one started inside a fight would be the one that covers it) and
 -- when General visibility would keep the window shut (B:Show refuses then, and a sample loaded behind
 -- a window that will not open is test mode on with nothing to show for it). A STOP never opens
 -- anything: the combat ending comes through here, and a window popping open on the pull is exactly
@@ -241,6 +241,11 @@ end
 
 -- Why a start is refused, or nil: the player's line, and the guard for the trace.
 local function startRefusal()
+  -- A simulation and test mode are exclusive (Sim-1.0 host contract H5): each refuses while the
+  -- other runs, so the window's dataset is never both at once (BankLedger#24).
+  if NS.Sim and NS.Sim:IsActive() then
+    return NS.L["Stop the simulation before turning on test mode."], "simulation"
+  end
   if InCombatLockdown and InCombatLockdown() then
     return "cannot start test mode during combat.", "combat"
   end
@@ -254,6 +259,8 @@ local function traceTestMode(on, rows, guard)
   if not (NS.State.debug and NS.Debug) then return end
   if guard == "combat" then
     NS.Debug("Table", "test mode start refused: in combat")
+  elseif guard == "simulation" then
+    NS.Debug("Table", "test mode start refused: a simulation is running")
   elseif guard then
     NS.Debug("Table", "test mode start refused: %s",
       tostring(NS.Util.VisibilityRefusal and NS.Util.VisibilityRefusal()))

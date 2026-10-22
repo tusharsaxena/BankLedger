@@ -27,7 +27,7 @@ local addonName, NS = ...
 -- LIBRARY ABSENT. Nothing is wrapped. NS.SimSeam is the inert seam stub and NS.Sim the inert
 -- session stub, both the library's reference copies (LibKa0s tests/test_sim_stub.lua): every
 -- member answers, nothing simulates, and /bl sim says the simulator needs the library. When the
--- library is present NS.Sim is the live instance the simulator module builds with Sim:New.
+-- library is present NS.Sim is the live instance modules/Sim.lua builds with Sim:New.
 
 local Sim = LibStub and LibStub("LibKa0s-Sim-1.0", true)
 
@@ -49,6 +49,9 @@ local function guardedQuery(tab)
   if not sim then return end
   local session = sim:Session()
   if session then session.queries = (session.queries or 0) + 1 end
+  if NS.State and NS.State.debug and NS.Debug then
+    NS.Debug("Sim", "guarded QueryGuildBankTab(%s): no client call, reply in 0.2s", tostring(tab))
+  end
   sim:After(0.2, function() sim:Fire("GUILDBANKBAGSLOTS_CHANGED") end)
 end
 NS.SimHost.GuardedQuery = guardedQuery

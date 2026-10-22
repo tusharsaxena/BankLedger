@@ -17,7 +17,7 @@ local _, NS = ...
 -- session runs, the client is not asked. With no world yet they answer the empty world (0 slots,
 -- nil, false), never the live one.
 --
--- THE MUTATION API (SW.Move, SW.Money, SW.Switch, SW.MarkQueried, SW.ResetVisit) is pure world
+-- THE MUTATION API (SW.Move, SW.Money, SW.Switch, SW.MarkQueried, SW.ResetVisit; SW.Has reads) is pure world
 -- editing for the drivers (modules/SimDrivers.lua). It fires nothing: a driver edits, then fires.
 -- Load position is conventional: nothing here is read by another file at load.
 
@@ -273,6 +273,12 @@ function SW.Move(charKey, fromGroup, toGroup, itemID, n)
     e.c[slot] = { itemID = itemID, link = link or w.links[itemID], count = n }
   end
   return true, fromID, e.id
+end
+
+--- True when `charKey`'s `group` (a C.Store value) holds at least `n` of `itemID`.
+function SW.Has(charKey, group, itemID, n)
+  local w = world()
+  return w ~= nil and countOf(containersOf(w, charKey, group), itemID) >= n
 end
 
 local MONEY_FIELD = { [Store.WARBAND_BANK] = "warband", [Store.GUILD_BANK] = "guild" }

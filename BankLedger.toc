@@ -92,6 +92,14 @@ modules\Ledger_Diagnose.lua
 # The simulator's world model and its Compat answers (BankLedger#24). Conventional: it registers its
 # providers on NS.SimSeam (core/SimSetup.lua) at load and reads everything else at call time.
 modules\SimWorld.lua
+# The simulator's event drivers (BankLedger#24): world edits plus the client's event lists, as data.
+# Conventional: they reach NS.SimWorld and NS.Sim at call time.
+modules\SimDrivers.lua
+# The simulator's session host (Sim:New, refusals, the two-phase stop). Conventional: its descriptor
+# reaches the ledger, the browser and the drivers at call time, and its scenarios are filled in place
+# by modules\SimScenario.lua below, which the library reads at call time.
+modules\Sim.lua
+modules\SimScenario.lua
 # The login backfill (BankLedger#2). After Ledger, whose BuildEntry rule it follows; it reaches
 # NS.Compat, NS.Item and NS.Database at call time, so the position is conventional.
 modules\Backfill.lua

@@ -566,8 +566,21 @@ function Database:Delete(pred)
   return removed
 end
 
--- Wipe the whole ledger (`/bl purge`). Returns the count removed. The REAL ledger, never the sim sink.
+--- True, after printing why, while a simulation runs (OWNER_SCOPE C.13, Sim-1.0 host contract H5).
+--- `/bl purge` and the panel's Purge button ask it BEFORE opening the confirm, so the confirm never
+--- opens; Purge asks it again, so no path past them wipes the ledger mid-simulation either.
+function Database:PurgeRefused()
+  local sim = NS.Sim
+  if not (sim and sim:IsActive()) then return false end
+  NS.Print(NS.L["Stop the simulation first."])
+  if NS.State.debug and NS.Debug then NS.Debug("Sim", "purge refused: a simulation is running") end
+  return true
+end
+
+-- Wipe the whole ledger (`/bl purge`). Returns the count removed, or false when a running simulation
+-- refused it. The REAL ledger, never the sim sink.
 function Database:Purge()
+  if self:PurgeRefused() then return false end
   local removed = #NS.db.global.ledger
   NS.db.global.ledger = {}
   fireLedgerChanged()

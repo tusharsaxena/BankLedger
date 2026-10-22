@@ -933,6 +933,40 @@ test("Ledger:Dispatch answers 0 and runs nothing while disabled, 1 after running
   if not ok then error(err, 0) end
 end)
 
+test("Ledger:Dispatch stops a running simulation on a REAL frame edge, before the handler runs", function()
+  -- red under: dropping the auto-stop from L:Dispatch, running it after the handler, or stopping on
+  -- an event the simulator itself delivered (BankLedger#24, Sim-1.0 host contract H6).
+  local L = NS.Ledger
+  local savedSim, wasEnabled = NS.Sim, L._enabled
+  local savedOpen, savedMoney = L.HANDLERS.BANKFRAME_OPENED, L.HANDLERS.PLAYER_MONEY
+  local order = {}
+  local fake = { active = true, delivering = false }
+  function fake.IsActive(self) return self.active end
+  function fake.IsDelivering(self) return self.delivering end
+  function fake.Stop(_, reason) order[#order + 1] = "stop " .. tostring(reason) end
+  NS.Sim, L._enabled = fake, true
+  L.HANDLERS.BANKFRAME_OPENED = function() order[#order + 1] = "handler" end
+  L.HANDLERS.PLAYER_MONEY = function() order[#order + 1] = "money" end
+  local ok, err = pcall(function()
+    L:Dispatch("BANKFRAME_OPENED")
+    assertEqual(table.concat(order, ","), "stop bank,handler", "a real open did not stop first")
+    order = {}
+    fake.delivering = true
+    L:Dispatch("BANKFRAME_OPENED")
+    assertEqual(table.concat(order, ","), "handler", "a simulated open stopped the simulation")
+    order, fake.delivering, fake.active = {}, false, false
+    L:Dispatch("BANKFRAME_OPENED")
+    assertEqual(table.concat(order, ","), "handler", "an idle simulator was stopped")
+    order, fake.active = {}, true
+    L:Dispatch("PLAYER_MONEY")
+    assertEqual(table.concat(order, ","), "money", "a real change event stopped the simulation")
+    for event in pairs(L.SIM_STOP_EVENTS) do assertTrue(L.HANDLERS[event] ~= nil, event) end
+  end)
+  NS.Sim, L._enabled = savedSim, wasEnabled
+  L.HANDLERS.BANKFRAME_OPENED, L.HANDLERS.PLAYER_MONEY = savedOpen, savedMoney
+  if not ok then error(err, 0) end
+end)
+
 test("Ledger:Dispatch answers 0 for an event with no handler", function()
   local L = NS.Ledger
   local wasEnabled = L._enabled

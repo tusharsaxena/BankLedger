@@ -155,6 +155,8 @@ local function renderStorage(ctx)
     { text = "Purge ledger\226\128\166",
       tooltip = "Delete every recorded movement. Your settings are left alone.",
       onClick = function()
+        -- Refused during a simulation BEFORE the confirm opens (OWNER_SCOPE C.13).
+        if NS.Database and NS.Database:PurgeRefused() then return end
         if type(StaticPopup_Show) == "function" then StaticPopup_Show("KA0S_BANKLEDGER_PURGE")
         elseif NS.Database and NS.Database.Purge then NS.Database:Purge() end
       end })

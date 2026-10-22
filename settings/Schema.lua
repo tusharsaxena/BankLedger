@@ -849,6 +849,8 @@ NS.COMMANDS = {
       if refusal then print(refusal) else print("test mode", on and "on" or "off") end
     end },
   { "purge",    "Delete ALL ledger history (asks first)", function()
+      -- Refused during a simulation BEFORE the confirm opens (OWNER_SCOPE C.13).
+      if NS.Database and NS.Database:PurgeRefused() then return end
       if type(StaticPopup_Show) == "function" then
         StaticPopup_Show("KA0S_BANKLEDGER_PURGE")
       elseif NS.Database and NS.Database.Purge then

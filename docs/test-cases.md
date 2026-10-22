@@ -109,7 +109,7 @@ Total.
 - Filters: a list change re-caches the capture gate's upvalues
 - Filters: the Clear all confirms report the count as printer arguments
 
-### test_ledger.lua (81)
+### test_ledger.lua (82)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -190,6 +190,7 @@ Total.
 - Ledger.HANDLERS: every event the Ledger registers maps to a handler and reaches Dispatch
 - Ledger.HANDLERS: every client handler is registered, and the pseudo-events are not
 - Ledger:Dispatch answers 0 and runs nothing while disabled, 1 after running the handler
+- Ledger:Dispatch stops a running simulation on a REAL frame edge, before the handler runs
 - Ledger:Dispatch answers 0 for an event with no handler
 - Ledger: the guild-bank hooks dispatch their pseudo-events, and return first while stood down
 
@@ -1229,7 +1230,7 @@ Total.
 - NS.StandDown characterization: bare modules and no addon object raise nothing
 - NS.StandDown characterization: the postponed line needs logging on
 
-### test_disabled.lua (19)
+### test_disabled.lua (20)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1250,6 +1251,7 @@ Total.
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
+- disabled: while stood down a simulation refuses with the disabled line, and Fire answers 0
 
 ### test_surface_parity.lua (23)
 
@@ -1371,7 +1373,7 @@ Total.
 - Profile verb: the current profile answers already-on, and switches nothing
 - Profile verb: a switch in combat is refused
 
-### test_debug_coverage.lua (17)
+### test_debug_coverage.lua (18)
 
 - debug: a stand-up writes the event record's one [State] line, and a stand-down none
 - debug: a stand-down inside the login prune window says the prune was postponed
@@ -1390,6 +1392,7 @@ Total.
 - debug: a pass that records a movement still writes its [Diff] and [Move] lines
 - debug: a pass that skips several movements writes one [Skip] line naming each
 - debug: the [Diff] gate starts fresh on every open
+- debug: a simulation writes [Sim] lines for a refusal, its start, each event, a guarded query and its stop
 
 ### test_debug_library.lua (10)
 
@@ -1437,6 +1440,46 @@ Total.
 - SimWorld: Move edits the world only, with the touched ids; a short move changes nothing
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
+
+### test_sim_drivers.lua (16)
+
+- SimDrivers: every event list is data, each row an event name and an optional payload token
+- SimDrivers: OpenBank and CloseBank fire the bank frame's two events and move nothing
+- SimDrivers: a BANK deposit moves bags to the bank tab and fires BAG_UPDATE per touched bag
+- SimDrivers: a BANK withdrawal is the deposit's mirror
+- SimDrivers: a WARBAND deposit with no lag fires the bag half, then the store half
+- SimDrivers: a lagged WARBAND deposit lands its store half on the session timer
+- SimDrivers: a WARBAND deposit with lag "never" withholds the store half for good
+- SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not
+- SimDrivers: a GUILD deposit and withdrawal move against tab 1 and end on the guild data event
+- SimDrivers: Money moves coin between the purse and a store; Spend takes it from the purse alone
+- SimDrivers: Loot adds to the bags alone and fires BAG_UPDATE(0), BAG_UPDATE_DELAYED
+- SimDrivers: OpenGuild shows the simulated frame, starts a fresh visit, then fires its pseudo-event
+- SimDrivers: GuildDataAway changes a tab with the frame hidden and fires only the data event
+- SimDrivers: Switch closes an open frame first and fires no PLAYER_ENTERING_WORLD
+- SimDrivers: "bonus" names the pool item whose link carries bonus ids
+- SimDrivers: a move the world cannot make fires nothing and says why
+
+### test_sim_session.lua (18)
+
+- Sim session: a real bank frame open refuses, by its context or a live guild frame
+- Sim session: test mode, combat and General visibility each refuse with their own line
+- Sim session: the refusals apply in order: test mode, combat, a real bank, visibility
+- Sim session: stood down, Start refuses with the dispatcher's disabled line before anything else
+- Sim session: a second Start while one runs is the library's 'already running'
+- Sim session: a start prints the host's no-save line, builds the world and swaps the dataset
+- Sim session: the step delay is 1.5 s, raised to a step's settle
+- Sim session: the bank scenario records 2 deposits and 1 withdrawal into the session log
+- Sim session: the guarded QueryGuildBankTab never reaches the client during a session
+- Sim session: a REAL bank open stops it first, and the real open snapshots the real world
+- Sim session: a real guild frame showing stops it too
+- Sim session: real change events do not stop it
+- Sim session: combat stops it with its own line
+- Sim session: the stand-down stops it as its FIRST step, while the simulated context is armed
+- Sim session: a profile reset leaves it running (OWNER_SCOPE C.13)
+- Sim session: the stop drops the context with the seam on, cancels the debounce and never reconciles
+- Sim session: test mode refuses to start while a simulation runs
+- Sim session: purge refuses through Database:Purge, the verb and the panel button
 
 ### test_eol.lua (2)
 
@@ -1508,7 +1551,7 @@ Total.
 | test_compat.lua | 17 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
-| test_ledger.lua | 81 |
+| test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
@@ -1540,21 +1583,23 @@ Total.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 12 |
 | test_lifecycle.lua | 13 |
-| test_disabled.lua | 19 |
+| test_disabled.lua | 20 |
 | test_surface_parity.lua | 23 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 26 |
 | test_profiles.lua | 47 |
-| test_debug_coverage.lua | 17 |
+| test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
 | test_sim_world.lua | 16 |
+| test_sim_drivers.lua | 16 |
+| test_sim_session.lua | 18 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1335** |
+| **Total** | **1372** |

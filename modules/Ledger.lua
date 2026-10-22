@@ -855,6 +855,14 @@ for _, row in ipairs(CAPTURE) do
   if not L.PSEUDO_EVENTS[row[1]] then L.CLIENT_EVENTS[#L.CLIENT_EVENTS + 1] = row[1] end
 end
 
+-- The storage-frame edges a REAL client raises while a simulation runs, which end it (reason `bank`).
+-- Real change events (BAG_UPDATE_DELAYED, PLAYER_MONEY, GUILDBANKBAGSLOTS_CHANGED) are not here: with
+-- a simulated frame open they only cue a re-diff of the simulated world.
+L.SIM_STOP_EVENTS = {
+  BANKFRAME_OPENED = true, BANKFRAME_CLOSED = true,
+  GUILDBANK_FRAME_SHOWN = true, GUILDBANK_FRAME_HIDDEN = true,
+}
+
 -- The one deliver. Answers 0 when the module is not enabled (stood down, or not yet up) or the event
 -- has no handler, and otherwise runs that event's one handler and answers 1. AceEvent gives one
 -- handler per event per target, so this is a single lookup, never a fan-out.
@@ -862,10 +870,13 @@ function L:Dispatch(event, ...)
   if not self._enabled then return 0 end
   local handler = self.HANDLERS[event]
   if not handler then return 0 end
-  -- ── SEAM: BL-10's real-frame auto-stop goes HERE ──
-  -- A real BANKFRAME_OPENED/CLOSED or a real guild frame show/hide (one the simulator did not
-  -- deliver) will stop a running simulation at this point, BEFORE the handler runs, so the real
-  -- open snapshots the real world. No simulator code lands before BL-10.
+  -- A real storage frame opening or closing (one the simulator did not deliver) stops a running
+  -- simulation HERE, before the handler runs, so the real open snapshots the real world
+  -- (modules/Sim.lua, BankLedger#24).
+  local sim = NS.Sim
+  if self.SIM_STOP_EVENTS[event] and sim and sim:IsActive() and not sim:IsDelivering() then
+    sim:Stop("bank")
+  end
   handler(...)
   return 1
 end

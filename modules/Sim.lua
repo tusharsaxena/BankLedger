@@ -1,0 +1,187 @@
+local addonName, NS = ...
+-- modules/Sim.lua — the simulator's session host, on LibKa0s-Sim-1.0 (BankLedger#24, LibKa0s#54;
+-- req-bl-sim §5-§6, OWNER_SCOPE C.1, C.3, C.4, C.11, C.13). Binds NS.SimSeam (core/SimSetup.lua)
+-- to one session with Sim:New and publishes it as NS.Sim. Everything that is Bank Ledger's own lives
+-- on NS.SimHost, never on the library's instance (C.4).
+--
+-- ── THE PRINCIPLE ────────────────────────────────────────────────────────────────────────────
+--
+-- A simulation runs the REAL capture engine against an invented world. The seam's providers
+-- (modules/SimWorld.lua) answer every client read; the drivers (modules/SimDrivers.lua) edit that
+-- world and fire the client's events through NS.Sim:Fire, which this descriptor hands to
+-- L:Dispatch, the one entry every capture signal takes (modules/Ledger.lua). The engine decides
+-- every row. Nothing here calls Database:Add.
+--
+-- ── SAVED DATA STAYS UNTOUCHED (H4) ──────────────────────────────────────────────────────────
+--
+-- The start sets NS.State.simLog = {}: while it is set, Database:Sink() answers it, so every row the
+-- engine records lands in the session log and nowhere else, and Database:ActiveLedger() reads it
+-- first, so the ledger window shows the simulated rows. The stop puts nil back. Attribution is
+-- session-wide rather than per Fire (the reconcile that records a move runs on a timer after Fire
+-- returns), which is safe because the refusals below guarantee no real storage frame is open while a
+-- simulation runs. The destructive surface, /bl purge, refuses while one runs
+-- (Database:PurgeRefused, C.13). A profile reset does NOT end a simulation (C.13): it touches no
+-- state the session reads.
+--
+-- ── WHAT ENDS IT (H6) ────────────────────────────────────────────────────────────────────────
+--
+--   bank       a REAL bank or guild-bank frame opening or closing: L:Dispatch stops the session
+--              BEFORE the real handler, so the real open snapshots the real world;
+--   combat     addon:OnCombatChanged on PLAYER_REGEN_DISABLED (core/BankLedger.lua);
+--   standDown  the first step of NS.StandDown (core/BankLedger.lua);
+--   /reload    trivially: nothing is saved.
+-- Real BAG_UPDATE_DELAYED, PLAYER_MONEY and GUILDBANKBAGSLOTS_CHANGED do NOT stop it: with a
+-- simulated frame open they only cue a re-diff of the simulated world.
+--
+-- ── THE STOP ─────────────────────────────────────────────────────────────────────────────────
+--
+-- The library's two-phase stop. While the seam still answers (OnStopGuarded), L:DropContext cancels
+-- the pending debounce and the settle window and ends the banking session, with NO Reconcile: a
+-- final pass with the seam off would diff a simulated baseline against the real world and invent
+-- movements. Then, with the seam off (OnStop), the session log and the world are released and the
+-- ledger window swaps back to the saved dataset.
+
+NS.SimHost = NS.SimHost or {}
+local Host = NS.SimHost
+local L = NS.L
+
+-- The pause after each step before `run` plays the next one, raised to a step's own `settle`: a
+-- fixed constant, never a schema row (OWNER_SCOPE C.11).
+local SIM_STEP_DELAY = 1.5
+Host.STEP_DELAY = SIM_STEP_DELAY
+
+--- The scenarios, filled in place at file load by modules/SimScenario.lua (the library reads them
+--- at call time): { names = { ordered }, defs = { [name] = def } }.
+Host.SCENARIOS = Host.SCENARIOS or { names = {}, defs = {} }
+
+local function debug(fmt, ...)
+  if NS.State.debug and NS.Debug then NS.Debug("Sim", fmt, ...) end
+end
+
+-- ── refusals (req-bl-sim §6) ─────────────────────────────────────────────────────────────────
+
+-- Each answers its line or nil, checked in this order; the second value is the guard the [Sim] line
+-- names. The library runs the refusal inside NS.SimSeam:Live, so every world read below answers the
+-- real client, and it has already refused an unknown scenario and a second session. A real group,
+-- an instance and being unguilded are NOT refused: nothing the engine computes reads them, and the
+-- guild scenario invents a guild.
+local CHECKS = {
+  function()
+    -- The dispatcher's own line (slash-commands-§7): settings/Slash.lua answers it on both arms.
+    if NS.IsStoodDown and NS.IsStoodDown() then return NS.Slash:DisabledLine(), "stood down" end
+  end,
+  function()
+    if NS.State.testRecords ~= nil then
+      return L["Turn test mode off before starting a simulation."], "test mode"
+    end
+  end,
+  function()
+    if InCombatLockdown and InCombatLockdown() then
+      return L["A simulation cannot start in combat."], "combat"
+    end
+  end,
+  -- A real storage frame: its context and the simulated one would share the engine.
+  function()
+    if NS.State.openContext ~= nil or NS.Compat.IsGuildBankVisible() == true then
+      return L["Close the bank first: a simulation cannot run beside a real bank visit."], "real bank open"
+    end
+  end,
+  function()
+    local guard = NS.Util.VisibilityRefusal and NS.Util.VisibilityRefusal()
+    if guard then
+      return L["A simulation cannot start while General visibility keeps the ledger window closed."], guard
+    end
+  end,
+}
+
+--- Why a simulation may not start now, as the one line to print, or nil when it may.
+function Host.Refusal(opts)
+  for i = 1, #CHECKS do
+    local line, guard = CHECKS[i](opts or {})
+    if line then
+      debug("start refused: %s", tostring(guard))
+      return line
+    end
+  end
+  return nil
+end
+
+-- ── the start and the steps ──────────────────────────────────────────────────────────────────
+
+local function datasetChanged()
+  local B = NS.Browser
+  if B and B.OnDatasetChanged then B:OnDatasetChanged() end
+end
+
+--- The descriptor's prepare: the world, the session log, the dataset swap and the ledger window,
+--- then ready() once. The seam is already on; the world's own real reads go through Live.
+function Host.Prepare(_, _, _, ready)
+  Host.world = NS.SimWorld.Build()
+  Host.pendingLag = 0
+  NS.State.simLog = {}
+  datasetChanged()
+  if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
+  debug("world built: %d pool items%s", #Host.world.pool,
+    Host.world.poolFallback and " (the fixed fallback ids)" or "")
+  ready()
+end
+
+--- The descriptor's play: one step is one driver call, and the driver's answer is the step's detail.
+function Host.Play(step)
+  local driver = NS.SimDrivers.DRIVERS[step.kind]
+  if not driver then error(("no simulator driver for step kind %s"):format(tostring(step.kind)), 0) end
+  return driver(step)
+end
+
+-- ── the session (LibKa0s-Sim-1.0) ────────────────────────────────────────────────────────────
+
+-- The stop lines for the host's own reasons and the stand-down.
+local STOP_TEXT = {
+  bank      = L["Simulation stopped: a real bank window opened or closed."],
+  combat    = L["Simulation stopped: you entered combat."],
+  standDown = L["Simulation stopped: the addon stood down."],
+}
+
+-- The library's lines in this addon's words, by its STRINGS keys. STARTED makes the saved-data
+-- claim the library leaves to its host (H4); tests/test_sim_session.lua's before/after check backs it.
+local LINES = {
+  STARTED = L["Simulation started (%s): nothing here is saved, and your ledger is not touched."],
+}
+
+local Lib = LibStub and LibStub("LibKa0s-Sim-1.0", true)
+if Lib then
+  NS.Sim = Lib:New({
+    name = addonName,
+    seam = NS.SimSeam,
+    slash = "/bl sim",
+    -- BL-05's one lookup: every capture signal, the two guild-bank pseudo-events included.
+    deliver = function(event, ...) return NS.Ledger:Dispatch(event, ...) end,
+    isStoodDown = function() return NS.IsStoodDown ~= nil and NS.IsStoodDown() end,
+    scenarios = Host.SCENARIOS,
+    prepare = function(...) return Host.Prepare(...) end,
+    play = function(step) return Host.Play(step) end,
+    refusal = function(opts) return Host.Refusal(opts) end,
+    stepDelay = function(step) return math.max(SIM_STEP_DELAY, step.settle or 0) end,
+    stopText = STOP_TEXT,
+    L = LINES,
+    print = function(line) NS.Print(line) end,
+    debug = function(_, fmt, ...) debug(fmt, ...) end,
+  })
+end
+-- Library absent: NS.Sim is core/SimSetup.lua's inert stub, whose OnStop and OnStopGuarded do
+-- nothing, so the registrations below are harmless.
+
+-- ── the stop ─────────────────────────────────────────────────────────────────────────────────
+
+-- While the seam still answers: drop the simulated context with no final pass.
+NS.Sim:OnStopGuarded(function() NS.Ledger:DropContext() end)
+
+-- With the seam off, each step isolated by the library.
+NS.Sim:OnStop(function()
+  NS.State.simLog = nil
+  Host.world, Host.pendingLag = nil, 0
+end)
+NS.Sim:OnStop(function()
+  datasetChanged()
+  if NS.Browser and NS.Browser.UpdateTestStrip then NS.Browser:UpdateTestStrip() end
+end)

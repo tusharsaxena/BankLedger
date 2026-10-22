@@ -899,3 +899,21 @@ test("disabled: the `disabled` hold is taken at LOAD from the stored path", func
   enable()
   assertTrue(#registrations() > 0, "the addon did not come back after the load-time hold")
 end)
+
+test("disabled: while stood down a simulation refuses with the disabled line, and Fire answers 0", function()
+  -- red under: dropping the stood-down check from modules/Sim.lua's refusal (Sim-1.0 host contract
+  -- H5), or a Fire that delivers while the addon is down. BankLedger#24.
+  baseline()
+  disable()
+  local started, fired
+  local out = captureChat(function()
+    started = NS.Sim:Start{ scenario = "bank" }
+    fired = NS.Sim:Fire("BANKFRAME_OPENED")
+  end)
+  enable()
+  assertFalse(started, "a simulation started while stood down")
+  assertEqual(fired, 0, "Fire delivered while stood down")
+  assertTrue(#out >= 1 and out[1]:find(NS.Slash:DisabledLine(), 1, true) ~= nil,
+    "the refusal was not the disabled line: " .. table.concat(out, " || "))
+  assertEqual(NS.State.openContext, nil, "a stood-down Fire armed a context")
+end)
