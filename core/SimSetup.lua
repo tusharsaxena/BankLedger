@@ -7,7 +7,7 @@ local addonName, NS = ...
 -- place, once, except the three PURE ones below. While a simulation session runs, a wrapped member
 -- asks the simulator's provider first; idle, it calls straight through to the live member, so the
 -- whole cost of the seam is one field test per call. This file names no client API: core/Compat.lua
--- stays the only caller (compat-§1). A member added to NS.Compat after this file loads, or one
+-- stays the only caller (compat). A member added to NS.Compat after this file loads, or one
 -- replaced by assignment, escapes the wrap; the seam's Unwrapped() lists it, and
 -- tests/test_sim_seam.lua asserts that list is empty after the whole addon loads.
 --
