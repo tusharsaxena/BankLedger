@@ -105,7 +105,7 @@ Total.
 - Filters: a list change re-caches the capture gate's upvalues
 - Filters: the Clear all confirms report the count as printer arguments
 
-### test_ledger.lua (76)
+### test_ledger.lua (81)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -183,6 +183,11 @@ Total.
 - Ledger:Diagnose characterization: a raising money reader reads ERROR, an absent one absent
 - Ledger:Diagnose characterization: no C_Bank, no BankType, no Account member
 - Ledger:Diagnose characterization: no BagIndex, ties sorted by name, unhooked, nothing refused
+- Ledger.HANDLERS: every event the Ledger registers maps to a handler and reaches Dispatch
+- Ledger.HANDLERS: every client handler is registered, and the pseudo-events are not
+- Ledger:Dispatch answers 0 and runs nothing while disabled, 1 after running the handler
+- Ledger:Dispatch answers 0 for an event with no handler
+- Ledger: the guild-bank hooks dispatch their pseudo-events, and return first while stood down
 
 ### test_backfill.lua (15)
 
@@ -1454,7 +1459,7 @@ Total.
 | test_compat.lua | 13 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
-| test_ledger.lua | 76 |
+| test_ledger.lua | 81 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
@@ -1501,4 +1506,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1287** |
+| **Total** | **1292** |

@@ -18,7 +18,7 @@ leaves its number unused.
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
-| CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
+| CAPT-1 – 20 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table regression |
 | LEDG-1 – 56 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
@@ -389,6 +389,15 @@ leaves its number unused.
   gone. Result: pass (owner-marked 2026-10-10)
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
   empty state. Result: pass (owner-marked 2026-10-10)
+- **CAPT-20. Capture unchanged by the dispatch table (regression, SM-BL-16).** Every capture signal now
+  runs through one table, guild-bank show and hide included. At the bank, deposit and withdraw an item
+  on the Character Bank tab and on the Warband Bank tab, then deposit and withdraw gold at the
+  warband bank → the same rows CAPT-1, CAPT-2, CAPT-4 and CAPT-5 describe. At the guild bank, deposit
+  and withdraw an item and gold → the rows CAPT-9 and CAPT-10 describe. At both stores the Current
+  Banking Session window opens with the frame and closes with it, and `/bl debug scan` lists no
+  `GUILDBANK_FRAME_SHOWN` or `GUILDBANK_FRAME_HIDDEN` among the registered events. **Fail:** a
+  missing or doubled row, a session window that stays up after the frame closes, or either name in
+  the event list. Result:
 
 ## LEDG
 
@@ -956,3 +965,6 @@ tooltip, opening in test mode) and LEDG-20 (its badge text now goes through `NS.
 
 **Owed after the Show window key binding (2026-10-22, `launcher-§6`, LibKa0s#58).** SLASH-5 to
 SLASH-7 (new: binding and toggling, the refusal while disabled, combat).
+
+**Owed after the capture dispatch table (2026-10-22, BankLedger#24).** CAPT-20 (new: a bank visit and
+a guild-bank visit record exactly as before, and the session window follows the frames).

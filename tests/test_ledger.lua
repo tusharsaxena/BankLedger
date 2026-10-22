@@ -847,3 +847,126 @@ test("Ledger:Diagnose characterization: no BagIndex, ties sorted by name, unhook
   assertEqual(out[#out - 1], "events registered (0): ")
   assertEqual(out[#out], "events UNAVAILABLE (0): none")
 end)
+
+-- ── The capture dispatch table (BL-05, BankLedger#24) ──────────────────────────
+--
+-- Every capture signal the Ledger acts on goes through ONE table, L.HANDLERS, and one entry point,
+-- L:Dispatch. The client's events reach it through the registrations L:Enable makes; the guild
+-- bank's frame hooks reach it through two host-internal pseudo-events the client never fires. A
+-- simulator has nothing else to deliver through, so a handler that bypasses the table is a signal
+-- the simulator cannot reproduce.
+
+-- The core's own three registrations live on the same AceEvent target and are not the Ledger's.
+local CORE_EVENTS = {
+  PLAYER_ENTERING_WORLD = true, PLAYER_REGEN_DISABLED = true, PLAYER_REGEN_ENABLED = true,
+}
+local PSEUDO = { "GUILDBANK_FRAME_SHOWN", "GUILDBANK_FRAME_HIDDEN" }
+
+-- Run fn with L:Dispatch replaced by a recorder, restoring it whatever happens.
+local function withDispatchSpy(fn)
+  local L = NS.Ledger
+  local original, seen = L.Dispatch, {}
+  L.Dispatch = function(_, event, ...) seen[#seen + 1] = { event = event, n = select("#", ...), ... } return 1 end
+  local ok, err = pcall(fn, seen)
+  L.Dispatch = original
+  if not ok then error(err, 0) end
+end
+
+test("Ledger.HANDLERS: every event the Ledger registers maps to a handler and reaches Dispatch", function()
+  -- red under: an L:Enable registration that calls a Ledger method directly instead of Dispatch.
+  local L = NS.Ledger
+  assertTrue(type(L.HANDLERS) == "table", "L.HANDLERS is the one capture table")
+  local walked = 0
+  withDispatchSpy(function(seen)
+    for event, handler in pairs(NS.addon.__events) do
+      if not CORE_EVENTS[event] then
+        walked = walked + 1
+        assertTrue(type(L.HANDLERS[event]) == "function", event .. " is registered with no handler")
+        assertTrue(type(handler) == "function", event .. " registered without a closure")
+        handler(event, "arg1")
+        local last = seen[#seen]
+        assertEqual(last and last.event, event, event .. " did not reach L:Dispatch")
+        assertEqual(last[1], "arg1", event .. " lost its payload on the way to Dispatch")
+      end
+    end
+  end)
+  assertTrue(walked >= 7, "the Ledger's seven client events are registered, walked " .. walked)
+end)
+
+test("Ledger.HANDLERS: every client handler is registered, and the pseudo-events are not", function()
+  -- red under: registering GUILDBANK_FRAME_SHOWN/HIDDEN with the client (they never fire there and
+  -- would only inflate /bl debug scan), or a HANDLERS key L:Enable forgot to register.
+  local L = NS.Ledger
+  local pseudo = {}
+  for _, name in ipairs(PSEUDO) do
+    pseudo[name] = true
+    assertTrue(type(L.HANDLERS[name]) == "function", name .. " has a handler")
+    assertTrue(L.PSEUDO_EVENTS[name] == true, name .. " is declared host-internal")
+    assertEqual(NS.addon.__events[name], nil, name .. " must not be registered with the client")
+    for _, list in ipairs({ NS.EventRecord.registered, NS.EventRecord.unavailable }) do
+      for _, e in ipairs(list) do assertTrue(e ~= name, name .. " reached the event record") end
+    end
+  end
+  for event in pairs(L.HANDLERS) do
+    if not pseudo[event] then
+      assertTrue(NS.addon.__events[event] ~= nil, event .. " has a handler but no registration")
+    end
+  end
+end)
+
+test("Ledger:Dispatch answers 0 and runs nothing while disabled, 1 after running the handler", function()
+  local L = NS.Ledger
+  local original, calls, got = L.HANDLERS.PLAYER_MONEY, 0, nil
+  L.HANDLERS.PLAYER_MONEY = function(a, b) calls = calls + 1 got = { a, b } end
+  local wasEnabled = L._enabled
+  local ok, err = pcall(function()
+    L._enabled = nil
+    assertEqual(L:Dispatch("PLAYER_MONEY", "x"), 0, "disabled answers 0")
+    assertEqual(calls, 0, "disabled runs nothing")
+    L._enabled = true
+    assertEqual(L:Dispatch("PLAYER_MONEY", "x", "y"), 1, "enabled answers 1")
+    assertEqual(calls, 1, "the one handler ran once")
+    assertEqual(got[1], "x")
+    assertEqual(got[2], "y")
+  end)
+  L.HANDLERS.PLAYER_MONEY, L._enabled = original, wasEnabled
+  if not ok then error(err, 0) end
+end)
+
+test("Ledger:Dispatch answers 0 for an event with no handler", function()
+  local L = NS.Ledger
+  local wasEnabled = L._enabled
+  L._enabled = true
+  local ok, res = pcall(L.Dispatch, L, "NONESUCH_EVENT")
+  L._enabled = wasEnabled
+  assertTrue(ok, res)
+  assertEqual(res, 0)
+end)
+
+test("Ledger: the guild-bank hooks dispatch their pseudo-events, and return first while stood down", function()
+  -- red under: a hook body that still calls OpenContext/CloseContext itself, or a stand-down check
+  -- moved out of the hook (HookScript has no un-hook; the gate in the hook is the sanctioned one).
+  local L = NS.Ledger
+  local savedShow, savedHide, savedHooked = mocks.__guildShowHooks, mocks.__guildHideHooks, L._guildHooked
+  local savedStood = NS.IsStoodDown
+  mocks.__guildShowHooks, mocks.__guildHideHooks, L._guildHooked = {}, {}, nil
+  local ok, err = pcall(withDispatchSpy, function(seen)
+    assertTrue(L:HookGuildBankFrame(), "hooks installed")
+    assertEqual(#mocks.__guildShowHooks, 1)
+    assertEqual(#mocks.__guildHideHooks, 1)
+    mocks.__guildShowHooks[1](mocks.GuildBankFrame)
+    assertEqual(seen[#seen].event, "GUILDBANK_FRAME_SHOWN")
+    mocks.__guildHideHooks[1](mocks.GuildBankFrame)
+    assertEqual(seen[#seen].event, "GUILDBANK_FRAME_HIDDEN")
+    local before = #seen
+    NS.IsStoodDown = function() return true end
+    mocks.__guildShowHooks[1](mocks.GuildBankFrame)
+    mocks.__guildHideHooks[1](mocks.GuildBankFrame)
+    NS.IsStoodDown = savedStood
+    assertEqual(#seen, before, "a stood-down hook returns before Dispatch")
+  end)
+  NS.IsStoodDown = savedStood
+  mocks.__guildShowHooks, mocks.__guildHideHooks, L._guildHooked = savedShow, savedHide, savedHooked
+  NS.State.openContext, NS.State.lastSnapshot = nil, nil
+  if not ok then error(err, 0) end
+end)

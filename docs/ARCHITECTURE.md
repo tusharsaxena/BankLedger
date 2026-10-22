@@ -342,6 +342,18 @@ when every id has answered or after `C.BACKFILL_TIMEOUT` (10s), and drops the na
 `NS.EventRecord` again. Being on the addon object, the stand-down's `UnregisterAllEvents` reaches
 it, and the module's `CancelPending` drops the pass.
 
+**One dispatch table.** The seven capture registrations share one handler shape: `L:Enable`
+registers each name in `L.CLIENT_EVENTS` as `function(e, ...) L:Dispatch(e, ...) end`, and
+`L:Dispatch(event, ...)` runs that event's one entry in `L.HANDLERS` (BankLedger#24). It answers `0`
+while the module is not enabled or for an event with no handler, and `1` after running the handler.
+`L.HANDLERS` also holds two **host-internal pseudo-events**, `GUILDBANK_FRAME_SHOWN` and
+`GUILDBANK_FRAME_HIDDEN` (`L.PSEUDO_EVENTS`), which carry the guild bank's open and close. The client
+never fires them and they are never registered with it, so they never reach `NS.EventRecord` or
+`/bl debug scan`. Only `GuildBankFrame`'s `OnShow`/`OnHide` hooks dispatch them, after the hook's own
+stand-down check (the one sanctioned gate, because a hook cannot be removed), and the simulator will
+too. A simulator therefore delivers every capture signal through the same one call the client does.
+`L:Dispatch` carries a marked seam where the simulator's real-frame auto-stop will go.
+
 Change events are debounced into one reconcile pass per user action, and the baseline is held
 whenever a pass sees a one-sided change.
 
