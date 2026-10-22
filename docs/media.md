@@ -62,7 +62,7 @@ before the prune runs again.
 | `chevron-down` / `chevron-right` | the History group header's expander, inline `\|T…\|t` | `UI-MinusButton-Up` / `UI-PlusButton-Up` | those textures |
 | `sort-up` / `sort-down` | the History column-header sort arrow, inline `\|T…\|t` | `Arrow-Up-Up` / `Arrow-Down-Up` | those textures |
 | `export` | the modal's **Export to CSV** button | nothing — it sits BESIDE the label | no art, label unmoved |
-| `search` | the item-name search box | nothing — it sits BESIDE the placeholder | no art, inset unmoved |
+| `search` | the item-name search box, passed as `opts.icon` to `LibKa0s-Widgets-1.0`'s `SearchBox` through `B:MakeSearchBox`; the library draws it (11x11 at LEFT +5, 0.7 gray) and owns the 21px inset | nothing — it sits BESIDE the hint | no art, the library's inset stays 6 |
 | `confirm` | the tick on a chosen row of a multi-select filter menu, inline `\|T…\|t` | `UI-CheckBox-Check` | that texture |
 
 Four rules govern every one of them, and each cost the collection something to learn:

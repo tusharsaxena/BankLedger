@@ -972,6 +972,114 @@ test("Browser: MakeDropdown still hands back a working dropdown with no LibKa0s 
     "the library falls back to Blizzard's own arrow — dd.arrow is a documented, host-readable field")
 end)
 
+-- ── The item-name search box: LibKa0s-Widgets-1.0's SearchBox (LibKa0s#52) ──────────────────
+--
+-- The box is the library's now, reached through B:MakeSearchBox beside the dropdown's seam. These
+-- cases read the PUBLISHED surface back (box.hint, box.icon, the five scripts the constructor sets,
+-- the text insets) and the host's own layout; the search, autocomplete and view cases elsewhere in
+-- this suite and in tests/test_autocomplete.lua are the unedited characterization of its behavior.
+
+local function spyOnSearchBox(fn)
+  local Widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  local real = Widgets.SearchBox
+  local seen
+  Widgets.SearchBox = function(parent, width, opts)
+    seen = { parent = parent, width = width, opts = opts }
+    return real(parent, width, opts)
+  end
+  local ok, err = pcall(fn)
+  Widgets.SearchBox = real
+  if not ok then error(err, 0) end
+  return seen
+end
+
+test("Browser: MakeSearchBox forwards to W.SearchBox with a COPY of the caller's opts", function()
+  local opts = { hint = "Find", icon = NS.Icon("search") }
+  local box
+  local seen = spyOnSearchBox(function() box = B:MakeSearchBox(mocks.UIParent, opts) end)
+  assertTrue(seen ~= nil, "MakeSearchBox never reached W.SearchBox")
+  assertTrue(seen.opts ~= opts, "the library was handed the caller's own table")
+  assertEqual(seen.opts.hint, "Find")
+  assertTrue(box ~= nil and box.hint ~= nil, "no library box came back")
+  assertEqual(box.hint:GetText(), "Find")
+end)
+
+test("Browser: the filter bar's search box is the library's, with the hint and the magnifier", function()
+  local Widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  B:Show()
+  local box = B._search
+  assertTrue(box ~= nil and box.hint ~= nil, "the search box carries no library hint")
+  assertEqual(box.hint:GetText(), "Search items\226\128\166")
+  assertEqual(box.hint.__template, "GameFontDisableSmall")
+  -- A second library box, built with the same icon, answers the same skin values.
+  local ref = Widgets.SearchBox(mocks.UIParent, nil, { icon = NS.Icon("search") })
+  assertEqual(box.__h, ref.__h, "the search box's height is not the library's")
+  assertEqual(table.concat(box.__insets, ","), table.concat(ref.__insets, ","))
+  assertEqual(box.__insets[1], 21, "the typed text does not clear the magnifier")
+  local _, _, _, hintX = box.hint:GetPoint(1)
+  assertEqual(hintX, 21, "the hint does not clear the magnifier")
+  assertTrue(box.icon ~= nil, "the magnifier is missing")
+  assertEqual(box.icon.__texture, NS.Icon("search"))
+  B:Hide()
+end)
+
+test("Browser: the search box's border goes gold with the keys and back to gray without them", function()
+  B:Show()
+  local box = B._search
+  local last
+  box.SetBackdropBorderColor = function(_, r, g, b, a) last = { r, g, b, a } end
+  local ok, err = pcall(function()
+    box:__fire("OnEditFocusGained")
+    assertEqual(table.concat(last, ","), "1,0.82,0,0.9", "focus did not light the gold line")
+    box:__fire("OnEditFocusLost")
+    assertEqual(table.concat(last, ","), "0.24,0.24,0.27,0.9", "losing focus left the line gold")
+  end)
+  box.SetBackdropBorderColor = nil
+  B:Hide()
+  if not ok then error(err, 0) end
+end)
+
+test("Browser: the search box's RIGHT edge is pinned to the Character dropdown", function()
+  B:Show()
+  local box, char = B._search, B._dd and B._dd.char
+  assertTrue(char ~= nil, "no Character dropdown")
+  local p1, rel1, rp1, x1 = box:GetPoint(1)
+  assertEqual(p1 .. ">" .. rp1, "TOPLEFT>TOPRIGHT")
+  assertTrue(rel1 == B._dd.group, "the box's LEFT is not beside the Group dropdown")
+  assertEqual(x1, 8)
+  local found = false
+  for i = 1, #box.__points do
+    local p, rel, rp = box:GetPoint(i)
+    if p == "TOPRIGHT" and rel == char and rp == "TOPRIGHT" then found = true end
+  end
+  assertTrue(found, "the box's right edge is not pinned to the Character dropdown")
+  B:Hide()
+end)
+
+test("Browser: typing runs the library's hint, then the filter, then the Autocomplete hook", function()
+  B:Show()
+  local box = B._search
+  local realSuggest, asked = B.SuggestNames, nil
+  B.SuggestNames = function(text) asked = text; return {} end
+  local ok, err = pcall(function()
+    mocks.__timers = {}
+    box:SetText("li")
+    box:__fire("OnTextChanged", true)
+    mocks.__fireTimers()
+  end)
+  B.SuggestNames = realSuggest
+  local hintShown = box.hint:IsShown()
+  local text = B.activeFilter.text
+  B:SetSearchText("")
+  box:__fire("OnTextChanged", false)
+  mocks.__timers = {}
+  B:Hide()
+  if not ok then error(err, 0) end
+  assertFalse(hintShown, "the library's OnTextChanged did not hide the hint")
+  assertEqual(text, "li", "the host's onChange did not set the filter clause")
+  assertEqual(asked, "li", "the Autocomplete hook no longer runs after the library's handler")
+end)
+
 -- ── Degraded: LibKa0s-Widgets-1.0 absent ────────────────────────────────
 --
 -- Spec §10: seven controls that open nothing is a browser that looks broken, so the filter bar refuses

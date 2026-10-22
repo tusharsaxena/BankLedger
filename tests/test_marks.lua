@@ -367,15 +367,18 @@ test("marks: the search box wears a magnifier, and its words step aside for it",
 end)
 
 test("marks degraded: with no magnifier the search box's inset does not move", function()
-  -- One decision owns both numbers (MakeSearchMark returns the inset), which is what stops a
-  -- degraded install indenting its placeholder around art that is not there.
+  -- One decision owns both numbers, which is what stops a degraded install indenting its hint
+  -- around art that is not there. Since LibKa0s#52 that decision is LibKa0s-Widgets-1.0's
+  -- SearchBox (21 with an icon, else 6), so this side must not spell either inset itself.
+  local box = B:MakeSearchBox(mocks.__stubFrame(), { hint = "Search items", icon = nil })
+  assertTrue(box ~= nil, "the search box seam built nothing")
+  assertNil(box.icon, "a box handed no icon drew one anyway")
+  assertEqual(box.__insets[1], 6, "the typed text moved over for a mark that is not there")
+  local _, _, _, hintX = box.hint:GetPoint(1)
+  assertEqual(hintX, 6, "the hint moved over for a mark that is not there")
   local src = readSource("modules/Browser.lua")
-  assertTrue(src:find("local searchInset = MakeSearchMark(search)", 1, true) ~= nil,
-    "the search inset is no longer decided in one place")
-  assertTrue(src:find("search:SetTextInsets(searchInset, 6, 0, 0)", 1, true) ~= nil,
-    "the text inset stopped following the mark's own answer")
-  assertTrue(src:find('ph:SetPoint("LEFT", searchInset, 0)', 1, true) ~= nil,
-    "the placeholder stopped following the mark's own answer")
+  assertTrue(src:find("search:SetTextInsets", 1, true) == nil,
+    "the host spells the search inset again, a second decision beside the library's")
 end)
 
 -- ── the rules the collection paid for ────────────────────────────────────────────────────────

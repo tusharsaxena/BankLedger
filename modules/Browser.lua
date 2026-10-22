@@ -305,6 +305,21 @@ function B:MakeDropdown(parent, width)
   })
 end
 
+-- The item-name search box is LibKa0s-Widgets-1.0's SearchBox (minor 13, LibKa0s#52), and this is
+-- its seam, beside the dropdown's: the dropdown's flat skin, a gray hint while empty, Escape and
+-- Enter to let go of the keys, and the gold focus line. No width: the filter bar anchors both of
+-- its edges. The magnifier is HOST-PASSED art, resolved at the call site so the mark scan in
+-- tests/test_marks.lua still reads its name; `search` is declared on CLAUDE.md's icon line.
+--
+-- The caller's opts are COPIED, the same as MakeAutocomplete below, and nil without the library
+-- (the filter bar refuses to build without it anyway).
+function B:MakeSearchBox(parent, opts)
+  if not (W and W.SearchBox) then return nil end
+  local o = {}
+  for k, v in pairs(opts or {}) do o[k] = v end
+  return W.SearchBox(parent, nil, o)
+end
+
 -- The search box's suggestion list (P9) is LibKa0s-Widgets-1.0's Autocomplete, and this is its seam,
 -- beside the dropdown's for the same reason: the library is reached here and nowhere else in the
 -- filter bar. It hangs directly under the box, as wide as it and in the box's own gray skin, so it
@@ -742,29 +757,6 @@ function B:UpdateTestBadge()
   frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable:IsTestMode() or false)
 end
 
--- Draw the collection's `search` mark inside the item-name box and answer the LEFT inset the box's
--- text and placeholder should then use.
---
--- The inset is RETURNED rather than written at the call site because a nil icon has to leave the
--- box laid out exactly as it always was, and the only way that stays true is for the one decision —
--- is there a mark? — to own both numbers. Two independent spellings of "6 or 21" is how a degraded
--- install ends up with its placeholder indented around art that is not there.
---
--- Gray, matching the dropdown arrows on the same bar rather than the white the art ships as; the
--- mark is an affordance on this row, not a highlight.
-local SEARCH_INSET, SEARCH_INSET_MARKED = 6, 21
-local function MakeSearchMark(box)
-  local path = NS.Icon and NS.Icon("search")
-  if not path then return SEARCH_INSET end
-  local art = box:CreateTexture(nil, "OVERLAY")
-  art:SetPoint("LEFT", box, "LEFT", 5, 0)
-  art:SetSize(11, 11)
-  art:SetTexture(path)
-  art:SetVertexColor(0.7, 0.7, 0.72)
-  box.icon = art
-  return SEARCH_INSET_MARKED
-end
-
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
 -- EnsureFrame, above both tab panes. Its widgets show the ACTIVE tab's filter state; each tab keeps
 -- its own (B:SwapTabState).
@@ -826,34 +818,22 @@ function B:BuildFilterBar(bar)
   -- Item-name search. Its LEFT sits beside Group; its RIGHT is pinned to the row-2 Character
   -- dropdown below it (set once that exists), so the two right edges stay aligned at every window
   -- width. Top-corner anchoring keeps the box in row 1 despite the row-2 reference.
-  local search = CreateFrame("EditBox", nil, bar, "BackdropTemplate")
-  search:SetHeight(20)
+  local search = self:MakeSearchBox(bar, {
+    -- "Search items…" is unchanged and stays a sentence: the magnifier says what the box is, it
+    -- does not replace what it says. The library sets the text and hint insets to clear it (21,
+    -- or 6 with no icon), so one decision still owns both numbers.
+    hint     = "Search items…",
+    icon     = NS.Icon and NS.Icon("search"),
+    onChange = function(t)
+      B.activeFilter.text = searchClause(t)
+      B:ScheduleApplyFilter()
+    end,
+  })
   search:SetPoint("TOPLEFT", dd.group, "TOPRIGHT", 8, 0)
-  search:SetAutoFocus(false)
-  search:SetFontObject("GameFontHighlightSmall")
-  search:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                       insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  search:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
-  search:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
-  -- The mark goes in first because it decides where the words start. "Search items…" is unchanged
-  -- and stays a sentence: the magnifier says what the box is, it does not replace what it says.
-  local searchInset = MakeSearchMark(search)
-  search:SetTextInsets(searchInset, 6, 0, 0)
-  local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  ph:SetPoint("LEFT", searchInset, 0)
-  ph:SetText("Search items…")
-  search:SetScript("OnTextChanged", function(self2)
-    local t = self2:GetText()
-    ph:SetShown(t == "")
-    B.activeFilter.text = searchClause(t)
-    B:ScheduleApplyFilter()
-  end)
-  search:SetScript("OnEscapePressed", function(self2) self2:ClearFocus() end)
-  search:SetScript("OnEnterPressed", function(self2) self2:ClearFocus() end)
   self._search = search
-  -- The suggestion list under the box (P9). AFTER the scripts above, because the library HOOKS
-  -- them: the box's own filter, Enter and Escape run first and keep running. nil without the
-  -- library, where the box stays a plain filter box.
+  -- The suggestion list under the box (P9). AFTER construction, because the library HOOKS the
+  -- scripts SearchBox set: the box's own hint, filter, Enter and Escape run first and keep
+  -- running. nil without the Autocomplete member, where the box stays a plain filter box.
   self._autocomplete = self:MakeAutocomplete(search, {
     maxRows  = SUGGEST_MAX,
     provider = function(text) return B.SuggestNames(text) end,

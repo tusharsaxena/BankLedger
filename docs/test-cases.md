@@ -435,7 +435,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (57)
+### test_browser.lua (62)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -490,6 +490,11 @@ Total.
 - Browser hands the table a filter COPY, not its own mutable one
 - Browser: MakeDropdown injects this addon's chevron, tick and mono face
 - Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art
+- Browser: MakeSearchBox forwards to W.SearchBox with a COPY of the caller's opts
+- Browser: the filter bar's search box is the library's, with the hint and the magnifier
+- Browser: the search box's border goes gold with the keys and back to gray without them
+- Browser: the search box's RIGHT edge is pinned to the Character dropdown
+- Browser: typing runs the library's hint, then the filter, then the Autocomplete hook
 - Browser: the window still opens and the ledger table still populates with no Widgets library
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
@@ -1443,7 +1448,7 @@ Total.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 63 |
-| test_browser.lua | 57 |
+| test_browser.lua | 62 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
@@ -1483,4 +1488,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1269** |
+| **Total** | **1274** |

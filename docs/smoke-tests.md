@@ -19,7 +19,7 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
-| LEDG-1 – 50 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views |
+| LEDG-1 – 51 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
@@ -483,8 +483,11 @@ leaves its number unused.
   mark. The modal's Export to CSV → a small mark on its left with the words still centered, about
   two-fifths the width of the Data set dropdown above it and centered under it. **Fail:** a button
   spanning the modal edge to edge with the mark pinned far left. Result: pass (owner-marked 2026-10-10)
-- **LEDG-40. The search magnifier.** The search box shows a magnifier on its left with "Search items…"
-  starting just past it; typed text starts in the same place. Result: pass (owner-marked 2026-10-10)
+- **LEDG-40. The search magnifier and the focus line.** `/bl show` → the search box looks as before:
+  flat gray, a magnifier on its left, "Search items…" starting just past it, and typed text starting
+  in the same place. Click into it → its border lights gold; press Escape → focus drops and the line
+  goes back to gray; click in again and press Enter → the same. Rewritten 2026-10-22 for
+  LibKa0s-Widgets-1.0's SearchBox (LibKa0s#52). Result:
 - **LEDG-41. Marks carry no tooltips.** Hover every mark → none shows a tooltip; the four filter-bar
   buttons still show theirs. Result: pass (owner-marked 2026-10-10)
 - **LEDG-42. The first click opens the menu.** Right after logging in, `/bl show`, click Store as the
@@ -531,6 +534,10 @@ leaves its number unused.
   Insights → Insights' saved view, never History's; History is untouched. Press Reset on Insights →
   Insights goes to stock, then switch to History and press Clear → History's saved view is still
   there. `/reload` → each tab opens on its own saved view. Result: pass (owner-marked 2026-10-10)
+- **LEDG-51. Typing still filters and suggests.** `/bl show`, type part of an item name → the
+  History table filters after the short debounce, the suggestion list still opens directly under the
+  box at its width, and picking a name applies it at once. Added 2026-10-22 (LibKa0s#52).
+  Result:
 
 ## INS
 
@@ -914,3 +921,7 @@ says pass: DIAG-8 (the console's close, copy and clear), LEDG-35 (the host close
 session window and the export modal), LEDG-36 (the copy window's library close), LEDG-37 (the
 dropdown chevrons and the multi-select tick), LEDG-38 (the sort arrows and the group chevrons),
 LEDG-39 (the modal's export mark) and LEDG-40 (the search magnifier).
+
+**Owed after the search box moved onto LibKa0s-Widgets-1.0's SearchBox (2026-10-22, LibKa0s#52).**
+LEDG-40 (rewritten: the magnifier and the gold focus line) and LEDG-51 (new: typing filters, the
+suggestion list and a pick).
