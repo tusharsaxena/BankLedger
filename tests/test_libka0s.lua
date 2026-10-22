@@ -708,10 +708,37 @@ test("LibKa0s-Options: the descriptor tells the library the FOLDER name (LibKa0s
     "settings/OptionsSetup.lua must keep its first vararg as `addonName`")
 end)
 
-test("LibKa0s-Options: the help-mark art the descriptor points at is vendored", function()
-  -- The library's loaded-addon guard catches a wrong FOLDER name, not a missing file under the
-  -- right one. This pins the file at the default vendorPath the library builds its path from.
+test("LibKa0s-Options: `info` ships for the TestStrip, and no IdList here asks the library for it", function()
+  -- From LibKa0s v1.75.0 the copy ships only the icons CLAUDE.md declares. `info` is declared for
+  -- W.TestStrip's host-passed mark, NOT as library art: OptionsIdList draws `info` only for a list
+  -- whose spec carries `help`, and settings/Panel.lua's one O.IdList passes none (its
+  -- removeStyle = "icon" draws an atlas). So this pins both halves: the file is declared and
+  -- vendored, and no IdList spec in this addon grew a `help` key that would make the library draw
+  -- a mark the declaration never accounted for.
+  --
+  -- red under: dropping `info` from the declaration, or an O.IdList spec gaining `help`.
+  local VendorSync = dofile("tests/_kit/vendor_sync.lua")
+  local fh = assert(io.open("CLAUDE.md", "rb"))
+  local decl = VendorSync.iconDeclaration(fh:read("*a"))
+  fh:close()
+  local declared = false
+  for _, name in ipairs(decl and decl.names or {}) do
+    if name == "info" then declared = true end
+  end
+  assertTrue(declared, "CLAUDE.md's `LibKa0s icons:` line does not declare `info`")
   local f = io.open("libs/LibKa0s/media/icons/info.tga", "rb")
   assertTrue(f ~= nil, "libs/LibKa0s/media/icons/info.tga is missing")
   if f then f:close() end
+
+  local inSpec, specs, withHelp, n = false, 0, {}, 0
+  for line in io.lines("settings/Panel.lua") do
+    n = n + 1
+    if not line:match("^%s*%-%-") then
+      if line:match("O%.IdList%s*%(") then inSpec = true; specs = specs + 1 end
+      if inSpec and line:match("^%s*help%s*=") then withHelp[#withHelp + 1] = "settings/Panel.lua:" .. n end
+      if inSpec and line:match("^%s*}%)") then inSpec = false end
+    end
+  end
+  assertTrue(specs > 0, "settings/Panel.lua builds no O.IdList; this case's premise moved")
+  assertEqual(table.concat(withHelp, ", "), "", "an O.IdList spec passes `help`")
 end)

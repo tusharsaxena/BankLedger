@@ -1032,7 +1032,7 @@ Total.
 - LibKa0s-Media: the addon's own media/fonts/ is gone from disk
 - LibKa0s-Media: the font name this addon stores is a key of the library's FONTS
 - LibKa0s-Media: this addon no longer registers the face with LibSharedMedia itself
-- LibKa0s-Media: every name the library ships has a file in the vendored copy
+- LibKa0s-Media: every name this addon draws is declared, and every declared name ships
 - LibKa0s-Media: every icon name this addon asks for is one the library ships
 - LibKa0s-Media: the seam loads BEFORE core/Constants.lua, which resolves the font from it
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
@@ -1124,7 +1124,7 @@ Total.
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
 - LibKa0s-Options: the descriptor tells the library the FOLDER name (LibKa0s#42)
-- LibKa0s-Options: the help-mark art the descriptor points at is vendored
+- LibKa0s-Options: `info` ships for the TestStrip, and no IdList here asks the library for it
 
 ### test_libka0s_slash.lua (23)
 

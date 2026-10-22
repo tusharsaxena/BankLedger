@@ -37,9 +37,22 @@ outside the console. See [midnight-quirks.md](midnight-quirks.md).
 
 ## The shared marks
 
-The collection's icon set ships in the LibKa0s payload, under `libs/LibKa0s/media/icons/` — 113
-white 64×64 TGAs, cataloged by name in `lib.ICONS`. `core/MediaSetup.lua` publishes `NS.Icon(name)`
-over it and `NS.ICON_NAMES` lists the eight this addon actually draws.
+The collection's icon set is cataloged by name in the library's `lib.ICONS`, and its white 64×64
+TGAs ship in the LibKa0s payload under `libs/LibKa0s/media/icons/`. `core/MediaSetup.lua` publishes
+`NS.Icon(name)` over it and `NS.ICON_NAMES` lists the eight this addon draws itself.
+
+**Which icons ship.** Since the LibKa0s v1.75.0 re-vendor this build does not carry the whole
+catalog. It carries the eleven names on the `LibKa0s icons:` line directly under the provenance
+line in the root [`CLAUDE.md`](../CLAUDE.md), all from Open Iconic, plus that set's license text.
+A re-vendor copies the whole tag and then prunes `media/icons/` to that line with the tag's own
+`tools/prune-icons.lua`, and `tests/test_vendor_sync.lua` fails if declared and shipped ever differ.
+Eight of the names are the host marks in the table below. Three more are drawn by the library, not
+by this addon, and are declared all the same, because an undeclared icon still resolves to a path
+and draws blank: `close` on the debug console and the export copy window (`Core.MakeCloseButton`
+given this addon's folder name), and `copy` and `clear` on the debug console's title bar. The
+eleventh, `info`, is the test-mode strip's mark. A new mark goes on that line in the same commit
+that starts drawing it; a name the prune already removed needs `media/icons` re-copied from the tag
+before the prune runs again.
 
 | Mark | Where it draws | Replaces | The rung below it |
 |---|---|---|---|

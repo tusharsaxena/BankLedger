@@ -155,7 +155,9 @@ lives.
 
 ## Credits
 
-The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1, and the
-ledger window's close, search, dropdown and checkbox marks and the export dialog's icon are drawn
-from [Open Iconic](https://github.com/iconic/open-iconic) (MIT). Each ships with its license
-text.
+The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1.
+
+The icons come from [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, under the MIT
+license: the window close buttons, the search magnifier, the dropdown chevron and its tick, the sort
+arrows and group expanders, the export mark, the debug console's close, copy and clear buttons, and
+the test-mode strip's info mark. Both the font and the icons ship with their license text.

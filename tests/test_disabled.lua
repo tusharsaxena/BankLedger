@@ -410,8 +410,13 @@ end)
 test("disabled: the CONTROL -- the write and print surveys really would catch a survivor", function()
   -- Step 6's silence is true of a correctly stood-down addon AND of a harness that has lost the
   -- ability to see a write or a line at all. This plants a survivor of exactly the shape §7 names --
-  -- a handler still on the addon table, reachable by the event's own name -- and proves both
-  -- surveys see it. Without this case, step 6 is asserting on its own silence.
+  -- a handler still on the addon table, reachable through the registration that named it -- and
+  -- proves both surveys see it. Without this case, step 6 is asserting on its own silence.
+  --
+  -- PLANTED ON THE METHOD THE REGISTRATION NAMED, OnCombatChanged (core/BankLedger.lua), not on a
+  -- method named for the event. From test-kit revision 39, M.__fireUnconditional reaches the
+  -- handler of the last registration (`__kitEver`) BEFORE the method named for the event, so a
+  -- survivor planted as NS.addon.PLAYER_REGEN_DISABLED is never the one it calls.
   --
   -- red under: the SavedVariables watch or the print capture going blind.
   baseline()
@@ -420,7 +425,8 @@ test("disabled: the CONTROL -- the write and print surveys really would catch a 
   mocks.__resetPrinted()
   local settings = NS.db.profile.settings
   local savedLocked = settings.locked
-  NS.addon.PLAYER_REGEN_DISABLED = function()
+  local realHandler = NS.addon.OnCombatChanged
+  NS.addon.OnCombatChanged = function()
     settings.locked = not settings.locked
     NS.Print("survivor")
   end
@@ -430,7 +436,7 @@ test("disabled: the CONTROL -- the write and print surveys really would catch a 
     assertTrue(#mocks.__svWrites() > 0, "the write survey did not see the survivor's write")
     assertTrue(#mocks.__printed() > 0, "the print survey did not see the survivor's line")
   end)
-  NS.addon.PLAYER_REGEN_DISABLED = nil
+  NS.addon.OnCombatChanged = realHandler
   settings.locked = savedLocked
   enable()
   if not ok then error(err, 0) end

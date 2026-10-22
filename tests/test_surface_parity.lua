@@ -249,8 +249,11 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   --
   -- TextRow LEFT this list with the tabbed-panel pass: the History tab's storage read-out is drawn
   -- with it now, so it is a reachable name and the stub answers it. The tab strip's own surface
-  -- (TabStrip, RenderTabbedSchema, SetChromeHeight, PageBanner, the chrome constants and the six
+  -- (TabStrip, RenderTabbedSchema, SetChromeHeight, PageBanner, the chrome constants and the five
   -- __-prefixed internals) is reachable for the same reason and is in the stub, not in here.
+  --
+  -- Drawer (O.Drawer, LibKa0s v1.73.0's OptionsDrawer) is live-only: no file here calls it
+  -- (`grep -rn Drawer core modules settings` is empty), so it is ignored rather than stubbed.
   --
   -- AceGUI is the deliberate one, and the stub names it: `AceGUI = nil`. Every O.AceGUI:Create in
   -- settings/Panel.lua sits inside a body that only runs once a panel has been built, and on this
@@ -278,7 +281,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   local IGNORE = {
     "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar",
     "CLASS_COLOR_NOTE", "FONT_FLAGS", "FONT_FLAGS_SORT", "MASTER_GROUP",
-    "VISIBILITY_SORT", "VISIBILITY_VALUES",
+    "VISIBILITY_SORT", "VISIBILITY_VALUES", "Drawer",
   }
   local degraded, dm = loadDegraded()
   assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")

@@ -902,7 +902,15 @@ pass runs, record this section as unrun, not as coverage.
 
 ## Pending sign-off
 
-None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
+On 2026-10-10 the owner marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
+
+**Owed again after the LibKa0s v1.75.0 re-vendor (2026-10-22).** The vendored copy now ships only the
+eleven icons the `CLAUDE.md` declaration lists, and an undeclared icon draws blank rather than falling
+back, so every check that looks at a mark is owed a fresh pass even though its `Result:` line still
+says pass: DIAG-8 (the console's close, copy and clear), LEDG-35 (the host close on the ledger, the
+session window and the export modal), LEDG-36 (the copy window's library close), LEDG-37 (the
+dropdown chevrons and the multi-select tick), LEDG-38 (the sort arrows and the group chevrons),
+LEDG-39 (the modal's export mark) and LEDG-40 (the search magnifier).

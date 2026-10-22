@@ -183,15 +183,15 @@ if not lib then
 
     -- The tabbed page (options-ui-§13) and the page banner (options-ui-§14) surface, which
     -- arrived with LibKa0s v1.23.0. settings/Panel.lua calls RenderTabbedSchema on General, so
-    -- these are reachable names rather than speculative ones -- and the __-prefixed ones are
-    -- published on the live instance too, which is what the parity case compares against. All
-    -- no-ops: without a panel there is no chrome band to reserve, nothing to place in it, and
-    -- nothing to release from it.
+    -- these are reachable names rather than speculative ones. The __-prefixed ones stay because the
+    -- live instance still publishes each of them; the parity case's by-name form skips `__` names,
+    -- so it is that, not the case, which keeps them here. __releaseChrome is gone: the library
+    -- dropped it at LibKa0s v1.75.0 (OptionsTabs minor 9), and a mirror of a removed member is dead
+    -- code. All no-ops: without a panel there is no chrome band to reserve and nothing to place in it.
     SetChromeHeight = function() end,
     TabStrip = function() return nil end,
     PageBanner = function() return nil end,
     RenderTabbedSchema = function() return {} end,
-    __releaseChrome = function() end,
     __layoutTabs = function() end,
     __tabPlacement = function() return {}, 0 end,
     __tabBand = function() return 0 end,
