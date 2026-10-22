@@ -10,7 +10,8 @@ NS.L = setmetatable(NS.L or {}, { __index = function(_, k) return k end })
 -- the slash help rows in settings/Schema.lua, the library-absent line in settings/Slash.lua and
 -- core/DebugLogSetup.lua, and the ledger window's test-mode badge, strip and strip tooltip in
 -- modules/Browser.lua, the Show window key binding's label in core/LauncherSetup.lua, and the
--- simulator-absent line in core/SimSetup.lua, which
+-- simulator-absent line in core/SimSetup.lua, and the simulated world's invented alt and guild names in
+-- modules/SimWorld.lua, which
 -- already read NS.L. The seam is what a later localization pass
 -- wraps the rest through, dropping its enUS overrides here without touching a call site. There is
 -- deliberately no `local L` alias while this file lists no override, so it stays luacheck-clean. (The launcher's left-click label read NS.L["Toggle ledger window"] from M5 until

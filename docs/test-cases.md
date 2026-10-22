@@ -1419,6 +1419,25 @@ Total.
 - TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
 - Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
 
+### test_sim_world.lua (16)
+
+- SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
+- SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
+- SimWorld: a guild tab answers nil until it is queried this visit, then its data
+- SimWorld: IsGuildBankVisible is strictly true or false, never nil
+- SimWorld: guild money is nil while the guild frame is hidden, set while visible
+- SimWorld: warband money answers the world's balance, and Money moves it
+- SimWorld: the purse follows `current` across Switch
+- SimWorld: main is the real player; after Switch the identity members answer the alt
+- SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept
+- SimWorld: an empty bag falls back to the fixed ids, warmed, and reports it once
+- SimWorld: an unguilded player's world invents the guild name
+- SimWorld: providers are registered for exactly seam:Keys() minus the guarded key
+- SimWorld: Build reads the real world only inside the seam's Live
+- SimWorld: Move edits the world only, with the touched ids; a short move changes nothing
+- SimWorld: an empty-built world still draws its pool, and no file names NS.db
+- SimWorld: during a session the wrapped Compat answers from the world, not the client
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1531,10 +1550,11 @@ Total.
 | test_debug_coverage.lua | 17 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
+| test_sim_world.lua | 16 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1319** |
+| **Total** | **1335** |
