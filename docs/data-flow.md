@@ -113,6 +113,14 @@ session window and never `db.global.ledger`. The host's gate (`modules/Sim.lua`)
 until the engine has settled (no lagged half to land, no held baseline, no pending pass), so a typed
 `step`, `run` and the panel's click-ahead each wait for the real engine rather than racing it.
 
+A stop runs in two phases. While the seam still answers, `Ledger:DropContext()` drops the simulated
+context, its pending pass and its settle window with **no** final `Reconcile`; then, with the seam
+off, the session log is released and the window reads the saved ledger again. A real bank or
+guild-bank frame opening or closing stops the session inside `Ledger:Dispatch`, before the real
+handler runs, so the real visit's baseline is the real world. The real `BAG_UPDATE_DELAYED`,
+`PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED` do not stop it: with a simulated frame open they
+only cue a re-diff of the simulated world.
+
 The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
 retires names between expansions, and modern retail **raises** on an unknown one rather than
 ignoring it, so registration is isolated per event (below) and a name that goes away is recorded and

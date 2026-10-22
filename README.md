@@ -80,6 +80,19 @@ one you already have. The history is never part of a profile: every character on
 writes the same ledger. **Keep history for** is shared the same way, so switching, copying or
 resetting a profile never deletes history.
 
+Want to watch the ledger record a bank visit without touching your real history? `/bl sim start
+bank` plays one through the addon's real recording engine, in a made-up world stocked from the items
+in your own bags. There are four scenarios: `bank` (two deposits and a withdrawal at your character
+bank), `warband` (items and gold put in the warband bank, then taken out by an invented alt),
+`guild` (a guild-bank visit, including guild data that arrives while you are away and must not be
+recorded) and `onesided` (a visit where nothing should be recorded, because nothing crossed both
+ways). The ledger window opens on the simulated rows with an amber strip saying nothing here is
+saved, and a step panel docks beside it: play one step, run them all, or click a later step to play
+up to it. Nothing a simulation does is saved and your real history is never touched. It won't start
+in combat, in test mode, with a real bank open, while General visibility keeps the window shut, or
+while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
+and `/reload`. `/bl purge` is refused until it is over.
+
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.
 

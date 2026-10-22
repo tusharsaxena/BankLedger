@@ -39,6 +39,11 @@ the Compat firewall, the AceDB layer and the nine LibKa0s seams; `defaults/` hol
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles). The root `Bindings.xml`
 (not in the TOC; the client reads it by name) declares the Show window key binding (`launcher-§6`).
+Five of the files are the in-game simulator (BankLedger#24, see **Simulator** below):
+`core/SimSetup.lua` (the LibKa0s-Sim-1.0 seam over `NS.Compat`), `modules/SimWorld.lua` (the
+simulated world and the seam's providers), `modules/SimDrivers.lua` (one event driver per client
+action), `modules/Sim.lua` (the session host, `NS.Sim`, and its presentation fields) and
+`modules/SimScenario.lua` (the four scenarios). Each has its row in module-map.md.
 
 Load order is load-bearing in ten places (the newest: `core/SimSetup.lua` loads straight after
 `core/Compat.lua`, so the simulator's seam wraps every `NS.Compat` member before any file could read
@@ -95,6 +100,10 @@ stored outside the rows is named per `architecture-§5`:
     account-wide table `NS.Launcher` hands it; no profile event reaches it (`launcher-§3`, see
     **Launcher** below).
 
+  The simulator's step panel adds no fifth: its position is session-only (OWNER_SCOPE C.11), held in
+  the LibKa0s-Sim-1.0 instance's memory and forgotten on `/reload`, so a simulation writes nothing
+  to SavedVariables.
+
 The runtime and its stub, and every writer of each with the act that reaches it, are in
 **[schema.md](schema.md#registry-recorded-data-and-named-state-writers)**.
 
@@ -120,6 +129,44 @@ Profile and it never deletes history or moves the retention window; `/bl purge` 
 separately confirmed. The Options descriptor's `skipRestoreAll` is the one named veto,
 `S.VetoedFromResetAll` (`options-ui-§3`): the Profiles page and every stored row. Detail in
 **[profiles.md](profiles.md)**.
+
+## Simulator
+
+`/bl sim` (BankLedger#24, LibKa0s#54) plays a scripted bank visit through the **real** capture
+engine against an invented world, on `LibKa0s-Sim-1.0`. Nothing in it writes a row: every row is
+the engine's own decision.
+
+- **The seam.** `core/SimSetup.lua` wraps `NS.Compat` in place at load (`Sim:NewSeam`), straight
+  after `core/Compat.lua`. While a session runs, the simulated world (`modules/SimWorld.lua`)
+  answers the wrapped members; otherwise the live member does, at one boolean test per call. The
+  drivers (`modules/SimDrivers.lua`) edit that world and fire the client's events through
+  `NS.Sim:Fire` into `Ledger:Dispatch`, the one call every capture signal takes. Membership and
+  the identity reads are in [compat-layer.md](compat-layer.md).
+- **The sink and the dataset kinds.** The start sets `NS.State.simLog`, so `Database:Sink()` sends
+  every recorded row there (stamped `sim = true`), and `Database:ActiveLedger()` reads it first.
+  `Database:DatasetKind()` answers `"sim"`, which the ledger window's strip, the session window's
+  strip and every reader that refuses a synthetic dataset ask (see **Settings Schema** above).
+- **The stop is two-phase, with no final pass.** While the seam still answers, `OnStopGuarded`
+  runs `Ledger:DropContext()`: the pending debounce, the settle window and the banking session go
+  with **no** `Reconcile`, because a pass with the seam off would diff the simulated baseline
+  against the real world and invent movements. With the seam off, `OnStop` releases the session
+  log and the world, and the ledger window swaps back to the saved dataset.
+- **What ends it.** `/bl sim stop`; a **real** bank or guild-bank frame opening or closing
+  (`Ledger:Dispatch` stops the session before the real handler runs, so the real visit snapshots
+  the real world); entering combat (`addon:OnCombatChanged`); the stand-down, whose first step it
+  is; and `/reload`, because nothing was saved. A profile reset does **not** end it: it touches no
+  state the session reads (OWNER_SCOPE C.13).
+- **What refuses a start.** The addon stood down, test mode on, combat, a real bank or guild bank
+  open, and General visibility keeping the ledger window shut, checked in that order, each with
+  one line (`modules/Sim.lua`). Test mode refuses to start while a simulation runs.
+- **Purge is refused during a simulation.** `Database:PurgeRefused()` prints `Stop the simulation
+  first.` before any confirm opens, from `/bl purge` and the settings' *Purge ledger…* button alike, and
+  `Database:Purge` re-checks it. `Delete`, `DeleteAt` and `PruneOld` act on the real ledger only.
+
+The simulator is slash-only, with no launcher entry, no key binding and no schema row; its step
+delay is a constant. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strip
+and the step panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)
+and the `[Sim]` lines in [debug.md](debug.md).
 
 ## Launcher
 
@@ -422,6 +469,12 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
 - **Two variants of one itemID in a single snapshot resolve to the same link** — the scan keeps the
   first hyperlink it sees per id and the counts map is keyed by id alone, so it cannot tell an
   upgraded copy from a base one when both are present.
+- **The simulator covers bank visits only.** There is no simulation of mail, currencies, the login
+  backfill or the retention prune; the four scenarios are a personal-bank visit, a warband
+  transfer, a guild-bank visit and a one-sided change.
+- **The simulated warband deposit's event list is unverified on 12.1.5.** `D.EVENTS` in
+  `modules/SimDrivers.lua` is built from the best documented knowledge; the real sequence is an
+  owner in-client check (`docs/smoke-tests.md` SIM-10), and a difference is a one-line data fix.
 
 Each of these is a decision with its reasoning; see **[scope.md](scope.md)**.
 

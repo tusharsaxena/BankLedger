@@ -48,7 +48,8 @@ test per call:
 - **Guarded:** `QueryGuildBankTab`, the addon's one outward request. While a session runs its live
   body never runs, inside `Live` included; the guarded answer marks the tab queried in the simulated
   world and fires the asynchronous `GUILDBANKBAGSLOTS_CHANGED` reply on the session timer.
-- **Wrapped:** the other twelve, `PlayerName` and `PlayerClass` included.
+- **Wrapped:** the other eleven, `PlayerName` and `PlayerClass` included. With the guarded member
+  that makes the twelve of fifteen `docs/module-map.md` counts.
 
 A member added after the seam is built, or one replaced by assignment, would escape it, and so would
 a member captured as `local x = NS.Compat.X`. `tests/test_sim_seam.lua` asserts the seam's

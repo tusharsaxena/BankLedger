@@ -24,6 +24,7 @@ leaves its number unused.
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
+| SIM-1 – 10 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check |
 | DEGRADED-1 – 12 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -835,6 +836,80 @@ leaves its number unused.
   untick Enable Bank Ledger, `/reload`, `/bl debug on` → after `[Init]`, one `[State] stood down at
   login (holds: disabled)` line. Re-tick Enable Bank Ledger. Result: pass (owner-marked 2026-10-10)
 
+## SIM
+
+The in-game simulator, `/bl sim` (BankLedger#24). It plays a scripted visit through the real capture
+engine in an invented world and saves nothing. Before SIM-1, note the movement count on the minimap
+button's tooltip: SIM-1 and SIM-6 compare against it. Expected row counts assume the default Capture
+settings; a quality threshold, an unticked store or a Track toggle changes them, and that is not a
+failure.
+
+- **SIM-1. A bank simulation, start to stop (SM-BL-18).** `/bl sim start bank` → the ledger window
+  opens with the amber strip `Simulation: Personal bank - nothing here is saved.` under the filter
+  bar (no red TEST MODE badge), and the step panel, *Ka0s Bank Ledger - Simulation*, docks beside
+  the window. Press the panel's **Run all** → the five steps play in order; History gains three
+  Character Bank rows (two deposits, one withdrawal) named after items from your own bags, Insights
+  describes the same three, and the Current Banking Session window opens with the simulated bank,
+  lists them, and closes when it closes. `/bl sim stop` → one stop line, the strip and the panel
+  go, the window shows your real history, and the tooltip's movement count is the number you noted.
+  **Fail:** a simulated row left in the real history, a changed count, or the TEST MODE badge.
+  Result: owed
+- **SIM-2. Each refusal is one line (SM-BL-19).** Try `/bl sim start bank` in each state below → the
+  quoted line, nothing opens and no strip appears. In combat (a training dummy): `A simulation cannot
+  start in combat.` With `/bl test` on: `Turn test mode off before starting a simulation.` (turn it
+  off after). With the real bank open, then with the guild bank open: `Close the bank first: a
+  simulation cannot run beside a real bank visit.` With General visibility on Never: `A simulation
+  cannot start while General visibility keeps the ledger window closed.` (set it back). After `/bl
+  disable`: the addon's disabled line (`/bl enable` after). **Fail:** a second line, a different
+  line, or anything opening. Result: owed
+- **SIM-3. The warband transfer (SM-BL-20).** `/bl sim start warband`, then `/bl sim step` once at a
+  time. The second step (the item deposit) → no row at once; the Warband Bank row appears about
+  1.5 s later, when the store half lands. Run the rest → four Warband Bank rows: your item and gold
+  deposits, then the alt's item and gold withdrawals, whose Character column reads
+  `Simbanker-<your realm>` in a class color that is not yours. `/bl sim stop`. **Fail:** the
+  deposit row appearing before the delay, a doubled row, or the alt's rows under your name.
+  Result: owed
+- **SIM-4. The guild bank (SM-BL-21).** On a guilded character, `/bl sim start guild` and step
+  through. The first step (guild data arriving while you are away) → no row and no session window.
+  The rest → three Guild Bank rows (an item withdrawal, an item deposit and a gold withdrawal)
+  carrying your guild's name. Repeat on an unguilded character → the same three rows carrying
+  `Simulated Guild`. **Fail:** a row from the first step, or a guild row with no guild name.
+  Result: owed
+- **SIM-5. A one-sided visit records nothing (SM-BL-22).** `/bl debug on`, `/bl sim start onesided`,
+  run it all → no row in History or the session window, and the console has a `[Store]` line ending
+  `closed, held change dropped` when the simulated bank closes. `/bl sim stop`, `/bl debug off`.
+  **Fail:** any row, or no dropped-change line. Result: owed
+- **SIM-6. What stops it (SM-BL-23).** Start a simulation and open your real bank → it stops at
+  once with `Simulation stopped: a real bank window opened or closed.`, and a real deposit at that
+  bank records a real row as usual. Start one and enter combat → `Simulation stopped: you entered
+  combat.` Start one and `/reload` → no strip, no panel, the real history, and the movement count
+  from SIM-1 plus only the real rows you made. **Fail:** a simulation surviving any of the three, or
+  a simulated row in the real history. Result: owed
+- **SIM-7. Click-ahead and the step tooltips (SM-BL-24).** `/bl sim start bank`, then click the
+  panel's fourth row → steps one to four play in order, pausing while the ledger settles (chat may
+  say `Waiting for the ledger to settle.`), and the fifth has not run. Hover a completed row → its
+  tooltip says what it injected and fired, what it did and how many rows it recorded, and when it
+  ran. `/bl sim stop`. **Fail:** steps out of order, a step skipped, or a played step whose tooltip
+  has no recorded count. Result: owed
+- **SIM-8. Purge and test mode wait (SM-BL-25).** With a simulation running: `/bl purge` → `Stop the
+  simulation first.` and no confirm opens; the *Purge ledger…* button on Settings ▸ General ▸ History
+  does the same. `/bl test`
+  → `Stop the simulation before turning on test mode.` and the sample does not load. `/bl sim stop`,
+  then `/bl purge` → the usual confirm (cancel it). **Fail:** a confirm opening during the
+  simulation, or test mode starting. Result: owed
+- **SIM-9. The panel's position is session-only (SM-BL-26).** Start a simulation, drag the panel
+  away from the ledger window, then `/bl sim panel` twice (hide, show) → it comes back where you
+  dragged it. `/reload`, start again → it docks beside the ledger window again. Nothing about it
+  appears in `BankLedgerDB` after a logout. **Fail:** the dragged spot surviving the `/reload`.
+  Result: owed
+- **SIM-10. The real 12.1.5 warband event sequence (SM-BL-27).** This records a fact; it does not
+  pass or fail the addon. With `/bl debug on` and Blizzard's `/etrace` running, deposit one item
+  into a REAL Warband Bank tab and then withdraw it. Write down every event that fires, in order,
+  for each move (look for `PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED`, `BANK_TABS_CHANGED`, `BAG_UPDATE`
+  and `BAG_UPDATE_DELAYED`). Compare with `D.EVENTS.WarbandBag` and `D.EVENTS.WarbandStore` in
+  `modules/SimDrivers.lua`. If they differ, file the one-line correction to that list.
+  Result: owed
+
 ## DEGRADED
 
 With `libs/LibKa0s` renamed aside (Before you start). Nothing about the addon's own function depends
@@ -978,3 +1053,7 @@ a guild-bank visit record exactly as before, and the session window follows the 
 
 **Owed after the simulator's seam wrapped `NS.Compat` (2026-10-22, BankLedger#24).** CAPT-21 (new:
 `/bl show`, a bank visit and a guild-bank visit behave exactly as before while no simulation runs).
+
+**Owed after the simulator (2026-10-22, BankLedger#24).** SIM-1 to SIM-10 (new: the four
+scenarios, each start refusal, the auto-stops, the panel's click-ahead and session-only position,
+purge and test mode refused during a simulation, and the owner's 12.1.5 warband event check).

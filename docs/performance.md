@@ -71,7 +71,9 @@ was declined; that issue is the argument, and the register row is the ratificati
 
 The simulator's idle seam (`core/SimSetup.lua`, BankLedger#24) costs one boolean test per `NS.Compat`
 call, about 3,200 per full reconcile pass, and adds no combat path: it arms no event, no timer and
-no `OnUpdate`, so the exemption stands.
+no `OnUpdate`, so the exemption stands. A running simulation adds none either: it is refused in
+combat and stopped on `PLAYER_REGEN_DISABLED`, and its step pauses and lagged warband halves are
+one-shot timers on the session (`LibKa0s-Sim-1.0`), canceled by the stop.
 
 ## What ends this
 

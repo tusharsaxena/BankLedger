@@ -18,9 +18,9 @@ settings landing page both read from one place.
 | `/bl get` / `set` / `list` / `reset` | Read and write settings |
 | `/bl resetall` | Reset the **current profile's** settings to defaults; **recorded history is kept**. Asks first: the same confirm popup, and the same act, as *Reset all settings* and both **Defaults** controls (`options-ui-§12`); the Profiles page's Reset Profile is the same act too |
 | `/bl profile` / `profile <name>` | Bare, list the profiles with the current one marked. With a name, switch to that **existing** profile: exact case, one pair of surrounding quotes stripped, spaces allowed (`/bl profile "My Alt"`). An unknown name is refused with a did-you-mean and the list, and is never created. Refused in combat. Live while disabled. The verb is `LibKa0s-Slash-1.0`'s `CliProfile` (minor 17); see [profiles.md](profiles.md) |
-| `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box) |
+| `/bl test` | Toggle a sample ledger for previewing the window (the same switch as the Master controls **Test mode** box). Refused while a simulation runs |
 | `/bl session` | Toggle the banking-session window (on sample data when no bank is open) |
-| `/bl purge` | Delete all history (confirm-gated) |
+| `/bl purge` | Delete all history (confirm-gated). Refused while a simulation runs: `Stop the simulation first.`, and no confirm opens (`Database:PurgeRefused`) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
 | `/bl diagnostics` / `/bl debug diagnostics` | Write the diagnostics report into the console, after whatever it already holds, and show it, first turning debug logging on for the session when it is off (`debug-logging-§14`; the console's Diagnostics link runs the same report). The only two forms: no `diag` or other alias exists, and `/bl debug` tests `diagnostics` before its other words. Live while disabled. Sections in `modules/Diagnostics.lua` |
 | `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console. The same lines are the report's `scan` section; the verb stays as a topic dump |
