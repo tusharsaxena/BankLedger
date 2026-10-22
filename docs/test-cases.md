@@ -1164,9 +1164,10 @@ Total.
 - PoolSetup: a released object is reused rather than rebuilt
 - PoolSetup: a nested release empties both levels
 
-### test_itemsetup.lua (9)
+### test_itemsetup.lua (12)
 
 - ItemSetup: the seam is published
+- ItemSetup: BonusIDsFromLink is on the seam
 - ItemSetup: the primitives answer what the deleted shims answered
 - ItemSetup: ItemIDFromLink pulls the id out of a full item link
 - ItemSetup: ItemIDFromLink accepts a bare itemString
@@ -1175,6 +1176,8 @@ Total.
 - ItemSetup: this addon now HAS the color fallback it lacked
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
+- ItemSetup degraded: BonusIDsFromLink answers what the library answers
+- ItemSetup degraded: the stub carries every member the live Item library exports
 
 ### test_lifecycle.lua (13)
 
@@ -1463,7 +1466,7 @@ Total.
 | test_libka0s_slash.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
-| test_itemsetup.lua | 9 |
+| test_itemsetup.lua | 12 |
 | test_lifecycle.lua | 13 |
 | test_disabled.lua | 18 |
 | test_surface_parity.lua | 20 |
@@ -1480,4 +1483,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1266** |
+| **Total** | **1269** |

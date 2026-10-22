@@ -19,6 +19,12 @@ test("ItemSetup: the seam is published", function()
   assertTrue(type(NS.Item.LoadItem) == "function")
 end)
 
+test("ItemSetup: BonusIDsFromLink is on the seam", function()
+  -- Item minor 3 (LibKa0s#51). Util.WowheadURL reads its bonus ids through it, so a seam without
+  -- it would take the CSV export's URL column down on the install that lacks the member.
+  assertTrue(type(NS.Item.BonusIDsFromLink) == "function")
+end)
+
 test("ItemSetup: the primitives answer what the deleted shims answered", function()
   assertEqual(NS.Item.ItemIDFromLink(EPIC_LINK), 258586)
   assertEqual(NS.Item.QualityLabel(4), "Epic")
@@ -67,4 +73,50 @@ test("ItemSetup: the moved shims are gone from Compat", function()
   assertEqual(NS.Compat.ItemIDFromLink, nil)
   assertEqual(NS.Compat.QualityLabel, nil)
   assertEqual(NS.Compat.LoadItem, nil)
+end)
+
+-- ── The library-absent stub ──────────────────────────────────────────────────────────────────
+--
+-- core/ItemSetup.lua carries a local copy of every primitive for the install where libs/LibKa0s is
+-- missing. Both arms come from a real load of the TOC up to core/ItemSetup.lua, once with the
+-- library and once without, so the comparison is against the branch that actually runs.
+
+local Env = dofile("tests/degraded_env.lua")
+
+-- Count 2 followed by crafting modifiers (1:28:2437) that must not leak into the bonus list.
+local BONUS_FIXTURES = {
+  { "a gear link with count 2 then modifiers",
+    "|cffa335ee|Hitem:151300::::::::80:250::5:2:12801:13440:1:28:2437|h[Sample Helm]|h|r" },
+  { "a bare item string", "item:151300::::::::80:250::5:2:12801:13440" },
+  { "a link with no bonuses", "|cff9d9d9d|Hitem:2589::::::::80:250::::::|h[Linen Cloth]|h|r" },
+  { "a non-link", "Linen Cloth" },
+  { "a non-string", 2589 },
+}
+
+test("ItemSetup degraded: BonusIDsFromLink answers what the library answers", function()
+  local live = Env.loadUpTo("core/ItemSetup.lua", true)
+  local degraded, dm = Env.loadUpTo("core/ItemSetup.lua", false)
+  assertTrue(dm.LibStub("LibKa0s-Item-1.0", true) == nil,
+    "the degraded arm still has the library — this case would prove nothing")
+  for _, f in ipairs(BONUS_FIXTURES) do
+    local want, got = live.Item.BonusIDsFromLink(f[2]), degraded.Item.BonusIDsFromLink(f[2])
+    if want == nil then
+      assertEqual(got, nil, f[1])
+    else
+      assertEqual(type(got), "table", f[1])
+      assertEqual(table.concat(got, ":"), table.concat(want, ":"), f[1])
+      assertEqual(#got, #want, f[1])
+    end
+  end
+  -- Pin the contract itself, so the two arms cannot agree on a wrong answer.
+  assertEqual(table.concat(degraded.Item.BonusIDsFromLink(BONUS_FIXTURES[1][2]), ":"), "12801:13440")
+  assertEqual(#degraded.Item.BonusIDsFromLink(BONUS_FIXTURES[3][2]), 0)
+  assertEqual(degraded.Item.BonusIDsFromLink("Linen Cloth"), nil)
+end)
+
+test("ItemSetup degraded: the stub carries every member the live Item library exports", function()
+  -- testing-§8's stub-surface parity. The stub mirrors the LIBRARY TABLE, so tests/run.lua maps
+  -- the major to the mock LibStub's answer for it.
+  local degraded = Env.loadUpTo("core/ItemSetup.lua", false)
+  T.assertSurfaceParity(degraded.Item, "LibKa0s-Item-1.0")
 end)

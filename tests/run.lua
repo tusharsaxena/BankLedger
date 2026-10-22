@@ -84,6 +84,9 @@ Kit.setSurfaceSource{
   ["LibKa0s-DebugLog-1.0"] = NS.DebugLog,
   ["LibKa0s-Bus-1.0"]      = mocks.LibStub("LibKa0s-Bus-1.0", true),
   ["LibKa0s-Schema-1.0"]   = mocks.LibStub("LibKa0s-Schema-1.0", true),
+  -- core/ItemSetup.lua's stub mirrors the Item LIBRARY TABLE (its primitives are lib-level
+  -- functions), so the live half is the mock LibStub's answer, as for Bus.
+  ["LibKa0s-Item-1.0"]     = mocks.LibStub("LibKa0s-Item-1.0", true),
 }
 
 _G.BL_TEST = Kit.expose{

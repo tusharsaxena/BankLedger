@@ -7,7 +7,9 @@ local _, NS = ...
 -- Four primitives moved: ItemIDFromLink, QualityFromLink, QualityLabel, LoadItem. Two of them were
 -- byte-identical to LootHistory's and two were written by only one of the two addons — this one had
 -- ItemIDFromLink, that one had QualityFromLink, and the missing color fallback is the primitive
--- whose absence once let an upgrade-track drop record at its base quality.
+-- whose absence once let an upgrade-track drop record at its base quality. A fifth,
+-- BonusIDsFromLink, joined at Item minor 3 (LibKa0s#51) and took over the bonus-id walk
+-- Util.WowheadURL used to run itself.
 --
 -- THE RESOLVER DID NOT MOVE, and that is a decision rather than an oversight. Compat.GetItemDetails
 -- refuses an item the client has not cached: the capture gate records the skip as "uncached" and
@@ -19,7 +21,7 @@ local _, NS = ...
 --
 -- ── WHAT A DEGRADED INSTALL GETS ─────────────────────────────────────────────────────────────
 --
--- The same four primitives, locally. They are short, pure and were here before; a caller that had
+-- The same five primitives, locally. They are short, pure and were here before; a caller that had
 -- to branch on the library's presence would be a caller that renders differently on a broken
 -- install.
 
@@ -59,6 +61,24 @@ NS.Item = Item or {
   QualityLabel = function(q)
     q = q or 0
     return _G["ITEM_QUALITY" .. q .. "_DESC"] or QUALITY_LABEL_EN[q] or tostring(q)
+  end,
+
+  -- Moved here from Util.WowheadURL when that adopted the library's member (LibKa0s#51): the
+  -- item string is positional, so empty fields are kept; field 13 is the bonus count and the ids
+  -- follow it. nil for anything that is not an item, {} for an item with no bonuses.
+  BonusIDsFromLink = function(link)
+    if type(link) ~= "string" then return nil end
+    local body = link:match("|Hitem:([^|]+)") or link:match("^item:([^|]+)")
+    if not body then return nil end
+    local fields = {}
+    for f in (body .. ":"):gmatch("([^:]*):") do fields[#fields + 1] = f end
+    if not tonumber(fields[1]) then return nil end
+    local out = {}
+    for i = 14, 13 + (tonumber(fields[13]) or 0) do
+      local id = tonumber(fields[i])
+      if id then out[#out + 1] = id end
+    end
+    return out
   end,
 
   LoadItem = function(id, cb)

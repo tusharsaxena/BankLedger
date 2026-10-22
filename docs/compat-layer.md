@@ -9,9 +9,9 @@ in four groups. It shims **cross-patch** differences, never game flavors (Retail
 
 The TOC-metadata, map-id and zone reads are **not** here: they were identical in every addon in the
 collection, so they live in `LibKa0s-Env-1.0` and are reached through `core/EnvSetup.lua` as
-`NS.Meta`, `NS.Version`, `NS.PlayerMapID` and `NS.Zone`. The four item **primitives** are not here
-either — `ItemIDFromLink`, `QualityFromLink`, `QualityLabel` and `LoadItem` live in
-`LibKa0s-Item-1.0` and are reached through `core/ItemSetup.lua` as `NS.Item.X`.
+`NS.Meta`, `NS.Version`, `NS.PlayerMapID` and `NS.Zone`. The five item **primitives** are not here
+either — `ItemIDFromLink`, `QualityFromLink`, `QualityLabel`, `LoadItem` and `BonusIDsFromLink`
+live in `LibKa0s-Item-1.0` and are reached through `core/ItemSetup.lua` as `NS.Item.X`.
 
 What stays in `Compat` is what is genuinely this addon’s — the container and guild-bank readers, and
 the item **resolver**. `GetItemDetails` and `ItemNameQuality` did not move on purpose: they refuse an
