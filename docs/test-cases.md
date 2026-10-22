@@ -49,7 +49,7 @@ Total.
 - ApplyVisibility hides only open windows and re-shows exactly those on the way back
 - ApplyVisibility and ApplyMasterChrome build no table literal per call
 
-### test_compat.lua (13)
+### test_compat.lua (17)
 
 - Compat.GetItemDetails returns name, quality, type, subtype and vendor price
 - Compat.GetItemDetails returns nil for an item the client has not cached
@@ -64,6 +64,10 @@ Total.
 - Compat.GetStoreMoney reads the warband balance by BankType name, not by number
 - Compat.GetStoreMoney returns nil for a store that holds no coin of its own
 - Compat.GetStoreMoney returns nil when the build exposes no reader
+- Compat.PlayerName answers the name and the normalized realm, whitespace stripped
+- Compat.PlayerName falls back to GetRealmName, then to 'Unknown'
+- Compat.PlayerClass answers the classFile, read at call time
+- compat boundary: no player identity read outside core/Compat.lua
 
 ### test_constants.lua (21)
 
@@ -1456,7 +1460,7 @@ Total.
 | Suite | Cases |
 |-------|------:|
 | test_util.lua | 38 |
-| test_compat.lua | 13 |
+| test_compat.lua | 17 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 81 |
@@ -1506,4 +1510,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1292** |
+| **Total** | **1296** |

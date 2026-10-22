@@ -3,7 +3,7 @@
 `core/Compat.lua` — the single file in the addon allowed to call a deprecated or patch-varying API.
 Everything else calls `NS.Compat.X` and never the raw global.
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 13 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 15 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
@@ -21,10 +21,19 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 
 | Group | Exports |
 |---|---|
-| Player | `GetGuildName` |
+| Player | `GetGuildName`, `PlayerName` (name and normalized realm), `PlayerClass` (the classFile) |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `GetItemDetails`, `ItemNameQuality` — the **resolver** only; the primitives are `NS.Item.X` (see `core/ItemSetup.lua`) |
+
+`PlayerName` and `PlayerClass` are not cross-patch shims; they are here for the in-game simulator
+(OWNER_SCOPE C.13, BankLedger#24). Its seam must answer identity — every row's `char` and
+`classFile`, and its alt character — and it can only stand in for a read that goes through a
+`Compat` member **read at call time**. A raw `UnitName("player")` in `Util.PlayerKey`, or a raw
+`UnitClass("player")` in `Ledger:BuildEntry` and the session preview, would be unanswerable. Both are
+plain `function Compat.X` members, never cached at load. The one direct read left is the Browser
+close-button tint (`B:MakeCloseButton`): cosmetic, applied once at build and never stored. A source
+scan in `tests/test_compat.lua` holds the boundary.
 
 ## Why every reader returns `nil` rather than a number
 

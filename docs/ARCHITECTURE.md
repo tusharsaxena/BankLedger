@@ -437,7 +437,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 |---|---|---|
 | `slash-dispatch.md` | Present | 19 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
-| `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
+| `compat-layer.md` | Present | `core/Compat.lua` carries 15 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
 | `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift, the v4 return of the window and the v5 per-tab saved views, the profile events, the reset and the `/bl profile` verb |
 | `debug.md` | Present | The trace's **Coverage** (every tag, what emits it and when, and the reconcile pass's quiet steady state, `debug-logging-§8`/`§9`); the diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned topic dumps, `/bl debug scan` and `/bl debug panel`; which to paste with a bug report |

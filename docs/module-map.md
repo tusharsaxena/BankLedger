@@ -5,7 +5,7 @@ libraries under `libs/` are not listed — they are consumed, not maintained her
 
 | File | Role |
 |---|---|
-| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, the item **resolver** (`GetItemDetails`, `ItemNameQuality`), the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name. TOC metadata, the map id and the zone left for `core/EnvSetup.lua`; the four item primitives left for `core/ItemSetup.lua`. |
+| `core/Compat.lua` | The only caller of deprecated or patch-varying APIs. Container and guild-bank readers, the item **resolver** (`GetItemDetails`, `ItemNameQuality`), the player's purse **and each store's own coin balance** (`GetStoreMoney`), guild name, and player identity (`PlayerName`, `PlayerClass`) read at call time so the simulator can answer it. TOC metadata, the map id and the zone left for `core/EnvSetup.lua`; the four item primitives left for `core/ItemSetup.lua`. |
 | `core/EnvSetup.lua` | The **LibKa0s-Env-1.0 seam**: publishes `NS.Meta(field)`, `NS.Version()`, `NS.PlayerMapID()` and `NS.Zone()` over the vendored library, passing this addon's own **folder name** (its first vararg) because a vendored copy cannot know which folder it sits in. It replaced three `core/Compat.lua` shims that were identical to every other addon's; `Compat` kept the readers that are genuinely this addon's. Every helper writes its **fallback out in full**, so an install missing LibKa0s reads its own TOC and stamps its own zone exactly as before — this is a seam, not a feature. `NS.Zone` answers **two strings and never nil**: `modules/Ledger.lua` buckets `""` with nil on purpose, in storage and in the zone filter. |
 | `core/ItemSetup.lua` | The **LibKa0s-Item-1.0 seam**: publishes `NS.Item.ItemIDFromLink`, `NS.Item.QualityFromLink`, `NS.Item.QualityLabel`, `NS.Item.LoadItem` and `NS.Item.BonusIDsFromLink` (Item minor 3, LibKa0s#51) over the vendored library, with the same five written out in full as the degraded fallback. It replaced three `core/Compat.lua` shims and **added** `QualityFromLink`, which only LootHistory had — the color fallback whose absence let an upgrade-track drop read back at its base quality. What it pointedly did **not** take is the **resolver**: `Compat.GetItemDetails` still refuses an uncached item and the gate still records `uncached`, because “cannot be judged” is not “passes” (F-006), while LootHistory’s resolver guesses from the link on purpose. The library carries primitives and holds no opinion, so neither policy had to be overturned. |
 | `core/MediaSetup.lua` | The **LibKa0s-Media-1.0 seam**: publishes `NS.Icon(name)` and `NS.MediaFont(name)` over the vendored library, passing this addon's own **folder name** (its first vararg) so the library can build a texture path into a copy it cannot locate for itself. Makes the one `Media.RegisterLSM` call, at **file load** — the registration this addon used to make itself from `core/BankLedger.lua`'s `OnInitialize`, against its own copy of the face. Both answers are `nil` where the library is absent, which is a value a caller branches on and never a path to build around. Also publishes **`NS.ICON_NAMES`** — every mark this addon draws, by name, read by nothing at runtime and cross-checked against the library's catalog and against the source by `tests/test_marks.lua` and `tests/test_mediasetup.lua`. |
@@ -84,7 +84,7 @@ breaks one of these is red rather than silent.
 
 #### The `Compat` surface
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 13 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 15 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
@@ -102,7 +102,7 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 
 | Group | Exports |
 |---|---|
-| Player | `GetGuildName` |
+| Player | `GetGuildName`, `PlayerName` (name and normalized realm), `PlayerClass` (the classFile) |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `GetItemDetails`, `ItemNameQuality` — the **resolver** only; the primitives are `NS.Item.X` (see `core/ItemSetup.lua`) |

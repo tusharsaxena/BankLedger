@@ -208,7 +208,7 @@ local PREVIEW_ROWS = {
 }
 
 function SW:BuildPreviewSession()
-  local _, classFile = UnitClass("player")
+  local classFile = NS.Compat.PlayerClass()
   local now = time()
   local out = {}
   for i, r in ipairs(PREVIEW_ROWS) do

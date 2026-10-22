@@ -6,7 +6,8 @@ local Compat = NS.Compat
 -- a direct C_*/global presence check here, so a shim degrades to nil/false when its API is absent —
 -- never by reading a game-flavor project id. Feature modules call NS.Compat.X, never the raw API.
 --
--- What is here is what is genuinely THIS addon's: the container, guild-bank and item readers.
+-- What is here is what is genuinely THIS addon's: the container, guild-bank and item readers, and
+-- the player-identity reads the in-game simulator must be able to answer (docs/compat-layer.md).
 -- The TOC-metadata, map-id and zone reads left for LibKa0s-Env-1.0 and are reached through
 -- core/EnvSetup.lua as NS.Meta / NS.Version / NS.PlayerMapID / NS.Zone. They went because every
 -- addon in the collection had written the same ladders; these stayed because nobody else has them.
@@ -26,6 +27,25 @@ function Compat.GetGuildName()
   local name = GetGuildInfo("player")
   if name == "" then return nil end
   return name
+end
+
+-- The player's name and realm, the realm normalized and whitespace stripped; each is "Unknown" when
+-- the client cannot answer. Read at call time, never cached: a row's `char` is identity, and the
+-- in-game simulator answers identity (its alt character) only through a Compat member it can stand
+-- in for. Util.PlayerKey joins the two.
+function Compat.PlayerName()
+  local name = UnitName("player") or "Unknown"
+  local realm = (GetNormalizedRealmName and GetNormalizedRealmName())
+    or (GetRealmName and GetRealmName()) or "Unknown"
+  realm = tostring(realm):gsub("%s+", "")
+  return name, realm
+end
+
+-- The player's classFile (the uppercase token, UnitClass's second return) that tints a row's
+-- character. Read at call time for the same reason as PlayerName.
+function Compat.PlayerClass()
+  local _, classFile = UnitClass("player")
+  return classFile
 end
 
 -- Carried money in copper. Money is never a combat-protected "secret" value, but it still routes

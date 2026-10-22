@@ -3,11 +3,9 @@ NS.Util = NS.Util or {}
 local Util = NS.Util
 
 -- "Name-Realm" of the current player (realm normalized, spaces stripped).
+-- The reads live in Compat.PlayerName, so a simulator can answer them.
 function Util.PlayerKey()
-  local name = UnitName("player") or "Unknown"
-  local realm = (GetNormalizedRealmName and GetNormalizedRealmName())
-    or (GetRealmName and GetRealmName()) or "Unknown"
-  realm = tostring(realm):gsub("%s+", "")
+  local name, realm = NS.Compat.PlayerName()
   return name .. "-" .. realm
 end
 

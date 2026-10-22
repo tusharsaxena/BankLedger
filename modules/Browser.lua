@@ -103,6 +103,8 @@ local CLOSE_REST = { 0.85, 0.85, 0.85 }
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
+  -- A direct read, not NS.Compat.PlayerClass: the tint is cosmetic, applied once at build and never
+  -- stored, so no simulator has to answer it (the compat-boundary test lists it as allowed).
   local _, class = UnitClass("player")
   local cc = (class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]) or { r = 1, g = 0.82, b = 0 }
 

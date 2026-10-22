@@ -339,7 +339,7 @@ end
 -- is not one it asked for, whatever a later login learns about it.
 function L:BuildEntry(move)
   local zone, subzone = NS.Zone()
-  local _, classFile = UnitClass("player")
+  local classFile = NS.Compat.PlayerClass()
   local entry = {
     ts = time(),
     char = NS.Util.PlayerKey(),
