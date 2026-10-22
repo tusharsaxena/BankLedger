@@ -121,6 +121,8 @@ function Host.Prepare(_, _, _, ready)
   NS.State.simLog = {}
   datasetChanged()
   if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
+  -- The step panel opens beside the ledger window it just opened (Sim-1.0 docks it to anchorTo).
+  if NS.Sim and NS.Sim.ShowPanel then NS.Sim:ShowPanel() end
   debug("world built: %d pool items%s", #Host.world.pool,
     Host.world.poolFallback and " (the fixed fallback ids)" or "")
   ready()
@@ -187,6 +189,141 @@ function Host.Gate()
   return true
 end
 
+-- ── the panel's presentation (Sim-1.0's `d.panel`; host contract H7, H10) ─────────────────────
+--
+-- The panel itself (its rows, states, controls, picker, click-ahead and placement) is the
+-- library's. These fields say only what Bank Ledger's steps are called and what their tooltips say.
+-- No `store`: the panel's position is SESSION-ONLY (OWNER_SCOPE C.11), held in the library
+-- instance's memory, so a simulation writes nothing to SavedVariables. No schema row, no default.
+
+local Store = NS.Constants.Store
+local LETTER = { "A", "C", "D", "E" }   -- modules/SimScenario.lua's item letters, by pool index
+
+-- The name a step's `item` names: the real item's (from its link) while a world exists, else the
+-- scenario's letter, so an idle preview still reads.
+local function itemName(ref)
+  local D = NS.SimDrivers
+  local item = Host.world and D and D.ResolveItem and D.ResolveItem(ref)
+  local name = item and type(item.link) == "string" and item.link:match("%[(.-)%]")
+  if name and name ~= "" then return name end
+  if item then return tostring(item.itemID) end
+  return L["item %s"]:format(ref == "bonus" and "B" or (LETTER[tonumber(ref) or 0] or tostring(ref)))
+end
+
+local function storeLabel(store) return NS.Constants.StoreLabel[store] or tostring(store) end
+
+-- Item moves get a label built from the real item; every other step keeps its scenario label.
+local MOVE_LABEL = {
+  Deposit  = L["Deposit %d × %s to %s"],
+  Withdraw = L["Withdraw %d × %s from %s"],
+}
+
+--- A timeline step's name (`d.panel.stepLabel`): 'Deposit 20 × Linen Cloth to Warband Bank', with
+--- the rows the engine has recorded for it once it played and recorded any. The library prints the
+--- same name in its step line, which runs before the debounced pass records, so the count shows on
+--- the panel row and its tooltip as it lands.
+function Host.StepLabel(step, _, steps)
+  local label
+  if MOVE_LABEL[step.kind] then
+    label = MOVE_LABEL[step.kind]:format(step.n or 0, itemName(step.item), storeLabel(step.store))
+  elseif step.kind == "Loot" then
+    label = L["Loot %d × %s into the bags"]:format(step.n or 0, itemName(step.item))
+  else
+    label = step.label or step.kind
+  end
+  local n = step.ranAt and Host.Recorded(step, steps or NS.Sim:Steps())
+  if n and n > 0 then label = L["%s (%d recorded)"]:format(label, n) end
+  return label
+end
+
+-- The client events a step's driver fires, as one comma list (modules/SimDrivers.lua's D.EVENTS).
+local MOVE_EVENTS = {
+  [Store.BANK] = { "BankMove" }, [Store.WARBAND_BANK] = { "WarbandBag", "WarbandStore" },
+  [Store.GUILD_BANK] = { "GuildMove" },
+}
+local function eventsOf(step)
+  local D = NS.SimDrivers
+  local lists = MOVE_EVENTS[step.store] and (step.kind == "Deposit" or step.kind == "Withdraw")
+    and MOVE_EVENTS[step.store] or { step.kind == "Spend" and "Money" or step.kind }
+  local out = {}
+  for _, key in ipairs(lists) do
+    for _, row in ipairs((D and D.EVENTS and D.EVENTS[key]) or {}) do out[#out + 1] = row[1] end
+  end
+  return out
+end
+
+-- What a move does to the world, with its lagged warband half.
+local function moveLine(step)
+  local deposit = step.kind == "Deposit"
+  local line = L[deposit and "Moves %d × %s from the bags to the %s" or "Moves %d × %s from the %s to the bags"]
+    :format(step.n or 0, itemName(step.item), storeLabel(step.store))
+  if step.lag == "never" then
+    line = line .. L["; the warband half never lands"]
+  elseif type(step.lag) == "number" then
+    line = line .. L["; the warband half lands %s s later"]:format(tostring(step.lag))
+  end
+  return line
+end
+
+--- A timeline step's tooltip (`d.panel.stepTip`), { left, right } lines: what the step injects, the
+--- events it fires, and once it played what the driver did and how many rows the engine recorded.
+function Host.StepTip(step)
+  local lines = {}
+  if MOVE_LABEL[step.kind] then lines[#lines + 1] = { L["Injects"], moveLine(step) } end
+  local events = eventsOf(step)
+  if #events > 0 then lines[#lines + 1] = { L["Fires"], table.concat(events, ", ") } end
+  lines[#lines + 1] = { L["Through"], L["the real capture engine"] }
+  if step.ranAt then
+    if step.detail then lines[#lines + 1] = { L["Did"], tostring(step.detail) } end
+    lines[#lines + 1] = { L["Recorded"], tostring(Host.Recorded(step, NS.Sim:Steps()) or 0) }
+  end
+  return lines
+end
+
+--- The window the panel docks beside: the ledger window while it is shown, else nil (it floats).
+function Host.PanelAnchor()
+  local f = NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow()
+  if f and f:IsShown() then return f end
+  return nil
+end
+
+local PANEL = {
+  title = NS.BRAND_NAME .. " - Simulation",
+  stepLabel = function(step, i, steps) return Host.StepLabel(step, i, steps) end,
+  stepTip = function(step, i) return Host.StepTip(step, i) end,
+  startTip = {
+    { L["Builds"], L["a simulated world from your real bag items"] },
+    { L["Opens"], L["the ledger window on the simulation's rows"] },
+    { L["Saves"], L["nothing: your ledger is not touched"] },
+  },
+  stopTip = {
+    { L["Ends"], L["the simulation"] },
+    { L["Restores"], L["your saved ledger in the window"] },
+  },
+  anchorTo = function() return Host.PanelAnchor() end,
+  check = NS.Icon and NS.Icon("confirm") or nil,
+}
+Host.PANEL = PANEL
+
+-- ── the marker (preview-mode, host contract H8) ──────────────────────────────────────────────
+
+--- The strip's line while the dataset is the simulation's (Database:DatasetKind() == "sim"), naming
+--- the running scenario by its label; nil for any other dataset.
+function Host.MarkerText()
+  if NS.Database:DatasetKind() ~= "sim" then return nil end
+  local name = NS.Sim:Status().scenario
+  local def = name and Host.SCENARIOS.defs[name]
+  return L["Simulation: %s - nothing here is saved."]:format(def and def.label or tostring(name))
+end
+
+-- Both windows' strips follow the dataset: the ledger window's, and the session window's (it draws
+-- the simulated rows too).
+local function repaintMarkers()
+  if NS.Browser and NS.Browser.UpdateTestStrip then NS.Browser:UpdateTestStrip() end
+  if NS.SessionWindow and NS.SessionWindow.UpdateTestStrip then NS.SessionWindow:UpdateTestStrip() end
+end
+Host.RepaintMarkers = repaintMarkers
+
 -- ── the session (LibKa0s-Sim-1.0) ────────────────────────────────────────────────────────────
 
 -- The stop lines for the host's own reasons and the stand-down.
@@ -221,6 +358,7 @@ if Lib then
     L = LINES,
     print = function(line) NS.Print(line) end,
     debug = function(_, fmt, ...) debug(fmt, ...) end,
+    panel = PANEL,
   })
 end
 -- Library absent: NS.Sim is core/SimSetup.lua's inert stub, whose OnStop and OnStopGuarded do
@@ -236,7 +374,14 @@ NS.Sim:OnStop(function()
   NS.State.simLog = nil
   Host.world, Host.pendingLag = nil, 0
 end)
-NS.Sim:OnStop(function()
-  datasetChanged()
-  if NS.Browser and NS.Browser.UpdateTestStrip then NS.Browser:UpdateTestStrip() end
+NS.Sim:OnStop(function() datasetChanged() end)
+
+-- The markers repaint on the start and the stop: a listener runs on every transition, and only a
+-- change in IsActive moves a marker.
+local wasActive = false
+NS.Sim:AddListener(function(sim)
+  local active = sim:IsActive()
+  if active == wasActive then return end
+  wasActive = active
+  repaintMarkers()
 end)

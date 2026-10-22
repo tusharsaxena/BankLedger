@@ -79,7 +79,7 @@ test("diagnostics: every DX-BL section runs, in order, without a failure line", 
   local lines = build()
   assertEqual(count(lines, "failed:"), 0, "a section raised:\n" .. table.concat(lines, "\n"))
   local order = { "[State] ", "[Set] ", "[Filter] ", "[Ledger] ", "[Capture] ", "[Session] ",
-    "[Scan] ", "[Window] ", "[Launcher] ", "[Env] " }
+    "[Sim] ", "[Scan] ", "[Window] ", "[Launcher] ", "[Env] " }
   local last = 0
   for _, tag in ipairs(order) do
     local at
@@ -349,5 +349,45 @@ test("diagnostics: the verb is one COMMANDS row, and no alias of it exists", fun
       "an alias of the report is registered: " .. cmd[1])
   end
   assertEqual(#rows, 1, "exactly one diagnostics row")
-  assertEqual(#NS.COMMANDS, 19, "the verb table grew from 18 to 19 (profile)")
+  assertEqual(#NS.COMMANDS, 20, "the verb table grew from 19 to 20 (sim)")
 end)
+
+-- ── the simulator (BankLedger#24, LibKa0s-Sim-1.0 host contract H8) ─────────────────────────────
+
+do
+  local SS = dofile("tests/sim_support.lua")
+
+  test("diagnostics: idle, the state line says no simulation and the sim section only counts the seam",
+  function()
+    local lines = build()
+    assertTrue(has(lines, "[State] simulation=no dataset=live"), "the State simulation line")
+    assertTrue(has(lines, "[Sim] active=no seam keys=" .. #NS.SimSeam:Keys()), "the idle sim line")
+    assertEqual(count(lines, "[Sim] "), 1, "an idle simulator is one line")
+    assertFalse(has(lines, "[Scan] simulation running"), "the scan header shows with no simulation")
+  end)
+
+  test("diagnostics: running, the sim section reports the scenario, the step, the character and the seam",
+  function()
+    SS.withSession("warband", function(sim)
+      SS.chat(function() sim:Step() end)
+      SS.drain()
+      local lines = build()
+      assertTrue(has(lines, "[State] simulation=yes dataset=sim"), "the State simulation line")
+      local st = sim:Status()
+      assertTrue(has(lines, ("[Sim] active=yes scenario=warband seed=%s step=1/9 ready=yes"):format(st.seed)),
+        table.concat(lines, "\n"))
+      local main = NS.SimHost.world.chars.main.key
+      assertTrue(has(lines, ("[Sim] character=%s simLog rows=0 events=%d guarded queries=0 seam keys=%d")
+        :format(main, st.events, #NS.SimSeam:Keys())), table.concat(lines, "\n"))
+      assertTrue(st.events > 0, "the open fired no event")
+    end)
+  end)
+
+  test("diagnostics: /bl debug scan opens with the simulation header while one runs", function()
+    SS.withSession("bank", function()
+      assertEqual(NS.Ledger:Diagnose()[1], "simulation running: Compat answers are simulated")
+    end)
+    assertFalse(NS.Ledger:Diagnose()[1] == "simulation running: Compat answers are simulated",
+      "the header outlived the simulation")
+  end)
+end

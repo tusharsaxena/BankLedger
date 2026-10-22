@@ -894,5 +894,11 @@ NS.COMMANDS = {
   { "diagnostics", NS.L["Write a diagnostic report to the debug console"], function()
       if NS.DebugLog then NS.DebugLog:RunDiagnostics() end
     end },
+  -- THE SIMULATOR (BankLedger#24, LibKa0s-Sim-1.0's host contract H7). One feature verb, so the
+  -- dispatcher refuses it while the addon is disabled; its grammar (start, step, run, pause, resume,
+  -- restart, stop, status, panel) is the library's RunVerb. Slash-only (OWNER_SCOPE C.11): no
+  -- launcher entry, no key binding, no schema row.
+  { "sim",      NS.L["Simulate bank visits through the real capture engine; /bl sim for its verbs"],
+    function(rest) NS.Sim:RunVerb(rest) end },
   { "help",     "Show this help",          function() NS.Slash:PrintHelp() end },
 }

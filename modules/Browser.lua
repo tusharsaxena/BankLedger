@@ -778,16 +778,37 @@ local function anchorPanes()
   end
 end
 
--- A synthetic dataset (Database:DatasetKind ~= "live") is marked twice: the red title badge and
--- the library's strip under the filter bar. Both follow the dataset, and the panes make room for
--- the strip in the same breath. The strip's text is the test line; the "sim" text arrives with the
--- simulator (BL-12), and until then nothing sets NS.State.simLog.
+-- A synthetic dataset (Database:DatasetKind ~= "live") is marked by the library's strip under the
+-- filter bar, and test mode also by the red title badge. Both follow the dataset, and the panes
+-- make room for the strip in the same breath. The strip says which dataset it is: the test line, or
+-- under a simulation (BankLedger#24) `Simulation: <scenario> - nothing here is saved.`
+-- (NS.SimHost.MarkerText). The badge is test mode's alone: a simulation shows the strip only.
+local TEST_LINE = NS.L["TEST MODE: a sample ledger, not your bank. Combat ends it."]
+
 function B:UpdateTestStrip()
   if not frame then return end
-  local on = NS.Database:DatasetKind() ~= "live"
-  if frame.testBadge then frame.testBadge:SetShown(on) end
-  if frame.testStrip then frame.testStrip:SetShown(on) end
+  local kind = NS.Database:DatasetKind()
+  if frame.testBadge then frame.testBadge:SetShown(kind == "test") end
+  local strip = frame.testStrip
+  if strip then
+    if kind ~= "live" then
+      local host = NS.SimHost
+      strip.text:SetText(kind == "sim" and host and host.MarkerText and host.MarkerText() or TEST_LINE)
+    end
+    strip:SetShown(kind ~= "live")
+  end
   anchorPanes()
+end
+
+--- The strip's tooltip, for the dataset it marks: a title line, then what it shows and what ends it.
+--- The session window's strip (modules/SessionWindow.lua) reads the same lines.
+function B.StripTipLines()
+  if NS.Database:DatasetKind() == "sim" then
+    return { NS.L["Simulation"], NS.L["Shows: a simulated bank visit; nothing here is saved"],
+      NS.L["Ended by: /bl sim stop, combat, a real bank window"] }
+  end
+  return { NS.L["Test mode"], NS.L["Shows: a sample ledger, not your bank"],
+    NS.L["Ended by: combat, /bl test, the launcher menu"] }
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
@@ -1049,7 +1070,7 @@ local function EnsureFrame()
   -- and mouse-off. It hangs 2 px under the filter bar, B:UpdateTestStrip shows it and makes the
   -- panes room for it, and its tooltip says what the sample is and what ends it.
   frame.testStrip = W and W.TestStrip and W.TestStrip(frame, {
-    text = NS.L["TEST MODE: a sample ledger, not your bank. Combat ends it."],
+    text = TEST_LINE,
     icon = NS.Icon and NS.Icon("info"),
   }) or nil
   if frame.testStrip then
@@ -1060,9 +1081,10 @@ local function EnsureFrame()
     strip:HookScript("OnEnter", function(self2)
       if not GameTooltip then return end
       GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-      GameTooltip:AddLine(NS.L["Test mode"], 1, 0.82, 0)
-      GameTooltip:AddLine(NS.L["Shows: a sample ledger, not your bank"], 0.9, 0.9, 0.9, true)
-      GameTooltip:AddLine(NS.L["Ended by: combat, /bl test, the launcher menu"], 0.9, 0.9, 0.9, true)
+      for i, line in ipairs(B.StripTipLines()) do
+        if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
+        else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
+      end
       GameTooltip:Show()
     end)
     strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)

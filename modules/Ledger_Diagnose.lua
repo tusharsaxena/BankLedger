@@ -148,6 +148,8 @@ function L:Diagnose()
   local function add(fmt, ...)
     out[#out + 1] = select("#", ...) > 0 and fmt:format(...) or fmt
   end
+  -- Under a simulation every Compat read below answers the simulated world (req-bl-sim R9).
+  if NS.Sim and NS.Sim:IsActive() then add("simulation running: Compat answers are simulated") end
   add("openContext=%s snapshot=%s", tostring(NS.State.openContext),
     NS.State.lastSnapshot and "yes" or "no")
   addBagIndex(add)

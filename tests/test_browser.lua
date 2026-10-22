@@ -1369,3 +1369,47 @@ end)
 -- they describe, rather than being deleted: the question they ask is still a live one, it is just
 -- no longer asked of this module.
 
+
+-- ── The simulation marker (BankLedger#24, preview-mode; LibKa0s-Sim-1.0 host contract H8) ──────
+--
+-- While a simulation runs (Database:DatasetKind() == "sim") the same strip says so, naming the
+-- scenario, and the red TEST MODE badge stays hidden: it is test mode's alone. The strip comes and
+-- goes with the start and the stop. Runs in the shared environment, on the addon's own NS.Sim.
+
+do
+  local SS = dofile("tests/sim_support.lua")
+
+  test("Browser: a simulation shows the strip with its scenario line, and never the badge", function()
+    SS.withSession("warband", function()
+      local f = NS.Browser:GetWindow()
+      assertTrue(f.testStrip:IsShown(), "no marker while a simulation runs")
+      assertEqual(f.testStrip.text:GetText(),
+        NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Warband transfer"]))
+      assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
+    end)
+    local f = NS.Browser:GetWindow()
+    assertFalse(f.testStrip:IsShown(), "the marker outlived the simulation")
+    assertFalse(f.testBadge:IsShown())
+  end)
+
+  test("Browser: the strip's tooltip describes the simulation while one runs", function()
+    SS.withSession("bank", function()
+      assertEqual(table.concat(NS.Browser.StripTipLines(), " | "), "Simulation | Shows: a simulated bank"
+        .. " visit; nothing here is saved | Ended by: /bl sim stop, combat, a real bank window")
+    end)
+    assertEqual(NS.Browser.StripTipLines()[1], "Test mode", "the test lines are back once it stops")
+  end)
+
+  test("Browser: a stop repaints the strip through the session listener", function()
+    SS.withSession("bank", function(sim)
+      local f = NS.Browser:GetWindow()
+      local real, painted = NS.Browser.UpdateTestStrip, 0
+      NS.Browser.UpdateTestStrip = function(...) painted = painted + 1 return real(...) end
+      local ok, err = pcall(SS.chat, function() sim:Stop("stop") end)
+      NS.Browser.UpdateTestStrip = real
+      if not ok then error(err, 0) end
+      assertTrue(painted >= 2, "the stop's dataset swap and its listener each repaint: " .. painted)
+      assertFalse(f.testStrip:IsShown())
+    end)
+  end)
+end

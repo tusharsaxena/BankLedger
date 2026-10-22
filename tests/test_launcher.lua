@@ -924,3 +924,15 @@ test("LibKa0s-Launcher degraded: the stub answers every member the addon reaches
   assertFalse(b:IsShown(), "the degraded arm's button is hidden too")
   assertTrue(type(b:GetScript("OnClick")) == "function", "the degraded arm's button has no OnClick")
 end)
+
+test("Launcher: the simulator is slash-only, with no menu entry and no key binding (C.11)", function()
+  -- LibKa0s-Sim-1.0's host contract H7: `/bl sim` is the one way in.
+  local menu = openMenu()
+  for _, text in ipairs(menu:Texts()) do
+    assertFalse(text:lower():find("sim", 1, true) ~= nil, "a simulator entry in the menu: " .. text)
+  end
+  local fh = assert(io.open("Bindings.xml", "r"))
+  local xml = fh:read("*a")
+  fh:close()
+  assertFalse(xml:lower():find("sim", 1, true) ~= nil, "Bindings.xml declares a simulator binding")
+end)

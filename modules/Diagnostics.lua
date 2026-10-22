@@ -78,6 +78,38 @@ function X.State(out)
     type(st.testRecords) == "table" and #st.testRecords or 0)
   out:add("State", "retention prune: done this session=%s armed=%s", yn(st.cleanupDone),
     yn(st.cleanupPending ~= nil))
+  out:add("State", "simulation=%s dataset=%s", yn(NS.Sim and NS.Sim:IsActive()),
+    NS.Database and NS.Database:DatasetKind() or "?")
+end
+
+-- ── the simulator (BankLedger#24, host contract H8) ─────────────────────────────────────────────
+
+--- The session from NS.Sim:Status(), merged with the host's own fields (NS.SimHost, the session
+--- bag): the scenario and where it stands, the simulated character, the session log, and what the
+--- seam did. Read-only: nothing here starts, steps or stops anything.
+local function seamKeys()
+  local seam = NS.SimSeam
+  return seam and seam.Keys and #seam:Keys() or 0
+end
+
+-- The simulated character's key, from the host's world.
+local function simCharacter(out)
+  local w = (NS.SimHost or {}).world
+  local char = w and w.chars and w.chars[w.current]
+  return char and out:plain(char.key) or "-"
+end
+
+function X.Sim(out)
+  local sim = NS.Sim
+  local st = (sim and sim:Status()) or { active = false }
+  if not st.active then
+    return out:add("Sim", "active=no seam keys=%s", seamKeys())
+  end
+  out:add("Sim", "active=yes scenario=%s seed=%s step=%s/%s ready=%s playing=%s paused=%s",
+    st.scenario, st.seed, st.pos or 0, st.total or 0, yn(st.ready), yn(st.playing), yn(st.paused))
+  local session = sim:Session() or {}
+  out:add("Sim", "character=%s simLog rows=%s events=%s guarded queries=%s seam keys=%s",
+    simCharacter(out), #(NS.State.simLog or {}), st.events or 0, session.queries or 0, seamKeys())
 end
 
 -- ── settings ───────────────────────────────────────────────────────────────────────────────
@@ -284,7 +316,7 @@ end
 function X.Sections()
   return {
     { "state", X.State }, { "settings", X.Settings }, { "filters", X.Filters },
-    { "ledger", X.Ledger }, { "capture", X.Capture }, { "session", X.Session },
+    { "ledger", X.Ledger }, { "capture", X.Capture }, { "session", X.Session }, { "sim", X.Sim },
     { "scan", X.Scan }, { "windows", X.Windows }, { "launcher", X.Launcher },
     { "environment", X.Environment },
   }

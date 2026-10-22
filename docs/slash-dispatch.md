@@ -25,6 +25,7 @@ settings landing page both read from one place.
 | `/bl diagnostics` / `/bl debug diagnostics` | Write the diagnostics report into the console, after whatever it already holds, and show it, first turning debug logging on for the session when it is off (`debug-logging-§14`; the console's Diagnostics link runs the same report). The only two forms: no `diag` or other alias exists, and `/bl debug` tests `diagnostics` before its other words. Live while disabled. Sections in `modules/Diagnostics.lua` |
 | `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console. The same lines are the report's `scan` section; the verb stays as a topic dump |
 | `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
+| `/bl sim` | The simulator (BankLedger#24): bare, the status line, the usage and the step panel. `start <bank\|warband\|guild\|onesided>`, `step`, `run`, `pause`, `resume`, `restart`, `stop`, `status` and `panel` are `LibKa0s-Sim-1.0`'s grammar: the row's handler is `NS.Sim:RunVerb(rest)` and nothing else (host contract H7). Each verb prints one line, for example `Simulation step 3 of 5: Deposit 1 × Thunderfury to Character Bank.` There is no `help` verb (any unknown word prints the usage), no per-driver verb, and no launcher entry or key binding: the simulator is slash-only (OWNER_SCOPE C.11). **Feature verb**: refused on one line while the addon is disabled |
 | `/bl help` | Print the command list (the help index) |
 
 A bare `/bl`, or one that is only whitespace, runs the `config` verb with an empty argument
@@ -68,7 +69,7 @@ the settings registration are **setup**, not features, so the pair is never one-
 
 | | Verbs |
 |---|---|
-| Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `session`, `test`, `purge` |
+| Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `session`, `test`, `purge`, `sim` |
 | Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — `profile`, and the bare `/bl`, which opens the settings panel |
 
 The live set is the standard's, and its reasoning is that a player must be able to **read and repair

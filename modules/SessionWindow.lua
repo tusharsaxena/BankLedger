@@ -469,6 +469,59 @@ function SW:BuildHeaderCells()
   end
 end
 
+-- ── The simulation strip (preview-mode marker, BankLedger#24) ───────────────────
+
+-- While a simulation runs this window draws its rows, so it wears the ledger window's marker:
+-- LibKa0s-Widgets-1.0's TestStrip under the title bar, with the same line (NS.SimHost.MarkerText)
+-- and the same one predicate (Database:DatasetKind() == "sim"). The rows move down by HEIGHT + 4.
+-- Test mode never reaches this window (its session rows are the real ones), so the strip is the
+-- simulation's alone.
+local STRIP_GAP = 2
+
+local function buildStrip(f, titleBar)
+  local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+  if not (W and W.TestStrip) then return end
+  local strip = W.TestStrip(f, { icon = NS.Icon and NS.Icon("info") })
+  strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
+  strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
+  strip:EnableMouse(true)
+  strip:HookScript("OnEnter", function(self2)
+    if not (GameTooltip and NS.Browser and NS.Browser.StripTipLines) then return end
+    GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    for i, line in ipairs(NS.Browser.StripTipLines()) do
+      if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
+      else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
+    end
+    GameTooltip:Show()
+  end)
+  strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+  f.testStrip = strip
+  f._stripReserve = W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
+end
+
+local function anchorPane()
+  local pane = SW.pane
+  if not (frame and pane and frame._paneTop) then return end
+  local strip = frame.testStrip
+  local top = frame._paneTop + ((strip and strip:IsShown()) and frame._stripReserve or 0)
+  pane:ClearAllPoints()
+  pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -top)
+  pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 6)
+end
+
+--- Show the strip while the dataset is the simulation's, with its line, and make the rows room.
+function SW:UpdateTestStrip()
+  if not frame then return end
+  local strip = frame.testStrip
+  local on = NS.Database:DatasetKind() == "sim"
+  if strip then
+    local host = NS.SimHost
+    if on then strip.text:SetText(host and host.MarkerText and host.MarkerText() or "") end
+    strip:SetShown(on)
+  end
+  anchorPane()
+end
+
 -- ── Frame construction ──────────────────────────────────────────────────────────
 
 local function ensureFrame()
@@ -516,11 +569,13 @@ local function ensureFrame()
     frame.closeButton = close
   end
 
-  -- One pane, straight under the title bar: no tab strip, no filter bar, no footer.
+  -- One pane, straight under the title bar: no tab strip, no filter bar, no footer. It moves down
+  -- by the strip's reserve while the simulation strip shows (SW:UpdateTestStrip).
   local pane = CreateFrame("Frame", nil, frame)
-  pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -((skin.titleBarH or 30) + 8))
-  pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 6)
   SW.pane = pane
+  frame._paneTop = (skin.titleBarH or 30) + 8
+  buildStrip(frame, titleBar)
+  anchorPane()
 
   local header = CreateFrame("Frame", nil, pane)
   header:SetPoint("TOPLEFT", 0, 0)
@@ -645,6 +700,7 @@ function SW:Show()
   -- this ONE window's own switch: either alone keeps it off screen.
   if not NS.Util.VisibilityAllows() then return end
   local f = ensureFrame()
+  self:UpdateTestStrip()
   self:Refresh()
   f:Show()
 end

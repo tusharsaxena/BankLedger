@@ -573,7 +573,7 @@ end)
 -- The cases below assert BOTH halves every time, because a case that only reads the message passes
 -- over a verb that printed the refusal and then went ahead and acted anyway.
 
-local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
+local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge", "sim" }
 local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug", "diagnostics",
                      "get", "set", "list", "reset", "resetall", "profile" }
 
@@ -788,4 +788,51 @@ test("Slash: /bl version and the help header report the same version", function(
   assertTrue(v ~= nil, "no version in " .. tostring(versionLine))
   assertTrue(helpHeader:find("v" .. v, 1, true) ~= nil,
     ("help says %q, /bl version says v%s"):format(helpHeader, v))
+end)
+
+-- ── /bl sim: the simulator's one feature verb (BankLedger#24, LibKa0s-Sim-1.0 host contract H7) ──
+--
+-- One NS.COMMANDS row whose handler hands the rest of the line to NS.Sim:RunVerb, the library's
+-- grammar. It is a feature verb (FEATURE_VERBS above), so the disabled refusal census covers it; it
+-- is not on the live list, and nothing else (no launcher entry, no key binding) reaches it.
+
+test("Slash: the sim row sits just before help, and its description points at /bl sim", function()
+  local at, helpAt
+  for i, cmd in ipairs(NS.COMMANDS) do
+    if cmd[1] == "sim" then at = i end
+    if cmd[1] == "help" then helpAt = i end
+  end
+  assertTrue(at ~= nil, "no sim verb")
+  assertEqual(at, helpAt - 1, "the sim row is not the row before help")
+  assertEqual(NS.COMMANDS[at][2],
+    NS.L["Simulate bank visits through the real capture engine; /bl sim for its verbs"])
+  for _, v in ipairs(LIVE_VERBS) do assertFalse(v == "sim", "sim is on the live list") end
+end)
+
+test("Slash: /bl sim alone prints the status and the usage, and opens the step panel", function()
+  NS.Sim:HidePanel()
+  local out = captureChat(function() Sl:OnSlash("sim") end)
+  local text = joined(out)
+  assertTrue(text:find("Simulation: idle. Scenarios: bank, warband, guild, onesided.", 1, true) ~= nil,
+    "no idle status line:\n" .. text)
+  assertTrue(text:find("/bl sim start <scenario> [size]: start a simulation.", 1, true) ~= nil,
+    "no usage:\n" .. text)
+  assertTrue(NS.Sim:IsPanelShown(), "the step panel did not open")
+  NS.Sim:HidePanel()
+end)
+
+test("Slash: every /bl sim word reaches NS.Sim:RunVerb with the rest of the line", function()
+  local sim = NS.Sim
+  local real, seen = sim.RunVerb, {}
+  sim.RunVerb = function(self, rest)
+    assertTrue(self == sim, "RunVerb was not colon-called on NS.Sim")
+    seen[#seen + 1] = rest
+  end
+  local words = { "start warband", "step", "run", "pause", "resume", "restart", "stop", "status", "panel" }
+  local ok, err = pcall(function()
+    for _, w in ipairs(words) do Sl:OnSlash("sim " .. w) end
+  end)
+  sim.RunVerb = real
+  if not ok then error(err, 0) end
+  assertEqual(table.concat(seen, "|"), table.concat(words, "|"))
 end)

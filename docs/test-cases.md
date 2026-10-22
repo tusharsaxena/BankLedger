@@ -451,7 +451,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (68)
+### test_browser.lua (71)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -521,6 +521,9 @@ Total.
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
+- Browser: a simulation shows the strip with its scenario line, and never the badge
+- Browser: the strip's tooltip describes the simulation while one runs
+- Browser: a stop repaints the strip through the session listener
 
 ### test_autocomplete.lua (17)
 
@@ -542,7 +545,7 @@ Total.
 - Autocomplete: on Insights a pick filters the shared view too
 - Autocomplete: disabling the addon closes an open list, and the list asks nothing after
 
-### test_launcher.lua (43)
+### test_launcher.lua (44)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -587,8 +590,9 @@ Total.
 - Key binding: a press runs the SAME handler /bl toggle and the Show window entry run
 - Key binding: one press opens the ledger window, the next closes it
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
+- Launcher: the simulator is slash-only, with no menu entry and no key binding (C.11)
 
-### test_sessionwindow.lua (37)
+### test_sessionwindow.lua (39)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -627,6 +631,8 @@ Total.
 - the session window's grip sizes from BOTTOMRIGHT and saves geometry on release
 - the session window is resizable with its floor as the minimum bound
 - a size change outside the grip writes no geometry
+- SessionWindow: a simulation's visit shows the strip under the title bar and moves the rows
+- SessionWindow: test mode puts no strip on the session window
 
 ### test_insights.lua (79)
 
@@ -856,7 +862,7 @@ Total.
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (53)
+### test_slash.lua (56)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -911,6 +917,9 @@ Total.
 - Slash: every chat line carries the cyan [BL] tag
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
+- Slash: the sim row sits just before help, and its description points at /bl sim
+- Slash: /bl sim alone prints the status and the usage, and opens the step panel
+- Slash: every /bl sim word reaches NS.Sim:RunVerb with the rest of the line
 
 ### test_bus.lua (10)
 
@@ -1294,7 +1303,7 @@ Total.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
-### test_diagnostics.lua (26)
+### test_diagnostics.lua (29)
 
 - diagnostics: the descriptor names the full brand in both markers
 - diagnostics: every DX-BL section runs, in order, without a failure line
@@ -1322,6 +1331,9 @@ Total.
 - diagnostics: the report turns logging on for the session and never turns it off
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
+- diagnostics: idle, the state line says no simulation and the sim section only counts the seam
+- diagnostics: running, the sim section reports the scenario, the step, the character and the seam
+- diagnostics: /bl debug scan opens with the simulation header while one runs
 
 ### test_profiles.lua (47)
 
@@ -1502,6 +1514,21 @@ Total.
 - Sim e2e: onesided records 0 rows and the close drops the held change
 - Sim e2e: Restart plays every scenario again from the start, to the same end
 
+### test_sim_panel.lua (12)
+
+- sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
+- sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
+- sim panel: running, a move names the REAL item, and the rows take the running states
+- sim panel: a step's tooltip says what it moves, the lagged half, and the events it fires
+- sim panel: a played move's label and tooltip count the rows the engine recorded
+- sim panel: a start opens it beside the ledger window, which the start also opens
+- sim panel: with the ledger window shut it floats rather than docking beside a hidden frame
+- sim panel: a typed step repaints the shown panel
+- sim panel: clicking a done row does nothing; clicking the next row plays it
+- sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
+- sim panel: no schema row and no default hold its position
+- sim panel: a stand-down stop hides it
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1579,16 +1606,16 @@ Total.
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
-| test_browser.lua | 68 |
+| test_browser.lua | 71 |
 | test_autocomplete.lua | 17 |
-| test_launcher.lua | 43 |
-| test_sessionwindow.lua | 37 |
+| test_launcher.lua | 44 |
+| test_sessionwindow.lua | 39 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 53 |
 | test_schema_runtime.lua | 18 |
-| test_slash.lua | 53 |
+| test_slash.lua | 56 |
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
 | test_panel_filters.lua | 40 |
@@ -1609,7 +1636,7 @@ Total.
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
-| test_diagnostics.lua | 26 |
+| test_diagnostics.lua | 29 |
 | test_profiles.lua | 47 |
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
@@ -1619,10 +1646,11 @@ Total.
 | test_sim_session.lua | 19 |
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 6 |
+| test_sim_panel.lua | 12 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1387** |
+| **Total** | **1411** |
