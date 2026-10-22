@@ -64,6 +64,7 @@ before the prune runs again.
 | `export` | the modal's **Export to CSV** button | nothing — it sits BESIDE the label | no art, label unmoved |
 | `search` | the item-name search box, passed as `opts.icon` to `LibKa0s-Widgets-1.0`'s `SearchBox` through `B:MakeSearchBox`; the library draws it (11x11 at LEFT +5, 0.7 gray) and owns the 21px inset | nothing — it sits BESIDE the hint | no art, the library's inset stays 6 |
 | `confirm` | the tick on a chosen row of a multi-select filter menu, inline `\|T…\|t` | `UI-CheckBox-Check` | that texture |
+| `info` | the test-mode strip's mark, passed as `opts.icon` to `LibKa0s-Widgets-1.0`'s `TestStrip`; the library draws it (12x12 at LEFT +6) | nothing — it sits BESIDE the strip's text | no art, the text moves to the strip's left edge |
 
 Four rules govern every one of them, and each cost the collection something to learn:
 

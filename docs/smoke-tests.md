@@ -19,7 +19,7 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
-| LEDG-1 – 51 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line |
+| LEDG-1 – 56 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
@@ -538,6 +538,19 @@ leaves its number unused.
   History table filters after the short debounce, the suggestion list still opens directly under the
   box at its width, and picking a name applies it at once. Added 2026-10-22 (LibKa0s#52).
   Result:
+- **LEDG-52. The test-mode strip.** `/bl test` → an amber strip with the info mark reads "TEST MODE: a
+  sample ledger, not your bank. Combat ends it." directly under the filter bar, the History table
+  starts below it, and the red TEST MODE badge is still beside the title. **Fail:** the strip
+  overlapping the table's header, or the badge gone. Added 2026-10-22 (BankLedger#23). Result:
+- **LEDG-53. Insights makes the same room.** In test mode, switch to Insights → its content is shifted
+  down by the same amount, clear of the strip. Added 2026-10-22 (BankLedger#23). Result:
+- **LEDG-54. Combat ends the strip.** In test mode, enter combat → test mode ends, the strip hides and
+  both panes move back up under the filter bar. Added 2026-10-22 (BankLedger#23). Result:
+- **LEDG-55. The strip's tooltip.** In test mode, hover the strip → a tooltip reads Test mode / Shows:
+  a sample ledger, not your bank / Ended by: combat, /bl test, the launcher menu. Added 2026-10-22
+  (BankLedger#23). Result:
+- **LEDG-56. Opening in test mode.** With test mode on, close the window and `/bl show` → the strip
+  is there at once and the table starts below it. Added 2026-10-22 (BankLedger#23). Result:
 
 ## INS
 
@@ -925,3 +938,7 @@ LEDG-39 (the modal's export mark) and LEDG-40 (the search magnifier).
 **Owed after the search box moved onto LibKa0s-Widgets-1.0's SearchBox (2026-10-22, LibKa0s#52).**
 LEDG-40 (rewritten: the magnifier and the gold focus line) and LEDG-51 (new: typing filters, the
 suggestion list and a pick).
+
+**Owed after test mode gained LibKa0s-Widgets-1.0's TestStrip (2026-10-22, BankLedger#23).**
+LEDG-52 to LEDG-56 (new: the strip under the filter bar, both panes making room, combat ending it, its
+tooltip, opening in test mode) and LEDG-20 (its badge text now goes through `NS.L`).

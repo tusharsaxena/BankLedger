@@ -298,6 +298,6 @@ function B:OnDatasetChanged()
   applyBaseline()
   self:UpdateFooter()
   self:UpdateDbSize()
-  self:UpdateTestBadge()
+  self:UpdateTestStrip()
   if NS.Insights and NS.Insights.Refresh then NS.Insights:Refresh() end
 end

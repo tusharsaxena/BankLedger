@@ -70,6 +70,19 @@ hand-edited SavedVariables) cannot reopen a window too small to read.
 | Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one filter bar; each tab keeps its own filter state and saved view |
 | Current Banking Session | `BankLedgerSessionWindow` | a bank frame opening (`SessionChanged`), or `/bl session` | One slim table of this visit's movements |
 
+**Test mode is marked twice on the ledger window** (BankLedger#23). The red `TEST MODE` badge stays
+beside the title, and `LibKa0s-Widgets-1.0`'s `TestStrip` (minor 13, LibKa0s#48) hangs 2px under the
+filter bar: an amber band with the `info` mark and *TEST MODE: a sample ledger, not your bank. Combat
+ends it.* Both texts go through `NS.L`. The library publishes the strip's height
+(`W.TEST_STRIP.HEIGHT`, 18) and deliberately no reserve, so `modules/Browser.lua` computes its own:
+`HEIGHT + 2 * STRIP_GAP` (22) while the strip shows, 0 otherwise or with no Widgets library.
+`anchorPanes()` hangs both the History and the Insights pane from the filter bar's bottom plus that
+reserve, and `B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the
+Master controls box, the launcher menu and the combat ending all reach it) shows or hides the badge
+and the strip and re-anchors the panes. The strip's mouse is on for one plain `GameTooltip`: *Test
+mode*, what it shows, and what ends it. Without the library there is no strip and no shift, and the
+badge alone marks test mode.
+
 The session window is **not** a second `NS.LedgerTable` instance. That module is a stateful singleton
 — one row pool, one display list, one sort/group/filter/collapse state — and the session table has
 none of those, so a slim renderer is smaller than the refactor generalizing it would take. What the

@@ -7,8 +7,9 @@ NS.L = setmetatable(NS.L or {}, { __index = function(_, k) return k end })
 
 -- English-only and almost entirely UNWRAPPED: nearly every label, tooltip and message is hardcoded
 -- English (an accepted scope decision for the first release, not an oversight). The exceptions are
--- the slash help rows in settings/Schema.lua and the library-absent line in settings/Slash.lua and
--- core/DebugLogSetup.lua, which already read NS.L. The seam is what a later localization pass
+-- the slash help rows in settings/Schema.lua, the library-absent line in settings/Slash.lua and
+-- core/DebugLogSetup.lua, and the ledger window's test-mode badge, strip and strip tooltip in
+-- modules/Browser.lua, which already read NS.L. The seam is what a later localization pass
 -- wraps the rest through, dropping its enUS overrides here without touching a call site. There is
 -- deliberately no `local L` alias while this file lists no override, so it stays luacheck-clean. (The launcher's left-click label read NS.L["Toggle ledger window"] from M5 until
 -- LibKa0s-Launcher minor 4 retired `leftClickLabel`; the options menu's words are the library's.)

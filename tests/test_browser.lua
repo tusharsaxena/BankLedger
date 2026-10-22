@@ -1121,6 +1121,166 @@ test("Browser: the window still opens and the ledger table still populates with 
     ns.Browser:Hide()
   end)
 
+-- ── The test-mode strip: LibKa0s-Widgets-1.0's TestStrip (BankLedger#23, LibKa0s#48) ─────────
+--
+-- Test mode is marked twice: the red TEST MODE badge on the title (kept, its text now through L)
+-- and the library's amber strip directly under the filter bar. The library publishes the strip's
+-- HEIGHT and nothing about the body below it, so the host computes its own reserve
+-- (TEST_STRIP.HEIGHT + 2 * STRIP_GAP = 22) and shifts BOTH panes down by it while the strip shows.
+-- Each case runs in a FRESH environment: the window is a singleton built once, and the strip's
+-- constructor call is only observable while it is being built.
+
+local STRIP_TEXT = "TEST MODE: a sample ledger, not your bank. Combat ends it."
+local STRIP_RESERVE = 22
+
+local function loadFresh(withoutWidgets)
+  local m = T.makeMocks()
+  local ns = {}
+  local files = {}
+  for _, path in ipairs(T.libka0sFiles) do
+    if not (withoutWidgets and path == "libs/LibKa0s/Widgets.lua") then files[#files + 1] = path end
+  end
+  T.Loader.loadAll(files, ns, m)
+  T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  return ns, m
+end
+
+-- Spy on the constructor while the window is built: what it was handed, and what the host did to
+-- the strip it got back that the mock frame does not record (the mouse).
+local function showSpyingOnStrip(ns, m)
+  local Widgets = m.LibStub("LibKa0s-Widgets-1.0", true)
+  local real, seen = Widgets.TestStrip, { mouse = false }
+  Widgets.TestStrip = function(parent, opts)
+    seen.opts = opts
+    local s = real(parent, opts)
+    s.EnableMouse = function(_, v) seen.mouse = v end
+    return s
+  end
+  local ok, err = pcall(function() ns.Browser:Show() end)
+  Widgets.TestStrip = real
+  if not ok then error(err, 0) end
+  return seen
+end
+
+local function paneY(ns, name)
+  local pane = ns.Browser:GetWindow().panes[name]
+  local point, _, _, _, y = pane:GetPoint(1)
+  assertEqual(point, "TOPLEFT", name .. "'s first point is not its TOPLEFT")
+  local p2 = pane:GetPoint(2)
+  assertEqual(p2, "BOTTOMRIGHT", name .. "'s second point is not its BOTTOMRIGHT")
+  assertEqual(#pane.__points, 2, name .. " is not anchored by exactly TOPLEFT and BOTTOMRIGHT")
+  return y
+end
+
+test("Browser: test mode on shows the strip under the filter bar and shifts both panes by 22", function()
+  local ns, m = loadFresh()
+  local seen = showSpyingOnStrip(ns, m)
+  local f = ns.Browser:GetWindow()
+  local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  assertTrue(f.testStrip ~= nil, "the window built no test-mode strip")
+  assertFalse(f.testStrip:IsShown(), "the strip shows outside test mode")
+  assertTrue(seen.opts ~= nil, "the strip was not built through W.TestStrip")
+  assertTrue(seen.opts.icon ~= nil and seen.opts.icon == ns.Icon("info"),
+    "the strip's mark is not the info icon")
+
+  assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
+  assertTrue(f.testStrip:IsShown(), "the strip is hidden in test mode")
+  assertEqual(f.testStrip.text:GetText(), ns.L[STRIP_TEXT])
+  local p1, rel1, rp1, x1, y1 = f.testStrip:GetPoint(1)
+  local p2, rel2, rp2, x2, y2 = f.testStrip:GetPoint(2)
+  assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT")
+  assertEqual(p2 .. ">" .. rp2, "TOPRIGHT>BOTTOMRIGHT")
+  assertTrue(rel1 == f.filterHost and rel2 == f.filterHost, "the strip is not anchored to the filter bar")
+  assertEqual(x1 .. "," .. y1 .. "," .. x2 .. "," .. y2, "0,-2,0,-2")
+  assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "History did not move down by the reserve")
+  assertEqual(paneY(ns, "Insights"), baseI - STRIP_RESERVE, "Insights did not move down by the reserve")
+  assertTrue(f.testBadge:IsShown(), "the red badge went away beside the strip")
+  assertEqual(f.testBadge:GetText(), ns.L["TEST MODE"])
+  ns.LedgerTable:SetTestMode(false)
+end)
+
+test("Browser: test mode off hides the strip and the badge and puts both panes back", function()
+  local ns = loadFresh()
+  ns.Browser:Show()
+  local f = ns.Browser:GetWindow()
+  local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  ns.LedgerTable:SetTestMode(true)
+  assertFalse(ns.LedgerTable:SetTestMode(false), "test mode did not stop")
+  assertFalse(f.testStrip:IsShown(), "the strip outlived test mode")
+  assertFalse(f.testBadge:IsShown(), "the badge outlived test mode")
+  assertEqual(paneY(ns, "History"), baseH)
+  assertEqual(paneY(ns, "Insights"), baseI)
+end)
+
+test("Browser: opening the window while test mode is already on reserves the strip's space", function()
+  local ns = loadFresh()
+  ns.Browser:Show()
+  local f = ns.Browser:GetWindow()
+  local baseH = paneY(ns, "History")
+  ns.Browser:Hide()
+  -- On behind the window's back: the dataset flips without the window being told.
+  ns.State.testRecords = ns.LedgerTable:BuildTestData()
+  assertTrue(ns.LedgerTable:IsTestMode(), "the premise: test mode is on")
+  ns.Browser:Show()
+  assertTrue(f.testStrip:IsShown(), "B:Show did not show the strip")
+  assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "B:Show did not reserve the strip's space")
+  ns.State.testRecords = nil
+end)
+
+test("Browser: combat ending test mode hides the strip and restores the panes", function()
+  local ns = loadFresh()
+  ns.Browser:Show()
+  local f = ns.Browser:GetWindow()
+  local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  ns.LedgerTable:SetTestMode(true)
+  assertTrue(f.testStrip:IsShown(), "the premise: the strip is up")
+  ns.addon:OnCombatChanged("PLAYER_REGEN_DISABLED")
+  assertFalse(ns.LedgerTable:IsTestMode(), "combat did not end test mode")
+  assertFalse(f.testStrip:IsShown(), "the strip outlived the combat ending")
+  assertEqual(paneY(ns, "History"), baseH)
+  assertEqual(paneY(ns, "Insights"), baseI)
+end)
+
+test("Browser: with no Widgets library there is no strip and no shift, and the badge still shows",
+  function()
+    local ns, m = loadFresh(true)
+    assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded arm still has the library")
+    ns.Browser:Show()
+    local f = ns.Browser:GetWindow()
+    local baseH = paneY(ns, "History")
+    assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
+    T.assertNil(f.testStrip, "a strip was built without the library")
+    assertEqual(paneY(ns, "History"), baseH, "the panes moved for a strip that is not there")
+    assertTrue(f.testBadge:IsShown(), "the badge is the only marker left, and it is gone")
+    assertEqual(f.testBadge:GetText(), ns.L["TEST MODE"])
+    ns.LedgerTable:SetTestMode(false)
+  end)
+
+test("Browser: hovering the strip shows the test-mode tooltip, and leaving hides it", function()
+  local ns, m = loadFresh()
+  local seen = showSpyingOnStrip(ns, m)
+  local strip = ns.Browser:GetWindow().testStrip
+  assertTrue(seen.mouse == true, "the strip's mouse was not enabled, so it can never be hovered")
+  local lines, hidden = {}, false
+  m.GameTooltip = {
+    SetOwner = function() end, Show = function() end,
+    Hide = function() hidden = true end,
+    AddLine = function(_, text) lines[#lines + 1] = text end,
+  }
+  local ok, err = pcall(function()
+    strip:__fire("OnEnter")
+    strip:__fire("OnLeave")
+  end)
+  m.GameTooltip = nil
+  if not ok then error(err, 0) end
+  assertEqual(table.concat(lines, " | "), "Test mode | Shows: a sample ledger, not your bank"
+    .. " | Ended by: combat, /bl test, the launcher menu")
+  assertTrue(hidden, "OnLeave did not hide the tooltip")
+end)
+
 -- ── LibKa0s-Widgets-1.0 minor 4: a selection that outlives its option list ─────
 --
 -- WHAT CHANGED, and it is a change to THIS ADDON'S visible behavior, not only a new seam.

@@ -94,8 +94,10 @@ end
 ---   sort-down      modules/LedgerTable.lua  the descending column-header arrow
 ---   export         modules/Export.lua   the modal's "Export to CSV" button
 ---   search         modules/Browser.lua  the item-name search box
+---   info           modules/Browser.lua  the test-mode strip's mark
 NS.ICON_NAMES = {
   "close", "chevron-down", "chevron-right", "sort-up", "sort-down", "export", "search", "confirm",
+  "info",
 }
 
 -- REGISTERED AT FILE LOAD, not at PLAYER_LOGIN, and not from core/BankLedger.lua's OnInitialize the

@@ -752,9 +752,38 @@ B._viewSeam = {
   dropFilterDebounce = dropFilterDebounce,
 }
 
-function B:UpdateTestBadge()
-  if not (frame and frame.testBadge) then return end
-  frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable:IsTestMode() or false)
+-- ── The test-mode strip's reserve (BankLedger#23) ──────────────────────────────────────────────
+-- LibKa0s-Widgets-1.0 publishes the strip's HEIGHT and deliberately NO RESERVE: the body shift is
+-- host layout, so this file adds its own gap above and below the band. 18 + 2 * 2 = 22 while the
+-- strip shows, and 0 when it is hidden or was never built (no Widgets library).
+local STRIP_GAP = 2
+
+local function stripReserve()
+  local strip = frame and frame.testStrip
+  if not (W and W.TEST_STRIP and strip and strip:IsShown()) then return 0 end
+  return W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
+end
+
+-- Both panes hang from the same top: under the filter bar, and under the strip while it shows.
+-- Their BOTTOMRIGHT never moves. EnsureFrame records `_paneTop` before the first call.
+local function anchorPanes()
+  if not (frame and frame.panes and frame._paneTop) then return end
+  local top = frame._paneTop + stripReserve()
+  for _, pane in pairs(frame.panes) do
+    pane:ClearAllPoints()
+    pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -top)
+    pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, frame._footerH)
+  end
+end
+
+-- Test mode is marked twice: the red title badge and the library's strip under the filter bar.
+-- Both follow the dataset, and the panes make room for the strip in the same breath.
+function B:UpdateTestStrip()
+  if not frame then return end
+  local on = NS.LedgerTable and NS.LedgerTable:IsTestMode() or false
+  if frame.testBadge then frame.testBadge:SetShown(on) end
+  if frame.testStrip then frame.testStrip:SetShown(on) end
+  anchorPanes()
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
@@ -971,7 +1000,7 @@ local function EnsureFrame()
 
   local testBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   testBadge:SetPoint("LEFT", title, "RIGHT", 10, 0)
-  testBadge:SetText("TEST MODE")
+  testBadge:SetText(NS.L["TEST MODE"])
   testBadge:SetTextColor(1, 0.15, 0.15)
   testBadge:Hide()
   frame.testBadge = testBadge
@@ -993,14 +1022,16 @@ local function EnsureFrame()
   local barTop  = SKIN.titleBarH + SKIN.tabStripH + SKIN.contentGap
   local paneTop = barTop + FILTERBAR_H + FILTER_GAP
 
+  -- The panes are anchored by anchorPanes() (above B:UpdateTestStrip), which adds the test-mode
+  -- strip's reserve to this top while the strip shows.
+  frame._paneTop, frame._footerH = paneTop, FOOTER_H
   frame.panes = {}
   for _, name in ipairs(TABS) do
     local pane = CreateFrame("Frame", nil, frame)
-    pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -paneTop)
-    pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, FOOTER_H)
     pane:Hide()
     frame.panes[name] = pane
   end
+  anchorPanes()
 
   CreateTabStrip()
 
@@ -1009,6 +1040,29 @@ local function EnsureFrame()
   filterHost:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -barTop)
   filterHost:SetHeight(FILTERBAR_H)
   frame.filterHost = filterHost
+
+  -- The test-mode strip (LibKa0s-Widgets-1.0's TestStrip, BankLedger#23): born hidden, unanchored
+  -- and mouse-off. It hangs 2 px under the filter bar, B:UpdateTestStrip shows it and makes the
+  -- panes room for it, and its tooltip says what the sample is and what ends it.
+  frame.testStrip = W and W.TestStrip and W.TestStrip(frame, {
+    text = NS.L["TEST MODE: a sample ledger, not your bank. Combat ends it."],
+    icon = NS.Icon and NS.Icon("info"),
+  }) or nil
+  if frame.testStrip then
+    local strip = frame.testStrip
+    strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
+    strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
+    strip:EnableMouse(true)
+    strip:HookScript("OnEnter", function(self2)
+      if not GameTooltip then return end
+      GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+      GameTooltip:AddLine(NS.L["Test mode"], 1, 0.82, 0)
+      GameTooltip:AddLine(NS.L["Shows: a sample ledger, not your bank"], 0.9, 0.9, 0.9, true)
+      GameTooltip:AddLine(NS.L["Ended by: combat, /bl test, the launcher menu"], 0.9, 0.9, 0.9, true)
+      GameTooltip:Show()
+    end)
+    strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+  end
 
   -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
   -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so
@@ -1088,7 +1142,7 @@ function B:Show()
   -- then reads correctly even when the window opens straight onto the Insights tab.
   BuildPane("History")
   B:SelectTab(lastTab)
-  B:UpdateTestBadge()
+  B:UpdateTestStrip()
 end
 
 function B:Hide()

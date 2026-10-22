@@ -435,7 +435,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (62)
+### test_browser.lua (68)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -496,6 +496,12 @@ Total.
 - Browser: the search box's RIGHT edge is pinned to the Character dropdown
 - Browser: typing runs the library's hint, then the filter, then the Autocomplete hook
 - Browser: the window still opens and the ledger table still populates with no Widgets library
+- Browser: test mode on shows the strip under the filter bar and shifts both panes by 22
+- Browser: test mode off hides the strip and the badge and puts both panes back
+- Browser: opening the window while test mode is already on reserves the strip's space
+- Browser: combat ending test mode hides the strip and restores the panes
+- Browser: with no Widgets library there is no strip and no shift, and the badge still shows
+- Browser: hovering the strip shows the test-mode tooltip, and leaving hides it
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
@@ -1448,7 +1454,7 @@ Total.
 | test_database.lua | 51 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 63 |
-| test_browser.lua | 62 |
+| test_browser.lua | 68 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 37 |
 | test_sessionwindow.lua | 35 |
@@ -1488,4 +1494,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1274** |
+| **Total** | **1280** |
