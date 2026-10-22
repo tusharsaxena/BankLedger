@@ -99,6 +99,20 @@ one is on screen. The session window follows the sink, not the read path: `SW:Pr
 session row while it is still in `Database:Sink()`, so a test-mode sample on screen never prunes a
 real visit's rows, and a simulated visit's rows survive a `LedgerChanged`.
 
+#### A simulated visit
+
+The simulator (BankLedger#24) feeds this same pipeline from the other end. A scenario step
+(`modules/SimScenario.lua`) is one **driver** call (`modules/SimDrivers.lua`): the driver edits the
+simulated world (`modules/SimWorld.lua`) and then fires the client's events for that action through
+`NS.Sim:Fire`, which delivers them to `Ledger:Dispatch` exactly as a client registration does. From
+there the **real engine** runs unchanged: the snapshot reads `NS.Compat`, whose members the seam
+(`core/SimSetup.lua`) answers from the simulated world; the debounce, the held baseline and the
+capture gate decide every row; nothing in the simulator writes one. Each row the engine records goes
+to the **sink**, which during a session is `NS.State.simLog`, so it reaches the ledger window and the
+session window and never `db.global.ledger`. The host's gate (`modules/Sim.lua`) holds the next step
+until the engine has settled (no lagged half to land, no held baseline, no pending pass), so a typed
+`step`, `run` and the panel's click-ahead each wait for the real engine rather than racing it.
+
 The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
 retires names between expansions, and modern retail **raises** on an unknown one rather than
 ignoring it, so registration is isolated per event (below) and a name that goes away is recorded and

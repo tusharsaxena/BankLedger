@@ -5,5 +5,7 @@ return {
     -- `pending.cancelled` reads the kit timer handle's flag field (tests/_kit/mock_base.lua),
     -- which carries AceTimer's own spelling; renaming it is not this repo's English to correct.
     ["tests/test_sim_session.lua"] = { cancelled = true },
+    -- The same flag, read by tests/sim_support.lua's time-ordered clock (S.advance).
+    ["tests/sim_support.lua"] = { cancelled = true },
   },
 }

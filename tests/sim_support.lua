@@ -60,6 +60,62 @@ function M.drain()
   error("timers kept re-arming", 2)
 end
 
+--- A time-ordered clock over the kit's timer queue, for the cases that need real elapsed time (the
+--- settle window, a lag half, Run's step delays and gate polls). `__fireTimers` runs every queued
+--- entry at once with the clock standing still; this instead moves `__now` to each entry's due time
+--- (its queue time plus its `delay`) and runs the entries one at a time, earliest first, in queue
+--- order on a tie. It stops when `done()` answers true, when nothing is left, or when the next entry
+--- falls more than `seconds` ahead of the start; entries not run go back on the queue with the rest
+--- of their delay. Answers whether `done()` was met.
+function M.advance(seconds, done)
+  local stop = mocks.__now + seconds
+  local pending, seq = {}, 0
+  local function collect()
+    local q = mocks.__timers
+    if #q == 0 then return end
+    mocks.__timers = setmetatable({}, getmetatable(q))
+    for _, t in ipairs(q) do
+      seq = seq + 1
+      pending[#pending + 1] = { t = t, due = mocks.__now + (tonumber(t.delay) or 0), seq = seq }
+    end
+  end
+  local function canceled(t) return t.cancelled or (t.timer and t.timer.cancelled) end
+  local met = false
+  for _ = 1, 10000 do
+    collect()
+    if done and done() then met = true break end
+    local best
+    for i, p in ipairs(pending) do
+      if not canceled(p.t) and (not best or p.due < pending[best].due
+        or (p.due == pending[best].due and p.seq < pending[best].seq)) then
+        best = i
+      end
+    end
+    if not best or pending[best].due > stop then break end
+    local p = table.remove(pending, best)
+    if p.due > mocks.__now then mocks.__now = p.due end
+    p.t.fn()
+  end
+  for _, p in ipairs(pending) do
+    if not canceled(p.t) then
+      p.t.delay = math.max(0, p.due - mocks.__now)
+      mocks.__timers[#mocks.__timers + 1] = p.t
+    end
+  end
+  return met
+end
+
+--- Run the started session's whole timeline with `Run` on the clock above, and answer whether it
+--- reached its end within `limit` simulated seconds (default 120).
+function M.runToEnd(sim, limit)
+  local ok, why = sim:Run()
+  assert(ok, "Run refused: " .. tostring(why))
+  return M.advance(limit or 120, function()
+    local st = sim:Status()
+    return st.total > 0 and st.pos == st.total and not st.playing
+  end)
+end
+
 --- The real world a session must refuse beside or leave alone, made quiet: no real frame open, the
 --- real guild frame hidden, the real backpack filled.
 local function quietWorld()

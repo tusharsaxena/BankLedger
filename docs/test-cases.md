@@ -1482,6 +1482,26 @@ Total.
 - Sim session: purge refuses through Database:Purge, the verb and the panel button
 - Sim session: a purge confirm accepted after a simulation started refuses and never says purged
 
+### test_sim_scenario.lua (8)
+
+- Sim scenarios: bank, warband, guild and onesided, in that order, each with a label
+- Sim scenarios: every timeline is pure: two builds are equal and fresh, and touch nothing
+- Sim scenarios: each scenario's step count, kinds and labels
+- Sim scenarios: the driver arguments the expected rows rest on
+- Sim gate: open when settled; closed on a lagged half, a held baseline or a pending pass
+- Sim gate: holdOK on the next step opens it over a live hold, never over a lagged half
+- Sim gate: a typed step answers 'settling' while it is closed, and plays once it opens
+- Sim gate: each played step stamps rowsBefore, and Host.Recorded counts its rows
+
+### test_sim_e2e.lua (6)
+
+- Sim e2e: bank records 3 BANK rows, the bonus link kept, with the saved ledger untouched
+- Sim e2e: warband records main's 2 deposits and the alt's 2 withdrawals through a held baseline
+- Sim e2e: guild records 3 GUILD_BANK rows stamped with the guild
+- Sim e2e: guild data while away arms no context and records nothing (issue #12)
+- Sim e2e: onesided records 0 rows and the close drops the held change
+- Sim e2e: Restart plays every scenario again from the start, to the same end
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1597,10 +1617,12 @@ Total.
 | test_sim_world.lua | 16 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 19 |
+| test_sim_scenario.lua | 8 |
+| test_sim_e2e.lua | 6 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1373** |
+| **Total** | **1387** |

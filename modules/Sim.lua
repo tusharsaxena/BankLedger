@@ -127,10 +127,64 @@ function Host.Prepare(_, _, _, ready)
 end
 
 --- The descriptor's play: one step is one driver call, and the driver's answer is the step's detail.
+--- It first stamps `rowsBefore`, the session log's length as the step starts, so Host.Recorded can
+--- say what the engine recorded for it (req-bl-sim §7). A host field: the library writes only
+--- `ranAt`, `detail` and `index` into a step.
 function Host.Play(step)
   local driver = NS.SimDrivers.DRIVERS[step.kind]
   if not driver then error(("no simulator driver for step kind %s"):format(tostring(step.kind)), 0) end
+  step.rowsBefore = #(NS.State.simLog or {})
   return driver(step)
+end
+
+--- How many rows the engine recorded for a played step: from its `rowsBefore` to the next played
+--- step's, or to the session log's length while it is the last one played. A row lands on the
+--- reconcile pass after the step's events (the debounce, a lagged half), so the count grows until the
+--- next step plays. nil for a step that has not played, or with no session log.
+function Host.Recorded(step, steps)
+  local log = NS.State.simLog
+  if not (log and step and step.rowsBefore) then return nil end
+  local upTo = #log
+  for i = (step.index or #(steps or {})) + 1, #(steps or {}) do
+    local later = steps[i]
+    if later.rowsBefore then upTo = later.rowsBefore break end
+  end
+  return upTo - step.rowsBefore
+end
+
+-- ── the gate (design-sim §11, OWNER_SCOPE C.2) ───────────────────────────────────────────────
+
+local WAIT_LINE = L["Waiting for the ledger to settle."]
+
+-- The step the session plays next, or nil.
+local function nextStep()
+  local sim = NS.Sim
+  if not (sim and sim.Steps and sim.Status) then return nil end
+  return sim:Steps()[(sim:Status().pos or 0) + 1]
+end
+
+--- The descriptor's gate: open (true) when the engine has settled, else false and the line to print.
+--- The library asks it before every step: Step, each Run tick and the panel's click-ahead. Closed
+--- while any of these holds:
+---   a lagged store half has still to land (NS.SimHost.pendingLag > 0, modules/SimDrivers.lua);
+---   the engine holds a one-sided baseline (NS.Ledger._settleSince), unless the next step carries
+---     `holdOK`, as the onesided scenario's close does;
+---   a reconcile pass is pending (NS.Ledger._pendingTimer), the debounce after the step's events.
+--- While a hold is live the pending timer is the hold's own deadline re-check, armed for the rest of
+--- the settle window, so `holdOK` covers it too: without that a close meant to land on a live hold
+--- would wait out the window and find the baseline re-anchored.
+function Host.Gate()
+  local Ledger = NS.Ledger
+  if (Host.pendingLag or 0) > 0 then return false, WAIT_LINE end
+  local holding = Ledger._settleSince ~= nil
+  local holdOK = false
+  if holding then
+    local step = nextStep()
+    holdOK = step ~= nil and step.holdOK == true
+    if not holdOK then return false, WAIT_LINE end
+  end
+  if Ledger._pendingTimer ~= nil and not holdOK then return false, WAIT_LINE end
+  return true
 end
 
 -- ── the session (LibKa0s-Sim-1.0) ────────────────────────────────────────────────────────────
@@ -161,6 +215,7 @@ if Lib then
     prepare = function(...) return Host.Prepare(...) end,
     play = function(step) return Host.Play(step) end,
     refusal = function(opts) return Host.Refusal(opts) end,
+    gate = function(session) return Host.Gate(session) end,
     stepDelay = function(step) return math.max(SIM_STEP_DELAY, step.settle or 0) end,
     stopText = STOP_TEXT,
     L = LINES,
