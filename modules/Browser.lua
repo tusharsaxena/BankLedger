@@ -778,11 +778,13 @@ local function anchorPanes()
   end
 end
 
--- Test mode is marked twice: the red title badge and the library's strip under the filter bar.
--- Both follow the dataset, and the panes make room for the strip in the same breath.
+-- A synthetic dataset (Database:DatasetKind ~= "live") is marked twice: the red title badge and
+-- the library's strip under the filter bar. Both follow the dataset, and the panes make room for
+-- the strip in the same breath. The strip's text is the test line; the "sim" text arrives with the
+-- simulator (BL-12), and until then nothing sets NS.State.simLog.
 function B:UpdateTestStrip()
   if not frame then return end
-  local on = NS.LedgerTable and NS.LedgerTable:IsTestMode() or false
+  local on = NS.Database:DatasetKind() ~= "live"
   if frame.testBadge then frame.testBadge:SetShown(on) end
   if frame.testStrip then frame.testStrip:SetShown(on) end
   anchorPanes()

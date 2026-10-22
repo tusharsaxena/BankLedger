@@ -269,7 +269,7 @@ Total.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
-### test_database.lua (51)
+### test_database.lua (56)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -303,6 +303,11 @@ Total.
 - Database:StorageStats reports count, span and an estimated size
 - Database:StorageStats reports a zero span for an empty ledger
 - Database:ActiveLedger prefers the test dataset when one is published
+- Database:Add writes to the session sim log, never the saved ledger, while one is set
+- Database:Add stamps nothing while no sim log is set
+- Database:ActiveLedger prefers the sim log over the test dataset
+- Database:DatasetKind answers sim, test or live in that precedence
+- Database:Purge with a sim log set still purges the real ledger only
 - RunMigrations stamps a schema version onto a fresh database
 - RunMigrations is idempotent — running it twice changes nothing
 - NS.MigrationSummary renders a readable one-liner
@@ -378,7 +383,7 @@ Total.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (63)
+### test_ledgertable.lua (64)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -439,6 +444,7 @@ Total.
 - LedgerTable:IsTestMode is derived from the published dataset, not a second flag
 - LedgerTable row menu offers the mutating actions on a real row
 - LedgerTable row menu disables every mutating action in test mode
+- LedgerTable row menu disables every mutating action on a simulator dataset
 - LedgerTable row menu still disables item actions on a money row
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
@@ -581,7 +587,7 @@ Total.
 - Key binding: one press opens the ledger window, the next closes it
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
 
-### test_sessionwindow.lua (35)
+### test_sessionwindow.lua (37)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -603,6 +609,8 @@ Total.
 - turning the setting off closes an open session window
 - SessionWindow:PruneMissing drops rows deleted from the ledger
 - a purge empties the session view
+- a LedgerChanged under a simulator keeps the session rows that live in the sim log
+- under test mode PruneMissing still walks the real ledger
 - SessionWindow:TogglePreview shows placeholder rows through the real render path
 - SessionWindow:TogglePreview refuses to overwrite a real session
 - a preview session is never pruned against the live ledger
@@ -1467,13 +1475,13 @@ Total.
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
-| test_database.lua | 51 |
+| test_database.lua | 56 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 63 |
+| test_ledgertable.lua | 64 |
 | test_browser.lua | 68 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 43 |
-| test_sessionwindow.lua | 35 |
+| test_sessionwindow.lua | 37 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
@@ -1510,4 +1518,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1296** |
+| **Total** | **1304** |

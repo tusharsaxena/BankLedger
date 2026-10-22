@@ -243,6 +243,43 @@ test("a purge empties the session view", function()
   NS.Ledger:CloseContext()
 end)
 
+-- PruneMissing walks the WRITE sink (Database:Sink), not the read path: under a simulator the
+-- session's rows live in the session sim log, and under test mode the read path is the sample
+-- while a real session still writes the real ledger.
+test("a LedgerChanged under a simulator keeps the session rows that live in the sim log", function()
+  reset()
+  local saved = NS.State.simLog
+  NS.State.simLog = {}
+  local ok, err = pcall(function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    NS.Database:Add(e({ itemName = "Simulated" }))
+    assertEqual(#SW:Entries(), 1)
+    NS.Database:FireLedgerChanged()
+    assertEqual(#SW:Entries(), 1, "a sim row is present in the sink and must survive")
+    NS.Ledger:CloseContext()
+  end)
+  NS.State.simLog = saved
+  if not ok then error(err, 0) end
+end)
+
+test("under test mode PruneMissing still walks the real ledger", function()
+  reset()
+  local saved = NS.State.testRecords
+  NS.State.testRecords = { e({ itemName = "Sample" }) }
+  local ok, err = pcall(function()
+    SW:StartSession("BANK_FRAME")
+    local real = e({ itemName = "Real" })
+    NS.db.global.ledger[1] = real
+    SW:OnEntryAdded(real)
+    assertEqual(SW:PruneMissing(), 0, "the real row is in the real ledger")
+    NS.db.global.ledger = {}
+    assertEqual(SW:PruneMissing(), 1, "and goes when the real ledger loses it")
+    SW:EndSession()
+  end)
+  NS.State.testRecords = saved
+  if not ok then error(err, 0) end
+end)
+
 -- ── Preview session (preview-mode) ─────────────────────────────────────────────
 
 test("SessionWindow:TogglePreview shows placeholder rows through the real render path", function()

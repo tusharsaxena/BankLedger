@@ -656,6 +656,19 @@ test("LedgerTable row menu disables every mutating action in test mode", functio
   assertTrue(m["Link to chat"].enabled, "linking mutates nothing, so it stays available")
 end)
 
+test("LedgerTable row menu disables every mutating action on a simulator dataset", function()
+  -- DatasetKind() ~= "live" is the gate, so "sim" refuses exactly what "test" refuses.
+  local saved = NS.State.simLog
+  NS.State.simLog = { { kind = "ITEM", sim = true } }
+  local ok, m = pcall(menuByLabel, { itemID = 2589, itemName = "Linen Cloth", itemLink = "|Hitem:2589|h" }, false)
+  NS.State.simLog = saved
+  if not ok then error(m, 0) end
+  assertFalse(m["Blacklist item"].enabled, "a sim row must never reach the real filter list")
+  assertFalse(m["Whitelist item"].enabled)
+  assertFalse(m["Delete"].enabled, "a sim row is not in the saved ledger")
+  assertTrue(m["Link to chat"].enabled)
+end)
+
 test("LedgerTable row menu still disables item actions on a money row", function()
   -- The pre-existing rule (no itemID, no item actions) must survive the test-mode gate.
   local m = menuByLabel({ kind = "MONEY", quantity = 5000 }, false)

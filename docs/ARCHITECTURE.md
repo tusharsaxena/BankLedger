@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window (owner decision D6) and the Minimap button **account-wide** (`global`), every other setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 37 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 38 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,7 +34,7 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-37 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+38 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
 the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` holds the account-wide
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles). The root `Bindings.xml`
@@ -75,6 +75,15 @@ stored outside the rows is named per `architecture-§5`:
   `NS.Backfill` (`modules/Backfill.lua`), writes an item row's **nil** name, quality, type,
   sub-type and link, never overwrites a present field and never adds or removes a row; it reports
   the change through `Database:FireLedgerChanged`, so Database stays the message's one sender.
+- **The write sink and the dataset kinds** (BankLedger#24). Every write the capture path reaches
+  goes through `Database:Sink()`: `NS.State.simLog` while a simulator runs, a session-only array
+  that is never saved, otherwise `db.global.ledger`; `Database:Add` stamps a sim row `sim = true`.
+  The read path, `Database:ActiveLedger()`, resolves sim, then test (`NS.State.testRecords`), then
+  live, and `Database:DatasetKind()` names which in that precedence (`"sim"`, `"test"`, `"live"`).
+  Every reader that must refuse a synthetic dataset asks `DatasetKind() ~= "live"`: the row menu's
+  mutating actions, the default character scope, the tab baseline and the test strip. `Count`,
+  `Delete`, `DeleteAt`, `Purge` and `PruneOld` always act on the real ledger, and the session window
+  prunes against the sink, never the read path.
 - **Named non-setting state** — four storage carve-outs written outside `NS.Schema:Set`, none with a
   `Documented deviations` row:
   - **Main window geometry**, `db.profile.settings.window`, owned by `NS.Browser`.

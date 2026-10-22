@@ -279,6 +279,11 @@ compliance. It has no `Documented deviations` row.
   strips `vendorPrice`, and is not a writer to name. No reset reaches the log: the global reset is a
   profile reset, and the ledger is in no profile. Test mode reads `NS.State.testRecords` and never
   writes the log.
+- **Session-only sink.** `NS.State.simLog` (`core/State.lua`), **never saved**. While a simulator
+  sets it, `Database:Sink()` is that array instead of `db.global.ledger`, so `Database:Add` writes
+  there (stamping `sim = true`) and the log is untouched; `Delete`, `DeleteAt`, `Purge` and
+  `PruneOld` still act on the log only. It is dropped on `/reload` with the rest of `NS.State`, so it
+  is not a writer of any stored key (BankLedger#24).
 
 **Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
 and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That

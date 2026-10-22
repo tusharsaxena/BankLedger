@@ -89,6 +89,16 @@ guild-bank hooks dispatch their pseudo-events after their stand-down check. `Dis
 while the Ledger is not enabled or for an event with no handler, and `1` after running the handler.
 It is the one call a simulator delivers through.
 
+#### Where a movement is written
+
+`Database:Add` appends to the **write sink**, `Database:Sink()`: the saved `db.global.ledger`, or, while
+a simulator runs, the session-only `NS.State.simLog`, which is never saved (each row stamped
+`sim = true`). Nothing else on the capture path writes. The read path (`Database:ActiveLedger`) puts
+sim ahead of the `/bl test` sample ahead of the live ledger, and `Database:DatasetKind()` names which
+one is on screen. The session window follows the sink, not the read path: `SW:PruneMissing` keeps a
+session row while it is still in `Database:Sink()`, so a test-mode sample on screen never prunes a
+real visit's rows, and a simulated visit's rows survive a `LedgerChanged`.
+
 The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
 retires names between expansions, and modern retail **raises** on an unknown one rather than
 ignoring it, so registration is isolated per event (below) and a name that goes away is recorded and

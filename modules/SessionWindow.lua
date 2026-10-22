@@ -168,6 +168,9 @@ end
 
 -- The stored ledger changed under us (a row deleted from the History table, a purge, a retention
 -- prune). Drop any session row that no longer exists, so this view can never outlive its data.
+-- It walks the WRITE sink (Database:Sink), never ActiveLedger: under `/bl test` the read path is the
+-- sample while a real session still writes the real ledger, and under a simulator the session's
+-- rows live in the session-only sim log.
 function SW:PruneMissing()
   if SW.previewSession then return 0 end
   -- Nothing on the session list means nothing to prune, and the presence set below walks the
@@ -175,7 +178,7 @@ function SW:PruneMissing()
   -- open one that has recorded nothing yet) costs one length test instead of a full walk.
   if #self:Entries() == 0 then return 0 end
   local present = {}
-  for _, e in ipairs((NS.Database and NS.Database:Ledger()) or {}) do present[e] = true end
+  for _, e in ipairs((NS.Database and NS.Database:Sink()) or {}) do present[e] = true end
   local kept, dropped = {}, 0
   for _, e in ipairs(self:Entries()) do
     if present[e] then kept[#kept + 1] = e else dropped = dropped + 1 end

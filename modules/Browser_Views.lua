@@ -22,10 +22,11 @@ local searchClause, dropFilterDebounce = seam.searchClause, seam.dropFilterDebou
 -- The Character filter's DEFAULT selection: the character you are on. Opening the ledger answers
 -- "what did I move?" far more often than "what did all eleven of my alts move?", so the window
 -- starts scoped to you and widens on demand — one step to "All", instead of everyone having to
--- narrow it every session. Test mode is the exception: its dataset is synthetic alts, so scoping
--- it to the real player would open the window on an empty table.
+-- narrow it every session. A synthetic dataset (test or sim, Database:DatasetKind) is the
+-- exception: its rows are synthetic alts, so scoping it to the real player would open the window
+-- on an empty table.
 local function defaultCharSelection()
-  if NS.LedgerTable and NS.LedgerTable:IsTestMode() then return {} end
+  if NS.Database:DatasetKind() ~= "live" then return {} end
   return { [CURRENT_CHAR] = true }
 end
 
@@ -240,10 +241,11 @@ end
 -- unresolved), so a restored "Current" still means whoever is logged in.
 local tabLive = {}
 
--- The baseline a tab with no live state starts from: stock across ALL characters in test mode (the
--- synthetic alts; a saved Store/Type filter would very likely match nothing), else ClearFilters.
+-- The baseline a tab with no live state starts from: stock across ALL characters on a synthetic
+-- dataset (the synthetic alts; a saved Store/Type filter would very likely match nothing), else
+-- ClearFilters.
 local function applyBaseline()
-  if NS.LedgerTable and NS.LedgerTable:IsTestMode() then
+  if NS.Database:DatasetKind() ~= "live" then
     B:ApplyView(STOCK_VIEW, "all")
   else
     B:ClearFilters()

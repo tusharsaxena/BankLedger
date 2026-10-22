@@ -66,6 +66,9 @@ core\State.lua
 core\Util.lua
 core\BankLedger.lua
 core\Database.lua
+# Database:Stats and its helpers, peeled out of core\Database.lua (BL-07). Conventional: it only
+# extends NS.Database, and every caller reaches Stats at run time.
+core\DatabaseStats.lua
 # The LibKa0s-Pool seam. Before every module that pools a widget — InsightsWidgets, LedgerTable and
 # SessionWindow all take NS.Pool at call time, so this is conventional rather than load-bearing.
 core\PoolSetup.lua

@@ -895,7 +895,7 @@ string is green whether it is right or wrong.
 What this addon reads in the player's language:
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
-  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:519-550`
+  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/DatabaseStats.lua:64-96`
   uses them as analytics keys (`byItemType`, `byItemSubType`, `byTypeSub`), they are persisted on every
   row, and the CSV emits them raw. `core/Compat.lua:156` discards the locale-independent `classID` /
   `subClassID`; unlike `quality` and `store`, these two have no `*Raw` column.
@@ -904,7 +904,7 @@ What this addon reads in the player's language:
 - **`Util.FormatDate`** (`core/Util.lua:20-22`): `date("%d-%b-%Y")`, whose `%b` is the month in the
   client's language.
 - **Case folding**: `modules/LedgerTable.lua:66`, `:85`, `:89`, `:94` sort on `:lower()`, and
-  `core/Database.lua:415` and `:432` lowercase names and search text. Lua's `string.lower` folds ASCII
+  `core/Database.lua:474` and `:491` lowercase names and search text. Lua's `string.lower` folds ASCII
   only.
 
 English by design, and not a failure: `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and every
