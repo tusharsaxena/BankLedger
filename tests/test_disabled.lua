@@ -649,7 +649,7 @@ test("disabled: every feature verb answers ONE refusal line and reaches no write
   if not ok then error(err, 0) end
 end)
 
--- ── 8. The launcher ───────────────────────────────────────────────────────────
+-- ── 8. The launcher and the key binding ───────────────────────────────────────
 
 local menuMock = dofile("tests/menu_mock.lua")(mocks)
 
@@ -711,6 +711,44 @@ function()
   end)
   menuMock.remove()
   NS.Browser.Toggle, NS.LedgerTable.ToggleTestMode, NS.Panel.Open = savedToggle, savedTest, savedOpen
+  S:Set(ENABLED_PATH, saved)
+  if not ok then error(err, 0) end
+end)
+
+test("disabled: the Show window KEY answers ONE refusal line, toggles nothing and writes nothing",
+function()
+  -- slash-commands-§7 step 8, the key-binding half (launcher-§6). A key cannot be grayed the way
+  -- the menu entry is, and the button's OnClick runs the toggle verb's handler DIRECTLY, skipping
+  -- the dispatcher's gate, so it asks the refusal helper first and answers with the very line
+  -- `/bl toggle` answers with. A silent press is a finding (anti-pattern #96).
+  --
+  -- THE PERF-HOLD HALF OF STEP 8 IS NOT APPLICABLE HERE: this addon holds the performance-§12
+  -- no-combat-path exemption, registers no `perf` verb and never takes the `perf` hold
+  -- (core/LifecycleSetup.lua), so the disabled line is the only refusal by hold it can print.
+  --
+  -- red under: dropping the IsStoodDown check from the button's OnClick in core/LauncherSetup.lua
+  -- (the press reaches B:Toggle), or a host-spelled refusal (not the library's line).
+  local b = mocks.BankLedgerToggleWindow
+  assertTrue(type(b) == "table" and type(b:GetScript("OnClick")) == "function", "no binding button")
+  local saved = S:Get(ENABLED_PATH)
+  local toggles = 0
+  local savedToggle = NS.Browser.Toggle
+  NS.Browser.Toggle = function() toggles = toggles + 1 end
+  disable()
+  watchStore()
+  collectgarbage("collect")
+  local shownBefore = mocks.__shownFrames() -- held, compared by identity (see step 6)
+  local ok, err = pcall(function()
+    local out = captureChat(function() b:Click("LeftButton") end)
+    assertEqual(#out, 1, "the press must answer on exactly one line: " .. table.concat(out, "\n"))
+    assertTrue(isRefusal(out[1]), "not the collection's refusal line: " .. tostring(out[1]))
+    local verbOut = captureChat(function() NS.Slash:OnSlash("toggle") end)
+    assertEqual(out[1], verbOut[1], "the key and `/bl toggle` must answer with the same line")
+    assertEqual(toggles, 0, "the press reached B:Toggle while the addon was disabled")
+    assertEqual(#mocks.__svWrites(), 0, "the press wrote the stored tree of a disabled addon")
+    assertEqual(#newlyShown(shownBefore, mocks.__shownFrames()), 0, "the press put a frame on screen")
+  end)
+  NS.Browser.Toggle = savedToggle
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
 end)

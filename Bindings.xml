@@ -1,0 +1,3 @@
+<Bindings>
+  <Binding name="CLICK BankLedgerToggleWindow:LeftButton" header="BANKLEDGER" category="ADDONS"/>
+</Bindings>

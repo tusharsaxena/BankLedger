@@ -175,7 +175,10 @@ frameless** and every frame-only row applies.
   are three of this block's rows plus the ledger window: *Enabled* runs `/bl enable|disable` (the
   *Enable* row's path), *Locked* runs `/bl set settings.locked` (the *Lock frame* row), *Test mode*
   runs `/bl test` (the *Test mode* row's switch), and *Show window* runs `/bl toggle`. While the addon
-  is disabled only *Enabled* is live.
+  is disabled only *Enabled* is live. Beside *Show window* sits its **key binding** (`launcher-§6`):
+  **Toggle the ledger window** under Key Bindings → AddOns → Ka0s Bank Ledger, with no default key,
+  which clicks a hidden button running that same `/bl toggle` handler and, while the addon is
+  disabled, answers with `/bl toggle`'s refusal line instead.
 - **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from

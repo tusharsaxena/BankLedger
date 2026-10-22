@@ -13,7 +13,7 @@ leaves its number unused.
 | ID range | Theme | What it covers |
 |---|---|---|
 | INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
-| SLASH-1 – 4 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled |
+| SLASH-1 – 7 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding |
 | PANEL-1 – 31 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
@@ -104,6 +104,17 @@ leaves its number unused.
   `/bl purge` → each prints exactly one line, `Ka0s Bank Ledger is disabled — enable it with
   /bl enable` with the command in gold, and does nothing else; `/bl purge` raises no confirm dialog.
   Re-enable. Result: pass (owner-marked 2026-10-10)
+- **SLASH-5. The Show window key binding.** Esc → Options → Key Bindings → AddOns → *Ka0s Bank
+  Ledger* lists **Toggle the ledger window** with no key bound. Bind one, close the menu, then press
+  it → the ledger window opens; press again → it closes. Each press toggles exactly once. Added
+  2026-10-22 (`launcher-§6`, LibKa0s#58). Result:
+- **SLASH-6. The key refuses while disabled.** `/bl disable`, then press the bound key → exactly one
+  line, `Ka0s Bank Ledger is disabled — enable it with /bl enable` (the same line `/bl toggle` prints),
+  and the window does not open. `/bl enable`, press it → the window opens again. Added 2026-10-22
+  (`launcher-§6`). Result:
+- **SLASH-7. The key works in combat.** Enter combat (a training dummy), press the bound key → the
+  ledger window opens and a second press closes it, with no taint or blocked-action error. Added
+  2026-10-22 (`launcher-§6`). Result:
 
 ## PANEL
 
@@ -942,3 +953,6 @@ suggestion list and a pick).
 **Owed after test mode gained LibKa0s-Widgets-1.0's TestStrip (2026-10-22, BankLedger#23).**
 LEDG-52 to LEDG-56 (new: the strip under the filter bar, both panes making room, combat ending it, its
 tooltip, opening in test mode) and LEDG-20 (its badge text now goes through `NS.L`).
+
+**Owed after the Show window key binding (2026-10-22, `launcher-§6`, LibKa0s#58).** SLASH-5 to
+SLASH-7 (new: binding and toggling, the refusal while disabled, combat).

@@ -94,6 +94,66 @@ NS.LOGO_ICON = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.128.tga")
 -- reading the line.
 NS.BRAND_NAME = "Ka0s Bank Ledger"
 
+-- THE MENU'S TOGGLES ARE THE SLASH VERBS' OWN HANDLERS. NS.COMMANDS (settings/Schema.lua) is the
+-- one table `/bl` dispatches through, and it loads AFTER this file, so the lookup happens at click
+-- time. Calling the entry's function directly, rather than NS.Slash:OnSlash, skips only the
+-- dispatcher's parsing and its disabled-verb gate — and the library's graying already stands in for
+-- that gate, refusing Locked / Test mode / Show window before this runs. A verb that is not there
+-- does nothing, which on this addon means the table did not load. Declared ABOVE the degradation
+-- stub's early return, because the Show window key binding below reaches it on both arms.
+local function verb(name, rest)
+  for _, cmd in ipairs(NS.COMMANDS or {}) do
+    if cmd[1] == name then return cmd[3](rest or "") end
+  end
+end
+
+-- ── THE SHOW WINDOW KEY BINDING (launcher-§6) ─────────────────────────────────────────────────
+--
+-- Bindings.xml at the addon root declares one CLICK binding on the button below, under the
+-- BANKLEDGER header in the AddOns category, with NO default key: any key picked here collides with
+-- somebody's existing binding, so the player chooses one under Key Bindings -> AddOns -> Ka0s Bank
+-- Ledger. The client reads that file from the root by name, which is why the TOC does not list it.
+--
+-- THE BUTTON'S NAME IS PERMANENT. The client stores a player's key against the binding's name,
+-- which embeds this one, so renaming the button silently unbinds every player's key.
+--
+-- A PLAIN, HIDDEN, NON-SECURE BUTTON. The ledger window is a non-secure window (standalone-windows),
+-- so it opens and closes in combat, and a secure template would add combat rules it does not have.
+-- RegisterForClicks("AnyDown") makes one key press one toggle.
+--
+-- ONE HANDLER. The OnClick runs `verb("toggle")`, the very call the descriptor's `toggleWindow`
+-- makes below and the `/bl toggle` row's own handler (B:Toggle), so the key, the menu entry and the
+-- verb are one path. There is no second handler and no global function.
+--
+-- THE KEY REFUSES EXACTLY AS `/bl toggle` DOES. `verb` skips the dispatcher's disabled gate, and a
+-- key cannot be grayed the way the menu entry is, so the press asks the stood-down question first
+-- and prints the dispatcher's own refusal line, NS.Slash:DisabledLine() (slash-commands-§7). Both
+-- are resolved at press time: settings/Slash.lua loads after core/, and its degraded arm answers
+-- DisabledLine too. IsStoodDown rather than IsDisabled is exact here, not loose: this addon holds
+-- the performance-§12 no-combat-path exemption and takes no `perf` hold (core/LifecycleSetup.lua),
+-- so `disabled` is the only hold that can stand it down and the disabled line is the only refusal
+-- by hold it can owe. Arming a perf harness later must split this check by hold.
+--
+-- BUILT ABOVE THE DEGRADATION STUB'S EARLY RETURN: the binding does not depend on the launcher
+-- library, so a degraded install still answers the player's key.
+local TOGGLE_BUTTON = "BankLedgerToggleWindow"
+
+do
+  local button = CreateFrame("Button", TOGGLE_BUTTON, UIParent)
+  button:Hide()
+  button:RegisterForClicks("AnyDown")
+  button:SetScript("OnClick", function()
+    if NS.IsStoodDown() then return NS.Print(NS.Slash:DisabledLine()) end
+    verb("toggle")
+  end)
+end
+
+-- The Key Bindings labels, assigned in the module that creates the button. The header is the brand
+-- name above (launcher-§1's spelling); the action label comes through the locale, and needs rawset
+-- because its global name holds a space and a colon.
+BINDING_HEADER_BANKLEDGER = NS.BRAND_NAME
+rawset(_G, "BINDING_NAME_CLICK " .. TOGGLE_BUTTON .. ":LeftButton", NS.L["Toggle the ledger window"])
+
 if not Launcher then
   NS.Launcher = {
     __degraded = true,
@@ -112,18 +172,6 @@ if not Launcher then
     end,
   }
   return
-end
-
--- THE MENU'S TOGGLES ARE THE SLASH VERBS' OWN HANDLERS. NS.COMMANDS (settings/Schema.lua) is the
--- one table `/bl` dispatches through, and it loads AFTER this file, so the lookup happens at click
--- time. Calling the entry's function directly, rather than NS.Slash:OnSlash, skips only the
--- dispatcher's parsing and its disabled-verb gate — and the library's graying already stands in for
--- that gate, refusing Locked / Test mode / Show window before this runs. A verb that is not there
--- does nothing, which on this addon means the table did not load.
-local function verb(name, rest)
-  for _, cmd in ipairs(NS.COMMANDS or {}) do
-    if cmd[1] == name then return cmd[3](rest or "") end
-  end
 end
 
 -- The Lock frame row's stored key, read here once for both the accessor and its toggle.
@@ -192,7 +240,8 @@ NS.Launcher = Launcher:New({
   toggleTestMode = function() verb("test") end,
 
   -- SHOW WINDOW. The primary window is the ledger browser, the thing the addon exists to show. The
-  -- toggle is `/bl toggle`, B:Toggle, which honors General visibility on the way up.
+  -- toggle is `/bl toggle`, B:Toggle, which honors General visibility on the way up. The Show window
+  -- key binding's button (above) runs this same call.
   isWindowShown = function()
     local f = NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow()
     return f ~= nil and f:IsShown() and true or false

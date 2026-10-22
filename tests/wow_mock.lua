@@ -76,6 +76,11 @@
 --  14. AceConfig trio   — ADDED, not overridden: the base has no AceDBOptions-3.0, AceConfig-3.0 or
 --                         AceConfigDialog-3.0. Recorders for settings/Profiles.lua (options-ui-§3),
 --                         which reaches all three; M.__aceConfig holds what they were handed.
+--  15. CreateFrame      — the base records frameType, name, parent and template; this file's
+--                         override discarded them, so it now records them too and also publishes a
+--                         NAMED frame on this table, as the client publishes it to _G. The stub gains
+--                         RegisterForClicks (recorded) and Click (fires OnClick) for the Show window
+--                         key binding's button (launcher-§6).
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -192,6 +197,22 @@ FRAME_METHODS.SetWidth = function(f) return function(_, w) f.__w = w; return f e
 FRAME_METHODS.SetHeight = function(f) return function(_, h) f.__h = h; return f end end
 FRAME_METHODS.GetWidth = function(f) return function() return f.__w end end
 FRAME_METHODS.GetHeight = function(f) return function() return f.__h end end
+
+-- A CLICK IS RECORDED AND FIRABLE, for the Show window key binding (launcher-§6). RegisterForClicks
+-- keeps the click kinds it was told, so a suite can tell AnyDown (one toggle per key press) from a
+-- registration that never fires on a key-down binding or fires twice. Click runs the OnClick script
+-- as the client's Button:Click does, with the button name and `down`, which is how a CLICK binding
+-- reaches the button.
+FRAME_METHODS.RegisterForClicks = function(f)
+  return function(_, ...) f.__clicks = { ... }; return f end
+end
+FRAME_METHODS.Click = function(f)
+  return function(_, button, down)
+    local fn = f.__scripts.OnClick
+    if fn then fn(f, button or "LeftButton", down) end
+    return f
+  end
+end
 
 -- Forward declaration: both CreateFontString and CreateTexture below mint one of these.
 local stubFrame
@@ -371,7 +392,16 @@ return function()
   local trackedNew = M.__stubFrame
   M.__stubFrame = function() return stubFrame(trackedNew()) end
   M.UIParent    = stubFrame(trackedNew())
-  M.CreateFrame = function() return stubFrame(trackedNew()) end
+  -- CreateFrame's ARGUMENTS are recorded, as the kit's own CreateFrame records them, and a NAMED
+  -- frame is published under its name on this table, which is where a sandboxed bare global
+  -- resolves. The client does the same to `_G`, and the Show window key binding (launcher-§6) is
+  -- found by exactly that: a CLICK binding names a global button.
+  M.CreateFrame = function(frameType, name, parent, template)
+    local f = stubFrame(trackedNew())
+    f.__frameType, f.__name, f.__parent, f.__template = frameType, name, parent, template
+    if type(name) == "string" then M[name] = f end
+    return f
+  end
 
   -- The client's own default font, which every Ka0s fallback ladder ends on. Absent from the kit's
   -- base because nothing needed it until core/Constants.lua stopped naming a font file of its own:

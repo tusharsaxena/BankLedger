@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1280%2F1280_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1287%2F1287_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -48,8 +48,9 @@ You don't have to do anything to start recording. A first visit to the bank goes
   in or out. **Current Banking Session** opens alongside and lists each movement as you make it,
   then closes when the bank does. It's only a view, and everything in it lands in your history
   too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
-- Open the ledger. Type `/bl show`, or tick **Show window** in the minimap button's right-click
-  menu. It opens on the History tab, one line per movement with the newest at the top, and it only
+- Open the ledger. Type `/bl show`, tick **Show window** in the minimap button's right-click
+  menu, or bind a key to **Toggle the ledger window** under Key Bindings → AddOns → Ka0s Bank Ledger
+  (there is no default key; each press opens or closes the window). It opens on the History tab, one line per movement with the newest at the top, and it only
   shows the character you're logged in as until you pick All. `/bl hide`, Escape or the X closes
   it.
 - Narrow it down. The bar above the table has a search box for item names and dropdowns for date,

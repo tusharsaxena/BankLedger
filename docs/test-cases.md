@@ -526,7 +526,7 @@ Total.
 - Autocomplete: on Insights a pick filters the shared view too
 - Autocomplete: disabling the addon closes an open list, and the list asks nothing after
 
-### test_launcher.lua (37)
+### test_launcher.lua (43)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -564,6 +564,12 @@ Total.
 - Verbs: they write the Enable row's stored path, through the same write seam
 - Verbs: they hold NO state of their own
 - Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
+- Key binding: Bindings.xml declares ONE click binding, under the header, with no default key
+- Key binding: the TOC does not list Bindings.xml (the client reads it from the root by name)
+- Key binding: the button is a plain, named, hidden, NON-secure Button registered AnyDown
+- Key binding: the header is the brand name and the action label comes through L
+- Key binding: a press runs the SAME handler /bl toggle and the Show window entry run
+- Key binding: one press opens the ledger window, the next closes it
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
 
 ### test_sessionwindow.lua (35)
@@ -1206,7 +1212,7 @@ Total.
 - NS.StandDown characterization: bare modules and no addon object raise nothing
 - NS.StandDown characterization: the postponed line needs logging on
 
-### test_disabled.lua (18)
+### test_disabled.lua (19)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1221,6 +1227,7 @@ Total.
 - disabled: /bl profile lists and switches, with no refusal (a host live verb)
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
+- disabled: the Show window KEY answers ONE refusal line, toggles nothing and writes nothing
 - disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
 - disabled: the launcher carries no host gate and no retired refusal field
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
@@ -1456,7 +1463,7 @@ Total.
 | test_ledgertable.lua | 63 |
 | test_browser.lua | 68 |
 | test_autocomplete.lua | 17 |
-| test_launcher.lua | 37 |
+| test_launcher.lua | 43 |
 | test_sessionwindow.lua | 35 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
@@ -1479,7 +1486,7 @@ Total.
 | test_poolsetup.lua | 3 |
 | test_itemsetup.lua | 12 |
 | test_lifecycle.lua | 13 |
-| test_disabled.lua | 18 |
+| test_disabled.lua | 19 |
 | test_surface_parity.lua | 20 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
@@ -1494,4 +1501,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1280** |
+| **Total** | **1287** |
