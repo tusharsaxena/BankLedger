@@ -43,15 +43,20 @@ push and never bump the version without an explicit instruction.
 
 ## Vendored LibKa0s — the provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.71.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.75.0 (MIT).
+LibKa0s icons: chevron-down, chevron-right, clear, close, confirm, copy, export, info, search, sort-down, sort-up.
 
-That tag carries test-kit revision 38 (`Kit.VERSION` in `tests/_kit/framework.lua`).
+That tag carries test-kit revision 41 (`Kit.VERSION` in `tests/_kit/framework.lua`).
 
 That line is the single answer to "which LibKa0s does this build carry?", and it is machine-read:
 `tests/test_vendor_sync.lua` greps it out of **this file** (kit revision 9 moved it here from
 `README.md`, which is player-facing and no longer carries a library inventory) and compares both
 vendored payloads — `libs/LibKa0s/` and `tests/_kit/` — against that tag in the sibling LibKa0s
 checkout. There is no fallback to `README.md`.
+
+The icon declaration sits directly under the provenance line and moves with it: the
+kit's gate reads it from there, `libs/LibKa0s/media/icons/` ships exactly the names it lists, and a
+re-vendor prunes that folder to it with the tag's own `tools/prune-icons.lua`.
 
 So the tag named above **moves in the same commit as the vendored bytes**, never before and never
 after. Re-vendor, edit this line, regenerate `docs/test-cases.md`, then run the green gate.

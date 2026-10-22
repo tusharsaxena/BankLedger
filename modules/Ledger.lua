@@ -339,7 +339,7 @@ end
 -- is not one it asked for, whatever a later login learns about it.
 function L:BuildEntry(move)
   local zone, subzone = NS.Zone()
-  local _, classFile = UnitClass("player")
+  local classFile = NS.Compat.PlayerClass()
   local entry = {
     ts = time(),
     char = NS.Util.PlayerKey(),
@@ -668,23 +668,15 @@ function L:HookGuildBankFrame()
   -- cannot be taken off the frame on a stand-down the way every registration above can — the only
   -- move available is for each to check the latch and return. That carve-out exists because the API
   -- is one-way, and it MUST NOT be generalized to anything that has a real unregister.
+  -- Past the gate each hook only delivers its pseudo-event; what a guild-bank show or hide MEANS is
+  -- the GUILDBANK_FRAME_SHOWN / GUILDBANK_FRAME_HIDDEN entry of L.HANDLERS, below.
   frame:HookScript("OnShow", function()
     if NS.IsStoodDown and NS.IsStoodDown() then return end
-    -- Never steal the context from a frame that is already open; that one has its own events. The
-    -- refusal is traced, because a guild visit made with the bank frame still armed records nothing
-    -- on the guild side, and the guard is the answer to "my guild deposit is missing".
-    local open = NS.State.openContext
-    if not open then return L:OpenContext(C.Context.GUILD_BANK) end
-    if open ~= C.Context.GUILD_BANK and NS.State.debug and NS.Debug then
-      NS.Debug("Store", "GUILD_BANK shown while %s is open: context kept", tostring(open))
-    end
+    L:Dispatch("GUILDBANK_FRAME_SHOWN")
   end)
   frame:HookScript("OnHide", function()
     if NS.IsStoodDown and NS.IsStoodDown() then return end
-    -- Only ever ends the GUILD BANK's own session. The guild frame also hides whenever it is simply
-    -- not the window on screen, and closing the character bank's context on that basis would throw
-    -- away a baseline that is still in use.
-    if NS.State.openContext == C.Context.GUILD_BANK then L:CloseContext() end
+    L:Dispatch("GUILDBANK_FRAME_HIDDEN")
   end)
   if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK frame hooks installed") end
   return true
@@ -800,23 +792,94 @@ function L:DropContext()
   end
 end
 
--- Which FRAME an open-event belongs to. There is deliberately no event for the warband tabs,
--- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES) — and none for
--- the guild bank, whose open and close are GuildBankFrame's OnShow/OnHide (L:HookGuildBankFrame).
-local OPEN_EVENTS = {
-  BANKFRAME_OPENED        = C.Context.BANK_FRAME,
+-- ── The capture dispatch table ──────────────────────────────────────────────────
+--
+-- Every capture signal this module acts on is ONE row here, and every one of them is delivered
+-- through ONE entry point, L:Dispatch (BankLedger#24). The client's events reach it through the
+-- registrations L:Enable makes; the guild bank's open and close reach it through the frame hooks.
+-- A simulator delivers through the same call, so a signal handled anywhere else is a signal no
+-- simulator can reproduce.
+--
+-- HOST-INTERNAL PSEUDO-EVENTS. `GUILDBANK_FRAME_SHOWN` and `GUILDBANK_FRAME_HIDDEN` are names this
+-- addon made up for GuildBankFrame's OnShow and OnHide. The client never fires them and they are
+-- NEVER registered with it (L:Enable skips L.PSEUDO_EVENTS, so they never reach `/bl debug scan`):
+-- only the hooks in L:HookGuildBankFrame and the simulator dispatch them.
+L.PSEUDO_EVENTS = { GUILDBANK_FRAME_SHOWN = true, GUILDBANK_FRAME_HIDDEN = true }
+
+-- Debounced, not immediate: one user action fires several change events, and the halves of a
+-- single movement do not all arrive on the same one.
+local function reconcileSoon() L:ScheduleReconcile() end
+local function openBankFrame() L:OpenContext(C.Context.BANK_FRAME) end
+local function closeContext() L:CloseContext() end
+
+-- Ordered rows, so the client registrations (and the `/bl debug scan` list they feed) keep a fixed
+-- order; L.HANDLERS and L.CLIENT_EVENTS are both derived from this one list.
+local CAPTURE = {
+  -- Which FRAME an open-event belongs to. There is deliberately no event for the warband tabs,
+  -- because the game fires none — they ride inside BANK_FRAME (see L.CONTEXT_STORES) — and none for
+  -- the guild bank, whose open and close are GuildBankFrame's OnShow/OnHide (the pseudo-events).
+  { "BANKFRAME_OPENED", openBankFrame },
+  { "BANKFRAME_CLOSED", closeContext },
+  -- Events that mean "something in an open container changed". Each is a cue to re-diff, never a
+  -- movement in itself.
+  { "BAG_UPDATE_DELAYED", reconcileSoon },
+  { "PLAYERBANKSLOTS_CHANGED", reconcileSoon },
+  { "PLAYER_MONEY", reconcileSoon },
+  -- Guild bank data. Handled separately because it may still arm the guild-bank context as well as
+  -- reconciling it — see L:OnGuildBankData.
+  { "GUILDBANKBAGSLOTS_CHANGED", function() L:OnGuildBankData() end },
+  -- The load-on-demand guild-bank UI landing, which is when GuildBankFrame can first be hooked.
+  { "ADDON_LOADED", function(name) L:OnAddonLoaded(name) end },
+  -- The guild bank OPENING (pseudo-event, from the OnShow hook).
+  { "GUILDBANK_FRAME_SHOWN", function()
+    -- Never steal the context from a frame that is already open; that one has its own events. The
+    -- refusal is traced, because a guild visit made with the bank frame still armed records nothing
+    -- on the guild side, and the guard is the answer to "my guild deposit is missing".
+    local open = NS.State.openContext
+    if not open then return L:OpenContext(C.Context.GUILD_BANK) end
+    if open ~= C.Context.GUILD_BANK and NS.State.debug and NS.Debug then
+      NS.Debug("Store", "GUILD_BANK shown while %s is open: context kept", tostring(open))
+    end
+  end },
+  -- The guild bank CLOSING (pseudo-event, from the OnHide hook). Only ever ends the GUILD BANK's own
+  -- session. The guild frame also hides whenever it is simply not the window on screen, and closing
+  -- the character bank's context on that basis would throw away a baseline that is still in use.
+  { "GUILDBANK_FRAME_HIDDEN", function()
+    if NS.State.openContext == C.Context.GUILD_BANK then L:CloseContext() end
+  end },
 }
-local CLOSE_EVENTS = {
-  BANKFRAME_CLOSED        = true,
+
+L.HANDLERS, L.CLIENT_EVENTS = {}, {}
+for _, row in ipairs(CAPTURE) do
+  L.HANDLERS[row[1]] = row[2]
+  if not L.PSEUDO_EVENTS[row[1]] then L.CLIENT_EVENTS[#L.CLIENT_EVENTS + 1] = row[1] end
+end
+
+-- The storage-frame edges a REAL client raises while a simulation runs, which end it (reason `bank`).
+-- Real change events (BAG_UPDATE_DELAYED, PLAYER_MONEY, GUILDBANKBAGSLOTS_CHANGED) are not here: with
+-- a simulated frame open they only cue a re-diff of the simulated world.
+L.SIM_STOP_EVENTS = {
+  BANKFRAME_OPENED = true, BANKFRAME_CLOSED = true,
+  GUILDBANK_FRAME_SHOWN = true, GUILDBANK_FRAME_HIDDEN = true,
 }
--- Events that mean "something in an open container changed". Each is a cue to re-diff, never a
--- movement in itself.
-local CHANGE_EVENTS = {
-  "BAG_UPDATE_DELAYED", "PLAYERBANKSLOTS_CHANGED", "PLAYER_MONEY",
-}
--- Guild bank data. Handled separately because it may still arm the guild-bank context as well as
--- reconciling it — see L:OnGuildBankData.
-local GUILD_DATA_EVENTS = { "GUILDBANKBAGSLOTS_CHANGED" }
+
+-- The one deliver. Answers 0 when the module is not enabled (stood down, or not yet up) or the event
+-- has no handler, and otherwise runs that event's one handler and answers 1. AceEvent gives one
+-- handler per event per target, so this is a single lookup, never a fan-out.
+function L:Dispatch(event, ...)
+  if not self._enabled then return 0 end
+  local handler = self.HANDLERS[event]
+  if not handler then return 0 end
+  -- A real storage frame opening or closing (one the simulator did not deliver) stops a running
+  -- simulation HERE, before the handler runs, so the real open snapshots the real world
+  -- (modules/Sim.lua, BankLedger#24).
+  local sim = NS.Sim
+  if self.SIM_STOP_EVENTS[event] and sim and sim:IsActive() and not sim:IsDelivering() then
+    sim:Stop("bank")
+  end
+  handler(...)
+  return 1
+end
 
 -- Every registration below is isolated, through NS.RegisterEventSafely (core/CoreSetup.lua).
 --
@@ -837,25 +900,15 @@ function L:Enable()
 
   local addon = NS.addon
   local register = NS.RegisterEventSafely
-  for event, context in pairs(OPEN_EVENTS) do
-    register(addon, event, function() L:OpenContext(context) end)
+  -- Every CLIENT event in the capture table, each through L:Dispatch; the two pseudo-events are not
+  -- in L.CLIENT_EVENTS and are never registered. ADDON_LOADED is among them: the guild bank's open
+  -- signal is its frame's OnShow, and the frame arrives with a load-on-demand addon, so the hook is
+  -- tried now — the UI may already be loaded, on a /reload with the vault open — and again when it
+  -- lands later.
+  for _, event in ipairs(L.CLIENT_EVENTS) do
+    register(addon, event, function(e, ...) L:Dispatch(e, ...) end)
   end
-  for event in pairs(CLOSE_EVENTS) do
-    register(addon, event, function() L:CloseContext() end)
-  end
-  for _, event in ipairs(CHANGE_EVENTS) do
-    -- Debounced, not immediate: one user action fires several of these, and the halves of a single
-    -- movement do not all arrive on the same one.
-    register(addon, event, function() L:ScheduleReconcile() end)
-  end
-  for _, event in ipairs(GUILD_DATA_EVENTS) do
-    register(addon, event, function() L:OnGuildBankData() end)
-  end
-  -- The guild bank's open signal is its frame's OnShow, and the frame arrives with a load-on-demand
-  -- addon. Try now — the UI may already be loaded, on a /reload with the vault open — and listen for
-  -- it landing later.
   self:HookGuildBankFrame()
-  register(addon, "ADDON_LOADED", function(_, name) L:OnAddonLoaded(name) end)
 
   -- Re-cache the hot-path upvalues whenever a setting changes. Registered on this module's OWN
   -- AceEvent target, never the shared bus-as-self, so it can't clobber another consumer of the same

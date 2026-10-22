@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1266%2F1266_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1411%2F1411_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -39,7 +39,8 @@ On a fresh install nothing opens but the minimap button. Left-click it for the s
 right-click it for a small menu. Both of the addon's windows drag by their title bar and resize from
 the bottom-right corner, and **Lock frame** on the settings' Master controls tab pins them in place.
 Want to see the ledger before you have any history? `/bl test`, or the **Test mode** box on that same
-tab, fills it with a sample. It turns itself off when you enter combat.
+tab, fills it with a sample, and an amber strip under the filter bar says so. It turns itself off
+when you enter combat.
 
 You don't have to do anything to start recording. A first visit to the bank goes like this.
 
@@ -47,8 +48,9 @@ You don't have to do anything to start recording. A first visit to the bank goes
   in or out. **Current Banking Session** opens alongside and lists each movement as you make it,
   then closes when the bank does. It's only a view, and everything in it lands in your history
   too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
-- Open the ledger. Type `/bl show`, or tick **Show window** in the minimap button's right-click
-  menu. It opens on the History tab, one line per movement with the newest at the top, and it only
+- Open the ledger. Type `/bl show`, tick **Show window** in the minimap button's right-click
+  menu, or bind a key to **Toggle the ledger window** under Key Bindings → AddOns → Ka0s Bank Ledger
+  (there is no default key; each press opens or closes the window). It opens on the History tab, one line per movement with the newest at the top, and it only
   shows the character you're logged in as until you pick All. `/bl hide`, Escape or the X closes
   it.
 - Narrow it down. The bar above the table has a search box for item names and dropdowns for date,
@@ -77,6 +79,19 @@ character its own. From chat, `/bl profile` lists your profiles and `/bl profile
 one you already have. The history is never part of a profile: every character on every profile reads and
 writes the same ledger. **Keep history for** is shared the same way, so switching, copying or
 resetting a profile never deletes history.
+
+Want to watch the ledger record a bank visit without touching your real history? `/bl sim start
+bank` plays one through the addon's real recording engine, in a made-up world stocked from the items
+in your own bags. There are four scenarios: `bank` (two deposits and a withdrawal at your character
+bank), `warband` (items and gold put in the warband bank, then taken out by an invented alt),
+`guild` (a guild-bank visit, including guild data that arrives while you are away and must not be
+recorded) and `onesided` (a visit where nothing should be recorded, because nothing crossed both
+ways). The ledger window opens on the simulated rows with an amber strip saying nothing here is
+saved, and a step panel docks beside it: play one step, run them all, or click a later step to play
+up to it. Nothing a simulation does is saved and your real history is never touched. It won't start
+in combat, in test mode, with a real bank open, while General visibility keeps the window shut, or
+while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
+and `/reload`. `/bl purge` is refused until it is over.
 
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.
@@ -155,7 +170,9 @@ lives.
 
 ## Credits
 
-The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1, and the
-ledger window's close, search, dropdown and checkbox marks and the export dialog's icon are drawn
-from [Open Iconic](https://github.com/iconic/open-iconic) (MIT). Each ships with its license
-text.
+The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1.
+
+The icons come from [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, under the MIT
+license: the window close buttons, the search magnifier, the dropdown chevron and its tick, the sort
+arrows and group expanders, the export mark, the debug console's close, copy and clear buttons, and
+the test-mode strip's info mark. Both the font and the icons ship with their license text.

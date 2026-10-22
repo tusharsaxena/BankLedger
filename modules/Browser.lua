@@ -103,6 +103,8 @@ local CLOSE_REST = { 0.85, 0.85, 0.85 }
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
+  -- A direct read, not NS.Compat.PlayerClass: the tint is cosmetic, applied once at build and never
+  -- stored, so no simulator has to answer it (the compat-boundary test lists it as allowed).
   local _, class = UnitClass("player")
   local cc = (class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]) or { r = 1, g = 0.82, b = 0 }
 
@@ -303,6 +305,21 @@ function B:MakeDropdown(parent, width)
     check     = NS.Icon and NS.Icon("confirm"),
     glyphFont = C.FONT_MONO,
   })
+end
+
+-- The item-name search box is LibKa0s-Widgets-1.0's SearchBox (minor 13, LibKa0s#52), and this is
+-- its seam, beside the dropdown's: the dropdown's flat skin, a gray hint while empty, Escape and
+-- Enter to let go of the keys, and the gold focus line. No width: the filter bar anchors both of
+-- its edges. The magnifier is HOST-PASSED art, resolved at the call site so the mark scan in
+-- tests/test_marks.lua still reads its name; `search` is declared on CLAUDE.md's icon line.
+--
+-- The caller's opts are COPIED, the same as MakeAutocomplete below, and nil without the library
+-- (the filter bar refuses to build without it anyway).
+function B:MakeSearchBox(parent, opts)
+  if not (W and W.SearchBox) then return nil end
+  local o = {}
+  for k, v in pairs(opts or {}) do o[k] = v end
+  return W.SearchBox(parent, nil, o)
 end
 
 -- The search box's suggestion list (P9) is LibKa0s-Widgets-1.0's Autocomplete, and this is its seam,
@@ -737,32 +754,61 @@ B._viewSeam = {
   dropFilterDebounce = dropFilterDebounce,
 }
 
-function B:UpdateTestBadge()
-  if not (frame and frame.testBadge) then return end
-  frame.testBadge:SetShown(NS.LedgerTable and NS.LedgerTable:IsTestMode() or false)
+-- ── The test-mode strip's reserve (BankLedger#23) ──────────────────────────────────────────────
+-- LibKa0s-Widgets-1.0 publishes the strip's HEIGHT and deliberately NO RESERVE: the body shift is
+-- host layout, so this file adds its own gap above and below the band. 18 + 2 * 2 = 22 while the
+-- strip shows, and 0 when it is hidden or was never built (no Widgets library).
+local STRIP_GAP = 2
+
+local function stripReserve()
+  local strip = frame and frame.testStrip
+  if not (W and W.TEST_STRIP and strip and strip:IsShown()) then return 0 end
+  return W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
 end
 
--- Draw the collection's `search` mark inside the item-name box and answer the LEFT inset the box's
--- text and placeholder should then use.
---
--- The inset is RETURNED rather than written at the call site because a nil icon has to leave the
--- box laid out exactly as it always was, and the only way that stays true is for the one decision —
--- is there a mark? — to own both numbers. Two independent spellings of "6 or 21" is how a degraded
--- install ends up with its placeholder indented around art that is not there.
---
--- Gray, matching the dropdown arrows on the same bar rather than the white the art ships as; the
--- mark is an affordance on this row, not a highlight.
-local SEARCH_INSET, SEARCH_INSET_MARKED = 6, 21
-local function MakeSearchMark(box)
-  local path = NS.Icon and NS.Icon("search")
-  if not path then return SEARCH_INSET end
-  local art = box:CreateTexture(nil, "OVERLAY")
-  art:SetPoint("LEFT", box, "LEFT", 5, 0)
-  art:SetSize(11, 11)
-  art:SetTexture(path)
-  art:SetVertexColor(0.7, 0.7, 0.72)
-  box.icon = art
-  return SEARCH_INSET_MARKED
+-- Both panes hang from the same top: under the filter bar, and under the strip while it shows.
+-- Their BOTTOMRIGHT never moves. EnsureFrame records `_paneTop` before the first call.
+local function anchorPanes()
+  if not (frame and frame.panes and frame._paneTop) then return end
+  local top = frame._paneTop + stripReserve()
+  for _, pane in pairs(frame.panes) do
+    pane:ClearAllPoints()
+    pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -top)
+    pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, frame._footerH)
+  end
+end
+
+-- A synthetic dataset (Database:DatasetKind ~= "live") is marked by the library's strip under the
+-- filter bar, and test mode also by the red title badge. Both follow the dataset, and the panes
+-- make room for the strip in the same breath. The strip says which dataset it is: the test line, or
+-- under a simulation (BankLedger#24) `Simulation: <scenario> - nothing here is saved.`
+-- (NS.SimHost.MarkerText). The badge is test mode's alone: a simulation shows the strip only.
+local TEST_LINE = NS.L["TEST MODE: a sample ledger, not your bank. Combat ends it."]
+
+function B:UpdateTestStrip()
+  if not frame then return end
+  local kind = NS.Database:DatasetKind()
+  if frame.testBadge then frame.testBadge:SetShown(kind == "test") end
+  local strip = frame.testStrip
+  if strip then
+    if kind ~= "live" then
+      local host = NS.SimHost
+      strip.text:SetText(kind == "sim" and host and host.MarkerText and host.MarkerText() or TEST_LINE)
+    end
+    strip:SetShown(kind ~= "live")
+  end
+  anchorPanes()
+end
+
+--- The strip's tooltip, for the dataset it marks: a title line, then what it shows and what ends it.
+--- The session window's strip (modules/SessionWindow.lua) reads the same lines.
+function B.StripTipLines()
+  if NS.Database:DatasetKind() == "sim" then
+    return { NS.L["Simulation"], NS.L["Shows: a simulated bank visit; nothing here is saved"],
+      NS.L["Ended by: /bl sim stop, combat, a real bank window"] }
+  end
+  return { NS.L["Test mode"], NS.L["Shows: a sample ledger, not your bank"],
+    NS.L["Ended by: combat, /bl test, the launcher menu"] }
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
@@ -826,34 +872,22 @@ function B:BuildFilterBar(bar)
   -- Item-name search. Its LEFT sits beside Group; its RIGHT is pinned to the row-2 Character
   -- dropdown below it (set once that exists), so the two right edges stay aligned at every window
   -- width. Top-corner anchoring keeps the box in row 1 despite the row-2 reference.
-  local search = CreateFrame("EditBox", nil, bar, "BackdropTemplate")
-  search:SetHeight(20)
+  local search = self:MakeSearchBox(bar, {
+    -- "Search items…" is unchanged and stays a sentence: the magnifier says what the box is, it
+    -- does not replace what it says. The library sets the text and hint insets to clear it (21,
+    -- or 6 with no icon), so one decision still owns both numbers.
+    hint     = "Search items…",
+    icon     = NS.Icon and NS.Icon("search"),
+    onChange = function(t)
+      B.activeFilter.text = searchClause(t)
+      B:ScheduleApplyFilter()
+    end,
+  })
   search:SetPoint("TOPLEFT", dd.group, "TOPRIGHT", 8, 0)
-  search:SetAutoFocus(false)
-  search:SetFontObject("GameFontHighlightSmall")
-  search:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                       insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  search:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
-  search:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
-  -- The mark goes in first because it decides where the words start. "Search items…" is unchanged
-  -- and stays a sentence: the magnifier says what the box is, it does not replace what it says.
-  local searchInset = MakeSearchMark(search)
-  search:SetTextInsets(searchInset, 6, 0, 0)
-  local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  ph:SetPoint("LEFT", searchInset, 0)
-  ph:SetText("Search items…")
-  search:SetScript("OnTextChanged", function(self2)
-    local t = self2:GetText()
-    ph:SetShown(t == "")
-    B.activeFilter.text = searchClause(t)
-    B:ScheduleApplyFilter()
-  end)
-  search:SetScript("OnEscapePressed", function(self2) self2:ClearFocus() end)
-  search:SetScript("OnEnterPressed", function(self2) self2:ClearFocus() end)
   self._search = search
-  -- The suggestion list under the box (P9). AFTER the scripts above, because the library HOOKS
-  -- them: the box's own filter, Enter and Escape run first and keep running. nil without the
-  -- library, where the box stays a plain filter box.
+  -- The suggestion list under the box (P9). AFTER construction, because the library HOOKS the
+  -- scripts SearchBox set: the box's own hint, filter, Enter and Escape run first and keep
+  -- running. nil without the Autocomplete member, where the box stays a plain filter box.
   self._autocomplete = self:MakeAutocomplete(search, {
     maxRows  = SUGGEST_MAX,
     provider = function(text) return B.SuggestNames(text) end,
@@ -991,7 +1025,7 @@ local function EnsureFrame()
 
   local testBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   testBadge:SetPoint("LEFT", title, "RIGHT", 10, 0)
-  testBadge:SetText("TEST MODE")
+  testBadge:SetText(NS.L["TEST MODE"])
   testBadge:SetTextColor(1, 0.15, 0.15)
   testBadge:Hide()
   frame.testBadge = testBadge
@@ -1013,14 +1047,16 @@ local function EnsureFrame()
   local barTop  = SKIN.titleBarH + SKIN.tabStripH + SKIN.contentGap
   local paneTop = barTop + FILTERBAR_H + FILTER_GAP
 
+  -- The panes are anchored by anchorPanes() (above B:UpdateTestStrip), which adds the test-mode
+  -- strip's reserve to this top while the strip shows.
+  frame._paneTop, frame._footerH = paneTop, FOOTER_H
   frame.panes = {}
   for _, name in ipairs(TABS) do
     local pane = CreateFrame("Frame", nil, frame)
-    pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -paneTop)
-    pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, FOOTER_H)
     pane:Hide()
     frame.panes[name] = pane
   end
+  anchorPanes()
 
   CreateTabStrip()
 
@@ -1029,6 +1065,30 @@ local function EnsureFrame()
   filterHost:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -barTop)
   filterHost:SetHeight(FILTERBAR_H)
   frame.filterHost = filterHost
+
+  -- The test-mode strip (LibKa0s-Widgets-1.0's TestStrip, BankLedger#23): born hidden, unanchored
+  -- and mouse-off. It hangs 2 px under the filter bar, B:UpdateTestStrip shows it and makes the
+  -- panes room for it, and its tooltip says what the sample is and what ends it.
+  frame.testStrip = W and W.TestStrip and W.TestStrip(frame, {
+    text = TEST_LINE,
+    icon = NS.Icon and NS.Icon("info"),
+  }) or nil
+  if frame.testStrip then
+    local strip = frame.testStrip
+    strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
+    strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
+    strip:EnableMouse(true)
+    strip:HookScript("OnEnter", function(self2)
+      if not GameTooltip then return end
+      GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+      for i, line in ipairs(B.StripTipLines()) do
+        if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
+        else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
+      end
+      GameTooltip:Show()
+    end)
+    strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+  end
 
   -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
   -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so
@@ -1108,7 +1168,7 @@ function B:Show()
   -- then reads correctly even when the window opens straight onto the Insights tab.
   BuildPane("History")
   B:SelectTab(lastTab)
-  B:UpdateTestBadge()
+  B:UpdateTestStrip()
 end
 
 function B:Hide()

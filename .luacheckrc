@@ -59,6 +59,8 @@ globals = {
   -- Registering a confirm dialog means writing a new key into Blizzard's table; that is the only
   -- API FrameXML offers for it, and every addon that ships a StaticPopup does the same.
   "StaticPopupDialogs",
+  -- The Show window key binding's header label (launcher-§6), written in core/LauncherSetup.lua.
+  "BINDING_HEADER_BANKLEDGER",
 }
 
 -- The harness publishes its exposed table under a per-repo global, written at tests/run.lua:86 and

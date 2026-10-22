@@ -191,7 +191,7 @@ test("LibKa0s-DebugLog degraded: the stub carries the live surface the addon rea
   --
   -- The four `_...ForTest` seams are the one thing the by-name form ADDED to this list, and they are
   -- a fact about the live arm rather than about the stub. The library stamps them on the instance
-  -- when it BUILDS the console and the copy window (libs/LibKa0s/DebugLog.lua:609, :614, :904,
+  -- when it BUILDS the console and the copy window (libs/LibKa0s/DebugLog.lua:604, :609, :904,
   -- :905); two of them are on the instance by the time this case runs because tests/test_debuglog.lua
   -- showed the console. A library-less build has no window to build, so their absence from the stub
   -- is the condition under test, not a gap in it. Single underscore, so Kit.publicMembers does not
@@ -249,8 +249,11 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   --
   -- TextRow LEFT this list with the tabbed-panel pass: the History tab's storage read-out is drawn
   -- with it now, so it is a reachable name and the stub answers it. The tab strip's own surface
-  -- (TabStrip, RenderTabbedSchema, SetChromeHeight, PageBanner, the chrome constants and the six
+  -- (TabStrip, RenderTabbedSchema, SetChromeHeight, PageBanner, the chrome constants and the five
   -- __-prefixed internals) is reachable for the same reason and is in the stub, not in here.
+  --
+  -- Drawer (O.Drawer, LibKa0s v1.73.0's OptionsDrawer) is live-only: no file here calls it
+  -- (`grep -rn Drawer core modules settings` is empty), so it is ignored rather than stubbed.
   --
   -- AceGUI is the deliberate one, and the stub names it: `AceGUI = nil`. Every O.AceGUI:Create in
   -- settings/Panel.lua sits inside a body that only runs once a panel has been built, and on this
@@ -270,7 +273,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- `__print` IS NO LONGER ON THIS LIST, and that is the whole reason this case moved to the by-name
   -- form. It joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
   -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
-  -- (libs/LibKa0s/Options.lua:507, read at OptionsWidgets.lua:413). Its own comment there calls it
+  -- (libs/LibKa0s/Options.lua:510, read at OptionsWidgets.lua:413). Its own comment there calls it
   -- internal rather than surface and says a degradation stub does not mirror it, BECAUSE
   -- Kit.assertSurfaceParity skips the `__` prefix — which was true of the by-name form and not of
   -- the four-argument form this case used, so the exemption had to be typed here by hand and the
@@ -278,7 +281,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   local IGNORE = {
     "AceGUI", "BuildLandingPage", "LSMValues", "PADDING_X", "PatchAlwaysShowScrollbar",
     "CLASS_COLOR_NOTE", "FONT_FLAGS", "FONT_FLAGS_SORT", "MASTER_GROUP",
-    "VISIBILITY_SORT", "VISIBILITY_VALUES",
+    "VISIBILITY_SORT", "VISIBILITY_VALUES", "Drawer",
   }
   local degraded, dm = loadDegraded()
   assertTrue(dm.LibStub("LibKa0s-Options-1.0", true) == nil, "the degraded arm still has the library")
@@ -544,4 +547,44 @@ test("Slash stub: an unknown verb is answered in the live arm's words", function
   local got = degradedLines(function(Sl) Sl:OnSlash("wibble") end)
   assertEqual(got[1], want[1])
   assertEqual(got[1], "|cff00ffff[BL]|r unknown command 'wibble'")
+end)
+
+-- ── LibKa0s-Sim degraded (BL-08, host contract H9) ────────────────────────────────────────────────
+--
+-- core/SimSetup.lua stands up two stubs when LibKa0s-Sim-1.0 is absent: the session (NS.Sim) and
+-- the seam (NS.SimSeam). The session mirrors an INSTANCE, so its live half is the reference instance
+-- tests/run.lua registers with Kit.setSurfaceSource; the seam stub is compared two-table against
+-- the live NS.SimSeam. Both with no ignore set: the stub carries the whole surface and nothing more.
+
+test("LibKa0s-Sim degraded: the session stub carries the whole live instance surface", function()
+  local degraded, dm = loadDegraded()
+  assertTrue(dm.LibStub("LibKa0s-Sim-1.0", true) == nil, "the degraded arm still has the library")
+  T.assertSurfaceParity(degraded.Sim, "LibKa0s-Sim-1.0")
+end)
+
+test("LibKa0s-Sim degraded: the seam stub carries the live seam surface", function()
+  local degraded = loadDegraded()
+  T.assertSurfaceParity(NS.SimSeam, degraded.SimSeam, "NS.SimSeam vs its degraded stub")
+  assertEqual(#degraded.SimSeam:Keys(), 0, "the degraded seam wrapped something")
+  assertEqual(#degraded.SimSeam:Unwrapped(), 0)
+  assertEqual(degraded.SimSeam:Live(function(a, b) return a + b end, 2, 3), 5, "the stub's Live did not call through")
+end)
+
+test("LibKa0s-Sim degraded: nothing is wrapped and RunVerb prints the absent line once", function()
+  local degraded, dm = degradedEnabled(nil)
+  local before = degraded.Compat.GetMoney
+  assertTrue(type(before) == "function")
+  local sim = degraded.Sim
+  assertTrue(sim:IsActive() == false and sim:IsDelivering() == false and sim:IsPanelShown() == false)
+  assertEqual(sim:Fire("BAG_UPDATE"), 0)
+  assertEqual(sim:DeliverForCleanup("BAG_UPDATE"), 0)
+  assertTrue(sim:After(1, function() end) == nil)
+  assertTrue(sim:Stop() == false)
+  assertTrue(sim:Session() == nil)
+  assertTrue(sim:Status().active == false)
+  local ok, code = sim:RunVerb("start bank")
+  assertTrue(ok == false and code == "absent", "RunVerb did not answer false, \"absent\"")
+  local lines = dm.__printed()
+  assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
+  assertTrue(lines[1]:find("The simulator needs LibKa0s-Sim-1.0.", 1, true) ~= nil, lines[1])
 end)

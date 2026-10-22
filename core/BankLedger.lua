@@ -251,8 +251,11 @@ end
 --- registration at all while disabled — the PLAYER_REGEN_ENABLED a disabled addon is permitted to
 --- keep exists to finish pending secure work, and there is none to finish.
 ---
---- The five steps below run in this order, each in its own helper above.
+--- The five steps below run in this order, each in its own helper above, after the simulator's stop:
+--- a running simulation ends FIRST (Sim-1.0 host contract H6), while the capture context it armed is
+--- still there for its guarded stop step to drop and before any event goes away.
 function NS.StandDown()
+  if NS.Sim then NS.Sim:Stop("standDown") end
   local ad = NS.addon
   -- Read before step 1 clears it: a login prune armed and then canceled here is deferred work that
   -- is not flushed until the next PLAYER_ENTERING_WORLD, and the stand-down line says so.
@@ -312,6 +315,8 @@ function addon:OnCombatChanged(event)
     NS.Print("test mode off \226\128\148 combat started.")
     endedTest = true
   end
+  -- The pull ends a simulation too (BankLedger#24): Sim-1.0 prints its own stop line.
+  if entering and NS.Sim then NS.Sim:Stop("combat") end
   local hid, shown = NS.Util.ApplyVisibility()
   traceCombat(entering, hid, shown, endedTest)
 end

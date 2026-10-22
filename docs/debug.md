@@ -54,6 +54,7 @@ while logging is off.
 | `[Profile]` | `NS.OnProfileEvent` | A profile switch |
 | `[Migrate]` | `NS:RunMigrations` (`core/Database.lua`) | Only when a migration runs |
 | `[Prune]` | `addon:OnEnterWorld`, `Database:PruneOld` | The login pass armed (`runs in 5s`), then its result on every run: `retention Nd: removed N entries`, or `retention always: nothing pruned` |
+| `[Sim]` | `modules/Sim.lua` (the library's session lines through its `debug` sink), `core/SimSetup.lua`, `modules/SimWorld.lua`, `core/Database.lua`, `modules/LedgerTable_TestMode.lua` | The simulator (BankLedger#24): a refused start naming its guard (`start refused: test mode`, `combat`, `real bank open`, `visibility <mode>`, `stood down`); `started <scenario> (size, seed)`, `world built: N pool items` and `ready`; one `event <NAME>` per event it fires; one `guarded QueryGuildBankTab(<tab>)` per guarded tab query; `stopped (<reason>): N events`; the item pool's fallback; a purge refused while it runs. Test mode's own refusal while it runs is its `[Table]` line. While a simulation runs, `/bl debug scan` (and the report's `scan` section) opens with the header `simulation running: Compat answers are simulated` (`modules/Ledger_Diagnose.lua`), and the report carries a `sim` section (below) |
 | `[Backfill]` | `modules/Backfill.lua` | The login backfill, only when the ledger holds rows to fill: `N rows over M ids filled now, K requested` as it starts, then `done: N rows filled, K unresolved` when every id has answered or the 10s window closes. A ledger with nothing to fill writes nothing |
 | `[Data]` | `Database:Delete`, `DeleteAt`, `Purge` | Each user delete or purge, with the count |
 | `[Filters]` | `NS.Filters` | Each blacklist or whitelist change, with both sizes |
@@ -63,7 +64,7 @@ while logging is off.
 | `[Move]` | `modules/Ledger.lua` | One line per store per pass that found movements: recorded and skipped counts |
 | `[Session]` | `modules/SessionWindow.lua` | A banking session started (with `window not shown: <guard>` when the session window stays shut) and ended (with its movement count); each `/bl session` outcome: `preview on` (with `window not shown: <guard>` when the window is held shut), `preview off`, and `preview refused: a real session is open` |
 | `[UI]` | `modules/Browser.lua` | The ledger window shown or hidden, a tab switch, and a refused show (`window show refused: stood down` or `visibility <mode>`) |
-| `[Table]` | `modules/LedgerTable.lua`, `LedgerTable_TestMode.lua` | Each table render, one summary line; test mode on (with the sample row count), off, or refused (`in combat`, `visibility <mode>`) |
+| `[Table]` | `modules/LedgerTable.lua`, `LedgerTable_TestMode.lua` | Each table render, one summary line; test mode on (with the sample row count), off, or refused (`in combat`, `a simulation is running`, `visibility <mode>`) |
 | `[Insights]` | `modules/Insights.lua` | Each Insights recompute, one summary line |
 | `[Launcher]` | the library (LibKa0s-Launcher-1.0), through `core/LauncherSetup.lua` | Its registration state (`registered`, `LibDataBroker-1.1 absent; no launcher`, `LibDBIcon-1.0 absent; broker plugin only`, no minimap table) through `debugAtEnable`: held at login and written once after `[Init]`. Its events (a raised accessor) through `debug` |
 | `[Cmd]` | the library (LibKa0s-Slash-1.0), through `settings/Slash.lua` | Each refusal the dispatcher decides, after its chat line: `refused <verb>[ <arg>]: <guard>`, for the disabled gate (`disabled`), an unknown verb, `get` / `set` / `reset` usage and not-found, a parse or write refusal, and the `profile` verb's unavailable, already-current, in-combat and unknown-profile refusals |
@@ -149,12 +150,13 @@ share it.*
 |---|---|---|---|
 | Begin marker | `[Diag]` | the library | `==== Ka0s Bank Ledger diagnostics begin ====` |
 | Identity header | `[Diag]` | the library | The `[Init]` summary line (build, schema, profile), the client version, build, date and interface, the locale, the debug flag, `InCombatLockdown()` and `UnitAffectingCombat("player")`, and every LibKa0s file **running** in the client with its minor. Running, because under LibStub another addon's newer copy may be the one loaded |
-| `state` | `[State]` | `X.State` | Stored enabled, disabled, stood down; the Lifecycle holds; the schema version stored and in code, and the active profile's name; test mode and its sample-row count; whether this session's retention prune has run or is armed |
+| `state` | `[State]` | `X.State` | Stored enabled, disabled, stood down; the Lifecycle holds; the schema version stored and in code, and the active profile's name; test mode and its sample-row count; whether this session's retention prune has run or is armed; `simulation=yes/no` and the dataset (`Database:DatasetKind()`: `live`, `test` or `sim`) |
 | `settings` | `[Set]` | `X.Settings` | The six capture-critical rows always (`enabled`, `trackItems`, `trackMoney`, `qualityThreshold`, `excludedStores`, `retentionDays`), every other row only when it differs from its default, each as `path = value (default)`. `excludedStores` prints as its members, the way `/bl get` shows it |
 | `filters` | `[Filter]` | `X.Filters` | The blacklist and the whitelist, each as its size and its sorted ids |
 | `ledger` | `[Ledger]` | `X.Ledger` | Entry count (the real ledger, even while test mode is showing sample rows), counts by store, by direction and by kind, the oldest and newest timestamps, the account-wide retention days, and the last 20 entries as stored: timestamp, store, direction, kind, quantity, item id, item name as plain text, character |
 | `capture` | `[Capture]` | `X.Capture` | `openContext`, whether a pre-move snapshot is held and what it holds (distinct items per store, money), whether a settle is pending and the debounce armed, and the gate's cached upvalues from `L:GateState()`: enabled, the two track switches, the quality floor, the excluded stores and both filter sizes |
 | `session` | `[Session]` | `X.Session` | Whether a banking session is active, its entry count, and whether the session window is on preview data |
+| `sim` | `[Sim]` | `X.Sim` | The simulator (BankLedger#24, host contract H8), from `NS.Sim:Status()` merged with `NS.SimHost`. Idle: one line, `active=no` and the seam's wrapped-key count. Running: the scenario, seed, step position of total, ready, playing and paused; then the simulated character's key, the session log's row count, the events fired, the guarded tab queries and the seam's key count |
 | `scan` | `[Scan]` | `X.Scan` | `NS.Ledger:Diagnose()`, line for line: everything `/bl debug scan` prints (below) |
 | `windows` | `[Window]` | `X.Windows` | The ledger and session windows, each built, shown and its stored geometry; the console shown; the master window scale |
 | `launcher` | `[Launcher]` | `X.Launcher` | The minimap button shown, registered, running degraded, and its stored angle |
@@ -206,6 +208,7 @@ The dump reads, in order:
 
 | Line | What it tells you |
 |---|---|
+| `simulation running: Compat answers are simulated` | Only while a simulation runs: every line below describes the simulated world, not the client |
 | `openContext=… snapshot=yes/no` | Which store the engine thinks is open, and whether a pre-move snapshot is held. `nil` at a bank means the open was never noticed, so nothing will be recorded |
 | `Enum.BagIndex has N members`, then `BagIndex.<name> = <id>` | Which container ids this client build actually exposes, sorted by id |
 | `group BAGS / BANK / WARBAND_BANK = [...]` | What the addon's own id groups (`C.STORE_CONTAINERS`) resolved to, beside the truth above |

@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window (owner decision D6) and the Minimap button **account-wide** (`global`), every other setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 37 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 43 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,13 +34,20 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-37 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the eight LibKa0s seams; `defaults/` holds the account-wide
+43 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the nine LibKa0s seams; `defaults/` holds the account-wide
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
-the schema, the slash seam and the settings pages (General and Profiles).
+the schema, the slash seam and the settings pages (General and Profiles). The root `Bindings.xml`
+(not in the TOC; the client reads it by name) declares the Show window key binding (`launcher-§6`).
+Five of the files are the in-game simulator (BankLedger#24, see **Simulator** below):
+`core/SimSetup.lua` (the LibKa0s-Sim-1.0 seam over `NS.Compat`), `modules/SimWorld.lua` (the
+simulated world and the seam's providers), `modules/SimDrivers.lua` (one event driver per client
+action), `modules/Sim.lua` (the session host, `NS.Sim`, and its presentation fields) and
+`modules/SimScenario.lua` (the four scenarios). Each has its row in module-map.md.
 
-Load order is load-bearing in nine places (the newest: `modules/Browser_Views.lua` loads straight
-after `modules/Browser.lua`, whose `B._viewSeam` it captures at file load), and `tests/test_harness.lua`
+Load order is load-bearing in ten places (the newest: `core/SimSetup.lua` loads straight after
+`core/Compat.lua`, so the simulator's seam wraps every `NS.Compat` member before any file could read
+one; Sim-1.0 host contract H2), and `tests/test_harness.lua`
 guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 
@@ -74,6 +81,15 @@ stored outside the rows is named per `architecture-§5`:
   `NS.Backfill` (`modules/Backfill.lua`), writes an item row's **nil** name, quality, type,
   sub-type and link, never overwrites a present field and never adds or removes a row; it reports
   the change through `Database:FireLedgerChanged`, so Database stays the message's one sender.
+- **The write sink and the dataset kinds** (BankLedger#24). Every write the capture path reaches
+  goes through `Database:Sink()`: `NS.State.simLog` while a simulator runs, a session-only array
+  that is never saved, otherwise `db.global.ledger`; `Database:Add` stamps a sim row `sim = true`.
+  The read path, `Database:ActiveLedger()`, resolves sim, then test (`NS.State.testRecords`), then
+  live, and `Database:DatasetKind()` names which in that precedence (`"sim"`, `"test"`, `"live"`).
+  Every reader that must refuse a synthetic dataset asks `DatasetKind() ~= "live"`: the row menu's
+  mutating actions, the default character scope, the tab baseline and the test strip. `Count`,
+  `Delete`, `DeleteAt`, `Purge` and `PruneOld` always act on the real ledger, and the session window
+  prunes against the sink, never the read path.
 - **Named non-setting state** — four storage carve-outs written outside `NS.Schema:Set`, none with a
   `Documented deviations` row:
   - **Main window geometry**, `db.profile.settings.window`, owned by `NS.Browser`.
@@ -83,6 +99,10 @@ stored outside the rows is named per `architecture-§5`:
   - **Minimap button position**, `db.global.minimap.minimapPos`, written by LibDBIcon into the
     account-wide table `NS.Launcher` hands it; no profile event reaches it (`launcher-§3`, see
     **Launcher** below).
+
+  The simulator's step panel adds no fifth: its position is session-only (OWNER_SCOPE C.11), held in
+  the LibKa0s-Sim-1.0 instance's memory and forgotten on `/reload`, so a simulation writes nothing
+  to SavedVariables.
 
 The runtime and its stub, and every writer of each with the act that reaches it, are in
 **[schema.md](schema.md#registry-recorded-data-and-named-state-writers)**.
@@ -109,6 +129,44 @@ Profile and it never deletes history or moves the retention window; `/bl purge` 
 separately confirmed. The Options descriptor's `skipRestoreAll` is the one named veto,
 `S.VetoedFromResetAll` (`options-ui-§3`): the Profiles page and every stored row. Detail in
 **[profiles.md](profiles.md)**.
+
+## Simulator
+
+`/bl sim` (BankLedger#24, LibKa0s#54) plays a scripted bank visit through the **real** capture
+engine against an invented world, on `LibKa0s-Sim-1.0`. Nothing in it writes a row: every row is
+the engine's own decision.
+
+- **The seam.** `core/SimSetup.lua` wraps `NS.Compat` in place at load (`Sim:NewSeam`), straight
+  after `core/Compat.lua`. While a session runs, the simulated world (`modules/SimWorld.lua`)
+  answers the wrapped members; otherwise the live member does, at one boolean test per call. The
+  drivers (`modules/SimDrivers.lua`) edit that world and fire the client's events through
+  `NS.Sim:Fire` into `Ledger:Dispatch`, the one call every capture signal takes. Membership and
+  the identity reads are in [compat-layer.md](compat-layer.md).
+- **The sink and the dataset kinds.** The start sets `NS.State.simLog`, so `Database:Sink()` sends
+  every recorded row there (stamped `sim = true`), and `Database:ActiveLedger()` reads it first.
+  `Database:DatasetKind()` answers `"sim"`, which the ledger window's strip, the session window's
+  strip and every reader that refuses a synthetic dataset ask (see **Settings Schema** above).
+- **The stop is two-phase, with no final pass.** While the seam still answers, `OnStopGuarded`
+  runs `Ledger:DropContext()`: the pending debounce, the settle window and the banking session go
+  with **no** `Reconcile`, because a pass with the seam off would diff the simulated baseline
+  against the real world and invent movements. With the seam off, `OnStop` releases the session
+  log and the world, and the ledger window swaps back to the saved dataset.
+- **What ends it.** `/bl sim stop`; a **real** bank or guild-bank frame opening or closing
+  (`Ledger:Dispatch` stops the session before the real handler runs, so the real visit snapshots
+  the real world); entering combat (`addon:OnCombatChanged`); the stand-down, whose first step it
+  is; and `/reload`, because nothing was saved. A profile reset does **not** end it: it touches no
+  state the session reads (OWNER_SCOPE C.13).
+- **What refuses a start.** The addon stood down, test mode on, combat, a real bank or guild bank
+  open, and General visibility keeping the ledger window shut, checked in that order, each with
+  one line (`modules/Sim.lua`). Test mode refuses to start while a simulation runs.
+- **Purge is refused during a simulation.** `Database:PurgeRefused()` prints `Stop the simulation
+  first.` before any confirm opens, from `/bl purge` and the settings' *Purge ledger…* button alike, and
+  `Database:Purge` re-checks it. `Delete`, `DeleteAt` and `PruneOld` act on the real ledger only.
+
+The simulator is slash-only, with no launcher entry, no key binding and no schema row; its step
+delay is a constant. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strip
+and the step panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)
+and the `[Sim]` lines in [debug.md](debug.md).
 
 ## Launcher
 
@@ -143,6 +201,23 @@ more — the stored key is still `db.global.minimap.hide`, so the rename moved n
 needed no migration, and nothing is ever stored at `minimap.shown` (a stored `shown` key would be the
 second boolean anti-pattern #81 forbids). The old CLI path `minimap.hide` answers `Setting not found`.
 `S:Register` resolves this one row against the declared `hide` default rather than a `shown` key.
+
+### Show window key binding
+
+`launcher-§6`: the root `Bindings.xml` declares one `CLICK BankLedgerToggleWindow:LeftButton`
+binding, under the `BANKLEDGER` header in the `ADDONS` category, with **no default key** (the player
+picks one under Key Bindings → AddOns → Ka0s Bank Ledger) and no Lua; the TOC does not list it.
+`core/LauncherSetup.lua` creates the button at load, above the degradation stub's early return so a
+degraded install has it too: a plain, named, hidden, **non-secure** `Button` registered `AnyDown`, so
+one press is one toggle and a press in combat taints nothing (the ledger window is non-secure). Its
+`OnClick` runs `verb("toggle")`, the very call the descriptor's `toggleWindow` makes, so the key, the
+menu's *Show window* and `/bl toggle` are one handler (`B:Toggle`). `verb` skips the dispatcher's
+disabled gate and a key cannot be grayed, so while `NS.IsStoodDown()` the press prints
+`NS.Slash:DisabledLine()`, the line `/bl toggle` answers with, and does nothing else. This addon takes
+no `perf` hold (`performance-§12`), so that is the only refusal by hold a press can owe. The labels
+are set beside the button: `BINDING_HEADER_BANKLEDGER = NS.BRAND_NAME` and the action label
+`Toggle the ledger window` through `NS.L`, by `rawset`. **The button name is permanent**: the client
+stores a player's key against it, so a rename unbinds every player's key.
 
 ### The button survives a reset, and that is a property of the setting
 
@@ -209,8 +284,9 @@ gets no close event either.
 ## Slash Commands
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
-page read one table. Nineteen verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
-seam. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
+page read one table. Twenty verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+seam. `/bl sim` is the simulator's one feature verb, handing its words to `NS.Sim:RunVerb`
+(LibKa0s-Sim-1.0's grammar); the simulator is slash-only, with no launcher entry or key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
 prints the list (`slash-commands-§4`). `/bl profile` lists the profiles, and `/bl profile <name>`
 switches to an existing one through the library's `CliProfile` (Slash minor 17); it stays live while
 the addon is disabled, because the descriptor's `liveVerbs` is `lib.LIVE_VERBS` plus `profile`.
@@ -262,6 +338,7 @@ anti-pattern; two bodies would be.
 
 | Stood down | How |
 |---|---|
+| A running simulation, **first** | `NS.Sim:Stop("standDown")` is the body's first line (Sim-1.0 host contract H6): its guarded stop step drops the simulated capture context while the seam still answers, then the session log and the simulated world are released and the ledger window swaps back to the saved dataset (`modules/Sim.lua`, BankLedger#24). A no-op when none runs |
 | Every timer | `addon:CancelAllTimers()`, plus each debouncing module's `CancelPending` — the handles are file locals AceTimer's cancel-all cannot reach, and a handle left behind is a debounce that never fires again. The retention prune is the addon object's own AceTimer, so the cancel-all takes it, and `NS.StandDown` drops `NS.State.cleanupPending` so the next `PLAYER_ENTERING_WORLD` re-arms it |
 | Every event on the addon object | `addon:UnregisterAllEvents()` — the three below plus the capture engine's whole set, which is registered there too. Not a list to keep current |
 | The four private bus targets | `UnregisterAllMessages` / `UnregisterAllEvents` on each, and the module's `_enabled` latch released with it |
@@ -324,6 +401,18 @@ when every id has answered or after `C.BACKFILL_TIMEOUT` (10s), and drops the na
 `NS.EventRecord` again. Being on the addon object, the stand-down's `UnregisterAllEvents` reaches
 it, and the module's `CancelPending` drops the pass.
 
+**One dispatch table.** The seven capture registrations share one handler shape: `L:Enable`
+registers each name in `L.CLIENT_EVENTS` as `function(e, ...) L:Dispatch(e, ...) end`, and
+`L:Dispatch(event, ...)` runs that event's one entry in `L.HANDLERS` (BankLedger#24). It answers `0`
+while the module is not enabled or for an event with no handler, and `1` after running the handler.
+`L.HANDLERS` also holds two **host-internal pseudo-events**, `GUILDBANK_FRAME_SHOWN` and
+`GUILDBANK_FRAME_HIDDEN` (`L.PSEUDO_EVENTS`), which carry the guild bank's open and close. The client
+never fires them and they are never registered with it, so they never reach `NS.EventRecord` or
+`/bl debug scan`. Only `GuildBankFrame`'s `OnShow`/`OnHide` hooks dispatch them, after the hook's own
+stand-down check (the one sanctioned gate, because a hook cannot be removed), and the simulator will
+too. A simulator therefore delivers every capture signal through the same one call the client does.
+`L:Dispatch` carries a marked seam where the simulator's real-frame auto-stop will go.
+
 Change events are debounced into one reconcile pass per user action, and the baseline is held
 whenever a pass sees a one-sided change.
 
@@ -380,6 +469,12 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
 - **Two variants of one itemID in a single snapshot resolve to the same link** — the scan keeps the
   first hyperlink it sees per id and the counts map is keyed by id alone, so it cannot tell an
   upgraded copy from a base one when both are present.
+- **The simulator covers bank visits only.** There is no simulation of mail, currencies, the login
+  backfill or the retention prune; the four scenarios are a personal-bank visit, a warband
+  transfer, a guild-bank visit and a one-sided change.
+- **The simulated warband deposit's event list is unverified on 12.1.5.** `D.EVENTS` in
+  `modules/SimDrivers.lua` is built from the best documented knowledge; the real sequence is an
+  owner in-client check (`docs/smoke-tests.md` SIM-10), and a difference is a one-line data fix.
 
 Each of these is a decision with its reasoning; see **[scope.md](scope.md)**.
 
@@ -405,9 +500,9 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 19 verbs in `NS.COMMANDS` (threshold is 8) |
+| `slash-dispatch.md` | Present | 20 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
-| `compat-layer.md` | Present | `core/Compat.lua` carries 13 addon-specific shims beyond LibKa0s |
+| `compat-layer.md` | Present | `core/Compat.lua` carries 15 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
 | `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift, the v4 return of the window and the v5 per-tab saved views, the profile events, the reset and the `/bl profile` verb |
 | `debug.md` | Present | The trace's **Coverage** (every tag, what emits it and when, and the reconcile pass's quiet steady state, `debug-logging-§8`/`§9`); the diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned topic dumps, `/bl debug scan` and `/bl debug panel`; which to paste with a bug report |
@@ -445,7 +540,7 @@ with no re-check trigger is a permanent exemption granted by accident.
 | Rule | What differs | Why | Decided | Re-check trigger |
 |---|---|---|---|---|
 | `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and every event that *can* fire in combat is a row of that page's table with its work named: the three change events (`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY`) and `GUILDBANKBAGSLOTS_CHANGED` reach a single `NS.State.openContext` nil check and return, and the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` also runs `NS.Util.ApplyVisibility` — bounded, allocation-free, once per combat edge. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. Re-checked 2026-09-23 (audit): trigger not fired. |
-| `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and every label, tooltip and message but four is a hardcoded English literal. The four route through `NS.L` and resolve to their English key through its fallback, with no override in `enUS.lua`: the `profile`, `debug` and `diagnostics` help lines in `NS.COMMANDS` (`settings/Schema.lua`) and the library-absent `%s is unavailable: the LibKa0s library did not load.` line (`core/DebugLogSetup.lua`, `settings/Slash.lua`). The launcher's `leftClickLabel` (`Toggle ledger window`) routed through it from M5 (2026-09-24) until Launcher minor 4 retired the field (M6, 2026-09-25); the menu's entry labels are the library's own `lib.STRINGS`. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. Re-checked 2026-09-23 (audit): trigger not fired. |
+| `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and every label, tooltip and message but seventy-seven is a hardcoded English literal. The seventy-seven route through `NS.L` and resolve to their English key through its fallback, with no override in `enUS.lua`: the `profile`, `debug` and `diagnostics` help lines in `NS.COMMANDS` (`settings/Schema.lua`), the library-absent `%s is unavailable: the LibKa0s library did not load.` line (`core/DebugLogSetup.lua`, `settings/Slash.lua`), the ledger window's red `TEST MODE` title badge, and the test-mode strip's line (`TEST MODE: a sample ledger, not your bank. Combat ends it.`) and its three tooltip lines (`modules/Browser.lua`, BankLedger#23), the Show window key binding's action label `Toggle the ledger window` (`core/LauncherSetup.lua`, `launcher-§6`), the simulator-absent line `The simulator needs LibKa0s-Sim-1.0.` (`core/SimSetup.lua`), the simulated world's invented names, the alt character `Simbanker` and the unguilded player's `Simulated Guild` (`modules/SimWorld.lua`, BankLedger#24), the simulator's start line, its four start refusals (test mode, combat, a real bank visit, General visibility) and its three stop lines (`modules/Sim.lua`), the four scenarios' labels and their nineteen distinct step labels (`modules/SimScenario.lua`), the simulator gate's `Waiting for the ledger to settle.` (`modules/Sim.lua`), test mode's refusal while a simulation runs (`modules/LedgerTable_TestMode.lua`), the purge refusal `Stop the simulation first.` (`core/Database.lua`), the `sim` help line in `NS.COMMANDS` (`settings/Schema.lua`), the simulation step panel's twenty-five presentation strings (its step labels and tooltips and the Start and Stop tooltips, `modules/Sim.lua`), and the simulation marker's strip line `Simulation: %s - nothing here is saved.` (`modules/Sim.lua`) with its three tooltip lines (`modules/Browser.lua`). The launcher's `leftClickLabel` (`Toggle ledger window`) routed through it from M5 (2026-09-24) until Launcher minor 4 retired the field (M6, 2026-09-25); the menu's entry labels are the library's own `lib.STRINGS`. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. Re-checked 2026-09-23 (audit): trigger not fired. |
 | `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `B:MakeCloseButton` in `modules/Browser.lua`, 24×24, class-colored on hover — rather than a one-line wrapper over `lib.MakeCloseButton`, which `core/CoreSetup.lua` deliberately does not republish (its "`lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED" paragraph). | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`EnsureFrame` in `modules/Browser.lua`), the session window (`ensureFrame` in `modules/SessionWindow.lua`) and the export modal (`EnsureFrame` in `modules/Export.lua`) are this addon's, and those are the factory's three callers; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon("close")`, inside `B:MakeCloseButton` itself, with the documented fallback ladder beneath it, so the two implementations agree on the art and differ only in size and hover tint. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its three callers and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change three visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. Re-checked 2026-09-23 (audit): trigger not fired. |
 
 No other issue owes a row: the `state:will-not-do` issues #4, #6, #7, #8, #10, #15 and #20 decline

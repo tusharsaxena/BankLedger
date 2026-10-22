@@ -29,6 +29,8 @@ local SUITES = {
   "test_marks", "test_libka0s", "test_libka0s_slash", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
   "test_lintconfig", "test_diagnostics", "test_profiles", "test_debug_coverage", "test_debug_library",
+  "test_sim_seam", "test_sim_world", "test_sim_drivers", "test_sim_session", "test_sim_scenario", "test_sim_e2e",
+  "test_sim_panel",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
@@ -84,6 +86,22 @@ Kit.setSurfaceSource{
   ["LibKa0s-DebugLog-1.0"] = NS.DebugLog,
   ["LibKa0s-Bus-1.0"]      = mocks.LibStub("LibKa0s-Bus-1.0", true),
   ["LibKa0s-Schema-1.0"]   = mocks.LibStub("LibKa0s-Schema-1.0", true),
+  -- core/ItemSetup.lua's stub mirrors the Item LIBRARY TABLE (its primitives are lib-level
+  -- functions), so the live half is the mock LibStub's answer, as for Bus.
+  ["LibKa0s-Item-1.0"]     = mocks.LibStub("LibKa0s-Item-1.0", true),
+  -- core/SimSetup.lua's degraded NS.Sim mirrors an INSTANCE of LibKa0s-Sim-1.0, which Sim:New builds
+  -- per host, so no manifest lists its members. The live half is a real instance, bound to a
+  -- throwaway seam over an empty table: NS.SimSeam is not touched, because one seam binds one
+  -- session for good and the addon's own simulator binds that one.
+  ["LibKa0s-Sim-1.0"]      = (function()
+    local Sim = mocks.LibStub("LibKa0s-Sim-1.0", true)
+    return Sim:New{
+      name = "BankLedger", seam = Sim:NewSeam({}, { name = "BankLedger surface" }), slash = "/bl sim",
+      deliver = function() return 0 end, isStoodDown = function() return false end,
+      scenarios = { names = {}, defs = {} },
+      prepare = function() end, play = function() end,
+    }
+  end)(),
 }
 
 _G.BL_TEST = Kit.expose{

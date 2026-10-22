@@ -13,17 +13,18 @@ leaves its number unused.
 | ID range | Theme | What it covers |
 |---|---|---|
 | INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
-| SLASH-1 – 4 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled |
+| SLASH-1 – 7 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding |
 | PANEL-1 – 31 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
-| CAPT-1 – 17 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, retention, purge |
-| LEDG-1 – 50 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views |
+| CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
+| LEDG-1 – 56 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
+| SIM-1 – 10 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check |
 | DEGRADED-1 – 12 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -104,6 +105,17 @@ leaves its number unused.
   `/bl purge` → each prints exactly one line, `Ka0s Bank Ledger is disabled — enable it with
   /bl enable` with the command in gold, and does nothing else; `/bl purge` raises no confirm dialog.
   Re-enable. Result: pass (owner-marked 2026-10-10)
+- **SLASH-5. The Show window key binding.** Esc → Options → Key Bindings → AddOns → *Ka0s Bank
+  Ledger* lists **Toggle the ledger window** with no key bound. Bind one, close the menu, then press
+  it → the ledger window opens; press again → it closes. Each press toggles exactly once. Added
+  2026-10-22 (`launcher-§6`, LibKa0s#58). Result:
+- **SLASH-6. The key refuses while disabled.** `/bl disable`, then press the bound key → exactly one
+  line, `Ka0s Bank Ledger is disabled — enable it with /bl enable` (the same line `/bl toggle` prints),
+  and the window does not open. `/bl enable`, press it → the window opens again. Added 2026-10-22
+  (`launcher-§6`). Result:
+- **SLASH-7. The key works in combat.** Enter combat (a training dummy), press the bound key → the
+  ledger window opens and a second press closes it, with no taint or blocked-action error. Added
+  2026-10-22 (`launcher-§6`). Result:
 
 ## PANEL
 
@@ -378,6 +390,22 @@ leaves its number unused.
   gone. Result: pass (owner-marked 2026-10-10)
 - **CAPT-17. Purge.** `/bl purge` → a confirm; accept → the ledger empties and the window shows its
   empty state. Result: pass (owner-marked 2026-10-10)
+- **CAPT-20. Capture unchanged by the dispatch table (regression, SM-BL-16).** Every capture signal now
+  runs through one table, guild-bank show and hide included. At the bank, deposit and withdraw an item
+  on the Character Bank tab and on the Warband Bank tab, then deposit and withdraw gold at the
+  warband bank → the same rows CAPT-1, CAPT-2, CAPT-4 and CAPT-5 describe. At the guild bank, deposit
+  and withdraw an item and gold → the rows CAPT-9 and CAPT-10 describe. At both stores the Current
+  Banking Session window opens with the frame and closes with it, and `/bl debug scan` lists no
+  `GUILDBANK_FRAME_SHOWN` or `GUILDBANK_FRAME_HIDDEN` among the registered events. **Fail:** a
+  missing or doubled row, a session window that stays up after the frame closes, or either name in
+  the event list. Result:
+- **CAPT-21. The idle simulator seam is invisible (regression, SM-BL-17).** Every `NS.Compat` read now
+  passes through the simulator's seam, which answers live while no simulation runs. With the addon
+  loaded normally, `/bl show` opens the ledger window as before; a bank visit (deposit and withdraw an
+  item and some gold) and a guild-bank visit (deposit and withdraw an item, every tab's contents
+  loading as you click through them) record exactly the rows CAPT-1, CAPT-4, CAPT-9 and CAPT-10
+  describe. **Fail:** a missing or doubled row, a guild tab that stays empty, or any Lua error.
+  Result:
 
 ## LEDG
 
@@ -483,8 +511,11 @@ leaves its number unused.
   mark. The modal's Export to CSV → a small mark on its left with the words still centered, about
   two-fifths the width of the Data set dropdown above it and centered under it. **Fail:** a button
   spanning the modal edge to edge with the mark pinned far left. Result: pass (owner-marked 2026-10-10)
-- **LEDG-40. The search magnifier.** The search box shows a magnifier on its left with "Search items…"
-  starting just past it; typed text starts in the same place. Result: pass (owner-marked 2026-10-10)
+- **LEDG-40. The search magnifier and the focus line.** `/bl show` → the search box looks as before:
+  flat gray, a magnifier on its left, "Search items…" starting just past it, and typed text starting
+  in the same place. Click into it → its border lights gold; press Escape → focus drops and the line
+  goes back to gray; click in again and press Enter → the same. Rewritten 2026-10-22 for
+  LibKa0s-Widgets-1.0's SearchBox (LibKa0s#52). Result:
 - **LEDG-41. Marks carry no tooltips.** Hover every mark → none shows a tooltip; the four filter-bar
   buttons still show theirs. Result: pass (owner-marked 2026-10-10)
 - **LEDG-42. The first click opens the menu.** Right after logging in, `/bl show`, click Store as the
@@ -531,6 +562,23 @@ leaves its number unused.
   Insights → Insights' saved view, never History's; History is untouched. Press Reset on Insights →
   Insights goes to stock, then switch to History and press Clear → History's saved view is still
   there. `/reload` → each tab opens on its own saved view. Result: pass (owner-marked 2026-10-10)
+- **LEDG-51. Typing still filters and suggests.** `/bl show`, type part of an item name → the
+  History table filters after the short debounce, the suggestion list still opens directly under the
+  box at its width, and picking a name applies it at once. Added 2026-10-22 (LibKa0s#52).
+  Result:
+- **LEDG-52. The test-mode strip.** `/bl test` → an amber strip with the info mark reads "TEST MODE: a
+  sample ledger, not your bank. Combat ends it." directly under the filter bar, the History table
+  starts below it, and the red TEST MODE badge is still beside the title. **Fail:** the strip
+  overlapping the table's header, or the badge gone. Added 2026-10-22 (BankLedger#23). Result:
+- **LEDG-53. Insights makes the same room.** In test mode, switch to Insights → its content is shifted
+  down by the same amount, clear of the strip. Added 2026-10-22 (BankLedger#23). Result:
+- **LEDG-54. Combat ends the strip.** In test mode, enter combat → test mode ends, the strip hides and
+  both panes move back up under the filter bar. Added 2026-10-22 (BankLedger#23). Result:
+- **LEDG-55. The strip's tooltip.** In test mode, hover the strip → a tooltip reads Test mode / Shows:
+  a sample ledger, not your bank / Ended by: combat, /bl test, the launcher menu. Added 2026-10-22
+  (BankLedger#23). Result:
+- **LEDG-56. Opening in test mode.** With test mode on, close the window and `/bl show` → the strip
+  is there at once and the table starts below it. Added 2026-10-22 (BankLedger#23). Result:
 
 ## INS
 
@@ -788,6 +836,80 @@ leaves its number unused.
   untick Enable Bank Ledger, `/reload`, `/bl debug on` → after `[Init]`, one `[State] stood down at
   login (holds: disabled)` line. Re-tick Enable Bank Ledger. Result: pass (owner-marked 2026-10-10)
 
+## SIM
+
+The in-game simulator, `/bl sim` (BankLedger#24). It plays a scripted visit through the real capture
+engine in an invented world and saves nothing. Before SIM-1, note the movement count on the minimap
+button's tooltip: SIM-1 and SIM-6 compare against it. Expected row counts assume the default Capture
+settings; a quality threshold, an unticked store or a Track toggle changes them, and that is not a
+failure.
+
+- **SIM-1. A bank simulation, start to stop (SM-BL-18).** `/bl sim start bank` → the ledger window
+  opens with the amber strip `Simulation: Personal bank - nothing here is saved.` under the filter
+  bar (no red TEST MODE badge), and the step panel, *Ka0s Bank Ledger - Simulation*, docks beside
+  the window. Press the panel's **Run all** → the five steps play in order; History gains three
+  Character Bank rows (two deposits, one withdrawal) named after items from your own bags, Insights
+  describes the same three, and the Current Banking Session window opens with the simulated bank,
+  lists them, and closes when it closes. `/bl sim stop` → one stop line, the strip and the panel
+  go, the window shows your real history, and the tooltip's movement count is the number you noted.
+  **Fail:** a simulated row left in the real history, a changed count, or the TEST MODE badge.
+  Result: owed
+- **SIM-2. Each refusal is one line (SM-BL-19).** Try `/bl sim start bank` in each state below → the
+  quoted line, nothing opens and no strip appears. In combat (a training dummy): `A simulation cannot
+  start in combat.` With `/bl test` on: `Turn test mode off before starting a simulation.` (turn it
+  off after). With the real bank open, then with the guild bank open: `Close the bank first: a
+  simulation cannot run beside a real bank visit.` With General visibility on Never: `A simulation
+  cannot start while General visibility keeps the ledger window closed.` (set it back). After `/bl
+  disable`: the addon's disabled line (`/bl enable` after). **Fail:** a second line, a different
+  line, or anything opening. Result: owed
+- **SIM-3. The warband transfer (SM-BL-20).** `/bl sim start warband`, then `/bl sim step` once at a
+  time. The second step (the item deposit) → no row at once; the Warband Bank row appears about
+  1.5 s later, when the store half lands. Run the rest → four Warband Bank rows: your item and gold
+  deposits, then the alt's item and gold withdrawals, whose Character column reads
+  `Simbanker-<your realm>` in a class color that is not yours. `/bl sim stop`. **Fail:** the
+  deposit row appearing before the delay, a doubled row, or the alt's rows under your name.
+  Result: owed
+- **SIM-4. The guild bank (SM-BL-21).** On a guilded character, `/bl sim start guild` and step
+  through. The first step (guild data arriving while you are away) → no row and no session window.
+  The rest → three Guild Bank rows (an item withdrawal, an item deposit and a gold withdrawal)
+  carrying your guild's name. Repeat on an unguilded character → the same three rows carrying
+  `Simulated Guild`. **Fail:** a row from the first step, or a guild row with no guild name.
+  Result: owed
+- **SIM-5. A one-sided visit records nothing (SM-BL-22).** `/bl debug on`, `/bl sim start onesided`,
+  run it all → no row in History or the session window, and the console has a `[Store]` line ending
+  `closed, held change dropped` when the simulated bank closes. `/bl sim stop`, `/bl debug off`.
+  **Fail:** any row, or no dropped-change line. Result: owed
+- **SIM-6. What stops it (SM-BL-23).** Start a simulation and open your real bank → it stops at
+  once with `Simulation stopped: a real bank window opened or closed.`, and a real deposit at that
+  bank records a real row as usual. Start one and enter combat → `Simulation stopped: you entered
+  combat.` Start one and `/reload` → no strip, no panel, the real history, and the movement count
+  from SIM-1 plus only the real rows you made. **Fail:** a simulation surviving any of the three, or
+  a simulated row in the real history. Result: owed
+- **SIM-7. Click-ahead and the step tooltips (SM-BL-24).** `/bl sim start bank`, then click the
+  panel's fourth row → steps one to four play in order, pausing while the ledger settles (chat may
+  say `Waiting for the ledger to settle.`), and the fifth has not run. Hover a completed row → its
+  tooltip says what it injected and fired, what it did and how many rows it recorded, and when it
+  ran. `/bl sim stop`. **Fail:** steps out of order, a step skipped, or a played step whose tooltip
+  has no recorded count. Result: owed
+- **SIM-8. Purge and test mode wait (SM-BL-25).** With a simulation running: `/bl purge` → `Stop the
+  simulation first.` and no confirm opens; the *Purge ledger…* button on Settings ▸ General ▸ History
+  does the same. `/bl test`
+  → `Stop the simulation before turning on test mode.` and the sample does not load. `/bl sim stop`,
+  then `/bl purge` → the usual confirm (cancel it). **Fail:** a confirm opening during the
+  simulation, or test mode starting. Result: owed
+- **SIM-9. The panel's position is session-only (SM-BL-26).** Start a simulation, drag the panel
+  away from the ledger window, then `/bl sim panel` twice (hide, show) → it comes back where you
+  dragged it. `/reload`, start again → it docks beside the ledger window again. Nothing about it
+  appears in `BankLedgerDB` after a logout. **Fail:** the dragged spot surviving the `/reload`.
+  Result: owed
+- **SIM-10. The real 12.1.5 warband event sequence (SM-BL-27).** This records a fact; it does not
+  pass or fail the addon. With `/bl debug on` and Blizzard's `/etrace` running, deposit one item
+  into a REAL Warband Bank tab and then withdraw it. Write down every event that fires, in order,
+  for each move (look for `PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED`, `BANK_TABS_CHANGED`, `BAG_UPDATE`
+  and `BAG_UPDATE_DELAYED`). Compare with `D.EVENTS.WarbandBag` and `D.EVENTS.WarbandStore` in
+  `modules/SimDrivers.lua`. If they differ, file the one-line correction to that list.
+  Result: owed
+
 ## DEGRADED
 
 With `libs/LibKa0s` renamed aside (Before you start). Nothing about the addon's own function depends
@@ -855,7 +977,7 @@ string is green whether it is right or wrong.
 What this addon reads in the player's language:
 
 - **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:502-507`, via
-  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/Database.lua:519-550`
+  `core/Compat.lua:153-159`): `C_Item.GetItemInfo`'s localized strings. `core/DatabaseStats.lua:64-96`
   uses them as analytics keys (`byItemType`, `byItemSubType`, `byTypeSub`), they are persisted on every
   row, and the CSV emits them raw. `core/Compat.lua:156` discards the locale-independent `classID` /
   `subClassID`; unlike `quality` and `store`, these two have no `*Raw` column.
@@ -864,7 +986,7 @@ What this addon reads in the player's language:
 - **`Util.FormatDate`** (`core/Util.lua:20-22`): `date("%d-%b-%Y")`, whose `%b` is the month in the
   client's language.
 - **Case folding**: `modules/LedgerTable.lua:66`, `:85`, `:89`, `:94` sort on `:lower()`, and
-  `core/Database.lua:415` and `:432` lowercase names and search text. Lua's `string.lower` folds ASCII
+  `core/Database.lua:474` and `:491` lowercase names and search text. Lua's `string.lower` folds ASCII
   only.
 
 English by design, and not a failure: `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and every
@@ -902,7 +1024,36 @@ pass runs, record this section as unrun, not as coverage.
 
 ## Pending sign-off
 
-None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
+On 2026-10-10 the owner marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
+
+**Owed again after the LibKa0s v1.75.0 re-vendor (2026-10-22).** The vendored copy now ships only the
+eleven icons the `CLAUDE.md` declaration lists, and an undeclared icon draws blank rather than falling
+back, so every check that looks at a mark is owed a fresh pass even though its `Result:` line still
+says pass: DIAG-8 (the console's close, copy and clear), LEDG-35 (the host close on the ledger, the
+session window and the export modal), LEDG-36 (the copy window's library close), LEDG-37 (the
+dropdown chevrons and the multi-select tick), LEDG-38 (the sort arrows and the group chevrons),
+LEDG-39 (the modal's export mark) and LEDG-40 (the search magnifier).
+
+**Owed after the search box moved onto LibKa0s-Widgets-1.0's SearchBox (2026-10-22, LibKa0s#52).**
+LEDG-40 (rewritten: the magnifier and the gold focus line) and LEDG-51 (new: typing filters, the
+suggestion list and a pick).
+
+**Owed after test mode gained LibKa0s-Widgets-1.0's TestStrip (2026-10-22, BankLedger#23).**
+LEDG-52 to LEDG-56 (new: the strip under the filter bar, both panes making room, combat ending it, its
+tooltip, opening in test mode) and LEDG-20 (its badge text now goes through `NS.L`).
+
+**Owed after the Show window key binding (2026-10-22, `launcher-§6`, LibKa0s#58).** SLASH-5 to
+SLASH-7 (new: binding and toggling, the refusal while disabled, combat).
+
+**Owed after the capture dispatch table (2026-10-22, BankLedger#24).** CAPT-20 (new: a bank visit and
+a guild-bank visit record exactly as before, and the session window follows the frames).
+
+**Owed after the simulator's seam wrapped `NS.Compat` (2026-10-22, BankLedger#24).** CAPT-21 (new:
+`/bl show`, a bank visit and a guild-bank visit behave exactly as before while no simulation runs).
+
+**Owed after the simulator (2026-10-22, BankLedger#24).** SIM-1 to SIM-10 (new: the four
+scenarios, each start refusal, the auto-stops, the panel's click-ahead and session-only position,
+purge and test mode refused during a simulation, and the owner's 12.1.5 warband event check).

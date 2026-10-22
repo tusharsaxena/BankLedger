@@ -81,7 +81,10 @@ end
 --- that quietly falls back to Blizzard art or to nothing while every suite stays green.
 ---
 --- Add a name here the moment a surface starts drawing it. A name in the source and not in this
---- list is exactly the drift the list exists to catch.
+--- list is exactly the drift the list exists to catch. The same name also goes on the
+--- `LibKa0s icons:` declaration under CLAUDE.md's provenance line, because the vendored copy ships
+--- only declared icons; a name the last prune removed needs media/icons re-copied from the tag
+--- before the prune runs again.
 ---
 ---   close          modules/Browser.lua  B:MakeCloseButton — the three host title bars
 ---   chevron-down   modules/Browser.lua  B:MakeDropdown's injected ▼, and the expanded group header
@@ -91,8 +94,10 @@ end
 ---   sort-down      modules/LedgerTable.lua  the descending column-header arrow
 ---   export         modules/Export.lua   the modal's "Export to CSV" button
 ---   search         modules/Browser.lua  the item-name search box
+---   info           modules/Browser.lua  the test-mode strip's mark
 NS.ICON_NAMES = {
   "close", "chevron-down", "chevron-right", "sort-up", "sort-down", "export", "search", "confirm",
+  "info",
 }
 
 -- REGISTERED AT FILE LOAD, not at PLAYER_LOGIN, and not from core/BankLedger.lua's OnInitialize the

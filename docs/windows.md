@@ -70,6 +70,46 @@ hand-edited SavedVariables) cannot reopen a window too small to read.
 | Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one filter bar; each tab keeps its own filter state and saved view |
 | Current Banking Session | `BankLedgerSessionWindow` | a bank frame opening (`SessionChanged`), or `/bl session` | One slim table of this visit's movements |
 
+**Test mode is marked twice on the ledger window** (BankLedger#23). The red `TEST MODE` badge stays
+beside the title, and `LibKa0s-Widgets-1.0`'s `TestStrip` (minor 13, LibKa0s#48) hangs 2px under the
+filter bar: an amber band with the `info` mark and *TEST MODE: a sample ledger, not your bank. Combat
+ends it.* Both texts go through `NS.L`. The library publishes the strip's height
+(`W.TEST_STRIP.HEIGHT`, 18) and deliberately no reserve, so `modules/Browser.lua` computes its own:
+`HEIGHT + 2 * STRIP_GAP` (22) while the strip shows, 0 otherwise or with no Widgets library.
+`anchorPanes()` hangs both the History and the Insights pane from the filter bar's bottom plus that
+reserve, and `B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the
+Master controls box, the launcher menu and the combat ending all reach it) shows or hides the badge
+and the strip and re-anchors the panes. The strip's mouse is on for one plain `GameTooltip`: *Test
+mode*, what it shows, and what ends it. Without the library there is no strip and no shift, and the
+badge alone marks test mode.
+
+**A simulation is marked by the same strip, never the badge** (BankLedger#24, `preview-mode`,
+`LibKa0s-Sim-1.0` host contract H8). While `Database:DatasetKind()` is `"sim"`, `B:UpdateTestStrip()`
+sets the strip's text to *Simulation: &lt;scenario&gt; - nothing here is saved.* (the running
+scenario's label, `NS.SimHost.MarkerText()`) and shows it with the same 22px reserve; the red badge
+is test mode's alone and stays hidden. Its tooltip (`B.StripTipLines()`) says *Simulation*, what it
+shows and what ends it (`/bl sim stop`, combat, a real bank window). The **session window** draws the
+simulated rows too, so it gets its own `TestStrip` with the same line while the dataset is `"sim"`,
+anchored 2px under its title bar, its pane moved down by `HEIGHT + 4` (`SW:UpdateTestStrip()`, also
+run on every `SW:Show`). Test mode never marks the session window: its session rows are real. Both
+strips read the one predicate, and a session listener (`NS.Sim:AddListener` in `modules/Sim.lua`)
+repaints both when a simulation starts and when it stops.
+
+**The simulation step panel** (`BankLedgerSimPanel`) is `LibKa0s-Sim-1.0`'s, not this addon's: its
+rows, states, run controls, scenario picker, click-ahead and placement are the library's.
+`modules/Sim.lua` passes only the presentation fields (`NS.SimHost.PANEL`): the title
+*Ka0s Bank Ledger - Simulation*, each step's label built from the real item (*Deposit 20 × Linen
+Cloth to Warband Bank*, with *(N recorded)* once the engine has recorded rows for it), its tooltip
+(what it moves, a lagged warband half, the client events it fires, and once played what it did and
+how many rows it recorded), the Start and Stop tooltips, and the `confirm` tick. A start opens it
+(from `prepare`, after the ledger window), as does a bare `/bl sim`; `/bl sim panel` toggles it. It
+**docks** right of the ledger window (8px, top edges aligned), or left when the right has no room, and
+floats when the ledger window is shut (`NS.SimHost.PanelAnchor()` answers the window only while it is
+shown). **Its position is session-only** (OWNER_SCOPE C.11, host contract H10): a dragged point is
+held in the library instance's memory and nowhere else, so it is **not** window state, has no schema
+row and no default, and a `/reload` forgets it; `NS.Sim:ResetPanelPosition()` redocks it. Nothing a
+simulation does writes to SavedVariables. A stand-down stop hides it.
+
 The session window is **not** a second `NS.LedgerTable` instance. That module is a stateful singleton
 — one row pool, one display list, one sort/group/filter/collapse state — and the session table has
 none of those, so a slim renderer is smaller than the refactor generalizing it would take. What the

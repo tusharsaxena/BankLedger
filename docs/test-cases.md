@@ -49,7 +49,7 @@ Total.
 - ApplyVisibility hides only open windows and re-shows exactly those on the way back
 - ApplyVisibility and ApplyMasterChrome build no table literal per call
 
-### test_compat.lua (13)
+### test_compat.lua (17)
 
 - Compat.GetItemDetails returns name, quality, type, subtype and vendor price
 - Compat.GetItemDetails returns nil for an item the client has not cached
@@ -64,6 +64,10 @@ Total.
 - Compat.GetStoreMoney reads the warband balance by BankType name, not by number
 - Compat.GetStoreMoney returns nil for a store that holds no coin of its own
 - Compat.GetStoreMoney returns nil when the build exposes no reader
+- Compat.PlayerName answers the name and the normalized realm, whitespace stripped
+- Compat.PlayerName falls back to GetRealmName, then to 'Unknown'
+- Compat.PlayerClass answers the classFile, read at call time
+- compat boundary: no player identity read outside core/Compat.lua
 
 ### test_constants.lua (21)
 
@@ -105,7 +109,7 @@ Total.
 - Filters: a list change re-caches the capture gate's upvalues
 - Filters: the Clear all confirms report the count as printer arguments
 
-### test_ledger.lua (76)
+### test_ledger.lua (82)
 
 - Ledger.Diff: stack leaving bags and arriving in the store is a DEPOSIT
 - Ledger.Diff: stack leaving the store and arriving in bags is a WITHDRAW
@@ -183,6 +187,12 @@ Total.
 - Ledger:Diagnose characterization: a raising money reader reads ERROR, an absent one absent
 - Ledger:Diagnose characterization: no C_Bank, no BankType, no Account member
 - Ledger:Diagnose characterization: no BagIndex, ties sorted by name, unhooked, nothing refused
+- Ledger.HANDLERS: every event the Ledger registers maps to a handler and reaches Dispatch
+- Ledger.HANDLERS: every client handler is registered, and the pseudo-events are not
+- Ledger:Dispatch answers 0 and runs nothing while disabled, 1 after running the handler
+- Ledger:Dispatch stops a running simulation on a REAL frame edge, before the handler runs
+- Ledger:Dispatch answers 0 for an event with no handler
+- Ledger: the guild-bank hooks dispatch their pseudo-events, and return first while stood down
 
 ### test_backfill.lua (15)
 
@@ -260,7 +270,7 @@ Total.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
-### test_database.lua (51)
+### test_database.lua (56)
 
 - Database:Add appends and returns the new index
 - Database:Add fires EntryAdded on the bus
@@ -294,6 +304,11 @@ Total.
 - Database:StorageStats reports count, span and an estimated size
 - Database:StorageStats reports a zero span for an empty ledger
 - Database:ActiveLedger prefers the test dataset when one is published
+- Database:Add writes to the session sim log, never the saved ledger, while one is set
+- Database:Add stamps nothing while no sim log is set
+- Database:ActiveLedger prefers the sim log over the test dataset
+- Database:DatasetKind answers sim, test or live in that precedence
+- Database:Purge with a sim log set still purges the real ledger only
 - RunMigrations stamps a schema version onto a fresh database
 - RunMigrations is idempotent — running it twice changes nothing
 - NS.MigrationSummary renders a readable one-liner
@@ -369,7 +384,7 @@ Total.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (63)
+### test_ledgertable.lua (64)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -430,12 +445,13 @@ Total.
 - LedgerTable:IsTestMode is derived from the published dataset, not a second flag
 - LedgerTable row menu offers the mutating actions on a real row
 - LedgerTable row menu disables every mutating action in test mode
+- LedgerTable row menu disables every mutating action on a simulator dataset
 - LedgerTable row menu still disables item actions on a money row
 - LedgerTable: the blacklist confirmation names the tab the list actually lives on
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (57)
+### test_browser.lua (71)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -490,10 +506,24 @@ Total.
 - Browser hands the table a filter COPY, not its own mutable one
 - Browser: MakeDropdown injects this addon's chevron, tick and mono face
 - Browser: MakeDropdown still hands back a working dropdown with no LibKa0s art
+- Browser: MakeSearchBox forwards to W.SearchBox with a COPY of the caller's opts
+- Browser: the filter bar's search box is the library's, with the hint and the magnifier
+- Browser: the search box's border goes gold with the keys and back to gray without them
+- Browser: the search box's RIGHT edge is pinned to the Character dropdown
+- Browser: typing runs the library's hint, then the filter, then the Autocomplete hook
 - Browser: the window still opens and the ledger table still populates with no Widgets library
+- Browser: test mode on shows the strip under the filter bar and shifts both panes by 22
+- Browser: test mode off hides the strip and the badge and puts both panes back
+- Browser: opening the window while test mode is already on reserves the strip's space
+- Browser: combat ending test mode hides the strip and restores the panes
+- Browser: with no Widgets library there is no strip and no shift, and the badge still shows
+- Browser: hovering the strip shows the test-mode tooltip, and leaving hides it
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
+- Browser: a simulation shows the strip with its scenario line, and never the badge
+- Browser: the strip's tooltip describes the simulation while one runs
+- Browser: a stop repaints the strip through the session listener
 
 ### test_autocomplete.lua (17)
 
@@ -515,7 +545,7 @@ Total.
 - Autocomplete: on Insights a pick filters the shared view too
 - Autocomplete: disabling the addon closes an open list, and the list asks nothing after
 
-### test_launcher.lua (37)
+### test_launcher.lua (44)
 
 - Launcher: the seam is published, and it is the library's instance
 - Launcher: the icon is the addon's OWN logo, and the same file ## IconTexture names
@@ -553,9 +583,16 @@ Total.
 - Verbs: they write the Enable row's stored path, through the same write seam
 - Verbs: they hold NO state of their own
 - Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
+- Key binding: Bindings.xml declares ONE click binding, under the header, with no default key
+- Key binding: the TOC does not list Bindings.xml (the client reads it from the root by name)
+- Key binding: the button is a plain, named, hidden, NON-secure Button registered AnyDown
+- Key binding: the header is the brand name and the action label comes through L
+- Key binding: a press runs the SAME handler /bl toggle and the Show window entry run
+- Key binding: one press opens the ledger window, the next closes it
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
+- Launcher: the simulator is slash-only, with no menu entry and no key binding (C.11)
 
-### test_sessionwindow.lua (35)
+### test_sessionwindow.lua (39)
 
 - SessionWindow drops the Date, Time and Character columns
 - SessionWindow keeps the seven data columns, in table order
@@ -577,6 +614,8 @@ Total.
 - turning the setting off closes an open session window
 - SessionWindow:PruneMissing drops rows deleted from the ledger
 - a purge empties the session view
+- a LedgerChanged under a simulator keeps the session rows that live in the sim log
+- under test mode PruneMissing still walks the real ledger
 - SessionWindow:TogglePreview shows placeholder rows through the real render path
 - SessionWindow:TogglePreview refuses to overwrite a real session
 - a preview session is never pruned against the live ledger
@@ -592,6 +631,8 @@ Total.
 - the session window's grip sizes from BOTTOMRIGHT and saves geometry on release
 - the session window is resizable with its floor as the minimum bound
 - a size change outside the grip writes no geometry
+- SessionWindow: a simulation's visit shows the strip under the title bar and moves the rows
+- SessionWindow: test mode puts no strip on the session window
 
 ### test_insights.lua (79)
 
@@ -821,7 +862,7 @@ Total.
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (53)
+### test_slash.lua (56)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -876,6 +917,9 @@ Total.
 - Slash: every chat line carries the cyan [BL] tag
 - Slash: /bl list groups in schema declaration order, matching the panel
 - Slash: /bl version and the help header report the same version
+- Slash: the sim row sits just before help, and its description points at /bl sim
+- Slash: /bl sim alone prints the status and the usage, and opens the step panel
+- Slash: every /bl sim word reaches NS.Sim:RunVerb with the rest of the line
 
 ### test_bus.lua (10)
 
@@ -1032,7 +1076,7 @@ Total.
 - LibKa0s-Media: the addon's own media/fonts/ is gone from disk
 - LibKa0s-Media: the font name this addon stores is a key of the library's FONTS
 - LibKa0s-Media: this addon no longer registers the face with LibSharedMedia itself
-- LibKa0s-Media: every name the library ships has a file in the vendored copy
+- LibKa0s-Media: every name this addon draws is declared, and every declared name ships
 - LibKa0s-Media: every icon name this addon asks for is one the library ships
 - LibKa0s-Media: the seam loads BEFORE core/Constants.lua, which resolves the font from it
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
@@ -1124,7 +1168,7 @@ Total.
 - LibKa0s-DebugLog: the chat acknowledgment still carries the [BL] tag
 - LibKa0s-DebugLog: hiding the console repaints the settings panel
 - LibKa0s-Options: the descriptor tells the library the FOLDER name (LibKa0s#42)
-- LibKa0s-Options: the help-mark art the descriptor points at is vendored
+- LibKa0s-Options: `info` ships for the TestStrip, and no IdList here asks the library for it
 
 ### test_libka0s_slash.lua (23)
 
@@ -1164,9 +1208,10 @@ Total.
 - PoolSetup: a released object is reused rather than rebuilt
 - PoolSetup: a nested release empties both levels
 
-### test_itemsetup.lua (9)
+### test_itemsetup.lua (12)
 
 - ItemSetup: the seam is published
+- ItemSetup: BonusIDsFromLink is on the seam
 - ItemSetup: the primitives answer what the deleted shims answered
 - ItemSetup: ItemIDFromLink pulls the id out of a full item link
 - ItemSetup: ItemIDFromLink accepts a bare itemString
@@ -1175,6 +1220,8 @@ Total.
 - ItemSetup: this addon now HAS the color fallback it lacked
 - ItemSetup: the resolver did NOT move
 - ItemSetup: the moved shims are gone from Compat
+- ItemSetup degraded: BonusIDsFromLink answers what the library answers
+- ItemSetup degraded: the stub carries every member the live Item library exports
 
 ### test_lifecycle.lua (13)
 
@@ -1192,7 +1239,7 @@ Total.
 - NS.StandDown characterization: bare modules and no addon object raise nothing
 - NS.StandDown characterization: the postponed line needs logging on
 
-### test_disabled.lua (18)
+### test_disabled.lua (20)
 
 - disabled: the baseline is non-empty, and the disable empties the registration set
 - disabled: no timer, ticker or OnUpdate is left armed
@@ -1207,13 +1254,15 @@ Total.
 - disabled: /bl profile lists and switches, with no refusal (a host live verb)
 - disabled: every feature verb answers ONE refusal line and reaches no write seam
 - disabled: the launcher's LEFT click opens the panel, and the menu grays all but Enabled
+- disabled: the Show window KEY answers ONE refusal line, toggles nothing and writes nothing
 - disabled: the launcher's tooltip still shows, says Enabled: No, with the fixed hints
 - disabled: the launcher carries no host gate and no retired refusal field
 - disabled: re-enabling rebuilds the registration set, from the settings as they are NOW
 - disabled: releasing one hold does not stand up an addon the other still holds down
 - disabled: the `disabled` hold is taken at LOAD from the stored path
+- disabled: while stood down a simulation refuses with the disabled line, and Fire answers 0
 
-### test_surface_parity.lua (20)
+### test_surface_parity.lua (23)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
@@ -1235,6 +1284,9 @@ Total.
 - Slash stub DisabledLine format is the library's bytes
 - Slash stub: /bl version prints the live arm's bytes
 - Slash stub: an unknown verb is answered in the live arm's words
+- LibKa0s-Sim degraded: the session stub carries the whole live instance surface
+- LibKa0s-Sim degraded: the seam stub carries the live seam surface
+- LibKa0s-Sim degraded: nothing is wrapped and RunVerb prints the absent line once
 
 ### test_register.lua (1)
 
@@ -1251,7 +1303,7 @@ Total.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
-### test_diagnostics.lua (26)
+### test_diagnostics.lua (29)
 
 - diagnostics: the descriptor names the full brand in both markers
 - diagnostics: every DX-BL section runs, in order, without a failure line
@@ -1279,6 +1331,9 @@ Total.
 - diagnostics: the report turns logging on for the session and never turns it off
 - diagnostics: /bl debug tests `diagnostics` before its other words
 - diagnostics: the verb is one COMMANDS row, and no alias of it exists
+- diagnostics: idle, the state line says no simulation and the sim section only counts the seam
+- diagnostics: running, the sim section reports the scenario, the step, the character and the seam
+- diagnostics: /bl debug scan opens with the simulation header while one runs
 
 ### test_profiles.lua (47)
 
@@ -1330,7 +1385,7 @@ Total.
 - Profile verb: the current profile answers already-on, and switches nothing
 - Profile verb: a switch in combat is refused
 
-### test_debug_coverage.lua (17)
+### test_debug_coverage.lua (18)
 
 - debug: a stand-up writes the event record's one [State] line, and a stand-down none
 - debug: a stand-down inside the login prune window says the prune was postponed
@@ -1349,6 +1404,7 @@ Total.
 - debug: a pass that records a movement still writes its [Diff] and [Move] lines
 - debug: a pass that skips several movements writes one [Skip] line naming each
 - debug: the [Diff] gate starts fresh on every open
+- debug: a simulation writes [Sim] lines for a refusal, its start, each event, a guarded query and its stop
 
 ### test_debug_library.lua (10)
 
@@ -1362,6 +1418,116 @@ Total.
 - library lines: the Launcher's and the login's state lines land once, after [Init], on enable
 - library lines: a load in the disabled state says so once logging is on, and no edge line twice
 - library lines: the [Diff] change gate is the console's, re-armed by a Clear
+
+### test_sim_seam.lua (12)
+
+- Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its seam
+- Sim seam: Keys() is the 12 wrapped Compat members, sorted
+- Sim seam: the three pure members are not wrapped
+- Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract H2)
+- Sim seam: with no session, every wrapped member answers what the bare Compat answers
+- Sim seam: SetProvider on a pure key raises
+- Sim seam: a second SetProvider on one key raises; release with nil first
+- Sim seam: Live(fn) restores bypass when fn raises, and re-raises the same value
+- Sim seam: a guarded QueryGuildBankTab never reaches the client during a session
+- Sim seam: the guarded query is inert with no sim world and no session
+- TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
+- Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
+
+### test_sim_world.lua (16)
+
+- SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
+- SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
+- SimWorld: a guild tab answers nil until it is queried this visit, then its data
+- SimWorld: IsGuildBankVisible is strictly true or false, never nil
+- SimWorld: guild money is nil while the guild frame is hidden, set while visible
+- SimWorld: warband money answers the world's balance, and Money moves it
+- SimWorld: the purse follows `current` across Switch
+- SimWorld: main is the real player; after Switch the identity members answer the alt
+- SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept
+- SimWorld: an empty bag falls back to the fixed ids, warmed, and reports it once
+- SimWorld: an unguilded player's world invents the guild name
+- SimWorld: providers are registered for exactly seam:Keys() minus the guarded key
+- SimWorld: Build reads the real world only inside the seam's Live
+- SimWorld: Move edits the world only, with the touched ids; a short move changes nothing
+- SimWorld: an empty-built world still draws its pool, and no file names NS.db
+- SimWorld: during a session the wrapped Compat answers from the world, not the client
+
+### test_sim_drivers.lua (16)
+
+- SimDrivers: every event list is data, each row an event name and an optional payload token
+- SimDrivers: OpenBank and CloseBank fire the bank frame's two events and move nothing
+- SimDrivers: a BANK deposit moves bags to the bank tab and fires BAG_UPDATE per touched bag
+- SimDrivers: a BANK withdrawal is the deposit's mirror
+- SimDrivers: a WARBAND deposit with no lag fires the bag half, then the store half
+- SimDrivers: a lagged WARBAND deposit lands its store half on the session timer
+- SimDrivers: a WARBAND deposit with lag "never" withholds the store half for good
+- SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not
+- SimDrivers: a GUILD deposit and withdrawal move against tab 1 and end on the guild data event
+- SimDrivers: Money moves coin between the purse and a store; Spend takes it from the purse alone
+- SimDrivers: Loot adds to the bags alone and fires BAG_UPDATE(0), BAG_UPDATE_DELAYED
+- SimDrivers: OpenGuild shows the simulated frame, starts a fresh visit, then fires its pseudo-event
+- SimDrivers: GuildDataAway changes a tab with the frame hidden and fires only the data event
+- SimDrivers: Switch closes an open frame first and fires no PLAYER_ENTERING_WORLD
+- SimDrivers: "bonus" names the pool item whose link carries bonus ids
+- SimDrivers: a move the world cannot make fires nothing and says why
+
+### test_sim_session.lua (19)
+
+- Sim session: a real bank frame open refuses, by its context or a live guild frame
+- Sim session: test mode, combat and General visibility each refuse with their own line
+- Sim session: the refusals apply in order: test mode, combat, a real bank, visibility
+- Sim session: stood down, Start refuses with the dispatcher's disabled line before anything else
+- Sim session: a second Start while one runs is the library's 'already running'
+- Sim session: a start prints the host's no-save line, builds the world and swaps the dataset
+- Sim session: the step delay is 1.5 s, raised to a step's settle
+- Sim session: the bank scenario records 2 deposits and 1 withdrawal into the session log
+- Sim session: the guarded QueryGuildBankTab never reaches the client during a session
+- Sim session: a REAL bank open stops it first, and the real open snapshots the real world
+- Sim session: a real guild frame showing stops it too
+- Sim session: real change events do not stop it
+- Sim session: combat stops it with its own line
+- Sim session: the stand-down stops it as its FIRST step, while the simulated context is armed
+- Sim session: a profile reset leaves it running (OWNER_SCOPE C.13)
+- Sim session: the stop drops the context with the seam on, cancels the debounce and never reconciles
+- Sim session: test mode refuses to start while a simulation runs
+- Sim session: purge refuses through Database:Purge, the verb and the panel button
+- Sim session: a purge confirm accepted after a simulation started refuses and never says purged
+
+### test_sim_scenario.lua (8)
+
+- Sim scenarios: bank, warband, guild and onesided, in that order, each with a label
+- Sim scenarios: every timeline is pure: two builds are equal and fresh, and touch nothing
+- Sim scenarios: each scenario's step count, kinds and labels
+- Sim scenarios: the driver arguments the expected rows rest on
+- Sim gate: open when settled; closed on a lagged half, a held baseline or a pending pass
+- Sim gate: holdOK on the next step opens it over a live hold, never over a lagged half
+- Sim gate: a typed step answers 'settling' while it is closed, and plays once it opens
+- Sim gate: each played step stamps rowsBefore, and Host.Recorded counts its rows
+
+### test_sim_e2e.lua (6)
+
+- Sim e2e: bank records 3 BANK rows, the bonus link kept, with the saved ledger untouched
+- Sim e2e: warband records main's 2 deposits and the alt's 2 withdrawals through a held baseline
+- Sim e2e: guild records 3 GUILD_BANK rows stamped with the guild
+- Sim e2e: guild data while away arms no context and records nothing (issue #12)
+- Sim e2e: onesided records 0 rows and the close drops the held change
+- Sim e2e: Restart plays every scenario again from the start, to the same end
+
+### test_sim_panel.lua (12)
+
+- sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
+- sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
+- sim panel: running, a move names the REAL item, and the rows take the running states
+- sim panel: a step's tooltip says what it moves, the lagged half, and the events it fires
+- sim panel: a played move's label and tooltip count the rows the engine recorded
+- sim panel: a start opens it beside the ledger window, which the start also opens
+- sim panel: with the ledger window shut it floats rather than docking beside a hidden frame
+- sim panel: a typed step repaints the shown panel
+- sim panel: clicking a done row does nothing; clicking the next row plays it
+- sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
+- sim panel: no schema row and no default hold its position
+- sim panel: a stand-down stop hides it
 
 ### test_eol.lua (2)
 
@@ -1430,26 +1596,26 @@ Total.
 | Suite | Cases |
 |-------|------:|
 | test_util.lua | 38 |
-| test_compat.lua | 13 |
+| test_compat.lua | 17 |
 | test_constants.lua | 21 |
 | test_filters.lua | 13 |
-| test_ledger.lua | 76 |
+| test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 26 |
-| test_database.lua | 51 |
+| test_database.lua | 56 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 63 |
-| test_browser.lua | 57 |
+| test_ledgertable.lua | 64 |
+| test_browser.lua | 71 |
 | test_autocomplete.lua | 17 |
-| test_launcher.lua | 37 |
-| test_sessionwindow.lua | 35 |
+| test_launcher.lua | 44 |
+| test_sessionwindow.lua | 39 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
 | test_schema.lua | 53 |
 | test_schema_runtime.lua | 18 |
-| test_slash.lua | 53 |
+| test_slash.lua | 56 |
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
 | test_panel_filters.lua | 40 |
@@ -1463,21 +1629,28 @@ Total.
 | test_libka0s_slash.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_poolsetup.lua | 3 |
-| test_itemsetup.lua | 9 |
+| test_itemsetup.lua | 12 |
 | test_lifecycle.lua | 13 |
-| test_disabled.lua | 18 |
-| test_surface_parity.lua | 20 |
+| test_disabled.lua | 20 |
+| test_surface_parity.lua | 23 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
-| test_diagnostics.lua | 26 |
+| test_diagnostics.lua | 29 |
 | test_profiles.lua | 47 |
-| test_debug_coverage.lua | 17 |
+| test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
+| test_sim_seam.lua | 12 |
+| test_sim_world.lua | 16 |
+| test_sim_drivers.lua | 16 |
+| test_sim_session.lua | 19 |
+| test_sim_scenario.lua | 8 |
+| test_sim_e2e.lua | 6 |
+| test_sim_panel.lua | 12 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1266** |
+| **Total** | **1411** |

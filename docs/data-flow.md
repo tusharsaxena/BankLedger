@@ -78,7 +78,48 @@ warband movement, because no event announces one.
 | `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
 | `GUILDBANKBAGSLOTS_CHANGED` | Schedules the same debounced pass. It also **arms** the guild-bank context, but only when the guild-bank window reports itself explicitly visible — data alone is not proof of a visit, see below |
 | `ADDON_LOADED` | Installs `GuildBankFrame`'s `OnShow`/`OnHide` hooks when the load-on-demand `Blizzard_GuildBankUI` arrives. Those hooks are the guild bank's open and close — see below |
+| `GUILDBANK_FRAME_SHOWN` *(pseudo-event)* | Never registered with the client: `GuildBankFrame`'s `OnShow` hook dispatches it. Arms the guild-bank context unless another frame's context is open |
+| `GUILDBANK_FRAME_HIDDEN` *(pseudo-event)* | Never registered with the client: `GuildBankFrame`'s `OnHide` hook dispatches it. Final reconcile and disarm, for the guild bank's own context only |
 | `PLAYER_LOGOUT` | Flush each window's geometry to SavedVariables (`modules/Browser.lua`, `modules/SessionWindow.lua`) |
+
+Every capture row above, `BANKFRAME_OPENED` through the two pseudo-events, is one entry of
+`Ledger.HANDLERS`, and all of them run through one entry point, `Ledger:Dispatch(event, ...)`. The
+seven client events are registered as `function(e, ...) Ledger:Dispatch(e, ...) end`, and the two
+guild-bank hooks dispatch their pseudo-events after their stand-down check. `Dispatch` answers `0`
+while the Ledger is not enabled or for an event with no handler, and `1` after running the handler.
+It is the one call a simulator delivers through.
+
+#### Where a movement is written
+
+`Database:Add` appends to the **write sink**, `Database:Sink()`: the saved `db.global.ledger`, or, while
+a simulator runs, the session-only `NS.State.simLog`, which is never saved (each row stamped
+`sim = true`). Nothing else on the capture path writes. The read path (`Database:ActiveLedger`) puts
+sim ahead of the `/bl test` sample ahead of the live ledger, and `Database:DatasetKind()` names which
+one is on screen. The session window follows the sink, not the read path: `SW:PruneMissing` keeps a
+session row while it is still in `Database:Sink()`, so a test-mode sample on screen never prunes a
+real visit's rows, and a simulated visit's rows survive a `LedgerChanged`.
+
+#### A simulated visit
+
+The simulator (BankLedger#24) feeds this same pipeline from the other end. A scenario step
+(`modules/SimScenario.lua`) is one **driver** call (`modules/SimDrivers.lua`): the driver edits the
+simulated world (`modules/SimWorld.lua`) and then fires the client's events for that action through
+`NS.Sim:Fire`, which delivers them to `Ledger:Dispatch` exactly as a client registration does. From
+there the **real engine** runs unchanged: the snapshot reads `NS.Compat`, whose members the seam
+(`core/SimSetup.lua`) answers from the simulated world; the debounce, the held baseline and the
+capture gate decide every row; nothing in the simulator writes one. Each row the engine records goes
+to the **sink**, which during a session is `NS.State.simLog`, so it reaches the ledger window and the
+session window and never `db.global.ledger`. The host's gate (`modules/Sim.lua`) holds the next step
+until the engine has settled (no lagged half to land, no held baseline, no pending pass), so a typed
+`step`, `run` and the panel's click-ahead each wait for the real engine rather than racing it.
+
+A stop runs in two phases. While the seam still answers, `Ledger:DropContext()` drops the simulated
+context, its pending pass and its settle window with **no** final `Reconcile`; then, with the seam
+off, the session log is released and the window reads the saved ledger again. A real bank or
+guild-bank frame opening or closing stops the session inside `Ledger:Dispatch`, before the real
+handler runs, so the real visit's baseline is the real world. The real `BAG_UPDATE_DELAYED`,
+`PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED` do not stop it: with a simulated frame open they
+only cue a re-diff of the simulated world.
 
 The addon asks for no event Midnight has retired. That is not a standing guarantee — Blizzard
 retires names between expansions, and modern retail **raises** on an unknown one rather than
@@ -113,10 +154,11 @@ The guild bank is the one store with **no usable open event, and no usable close
 and `GUILDBANKFRAME_CLOSED` is the same story, so neither is registered. Both ends therefore hang
 off the frame's own scripts:
 
-- **`GuildBankFrame`'s own `OnShow`** (`Ledger:HookGuildBankFrame`) is the open path. It fires when
+- **`GuildBankFrame`'s own `OnShow`** (`Ledger:HookGuildBankFrame`, dispatching
+  `GUILDBANK_FRAME_SHOWN`) is the open path. It fires when
   the player is demonstrably looking at the vault, which is exactly when the baseline wants taking,
   and it never steals the context from an already-open bank frame.
-- **`GuildBankFrame`'s own `OnHide`** is the close path. It is the one notice the client gives, and
+- **`GuildBankFrame`'s own `OnHide`** (dispatching `GUILDBANK_FRAME_HIDDEN`) is the close path. It is the one notice the client gives, and
   it has to be a hook rather than a check inside `Reconcile`, because closing the window changes no
   container and moves no money — so no event fires and no reconcile pass runs. The hook only ends
   the guild bank's *own* context (the frame also hides whenever it is simply not the panel on

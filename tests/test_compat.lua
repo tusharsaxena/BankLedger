@@ -84,3 +84,63 @@ test("Compat.GetStoreMoney returns nil when the build exposes no reader", functi
   assertEqual(NS.Compat.GetStoreMoney("GUILD_BANK"), nil)
   mocks.C_Bank, mocks.GetGuildBankMoney = savedBank, savedGuild
 end)
+
+-- ── Player identity ────────────────────────────────────────────────────────────
+-- Every client read a simulator must be able to answer goes through a Compat member read at call
+-- time (Sim host contract H1): a row's `char` and `classFile` are identity, so they come from here.
+
+test("Compat.PlayerName answers the name and the normalized realm, whitespace stripped", function()
+  local savedName, savedNorm = mocks.UnitName, mocks.GetNormalizedRealmName
+  mocks.UnitName = function() return "Ka0s" end
+  mocks.GetNormalizedRealmName = function() return "Argent Dawn" end
+  local name, realm = NS.Compat.PlayerName()
+  mocks.UnitName, mocks.GetNormalizedRealmName = savedName, savedNorm
+  assertEqual(name, "Ka0s")
+  assertEqual(realm, "ArgentDawn")
+end)
+
+test("Compat.PlayerName falls back to GetRealmName, then to 'Unknown'", function()
+  local savedName, savedNorm, savedRealm =
+    mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName
+  mocks.GetNormalizedRealmName = nil
+  mocks.GetRealmName = function() return "Twisting Nether" end
+  local _, realm = NS.Compat.PlayerName()
+  assertEqual(realm, "TwistingNether")
+  mocks.GetRealmName = nil
+  mocks.UnitName = function() return nil end
+  local name, realm2 = NS.Compat.PlayerName()
+  mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName =
+    savedName, savedNorm, savedRealm
+  assertEqual(name, "Unknown")
+  assertEqual(realm2, "Unknown")
+end)
+
+test("Compat.PlayerClass answers the classFile, read at call time", function()
+  assertEqual(NS.Compat.PlayerClass(), "MAGE")
+  local saved = mocks.UnitClass
+  mocks.UnitClass = function() return "Priest", "PRIEST", 5 end
+  local classFile = NS.Compat.PlayerClass()
+  mocks.UnitClass = saved
+  assertEqual(classFile, "PRIEST")
+end)
+
+test("compat boundary: no player identity read outside core/Compat.lua", function()
+  -- Browser's close-button tint reads the class directly at build: it is cosmetic, never stored,
+  -- and no simulator has to answer it.
+  local allowed = { ["core/Compat.lua"] = true, ["modules/Browser.lua"] = true }
+  local offenders = {}
+  for _, path in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
+    local top = path:match("^(%a+)/")
+    if (top == "core" or top == "modules" or top == "settings") and not allowed[path] then
+      local f = io.open(path, "rb")
+      if f then
+        local src = f:read("*a")
+        f:close()
+        if src:find('UnitName("player")', 1, true) or src:find('UnitClass("player")', 1, true) then
+          offenders[#offenders + 1] = path
+        end
+      end
+    end
+  end
+  assertEqual(table.concat(offenders, ", "), "")
+end)

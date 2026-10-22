@@ -95,11 +95,23 @@ Between a library release and the re-vendor that carries it they disagree, and t
 the normal state rather than a defect — re-vendoring to quiet it would be the actual mistake, since
 it would pull an untested library release for the sake of a clean diff.
 
-It was **not** the state on 2026-10-07, at the v1.71.0 re-vendor. `../LibKa0s` sat on **v1.71.0**,
-[`CLAUDE.md`](../CLAUDE.md) named **v1.71.0**, and all four commands above came back empty, because
-this addon had taken the newest tag the library had published. The next library release puts the
-two back out of step, and the working-tree diffs stay non-empty until the re-vendor that carries it
-lands.
+From the v1.75.0 re-vendor (2026-10-22) the library diffs are never empty, even at the same tag:
+`libs/LibKa0s/media/icons/` ships only the icons the `LibKa0s icons:` line in
+[`CLAUDE.md`](../CLAUDE.md) declares, so every undeclared icon reads as an
+`Only in ../LibKa0s/LibKa0s/media/icons` line. Those lines are the declaration working, not a fork.
+Anything else in the library diffs, and anything at all in the kit diffs, is still drift.
+
+The re-vendor recipe, in this order (the `/dev-copilot:wow-revendor-libka0s` command runs it):
+
+1. Extract the tag to scratch: `git -C ../LibKa0s archive <tag> LibKa0s testkit tools | tar -x -C <scratch>`.
+2. Copy both payloads whole: `cp -r <scratch>/LibKa0s/. libs/LibKa0s/` and
+   `cp -r <scratch>/testkit/. tests/_kit/`. Delete only the `Only in libs/...` files the diffs name.
+3. Both content diffs against `<scratch>` must be empty **before** the prune.
+4. Roll the provenance line in `CLAUDE.md`, and keep the `LibKa0s icons:` declaration as the next
+   non-blank line under it. A new mark is added there first.
+5. Prune with the tag's own tool: `lua <scratch>/tools/prune-icons.lua <this repo's path>`. It
+   prints every path it removes and refuses an unknown name. Never hand-delete icons.
+6. Regenerate `docs/test-cases.md`, then run the green gate.
 
 **The authoritative comparison is against the tag `CLAUDE.md` names**, and that one must be empty at
 every commit:
@@ -226,10 +238,15 @@ tests/
                            --   --list renderer (kit revision 38)
     secrets.lua            --   the shared secret-value simulator (Kit.secret, Kit.installSecretValue);
                            --   opt-in, unused here so far (kit revision 38)
+    latch.lua              --   Kit.assertLatchHoldOrder, the step-10 two-holds helper; opt-in, unused
+                           --   here so far (kit revision 39)
     loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
-    vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua
-    run-automated-tests.sh --   the consolidated four-suite runner and bundle writer
+    vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua;
+                           --   since kit revision 40 it holds media/icons/ to CLAUDE.md's
+                           --   `LibKa0s icons:` declaration (declared == shipped)
+    run-automated-tests.sh --   the consolidated four-suite runner and bundle writer; a lizard raise is
+                           --   its own `crashed` complexity bucket, never a pass (kit revision 41)
     lizard_sighted.lua     --   the sanitized shadow the complexity suite measures, and its parity
                            --   check (kit revision 35; wired as the test_lizard_sighted gate)
     README.md

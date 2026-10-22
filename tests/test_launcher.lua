@@ -803,6 +803,88 @@ test("Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
   S:Set("settings.enabled", saved)
 end)
 
+-- ── The Show window key binding (launcher-§6) ────────────────────────────────────────────────
+--
+-- A key reaches the ledger without the minimap, a broker display or a slash verb. The binding is a
+-- CLICK binding on a plain hidden button whose OnClick runs the SAME handler the menu's Show window
+-- entry and `/bl toggle` run, so the three surfaces cannot drift. The disabled half lives in
+-- tests/test_disabled.lua step 8.
+
+local TOGGLE_BUTTON = "BankLedgerToggleWindow"
+local BINDING_NAME  = "CLICK " .. TOGGLE_BUTTON .. ":LeftButton"
+
+test("Key binding: Bindings.xml declares ONE click binding, under the header, with no default key",
+function()
+  -- red under: a `default=` key (it collides with somebody's binding), Lua in the element, a second
+  -- binding, or a header/category the client files elsewhere.
+  local xml = readSource("Bindings.xml"):gsub("\r", "")
+  local bindings = {}
+  for attrs in xml:gmatch("<Binding%s([^>]*)>") do bindings[#bindings + 1] = attrs end
+  assertEqual(#bindings, 1, "exactly one <Binding>")
+  local attrs = bindings[1]
+  assertEqual(attrs:match('name="([^"]*)"'), BINDING_NAME)
+  assertEqual(attrs:match('header="([^"]*)"'), "BANKLEDGER")
+  assertEqual(attrs:match('category="([^"]*)"'), "ADDONS")
+  assertEqual(xml:find("default=", 1, true), nil, "Bindings.xml must not carry a default key")
+  assertTrue(attrs:match("/%s*$") ~= nil, "the <Binding> is self-closing: no Lua body")
+end)
+
+test("Key binding: the TOC does not list Bindings.xml (the client reads it from the root by name)",
+function()
+  assertEqual(readSource("BankLedger.toc"):find("Bindings", 1, true), nil,
+    "listing Bindings.xml in the TOC loads it as a UI file, which it is not")
+end)
+
+test("Key binding: the button is a plain, named, hidden, NON-secure Button registered AnyDown",
+function()
+  -- red under: a SecureActionButtonTemplate (combat rules the window does not have), a button left
+  -- shown, or RegisterForClicks("AnyUp") (no press reaches it on a key-down binding).
+  local b = mocks[TOGGLE_BUTTON]
+  assertTrue(type(b) == "table", "no global " .. TOGGLE_BUTTON .. " button")
+  assertEqual(b.__frameType, "Button")
+  assertEqual(b.__name, TOGGLE_BUTTON)
+  assertEqual(b.__parent, mocks.UIParent)
+  assertEqual(b.__template, nil, "the button inherits no template, secure or otherwise")
+  assertFalse(b:IsShown(), "the button is hidden")
+  assertEqual(table.concat(b.__clicks or {}, ","), "AnyDown")
+  assertTrue(type(b:GetScript("OnClick")) == "function", "the button has no OnClick")
+end)
+
+test("Key binding: the header is the brand name and the action label comes through L", function()
+  assertEqual(_G.BINDING_HEADER_BANKLEDGER, NS.BRAND_NAME)
+  assertEqual(NS.BRAND_NAME, "Ka0s Bank Ledger")
+  assertEqual(rawget(_G, "BINDING_NAME_" .. BINDING_NAME), NS.L["Toggle the ledger window"])
+  assertEqual(rawget(_G, "BINDING_NAME_" .. BINDING_NAME), "Toggle the ledger window")
+end)
+
+test("Key binding: a press runs the SAME handler /bl toggle and the Show window entry run", function()
+  -- One spy across all three surfaces: a key that grew a second handler goes red here.
+  local b = mocks[TOGGLE_BUTTON]
+  local calls = spyOn(NS.Browser, "Toggle", function()
+    NS.Slash:OnSlash("toggle")
+    openMenu():Click("Show window")
+    b:Click("LeftButton")
+  end)
+  assertEqual(#calls, 3, "/bl toggle, the menu entry and the key reach B:Toggle once each")
+end)
+
+test("Key binding: one press opens the ledger window, the next closes it", function()
+  -- red under: RegisterForClicks("AnyDown", "AnyUp") wired as two toggles per press, or an OnClick
+  -- that reaches anything but B:Toggle.
+  local b = mocks[TOGGLE_BUTTON]
+  local B = NS.Browser
+  if B:GetWindow() and B:GetWindow():IsShown() then B:Hide() end
+  local ok, err = pcall(function()
+    local out = captureChat(function() b:Click("LeftButton") end)
+    assertEqual(#out, 0, "an enabled press printed: " .. table.concat(out, "\n"))
+    assertTrue(B:GetWindow() ~= nil and B:GetWindow():IsShown(), "the first press opens the window")
+    b:Click("LeftButton")
+    assertFalse(B:GetWindow():IsShown(), "the second press closes it")
+  end)
+  if B:GetWindow() and B:GetWindow():IsShown() then B:Hide() end
+  if not ok then error(err, 0) end
+end)
+
 -- ── The degraded arm ─────────────────────────────────────────────────────────────────────────
 
 test("LibKa0s-Launcher degraded: the stub answers every member the addon reaches", function()
@@ -815,7 +897,7 @@ test("LibKa0s-Launcher degraded: the stub answers every member the addon reaches
   -- store. The Master-controls row that normally drives it is composed by LibKa0s-Options and is
   -- therefore absent on this same arm.
   local Env = dofile("tests/degraded_env.lua")
-  local ns = Env.loadDegraded()
+  local ns, dm = Env.loadDegraded()
 
   assertTrue(type(ns.Launcher) == "table", "the seam must publish a stub, not nil")
   assertTrue(ns.Launcher.__degraded == true)
@@ -834,4 +916,23 @@ test("LibKa0s-Launcher degraded: the stub answers every member the addon reaches
   assertTrue(ok, "the degradation stub raised: " .. tostring(err))
 
   assertEqual(ns.LOGO_ICON, NS.LOGO_ICON, "the icon path is spelled before the library gate")
+
+  -- The key binding does not depend on the launcher library (launcher-§6), so the button is built
+  -- before the stub's early return and a degraded install still answers the player's key.
+  local b = dm.BankLedgerToggleWindow
+  assertTrue(type(b) == "table", "the degraded arm built no key-binding button")
+  assertFalse(b:IsShown(), "the degraded arm's button is hidden too")
+  assertTrue(type(b:GetScript("OnClick")) == "function", "the degraded arm's button has no OnClick")
+end)
+
+test("Launcher: the simulator is slash-only, with no menu entry and no key binding (C.11)", function()
+  -- LibKa0s-Sim-1.0's host contract H7: `/bl sim` is the one way in.
+  local menu = openMenu()
+  for _, text in ipairs(menu:Texts()) do
+    assertFalse(text:lower():find("sim", 1, true) ~= nil, "a simulator entry in the menu: " .. text)
+  end
+  local fh = assert(io.open("Bindings.xml", "r"))
+  local xml = fh:read("*a")
+  fh:close()
+  assertFalse(xml:lower():find("sim", 1, true) ~= nil, "Bindings.xml declares a simulator binding")
 end)

@@ -29,6 +29,9 @@ State.debug = false         -- session-only logging flag, independent of the con
 State.testRecords = nil     -- session-only synthetic dataset published by /bl test; when set,
                             -- every read-path query (table + Insights) resolves against it instead
                             -- of the live ledger.
+State.simLog = nil          -- session-only simulator sink, NEVER saved: while set, Database:Add
+                            -- writes here instead of db.global.ledger (stamping `sim = true`) and
+                            -- the read path resolves against it ahead of testRecords (BankLedger#24).
 
 -- Which windows the General visibility rule (`settings.visibility`, options-ui-§15) took off
 -- screen, keyed by module name. Written only by NS.Util.ApplyVisibility, and the reason that rule

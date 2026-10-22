@@ -410,8 +410,13 @@ end)
 test("disabled: the CONTROL -- the write and print surveys really would catch a survivor", function()
   -- Step 6's silence is true of a correctly stood-down addon AND of a harness that has lost the
   -- ability to see a write or a line at all. This plants a survivor of exactly the shape §7 names --
-  -- a handler still on the addon table, reachable by the event's own name -- and proves both
-  -- surveys see it. Without this case, step 6 is asserting on its own silence.
+  -- a handler still on the addon table, reachable through the registration that named it -- and
+  -- proves both surveys see it. Without this case, step 6 is asserting on its own silence.
+  --
+  -- PLANTED ON THE METHOD THE REGISTRATION NAMED, OnCombatChanged (core/BankLedger.lua), not on a
+  -- method named for the event. From test-kit revision 39, M.__fireUnconditional reaches the
+  -- handler of the last registration (`__kitEver`) BEFORE the method named for the event, so a
+  -- survivor planted as NS.addon.PLAYER_REGEN_DISABLED is never the one it calls.
   --
   -- red under: the SavedVariables watch or the print capture going blind.
   baseline()
@@ -420,7 +425,8 @@ test("disabled: the CONTROL -- the write and print surveys really would catch a 
   mocks.__resetPrinted()
   local settings = NS.db.profile.settings
   local savedLocked = settings.locked
-  NS.addon.PLAYER_REGEN_DISABLED = function()
+  local realHandler = NS.addon.OnCombatChanged
+  NS.addon.OnCombatChanged = function()
     settings.locked = not settings.locked
     NS.Print("survivor")
   end
@@ -430,7 +436,7 @@ test("disabled: the CONTROL -- the write and print surveys really would catch a 
     assertTrue(#mocks.__svWrites() > 0, "the write survey did not see the survivor's write")
     assertTrue(#mocks.__printed() > 0, "the print survey did not see the survivor's line")
   end)
-  NS.addon.PLAYER_REGEN_DISABLED = nil
+  NS.addon.OnCombatChanged = realHandler
   settings.locked = savedLocked
   enable()
   if not ok then error(err, 0) end
@@ -441,7 +447,7 @@ end)
 -- NOT THE STAND-DOWN. Steps 1-6 are. A green case here says nothing about whether the addon is
 -- inert; it says the command surface still answers, which is the other half of the ruling.
 
-local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge" }
+local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge", "sim" }
 
 -- The live set is the library's reserved verbs (lib.LIVE_VERBS) plus the one host verb this addon
 -- widens it with, `profile` (Slash minor 17: the library leaves `profile` out of its own set and a
@@ -643,7 +649,7 @@ test("disabled: every feature verb answers ONE refusal line and reaches no write
   if not ok then error(err, 0) end
 end)
 
--- ── 8. The launcher ───────────────────────────────────────────────────────────
+-- ── 8. The launcher and the key binding ───────────────────────────────────────
 
 local menuMock = dofile("tests/menu_mock.lua")(mocks)
 
@@ -705,6 +711,44 @@ function()
   end)
   menuMock.remove()
   NS.Browser.Toggle, NS.LedgerTable.ToggleTestMode, NS.Panel.Open = savedToggle, savedTest, savedOpen
+  S:Set(ENABLED_PATH, saved)
+  if not ok then error(err, 0) end
+end)
+
+test("disabled: the Show window KEY answers ONE refusal line, toggles nothing and writes nothing",
+function()
+  -- slash-commands-§7 step 8, the key-binding half (launcher-§6). A key cannot be grayed the way
+  -- the menu entry is, and the button's OnClick runs the toggle verb's handler DIRECTLY, skipping
+  -- the dispatcher's gate, so it asks the refusal helper first and answers with the very line
+  -- `/bl toggle` answers with. A silent press is a finding (anti-pattern #96).
+  --
+  -- THE PERF-HOLD HALF OF STEP 8 IS NOT APPLICABLE HERE: this addon holds the performance-§12
+  -- no-combat-path exemption, registers no `perf` verb and never takes the `perf` hold
+  -- (core/LifecycleSetup.lua), so the disabled line is the only refusal by hold it can print.
+  --
+  -- red under: dropping the IsStoodDown check from the button's OnClick in core/LauncherSetup.lua
+  -- (the press reaches B:Toggle), or a host-spelled refusal (not the library's line).
+  local b = mocks.BankLedgerToggleWindow
+  assertTrue(type(b) == "table" and type(b:GetScript("OnClick")) == "function", "no binding button")
+  local saved = S:Get(ENABLED_PATH)
+  local toggles = 0
+  local savedToggle = NS.Browser.Toggle
+  NS.Browser.Toggle = function() toggles = toggles + 1 end
+  disable()
+  watchStore()
+  collectgarbage("collect")
+  local shownBefore = mocks.__shownFrames() -- held, compared by identity (see step 6)
+  local ok, err = pcall(function()
+    local out = captureChat(function() b:Click("LeftButton") end)
+    assertEqual(#out, 1, "the press must answer on exactly one line: " .. table.concat(out, "\n"))
+    assertTrue(isRefusal(out[1]), "not the collection's refusal line: " .. tostring(out[1]))
+    local verbOut = captureChat(function() NS.Slash:OnSlash("toggle") end)
+    assertEqual(out[1], verbOut[1], "the key and `/bl toggle` must answer with the same line")
+    assertEqual(toggles, 0, "the press reached B:Toggle while the addon was disabled")
+    assertEqual(#mocks.__svWrites(), 0, "the press wrote the stored tree of a disabled addon")
+    assertEqual(#newlyShown(shownBefore, mocks.__shownFrames()), 0, "the press put a frame on screen")
+  end)
+  NS.Browser.Toggle = savedToggle
   S:Set(ENABLED_PATH, saved)
   if not ok then error(err, 0) end
 end)
@@ -854,4 +898,22 @@ test("disabled: the `disabled` hold is taken at LOAD from the stored path", func
   assertTrue(NS.Launcher:Object() ~= nil, "the launcher must come up in EITHER state")
   enable()
   assertTrue(#registrations() > 0, "the addon did not come back after the load-time hold")
+end)
+
+test("disabled: while stood down a simulation refuses with the disabled line, and Fire answers 0", function()
+  -- red under: dropping the stood-down check from modules/Sim.lua's refusal (Sim-1.0 host contract
+  -- H5), or a Fire that delivers while the addon is down. BankLedger#24.
+  baseline()
+  disable()
+  local started, fired
+  local out = captureChat(function()
+    started = NS.Sim:Start{ scenario = "bank" }
+    fired = NS.Sim:Fire("BANKFRAME_OPENED")
+  end)
+  enable()
+  assertFalse(started, "a simulation started while stood down")
+  assertEqual(fired, 0, "Fire delivered while stood down")
+  assertTrue(#out >= 1 and out[1]:find(NS.Slash:DisabledLine(), 1, true) ~= nil,
+    "the refusal was not the disabled line: " .. table.concat(out, " || "))
+  assertEqual(NS.State.openContext, nil, "a stood-down Fire armed a context")
 end)

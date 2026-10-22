@@ -317,6 +317,75 @@ test("Database:ActiveLedger prefers the test dataset when one is published", fun
   end)
 end)
 
+-- ── The write sink and the dataset kinds (BankLedger#24, host contract H4) ─────
+-- A simulator run sets NS.State.simLog, and every write the capture path reaches lands there for
+-- the session instead of in SavedVariables. Run under a pcall so a failed assertion cannot leave
+-- the sink or the test dataset set for every later suite.
+local function withSim(simLog, testRecords, fn)
+  local savedSim, savedTest = NS.State.simLog, NS.State.testRecords
+  NS.State.simLog, NS.State.testRecords = simLog, testRecords
+  local ok, err = pcall(fn)
+  NS.State.simLog, NS.State.testRecords = savedSim, savedTest
+  if not ok then error(err, 0) end
+end
+
+test("Database:Add writes to the session sim log, never the saved ledger, while one is set", function()
+  local real = { entry({ itemName = "Real" }) }
+  withLedger(real, function()
+    local sim = {}
+    withSim(sim, nil, function()
+      assertTrue(NS.Database:Sink() == sim, "the sink is the sim log")
+      NS.Database:Add(entry({ itemName = "Simulated" }))
+      assertEqual(#sim, 1)
+      assertEqual(sim[1].sim, true, "a sim row is stamped")
+      assertEqual(#NS.db.global.ledger, 1, "the saved ledger is untouched")
+      assertEqual(NS.db.global.ledger[1].itemName, "Real")
+      assertEqual(NS.db.global.ledger[1].sim, nil)
+      assertEqual(NS.Database:Count(), 1, "Count reads the real ledger")
+      assertTrue(NS.Database:ActiveLedger() == sim, "the read path follows the sim log")
+    end)
+    assertTrue(NS.Database:Sink() == NS.db.global.ledger, "unset, the sink is the saved ledger")
+  end)
+end)
+
+test("Database:Add stamps nothing while no sim log is set", function()
+  withLedger({}, function()
+    withSim(nil, nil, function()
+      NS.Database:Add(entry())
+      assertEqual(NS.db.global.ledger[1].sim, nil)
+    end)
+  end)
+end)
+
+test("Database:ActiveLedger prefers the sim log over the test dataset", function()
+  withLedger({ entry() }, function()
+    local sim, sample = { entry() }, { entry(), entry() }
+    withSim(sim, sample, function()
+      assertTrue(NS.Database:ActiveLedger() == sim)
+    end)
+  end)
+end)
+
+test("Database:DatasetKind answers sim, test or live in that precedence", function()
+  withLedger({ entry() }, function()
+    withSim(nil, nil, function() assertEqual(NS.Database:DatasetKind(), "live") end)
+    withSim(nil, { entry() }, function() assertEqual(NS.Database:DatasetKind(), "test") end)
+    withSim({}, nil, function() assertEqual(NS.Database:DatasetKind(), "sim") end)
+    withSim({}, { entry() }, function() assertEqual(NS.Database:DatasetKind(), "sim") end)
+  end)
+end)
+
+test("Database:Purge with a sim log set still purges the real ledger only", function()
+  withLedger({ entry(), entry() }, function()
+    local sim = { entry({ sim = true }) }
+    withSim(sim, nil, function()
+      assertEqual(NS.Database:Purge(), 2)
+      assertEqual(#NS.db.global.ledger, 0)
+      assertEqual(#sim, 1, "the session sim log is not the purge's to clear")
+    end)
+  end)
+end)
+
 -- ── Migrations ─────────────────────────────────────────────────────────────────
 
 test("RunMigrations stamps a schema version onto a fresh database", function()

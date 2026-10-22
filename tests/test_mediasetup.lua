@@ -122,16 +122,39 @@ end)
 
 -- ── the catalog, against the vendored copy ───────────────────────────────────────────────────
 
-test("LibKa0s-Media: every name the library ships has a file in the vendored copy", function()
-  -- The library's own suite checks its catalog against its own directory. This checks the COPY: a
-  -- re-vendor that dropped a file, or a packaging step that filtered one out, leaves a catalog
-  -- naming art this build does not carry — and every path it answers still looks perfectly correct.
-  local missing = {}
-  for _, name in ipairs(Media.ICONS) do
-    local fh = io.open("libs/LibKa0s/media/icons/" .. name .. ".tga", "rb")
-    if fh then fh:close() else missing[#missing + 1] = name end
+test("LibKa0s-Media: every name this addon draws is declared, and every declared name ships", function()
+  -- From LibKa0s v1.75.0 the vendored copy ships only the icons CLAUDE.md's `LibKa0s icons:` line
+  -- declares (a re-vendor prunes media/icons to it), so a whole-catalog loop here is red by design.
+  -- This checks the COPY against the DECLARATION instead: every mark the host draws (NS.ICON_NAMES)
+  -- and every mark the library draws for it (close, copy, clear) is declared, and each declared
+  -- name's file opens. The declaration is read with the kit's own parser, never a second one here;
+  -- the kit's vendor_sync gate separately holds declared == shipped against the tag.
+  --
+  -- red under: a name added to NS.ICON_NAMES and not to the declaration, or a declared icon whose
+  -- .tga the prune or a packaging step removed.
+  local VendorSync = dofile("tests/_kit/vendor_sync.lua")
+  local fh = assert(io.open("CLAUDE.md", "rb"))
+  local doc = fh:read("*a")
+  fh:close()
+  local decl, err = VendorSync.iconDeclaration(doc)
+  assertTrue(err == nil, "CLAUDE.md's `LibKa0s icons:` line: " .. tostring(err))
+  assertTrue(decl ~= nil, "CLAUDE.md carries no `LibKa0s icons:` line")
+  assertEqual(decl.mode, "list")
+  local declared = {}
+  for _, name in ipairs(decl.names) do declared[name] = true end
+  local need, undeclared = {}, {}
+  for _, name in ipairs(NS.ICON_NAMES) do need[#need + 1] = name end
+  for _, name in ipairs({ "close", "copy", "clear" }) do need[#need + 1] = name end
+  for _, name in ipairs(need) do
+    if not declared[name] then undeclared[#undeclared + 1] = name end
   end
-  assertEqual(table.concat(missing, ", "), "")
+  assertEqual(table.concat(undeclared, ", "), "", "drawn but not declared")
+  local missing = {}
+  for _, name in ipairs(decl.names) do
+    local f = io.open("libs/LibKa0s/media/icons/" .. name .. ".tga", "rb")
+    if f then f:close() else missing[#missing + 1] = name end
+  end
+  assertEqual(table.concat(missing, ", "), "", "declared but not vendored")
 end)
 
 test("LibKa0s-Media: every icon name this addon asks for is one the library ships", function()

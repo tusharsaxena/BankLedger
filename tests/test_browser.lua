@@ -972,6 +972,114 @@ test("Browser: MakeDropdown still hands back a working dropdown with no LibKa0s 
     "the library falls back to Blizzard's own arrow — dd.arrow is a documented, host-readable field")
 end)
 
+-- ── The item-name search box: LibKa0s-Widgets-1.0's SearchBox (LibKa0s#52) ──────────────────
+--
+-- The box is the library's now, reached through B:MakeSearchBox beside the dropdown's seam. These
+-- cases read the PUBLISHED surface back (box.hint, box.icon, the five scripts the constructor sets,
+-- the text insets) and the host's own layout; the search, autocomplete and view cases elsewhere in
+-- this suite and in tests/test_autocomplete.lua are the unedited characterization of its behavior.
+
+local function spyOnSearchBox(fn)
+  local Widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  local real = Widgets.SearchBox
+  local seen
+  Widgets.SearchBox = function(parent, width, opts)
+    seen = { parent = parent, width = width, opts = opts }
+    return real(parent, width, opts)
+  end
+  local ok, err = pcall(fn)
+  Widgets.SearchBox = real
+  if not ok then error(err, 0) end
+  return seen
+end
+
+test("Browser: MakeSearchBox forwards to W.SearchBox with a COPY of the caller's opts", function()
+  local opts = { hint = "Find", icon = NS.Icon("search") }
+  local box
+  local seen = spyOnSearchBox(function() box = B:MakeSearchBox(mocks.UIParent, opts) end)
+  assertTrue(seen ~= nil, "MakeSearchBox never reached W.SearchBox")
+  assertTrue(seen.opts ~= opts, "the library was handed the caller's own table")
+  assertEqual(seen.opts.hint, "Find")
+  assertTrue(box ~= nil and box.hint ~= nil, "no library box came back")
+  assertEqual(box.hint:GetText(), "Find")
+end)
+
+test("Browser: the filter bar's search box is the library's, with the hint and the magnifier", function()
+  local Widgets = T.mocks.LibStub("LibKa0s-Widgets-1.0", true)
+  B:Show()
+  local box = B._search
+  assertTrue(box ~= nil and box.hint ~= nil, "the search box carries no library hint")
+  assertEqual(box.hint:GetText(), "Search items\226\128\166")
+  assertEqual(box.hint.__template, "GameFontDisableSmall")
+  -- A second library box, built with the same icon, answers the same skin values.
+  local ref = Widgets.SearchBox(mocks.UIParent, nil, { icon = NS.Icon("search") })
+  assertEqual(box.__h, ref.__h, "the search box's height is not the library's")
+  assertEqual(table.concat(box.__insets, ","), table.concat(ref.__insets, ","))
+  assertEqual(box.__insets[1], 21, "the typed text does not clear the magnifier")
+  local _, _, _, hintX = box.hint:GetPoint(1)
+  assertEqual(hintX, 21, "the hint does not clear the magnifier")
+  assertTrue(box.icon ~= nil, "the magnifier is missing")
+  assertEqual(box.icon.__texture, NS.Icon("search"))
+  B:Hide()
+end)
+
+test("Browser: the search box's border goes gold with the keys and back to gray without them", function()
+  B:Show()
+  local box = B._search
+  local last
+  box.SetBackdropBorderColor = function(_, r, g, b, a) last = { r, g, b, a } end
+  local ok, err = pcall(function()
+    box:__fire("OnEditFocusGained")
+    assertEqual(table.concat(last, ","), "1,0.82,0,0.9", "focus did not light the gold line")
+    box:__fire("OnEditFocusLost")
+    assertEqual(table.concat(last, ","), "0.24,0.24,0.27,0.9", "losing focus left the line gold")
+  end)
+  box.SetBackdropBorderColor = nil
+  B:Hide()
+  if not ok then error(err, 0) end
+end)
+
+test("Browser: the search box's RIGHT edge is pinned to the Character dropdown", function()
+  B:Show()
+  local box, char = B._search, B._dd and B._dd.char
+  assertTrue(char ~= nil, "no Character dropdown")
+  local p1, rel1, rp1, x1 = box:GetPoint(1)
+  assertEqual(p1 .. ">" .. rp1, "TOPLEFT>TOPRIGHT")
+  assertTrue(rel1 == B._dd.group, "the box's LEFT is not beside the Group dropdown")
+  assertEqual(x1, 8)
+  local found = false
+  for i = 1, #box.__points do
+    local p, rel, rp = box:GetPoint(i)
+    if p == "TOPRIGHT" and rel == char and rp == "TOPRIGHT" then found = true end
+  end
+  assertTrue(found, "the box's right edge is not pinned to the Character dropdown")
+  B:Hide()
+end)
+
+test("Browser: typing runs the library's hint, then the filter, then the Autocomplete hook", function()
+  B:Show()
+  local box = B._search
+  local realSuggest, asked = B.SuggestNames, nil
+  B.SuggestNames = function(text) asked = text; return {} end
+  local ok, err = pcall(function()
+    mocks.__timers = {}
+    box:SetText("li")
+    box:__fire("OnTextChanged", true)
+    mocks.__fireTimers()
+  end)
+  B.SuggestNames = realSuggest
+  local hintShown = box.hint:IsShown()
+  local text = B.activeFilter.text
+  B:SetSearchText("")
+  box:__fire("OnTextChanged", false)
+  mocks.__timers = {}
+  B:Hide()
+  if not ok then error(err, 0) end
+  assertFalse(hintShown, "the library's OnTextChanged did not hide the hint")
+  assertEqual(text, "li", "the host's onChange did not set the filter clause")
+  assertEqual(asked, "li", "the Autocomplete hook no longer runs after the library's handler")
+end)
+
 -- ── Degraded: LibKa0s-Widgets-1.0 absent ────────────────────────────────
 --
 -- Spec §10: seven controls that open nothing is a browser that looks broken, so the filter bar refuses
@@ -1012,6 +1120,166 @@ test("Browser: the window still opens and the ledger table still populates with 
     assertEqual(ns.LedgerTable.matchCount, 1, "the table underneath still queries and populates")
     ns.Browser:Hide()
   end)
+
+-- ── The test-mode strip: LibKa0s-Widgets-1.0's TestStrip (BankLedger#23, LibKa0s#48) ─────────
+--
+-- Test mode is marked twice: the red TEST MODE badge on the title (kept, its text now through L)
+-- and the library's amber strip directly under the filter bar. The library publishes the strip's
+-- HEIGHT and nothing about the body below it, so the host computes its own reserve
+-- (TEST_STRIP.HEIGHT + 2 * STRIP_GAP = 22) and shifts BOTH panes down by it while the strip shows.
+-- Each case runs in a FRESH environment: the window is a singleton built once, and the strip's
+-- constructor call is only observable while it is being built.
+
+local STRIP_TEXT = "TEST MODE: a sample ledger, not your bank. Combat ends it."
+local STRIP_RESERVE = 22
+
+local function loadFresh(withoutWidgets)
+  local m = T.makeMocks()
+  local ns = {}
+  local files = {}
+  for _, path in ipairs(T.libka0sFiles) do
+    if not (withoutWidgets and path == "libs/LibKa0s/Widgets.lua") then files[#files + 1] = path end
+  end
+  T.Loader.loadAll(files, ns, m)
+  T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  return ns, m
+end
+
+-- Spy on the constructor while the window is built: what it was handed, and what the host did to
+-- the strip it got back that the mock frame does not record (the mouse).
+local function showSpyingOnStrip(ns, m)
+  local Widgets = m.LibStub("LibKa0s-Widgets-1.0", true)
+  local real, seen = Widgets.TestStrip, { mouse = false }
+  Widgets.TestStrip = function(parent, opts)
+    seen.opts = opts
+    local s = real(parent, opts)
+    s.EnableMouse = function(_, v) seen.mouse = v end
+    return s
+  end
+  local ok, err = pcall(function() ns.Browser:Show() end)
+  Widgets.TestStrip = real
+  if not ok then error(err, 0) end
+  return seen
+end
+
+local function paneY(ns, name)
+  local pane = ns.Browser:GetWindow().panes[name]
+  local point, _, _, _, y = pane:GetPoint(1)
+  assertEqual(point, "TOPLEFT", name .. "'s first point is not its TOPLEFT")
+  local p2 = pane:GetPoint(2)
+  assertEqual(p2, "BOTTOMRIGHT", name .. "'s second point is not its BOTTOMRIGHT")
+  assertEqual(#pane.__points, 2, name .. " is not anchored by exactly TOPLEFT and BOTTOMRIGHT")
+  return y
+end
+
+test("Browser: test mode on shows the strip under the filter bar and shifts both panes by 22", function()
+  local ns, m = loadFresh()
+  local seen = showSpyingOnStrip(ns, m)
+  local f = ns.Browser:GetWindow()
+  local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  assertTrue(f.testStrip ~= nil, "the window built no test-mode strip")
+  assertFalse(f.testStrip:IsShown(), "the strip shows outside test mode")
+  assertTrue(seen.opts ~= nil, "the strip was not built through W.TestStrip")
+  assertTrue(seen.opts.icon ~= nil and seen.opts.icon == ns.Icon("info"),
+    "the strip's mark is not the info icon")
+
+  assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
+  assertTrue(f.testStrip:IsShown(), "the strip is hidden in test mode")
+  assertEqual(f.testStrip.text:GetText(), ns.L[STRIP_TEXT])
+  local p1, rel1, rp1, x1, y1 = f.testStrip:GetPoint(1)
+  local p2, rel2, rp2, x2, y2 = f.testStrip:GetPoint(2)
+  assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT")
+  assertEqual(p2 .. ">" .. rp2, "TOPRIGHT>BOTTOMRIGHT")
+  assertTrue(rel1 == f.filterHost and rel2 == f.filterHost, "the strip is not anchored to the filter bar")
+  assertEqual(x1 .. "," .. y1 .. "," .. x2 .. "," .. y2, "0,-2,0,-2")
+  assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "History did not move down by the reserve")
+  assertEqual(paneY(ns, "Insights"), baseI - STRIP_RESERVE, "Insights did not move down by the reserve")
+  assertTrue(f.testBadge:IsShown(), "the red badge went away beside the strip")
+  assertEqual(f.testBadge:GetText(), ns.L["TEST MODE"])
+  ns.LedgerTable:SetTestMode(false)
+end)
+
+test("Browser: test mode off hides the strip and the badge and puts both panes back", function()
+  local ns = loadFresh()
+  ns.Browser:Show()
+  local f = ns.Browser:GetWindow()
+  local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  ns.LedgerTable:SetTestMode(true)
+  assertFalse(ns.LedgerTable:SetTestMode(false), "test mode did not stop")
+  assertFalse(f.testStrip:IsShown(), "the strip outlived test mode")
+  assertFalse(f.testBadge:IsShown(), "the badge outlived test mode")
+  assertEqual(paneY(ns, "History"), baseH)
+  assertEqual(paneY(ns, "Insights"), baseI)
+end)
+
+test("Browser: opening the window while test mode is already on reserves the strip's space", function()
+  local ns = loadFresh()
+  ns.Browser:Show()
+  local f = ns.Browser:GetWindow()
+  local baseH = paneY(ns, "History")
+  ns.Browser:Hide()
+  -- On behind the window's back: the dataset flips without the window being told.
+  ns.State.testRecords = ns.LedgerTable:BuildTestData()
+  assertTrue(ns.LedgerTable:IsTestMode(), "the premise: test mode is on")
+  ns.Browser:Show()
+  assertTrue(f.testStrip:IsShown(), "B:Show did not show the strip")
+  assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "B:Show did not reserve the strip's space")
+  ns.State.testRecords = nil
+end)
+
+test("Browser: combat ending test mode hides the strip and restores the panes", function()
+  local ns = loadFresh()
+  ns.Browser:Show()
+  local f = ns.Browser:GetWindow()
+  local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  ns.LedgerTable:SetTestMode(true)
+  assertTrue(f.testStrip:IsShown(), "the premise: the strip is up")
+  ns.addon:OnCombatChanged("PLAYER_REGEN_DISABLED")
+  assertFalse(ns.LedgerTable:IsTestMode(), "combat did not end test mode")
+  assertFalse(f.testStrip:IsShown(), "the strip outlived the combat ending")
+  assertEqual(paneY(ns, "History"), baseH)
+  assertEqual(paneY(ns, "Insights"), baseI)
+end)
+
+test("Browser: with no Widgets library there is no strip and no shift, and the badge still shows",
+  function()
+    local ns, m = loadFresh(true)
+    assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded arm still has the library")
+    ns.Browser:Show()
+    local f = ns.Browser:GetWindow()
+    local baseH = paneY(ns, "History")
+    assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
+    T.assertNil(f.testStrip, "a strip was built without the library")
+    assertEqual(paneY(ns, "History"), baseH, "the panes moved for a strip that is not there")
+    assertTrue(f.testBadge:IsShown(), "the badge is the only marker left, and it is gone")
+    assertEqual(f.testBadge:GetText(), ns.L["TEST MODE"])
+    ns.LedgerTable:SetTestMode(false)
+  end)
+
+test("Browser: hovering the strip shows the test-mode tooltip, and leaving hides it", function()
+  local ns, m = loadFresh()
+  local seen = showSpyingOnStrip(ns, m)
+  local strip = ns.Browser:GetWindow().testStrip
+  assertTrue(seen.mouse == true, "the strip's mouse was not enabled, so it can never be hovered")
+  local lines, hidden = {}, false
+  m.GameTooltip = {
+    SetOwner = function() end, Show = function() end,
+    Hide = function() hidden = true end,
+    AddLine = function(_, text) lines[#lines + 1] = text end,
+  }
+  local ok, err = pcall(function()
+    strip:__fire("OnEnter")
+    strip:__fire("OnLeave")
+  end)
+  m.GameTooltip = nil
+  if not ok then error(err, 0) end
+  assertEqual(table.concat(lines, " | "), "Test mode | Shows: a sample ledger, not your bank"
+    .. " | Ended by: combat, /bl test, the launcher menu")
+  assertTrue(hidden, "OnLeave did not hide the tooltip")
+end)
 
 -- ── LibKa0s-Widgets-1.0 minor 4: a selection that outlives its option list ─────
 --
@@ -1101,3 +1369,47 @@ end)
 -- they describe, rather than being deleted: the question they ask is still a live one, it is just
 -- no longer asked of this module.
 
+
+-- ── The simulation marker (BankLedger#24, preview-mode; LibKa0s-Sim-1.0 host contract H8) ──────
+--
+-- While a simulation runs (Database:DatasetKind() == "sim") the same strip says so, naming the
+-- scenario, and the red TEST MODE badge stays hidden: it is test mode's alone. The strip comes and
+-- goes with the start and the stop. Runs in the shared environment, on the addon's own NS.Sim.
+
+do
+  local SS = dofile("tests/sim_support.lua")
+
+  test("Browser: a simulation shows the strip with its scenario line, and never the badge", function()
+    SS.withSession("warband", function()
+      local f = NS.Browser:GetWindow()
+      assertTrue(f.testStrip:IsShown(), "no marker while a simulation runs")
+      assertEqual(f.testStrip.text:GetText(),
+        NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Warband transfer"]))
+      assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
+    end)
+    local f = NS.Browser:GetWindow()
+    assertFalse(f.testStrip:IsShown(), "the marker outlived the simulation")
+    assertFalse(f.testBadge:IsShown())
+  end)
+
+  test("Browser: the strip's tooltip describes the simulation while one runs", function()
+    SS.withSession("bank", function()
+      assertEqual(table.concat(NS.Browser.StripTipLines(), " | "), "Simulation | Shows: a simulated bank"
+        .. " visit; nothing here is saved | Ended by: /bl sim stop, combat, a real bank window")
+    end)
+    assertEqual(NS.Browser.StripTipLines()[1], "Test mode", "the test lines are back once it stops")
+  end)
+
+  test("Browser: a stop repaints the strip through the session listener", function()
+    SS.withSession("bank", function(sim)
+      local f = NS.Browser:GetWindow()
+      local real, painted = NS.Browser.UpdateTestStrip, 0
+      NS.Browser.UpdateTestStrip = function(...) painted = painted + 1 return real(...) end
+      local ok, err = pcall(SS.chat, function() sim:Stop("stop") end)
+      NS.Browser.UpdateTestStrip = real
+      if not ok then error(err, 0) end
+      assertTrue(painted >= 2, "the stop's dataset swap and its listener each repaint: " .. painted)
+      assertFalse(f.testStrip:IsShown())
+    end)
+  end)
+end

@@ -841,11 +841,12 @@ end
 
 -- The row menu's entries, as plain data — no frames, so the enable rules are unit-testable.
 --
--- Every entry that WRITES is disabled while the sample dataset is on screen. The sample rows carry
+-- Every entry that WRITES is disabled while a synthetic dataset, test or sim (Database:DatasetKind),
+-- is on screen. The sample rows carry
 -- synthetic item ids (190001+) that exist nowhere but State, so blacklisting one used to put a fake
 -- id into the real, persisted capture filter, and Delete matched nothing in storage while still
 -- broadcasting LedgerChanged — the row visibly stayed (F-002). "Link to chat" mutates nothing and
--- stays available; refusing here is right, rather than teaching Database which dataset is live.
+-- stays available.
 --
 -- The two filter confirmations hand the printer their parts as arguments (events-frames-taint-§8)
 -- rather than one pre-formatted string. The label is addon-owned (the stored item name, or the id),
@@ -856,7 +857,8 @@ local function rowLabel(entry)
 end
 
 function LT:RowMenuItems(entry)
-  local live = not self:IsTestMode()
+  -- Any synthetic dataset, test or sim (Database:DatasetKind), refuses the mutating actions.
+  local live = NS.Database:DatasetKind() == "live"
   return {
     { label = "Link to chat", enabled = entry.itemLink ~= nil, fn = function()
         if entry.itemLink and ChatEdit_InsertLink then ChatEdit_InsertLink(entry.itemLink) end

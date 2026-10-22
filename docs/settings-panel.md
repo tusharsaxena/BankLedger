@@ -107,7 +107,7 @@ the library's `afterGroup` table instead:
 |---|---|---|
 | Master controls | `NS.Schema.masterTail` | The composer's own closing `InlineButtonPair` — **Reset position** and **Reset all settings** |
 | Capture | `renderStoreGrid` | The inverted per-store checkbox grid (`settings.excludedStores`, `skipRender`) |
-| History | `renderStorage` | The live storage read-out, then **Purge ledger…** alone |
+| History | `renderStorage` | The live storage read-out, then **Purge ledger…** alone; while a simulation runs its click is refused before the confirm opens (`Database:PurgeRefused`) |
 | Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, **Clear all** (a host button behind a confirm), and one `O.IdList` (`kind = "item"`, `removeStyle = "icon"` since LibKa0s v1.44.0 — each entry draws an X on the left in place of a right-hand Remove button; `columns = 2` since LibKa0s v1.47.0, a **maximum** the widget falls back from when the canvas is too narrow to pay for two, and the price of packing is that word wrap goes off and a long name loses its trailing id to truncation) whose add box takes an id, a link or a name. A name resolves through the client's lookup (items carried this session) or against `candidates = filterCandidates`: both lists' ids, then every item id the live ledger recorded, newest first, each once, read from `NS.Filters` and `NS.Database:Ledger()` with no new stored state. That list is memoized (`candidateMemo`) until the ledger or either list is a different table, the ledger's length moves (`Add` fires `EntryAdded`, not `LedgerChanged`), or any `LedgerChanged` bumps its version in the tab's listener; with no bus target the memo stays off. The library's dropdown lists matches as the player types, one row per crafted-quality rank that the bags or the candidates hold (there is no client name search, so a rank nothing here has seen is not listed). It refuses a name two of those ids share (candidates or bag items) until one is picked; a name with one known rank adds that rank. Its refusal ends with `ITEM_NAME_HINT` (`strings.nameHint`), which the box's tooltip repeats. Its add and Remove call `NS.Filters`' own writers through `filterWrite`, which holds the tab's `LedgerChanged` repaint off so one click redraws the page once, via `ctx.rebuild` (this page only) |
 
 The **group name is the hook key**, which is also why the Master controls group must keep exactly
@@ -175,7 +175,10 @@ frameless** and every frame-only row applies.
   are three of this block's rows plus the ledger window: *Enabled* runs `/bl enable|disable` (the
   *Enable* row's path), *Locked* runs `/bl set settings.locked` (the *Lock frame* row), *Test mode*
   runs `/bl test` (the *Test mode* row's switch), and *Show window* runs `/bl toggle`. While the addon
-  is disabled only *Enabled* is live.
+  is disabled only *Enabled* is live. Beside *Show window* sits its **key binding** (`launcher-§6`):
+  **Toggle the ledger window** under Key Bindings → AddOns → Ka0s Bank Ledger, with no default key,
+  which clicks a hidden button running that same `/bl toggle` handler and, while the addon is
+  disabled, answers with `/bl toggle`'s refusal line instead.
 - **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from

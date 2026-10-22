@@ -243,6 +243,43 @@ test("a purge empties the session view", function()
   NS.Ledger:CloseContext()
 end)
 
+-- PruneMissing walks the WRITE sink (Database:Sink), not the read path: under a simulator the
+-- session's rows live in the session sim log, and under test mode the read path is the sample
+-- while a real session still writes the real ledger.
+test("a LedgerChanged under a simulator keeps the session rows that live in the sim log", function()
+  reset()
+  local saved = NS.State.simLog
+  NS.State.simLog = {}
+  local ok, err = pcall(function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    NS.Database:Add(e({ itemName = "Simulated" }))
+    assertEqual(#SW:Entries(), 1)
+    NS.Database:FireLedgerChanged()
+    assertEqual(#SW:Entries(), 1, "a sim row is present in the sink and must survive")
+    NS.Ledger:CloseContext()
+  end)
+  NS.State.simLog = saved
+  if not ok then error(err, 0) end
+end)
+
+test("under test mode PruneMissing still walks the real ledger", function()
+  reset()
+  local saved = NS.State.testRecords
+  NS.State.testRecords = { e({ itemName = "Sample" }) }
+  local ok, err = pcall(function()
+    SW:StartSession("BANK_FRAME")
+    local real = e({ itemName = "Real" })
+    NS.db.global.ledger[1] = real
+    SW:OnEntryAdded(real)
+    assertEqual(SW:PruneMissing(), 0, "the real row is in the real ledger")
+    NS.db.global.ledger = {}
+    assertEqual(SW:PruneMissing(), 1, "and goes when the real ledger loses it")
+    SW:EndSession()
+  end)
+  NS.State.testRecords = saved
+  if not ok then error(err, 0) end
+end)
+
 -- ── Preview session (preview-mode) ─────────────────────────────────────────────
 
 test("SessionWindow:TogglePreview shows placeholder rows through the real render path", function()
@@ -499,3 +536,53 @@ test("a size change outside the grip writes no geometry", function()
     "Reset position left geometry behind")
   SW:Hide()
 end)
+
+-- ── The simulation strip (BankLedger#24, preview-mode; LibKa0s-Sim-1.0 host contract H8) ──────
+--
+-- The session window draws a simulation's rows, so it wears the ledger window's marker while one
+-- runs: its own W.TestStrip under the title bar, the same line, and the rows moved down by the
+-- strip's HEIGHT + 4. Both windows read Database:DatasetKind(). Test mode never marks this window.
+
+do
+  local SS = dofile("tests/sim_support.lua")
+
+  local function paneTop()
+    local point, _, _, _, y = SW.pane:GetPoint(1)
+    assertEqual(point, "TOPLEFT")
+    return y
+  end
+
+  test("SessionWindow: a simulation's visit shows the strip under the title bar and moves the rows",
+  function()
+    local base
+    SS.withSession("guild", function(sim)
+      SS.chat(function() sim:Step() end)   -- guild data while away: no session
+      SS.chat(function() sim:Step() end)   -- open the guild bank: the window opens
+      SS.drain()
+      local f = SW:GetWindow()
+      assertTrue(f ~= nil and f:IsShown(), "the session window did not open on the simulated visit")
+      local strip = f.testStrip
+      assertTrue(strip ~= nil and strip:IsShown(), "no simulation strip on the session window")
+      assertEqual(strip.text:GetText(),
+        NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Guild bank"]))
+      local p1, rel1, rp1 = strip:GetPoint(1)
+      assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT")
+      assertTrue(rel1 == f.titleBar, "the strip is not anchored under the title bar")
+      base = f._paneTop
+      assertEqual(paneTop(), -(base + 22), "the rows did not move down by HEIGHT + 4")
+    end)
+    local f = SW:GetWindow()
+    assertFalse(f.testStrip:IsShown(), "the strip outlived the simulation")
+    assertEqual(paneTop(), -base, "the rows did not move back")
+  end)
+
+  test("SessionWindow: test mode puts no strip on the session window", function()
+    NS.State.testRecords = {}
+    SW:UpdateTestStrip()
+    local f = SW:GetWindow()
+    local shown = f and f.testStrip and f.testStrip:IsShown()
+    NS.State.testRecords = nil
+    SW:UpdateTestStrip()
+    assertFalse(shown, "test mode marked the session window")
+  end)
+end

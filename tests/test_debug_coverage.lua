@@ -450,3 +450,24 @@ test("debug: the [Diff] gate starts fresh on every open", function()
   assertTrue(count >= 2, "each visit's first pass writes its line, got " .. count)
   assertFalse(NS.State.openContext ~= nil, "the fixture left a context armed")
 end)
+
+test("debug: a simulation writes [Sim] lines for a refusal, its start, each event, a guarded query and its stop", function()
+  -- red under: a descriptor with no `debug` sink, a refusal that does not name its guard, or a
+  -- guarded tab query that leaves no trace (BankLedger#24, Sim-1.0 host contract H8).
+  local Sim = dofile("tests/sim_support.lua")
+  local lines = debugLines(function()
+    Sim.withSession(nil, function()
+      NS.State.testRecords = {}
+      NS.Sim:Start{ scenario = "bank" }
+      NS.State.testRecords = nil
+      NS.Sim:Start{ scenario = "bank" }
+      NS.SimDrivers.OpenGuild()
+      NS.Sim:Stop("stop")
+    end)
+  end)
+  local sim = tagged(lines, "Sim")
+  for _, want in ipairs({ "start refused: test mode", "started bank", "world built", "event GUILDBANK_FRAME_SHOWN",
+                          "guarded QueryGuildBankTab(1)", "stopped (stop)" }) do
+    assertTrue(hasLine(sim, want), "no [Sim] line carrying '" .. want .. "': " .. table.concat(sim, " || "))
+  end
+end)

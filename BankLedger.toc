@@ -36,6 +36,8 @@ locales\PostLoad.lua
 
 # Core (Compat loads first)
 core\Compat.lua
+# LOAD-BEARING: wraps every NS.Compat member at load, before any file could read one (Sim-1.0 host contract H2).
+core\SimSetup.lua
 # The LibKa0s-Env seam. After Compat, whose three world/metadata shims it replaced, and before
 # every file that reads a version, a zone or a map id. Nothing here resolves at load beyond the
 # LibStub lookup, so unlike core\MediaSetup.lua below this position is conventional.
@@ -66,6 +68,9 @@ core\State.lua
 core\Util.lua
 core\BankLedger.lua
 core\Database.lua
+# Database:Stats and its helpers, peeled out of core\Database.lua (BL-07). Conventional: it only
+# extends NS.Database, and every caller reaches Stats at run time.
+core\DatabaseStats.lua
 # The LibKa0s-Pool seam. Before every module that pools a widget — InsightsWidgets, LedgerTable and
 # SessionWindow all take NS.Pool at call time, so this is conventional rather than load-bearing.
 core\PoolSetup.lua
@@ -84,6 +89,17 @@ modules\Ledger.lua
 # Ledger's /bl debug scan dump (L:Diagnose), peeled out of it (GI-BL-02). Conventional: reached at
 # run time through NS.Ledger.
 modules\Ledger_Diagnose.lua
+# The simulator's world model and its Compat answers (BankLedger#24). Conventional: it registers its
+# providers on NS.SimSeam (core/SimSetup.lua) at load and reads everything else at call time.
+modules\SimWorld.lua
+# The simulator's event drivers (BankLedger#24): world edits plus the client's event lists, as data.
+# Conventional: they reach NS.SimWorld and NS.Sim at call time.
+modules\SimDrivers.lua
+# The simulator's session host (Sim:New, refusals, the two-phase stop). Conventional: its descriptor
+# reaches the ledger, the browser and the drivers at call time, and its scenarios are filled in place
+# by modules\SimScenario.lua below, which the library reads at call time.
+modules\Sim.lua
+modules\SimScenario.lua
 # The login backfill (BankLedger#2). After Ledger, whose BuildEntry rule it follows; it reaches
 # NS.Compat, NS.Item and NS.Database at call time, so the position is conventional.
 modules\Backfill.lua
