@@ -358,3 +358,23 @@ test("Sim session: purge refuses through Database:Purge, the verb and the panel 
   assertTrue(S.deepEqual(NS.db.global.ledger, before), "the real ledger changed")
   assertEqual(NS.Database:Count(), count)
 end)
+
+test("Sim session: a purge confirm accepted after a simulation started refuses and never says purged", function()
+  -- The confirm is opened BEFORE the session (the verb refuses to open it during one), then
+  -- accepted during it: the OnAccept path is the one Database:Purge's own refusal backstops.
+  local before, count = S.copy(NS.db.global.ledger), NS.Database:Count()
+  local dialog = mocks.StaticPopupDialogs["KA0S_BANKLEDGER_PURGE"]
+  assertTrue(dialog and type(dialog.OnAccept) == "function", "the purge confirm is not registered")
+  S.withSession("bank", function()
+    local lines = S.chat(function() dialog.OnAccept() end)
+    local refusals, purged = 0, 0
+    for _, l in ipairs(lines) do
+      if l:find(L["Stop the simulation first."], 1, true) then refusals = refusals + 1 end
+      if l:find("ledger purged.", 1, true) then purged = purged + 1 end
+    end
+    assertEqual(refusals, 1, table.concat(lines, " || "))
+    assertEqual(purged, 0, "the confirm claimed a purge it did not make: " .. table.concat(lines, " || "))
+  end)
+  assertTrue(S.deepEqual(NS.db.global.ledger, before), "the real ledger changed")
+  assertEqual(NS.Database:Count(), count)
+end)

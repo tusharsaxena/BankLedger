@@ -1460,7 +1460,7 @@ Total.
 - SimDrivers: "bonus" names the pool item whose link carries bonus ids
 - SimDrivers: a move the world cannot make fires nothing and says why
 
-### test_sim_session.lua (18)
+### test_sim_session.lua (19)
 
 - Sim session: a real bank frame open refuses, by its context or a live guild frame
 - Sim session: test mode, combat and General visibility each refuse with their own line
@@ -1480,6 +1480,7 @@ Total.
 - Sim session: the stop drops the context with the seam on, cancels the debounce and never reconciles
 - Sim session: test mode refuses to start while a simulation runs
 - Sim session: purge refuses through Database:Purge, the verb and the panel button
+- Sim session: a purge confirm accepted after a simulation started refuses and never says purged
 
 ### test_eol.lua (2)
 
@@ -1595,11 +1596,11 @@ Total.
 | test_sim_seam.lua | 12 |
 | test_sim_world.lua | 16 |
 | test_sim_drivers.lua | 16 |
-| test_sim_session.lua | 18 |
+| test_sim_session.lua | 19 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1372** |
+| **Total** | **1373** |

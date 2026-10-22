@@ -10,7 +10,9 @@ if type(StaticPopupDialogs) == "table" then
     button1 = YES or "Yes",
     button2 = NO or "No",
     OnAccept = function()
-      if NS.Database and NS.Database.Purge then NS.Database:Purge() end
+      -- Purge answers false when a simulation started after this confirm opened; it has already
+      -- printed its refusal, so claiming a purge here would be false.
+      if not (NS.Database and NS.Database.Purge) or NS.Database:Purge() == false then return end
       print("ledger purged.")
     end,
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
