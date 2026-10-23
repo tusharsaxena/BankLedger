@@ -452,7 +452,7 @@ leaves its number unused.
   export writes the same names into its rows. Result: pass (owner-marked 2026-10-10)
 - **LEDG-20. Test mode.** `/bl test` → the window opens on a sample ledger with the amber test strip
   under the filter bar (no red TEST MODE badge; that is only the library-absent fallback,
-  DEGRADED-13) (procedure amended for one strip per mode, BL-10, 2026-10-23); filters, grouping, Insights and export all work on it. Result: pass (owner-marked 2026-10-23)
+  DEGRADED-13) (procedure amended for one strip per mode, BL-10, 2026-10-23); filters, grouping, Insights and export all work on it.
 - **LEDG-21. Test mode ignores the saved view.** With a view saved, `/bl test` → the sample opens
   unscoped and unfiltered. Leave test mode → the saved view is back, scoped to Current. Result: pass (owner-marked 2026-10-10)
 - **LEDG-22. The sample reads like a real bank.** In test mode → character-bank rows dominate, warband
@@ -464,11 +464,11 @@ leaves its number unused.
   Blacklist item, Whitelist item and Delete grayed out and click-inert. Then both filter lists on
   Filters are unchanged. Result: pass (owner-marked 2026-10-10)
 - **LEDG-24. Back to real data.** `/bl test` again → real data, strip gone (procedure amended for one strip per mode, BL-10, 2026-10-23). Right-click a real row →
-  all four entries live; Delete removes the row and the footer count drops. Result: pass (owner-marked 2026-10-10)
+  all four entries live; Delete removes the row and the footer count drops.
 - **LEDG-25. The Master controls box is the same switch.** Close the ledger, tick Test mode on Master
   controls → the ledger opens on the sample with the strip (procedure amended for one strip per mode, BL-10, 2026-10-23). Untick → real data, the window stays.
   `/bl test` with the panel open → the box ticks; again → unticks. The session window never changes
-  (its preview is `/bl session`'s). Result: pass (owner-marked 2026-10-10)
+  (its preview is `/bl session`'s).
 - **LEDG-26. A refused start leaves the box unticked.** General visibility Never, tick Test mode → one
   chat line saying General visibility keeps the window closed, and the box unticks. `/bl test` → the
   same answer, never `test mode on`. Set visibility back to Always. Result: pass (owner-marked 2026-10-10)
@@ -570,7 +570,7 @@ leaves its number unused.
 - **LEDG-52. The test-mode strip.** `/bl test` → an amber strip with the info mark reads "TEST MODE: a
   sample ledger, not your bank. Combat ends it." directly under the filter bar, the History table
   starts below it, and no red TEST MODE badge sits beside the title (procedure amended for one strip per mode, BL-10, 2026-10-23). **Fail:** the
-  strip overlapping the table's header, or the badge beside it. Added 2026-10-22 (BankLedger#23). Result: pass (owner-marked 2026-10-23)
+  strip overlapping the table's header, or the badge beside it. Added 2026-10-22 (BankLedger#23).
 - **LEDG-53. Insights makes the same room.** In test mode, switch to Insights → its content is shifted
   down by the same amount, clear of the strip. Added 2026-10-22 (BankLedger#23). Result: pass (owner-marked 2026-10-23)
 - **LEDG-54. Combat ends the strip.** In test mode, enter combat → test mode ends, the strip hides and
@@ -870,7 +870,6 @@ failure.
   lists them, and closes when it closes. `/bl sim stop` → one stop line, the strip and the panel
   go, the window shows your real history, and the tooltip's movement count is the number you noted.
   **Fail:** a simulated row left in the real history, a changed count, or the TEST MODE badge.
-  Result: pass (owner-marked 2026-10-23)
 - **SIM-2. Each refusal is one line (SM-BL-19).** Try `/bl sim start bank` in each state below → the
   quoted line, nothing opens and no strip appears. In combat (a training dummy): `A simulation cannot
   start in combat.` With `/bl test` on: `Turn test mode off before starting a simulation.` (turn it
@@ -1070,3 +1069,6 @@ keeps it. A check added or rewritten after that date is listed here until its `R
 a pass.
 
 - LEDG-57, LEDG-58, SESS-14 and DEGRADED-13 (BL-10, 2026-10-23).
+- LEDG-20, LEDG-24, LEDG-25, LEDG-52 and SIM-1: their procedures were amended for one strip per mode
+  (BL-10, 2026-10-23) after the owner's pass, which was recorded against the old badge and amber
+  simulation strip, so the earlier Result lines were cleared.
