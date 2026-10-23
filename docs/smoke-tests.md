@@ -909,6 +909,14 @@ failure.
   and `BAG_UPDATE_DELAYED`). Compare with `D.EVENTS.WarbandBag` and `D.EVENTS.WarbandStore` in
   `modules/SimDrivers.lua`. If they differ, file the one-line correction to that list.
   Result: owed
+- **SIM-11. Run all's step delay is a setting (owner ask 2026-10-23).** Settings ▸ General ▸
+  Interface → a **Simulator** heading below Table rows, over *Simulation step delay* at **1.0 s**.
+  `/bl sim start bank`, press the panel's **Run all** → the steps play about one second apart (the
+  first deposit's step can wait longer while the ledger settles). Drag the slider to 4.0 s while it
+  runs → the next pause is about four seconds. `/bl set settings.sim.stepDelay 0.75` → refused, the
+  value unchanged; `/bl get settings.sim.stepDelay` → four seconds. Put it back with
+  `/bl reset settings.sim.stepDelay` (→ 1.0 s). **Fail:** a 1.5 s pace at the default, a change that
+  waits for the next session, or 0.75 stored. Result: owed
 
 ## DEGRADED
 
@@ -1057,3 +1065,11 @@ a guild-bank visit record exactly as before, and the session window follows the 
 **Owed after the simulator (2026-10-22, BankLedger#24).** SIM-1 to SIM-10 (new: the four
 scenarios, each start refusal, the auto-stops, the panel's click-ahead and session-only position,
 purge and test mode refused during a simulation, and the owner's 12.1.5 warband event check).
+
+**Owed after Run all's step delay became a setting (2026-10-23, owner ask).** SIM-11 (new: the
+Interface tab's Simulator heading and *Simulation step delay* slider at 1.0 s, the one-second pace,
+a change landing on the next step, and `/bl set` refusing an off-grid value), and SIM-1 again for its
+**Run all** pace, now one second between steps rather than one and a half. PANEL-7's `Result:` still
+says pass, but the Interface tab it describes now has a third heading; SIM-11 checks it. The
+LibKa0s v1.75.2 re-vendor (SimPanel minor 4) widens the step panel's scenario dropdown to the width
+the bar leaves, so SIM-1's look at the panel is owed for that too: every scenario's name on one line.

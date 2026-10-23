@@ -111,6 +111,21 @@ S.Schema = {
       .. "tables. 0 turns the highlight off.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
+  -- The simulator's Run all pace (BankLedger#24; the owner's 2026-10-23 ask): the seconds `/bl sim
+  -- run` and the step panel's Run all wait after a step. Its own subgroup, since it is neither a
+  -- window nor a row tint. No onChange: modules/Sim.lua's Host.StepDelay reads the value at use, so
+  -- a change takes effect from the next step, a running session included. The validate is the
+  -- host's own check, so the slider and `/bl set` refuse exactly what the host would not use; a step's
+  -- `settle` can still raise the pause above it (Host.DelayAfter).
+  { path = "settings.sim.stepDelay", default = NS.defaults.profile.settings.sim.stepDelay, type = "number",
+    min = C.SIM_STEP_DELAY_MIN, max = C.SIM_STEP_DELAY_MAX, step = C.SIM_STEP_DELAY_STEP,
+    widget = "Slider", fmt = "%.1f s",
+    group = "Interface", subgroup = "Simulator", label = "Simulation step delay",
+    tooltip = "How many seconds the simulator's Run all (and /bl sim run) waits between steps. "
+      .. "A step that needs the ledger to settle can wait longer. A change takes effect from the "
+      .. "next step.",
+    validate = function(v) return NS.SimHost.ValidStepDelay(v) end },
+
   -- ── History ──
   -- LAST of the stored tabs: what you set once and leave, and the only place anything is destroyed.
   -- The retention dropdown is the tab's one stored row; the live storage read-out and the

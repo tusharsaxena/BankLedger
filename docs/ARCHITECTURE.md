@@ -53,7 +53,7 @@ guards the order the harness derives from the TOC. File-by-file table, load-orde
 
 ## Settings Schema
 
-**Sixteen** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
+**Seventeen** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
@@ -492,7 +492,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The three pages, the five-tab strip, the sixteen rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `settings-panel.md` | The three pages, the five-tab strip, the seventeen rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 

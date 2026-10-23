@@ -17,7 +17,7 @@ only. The finer tree is everything below it.
 | --- | ------ |
 | Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), put the windows back where they started, or return every setting to stock. |
 | Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
-| Interface | What is on screen: whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor. The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
+| Interface | What is on screen: whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor, plus how long the simulator's **Run all** waits between steps (**Simulation step delay**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all** empties the list after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 
@@ -68,7 +68,7 @@ those are deliberately not suppressed (`options-ui-§7`).
 | Page | Tab strip, in order | Rows per tab |
 |---|---|---|
 | Landing page | — (exempt: the host's own `buildMain`, `options-ui-§13`) | — |
-| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** | 8 · 4 · 3 · 1 · 1 |
+| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** | 8 · 4 · 4 · 1 · 1 |
 
 Inside **Filters** a **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides **Blacklist**
 from **Whitelist**. Its selection is `ctx.activeSubTab["Filters"]` — a table keyed by the primary
@@ -236,7 +236,8 @@ flushes the line.
 
 A slider row **must declare its `step`**: `LibKa0s-Options-1.0`'s `makeSlider` assumes 1 when the row
 omits it, which would snap a fractional range to its two endpoints and nothing in between. The
-composed rows carry their own; the two tint sliders declare `0.01`.
+composed rows carry their own; the two tint sliders declare `0.01` and the simulator's step delay
+`0.5`.
 
 | Path | Type | Default | Tab | Subsection | Layout |
 |---|---|---|---|---|---|
@@ -255,6 +256,7 @@ composed rows carry their own; the two tint sliders declare `0.01`.
 | `settings.showSessionWindow` | bool | `true` | Interface | Windows | alone under its heading |
 | `settings.rowStripeAlpha` | number | `0.03` | Interface | Table rows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
+| `settings.sim.stepDelay` | number | `1` | Interface | Simulator | alone under its heading; slider 0.5–10 s in 0.5 s steps, with a `validate` (`NS.SimHost.ValidStepDelay`) |
 | `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
 
 **The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of
@@ -264,6 +266,17 @@ because the history it trims is shared.* No profile switch, copy or reset change
 can prune history. It is on `NS.Schema.RESET_EXEMPT` beside the minimap row, so a row sweep skips it
 (a sweep putting *Always* back to 30 days would prune); a targeted
 `/bl reset settings.retentionDays` still applies.
+
+**The `settings.sim.stepDelay` row is the simulator's Run all pace.** It is how many seconds
+`/bl sim run` and the step panel's **Run all** wait after a step before they play the next; the
+default is 1 s (until the owner's 2026-10-23 ask it was a fixed 1.5 s constant, never a row). It has
+no `onChange`: `modules/Sim.lua`'s `Host.StepDelay` reads the stored value at every step, so a change
+lands on the next step, a running session included. A step's own `settle` still raises the pause above
+it (`Host.DelayAfter`, the descriptor's `stepDelay`), and a stored value the row would refuse — off the
+0.5 s grid, outside 0.5–10, or not a number — reads as the 1 s default. The row's `validate` is that
+same check, so the slider and `/bl set` refuse an off-grid value (the slash library clamps an
+out-of-range number to the range first). The default is hardcoded once, in `defaults/Profile.lua`;
+the range and grid are `NS.Constants.SIM_STEP_DELAY_MIN` / `_MAX` / `_STEP`.
 
 **The `minimap.shown` row is stored backwards, and that is deliberate.** Its label and its CLI
 path say SHOWN — ticked, or `/bl set minimap.shown true`, means the button is on the minimap —
@@ -337,9 +350,9 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 ## The General page's tabs and the Filters tab
 
-The sixteen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+The seventeen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
-**Capture** (4) · **Interface** (3) · **History** (1) · **Filters**. The last carries no settings at
+**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
 `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
@@ -373,7 +386,8 @@ spliced at the head of the array; `keys = { scale = "windowScale" }` is what kee
 stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
 `settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
 chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
-`settings.rowHoverAlpha`, each defaulting to the number it replaced.
+`settings.rowHoverAlpha`, each defaulting to the number it replaced. The Interface tab's third
+subsection, **Simulator**, holds the simulator's step delay (`settings.sim.stepDelay`).
 
 ## Bulk writes and the reset routes
 

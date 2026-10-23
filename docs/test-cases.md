@@ -785,7 +785,7 @@ Total.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (53)
+### test_schema.lua (54)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -820,6 +820,7 @@ Total.
 - Schema: rest and hover sit on ONE line, so they are read across and not down
 - Schema: the Interface tab opens with the control most players reach for
 - Schema: the Interface tab heads each KIND of control it mixes
+- Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s
 - Schema: each promoted tint default IS the literal it replaced
 - Util.RowTintAlpha clamps what SavedVariables hands it
 - Util.ApplyRowTint paints both textures and drives the banding
@@ -862,7 +863,7 @@ Total.
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (56)
+### test_slash.lua (57)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -890,6 +891,7 @@ Total.
 - Slash:CliReset echoes the stored value, not the requested one
 - Slash: /bl resetall is the profile reset — the schema and the filter lists, NOT the ledger
 - Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and no per-row [Set]
+- Slash: /bl set reaches the simulator's step delay, refuses off-grid and clamps out-of-range
 - Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row
 - Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED
 - Slash: a reset nested inside another bracket logs ONE line, for the outermost act
@@ -1472,7 +1474,7 @@ Total.
 - SimDrivers: "bonus" names the pool item whose link carries bonus ids
 - SimDrivers: a move the world cannot make fires nothing and says why
 
-### test_sim_session.lua (19)
+### test_sim_session.lua (24)
 
 - Sim session: a real bank frame open refuses, by its context or a live guild frame
 - Sim session: test mode, combat and General visibility each refuse with their own line
@@ -1480,7 +1482,12 @@ Total.
 - Sim session: stood down, Start refuses with the dispatcher's disabled line before anything else
 - Sim session: a second Start while one runs is the library's 'already running'
 - Sim session: a start prints the host's no-save line, builds the world and swaps the dataset
-- Sim session: the step delay is 1.5 s, raised to a step's settle
+- Sim session: the step delay defaults to 1 s, in the row, the defaults and the host
+- Sim session: Run waits the stored step delay after a step
+- Sim session: a stored step delay the row would refuse falls back to the default
+- Sim session: the step delay setting refuses off-grid and out-of-range writes
+- Sim session: a step's settle still raises the delay above the setting, never lowers it
+- Sim session: the step delay is read at use, so a change lands on the next step
 - Sim session: the bank scenario records 2 deposits and 1 withdrawal into the session log
 - Sim session: the guarded QueryGuildBankTab never reaches the client during a session
 - Sim session: a REAL bank open stops it first, and the real open snapshots the real world
@@ -1613,9 +1620,9 @@ Total.
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 53 |
+| test_schema.lua | 54 |
 | test_schema_runtime.lua | 18 |
-| test_slash.lua | 56 |
+| test_slash.lua | 57 |
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
 | test_panel_filters.lua | 40 |
@@ -1643,7 +1650,7 @@ Total.
 | test_sim_seam.lua | 12 |
 | test_sim_world.lua | 16 |
 | test_sim_drivers.lua | 16 |
-| test_sim_session.lua | 19 |
+| test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 6 |
 | test_sim_panel.lua | 12 |
@@ -1653,4 +1660,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1411** |
+| **Total** | **1418** |

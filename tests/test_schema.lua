@@ -240,7 +240,7 @@ local PARTITION = {
   general = {
     { tab = "Master controls", rows = 8 },
     { tab = "Capture",         rows = 4 },
-    { tab = "Interface",       rows = 3 },
+    { tab = "Interface",       rows = 4 },
     { tab = "History",         rows = 1 },
     { tab = "Filters",         rows = 1 },
   },
@@ -284,10 +284,10 @@ test("schema: the live and library-absent row counts, and the composed delta", f
   local DS = Env.loadDegraded().Schema
   local live = { schema = #S.Schema, page = #S:PageRows() }
   local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
-  assertEqual(live.schema, 16, "live #S.Schema")
-  assertEqual(degraded.schema, 8, "library-absent #S.Schema")
-  assertEqual(live.page, 17, "live #S:PageRows()")
-  assertEqual(degraded.page, 9, "library-absent #S:PageRows()")
+  assertEqual(live.schema, 17, "live #S.Schema")
+  assertEqual(degraded.schema, 9, "library-absent #S.Schema")
+  assertEqual(live.page, 18, "live #S:PageRows()")
+  assertEqual(degraded.page, 10, "library-absent #S:PageRows()")
   local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
     .. "O.MasterControls, which composes nothing without the library"
   assertEqual(live.schema - degraded.schema, 8, "S.Schema live minus degraded" .. why)
@@ -462,9 +462,9 @@ end)
 
 test("Schema: the Interface tab heads each KIND of control it mixes", function()
   -- options-ui-§7: a tab mixing kinds must break them up, and those headings are NOT suppressed the
-  -- way the tab's own section heading is. Interface holds two kinds — the windows you can switch on
-  -- and the tint of a table row — so every row on it carries a `subgroup`, and no subgroup may
-  -- repeat the tab's own name.
+  -- way the tab's own section heading is. Interface holds three kinds — the windows you can switch
+  -- on, the tint of a table row and the simulator's Run all pace — so every row on it carries a
+  -- `subgroup`, and no subgroup may repeat the tab's own name.
   --
   -- Dies under: dropping `subgroup` from any Interface row, or naming one "Interface".
   local kinds, order = {}, {}
@@ -476,9 +476,30 @@ test("Schema: the Interface tab heads each KIND of control it mixes", function()
       if not kinds[row.subgroup] then kinds[row.subgroup] = true; order[#order + 1] = row.subgroup end
     end
   end
-  assertEqual(#order, 2, "Interface should head exactly two kinds of control")
+  assertEqual(#order, 3, "Interface should head exactly three kinds of control")
   assertEqual(order[1], "Windows")
   assertEqual(order[2], "Table rows")
+  assertEqual(order[3], "Simulator")
+end)
+
+test("Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s", function()
+  -- The owner's 2026-10-23 ask: Run all waits 1 s between steps by default, and a player can change
+  -- it. The row's validate is the host's own check (NS.SimHost.ValidStepDelay), so `/bl set` and the
+  -- slider refuse exactly the values modules/Sim.lua would not use.
+  local row = S:FindRow("settings.sim.stepDelay")
+  assertTrue(row ~= nil, "no settings.sim.stepDelay row")
+  assertEqual(row.group, "Interface")
+  assertEqual(row.subgroup, "Simulator")
+  assertEqual(row.widget, "Slider")
+  assertEqual(row.type, "number")
+  assertEqual(row.default, 1)
+  assertEqual(row.min, 0.5)
+  assertEqual(row.max, 10)
+  assertEqual(row.step, 0.5)
+  assertTrue(type(row.validate) == "function", "the row carries no validate")
+  assertTrue(row.validate(1.5) and true or false, "1.5 refused")
+  assertFalse(row.validate(0.75) and true or false, "an off-grid value accepted")
+  assertFalse(row.validate(11) and true or false, "an out-of-range value accepted")
 end)
 
 -- ── The promoted chrome literals (Step 4) ─────────────────────────────────────

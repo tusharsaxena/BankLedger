@@ -64,5 +64,13 @@ NS.defaults.profile = {
     -- The live "Current Banking Session" window: shown automatically whenever a bank frame is open.
     showSessionWindow = true,
     sessionWindow     = {},    -- its own persisted position/size (same carve-out as `window`)
+
+    -- The simulator's Run all pace: the seconds `/bl sim run` and the step panel's Run all wait
+    -- between steps. The one hardcoded copy of the default: modules/Sim.lua's Host.STEP_DELAY and the
+    -- schema row read it from here. Read at use by Host.StepDelay, which falls back to this default
+    -- on a stored value the row would refuse; the range is NS.Constants.SIM_STEP_DELAY_MIN/MAX/STEP.
+    sim = {
+      stepDelay = 1,
+    },
   },
 }
