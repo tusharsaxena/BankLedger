@@ -262,3 +262,82 @@ test("Sim e2e: Restart plays every scenario again from the start, to the same en
     assertClean(r, before, count, name .. " (restart)")
   end
 end)
+
+-- ── the pacing (BL-11, owner report 2026-10-23) ──────────────────────────────────────────────
+--
+-- The owner's bank run sat a few seconds on one step before it played on. The cause: a step that
+-- moves an item the capture gate refuses (the owner blacklists the Hearthstone, which a real bag
+-- pool draws; an uncached item under a quality threshold, whose info the client answers late, is
+-- the same case) left a complete movement unrecorded, which the engine read as a one-sided change
+-- and held for the whole settle window, closing the host gate. Each case asserts every step plays
+-- within the step delay plus one gate poll (SimTimeline's GATE_POLL, 0.25 s) of the one before.
+
+local GATE_POLL = 0.25
+
+--- Plays `name` to its end with Run, the mock clock recorded at each step's play; answers the
+--- gaps between consecutive plays and the session log's row count.
+local function pace(name)
+  local times, rows = {}, nil
+  withRealWorld(function()
+    S.withSession(name, function(sim)
+      local play0 = Host.Play
+      Host.Play = function(step) times[#times + 1] = mocks.__now return play0(step) end
+      local ok, err = pcall(function()
+        local done
+        S.chat(function() done = S.runToEnd(sim) end)
+        assertTrue(done, name .. ": Run did not reach the end")
+      end)
+      Host.Play = play0
+      if not ok then error(err, 0) end
+      rows = #NS.State.simLog
+    end)
+  end)
+  local gaps = {}
+  for i = 2, #times do gaps[#gaps + 1] = times[i] - times[i - 1] end
+  return gaps, rows
+end
+
+local function assertPaced(gaps, what)
+  local limit = Host.StepDelay() + GATE_POLL + 1e-6
+  for i, gap in ipairs(gaps) do
+    assertTrue(gap <= limit, ("%s: step %d played %.2f s after step %d (limit %.2f s)")
+      :format(what, i + 1, gap, i, limit))
+  end
+end
+
+test("Sim pacing: the bank scenario plays every step about one step delay apart", function()
+  local gaps, rows = pace("bank")
+  assertEqual(#gaps, 4, "the five steps did not all play")
+  assertPaced(gaps, "bank")
+  assertEqual(rows, 3)
+end)
+
+test("Sim pacing: a step moving a blacklisted item does not stall the run", function()
+  NS.Filters:AddBlacklist(CC)   -- item C, the bank scenario's withdrawal (step 4)
+  local ok, err = pcall(function()
+    local gaps, rows = pace("bank")
+    assertPaced(gaps, "bank, item C blacklisted")
+    assertEqual(rows, 2, "the blacklisted withdrawal was recorded")
+  end)
+  NS.Filters:RemoveBlacklist(CC)
+  if not ok then error(err, 0) end
+end)
+
+test("Sim pacing: the flask's late item info under a quality threshold does not stall the run", function()
+  -- The bonus-link item (step 3, the owner's flask) is not in the client's cache: GetItemInfo
+  -- answers nil for it throughout, as for an item whose info has not arrived yet.
+  local settings, saved = NS.db.profile.settings, mocks.__items[D]
+  local threshold = settings.qualityThreshold
+  mocks.__items[D] = nil
+  settings.qualityThreshold = 1
+  NS.Ledger:RefreshUpvalues()
+  local ok, err = pcall(function()
+    local gaps, rows = pace("bank")
+    assertPaced(gaps, "bank, the flask uncached")
+    assertEqual(rows, 2, "the uncached deposit was judged against the threshold")
+  end)
+  mocks.__items[D] = saved
+  settings.qualityThreshold = threshold
+  NS.Ledger:RefreshUpvalues()
+  if not ok then error(err, 0) end
+end)

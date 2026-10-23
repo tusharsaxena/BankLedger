@@ -108,24 +108,35 @@ local function debugLine(fmt, ...)
   if NS.State and NS.State.debug and NS.Debug then NS.Debug("Sim", fmt, ...) end
 end
 
--- The item pool: distinct { itemID, link } from the player's REAL bags, read with the seam
--- bypassed. Fewer than SW.POOL_MIN gives the fixed fallback ids, warmed and reported once.
-function SW.BuildPool()
+--- The pool the player's REAL bags give, read with the seam bypassed: the distinct { itemID, link }
+--- sorted by id, at most SW.POOL_MAX of them, so the same bags always give the same pool. PURE: it
+--- reads the bags and nothing else (no world, no warm-up, nothing fired), which is what lets the idle
+--- step panel name the items a Start would move (BL-12). nil, and the distinct count, when the bags
+--- hold fewer than SW.POOL_MIN distinct items.
+--- @return table|nil pool, number distinct
+function SW.DrawPool()
   local links = {}
   local counts = NS.SimSeam:Live(NS.Ledger.ScanStore, NS.Ledger, Store.BAGS, links)
   local ids = {}
   for id in pairs(counts or {}) do ids[#ids + 1] = id end
+  if #ids < SW.POOL_MIN then return nil, #ids end
   table.sort(ids)
   local pool = {}
-  if #ids >= SW.POOL_MIN then
-    for i = 1, math.min(#ids, SW.POOL_MAX) do pool[i] = { itemID = ids[i], link = links[ids[i]] } end
-    return pool, false
-  end
+  for i = 1, math.min(#ids, SW.POOL_MAX) do pool[i] = { itemID = ids[i], link = links[ids[i]] } end
+  return pool, #ids
+end
+
+-- The item pool: SW.DrawPool's, or with fewer than SW.POOL_MIN distinct real items the fixed
+-- fallback ids, warmed and reported once.
+function SW.BuildPool()
+  local drawn, distinct = SW.DrawPool()
+  if drawn then return drawn, false end
+  local pool = {}
   for i, id in ipairs(SW.FALLBACK_IDS) do
     NS.Item.LoadItem(id)
     pool[i] = { itemID = id, link = select(5, NS.Compat.GetItemDetails(id)) }
   end
-  debugLine("item pool: %d real bag items, using the %d fixed fallback ids", #ids, #pool)
+  debugLine("item pool: %d real bag items, using the %d fixed fallback ids", distinct, #pool)
   return pool, true
 end
 

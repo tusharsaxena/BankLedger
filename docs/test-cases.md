@@ -241,7 +241,7 @@ Total.
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_ledger_settling.lua (26)
+### test_ledger_settling.lua (27)
 
 - reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
@@ -265,6 +265,7 @@ Total.
 - Ledger: a re-anchored loot does not pair with a later unrelated deposit
 - Ledger: an unchanged world advances the baseline without waiting
 - Ledger: a completed movement clears the settle wait
+- Ledger: a movement the capture gate refuses settles without waiting
 - Ledger: a deletion writes no row and arms ONE deadline, not a poll
 - Ledger: the deadline is armed for the REMAINING window, not a fixed retry
 - Ledger: the deadline never schedules a near-zero timer
@@ -521,7 +522,7 @@ Total.
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
-- Browser: a simulation shows the strip with its scenario line, and never the badge
+- Browser: a simulation shows the sim strip with its scenario line, and never the badge
 - Browser: the strip's tooltip describes the simulation while one runs
 - Browser: a stop repaints the strip through the session listener
 
@@ -1512,7 +1513,7 @@ Total.
 - Sim gate: a typed step answers 'settling' while it is closed, and plays once it opens
 - Sim gate: each played step stamps rowsBefore, and Host.Recorded counts its rows
 
-### test_sim_e2e.lua (6)
+### test_sim_e2e.lua (9)
 
 - Sim e2e: bank records 3 BANK rows, the bonus link kept, with the saved ledger untouched
 - Sim e2e: warband records main's 2 deposits and the alt's 2 withdrawals through a held baseline
@@ -1520,11 +1521,17 @@ Total.
 - Sim e2e: guild data while away arms no context and records nothing (issue #12)
 - Sim e2e: onesided records 0 rows and the close drops the held change
 - Sim e2e: Restart plays every scenario again from the start, to the same end
+- Sim pacing: the bank scenario plays every step about one step delay apart
+- Sim pacing: a step moving a blacklisted item does not stall the run
+- Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
-### test_sim_panel.lua (12)
+### test_sim_panel.lua (18)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
+- sim panel: idle, the rows name the same real items the running session then shows (BL-12)
+- sim panel: idle, a bag change shows on the next refresh (BL-12)
+- sim panel: idle, too few distinct real bag items keep the scenario's letters (BL-12)
 - sim panel: running, a move names the REAL item, and the rows take the running states
 - sim panel: a step's tooltip says what it moves, the lagged half, and the events it fires
 - sim panel: a played move's label and tooltip count the rows the engine recorded
@@ -1532,6 +1539,9 @@ Total.
 - sim panel: with the ledger window shut it floats rather than docking beside a hidden frame
 - sim panel: a typed step repaints the shown panel
 - sim panel: clicking a done row does nothing; clicking the next row plays it
+- sim: a typed /bl sim start bank plays on its own
+- sim panel: the controls are Pause, Restart and Stop
+- sim panel: clicking the ready row while it plays pauses and plays one step
 - sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
@@ -1609,7 +1619,7 @@ Total.
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
-| test_ledger_settling.lua | 26 |
+| test_ledger_settling.lua | 27 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
@@ -1652,12 +1662,12 @@ Total.
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
-| test_sim_e2e.lua | 6 |
-| test_sim_panel.lua | 12 |
+| test_sim_e2e.lua | 9 |
+| test_sim_panel.lua | 18 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1418** |
+| **Total** | **1428** |

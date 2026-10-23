@@ -453,8 +453,8 @@ L.SETTLE_MIN_RECHECK_SECONDS = 0.5
 -- Re-snapshot against the baseline and record what moved, for EVERY store the open frame reaches.
 -- Returns the total number of entries written.
 --
--- The baseline advances only when the world is **settled**: either a movement was recorded, or
--- nothing changed at all. A pass that sees a one-sided change has caught a transaction mid-flight,
+-- The baseline advances only when the world is **settled**: either a movement was found (recorded,
+-- or complete and refused by the capture gate), or nothing changed at all. A pass that sees a one-sided change has caught a transaction mid-flight,
 -- so it keeps the old baseline and looks again shortly. Advancing there was the bug that lost every
 -- warband movement — the pass that saw "bags −1, warband unchanged" moved the goalposts, so the
 -- pass a second later saw "warband +1, bags unchanged" and rejected that half too.
@@ -502,18 +502,19 @@ local function traceDiff(store, after, moveCount)
     countKinds((after.stores or {})[store]), moveCount))
 end
 
--- Diff one store between the two snapshots and record what moved. Returns the entries written.
+-- Diff one store between the two snapshots and record what moved. Returns the entries written and
+-- the movements found (the gate's refusals included), which is what settles the baseline.
 local function reconcileStore(self, before, after, store)
   local moves = L.Diff(storeView(before, store), storeView(after, store), store)
   traceDiff(store, after, #moves)
-  if #moves == 0 then return 0 end
+  if #moves == 0 then return 0, 0 end
   local recorded, skipped, why = recordMoves(self, moves)
   if NS.State.debug and NS.Debug then
     -- The skips first, as one line for the pass, so a missing row's reason sits above the count.
     if why then NS.Debug("Skip", "%s: %s", tostring(store), table.concat(why, ", ")) end
     NS.Debug("Move", "%s", L.MoveSummary(store, recorded, skipped))
   end
-  return recorded
+  return recorded, #moves
 end
 
 -- The held baseline's two edges (debug-logging-§8, deferred work): one line when a one-sided change
@@ -531,10 +532,16 @@ local function traceHold(since, now, recorded)
   end
 end
 
--- Advance the baseline, or hold it because a transaction is still in flight.
-local function settleBaseline(self, before, after, totalRecorded, now)
-  if totalRecorded > 0 or not L.SnapshotsDiffer(before, after) then
-    -- Settled: either the movement completed, or nothing is in flight.
+-- Advance the baseline, or hold it because a transaction is still in flight. `found` counts the
+-- movements the pass found, recorded or not: a movement the capture gate refuses (the blacklist, a
+-- quality threshold, an item too uncached to judge under one, an excluded store, a Track toggle) has
+-- both halves, so nothing of it is in flight. Counting only what was RECORDED held such a pass as a
+-- one-sided change for the whole settle window, which closed the simulator's gate for ~6 s on a
+-- step that moved a blacklisted item (BL-11), and in a real visit re-diffed the refusal on every
+-- event of that window to no end.
+local function settleBaseline(self, before, after, found, totalRecorded, now)
+  if found > 0 or not L.SnapshotsDiffer(before, after) then
+    -- Settled: either a movement completed, or nothing is in flight.
     if L._settleSince then traceHold(L._settleSince, now, totalRecorded) end
     NS.State.lastSnapshot = after
     L._settleSince = nil
@@ -587,12 +594,13 @@ function L:Reconcile()
     return 0
   end
 
-  local totalRecorded = 0
+  local totalRecorded, found = 0, 0
   for _, store in ipairs(self:StoresFor(context)) do
-    totalRecorded = totalRecorded + reconcileStore(self, before, after, store)
+    local recorded, moves = reconcileStore(self, before, after, store)
+    totalRecorded, found = totalRecorded + recorded, found + moves
   end
 
-  settleBaseline(self, before, after, totalRecorded, (GetTime and GetTime()) or 0)
+  settleBaseline(self, before, after, found, totalRecorded, (GetTime and GetTime()) or 0)
   -- After the settle logic: the disarm clears the baseline the settle just wrote.
   disarmGuildBankIfGone(context)
   return totalRecorded

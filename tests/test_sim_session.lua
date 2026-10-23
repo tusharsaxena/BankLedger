@@ -150,7 +150,7 @@ end)
 
 -- ── the step delay: the `settings.sim.stepDelay` setting, raised to a step's settle ─────────────
 --
--- Run all's pause between steps was a 1.5 s constant until the owner asked for a 1 s default that
+-- A playing simulation's pause between steps was a 1.5 s constant until the owner asked for a 1 s default that
 -- a player can change (2026-10-23). Host.StepDelay reads the setting AT USE, falling back to
 -- Host.STEP_DELAY (the default) on a stored value the row would refuse; Host.DelayAfter(step) is
 -- the descriptor's stepDelay, the larger of that and the step's own `settle`.

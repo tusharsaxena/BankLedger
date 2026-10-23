@@ -144,8 +144,8 @@ the engine's own decision.
   the identity reads are in [compat-layer.md](compat-layer.md).
 - **The sink and the dataset kinds.** The start sets `NS.State.simLog`, so `Database:Sink()` sends
   every recorded row there (stamped `sim = true`), and `Database:ActiveLedger()` reads it first.
-  `Database:DatasetKind()` answers `"sim"`, which the ledger window's strip, the session window's
-  strip and every reader that refuses a synthetic dataset ask (see **Settings Schema** above).
+  `Database:DatasetKind()` answers `"sim"`, which the ledger window's simulation strip, the session
+  window's simulation strip and every reader that refuses a synthetic dataset ask (see **Settings Schema** above).
 - **The stop is two-phase, with no final pass.** While the seam still answers, `OnStopGuarded`
   runs `Ledger:DropContext()`: the pending debounce, the settle window and the banking session go
   with **no** `Reconcile`, because a pass with the seam off would diff the simulated baseline
@@ -164,8 +164,9 @@ the engine's own decision.
   `Database:Purge` re-checks it. `Delete`, `DeleteAt` and `PruneOld` act on the real ledger only.
 
 The simulator is slash-only, with no launcher entry, no key binding and no schema row; its step
-delay is a constant. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strip
-and the step panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)
+delay is a constant. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strips
+(one per mode, with the `TEST MODE` title badge only as the library-absent fallback) and the step
+panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)
 and the `[Sim]` lines in [debug.md](debug.md).
 
 ## Launcher

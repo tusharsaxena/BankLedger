@@ -55,10 +55,63 @@ test("sim panel: idle, the rows are Start, one per step and Stop, each beside it
   for i = 2, 6 do assertEqual(rows[i].command, "/bl sim step") end
   assertEqual(rows[7].command, "/bl sim stop")
   assertEqual(rows[1].label, "Start: " .. L["Personal bank"])
-  -- No world yet: an item move names the scenario's letter.
+  -- No world, and the default mock bags hold too few distinct items for a pool: the letter.
   assertEqual(rows[3].label, "Deposit 20 × item A to Character Bank")
   assertEqual(rows[2].label, L["Open the bank"])
   assertEqual(field(rows, "state"), "ready|locked|locked|locked|locked|locked|locked")
+end)
+
+-- The step rows' labels and tooltips (Start and Stop left out: their states differ by design).
+local function stepTexts(rows)
+  local labels, tips = {}, {}
+  for _, row in ipairs(rows) do
+    if row.key == "step" then
+      labels[#labels + 1] = row.label
+      local t = {}
+      for _, line in ipairs(row.tip or {}) do t[#t + 1] = tostring(line[1]) .. ": " .. tostring(line[2]) end
+      tips[#tips + 1] = table.concat(t, " | ")
+    end
+  end
+  return table.concat(labels, "\n"), table.concat(tips, "\n")
+end
+
+test("sim panel: idle, the rows name the same real items the running session then shows (BL-12)", function()
+  for _, scenario in ipairs({ "bank", "warband", "guild", "onesided" }) do
+    local runLabels, runTips
+    S.withSession(scenario, function(sim) runLabels, runTips = stepTexts(sim:PanelRows()) end)
+    -- Stopped again, the picker sits on `scenario`: the same real backpack, and no world.
+    local idleLabels, idleTips
+    S.withSession(nil, function(sim)
+      idleLabels, idleTips = stepTexts(sim:PanelRows())
+      assertEqual(Host.world, nil, "an idle preview must not install a world")
+      assertFalse(sim:IsActive(), "an idle preview must not start a session")
+    end)
+    assertEqual(idleLabels, runLabels, scenario .. ": the idle labels differ from the running ones")
+    assertEqual(idleTips, runTips, scenario .. ": the idle tooltips differ from the running ones")
+    assertTrue(idleLabels:find("item %u") == nil, scenario .. ": a letter is left: " .. idleLabels)
+  end
+end)
+
+test("sim panel: idle, a bag change shows on the next refresh (BL-12)", function()
+  S.withSession("bank", function() end)
+  S.withSession(nil, function(sim)
+    assertEqual(sim:PanelRows()[3].label, "Deposit 20 × Linen Cloth to Character Bank")
+    local pack = mocks.__containers[S.BACKPACK]
+    pack[#pack + 1] = { itemID = 25, link = "|Hitem:25::::::::::|h[Worn Shortsword]|h", count = 1 }
+    assertEqual(sim:PanelRows()[3].label, "Deposit 20 × Worn Shortsword to Character Bank")
+  end)
+end)
+
+test("sim panel: idle, too few distinct real bag items keep the scenario's letters (BL-12)", function()
+  S.withSession("bank", function() end)
+  S.withSession(nil, function(sim)
+    local pack = mocks.__containers[S.BACKPACK]
+    for i = #pack, 3, -1 do pack[i] = nil end   -- 4306 and 2589 left: two distinct items
+    local rows = sim:PanelRows()
+    assertEqual(rows[3].label, "Deposit 20 × item A to Character Bank")
+    assertEqual(rows[4].label, "Deposit 1 × item B to Character Bank")
+    assertEqual(Host.world, nil)
+  end)
 end)
 
 test("sim panel: running, a move names the REAL item, and the rows take the running states", function()
@@ -156,6 +209,74 @@ test("sim panel: clicking a done row does nothing; clicking the next row plays i
     out = S.chat(function() buttons[3]:__fire("OnClick") end)          -- the ready row
     assertEqual(sim:Status().pos, before + 1, "the ready row did not play")
     assertTrue(S.has(out, "Simulation step 2 of 5: "), table.concat(out, " || "))
+  end)
+end)
+
+-- ── auto-play: a typed start plays on its own (LibKa0s v1.76.0, Sim 2.3.5; OWNER_SCOPE A.1) ─────
+--
+-- The member sim:Start{} plays nothing (sim_support's withSession), but the typed `/bl sim start`
+-- arms the run: it plays every step on its own, the descriptor's stepDelay apart, and the gate
+-- still holds a step until the ledger settles. These cases start through the typed verb inside the
+-- quiet world (withSession with no scenario) and run the clock with sim_support's advance.
+
+--- Type `/bl sim start <scenario>` inside the quiet world and run fn(sim) on the started session.
+local function typedSession(scenario, fn)
+  S.withSession(nil, function(sim)
+    S.chat(function() NS.Slash:OnSlash("sim start " .. scenario) end)
+    assertTrue(sim:IsActive(), "the typed start did not start a session")
+    fn(sim)
+  end)
+end
+
+test("sim: a typed /bl sim start bank plays on its own", function()
+  typedSession("bank", function(sim)
+    local st = sim:Status()
+    assertTrue(st.playing, "a typed start did not arm the run")
+    local steps = sim:Steps()
+    local at, last = {}, 0
+    local met = S.advance(120, function()
+      local now = sim:Status()
+      if now.pos > last then
+        for p = last + 1, now.pos do at[p] = mocks.__now end
+        last = now.pos
+      end
+      return now.total > 0 and now.pos == now.total and not now.playing
+    end)
+    assertTrue(met, ("the run stopped at step %d of %d with no verb typed"):format(last, #steps))
+    for p = 2, #steps do
+      local gap, want = at[p] - at[p - 1], Host.DelayAfter(steps[p - 1])
+      assertTrue(gap >= want, ("step %d played %.2f s after step %d, under the %.2f s delay")
+        :format(p, gap, p - 1, want))
+    end
+    assertEqual(Host.DelayAfter({}), 1, "the default step delay is 1 s")
+  end)
+end)
+
+test("sim panel: the controls are Pause, Restart and Stop", function()
+  typedSession("bank", function(sim)
+    assertTrue(sim:IsPanelShown(), "the typed start did not open the panel")
+    local c = panelFrame().controls
+    assertTrue(c ~= nil, "the panel has no controls bar")
+    assertEqual(c.run, nil, "the run-all control is still there")
+    assertTrue(c.restart ~= nil and c.stop ~= nil, "Restart or Stop is missing")
+    assertTrue(c.pause:IsEnabled(), "Pause is disabled while the run plays")
+    assertEqual(c.pause.label:GetText(), "Pause")
+    sim:Pause()
+  end)
+end)
+
+test("sim panel: clicking the ready row while it plays pauses and plays one step", function()
+  typedSession("bank", function(sim)
+    assertTrue(S.advance(30, function() return sim:Status().pos >= 1 end), "the first step never played")
+    local st = sim:Status()
+    assertTrue(st.playing and st.pos < st.total, "the premise: the run plays with steps left")
+    local before = st.pos
+    S.chat(function() panelFrame().__rowButtons[before + 2]:__fire("OnClick") end)   -- the ready row
+    S.drain()
+    st = sim:Status()
+    assertEqual(st.pos, before + 1, "the click did not play exactly one step")
+    assertTrue(st.paused, "the click did not hold the run")
+    assertFalse(st.playing, "the run kept playing after the click")
   end)
 end)
 

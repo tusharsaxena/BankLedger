@@ -235,11 +235,34 @@ end
 local Store = NS.Constants.Store
 local LETTER = { "A", "C", "D", "E" }   -- modules/SimScenario.lua's item letters, by pool index
 
--- The name a step's `item` names: the real item's (from its link) while a world exists, else the
--- scenario's letter, so an idle preview still reads.
+-- The idle preview's pool (BL-12): with no world, the step panel names the items from the pool
+-- NS.SimWorld.DrawPool draws from the live bags, the SAME pure function a Start's world draws its
+-- pool with, so the idle rows read as the running rows will. Redrawn on each panel refresh (the
+-- first step row's label or tooltip), so a bag change shows; false when the bags hold too few
+-- distinct items, and the rows keep the scenario's letters (the Start then takes the fixed
+-- fallback ids). Never consulted while a world exists.
+local preview = nil
+
+--- The idle preview pool: redrawn when `refresh` is set or none was drawn yet; nil when the bags
+--- hold too few distinct items.
+function Host.PreviewPool(refresh)
+  if refresh or preview == nil then
+    preview = (NS.SimWorld and NS.SimWorld.DrawPool and NS.SimWorld.DrawPool()) or false
+  end
+  return preview or nil
+end
+
+-- A panel refresh composes the rows in order, so its first step row redraws the preview pool.
+local function refreshPreview(i)
+  if Host.world == nil and i == 1 then Host.PreviewPool(true) end
+end
+
+-- The name a step's `item` names: the real item's (from its link), from the world's pool while one
+-- exists, else from the idle preview pool; the scenario's letter when neither has the item.
 local function itemName(ref)
   local D = NS.SimDrivers
-  local item = Host.world and D and D.ResolveItem and D.ResolveItem(ref)
+  local pool = Host.world == nil and Host.PreviewPool() or nil
+  local item = (Host.world or pool) and D and D.ResolveItem and D.ResolveItem(ref, pool)
   local name = item and type(item.link) == "string" and item.link:match("%[(.-)%]")
   if name and name ~= "" then return name end
   if item then return tostring(item.itemID) end
@@ -258,7 +281,8 @@ local MOVE_LABEL = {
 --- the rows the engine has recorded for it once it played and recorded any. The library prints the
 --- same name in its step line, which runs before the debounced pass records, so the count shows on
 --- the panel row and its tooltip as it lands.
-function Host.StepLabel(step, _, steps)
+function Host.StepLabel(step, i, steps)
+  refreshPreview(i)
   local label
   if MOVE_LABEL[step.kind] then
     label = MOVE_LABEL[step.kind]:format(step.n or 0, itemName(step.item), storeLabel(step.store))
@@ -303,7 +327,8 @@ end
 
 --- A timeline step's tooltip (`d.panel.stepTip`), { left, right } lines: what the step injects, the
 --- events it fires, and once it played what the driver did and how many rows the engine recorded.
-function Host.StepTip(step)
+function Host.StepTip(step, i)
+  refreshPreview(i)
   local lines = {}
   if MOVE_LABEL[step.kind] then lines[#lines + 1] = { L["Injects"], moveLine(step) } end
   local events = eventsOf(step)

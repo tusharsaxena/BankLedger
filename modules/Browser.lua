@@ -754,15 +754,18 @@ B._viewSeam = {
   dropFilterDebounce = dropFilterDebounce,
 }
 
--- ── The test-mode strip's reserve (BankLedger#23) ──────────────────────────────────────────────
--- LibKa0s-Widgets-1.0 publishes the strip's HEIGHT and deliberately NO RESERVE: the body shift is
--- host layout, so this file adds its own gap above and below the band. 18 + 2 * 2 = 22 while the
--- strip shows, and 0 when it is hidden or was never built (no Widgets library).
+-- ── The mode strips' reserve (BankLedger#23, #24) ───────────────────────────────────────────────
+-- One strip per kind: the test strip (frame.testStrip) and the simulation strip (frame.simStrip),
+-- both in the same place, and at most one shown. LibKa0s-Widgets-1.0 publishes the strip's HEIGHT
+-- and deliberately NO RESERVE: the body shift is host layout, so this file adds its own gap above
+-- and below the band. 18 + 2 * 2 = 22 while either strip shows, and 0 when both are hidden or were
+-- never built (no Widgets library).
 local STRIP_GAP = 2
 
 local function stripReserve()
-  local strip = frame and frame.testStrip
-  if not (W and W.TEST_STRIP and strip and strip:IsShown()) then return 0 end
+  if not (frame and W and W.TEST_STRIP) then return 0 end
+  local test, sim = frame.testStrip, frame.simStrip
+  if not ((test and test:IsShown()) or (sim and sim:IsShown())) then return 0 end
   return W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
 end
 
@@ -778,25 +781,27 @@ local function anchorPanes()
   end
 end
 
--- A synthetic dataset (Database:DatasetKind ~= "live") is marked by the library's strip under the
--- filter bar, and test mode also by the red title badge. Both follow the dataset, and the panes
--- make room for the strip in the same breath. The strip says which dataset it is: the test line, or
--- under a simulation (BankLedger#24) `Simulation: <scenario> - nothing here is saved.`
--- (NS.SimHost.MarkerText). The badge is test mode's alone: a simulation shows the strip only.
+-- A synthetic dataset (Database:DatasetKind ~= "live") is marked by one strip per kind under the
+-- filter bar: the amber test strip, which always says TEST_LINE, or under a simulation
+-- (BankLedger#24) the cyan simulation strip, saying `Simulation: <scenario> - nothing here is
+-- saved.` (NS.SimHost.MarkerText). The red title badge is only the degraded fallback: it marks test
+-- mode where no strip was built (no Widgets library). All follow the dataset, and the panes make
+-- room for the shown strip in the same breath.
 local TEST_LINE = NS.L["TEST MODE: a sample ledger, not your bank. Combat ends it."]
 
 function B:UpdateTestStrip()
   if not frame then return end
   local kind = NS.Database:DatasetKind()
-  if frame.testBadge then frame.testBadge:SetShown(kind == "test") end
-  local strip = frame.testStrip
-  if strip then
-    if kind ~= "live" then
+  if frame.testStrip then frame.testStrip:SetShown(kind == "test") end
+  local sim = frame.simStrip
+  if sim then
+    if kind == "sim" then
       local host = NS.SimHost
-      strip.text:SetText(kind == "sim" and host and host.MarkerText and host.MarkerText() or TEST_LINE)
+      sim.text:SetText(host and host.MarkerText and host.MarkerText() or "")
     end
-    strip:SetShown(kind ~= "live")
+    sim:SetShown(kind == "sim")
   end
+  if frame.testBadge then frame.testBadge:SetShown(kind == "test" and frame.testStrip == nil) end
   anchorPanes()
 end
 
@@ -809,6 +814,27 @@ function B.StripTipLines()
   end
   return { NS.L["Test mode"], NS.L["Shows: a sample ledger, not your bank"],
     NS.L["Ended by: combat, /bl test, the launcher menu"] }
+end
+
+-- One mode strip of the given kind ("test" or "sim"), hung 2 px under the filter bar with the
+-- mouse on and the dataset's tooltip (B.StripTipLines). nil without the Widgets library.
+local function buildModeStrip(filterHost, kind, text)
+  if not (W and W.TestStrip) then return nil end
+  local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info") })
+  strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
+  strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
+  strip:EnableMouse(true)
+  strip:HookScript("OnEnter", function(self2)
+    if not GameTooltip then return end
+    GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    for i, line in ipairs(B.StripTipLines()) do
+      if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
+      else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
+    end
+    GameTooltip:Show()
+  end)
+  strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+  return strip
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
@@ -1066,29 +1092,13 @@ local function EnsureFrame()
   filterHost:SetHeight(FILTERBAR_H)
   frame.filterHost = filterHost
 
-  -- The test-mode strip (LibKa0s-Widgets-1.0's TestStrip, BankLedger#23): born hidden, unanchored
-  -- and mouse-off. It hangs 2 px under the filter bar, B:UpdateTestStrip shows it and makes the
-  -- panes room for it, and its tooltip says what the sample is and what ends it.
-  frame.testStrip = W and W.TestStrip and W.TestStrip(frame, {
-    text = TEST_LINE,
-    icon = NS.Icon and NS.Icon("info"),
-  }) or nil
-  if frame.testStrip then
-    local strip = frame.testStrip
-    strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
-    strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
-    strip:EnableMouse(true)
-    strip:HookScript("OnEnter", function(self2)
-      if not GameTooltip then return end
-      GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-      for i, line in ipairs(B.StripTipLines()) do
-        if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
-        else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
-      end
-      GameTooltip:Show()
-    end)
-    strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-  end
+  -- One mode strip per kind (LibKa0s-Widgets-1.0's TestStrip, BankLedger#23/#24): the test
+  -- flavor and the simulation flavor (kind = "sim"), each born hidden, unanchored and mouse-off.
+  -- Both hang 2 px under the filter bar, B:UpdateTestStrip shows the dataset's one and makes the
+  -- panes room for it, and the tooltip says what the data is and what ends it. Without the library
+  -- neither is built, and the title badge marks test mode instead.
+  frame.testStrip = buildModeStrip(filterHost, "test", TEST_LINE)
+  frame.simStrip = buildModeStrip(filterHost, "sim", "")
 
   -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
   -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so

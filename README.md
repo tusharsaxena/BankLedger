@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1418%2F1418_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1428%2F1428_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -87,8 +87,8 @@ bank), `warband` (items and gold put in the warband bank, then taken out by an i
 `guild` (a guild-bank visit, including guild data that arrives while you are away and must not be
 recorded) and `onesided` (a visit where nothing should be recorded, because nothing crossed both
 ways). The ledger window opens on the simulated rows with an amber strip saying nothing here is
-saved, and a step panel docks beside it: play one step, run them all, or click a later step to play
-up to it. **Run all** waits a second between steps; **Simulation step delay** on the settings'
+saved, and a step panel docks beside it. A started simulation plays on its own, a second between
+steps; Pause holds it, and clicking a row plays it by hand. **Simulation step delay** on the settings'
 Interface tab changes that. Nothing a simulation does is saved and your real history is never touched. It won't start
 in combat, in test mode, with a real bank open, while General visibility keeps the window shut, or
 while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
