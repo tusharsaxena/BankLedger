@@ -1025,7 +1025,7 @@ degrade rather than error.
 - **DEGRADED-13. The badge is the fallback marker (SM-BL-13).** Run it before DEGRADED-11's restore.
   `/bl show`, then `/bl test` → no strip under the filter bar, the red TEST MODE badge beside the
   title, and the panes where they were. `/bl test` again → the badge goes. **Fail:** no marker at
-  all in test mode, or panes that moved. Added 2026-10-23 (BL-10).
+  all in test mode, or panes that moved. Added 2026-10-23 (BL-10). Result: pass (owner, 2026-10-23)
 
 ## Non-English client
 
@@ -1089,4 +1089,4 @@ On 2026-10-10 the owner marked every check in this file as passed, recorded on i
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
 
-- DEGRADED-13 (BL-10, 2026-10-23).
+None.
