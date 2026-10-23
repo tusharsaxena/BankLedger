@@ -18,3 +18,18 @@ bumped and nothing was pushed.
   (the `kind = "sim"` strips) are pre-decided by the run's owner scope.
 - **Gate**: `luacheck .` 0 warnings / 0 errors in 103 files; `lua tests/run.lua` 1418 passed,
   0 failed, 1 skipped (1419); `docs/test-cases.md` regenerated with no change.
+
+## Addendum: the tag moved (BL-RV2)
+
+The local tag v1.76.0 was moved after this bundle was written, from `9949368` to `7e81ff7`, to carry
+LK-91 (step-panel labels bounded before the command column, so a long label truncates with an
+ellipsis instead of running under the slash command). Item BL-RV2 replaced `libs/LibKa0s/` and
+`tests/_kit/` whole again from the moved tag and re-ran the prune (same result: 11 declared, 12
+files kept, 5828 removed). The provenance line still reads v1.76.0 and was not touched.
+
+- **Files that changed**: `libs/LibKa0s/SimPanel.lua` (label bound; `SIM_PANEL_MINOR` stays 5, as
+  the tag ships it) and `libs/LibKa0s/PerfPanel.lua` (the same bound; `PANEL_MINOR` 7 -> 8).
+  `tests/_kit/` is unchanged; kit revision 41.
+- **Contract**: no new surface and no signature change; nothing to adopt.
+- **Gate**: `luacheck .` 0 warnings / 0 errors in 103 files; `lua tests/run.lua` 1421 passed,
+  0 failed, 1 skipped (1422); `docs/test-cases.md` regenerated with no change.
