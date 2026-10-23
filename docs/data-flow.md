@@ -139,8 +139,10 @@ a container, so the client updating it fires `BAG_UPDATE_DELAYED` and drives the
 the timer is only a give-up deadline, re-armed on the remaining window so event traffic cannot push
 it out. If it never balances — an item
 looted into the bags while the bank happened to be open — the baseline re-anchors after the timeout,
-so a stale delta cannot later pair with something unrelated. Closing a frame runs the pending pass
-immediately rather than waiting out the window.
+so a stale delta cannot later pair with something unrelated. A movement the capture gate refuses
+(the blacklist, a quality threshold, an excluded store, a Track toggle) is complete, both halves
+seen, so it settles the pass like a recorded one and holds nothing (BL-11). Closing a frame runs the
+pending pass immediately rather than waiting out the window.
 
 Event registration is **isolated per event** (`NS.RegisterEventSafely`, over `LibKa0s-Core-1.0`'s
 `SafeRegisterEvent`, front-gated on `C_EventUtils.IsEventValid`). Modern retail raises

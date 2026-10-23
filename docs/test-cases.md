@@ -241,7 +241,7 @@ Total.
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_ledger_settling.lua (26)
+### test_ledger_settling.lua (27)
 
 - reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
@@ -265,6 +265,7 @@ Total.
 - Ledger: a re-anchored loot does not pair with a later unrelated deposit
 - Ledger: an unchanged world advances the baseline without waiting
 - Ledger: a completed movement clears the settle wait
+- Ledger: a movement the capture gate refuses settles without waiting
 - Ledger: a deletion writes no row and arms ONE deadline, not a poll
 - Ledger: the deadline is armed for the REMAINING window, not a fixed retry
 - Ledger: the deadline never schedules a near-zero timer
@@ -1512,7 +1513,7 @@ Total.
 - Sim gate: a typed step answers 'settling' while it is closed, and plays once it opens
 - Sim gate: each played step stamps rowsBefore, and Host.Recorded counts its rows
 
-### test_sim_e2e.lua (6)
+### test_sim_e2e.lua (9)
 
 - Sim e2e: bank records 3 BANK rows, the bonus link kept, with the saved ledger untouched
 - Sim e2e: warband records main's 2 deposits and the alt's 2 withdrawals through a held baseline
@@ -1520,6 +1521,9 @@ Total.
 - Sim e2e: guild data while away arms no context and records nothing (issue #12)
 - Sim e2e: onesided records 0 rows and the close drops the held change
 - Sim e2e: Restart plays every scenario again from the start, to the same end
+- Sim pacing: the bank scenario plays every step about one step delay apart
+- Sim pacing: a step moving a blacklisted item does not stall the run
+- Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
 ### test_sim_panel.lua (15)
 
@@ -1612,7 +1616,7 @@ Total.
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
-| test_ledger_settling.lua | 26 |
+| test_ledger_settling.lua | 27 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
@@ -1655,7 +1659,7 @@ Total.
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
-| test_sim_e2e.lua | 6 |
+| test_sim_e2e.lua | 9 |
 | test_sim_panel.lua | 15 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
@@ -1663,4 +1667,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1421** |
+| **Total** | **1425** |

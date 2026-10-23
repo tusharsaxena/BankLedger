@@ -24,7 +24,7 @@ leaves its number unused.
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 14 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
-| SIM-1 – 12 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play |
+| SIM-1 – 13 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item |
 | DEGRADED-1 – 13 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -944,6 +944,14 @@ failure.
   *Simulation step delay* → its tooltip no longer mentions a run-all button. `/bl sim stop`. **Fail:** a
   run-all button, a start that waits for a press, a click that plays two steps or leaves the run
   playing, or a run-all button named in the tooltip.
+- **SIM-13. No stall on any step (SM-BL-14, BL-11).** In a freshly started client (log in, do not
+  open a bank), `/bl sim start bank` → every step, including the flask (bonus-item) deposit and the
+  withdrawal after it, follows the previous one about 1 s later with no multi-second stall, and
+  chat never says `Waiting for the ledger to settle.` Then put an item from your bags on the
+  Blacklist (the Hearthstone is the usual one) and run it again → still no stall; a step that moves
+  the blacklisted item records no row (its panel row has no `(N recorded)`). With `/bl debug on`
+  the console has no `one-sided change: baseline held` line in either run. `/bl sim stop`.
+  **Fail:** any step waiting several seconds before the next plays, or a held-baseline line.
 
 ## DEGRADED
 
@@ -1069,6 +1077,7 @@ keeps it. A check added or rewritten after that date is listed here until its `R
 a pass.
 
 - LEDG-57, LEDG-58, SESS-14 and DEGRADED-13 (BL-10, 2026-10-23).
+- SIM-13 (BL-11, 2026-10-23).
 - LEDG-20, LEDG-24, LEDG-25, LEDG-52 and SIM-1: their procedures were amended for one strip per mode
   (BL-10, 2026-10-23) after the owner's pass, which was recorded against the old badge and amber
   simulation strip, so the earlier Result lines were cleared.

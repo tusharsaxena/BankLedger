@@ -467,6 +467,35 @@ test("Ledger: a completed movement clears the settle wait", function()
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
 end)
 
+-- BL-11: a movement the capture gate refuses (the blacklist here; equally a quality threshold, an
+-- uncached item under one, an excluded store or a Track toggle) has BOTH halves, so nothing is in
+-- flight and it settles at once. It used to read as "nothing recorded, world changed": the baseline
+-- was held as a one-sided change for the whole settle window, which also closed the simulator's
+-- gate for ~6 s on a step that moved such an item (the owner's stall, 2026-10-23).
+test("Ledger: a movement the capture gate refuses settles without waiting", function()
+  local before = NS.Database:Count()
+  NS.Filters:AddBlacklist(171276)
+  local ok, err = pcall(withContainers, {
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 1 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 1 }
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "the blacklisted deposit is not recorded")
+    assertEqual(NS.Ledger._settleSince, nil, "a refused movement is complete: no hold")
+    assertEqual(#mocks.__timers, 0, "and no settle deadline armed")
+    assertFalse(NS.Ledger.SnapshotsDiffer(NS.State.lastSnapshot, NS.Ledger:Snapshot("BANK_FRAME")),
+      "the baseline advanced past it")
+  end)
+  NS.Filters:RemoveBlacklist(171276)
+  NS.Ledger:CancelPendingReconcile()
+  NS.Ledger._settleSince = nil
+  if not ok then error(err, 0) end
+end)
+
 -- ── The settle wait must not poll ──────────────────────────────────────────────
 -- Deleting an item with the bank open is a one-sided change that will never balance. Waiting it out
 -- is correct; rescanning every half-second for the whole window is not — each pass walks the bags,
