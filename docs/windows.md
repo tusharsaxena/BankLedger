@@ -70,26 +70,30 @@ hand-edited SavedVariables) cannot reopen a window too small to read.
 | Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one filter bar; each tab keeps its own filter state and saved view |
 | Current Banking Session | `BankLedgerSessionWindow` | a bank frame opening (`SessionChanged`), or `/bl session` | One slim table of this visit's movements |
 
-**Test mode is marked twice on the ledger window** (BankLedger#23). The red `TEST MODE` badge stays
-beside the title, and `LibKa0s-Widgets-1.0`'s `TestStrip` (minor 13, LibKa0s#48) hangs 2px under the
-filter bar: an amber band with the `info` mark and *TEST MODE: a sample ledger, not your bank. Combat
-ends it.* Both texts go through `NS.L`. The library publishes the strip's height
-(`W.TEST_STRIP.HEIGHT`, 18) and deliberately no reserve, so `modules/Browser.lua` computes its own:
-`HEIGHT + 2 * STRIP_GAP` (22) while the strip shows, 0 otherwise or with no Widgets library.
-`anchorPanes()` hangs both the History and the Insights pane from the filter bar's bottom plus that
-reserve, and `B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the
-Master controls box, the launcher menu and the combat ending all reach it) shows or hides the badge
-and the strip and re-anchors the panes. The strip's mouse is on for one plain `GameTooltip`: *Test
-mode*, what it shows, and what ends it. Without the library there is no strip and no shift, and the
-badge alone marks test mode.
+**One strip per mode on the ledger window, and the badge only where no strip was built**
+(BankLedger#23, #24). `LibKa0s-Widgets-1.0`'s `TestStrip` (LibKa0s#48; the `kind` flavor since
+minor 14) is built twice by one local, `buildModeStrip(filterHost, kind, text)`, and both hang 2px
+under the filter bar: `frame.testStrip`, the amber test flavor with the `info` mark and *TEST MODE: a
+sample ledger, not your bank. Combat ends it.*, and `frame.simStrip`, the cyan simulation flavor.
+Their texts go through `NS.L`. The library publishes the strip's height (`W.TEST_STRIP.HEIGHT`, 18)
+and deliberately no reserve, so `modules/Browser.lua` computes its own: `HEIGHT + 2 * STRIP_GAP`
+(22) while either strip shows, 0 otherwise or with no Widgets library. `anchorPanes()` hangs both the
+History and the Insights pane from the filter bar's bottom plus that reserve, and
+`B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the Master controls
+box, the launcher menu and the combat ending all reach it) shows the dataset's strip, hides the
+other, and re-anchors the panes. Each strip's mouse is on for one plain `GameTooltip`: *Test mode*,
+what it shows, and what ends it. The red `TEST MODE` title badge is the **degraded fallback only**:
+it shows in test mode when no strip was built (no Widgets library, so no shift either), and never
+beside a strip.
 
-**A simulation is marked by the same strip, never the badge** (BankLedger#24, `preview-mode`,
+**A simulation is marked by the simulation strip, never the badge** (BankLedger#24, `preview-mode`,
 `LibKa0s-Sim-1.0` host contract H8). While `Database:DatasetKind()` is `"sim"`, `B:UpdateTestStrip()`
-sets the strip's text to *Simulation: &lt;scenario&gt; - nothing here is saved.* (the running
-scenario's label, `NS.SimHost.MarkerText()`) and shows it with the same 22px reserve; the red badge
-is test mode's alone and stays hidden. Its tooltip (`B.StripTipLines()`) says *Simulation*, what it
+sets `frame.simStrip`'s text to *Simulation: &lt;scenario&gt; - nothing here is saved.* (the running
+scenario's label, `NS.SimHost.MarkerText()`) and shows it with the same 22px reserve; the test strip
+and the badge stay hidden. Its tooltip (`B.StripTipLines()`) says *Simulation*, what it
 shows and what ends it (`/bl sim stop`, combat, a real bank window). The **session window** draws the
-simulated rows too, so it gets its own `TestStrip` with the same line while the dataset is `"sim"`,
+simulated rows too, so it gets its own `TestStrip` in the simulation flavor (`kind = "sim"`,
+`f.simStrip`) with the same line while the dataset is `"sim"`,
 anchored 2px under its title bar, its pane moved down by `HEIGHT + 4` (`SW:UpdateTestStrip()`, also
 run on every `SW:Show`). Test mode never marks the session window: its session rows are real. Both
 strips read the one predicate, and a session listener (`NS.Sim:AddListener` in `modules/Sim.lua`)

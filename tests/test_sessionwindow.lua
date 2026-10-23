@@ -540,8 +540,8 @@ end)
 -- ── The simulation strip (BankLedger#24, preview-mode; LibKa0s-Sim-1.0 host contract H8) ──────
 --
 -- The session window draws a simulation's rows, so it wears the ledger window's marker while one
--- runs: its own W.TestStrip under the title bar, the same line, and the rows moved down by the
--- strip's HEIGHT + 4. Both windows read Database:DatasetKind(). Test mode never marks this window.
+-- runs: its own W.TestStrip in the simulation flavor (kind "sim", f.simStrip) under the title bar,
+-- the same line, and the rows moved down by the strip's HEIGHT + 4. Both windows read Database:DatasetKind(). Test mode never marks this window.
 
 do
   local SS = dofile("tests/sim_support.lua")
@@ -561,8 +561,9 @@ do
       SS.drain()
       local f = SW:GetWindow()
       assertTrue(f ~= nil and f:IsShown(), "the session window did not open on the simulated visit")
-      local strip = f.testStrip
+      local strip = f.simStrip
       assertTrue(strip ~= nil and strip:IsShown(), "no simulation strip on the session window")
+      assertEqual(strip.kind, "sim", "the session window's strip is not the simulation flavor")
       assertEqual(strip.text:GetText(),
         NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Guild bank"]))
       local p1, rel1, rp1 = strip:GetPoint(1)
@@ -572,7 +573,7 @@ do
       assertEqual(paneTop(), -(base + 22), "the rows did not move down by HEIGHT + 4")
     end)
     local f = SW:GetWindow()
-    assertFalse(f.testStrip:IsShown(), "the strip outlived the simulation")
+    assertFalse(f.simStrip:IsShown(), "the strip outlived the simulation")
     assertEqual(paneTop(), -base, "the rows did not move back")
   end)
 
@@ -580,7 +581,7 @@ do
     NS.State.testRecords = {}
     SW:UpdateTestStrip()
     local f = SW:GetWindow()
-    local shown = f and f.testStrip and f.testStrip:IsShown()
+    local shown = f and f.simStrip and f.simStrip:IsShown()
     NS.State.testRecords = nil
     SW:UpdateTestStrip()
     assertFalse(shown, "test mode marked the session window")

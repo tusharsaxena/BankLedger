@@ -1123,10 +1123,12 @@ test("Browser: the window still opens and the ledger table still populates with 
 
 -- ── The test-mode strip: LibKa0s-Widgets-1.0's TestStrip (BankLedger#23, LibKa0s#48) ─────────
 --
--- Test mode is marked twice: the red TEST MODE badge on the title (kept, its text now through L)
--- and the library's amber strip directly under the filter bar. The library publishes the strip's
--- HEIGHT and nothing about the body below it, so the host computes its own reserve
--- (TEST_STRIP.HEIGHT + 2 * STRIP_GAP = 22) and shifts BOTH panes down by it while the strip shows.
+-- One strip per kind, both directly under the filter bar: the library's amber test strip
+-- (f.testStrip, kind "test") and its cyan simulation strip (f.simStrip, kind "sim"). The red TEST
+-- MODE badge on the title is only the degraded fallback: it shows in test mode when no strip was
+-- built (no Widgets library), and never beside a strip. The library publishes the strip's HEIGHT
+-- and nothing about the body below it, so the host computes its own reserve
+-- (TEST_STRIP.HEIGHT + 2 * STRIP_GAP = 22) and shifts BOTH panes down by it while either strip shows.
 -- Each case runs in a FRESH environment: the window is a singleton built once, and the strip's
 -- constructor call is only observable while it is being built.
 
@@ -1149,14 +1151,18 @@ local function loadFresh(withoutWidgets)
 end
 
 -- Spy on the constructor while the window is built: what it was handed, and what the host did to
--- the strip it got back that the mock frame does not record (the mouse).
+-- the strip it got back that the mock frame does not record (the mouse). `opts`/`mouse` are the
+-- test strip's; `simOpts`/`simMouse` the simulation strip's.
 local function showSpyingOnStrip(ns, m)
   local Widgets = m.LibStub("LibKa0s-Widgets-1.0", true)
-  local real, seen = Widgets.TestStrip, { mouse = false }
+  local real, seen = Widgets.TestStrip, { mouse = false, simMouse = false }
   Widgets.TestStrip = function(parent, opts)
-    seen.opts = opts
+    local sim = type(opts) == "table" and opts.kind == "sim"
+    if sim then seen.simOpts = opts else seen.opts = opts end
     local s = real(parent, opts)
-    s.EnableMouse = function(_, v) seen.mouse = v end
+    s.EnableMouse = function(_, v)
+      if sim then seen.simMouse = v else seen.mouse = v end
+    end
     return s
   end
   local ok, err = pcall(function() ns.Browser:Show() end)
@@ -1185,6 +1191,15 @@ test("Browser: test mode on shows the strip under the filter bar and shifts both
   assertTrue(seen.opts ~= nil, "the strip was not built through W.TestStrip")
   assertTrue(seen.opts.icon ~= nil and seen.opts.icon == ns.Icon("info"),
     "the strip's mark is not the info icon")
+  assertEqual(f.testStrip.kind, "test", "the test strip is not the test flavor")
+  assertTrue(f.simStrip ~= nil, "the window built no simulation strip")
+  assertEqual(f.simStrip.kind, "sim", "the simulation strip is not the simulation flavor")
+  assertTrue(seen.simOpts ~= nil and seen.simOpts.icon == ns.Icon("info"),
+    "the simulation strip's mark is not the info icon")
+  assertTrue(seen.simMouse == true, "the simulation strip's mouse was not enabled")
+  local sp1, srel1, srp1, sx1, sy1 = f.simStrip:GetPoint(1)
+  assertEqual(sp1 .. ">" .. srp1 .. "@" .. sx1 .. "," .. sy1, "TOPLEFT>BOTTOMLEFT@0,-2")
+  assertTrue(srel1 == f.filterHost, "the simulation strip is not anchored to the filter bar")
 
   assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
   assertTrue(f.testStrip:IsShown(), "the strip is hidden in test mode")
@@ -1197,8 +1212,8 @@ test("Browser: test mode on shows the strip under the filter bar and shifts both
   assertEqual(x1 .. "," .. y1 .. "," .. x2 .. "," .. y2, "0,-2,0,-2")
   assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "History did not move down by the reserve")
   assertEqual(paneY(ns, "Insights"), baseI - STRIP_RESERVE, "Insights did not move down by the reserve")
-  assertTrue(f.testBadge:IsShown(), "the red badge went away beside the strip")
-  assertEqual(f.testBadge:GetText(), ns.L["TEST MODE"])
+  assertFalse(f.simStrip:IsShown(), "the simulation strip shows in test mode")
+  assertFalse(f.testBadge:IsShown(), "the red badge shows beside the strip; it is the fallback only")
   ns.LedgerTable:SetTestMode(false)
 end)
 
@@ -1210,6 +1225,7 @@ test("Browser: test mode off hides the strip and the badge and puts both panes b
   ns.LedgerTable:SetTestMode(true)
   assertFalse(ns.LedgerTable:SetTestMode(false), "test mode did not stop")
   assertFalse(f.testStrip:IsShown(), "the strip outlived test mode")
+  assertFalse(f.simStrip:IsShown(), "the simulation strip shows outside a simulation")
   assertFalse(f.testBadge:IsShown(), "the badge outlived test mode")
   assertEqual(paneY(ns, "History"), baseH)
   assertEqual(paneY(ns, "Insights"), baseI)
@@ -1253,6 +1269,7 @@ test("Browser: with no Widgets library there is no strip and no shift, and the b
     local baseH = paneY(ns, "History")
     assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
     T.assertNil(f.testStrip, "a strip was built without the library")
+    T.assertNil(f.simStrip, "a simulation strip was built without the library")
     assertEqual(paneY(ns, "History"), baseH, "the panes moved for a strip that is not there")
     assertTrue(f.testBadge:IsShown(), "the badge is the only marker left, and it is gone")
     assertEqual(f.testBadge:GetText(), ns.L["TEST MODE"])
@@ -1372,24 +1389,34 @@ end)
 
 -- ── The simulation marker (BankLedger#24, preview-mode; LibKa0s-Sim-1.0 host contract H8) ──────
 --
--- While a simulation runs (Database:DatasetKind() == "sim") the same strip says so, naming the
--- scenario, and the red TEST MODE badge stays hidden: it is test mode's alone. The strip comes and
--- goes with the start and the stop. Runs in the shared environment, on the addon's own NS.Sim.
+-- While a simulation runs (Database:DatasetKind() == "sim") the simulation strip (f.simStrip, kind
+-- "sim") says so, naming the scenario; the test strip and the red TEST MODE badge stay hidden. The
+-- strip comes and goes with the start and the stop, and the panes move by the same reserve. Runs in
+-- the shared environment, on the addon's own NS.Sim.
 
 do
   local SS = dofile("tests/sim_support.lua")
 
-  test("Browser: a simulation shows the strip with its scenario line, and never the badge", function()
+  test("Browser: a simulation shows the sim strip with its scenario line, and never the badge",
+  function()
+    local inH, inI
     SS.withSession("warband", function()
       local f = NS.Browser:GetWindow()
-      assertTrue(f.testStrip:IsShown(), "no marker while a simulation runs")
-      assertEqual(f.testStrip.text:GetText(),
+      assertTrue(f.simStrip:IsShown(), "no marker while a simulation runs")
+      assertEqual(f.simStrip.kind, "sim", "the simulation's strip is not the simulation flavor")
+      assertEqual(f.simStrip.text:GetText(), NS.SimHost.MarkerText())
+      assertEqual(f.simStrip.text:GetText(),
         NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Warband transfer"]))
+      assertFalse(f.testStrip:IsShown(), "the test strip shows for a simulation")
       assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
+      inH, inI = paneY(NS, "History"), paneY(NS, "Insights")
     end)
     local f = NS.Browser:GetWindow()
-    assertFalse(f.testStrip:IsShown(), "the marker outlived the simulation")
+    assertFalse(f.simStrip:IsShown(), "the marker outlived the simulation")
+    assertFalse(f.testStrip:IsShown())
     assertFalse(f.testBadge:IsShown())
+    assertEqual(inH, paneY(NS, "History") - STRIP_RESERVE, "History did not make the strip room")
+    assertEqual(inI, paneY(NS, "Insights") - STRIP_RESERVE, "Insights did not make the strip room")
   end)
 
   test("Browser: the strip's tooltip describes the simulation while one runs", function()
@@ -1409,7 +1436,7 @@ do
       NS.Browser.UpdateTestStrip = real
       if not ok then error(err, 0) end
       assertTrue(painted >= 2, "the stop's dataset swap and its listener each repaint: " .. painted)
-      assertFalse(f.testStrip:IsShown())
+      assertFalse(f.simStrip:IsShown())
     end)
   end)
 end

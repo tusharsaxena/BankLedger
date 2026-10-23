@@ -472,8 +472,9 @@ end
 -- ── The simulation strip (preview-mode marker, BankLedger#24) ───────────────────
 
 -- While a simulation runs this window draws its rows, so it wears the ledger window's marker:
--- LibKa0s-Widgets-1.0's TestStrip under the title bar, with the same line (NS.SimHost.MarkerText)
--- and the same one predicate (Database:DatasetKind() == "sim"). The rows move down by HEIGHT + 4.
+-- LibKa0s-Widgets-1.0's TestStrip in the strip's simulation flavor (kind "sim", cyan) under the
+-- title bar, with the same line (NS.SimHost.MarkerText) and the same one predicate
+-- (Database:DatasetKind() == "sim"). The rows move down by HEIGHT + 4.
 -- Test mode never reaches this window (its session rows are the real ones), so the strip is the
 -- simulation's alone.
 local STRIP_GAP = 2
@@ -481,7 +482,7 @@ local STRIP_GAP = 2
 local function buildStrip(f, titleBar)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
   if not (W and W.TestStrip) then return end
-  local strip = W.TestStrip(f, { icon = NS.Icon and NS.Icon("info") })
+  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info") })
   strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
   strip:EnableMouse(true)
@@ -495,14 +496,14 @@ local function buildStrip(f, titleBar)
     GameTooltip:Show()
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-  f.testStrip = strip
+  f.simStrip = strip
   f._stripReserve = W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
 end
 
 local function anchorPane()
   local pane = SW.pane
   if not (frame and pane and frame._paneTop) then return end
-  local strip = frame.testStrip
+  local strip = frame.simStrip
   local top = frame._paneTop + ((strip and strip:IsShown()) and frame._stripReserve or 0)
   pane:ClearAllPoints()
   pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -top)
@@ -512,7 +513,7 @@ end
 --- Show the strip while the dataset is the simulation's, with its line, and make the rows room.
 function SW:UpdateTestStrip()
   if not frame then return end
-  local strip = frame.testStrip
+  local strip = frame.simStrip
   local on = NS.Database:DatasetKind() == "sim"
   if strip then
     local host = NS.SimHost

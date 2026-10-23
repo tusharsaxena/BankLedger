@@ -521,7 +521,7 @@ Total.
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
 - Browser: the Character filter's selection can never outlive its option list
-- Browser: a simulation shows the strip with its scenario line, and never the badge
+- Browser: a simulation shows the sim strip with its scenario line, and never the badge
 - Browser: the strip's tooltip describes the simulation while one runs
 - Browser: a stop repaints the strip through the session listener
 
