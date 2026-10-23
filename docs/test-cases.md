@@ -1521,7 +1521,7 @@ Total.
 - Sim e2e: onesided records 0 rows and the close drops the held change
 - Sim e2e: Restart plays every scenario again from the start, to the same end
 
-### test_sim_panel.lua (12)
+### test_sim_panel.lua (15)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
@@ -1532,6 +1532,9 @@ Total.
 - sim panel: with the ledger window shut it floats rather than docking beside a hidden frame
 - sim panel: a typed step repaints the shown panel
 - sim panel: clicking a done row does nothing; clicking the next row plays it
+- sim: a typed /bl sim start bank plays on its own
+- sim panel: the controls are Pause, Restart and Stop
+- sim panel: clicking the ready row while it plays pauses and plays one step
 - sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
@@ -1653,11 +1656,11 @@ Total.
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 6 |
-| test_sim_panel.lua | 12 |
+| test_sim_panel.lua | 15 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1418** |
+| **Total** | **1421** |

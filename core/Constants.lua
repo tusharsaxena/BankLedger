@@ -168,9 +168,9 @@ C.MASTER_ALPHA_MIN = 0.1
 C.BACKFILL_MAX_IDS = 40
 C.BACKFILL_TIMEOUT = 10
 
--- The simulator's Run all pace (BankLedger#24; the owner's 2026-10-23 ask): the range and grid of
--- the `settings.sim.stepDelay` slider, the seconds `run` waits after a step before it plays the
--- next. Named once here because two places must agree on them: the schema row (settings/Schema.lua)
+-- The simulator's pace (BankLedger#24; the owner's 2026-10-23 ask): the range and grid of the
+-- `settings.sim.stepDelay` slider, the seconds a playing simulation waits after a step before it
+-- plays the next. Named once here because two places must agree on them: the schema row (settings/Schema.lua)
 -- and the host's check (modules/Sim.lua's Host.ValidStepDelay), which Host.StepDelay uses to fall
 -- back to the default on a stored value the row would refuse. The DEFAULT is not here: like every
 -- default it is hardcoded once, in defaults/Profile.lua (savedvariables-§2).

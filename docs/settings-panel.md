@@ -17,7 +17,7 @@ only. The finer tree is everything below it.
 | --- | ------ |
 | Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), put the windows back where they started, or return every setting to stock. |
 | Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
-| Interface | What is on screen: whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor, plus how long the simulator's **Run all** waits between steps (**Simulation step delay**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
+| Interface | What is on screen: whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor, plus how long a playing simulation waits between steps (**Simulation step delay**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all** empties the list after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 
@@ -267,8 +267,8 @@ can prune history. It is on `NS.Schema.RESET_EXEMPT` beside the minimap row, so 
 (a sweep putting *Always* back to 30 days would prune); a targeted
 `/bl reset settings.retentionDays` still applies.
 
-**The `settings.sim.stepDelay` row is the simulator's Run all pace.** It is how many seconds
-`/bl sim run` and the step panel's **Run all** wait after a step before they play the next; the
+**The `settings.sim.stepDelay` row is the simulator's pace.** It is how many seconds a playing
+simulation waits after a step before it plays the next; the
 default is 1 s (until the owner's 2026-10-23 ask it was a fixed 1.5 s constant, never a row). It has
 no `onChange`: `modules/Sim.lua`'s `Host.StepDelay` reads the stored value at every step, so a change
 lands on the next step, a running session included. A step's own `settle` still raises the pause above

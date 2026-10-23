@@ -463,7 +463,7 @@ end)
 test("Schema: the Interface tab heads each KIND of control it mixes", function()
   -- options-ui-§7: a tab mixing kinds must break them up, and those headings are NOT suppressed the
   -- way the tab's own section heading is. Interface holds three kinds — the windows you can switch
-  -- on, the tint of a table row and the simulator's Run all pace — so every row on it carries a
+  -- on, the tint of a table row and the pace of a playing simulation — so every row on it carries a
   -- `subgroup`, and no subgroup may repeat the tab's own name.
   --
   -- Dies under: dropping `subgroup` from any Interface row, or naming one "Interface".
@@ -483,7 +483,7 @@ test("Schema: the Interface tab heads each KIND of control it mixes", function()
 end)
 
 test("Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s", function()
-  -- The owner's 2026-10-23 ask: Run all waits 1 s between steps by default, and a player can change
+  -- The owner's 2026-10-23 ask: a playing simulation waits 1 s between steps by default, and a player can change
   -- it. The row's validate is the host's own check (NS.SimHost.ValidStepDelay), so `/bl set` and the
   -- slider refuse exactly the values modules/Sim.lua would not use.
   local row = S:FindRow("settings.sim.stepDelay")

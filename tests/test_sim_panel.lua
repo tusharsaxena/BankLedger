@@ -159,6 +159,74 @@ test("sim panel: clicking a done row does nothing; clicking the next row plays i
   end)
 end)
 
+-- ── auto-play: a typed start plays on its own (LibKa0s v1.76.0, Sim 2.3.5; OWNER_SCOPE A.1) ─────
+--
+-- The member sim:Start{} plays nothing (sim_support's withSession), but the typed `/bl sim start`
+-- arms the run: it plays every step on its own, the descriptor's stepDelay apart, and the gate
+-- still holds a step until the ledger settles. These cases start through the typed verb inside the
+-- quiet world (withSession with no scenario) and run the clock with sim_support's advance.
+
+--- Type `/bl sim start <scenario>` inside the quiet world and run fn(sim) on the started session.
+local function typedSession(scenario, fn)
+  S.withSession(nil, function(sim)
+    S.chat(function() NS.Slash:OnSlash("sim start " .. scenario) end)
+    assertTrue(sim:IsActive(), "the typed start did not start a session")
+    fn(sim)
+  end)
+end
+
+test("sim: a typed /bl sim start bank plays on its own", function()
+  typedSession("bank", function(sim)
+    local st = sim:Status()
+    assertTrue(st.playing, "a typed start did not arm the run")
+    local steps = sim:Steps()
+    local at, last = {}, 0
+    local met = S.advance(120, function()
+      local now = sim:Status()
+      if now.pos > last then
+        for p = last + 1, now.pos do at[p] = mocks.__now end
+        last = now.pos
+      end
+      return now.total > 0 and now.pos == now.total and not now.playing
+    end)
+    assertTrue(met, ("the run stopped at step %d of %d with no verb typed"):format(last, #steps))
+    for p = 2, #steps do
+      local gap, want = at[p] - at[p - 1], Host.DelayAfter(steps[p - 1])
+      assertTrue(gap >= want, ("step %d played %.2f s after step %d, under the %.2f s delay")
+        :format(p, gap, p - 1, want))
+    end
+    assertEqual(Host.DelayAfter({}), 1, "the default step delay is 1 s")
+  end)
+end)
+
+test("sim panel: the controls are Pause, Restart and Stop", function()
+  typedSession("bank", function(sim)
+    assertTrue(sim:IsPanelShown(), "the typed start did not open the panel")
+    local c = panelFrame().controls
+    assertTrue(c ~= nil, "the panel has no controls bar")
+    assertEqual(c.run, nil, "the run-all control is still there")
+    assertTrue(c.restart ~= nil and c.stop ~= nil, "Restart or Stop is missing")
+    assertTrue(c.pause:IsEnabled(), "Pause is disabled while the run plays")
+    assertEqual(c.pause.label:GetText(), "Pause")
+    sim:Pause()
+  end)
+end)
+
+test("sim panel: clicking the ready row while it plays pauses and plays one step", function()
+  typedSession("bank", function(sim)
+    assertTrue(S.advance(30, function() return sim:Status().pos >= 1 end), "the first step never played")
+    local st = sim:Status()
+    assertTrue(st.playing and st.pos < st.total, "the premise: the run plays with steps left")
+    local before = st.pos
+    S.chat(function() panelFrame().__rowButtons[before + 2]:__fire("OnClick") end)   -- the ready row
+    S.drain()
+    st = sim:Status()
+    assertEqual(st.pos, before + 1, "the click did not play exactly one step")
+    assertTrue(st.paused, "the click did not hold the run")
+    assertFalse(st.playing, "the run kept playing after the click")
+  end)
+end)
+
 -- ── the session-only position (C.11, H10) ────────────────────────────────────────────────────
 
 test("sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks", function()

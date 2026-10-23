@@ -24,7 +24,7 @@ leaves its number unused.
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 13 | Session window | The Current Banking Session window at every store, its resize grip |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
-| SIM-1 – 10 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check |
+| SIM-1 – 12 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play |
 | DEGRADED-1 – 12 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -847,7 +847,8 @@ failure.
 - **SIM-1. A bank simulation, start to stop (SM-BL-18).** `/bl sim start bank` → the ledger window
   opens with the amber strip `Simulation: Personal bank - nothing here is saved.` under the filter
   bar (no red TEST MODE badge), and the step panel, *Ka0s Bank Ledger - Simulation*, docks beside
-  the window. Press the panel's **Run all** → the five steps play in order; History gains three
+  the window. The run plays on its own → the five steps play in order (procedure amended for
+  auto-play, BL-01, 2026-10-23); History gains three
   Character Bank rows (two deposits, one withdrawal) named after items from your own bags, Insights
   describes the same three, and the Current Banking Session window opens with the simulated bank,
   lists them, and closes when it closes. `/bl sim stop` → one stop line, the strip and the panel
@@ -862,8 +863,9 @@ failure.
   cannot start while General visibility keeps the ledger window closed.` (set it back). After `/bl
   disable`: the addon's disabled line (`/bl enable` after). **Fail:** a second line, a different
   line, or anything opening. Result: pass (owner-marked 2026-10-23)
-- **SIM-3. The warband transfer (SM-BL-20).** `/bl sim start warband`, then `/bl sim step` once at a
-  time. The second step (the item deposit) → no row at once; the Warband Bank row appears about
+- **SIM-3. The warband transfer (SM-BL-20).** `/bl sim start warband`, `/bl sim pause` at once (the
+  run plays on its own), then `/bl sim step` once at a time (procedure amended for auto-play, BL-01,
+  2026-10-23). The second step (the item deposit) → no row at once; the Warband Bank row appears about
   1.5 s later, when the store half lands. Run the rest → four Warband Bank rows: your item and gold
   deposits, then the alt's item and gold withdrawals, whose Character column reads
   `Simbanker-<your realm>` in a class color that is not yours. `/bl sim stop`. **Fail:** the
@@ -909,14 +911,24 @@ failure.
   and `BAG_UPDATE_DELAYED`). Compare with `D.EVENTS.WarbandBag` and `D.EVENTS.WarbandStore` in
   `modules/SimDrivers.lua`. If they differ, file the one-line correction to that list.
   Result: pass (owner-marked 2026-10-23)
-- **SIM-11. Run all's step delay is a setting (owner ask 2026-10-23).** Settings ▸ General ▸
+- **SIM-11. The simulation step delay is a setting (owner ask 2026-10-23).** Settings ▸ General ▸
   Interface → a **Simulator** heading below Table rows, over *Simulation step delay* at **1.0 s**.
-  `/bl sim start bank`, press the panel's **Run all** → the steps play about one second apart (the
-  first deposit's step can wait longer while the ledger settles). Drag the slider to 4.0 s while it
+  `/bl sim start bank`; the run plays on its own → the steps play about one second apart (the
+  first deposit's step can wait longer while the ledger settles) (procedure amended for auto-play,
+  BL-01, 2026-10-23). Drag the slider to 4.0 s while it
   runs → the next pause is about four seconds. `/bl set settings.sim.stepDelay 0.75` → refused, the
   value unchanged; `/bl get settings.sim.stepDelay` → four seconds. Put it back with
   `/bl reset settings.sim.stepDelay` (→ 1.0 s). **Fail:** a 1.5 s pace at the default, a change that
   waits for the next session, or 0.75 stored. Result: pass (owner-marked 2026-10-23)
+- **SIM-12. A started simulation plays on its own; the run-all button is gone (SM-BL-01, SM-BL-02).**
+  `/bl sim start bank` → the ledger window and the step panel open, the panel's footer shows
+  **Pause**, **Restart** and **Stop** (no run-all button), and the five steps play about one second
+  apart with nothing pressed; History gains the simulated rows as in SIM-1. Start it again and,
+  mid-run, click the next row → the run pauses (the first button reads **Resume**) and that one step
+  plays. Press **Resume** → the rest play on their own. Hover Settings ▸ General ▸ Interface ▸
+  *Simulation step delay* → its tooltip no longer mentions a run-all button. `/bl sim stop`. **Fail:** a
+  run-all button, a start that waits for a press, a click that plays two steps or leaves the run
+  playing, or a run-all button named in the tooltip.
 
 ## DEGRADED
 
