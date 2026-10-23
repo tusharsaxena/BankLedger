@@ -311,11 +311,26 @@ test("Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and 
   captureChat(function() Sl:CliSet("settings.rowHoverAlpha 0.3") end)
   local lines
   captureChat(function() lines = setLines(function() Sl:OnSlash("resetall") end) end)
-  assertEqual(#NS.Schema.Schema, 16, "the schema still carries sixteen rows")
+  assertEqual(#NS.Schema.Schema, 17, "the schema still carries seventeen rows")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
   assertTrue(lines[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "the line names the act and the rows changed, got: " .. tostring(lines[1]))
   assertEqual(NS.Schema:Get("settings.qualityThreshold"), 0, "the reset still happened")
+end)
+
+test("Slash: /bl set reaches the simulator's step delay, refuses off-grid and clamps out-of-range", function()
+  -- The row is a schema row like any other, so `/bl set` reaches it with no slash code of its own.
+  -- Its validate (NS.SimHost.ValidStepDelay) refuses an off-grid value; an out-of-range number is
+  -- clamped to the row's max by the slash library before it reaches the seam.
+  local saved = NS.Schema:Get("settings.sim.stepDelay")
+  captureChat(function() Sl:CliSet("settings.sim.stepDelay 2.5") end)
+  assertEqual(NS.Schema:Get("settings.sim.stepDelay"), 2.5, "/bl set did not store 2.5")
+  assertEqual(NS.SimHost.StepDelay(), 2.5, "the host does not read what /bl set stored")
+  captureChat(function() Sl:CliSet("settings.sim.stepDelay 0.75") end)
+  assertEqual(NS.Schema:Get("settings.sim.stepDelay"), 2.5, "/bl set stored an off-grid 0.75")
+  captureChat(function() Sl:CliSet("settings.sim.stepDelay 30") end)
+  assertEqual(NS.Schema:Get("settings.sim.stepDelay"), 10, "/bl set did not clamp 30 to the max")
+  NS.Schema:Set("settings.sim.stepDelay", saved)
 end)
 
 test("Slash: /bl resetall with every row already at its default logs 0 rows, and nothing per row", function()
@@ -330,9 +345,9 @@ test("Slash: /bl resetall with every row already at its default logs 0 rows, and
 end)
 
 test("Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED", function()
-  -- The walk visits all sixteen rows and two of them move.
+  -- The walk visits all seventeen rows and two of them move.
   -- red under: dropping bulkBegin/bulkEnd from the seam (a `[Set] <path> = <value>` line per row),
-  -- muting the seam without emitting the summary (none), or logging the library's `count` (16).
+  -- muting the seam without emitting the summary (none), or logging the library's `count` (17).
   librarySweep()   -- baseline: every row at its default
   NS.Schema:Set("settings.qualityThreshold", 4)
   NS.Schema:Set("settings.rowHoverAlpha", 0.3)

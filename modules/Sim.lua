@@ -45,10 +45,46 @@ NS.SimHost = NS.SimHost or {}
 local Host = NS.SimHost
 local L = NS.L
 
--- The pause after each step before `run` plays the next one, raised to a step's own `settle`: a
--- fixed constant, never a schema row (OWNER_SCOPE C.11).
-local SIM_STEP_DELAY = 1.5
-Host.STEP_DELAY = SIM_STEP_DELAY
+-- ── the step delay ───────────────────────────────────────────────────────────────────────────
+--
+-- The pause after each step before `run` plays the next one. Once a fixed 1.5 s constant
+-- (OWNER_SCOPE C.11); since the owner's 2026-10-23 ask it is the `settings.sim.stepDelay` slider,
+-- default 1 s, and Host.STEP_DELAY is that DEFAULT (read from defaults/Profile.lua, its one
+-- hardcoded copy) -- the fallback Host.StepDelay answers when the stored value is not one the row
+-- takes. A step's own `settle` still raises the pause above it.
+local C = NS.Constants
+Host.STEP_DELAY = NS.defaults.profile.settings.sim.stepDelay
+
+--- Whether v is a step delay the setting takes: a number in [MIN, MAX] on the slider's grid. The
+--- schema row's validate is this check, so the slider, `/bl set` and the read agree.
+--- @return boolean ok, string|nil why
+function Host.ValidStepDelay(v)
+  if type(v) ~= "number" or v ~= v or v < C.SIM_STEP_DELAY_MIN or v > C.SIM_STEP_DELAY_MAX then
+    return false, ("a number of seconds from %g to %g"):format(C.SIM_STEP_DELAY_MIN, C.SIM_STEP_DELAY_MAX)
+  end
+  local n = v / C.SIM_STEP_DELAY_STEP
+  if n ~= math.floor(n) then
+    return false, ("a multiple of %g seconds"):format(C.SIM_STEP_DELAY_STEP)
+  end
+  return true
+end
+
+--- The seconds `run` waits between steps NOW: the stored setting, read at every call so a change
+--- lands on the next step, or Host.STEP_DELAY when the stored value is not one the setting takes
+--- (SavedVariables is hand-editable).
+--- @return number
+function Host.StepDelay()
+  local st = NS.db and NS.db.profile and NS.db.profile.settings
+  local v = type(st) == "table" and type(st.sim) == "table" and st.sim.stepDelay or nil
+  if Host.ValidStepDelay(v) then return v end
+  return Host.STEP_DELAY
+end
+
+--- The descriptor's stepDelay: the pause after `step`, the setting raised to the step's `settle`.
+--- @return number
+function Host.DelayAfter(step)
+  return math.max(Host.StepDelay(), (step and step.settle) or 0)
+end
 
 --- The scenarios, filled in place at file load by modules/SimScenario.lua (the library reads them
 --- at call time): { names = { ordered }, defs = { [name] = def } }.
@@ -353,7 +389,7 @@ if Lib then
     play = function(step) return Host.Play(step) end,
     refusal = function(opts) return Host.Refusal(opts) end,
     gate = function(session) return Host.Gate(session) end,
-    stepDelay = function(step) return math.max(SIM_STEP_DELAY, step.settle or 0) end,
+    stepDelay = function(step) return Host.DelayAfter(step) end,
     stopText = STOP_TEXT,
     L = LINES,
     print = function(line) NS.Print(line) end,

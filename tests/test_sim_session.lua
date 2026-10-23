@@ -148,9 +148,79 @@ test("Sim session: a start prints the host's no-save line, builds the world and 
   assertTrue(NS.State.simLog == nil and NS.SimHost.world == nil, "the stop left session state behind")
 end)
 
-test("Sim session: the step delay is 1.5 s, raised to a step's settle", function()
-  assertEqual(NS.SimHost.STEP_DELAY, 1.5)
-  -- Read through the library's Run: the tick after a step is set with the descriptor's stepDelay.
+-- ── the step delay: the `settings.sim.stepDelay` setting, raised to a step's settle ─────────────
+--
+-- Run all's pause between steps was a 1.5 s constant until the owner asked for a 1 s default that
+-- a player can change (2026-10-23). Host.StepDelay reads the setting AT USE, falling back to
+-- Host.STEP_DELAY (the default) on a stored value the row would refuse; Host.DelayAfter(step) is
+-- the descriptor's stepDelay, the larger of that and the step's own `settle`.
+
+local STEP_PATH = "settings.sim.stepDelay"
+
+--- Run fn with the stored step delay set raw to v (nil clears it), then put the old value back.
+local function withStepDelay(v, fn)
+  local g = NS.db.profile.settings
+  local hadSim = g.sim
+  if type(g.sim) ~= "table" then g.sim = {} end
+  local saved = g.sim.stepDelay
+  g.sim.stepDelay = v
+  local ok, err = pcall(fn)
+  g.sim.stepDelay = saved
+  if hadSim == nil then g.sim = nil end
+  if not ok then error(err, 0) end
+end
+
+test("Sim session: the step delay defaults to 1 s, in the row, the defaults and the host", function()
+  assertEqual(NS.SimHost.STEP_DELAY, 1, "Host.STEP_DELAY is the setting's default")
+  assertEqual(SchemaS:Default(STEP_PATH), 1, "the row's default")
+  assertEqual(NS.defaults.profile.settings.sim.stepDelay, 1, "the defaults mirror")
+  withStepDelay(nil, function()
+    assertEqual(NS.SimHost.StepDelay(), 1, "nothing stored answers the default")
+  end)
+end)
+
+test("Sim session: Run waits the stored step delay after a step", function()
+  withStepDelay(3, function()
+    assertEqual(NS.SimHost.StepDelay(), 3)
+    S.withSession("bank", function(sim)
+      S.chat(function() assertTrue(sim:Run()) end)
+      local tick = mocks.__timers[#mocks.__timers]
+      assertEqual(tick and tick.delay, 3, "Run did not wait the stored step delay")
+      sim:Pause()
+    end)
+  end)
+end)
+
+test("Sim session: a stored step delay the row would refuse falls back to the default", function()
+  for _, bad in ipairs({ 0.2, 0, -1, 10.5, 25, 0.75, 1.25, "2", true, {}, 0 / 0 }) do
+    withStepDelay(bad, function()
+      assertEqual(NS.SimHost.StepDelay(), 1, "stored " .. tostring(bad) .. " was used")
+    end)
+  end
+  for _, good in ipairs({ 0.5, 1, 1.5, 4, 10 }) do
+    assertTrue(NS.SimHost.ValidStepDelay(good), tostring(good) .. " is a value the slider offers")
+  end
+end)
+
+test("Sim session: the step delay setting refuses off-grid and out-of-range writes", function()
+  withStepDelay(nil, function()
+    for _, bad in ipairs({ 0.2, 10.5, 0.75, "fast" }) do
+      local ok = SchemaS:Set(STEP_PATH, bad)
+      assertFalse(ok, "the row accepted " .. tostring(bad))
+    end
+    assertTrue(SchemaS:Set(STEP_PATH, 2.5), "the row refused 2.5")
+    assertEqual(NS.SimHost.StepDelay(), 2.5)
+  end)
+end)
+
+test("Sim session: a step's settle still raises the delay above the setting, never lowers it", function()
+  withStepDelay(2, function()
+    assertEqual(NS.SimHost.DelayAfter({ settle = 6.5 }), 6.5, "settle did not raise the delay")
+    assertEqual(NS.SimHost.DelayAfter({ settle = 1.5 }), 2, "a smaller settle lowered the delay")
+    assertEqual(NS.SimHost.DelayAfter({}), 2, "no settle is the setting alone")
+  end)
+  -- And through the library's Run, as before: the tick after a step is set with the descriptor's
+  -- stepDelay.
   S.withSession("bank", function(sim)
     local steps = sim:Steps()
     steps[1].settle = 6.5
@@ -158,6 +228,22 @@ test("Sim session: the step delay is 1.5 s, raised to a step's settle", function
     local tick = mocks.__timers[#mocks.__timers]
     assertEqual(tick and tick.delay, 6.5, "the step's settle did not raise the delay")
     sim:Pause()
+  end)
+end)
+
+test("Sim session: the step delay is read at use, so a change lands on the next step", function()
+  withStepDelay(1, function()
+    assertEqual(NS.SimHost.DelayAfter({}), 1)
+    NS.db.profile.settings.sim.stepDelay = 4
+    assertEqual(NS.SimHost.DelayAfter({}), 4, "the delay was captured before the change")
+    -- A session already running picks it up too: nothing is captured at Sim:New or at the start.
+    S.withSession("bank", function(sim)
+      NS.db.profile.settings.sim.stepDelay = 6
+      S.chat(function() assertTrue(sim:Run()) end)
+      local tick = mocks.__timers[#mocks.__timers]
+      assertEqual(tick and tick.delay, 6, "Run used a delay read before the change")
+      sim:Pause()
+    end)
   end)
 end)
 

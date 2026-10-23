@@ -283,9 +283,11 @@ compliance. It has no `Documented deviations` row.
   sets it, `Database:Sink()` is that array instead of `db.global.ledger`, so `Database:Add` writes
   there (stamping `sim = true`) and the log is untouched; `Delete`, `DeleteAt`, `Purge` and
   `PruneOld` still act on the log only. It is dropped on `/reload` with the rest of `NS.State`, so it
-  is not a writer of any stored key (BankLedger#24). The simulator adds **no** schema row and **no**
-  window state: its step delay is a constant in `modules/Sim.lua`, and its step panel's position is
-  held in the LibKa0s-Sim-1.0 instance's memory for the session only (OWNER_SCOPE C.11).
+  is not a writer of any stored key (BankLedger#24). The simulator adds **one** schema row and **no**
+  window state: its step delay is the profile row `settings.sim.stepDelay` (default 1 s, Settings ▸
+  General ▸ Interface ▸ Simulator; until the owner's 2026-10-23 ask a fixed 1.5 s constant), and its
+  step panel's position is held in the LibKa0s-Sim-1.0 instance's memory for the session only
+  (OWNER_SCOPE C.11).
 
 **Named non-setting state** (`architecture-§5`): four **storage carve-outs** that no control sets
 and no row addresses. Each is written outside `NS.Schema:Set` by the writers named below. That
