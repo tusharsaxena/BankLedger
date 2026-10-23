@@ -908,7 +908,7 @@ failure.
   for each move (look for `PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED`, `BANK_TABS_CHANGED`, `BAG_UPDATE`
   and `BAG_UPDATE_DELAYED`). Compare with `D.EVENTS.WarbandBag` and `D.EVENTS.WarbandStore` in
   `modules/SimDrivers.lua`. If they differ, file the one-line correction to that list.
-  Result: owed
+  Result: pass (owner-marked 2026-10-23)
 - **SIM-11. Run all's step delay is a setting (owner ask 2026-10-23).** Settings ▸ General ▸
   Interface → a **Simulator** heading below Table rows, over *Simulation step delay* at **1.0 s**.
   `/bl sim start bank`, press the panel's **Run all** → the steps play about one second apart (the
@@ -1037,5 +1037,4 @@ On 2026-10-10 the owner marked every check in this file as passed, recorded on i
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
 
-**Owed after the simulator (2026-10-22, BankLedger#24).** SIM-10 (the owner's 12.1.5 warband event
-check).
+None.
