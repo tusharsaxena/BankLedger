@@ -1525,10 +1525,13 @@ Total.
 - Sim pacing: a step moving a blacklisted item does not stall the run
 - Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
-### test_sim_panel.lua (15)
+### test_sim_panel.lua (18)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
+- sim panel: idle, the rows name the same real items the running session then shows (BL-12)
+- sim panel: idle, a bag change shows on the next refresh (BL-12)
+- sim panel: idle, too few distinct real bag items keep the scenario's letters (BL-12)
 - sim panel: running, a move names the REAL item, and the rows take the running states
 - sim panel: a step's tooltip says what it moves, the lagged half, and the events it fires
 - sim panel: a played move's label and tooltip count the rows the engine recorded
@@ -1660,11 +1663,11 @@ Total.
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 9 |
-| test_sim_panel.lua | 15 |
+| test_sim_panel.lua | 18 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1425** |
+| **Total** | **1428** |

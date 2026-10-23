@@ -24,7 +24,7 @@ leaves its number unused.
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 14 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
-| SIM-1 – 13 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item |
+| SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
 | DEGRADED-1 – 13 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -952,6 +952,13 @@ failure.
   the blacklisted item records no row (its panel row has no `(N recorded)`). With `/bl debug on`
   the console has no `one-sided change: baseline held` line in either run. `/bl sim stop`.
   **Fail:** any step waiting several seconds before the next plays, or a held-baseline line.
+- **SIM-14. The idle panel names the real items (SM-BL-15, BL-12).** With at least four different
+  items in your bags and no simulation running, `/bl sim`, pick **Personal bank** → before Start, the
+  item rows name real items from your bags (for example `Deposit 20 × Hearthstone to Character
+  Bank`), never `item A` or `item B`. Note the rows, then press Start → the same rows keep the same
+  names; only the state and, once a step plays, its `(N recorded)` suffix change. Repeat with
+  **Warband transfer** and **Guild bank**. `/bl sim stop`. **Fail:** a letter (`item A`, `item B`,
+  ...) before Start, or any item name that changes when the run starts.
 
 ## DEGRADED
 
@@ -1078,6 +1085,7 @@ a pass.
 
 - LEDG-57, LEDG-58, SESS-14 and DEGRADED-13 (BL-10, 2026-10-23).
 - SIM-13 (BL-11, 2026-10-23).
+- SIM-14 (BL-12, 2026-10-23).
 - LEDG-20, LEDG-24, LEDG-25, LEDG-52 and SIM-1: their procedures were amended for one strip per mode
   (BL-10, 2026-10-23) after the owner's pass, which was recorded against the old badge and amber
   simulation strip, so the earlier Result lines were cleared.

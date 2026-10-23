@@ -81,10 +81,11 @@ local function hasBonus(link)
   return ids ~= nil and #ids > 0
 end
 
---- The pool entry a step's `item` names, or nil.
-function D.ResolveItem(ref)
+--- The pool entry a step's `item` names, or nil: from `pool` when given (the idle panel's preview,
+--- modules/Sim.lua), else from the world's.
+function D.ResolveItem(ref, pool)
   local w = world()
-  local pool = w and w.pool or {}
+  pool = pool or (w and w.pool) or {}
   if ref == "bonus" then
     for _, item in ipairs(pool) do
       if hasBonus(item.link) then return item end

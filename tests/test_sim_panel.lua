@@ -55,10 +55,63 @@ test("sim panel: idle, the rows are Start, one per step and Stop, each beside it
   for i = 2, 6 do assertEqual(rows[i].command, "/bl sim step") end
   assertEqual(rows[7].command, "/bl sim stop")
   assertEqual(rows[1].label, "Start: " .. L["Personal bank"])
-  -- No world yet: an item move names the scenario's letter.
+  -- No world, and the default mock bags hold too few distinct items for a pool: the letter.
   assertEqual(rows[3].label, "Deposit 20 × item A to Character Bank")
   assertEqual(rows[2].label, L["Open the bank"])
   assertEqual(field(rows, "state"), "ready|locked|locked|locked|locked|locked|locked")
+end)
+
+-- The step rows' labels and tooltips (Start and Stop left out: their states differ by design).
+local function stepTexts(rows)
+  local labels, tips = {}, {}
+  for _, row in ipairs(rows) do
+    if row.key == "step" then
+      labels[#labels + 1] = row.label
+      local t = {}
+      for _, line in ipairs(row.tip or {}) do t[#t + 1] = tostring(line[1]) .. ": " .. tostring(line[2]) end
+      tips[#tips + 1] = table.concat(t, " | ")
+    end
+  end
+  return table.concat(labels, "\n"), table.concat(tips, "\n")
+end
+
+test("sim panel: idle, the rows name the same real items the running session then shows (BL-12)", function()
+  for _, scenario in ipairs({ "bank", "warband", "guild", "onesided" }) do
+    local runLabels, runTips
+    S.withSession(scenario, function(sim) runLabels, runTips = stepTexts(sim:PanelRows()) end)
+    -- Stopped again, the picker sits on `scenario`: the same real backpack, and no world.
+    local idleLabels, idleTips
+    S.withSession(nil, function(sim)
+      idleLabels, idleTips = stepTexts(sim:PanelRows())
+      assertEqual(Host.world, nil, "an idle preview must not install a world")
+      assertFalse(sim:IsActive(), "an idle preview must not start a session")
+    end)
+    assertEqual(idleLabels, runLabels, scenario .. ": the idle labels differ from the running ones")
+    assertEqual(idleTips, runTips, scenario .. ": the idle tooltips differ from the running ones")
+    assertTrue(idleLabels:find("item %u") == nil, scenario .. ": a letter is left: " .. idleLabels)
+  end
+end)
+
+test("sim panel: idle, a bag change shows on the next refresh (BL-12)", function()
+  S.withSession("bank", function() end)
+  S.withSession(nil, function(sim)
+    assertEqual(sim:PanelRows()[3].label, "Deposit 20 × Linen Cloth to Character Bank")
+    local pack = mocks.__containers[S.BACKPACK]
+    pack[#pack + 1] = { itemID = 25, link = "|Hitem:25::::::::::|h[Worn Shortsword]|h", count = 1 }
+    assertEqual(sim:PanelRows()[3].label, "Deposit 20 × Worn Shortsword to Character Bank")
+  end)
+end)
+
+test("sim panel: idle, too few distinct real bag items keep the scenario's letters (BL-12)", function()
+  S.withSession("bank", function() end)
+  S.withSession(nil, function(sim)
+    local pack = mocks.__containers[S.BACKPACK]
+    for i = #pack, 3, -1 do pack[i] = nil end   -- 4306 and 2589 left: two distinct items
+    local rows = sim:PanelRows()
+    assertEqual(rows[3].label, "Deposit 20 × item A to Character Bank")
+    assertEqual(rows[4].label, "Deposit 1 × item B to Character Bank")
+    assertEqual(Host.world, nil)
+  end)
 end)
 
 test("sim panel: running, a move names the REAL item, and the rows take the running states", function()
