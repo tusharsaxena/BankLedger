@@ -453,6 +453,7 @@ leaves its number unused.
 - **LEDG-20. Test mode.** `/bl test` → the window opens on a sample ledger with the amber test strip
   under the filter bar (no red TEST MODE badge; that is only the library-absent fallback,
   DEGRADED-13) (procedure amended for one strip per mode, BL-10, 2026-10-23); filters, grouping, Insights and export all work on it.
+  Result: pass (owner-marked 2026-10-23)
 - **LEDG-21. Test mode ignores the saved view.** With a view saved, `/bl test` → the sample opens
   unscoped and unfiltered. Leave test mode → the saved view is back, scoped to Current. Result: pass (owner-marked 2026-10-10)
 - **LEDG-22. The sample reads like a real bank.** In test mode → character-bank rows dominate, warband
@@ -465,10 +466,11 @@ leaves its number unused.
   Filters are unchanged. Result: pass (owner-marked 2026-10-10)
 - **LEDG-24. Back to real data.** `/bl test` again → real data, strip gone (procedure amended for one strip per mode, BL-10, 2026-10-23). Right-click a real row →
   all four entries live; Delete removes the row and the footer count drops.
+  Result: pass (owner-marked 2026-10-23)
 - **LEDG-25. The Master controls box is the same switch.** Close the ledger, tick Test mode on Master
   controls → the ledger opens on the sample with the strip (procedure amended for one strip per mode, BL-10, 2026-10-23). Untick → real data, the window stays.
   `/bl test` with the panel open → the box ticks; again → unticks. The session window never changes
-  (its preview is `/bl session`'s).
+  (its preview is `/bl session`'s). Result: pass (owner-marked 2026-10-23)
 - **LEDG-26. A refused start leaves the box unticked.** General visibility Never, tick Test mode → one
   chat line saying General visibility keeps the window closed, and the box unticks. `/bl test` → the
   same answer, never `test mode on`. Set visibility back to Always. Result: pass (owner-marked 2026-10-10)
@@ -571,6 +573,7 @@ leaves its number unused.
   sample ledger, not your bank. Combat ends it." directly under the filter bar, the History table
   starts below it, and no red TEST MODE badge sits beside the title (procedure amended for one strip per mode, BL-10, 2026-10-23). **Fail:** the
   strip overlapping the table's header, or the badge beside it. Added 2026-10-22 (BankLedger#23).
+  Result: pass (owner-marked 2026-10-23)
 - **LEDG-53. Insights makes the same room.** In test mode, switch to Insights → its content is shifted
   down by the same amount, clear of the strip. Added 2026-10-22 (BankLedger#23). Result: pass (owner-marked 2026-10-23)
 - **LEDG-54. Combat ends the strip.** In test mode, enter combat → test mode ends, the strip hides and
@@ -583,13 +586,13 @@ leaves its number unused.
 - **LEDG-57. One marker in test mode (SM-BL-10).** With the ledger open, `/bl test` → the amber strip
   sits under the filter bar, there is NO red TEST MODE beside the title, both panes start under the
   strip, and hovering the strip shows the Test mode tooltip. **Fail:** the badge beside the title, a
-  pane under the strip, or no tooltip. Added 2026-10-23 (BL-10).
+  pane under the strip, or no tooltip. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
 - **LEDG-58. The simulation's cyan strip (SM-BL-11).** `/bl sim start bank` → the ledger window shows
   a CYAN strip under the filter bar saying `Simulation: Personal bank - nothing here is saved.`, and
   no word beside the title. Hover it → the Simulation tooltip (Simulation / Shows: a simulated bank
   visit; nothing here is saved / Ended by: /bl sim stop, combat, a real bank window). `/bl sim stop`
   → the strip goes and both panes move back up under the filter bar. **Fail:** an amber strip, a
-  badge, or panes left low. Added 2026-10-23 (BL-10).
+  badge, or panes left low. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
 
 ## INS
 
@@ -731,7 +734,7 @@ leaves its number unused.
   bank's open → the session window shows the cyan simulation strip, with the same line as the ledger
   window's, under its title bar, and its rows sit under the strip. After the stop the strip is gone.
   `/bl test` never puts a strip on this window. **Fail:** an amber strip, rows under the strip, or a
-  strip in test mode. Added 2026-10-23 (BL-10).
+  strip in test mode. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
 
 ## DIAG
 
@@ -870,6 +873,7 @@ failure.
   lists them, and closes when it closes. `/bl sim stop` → one stop line, the strip and the panel
   go, the window shows your real history, and the tooltip's movement count is the number you noted.
   **Fail:** a simulated row left in the real history, a changed count, or the TEST MODE badge.
+  Result: pass (owner-marked 2026-10-23)
 - **SIM-2. Each refusal is one line (SM-BL-19).** Try `/bl sim start bank` in each state below → the
   quoted line, nothing opens and no strip appears. In combat (a training dummy): `A simulation cannot
   start in combat.` With `/bl test` on: `Turn test mode off before starting a simulation.` (turn it
@@ -943,7 +947,7 @@ failure.
   plays. Press **Resume** → the rest play on their own. Hover Settings ▸ General ▸ Interface ▸
   *Simulation step delay* → its tooltip no longer mentions a run-all button. `/bl sim stop`. **Fail:** a
   run-all button, a start that waits for a press, a click that plays two steps or leaves the run
-  playing, or a run-all button named in the tooltip.
+  playing, or a run-all button named in the tooltip. Result: pass (owner-marked 2026-10-23)
 - **SIM-13. No stall on any step (SM-BL-14, BL-11).** In a freshly started client (log in, do not
   open a bank), `/bl sim start bank` → every step, including the flask (bonus-item) deposit and the
   withdrawal after it, follows the previous one about 1 s later with no multi-second stall, and
@@ -952,6 +956,7 @@ failure.
   the blacklisted item records no row (its panel row has no `(N recorded)`). With `/bl debug on`
   the console has no `one-sided change: baseline held` line in either run. `/bl sim stop`.
   **Fail:** any step waiting several seconds before the next plays, or a held-baseline line.
+  Result: pass (owner-marked 2026-10-23)
 - **SIM-14. The idle panel names the real items (SM-BL-15, BL-12).** With at least four different
   items in your bags and no simulation running, `/bl sim`, pick **Personal bank** → before Start, the
   item rows name real items from your bags (for example `Deposit 20 × Hearthstone to Character
@@ -959,6 +964,7 @@ failure.
   names; only the state and, once a step plays, its `(N recorded)` suffix change. Repeat with
   **Warband transfer** and **Guild bank**. `/bl sim stop`. **Fail:** a letter (`item A`, `item B`,
   ...) before Start, or any item name that changes when the run starts.
+  Result: pass (owner-marked 2026-10-23)
 
 ## DEGRADED
 
@@ -1083,9 +1089,4 @@ On 2026-10-10 the owner marked every check in this file as passed, recorded on i
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
 
-- LEDG-57, LEDG-58, SESS-14 and DEGRADED-13 (BL-10, 2026-10-23).
-- SIM-13 (BL-11, 2026-10-23).
-- SIM-14 (BL-12, 2026-10-23).
-- LEDG-20, LEDG-24, LEDG-25, LEDG-52 and SIM-1: their procedures were amended for one strip per mode
-  (BL-10, 2026-10-23) after the owner's pass, which was recorded against the old badge and amber
-  simulation strip, so the earlier Result lines were cleared.
+- DEGRADED-13 (BL-10, 2026-10-23).
