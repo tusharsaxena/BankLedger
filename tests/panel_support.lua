@@ -71,11 +71,12 @@ end
 --
 -- Six: Master controls leads (options-ui-§15), Filters is the retired Filters page (R3), now
 -- one tab whose afterGroup hook draws a SECONDARY strip over the two id lists (options-ui-§13),
--- and Keybindings, the library's host tab from NS.BINDINGS, is last (options-ui-§20).
+-- third since item 020 (BAN-L-new1), straight after the Capture rules it refines, and
+-- Keybindings, the library's host tab from NS.BINDINGS, is last (options-ui-§20).
 -- The names and their order are shared with Ka0s Loot History, which draws the same strip plus an
 -- AH Price tab after Capture -- two addons a player compares should not name one subject twice.
 local GENERAL_TABS = {
-  "Master controls", "Capture", "Interface", "History", "Filters", "Keybindings",
+  "Master controls", "Capture", "Filters", "Interface", "History", "Keybindings",
 }
 
 -- The Filters tab's sub-strip, in order. The KEY is the stored list name and the LABEL is what the

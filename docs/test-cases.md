@@ -786,10 +786,11 @@ Total.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (54)
+### test_schema.lua (57)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
+- Schema: the stored paths, defaults, types, ranges and CLI order are unchanged
 - Schema: changing the window scale broadcasts it so every window rescales
 - Schema: every row declares a default
 - Schema: dropdown rows carry their option list
@@ -816,12 +817,13 @@ Total.
 - Schema: each tab's rows are CONTIGUOUS, so no tab is printed twice
 - Schema: no tab holds fewer than two controls unless it is exempt by name
 - Schema: two tabs draw a strip at all — a single-group page falls back to sections
-- Schema: the Capture tab leads with the two kind toggles, paired across one line
-- Schema: the Capture kind toggles pair across one line, in item-then-gold order
+- Schema: Capture puts the quality gate beside the item toggle, and gold on the line below
+- Schema: the store grid sits under its own subsection heading, Banks to record
 - Schema: rest and hover sit on ONE line, so they are read across and not down
 - Schema: the Interface tab opens with the control most players reach for
 - Schema: the Interface tab heads each KIND of control it mixes
 - Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s
+- Schema: Keep history for says it is account-wide in its opening, and carries no suffix
 - Schema: each promoted tint default IS the literal it replaced
 - Util.RowTintAlpha clamps what SavedVariables hands it
 - Util.ApplyRowTint paints both textures and drives the banding
@@ -834,6 +836,7 @@ Total.
 - Schema: no row uses the pre-library field spellings
 - Schema: a numeric row carrying values is an enum the panel must draw as a dropdown
 - Test mode: the composed row sits right below Debug console, session-only, on its own line
+- Master controls: Lock frame names the three windows it covers, after the composed words
 - Test mode: the checkbox is never written to SavedVariables
 - Test mode: ticking it loads the sample ledger and opens the ledger window
 - Test mode: /bl test and the checkbox are one switch
@@ -975,7 +978,7 @@ Total.
 - Slash: ResetEverything logs its profile reset as ONE [Set] line, and no [Data] line
 - Slash: every reset route has the SAME blast radius — the ledger survives all of them
 
-### test_panel_filters.lua (40)
+### test_panel_filters.lua (41)
 
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Filters tab: an item id typed into the box goes through Filters:AddBlacklist
@@ -986,6 +989,7 @@ Total.
 - Filters tab: an entry's X goes through Filters:RemoveBlacklist
 - Filters tab: adding on Whitelist takes the id off Blacklist (Filters:_move, unchanged)
 - Filters tab: an entry reads its item name and id; an empty list reads (none)
+- Filters tab: the blurb, then the add box, then Clear all… last on its own line
 - Filters tab: an uncached item is asked for, and the list redraws when it lands
 - Filters tab: several uncached items cost one load check and one redraw
 - Filters tab: one add redraws the page once, not twice
@@ -1034,7 +1038,7 @@ Total.
 - Reset routes: RequestResetAll is the single entry point, and the popup's Yes is ResetEverything
 - Reset routes: accepting the popup resets both filter lists, savedView and the settings, keeps the ledger, ends test mode, closes the debug console and keeps db.global.minimap whole
 - Reset routes: accepting the popup puts the ledger window's live view back to stock
-- Reset routes: the resetall verb, the Defaults tooltip and the popup say it is this profile, that history is kept, and that it asks first
+- Reset routes: the resetall verb and the popup say it is this profile, and the Defaults tooltip is Reset all settings' own
 - Reset routes degraded: library-absent /bl resetall raises the same popup
 
 ### test_harness.lua (8)
@@ -1654,12 +1658,12 @@ Total.
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 54 |
+| test_schema.lua | 57 |
 | test_schema_runtime.lua | 18 |
 | test_slash.lua | 57 |
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
-| test_panel_filters.lua | 40 |
+| test_panel_filters.lua | 41 |
 | test_keybinds.lua | 7 |
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
@@ -1696,4 +1700,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1446** |
+| **Total** | **1450** |

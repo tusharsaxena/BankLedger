@@ -63,16 +63,20 @@ local bulkDepth = 0
 
 -- The host copy of "a paired action button" is GONE. It existed to inset a button to
 -- O.BUTTON_PAIR_REL so the ScrollFrame clip would not shave its right border; the page's only two
--- such buttons — Purge ledger and Reset all — now go through the library's own O.InlineButtonPair,
+-- such buttons — Purge history and Reset all — now go through the library's own O.InlineButtonPair,
 -- which owns that inset, the pcall around a host onClick and the tooltip in one place.
 
 -- A set-map rendered full-width as a wrapping checkbox grid. With row.invert, a CHECKED box means
 -- the store is recorded (i.e. NOT in the muted set), so the stored value is the logical inverse of
 -- the checkbox state.
+--
+-- UNBOXED and untitled (item 020, BAN-L07): a plain Flow SimpleGroup. Its heading is the row's own
+-- `subgroup`, which the flow engine draws just above it, so the tab mixes no bordered box with its
+-- flow rows and no builder draws a heading (options-ui-§7).
 local function makeMultiCheck(ctx, row, scroll)
   local invert = row.invert
-  local group = O.AceGUI:Create("InlineGroup")
-  group:SetTitle(row.label); group:SetFullWidth(true); group:SetLayout("Flow")
+  local group = O.AceGUI:Create("SimpleGroup")
+  group:SetFullWidth(true); group:SetLayout("Flow")
   local boxes = {}
   for _, opt in ipairs(row.values) do
     local cb = O.AceGUI:Create("CheckBox")
@@ -137,9 +141,9 @@ local function renderStorage(ctx)
         tostring(count), s.count == 1 and "movement" or "movements",
         s.days, s.days == 1 and "day" or "days")
     end
-    -- \226\137\136 = "≈". The real SavedVariables file size can't be read in-game, so it's estimated.
-    statsLabel:SetText(line1 .. "\nDatabase size: \226\137\136 " ..
-      NS.Util.FormatBytes(s.bytes) .. "  (estimated)")
+    -- \226\137\136 = "≈". The real SavedVariables file size can't be read in-game, so it's estimated,
+    -- and the "≈" alone says so, as the ledger window's footer does (item 020, BAN-L09).
+    statsLabel:SetText(line1 .. "\nDatabase size: \226\137\136 " .. NS.Util.FormatBytes(s.bytes))
   end
   ctx.refreshers[#ctx.refreshers + 1] = refreshStats
   refreshStats()
@@ -150,10 +154,12 @@ local function renderStorage(ctx)
   P.__storageRefresh = refreshStats
 
   -- The ellipsis says it: the click opens a confirm dialog, it does not do the deed. A single spec
-  -- with no right-hand half is the shape InlineButtonPair takes for a lone button.
+  -- with no right-hand half is the shape InlineButtonPair takes for a lone button. "Purge
+  -- history…" is the collection's one name for this act on a History tab (options-ui-§21).
   O.InlineButtonPair(ctx,
-    { text = "Purge ledger\226\128\166",
-      tooltip = "Delete every recorded movement. Your settings are left alone.",
+    { text = "Purge history\226\128\166",
+      tooltip = "Delete every recorded movement on this account. Your settings are left alone. "
+        .. "Asks first.",
       onClick = function()
         -- Refused during a simulation BEFORE the confirm opens (OWNER_SCOPE C.13).
         if NS.Database and NS.Database:PurgeRefused() then return end
@@ -242,14 +248,16 @@ local function filterEntries(list)
   return out
 end
 
--- Clear all stays the HOST'S button: it is a bulk act behind a confirm, and IdList draws per-entry
--- Remove only. Without StaticPopup_Show (a headless run) it clears directly, as it always has.
+-- Clear all… stays the HOST'S button: it is a bulk act behind a confirm, and IdList draws per-entry
+-- Remove only. Without StaticPopup_Show (a headless run) it clears directly, as it always has. The
+-- ellipsis says the click opens a confirm (options-ui-§21). It is drawn LAST, after the list, on a
+-- line of its own: the destructive act ends its tab, as Purge history… and Reset all settings do.
 local function makeClearAll(ctx, listKey, list)
   local scroll = O.EnsureScroll(ctx)
   local clearRow = O.AceGUI:Create("SimpleGroup")
   clearRow:SetLayout("Flow"); clearRow:SetFullWidth(true)
   local clearBtn = O.AceGUI:Create("Button")
-  clearBtn:SetText("Clear all"); clearBtn:SetRelativeWidth(0.30)
+  clearBtn:SetText("Clear all\226\128\166"); clearBtn:SetRelativeWidth(0.30)
   clearBtn:SetCallback("OnClick", function()
     if type(StaticPopup_Show) == "function" then
       StaticPopup_Show(list.popup)
@@ -340,8 +348,8 @@ local function filterCandidates()
   return out
 end
 
--- One list (blacklist or whitelist): description, Clear all, then the LibKa0s id list — its add box
--- and one line per id (icon, item name and id, Remove).
+-- One list (blacklist or whitelist): description, the LibKa0s id list — its add box and one line
+-- per id (icon, item name and id, Remove) — then Clear all… (item 020, BAN-L11).
 --
 -- The add box takes an item id, a shift-clicked item link or an item's NAME (O.ResolveId, kind
 -- "item"). As the player types it lists the matching names — the bags' items and filterCandidates'
@@ -366,8 +374,6 @@ local function makeFilterSection(ctx, listKey, desc)
   descLabel:SetFullWidth(true); descLabel:SetText(desc)
   scroll:AddChild(descLabel)
   O.AddSpacer(scroll, 6)
-
-  makeClearAll(ctx, listKey, list)
 
   -- TWO ENTRIES TO A LINE (`columns`, LibKa0s v1.47.0 / OptionsWidgets minor 24; fitted to the
   -- canvas since v1.50.0, minor 27). Both lists this call draws are ITEM lists fed one id at a
@@ -400,6 +406,9 @@ local function makeFilterSection(ctx, listKey, desc)
     emptyText = "|cff808080(none)|r",
     removeStyle = "icon",
   })
+
+  O.AddSpacer(scroll, 6)
+  makeClearAll(ctx, listKey, list)
 end
 
 -- The PRIMARY tab's key, spelled once: it is both this tab's `group` in settings/Schema.lua and the
@@ -410,14 +419,17 @@ local FILTERS_TAB = "Filters"
 -- refused by the blacklist first, and the whitelist is the exception that overrides the quality gate
 -- afterwards. The `key` is the STORED list name and the `label` is what the sub-tab reads; neither
 -- repeats the word Filters, because the tab above them already says it.
+--
+-- Both blurbs close with the same two sentences, word for word the ones Ka0s Loot History's Filters
+-- blurbs close with (item 020, BAN-L12 / LOO-L16): the lists exclude each other both ways
+-- (F:_move), so the rule is said on both.
+local FILTERS_SHARED_CLOSE = "Applies to future movements only; rows already recorded stay. "
+  .. "An item can be on one list only; adding it here takes it off the other."
 local FILTER_TABS = {
   { key = "blacklist", label = "Blacklist",
-    desc = "Items here are never recorded when they move from now on. Existing rows are left "
-      .. "untouched (this only affects future movements \226\128\148 delete old rows from the ledger table "
-      .. "if you want them gone)." },
+    desc = "Never recorded. " .. FILTERS_SHARED_CLOSE },
   { key = "whitelist", label = "Whitelist",
-    desc = "Items here are always recorded, even when they fall below your minimum quality. "
-      .. "Adding an id to one list removes it from the other." },
+    desc = "Always recorded, even below your Minimum quality (Capture). " .. FILTERS_SHARED_CLOSE },
 }
 
 -- The Filters tab's whole body, from its group's `afterGroup` hook: a secondary strip over the two
@@ -712,23 +724,23 @@ function P:Register()
   end)
 
   -- General = the whole panel now, on six tabs: Master controls (the addon as a whole), Capture
-  -- (what is recorded, with the store grid hanging off it), Interface (what is on screen), History
-  -- (how much is kept, plus the storage read-out and Purge), Filters (the two item-id lists,
+  -- (what is recorded, with the store grid hanging off it), Filters (the two item-id lists,
   -- which were their own page until R3 and were two top-level tabs until 1.1.0 folded them behind
-  -- one tab with a secondary strip), and Keybindings (the library's key editor, options-ui-§20).
+  -- one tab with a secondary strip; third since item 020, after the Capture rules they refine),
+  -- Interface (what is on screen), History (how much is kept, plus the storage read-out and Purge),
+  -- and Keybindings (the library's key editor, options-ui-§20).
   -- Every bespoke block is an afterGroup hook, because a tab click re-renders the schema alone.
   O.RegisterOptionsPage("general", "General", function(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then return end
     local ctx = O.CreatePanel("BankLedgerGeneralPanel", "General", {
       pageKey = "general",
       defaultsButton = true,
-      -- Names everything the one global reset takes (options-ui-§12): P:RestoreDefaults raises the
-      -- same confirm popup as Reset all settings, and Yes resets the active profile -- the
-      -- settings, both filter lists and the saved views -- then recenters both windows. It also says
-      -- what survives, because until schema v3 this button took the recorded history too.
-      defaultsTooltip = "Reset the current profile to Bank Ledger's defaults: every setting, the "
-        .. "item blacklist and whitelist and each tab's saved view, and recenter the ledger and session "
-        .. "windows. Your recorded history and your other profiles are kept. Asks first.",
+      -- The global reset (options-ui-§12): P:RestoreDefaults raises the same confirm popup as
+      -- Reset all settings, so the button carries that button's own words, read from the library
+      -- exactly as the composer reads them, with options-ui-§20's Keybindings tail. The host writes
+      -- no wording around it (item 020, BAN-L-new3; U-04), so two controls for one act cannot
+      -- describe it two ways.
+      defaultsTooltip = O.ResetAllTooltip(O.KEYBINDS_UNCHANGED),
     })
     P.general = ctx
     -- Confirm-gated on both routes: the action only raises KA0S_BANKLEDGER_RESETALL, the same popup

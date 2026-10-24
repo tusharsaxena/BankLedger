@@ -161,7 +161,7 @@ the engine's own decision.
   open, and General visibility keeping the ledger window shut, checked in that order, each with
   one line (`modules/Sim.lua`). Test mode refuses to start while a simulation runs.
 - **Purge is refused during a simulation.** `Database:PurgeRefused()` prints `Stop the simulation
-  first.` before any confirm opens, from `/bl purge` and the settings' *Purge ledger…* button alike, and
+  first.` before any confirm opens, from `/bl purge` and the settings' *Purge history…* button alike, and
   `Database:Purge` re-checks it. `Delete`, `DeleteAt` and `PruneOld` act on the real ledger only.
 
 The simulator is slash-only, with no launcher entry, no key binding and no schema row; its step

@@ -793,9 +793,11 @@ return function()
 
   -- Override 11. AceGUI's container widgets carry SetTitle; the kit's widget mock does not model it,
   -- and its widgets have no metatable, so the call RAISES rather than no-opping. settings/Panel.lua
-  -- titles the store grid's InlineGroup that way. Kept HERE rather than taken upstream because the
-  -- kit's own policy is that an API only one addon calls belongs in that addon's extender — and a
-  -- repo-wide grep says this is the only SetTitle in the collection.
+  -- titled the store grid's InlineGroup that way until item 020 unboxed it (BAN-L07); nothing calls
+  -- it now. The override stays so a title that comes back is RECORDED (`titleText`), which the
+  -- store-grid case in tests/test_panel_filters.lua reads, rather than raising mid-render. Kept HERE
+  -- rather than taken upstream because the kit's own policy is that an API only one addon calls
+  -- belongs in that addon's extender.
   --
   -- Wrapped rather than replaced: the base's factory does the real work, and this adds the one
   -- member on top, so a widget kind the base grows later still arrives fully formed.

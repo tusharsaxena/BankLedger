@@ -21,29 +21,33 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 -- engine reads them.
 --
 -- The tabs, in order: Master controls (the addon as a whole — composed, spliced in at the head from
--- settings/OptionsSetup.lua, see S:ComposeMaster below), Capture (what is recorded), Interface (what
--- is on screen), History (how much is kept, and the one way to destroy it), then Filters (both
--- item-id lists under one host-drawn tab — see S.BespokeRows).
+-- settings/OptionsSetup.lua, see S:ComposeMaster below), Capture (what is recorded), Filters (both
+-- item-id lists under one host-drawn tab, the exceptions to Capture's rules — see S.BespokeRows),
+-- Interface (what is on screen), then History (how much is kept, and the one way to destroy it).
+-- Filters is third on the PAGE only: S:PageRows splices it in after the Capture rows, and this
+-- array, which `/bl list` prints, never holds it (item 020, BAN-L-new1).
 --
 -- THOSE NAMES AND THAT ORDER ARE SHARED WITH KA0S LOOT HISTORY, which draws the same five plus an
--- AH Price tab after Capture. The two addons capture and keep the same shape of record and a player
+-- AH Price tab (its LOO-L08 moves its Filters to the same place). The two addons capture and keep the same shape of record and a player
 -- moves between their panels expecting the same furniture; one calling a subject Capture while the
 -- other called it Collection was two names for one thing. Renaming a `group` moves no stored path
 -- (options-ui-§15), which is why the convergence was a rename and not a migration.
 S.Schema = {
   -- ── Capture ──
-  -- What is recorded. The two kind toggles pair across one line, then the quality gate, then the
-  -- per-store grid — narrowest question to widest. The master switch that used to lead this tab is
-  -- "Enable Bank Ledger" on Master controls now (options-ui-§15): one control, one place.
+  -- What is recorded: the two kind toggles, the quality gate, then the per-store grid — narrowest
+  -- question to widest. The PAGE draws them in another order than this array (S.CAPTURE_PAGE_ORDER
+  -- below): the quality gate beside the item toggle it depends on, gold on the line under it. The
+  -- master switch that used to lead this tab is "Enable Bank Ledger" on Master controls now
+  -- (options-ui-§15): one control, one place.
   { path = "settings.trackItems", default = true, type = "bool", widget = "CheckBox",
-    group = "Capture", label = "Track items",
+    group = "Capture", label = "Record items",
     tooltip = "Record items moving between your bags and a bank.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "trackItems") end
     end },
 
   { path = "settings.trackMoney", default = true, type = "bool", widget = "CheckBox",
-    group = "Capture", label = "Track gold",
+    group = "Capture", label = "Record gold",
     tooltip = "Record gold deposited to or withdrawn from the guild and warband banks. "
       .. "The character bank has no gold slot, so it is never counted.",
     onChange = function()
@@ -52,7 +56,8 @@ S.Schema = {
 
   { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
     group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
-    tooltip = "Only record items at or above this quality. Whitelisted items ignore this.",
+    tooltip = "Only record items at or above this quality. Gold is not affected. Items on "
+      .. "General > Filters > Whitelist are always recorded.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "quality") end
     end },
@@ -64,25 +69,32 @@ S.Schema = {
   -- row stays in the schema so `/bl list`, `/bl get` and every reset still see it; the panel emits
   -- the checkbox grid itself, from the Capture tab's `afterGroup` hook, which is what keeps it on
   -- the tab through a tab click (the strip re-renders the schema alone, not the page body).
+  -- Its `subgroup` is the grid's heading: the flow engine opens a subsection for a skipRender row
+  -- too, and this is the tab's last row, so "Banks to record" lands directly above the grid with no
+  -- builder-drawn heading (options-ui-§7, item 020 BAN-L07). The `label` stays: the CLI reads it.
   { path = "settings.excludedStores", default = {}, type = "table", widget = "MultiCheck",
     wide = true, invert = true, skipRender = true,
-    group = "Capture", label = "Record movements to and from", values = C.STORE_OPTIONS,
+    group = "Capture", subgroup = "Banks to record", label = "Record movements to and from",
+    values = C.STORE_OPTIONS,
     -- Spells the inversion out: the stored value is the MUTED set, so a ticked box means "record".
-    tooltip = "Tick a store to RECORD movements to and from it. Unticking mutes that store; "
+    tooltip = "Tick a store to record movements to and from it. Unticking mutes that store; "
       .. "capture for every other store is unaffected.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "stores") end
     end },
 
   -- ── Interface ──
-  -- Everything about what is on screen and how it looks, and it mixes two kinds of control — the
-  -- windows you can switch on, and the tint of a table row — so each block carries a `subgroup`
-  -- heading (options-ui-§7). Master scale left this tab for Master controls: it was never a
-  -- per-window setting, both windows have always read the one key (see S.MASTER_SPEC below).
+  -- Everything about what is on screen and how it looks, and it mixes two kinds of control — how
+  -- the windows look and behave (whether the session window appears, and the tint of a table row,
+  -- one "Windows" subsection since item 020, BAN-L01) and the pace of the simulator — so each
+  -- block carries a `subgroup` heading (options-ui-§7). The session row is `solo`, a line of its
+  -- own, so the tint pair below it still shares one line. Master scale left this tab for Master
+  -- controls: it was never a per-window setting, both windows have always read the one key (see
+  -- S.MASTER_SPEC below).
   { path = "settings.showSessionWindow", default = true, type = "bool", widget = "CheckBox",
-    group = "Interface", subgroup = "Windows", label = "Session window",
-    tooltip = "Show a small live window listing what you move while a bank is open. "
-      .. "Turning this off never stops capture \226\128\148 only the window.",
+    group = "Interface", subgroup = "Windows", solo = true, label = "Show session window",
+    tooltip = "Opens the Current Banking Session window at a bank, listing what you move. "
+      .. "Turning this off never stops capture, only the window.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "sessionWindow") end
     end },
@@ -99,29 +111,29 @@ S.Schema = {
   -- SavedVariables, where a hand-edited 5 is not an error, it is a table drawn opaque white.
   { path = "settings.rowStripeAlpha", default = 0.03, type = "number", min = 0, max = 0.3,
     step = 0.01, widget = "Slider", fmt = "%.2f",
-    group = "Interface", subgroup = "Table rows", label = "Row stripe opacity",
+    group = "Interface", subgroup = "Windows", label = "Row stripe opacity",
     tooltip = "How strongly every second row in the ledger and session tables is tinted. "
       .. "0 turns the banding off.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
   { path = "settings.rowHoverAlpha", default = 0.10, type = "number", min = 0, max = 0.4,
     step = 0.01, widget = "Slider", fmt = "%.2f",
-    group = "Interface", subgroup = "Table rows", label = "Row hover opacity",
+    group = "Interface", subgroup = "Windows", label = "Row hover opacity",
     tooltip = "How strongly the row under your cursor is highlighted in the ledger and session "
       .. "tables. 0 turns the highlight off.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
   -- The simulator's pace (BankLedger#24; the owner's 2026-10-23 ask): the seconds a playing
-  -- simulation waits after a step. Its own subgroup, since it is neither a
-  -- window nor a row tint. No onChange: modules/Sim.lua's Host.StepDelay reads the value at use, so
+  -- simulation waits after a step. Its own subgroup, since it is not about a window; the label,
+  -- the heading and the tooltip's opening are options-ui-§21's shared family names. No onChange: modules/Sim.lua's Host.StepDelay reads the value at use, so
   -- a change takes effect from the next step, a running session included. The validate is the
   -- host's own check, so the slider and `/bl set` refuse exactly what the host would not use; a step's
   -- `settle` can still raise the pause above it (Host.DelayAfter).
   { path = "settings.sim.stepDelay", default = NS.defaults.profile.settings.sim.stepDelay, type = "number",
     min = C.SIM_STEP_DELAY_MIN, max = C.SIM_STEP_DELAY_MAX, step = C.SIM_STEP_DELAY_STEP,
     widget = "Slider", fmt = "%.1f s",
-    group = "Interface", subgroup = "Simulator", label = "Simulation step delay",
-    tooltip = "How many seconds the simulator waits between steps as it plays. "
+    group = "Interface", subgroup = "Simulator", label = "Simulation step delay (seconds)",
+    tooltip = "Paces /bl sim: how many seconds the simulator waits between steps as it plays. "
       .. "A step that needs the ledger to settle can wait longer. A change takes effect from the "
       .. "next step.",
     validate = function(v) return NS.SimHost.ValidStepDelay(v) end },
@@ -138,11 +150,12 @@ S.Schema = {
   -- db.global.settings.retentionDays (defaults/Global.lua) -- the key v2 always used, so the CLI path
   -- is unchanged. Its own get/set reach that store; the seam's path walk would reach the profile. No
   -- profile switch, copy or reset changes it, and so none of them can prune history. The tooltip
-  -- says so, because the panel otherwise gives no hint that this row differs from its neighbors.
+  -- says so in its opening, options-ui-§21's words for an account-wide row, because the panel
+  -- otherwise gives no hint that this row differs from its neighbors; the label carries no suffix.
   { path = "settings.retentionDays", default = 30, type = "number", widget = "Dropdown",
     group = "History", label = "Keep history for", values = C.RETENTION_OPTIONS,
-    tooltip = "Automatically drop movements older than this. 'Always' keeps everything. "
-      .. "Account-wide: one value for every profile, because the history it trims is shared.",
+    tooltip = "Account-wide: shared by every profile. Automatically drop movements older than "
+      .. "this. 'Always' keeps everything.",
     get = function()
       local g = NS.db and NS.db.global
       local st = g and g.settings
@@ -300,6 +313,17 @@ S.MASTER_SPEC = {
   -- switches the SAMPLE LEDGER (`/bl test`), not the session-window preview: `/bl session` stays its
   -- own verb. The owner decided that.
   testModePath = "state.testMode",
+  -- The host's words on two composed rows, appended after the composer's own (compose minor 9,
+  -- options-ui-§15): `notes` is the only way a host extends a composed tooltip, so neither row is
+  -- rewritten in S.MASTER_DECOR. Lock frame names the three movable windows the one switch covers
+  -- (BAN-L16); Test mode says what it shows here and names the one route that places the session
+  -- window, whose preview the checkbox does not switch (BAN-L13).
+  notes = {
+    locked   = "Covers the ledger, session and export windows.",
+    testMode = "Here it opens the ledger window on a sample ledger, and your real ledger is "
+      .. "untouched. Combat ends it. The same as /bl test. To place the session window, use "
+      .. "/bl session.",
+  },
 }
 
 -- The host half of each composed row: the widget name this addon's own suite and CLI read, the
@@ -388,10 +412,8 @@ S.MASTER_DECOR = {
   ["state.testMode"] = { widget = "CheckBox",
     -- Session-only like the console row: Schema:Set calls this set() and writes nothing. The same
     -- switch as `/bl test`, through LT:SetTestMode, so a refused start prints why and the seam's
-    -- repaint draws the box unticked again. The composer's tooltip is generic; this one says what
-    -- test mode shows here.
-    tooltip = "Show the ledger window on a sample ledger, so you can look around before you have "
-      .. "any history of your own. Your real ledger is untouched. Combat ends it. The same as /bl test.",
+    -- repaint draws the box unticked again. What test mode shows here is S.MASTER_SPEC's
+    -- `notes.testMode`, after the composer's words; this table carries no tooltip.
     get = function() return NS.LedgerTable ~= nil and NS.LedgerTable:IsTestMode() end,
     set = function(v)
       local LT = NS.LedgerTable
@@ -456,14 +478,50 @@ S.BespokeRows = {
     tooltip = "The item ids that are never recorded, and the ones that always are." },
 }
 
---- The General page's rows AS RENDERED: every setting, then the host-drawn Filters tab.
+-- The Capture tab's rows in the order the PAGE draws them (item 020, BAN-L06): line 1 Record items |
+-- Minimum quality, line 2 Record gold | --, then the store grid under its heading. S.Schema keeps its
+-- own order, which `/bl list` prints, so the reorder is the panel copy's alone.
+S.CAPTURE_PAGE_ORDER = {
+  "settings.trackItems", "settings.qualityThreshold", "settings.trackMoney", "settings.excludedStores",
+}
+
+--- The Capture rows in S.CAPTURE_PAGE_ORDER, then any Capture row that list does not name, in
+--- S.Schema order, so a new Capture row is drawn rather than dropped.
+local function captureRows()
+  local byPath, named, out = {}, {}, {}
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Capture" then byPath[row.path] = row end
+  end
+  for _, path in ipairs(S.CAPTURE_PAGE_ORDER) do
+    if byPath[path] then out[#out + 1] = byPath[path]; named[path] = true end
+  end
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Capture" and not named[row.path] then out[#out + 1] = row end
+  end
+  return out
+end
+
+--- The General page's rows AS RENDERED: every setting, with the Capture rows in their page order
+--- and the host-drawn Filters tab straight after them (BAN-L-new1), so the strip reads Master
+--- controls, Capture, Filters, Interface, History, then the library's Keybindings tab.
 ---
 --- Built once and cached — both halves are static after load, and a tab click re-renders the page.
 function S:PageRows()
   if S.__pageRows then return S.__pageRows end
-  local out = {}
-  for _, row in ipairs(S.Schema) do out[#out + 1] = row end
-  for _, row in ipairs(S.BespokeRows) do out[#out + 1] = row end
+  local out, placed = {}, false
+  local function place()
+    for _, row in ipairs(captureRows()) do out[#out + 1] = row end
+    for _, row in ipairs(S.BespokeRows) do out[#out + 1] = row end
+    placed = true
+  end
+  for _, row in ipairs(S.Schema) do
+    if row.group == "Capture" then
+      if not placed then place() end
+    else
+      out[#out + 1] = row
+    end
+  end
+  if not placed then place() end
   S.__pageRows = out
   return out
 end

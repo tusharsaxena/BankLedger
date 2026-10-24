@@ -862,7 +862,8 @@ end
 -- The two filter confirmations hand the printer their parts as arguments (events-frames-taint-§8)
 -- rather than one pre-formatted string. The label is addon-owned (the stored item name, or the id),
 -- and the route ends in the list name with no separator, so that one join stays a literal concat.
-local MANAGE_ROUTE = "\226\128\148 manage it in Settings \226\150\184 General \226\150\184 Filters \226\150\184 "
+-- The separator is ASCII ' > ', options-ui-§21's location-string form (item 020).
+local MANAGE_ROUTE = "\226\128\148 manage it in Settings > General > Filters > "
 local function rowLabel(entry)
   return entry.itemName or ("item " .. tostring(entry.itemID))
 end
@@ -875,7 +876,7 @@ function LT:RowMenuItems(entry)
         if entry.itemLink and ChatEdit_InsertLink then ChatEdit_InsertLink(entry.itemLink) end
       end },
     -- Blacklisting is point-in-time: it stops FUTURE movements of this id being recorded and leaves
-    -- every stored row alone. Manage the list in Settings ▸ General ▸ Filters.
+    -- every stored row alone. Manage the list in Settings > General > Filters.
     { label = "Blacklist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddBlacklist(entry.itemID) then
           print("blacklisted", rowLabel(entry), MANAGE_ROUTE .. "Blacklist.")

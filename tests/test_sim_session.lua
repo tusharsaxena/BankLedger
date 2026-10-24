@@ -427,7 +427,7 @@ test("Sim session: purge refuses through Database:Purge, the verb and the panel 
         NS.Slash:OnSlash("purge")
         local PS = dofile("tests/panel_support.lua")
         for _, w in ipairs(PS.renderTab("General", "History")) do
-          if w.type == "Button" and w.text == "Purge ledger\226\128\166" then w:__fire("OnClick") end
+          if w.type == "Button" and w.text == "Purge history\226\128\166" then w:__fire("OnClick") end
         end
       end)
     end)

@@ -10,16 +10,17 @@ only. The finer tree is everything below it.
 
 | Page | Tabs | Covers |
 | --- | --- | ------ |
-| General | Master controls · Capture · Interface · History · Filters | The whole addon, on one strip |
+| General | Master controls · Capture · Filters · Interface · History · Keybindings | The whole addon, on one strip |
 | Profiles | none | AceDBOptions' profile controls: choose, create, copy, delete and reset a profile ([profiles.md](profiles.md)) |
 
 | Tab | Covers |
 | --- | ------ |
 | Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), put the windows back where they started, or return every setting to stock. |
-| Capture | What actually gets recorded: whether items and gold are tracked, a minimum item quality, and which banks you care about. |
-| Interface | What is on screen: whether the Current Banking Session window appears at a bank, and how strongly the tables band their rows and highlight the one under your cursor, plus how long a playing simulation waits between steps (**Simulation step delay**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
-| History | How much is kept — 30 days by default — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge ledger…**, which empties the history after asking first. |
-| Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all** empties the list after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
+| Capture | What actually gets recorded: **Record items** beside **Minimum quality** (items only; gold has no quality), **Record gold** under them, and which banks you care about, under the **Banks to record** heading. |
+| Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your Minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all…**, below the list, empties it after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
+| Interface | What is on screen, under two headings. **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
+| History | How much is kept — 30 days by default, for every profile at once — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge history…**, which empties the history after asking first. |
+| Keybindings | The one key binding, **Toggle ledger window** (`options-ui-§20`). |
 
 ## Shape
 
@@ -68,7 +69,7 @@ those are deliberately not suppressed (`options-ui-§7`).
 | Page | Tab strip, in order | Rows per tab |
 |---|---|---|
 | Landing page | — (exempt: the host's own `buildMain`, `options-ui-§13`) | — |
-| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** · **Keybindings** | 8 · 4 · 4 · 1 · 1 · 0 |
+| General | **Master controls** · **Capture** · **Filters** · **Interface** · **History** · **Keybindings** | 8 · 4 · 1 · 4 · 1 · 0 |
 
 Inside **Filters** a **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides **Blacklist**
 from **Whitelist**. Its selection is `ctx.activeSubTab["Filters"]` — a table keyed by the primary
@@ -79,7 +80,12 @@ rendering blank.
 The partition is by `group` **in declaration order**, so the row array's order *is* the tab order and
 a group's rows must stay **contiguous** — a row filed under a group the page has already left prints
 that tab a second time further down. `tests/test_schema.lua` holds the page → tab → count table that
-catches both.
+catches both. The array the page partitions is `NS.Schema:PageRows()`, which differs from
+`S.Schema` in two places, both since item 020 and both presentation only: the Capture rows come in
+`S.CAPTURE_PAGE_ORDER` (Record items, Minimum quality, Record gold, the store grid), and the
+Filters row is spliced in straight after them, so Filters is third. `S.Schema`'s own order is what
+`/bl list` prints, and it is unchanged; `tests/test_schema.lua` pins it with every path, default and
+range ("the stored paths, defaults, types, ranges and CLI order are unchanged").
 
 **The Keybindings tab is the strip's last** (`options-ui-§20`, LibKa0s v1.77.0). It is a **host
 tab**, not a schema group: `settings/Panel.lua` hands `O.RenderTabbedSchema` one `opts.tabs` entry,
@@ -103,8 +109,8 @@ every reset see exactly the settings.
 
 **Two tabs hold one declared row and are exempt by name** from "a tab with fewer than two controls
 is not a subject": each sits beside bespoke controls that have no path and cannot be counted — the
-storage read-out and **Purge ledger…** on History, and the secondary strip plus the selected list's
-**Clear all** and its LibKa0s `IdList` (the add box and the live id list) on Filters. The exemption is `THIN_TAB_EXEMPT` in
+storage read-out and **Purge history…** on History, and the secondary strip plus the selected list's
+**Clear all…** and its LibKa0s `IdList` (the add box and the live id list) on Filters. The exemption is `THIN_TAB_EXEMPT` in
 `tests/test_schema.lua`, named rather than a loosened rule.
 
 ### The bespoke blocks are `afterGroup` hooks, not page-body calls
@@ -117,9 +123,9 @@ the library's `afterGroup` table instead:
 | Tab | Hook | Draws |
 |---|---|---|
 | Master controls | `NS.Schema.masterTail` | The composer's own closing `InlineButtonPair` — **Reset position** and **Reset all settings** |
-| Capture | `renderStoreGrid` | The inverted per-store checkbox grid (`settings.excludedStores`, `skipRender`) |
-| History | `renderStorage` | The live storage read-out, then **Purge ledger…** alone; while a simulation runs its click is refused before the confirm opens (`Database:PurgeRefused`) |
-| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, **Clear all** (a host button behind a confirm), and one `O.IdList` (`kind = "item"`, `removeStyle = "icon"` since LibKa0s v1.44.0 — each entry draws an X on the left in place of a right-hand Remove button; `columns = 2` since LibKa0s v1.47.0, a **maximum** the widget falls back from when the canvas is too narrow to pay for two, and the price of packing is that word wrap goes off and a long name loses its trailing id to truncation) whose add box takes an id, a link or a name. A name resolves through the client's lookup (items carried this session) or against `candidates = filterCandidates`: both lists' ids, then every item id the live ledger recorded, newest first, each once, read from `NS.Filters` and `NS.Database:Ledger()` with no new stored state. That list is memoized (`candidateMemo`) until the ledger or either list is a different table, the ledger's length moves (`Add` fires `EntryAdded`, not `LedgerChanged`), or any `LedgerChanged` bumps its version in the tab's listener; with no bus target the memo stays off. The library's dropdown lists matches as the player types, one row per crafted-quality rank that the bags or the candidates hold (there is no client name search, so a rank nothing here has seen is not listed). It refuses a name two of those ids share (candidates or bag items) until one is picked; a name with one known rank adds that rank. Its refusal ends with `ITEM_NAME_HINT` (`strings.nameHint`), which the box's tooltip repeats. Its add and Remove call `NS.Filters`' own writers through `filterWrite`, which holds the tab's `LedgerChanged` repaint off so one click redraws the page once, via `ctx.rebuild` (this page only) |
+| Capture | `renderStoreGrid` | The inverted per-store checkbox grid (`settings.excludedStores`, `skipRender`): a title-less Flow `SimpleGroup` under the row's own `subgroup` heading, **Banks to record**, which the flow engine draws for a `skipRender` row too, so no builder draws a heading (`options-ui-§7`) |
+| History | `renderStorage` | The live storage read-out ("N movements recorded over D days." / "Database size: ≈ X"), then **Purge history…** alone; while a simulation runs its click is refused before the confirm opens (`Database:PurgeRefused`) |
+| Filters | `buildFiltersTab` | The **Blacklist · Whitelist** secondary strip, then the selected list alone via `makeFilterSection` — its blurb, one `O.IdList` (`kind = "item"`, `removeStyle = "icon"` since LibKa0s v1.44.0 — each entry draws an X on the left in place of a right-hand Remove button; `columns = 2` since LibKa0s v1.47.0, a **maximum** the widget falls back from when the canvas is too narrow to pay for two, and the price of packing is that word wrap goes off and a long name loses its trailing id to truncation) whose add box takes an id, a link or a name. A name resolves through the client's lookup (items carried this session) or against `candidates = filterCandidates`: both lists' ids, then every item id the live ledger recorded, newest first, each once, read from `NS.Filters` and `NS.Database:Ledger()` with no new stored state. That list is memoized (`candidateMemo`) until the ledger or either list is a different table, the ledger's length moves (`Add` fires `EntryAdded`, not `LedgerChanged`), or any `LedgerChanged` bumps its version in the tab's listener; with no bus target the memo stays off. The library's dropdown lists matches as the player types, one row per crafted-quality rank that the bags or the candidates hold (there is no client name search, so a rank nothing here has seen is not listed). It refuses a name two of those ids share (candidates or bag items) until one is picked; a name with one known rank adds that rank. Its refusal ends with `ITEM_NAME_HINT` (`strings.nameHint`), which the box's tooltip repeats. Its add and Remove call `NS.Filters`' own writers through `filterWrite`, which holds the tab's `LedgerChanged` repaint off so one click redraws the page once, via `ctx.rebuild` (this page only); then, last and on its own line, **Clear all…** (a host button behind a confirm). Both blurbs close with the two sentences Ka0s Loot History's close with: *Applies to future movements only; rows already recorded stay. An item can be on one list only; adding it here takes it off the other.* |
 
 The **group name is the hook key**, which is also why the Master controls group must keep exactly
 that name: rename it and the closing button pair silently detaches, with nothing raising.
@@ -165,6 +171,9 @@ frameless** and every frame-only row applies.
   | Master opacity | `settings.alpha` | `NS.Util.ApplyMasterFrame` → `frame:SetAlpha`, at construction and on every settings change |
   | Lock frame | `settings.locked` | `NS.Util.ApplyMasterFrame` → `frame:SetMovable(not locked)`; every drag handler calls `StartMoving`, which the client makes a no-op on an unmovable frame |
 
+  *Lock frame*'s tooltip is the composer's, then `S.MASTER_SPEC.notes.locked`: *Covers the ledger,
+  session and export windows.* (compose minor 9, item 020).
+
 - **General visibility is a dropdown, not a boolean** — `Always` / `Only in combat` / `Only out of
   combat` / `Never`. This addon never shipped a *show only in combat* checkbox, so there is **no
   stored value to migrate** and `SCHEMA_VERSION` is unmoved. A window the rule takes off screen is
@@ -195,7 +204,9 @@ frameless** and every frame-only row applies.
   `/bl session` stays its own verb, which was the owner's call. The composer emits it from
   `testModePath` with no default, so `S.MASTER_SPEC.defaults.testMode = false` is what lets a reset
   end it. `S.MASTER_DECOR` binds `get` to `LT:IsTestMode()` and a `set` that acts only when the
-  value differs, and overrides the generic tooltip with this addon's own. Every start and stop runs
+  value differs. Its tooltip is the composer's, then this addon's note, `S.MASTER_SPEC.notes.testMode`
+  (compose minor 9): what it shows here, that it is `/bl test`, and *To place the session window,
+  use /bl session.* A host never rewrites a composed tooltip; `notes` is the one way to extend it. Every start and stop runs
   through `LT:SetTestMode`, which repaints an open panel, so the box follows `/bl test` and the
   combat ending as well as its own clicks.
   - **Ticking it** loads the sample and opens the ledger window. The start is **refused** in combat,
@@ -230,6 +241,12 @@ frameless** and every frame-only row applies.
   pair and `/bl resetall` ran a non-destructive schema walk instead — three routes over two
   implementations, carried as a register row that is now closed.
 
+  **The header Defaults carries this button's own words** (`options-ui-§12`, LibKa0s v1.77.0,
+  item 020): its `defaultsTooltip` is `O.ResetAllTooltip(O.KEYBINDS_UNCHANGED)`, the library's
+  *Reset all settings* tooltip read from the descriptor the way the composer reads it, then
+  *Key bindings are not changed.* The host writes no wording around it, so the two controls for one
+  act cannot describe it two ways.
+
   With logging on, the profile handler writes one line (`debug-logging-§10`), never a line per row:
   `[Set] reset profile '<name>' to defaults (N rows)`, N the stored rows that changed, counted by
   `Sl:ResetEverything` before the reset. A reset from the Profiles page logs the same line without
@@ -241,7 +258,8 @@ frameless** and every frame-only row applies.
 `list`/`reset` dispatch, and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`.
 
-Rows render in schema order, so this table is also the panel's layout — tab by tab, and two rows to
+Rows render in schema order (except Capture, drawn in `S.CAPTURE_PAGE_ORDER`, and the Filters tab
+spliced in after it; see the tab strip above), so this table is also the panel's layout — tab by tab, and two rows to
 a line within a tab unless a row declares `solo`, `wide` or `startsLine`, or a `subgroup` boundary
 flushes the line.
 
@@ -260,20 +278,20 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `state.debugConsole` | bool (session-only) | `false` | Master controls | — | |
 | `minimap.shown` | bool | `true` (stored inverted as `minimap.hide = false`, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
 | `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.shown` |
-| `settings.trackItems` | bool | `true` | Capture | — | pairs with `trackMoney` |
-| `settings.trackMoney` | bool | `true` | Capture | — | |
-| `settings.qualityThreshold` | number | `0` | Capture | — | |
-| `settings.excludedStores` | table (muted set) | `{}` | Capture | — | `wide`, `skipRender` — drawn by `renderStoreGrid` |
-| `settings.showSessionWindow` | bool | `true` | Interface | Windows | alone under its heading |
-| `settings.rowStripeAlpha` | number | `0.03` | Interface | Table rows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
-| `settings.rowHoverAlpha` | number | `0.10` | Interface | Table rows | |
-| `settings.sim.stepDelay` | number | `1` | Interface | Simulator | alone under its heading; slider 0.5–10 s in 0.5 s steps, with a `validate` (`NS.SimHost.ValidStepDelay`) |
+| `settings.trackItems` | bool | `true` | Capture | — | *Record items*; on the page pairs with `qualityThreshold` |
+| `settings.trackMoney` | bool | `true` | Capture | — | *Record gold*; on the page alone on the second line |
+| `settings.qualityThreshold` | number | `0` | Capture | — | *Minimum quality*; drawn beside `trackItems` (`S.CAPTURE_PAGE_ORDER`) |
+| `settings.excludedStores` | table (muted set) | `{}` | Capture | Banks to record | `wide`, `skipRender` — drawn by `renderStoreGrid` |
+| `settings.showSessionWindow` | bool | `true` | Interface | Windows | *Show session window*; `solo`, a line of its own above the tint pair |
+| `settings.rowStripeAlpha` | number | `0.03` | Interface | Windows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
+| `settings.rowHoverAlpha` | number | `0.10` | Interface | Windows | |
+| `settings.sim.stepDelay` | number | `1` | Interface | Simulator | *Simulation step delay (seconds)*, its tooltip opening "Paces /bl sim: "; alone under its heading; slider 0.5–10 s in 0.5 s steps, with a `validate` (`NS.SimHost.ValidStepDelay`) |
 | `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
 
 **The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of
 the shared ledger is kept, so every profile reads the one value (`db.global.settings.retentionDays`,
-[profiles.md](profiles.md)), and its tooltip ends *Account-wide: one value for every profile,
-because the history it trims is shared.* No profile switch, copy or reset changes it, so none of them
+[profiles.md](profiles.md)), and its tooltip opens *Account-wide: shared by every profile.*
+(`options-ui-§21`); the label carries no suffix. No profile switch, copy or reset changes it, so none of them
 can prune history. It is on `NS.Schema.RESET_EXEMPT` beside the minimap row, so a row sweep skips it
 (a sweep putting *Always* back to 30 days would prune); a targeted
 `/bl reset settings.retentionDays` still applies.
@@ -363,7 +381,7 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 The seventeen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
-**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**, then the library's host tab
+**Capture** (4) · **Filters** · **Interface** (4) · **History** (1), then the library's host tab
 **Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
@@ -388,7 +406,7 @@ carries the full name. That write fires
 one add or Remove repaints this page once, rather than twice across every rendered page.
 
 Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
-five with **AH Price** after Capture. The two addons keep the same shape of record and a player
+five plus **AH Price** (its item 020 change LOO-L08 moves its Filters to the same third place). The two addons keep the same shape of record and a player
 compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
 was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
 rename and carried no migration (`options-ui-§15`).
@@ -398,8 +416,9 @@ spliced at the head of the array; `keys = { scale = "windowScale" }` is what kee
 stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
 `settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
 chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
-`settings.rowHoverAlpha`, each defaulting to the number it replaced. The Interface tab's third
-subsection, **Simulator**, holds the simulator's step delay (`settings.sim.stepDelay`).
+`settings.rowHoverAlpha`, each defaulting to the number it replaced, under the Interface tab's
+**Windows** subsection beside the session window's switch. Its second subsection, **Simulator**,
+holds the simulator's step delay (`settings.sim.stepDelay`).
 
 ## Bulk writes and the reset routes
 

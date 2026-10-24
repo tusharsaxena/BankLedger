@@ -264,7 +264,7 @@ compliance. It has no `Documented deviations` row.
     right-click *Delete* (`modules/LedgerTable.lua`).
   - `Database:DeleteAt` removes one entry by index. It has no production caller; the tests use it
     as the index-delete seam.
-  - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge ledger…*
+  - `Database:Purge` wipes the log, reached from `/bl purge` and the History tab's *Purge history…*
     button through the confirm-gated `KA0S_BANKLEDGER_PURGE` popup.
   - `Database:PruneOld` drops entries older than the `settings.retentionDays` row allows, read from
     `db.global.settings` (`Database:RetentionDays`; the window is account-wide, owner decision D6).
@@ -284,8 +284,8 @@ compliance. It has no `Documented deviations` row.
   there (stamping `sim = true`) and the log is untouched; `Delete`, `DeleteAt`, `Purge` and
   `PruneOld` still act on the log only. It is dropped on `/reload` with the rest of `NS.State`, so it
   is not a writer of any stored key (BankLedger#24). The simulator adds **one** schema row and **no**
-  window state: its step delay is the profile row `settings.sim.stepDelay` (default 1 s, Settings ▸
-  General ▸ Interface ▸ Simulator; until the owner's 2026-10-23 ask a fixed 1.5 s constant), and its
+  window state: its step delay is the profile row `settings.sim.stepDelay` (default 1 s, Settings >
+  General > Interface > Simulator; until the owner's 2026-10-23 ask a fixed 1.5 s constant), and its
   step panel's position is held in the LibKa0s-Sim-1.0 instance's memory for the session only
   (OWNER_SCOPE C.11).
 
