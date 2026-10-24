@@ -127,7 +127,7 @@ the way `enable` does here. Until v1.58.0 the left click was rung (a)'s ledger t
 this refusal line while disabled; that refusal and the `disabledLine` field that fed it are retired.
 
 **The Show window key press is `toggle` too** (`launcher-§6`). The `CLICK BankLedgerToggleWindow`
-binding in the root `Bindings.xml` (Key Bindings → AddOns → Ka0s Bank Ledger, no default key) clicks
+binding in the root `Bindings.xml` (Options → Keybindings → Ka0s Bank Ledger, or General > Keybindings in this addon's settings; no default key) clicks
 a hidden button whose `OnClick` runs the same `verb("toggle")` the menu's *Show window* runs. That
 skips this gate as the menu does, but a key cannot be grayed, so the button asks `NS.IsStoodDown()`
 first and prints `Sl:DisabledLine()` — exactly the one line `/bl toggle` answers with while

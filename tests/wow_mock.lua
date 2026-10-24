@@ -81,6 +81,10 @@
 --                         NAMED frame on this table, as the client publishes it to _G. The stub gains
 --                         RegisterForClicks (recorded) and Click (fires OnClick) for the Show window
 --                         key binding's button (launcher-§6).
+--  16. key bindings     — TAKEN from the kit's opt-in tests/_kit/mock_bindings.lua (revision 42): the
+--                         client's binding store (two sets, GetBindingKey, SetBinding, SaveBindings,
+--                         LoadBindings, GetBindingName), for the General page's Keybindings tab
+--                         (options-ui-§20). Installed last; it fills only names still missing.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -848,6 +852,9 @@ return function()
   -- GetContainerItemID the suggestions walk -- answered from the kit's empty bags, not
   -- M.__containers, so no suite's bag fixture leaks into a suggestion list.
   M.installIdSuggestions()
+
+  -- Override 16 (see the header): the kit's binding model, for the Keybindings tab.
+  dofile("tests/_kit/mock_bindings.lua")(M)
 
   return M
 end

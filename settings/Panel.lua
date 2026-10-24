@@ -711,12 +711,12 @@ function P:Register()
     if ctx.scroll and ctx.scroll.DoLayout then ctx.scroll:DoLayout() end
   end)
 
-  -- General = the whole panel now, on five tabs: Master controls (the addon as a whole), Capture
+  -- General = the whole panel now, on six tabs: Master controls (the addon as a whole), Capture
   -- (what is recorded, with the store grid hanging off it), Interface (what is on screen), History
-  -- (how much is kept, plus the storage read-out and Purge), and Filters (the two item-id lists,
+  -- (how much is kept, plus the storage read-out and Purge), Filters (the two item-id lists,
   -- which were their own page until R3 and were two top-level tabs until 1.1.0 folded them behind
-  -- one tab with a secondary strip). Every bespoke block is an afterGroup hook, because a
-  -- tab click re-renders the schema alone.
+  -- one tab with a secondary strip), and Keybindings (the library's key editor, options-ui-§20).
+  -- Every bespoke block is an afterGroup hook, because a tab click re-renders the schema alone.
   O.RegisterOptionsPage("general", "General", function(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then return end
     local ctx = O.CreatePanel("BankLedgerGeneralPanel", "General", {
@@ -742,9 +742,15 @@ function P:Register()
     -- block is in GENERAL_AFTER_TAB above, because a tab click re-renders only what this call
     -- draws. `rowsForPage` (settings/OptionsSetup.lua) is what adds the one host-drawn Filters tab
     -- (its blacklist and whitelist sub-lists) to the partition.
+    --
+    -- The Keybindings tab (options-ui-§20) is the one HOST tab: the library draws it from
+    -- NS.BINDINGS (core/LauncherSetup.lua) and, with no `before`, puts it after every schema tab, so
+    -- it is the strip's last. Its rows edit the client's own binding store, never the profile, so
+    -- the page's Defaults and Reset all settings never reach a key.
+    local generalOpts = { tabs = { O.KeybindingsTab({ bindings = NS.BINDINGS }) } }
     O.SetRenderer(ctx, function(c)
       O.ClearScroll(c)
-      O.RenderTabbedSchema(c, "general", GENERAL_AFTER_TAB)
+      O.RenderTabbedSchema(c, "general", GENERAL_AFTER_TAB, nil, generalOpts)
       if c.scroll and c.scroll.DoLayout then c.scroll:DoLayout() end
     end)
 

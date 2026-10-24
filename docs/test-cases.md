@@ -584,10 +584,10 @@ Total.
 - Verbs: they write the Enable row's stored path, through the same write seam
 - Verbs: they hold NO state of their own
 - Verbs: the dispatcher answers while DISABLED, so the pair is never one-way
-- Key binding: Bindings.xml declares ONE click binding, under the header, with no default key
+- Key binding: Bindings.xml declares ONE click binding, in its own category, with no default key
 - Key binding: the TOC does not list Bindings.xml (the client reads it from the root by name)
 - Key binding: the button is a plain, named, hidden, NON-secure Button registered AnyDown
-- Key binding: the header is the brand name and the action label comes through L
+- Key binding: the category title is the brand name and the action label comes through L
 - Key binding: a press runs the SAME handler /bl toggle and the Show window entry run
 - Key binding: one press opens the ledger window, the next closes it
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
@@ -1017,6 +1017,16 @@ Total.
 - Panel: the storage read-out lands on the History tab and nowhere else
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Filters tab: the id list packs two entries to a line, row-major
+
+### test_keybinds.lua (7)
+
+- Keybinds: Bindings.xml files every binding in the addon's own category, labels and brand
+- Keybinds: NS.BINDINGS is the one table, Show window first, each with a tooltip
+- Keybinds: the General strip ENDS in Keybindings, after every schema tab
+- Keybinds: the tab's rows are NS.BINDINGS in order, labeled with the BINDING_NAME_ text
+- Keybinds: a key bound through the tab is the client's key (GetBindingKey)
+- Keybinds: a key set on the client's page shows in the tab after UPDATE_BINDINGS
+- Keybinds: in combat the tab refuses, and no binding is written
 
 ### test_reset_routes.lua (6)
 
@@ -1636,6 +1646,7 @@ Total.
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
 | test_panel_filters.lua | 40 |
+| test_keybinds.lua | 7 |
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
@@ -1670,4 +1681,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1428** |
+| **Total** | **1435** |

@@ -68,7 +68,7 @@ those are deliberately not suppressed (`options-ui-§7`).
 | Page | Tab strip, in order | Rows per tab |
 |---|---|---|
 | Landing page | — (exempt: the host's own `buildMain`, `options-ui-§13`) | — |
-| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** | 8 · 4 · 4 · 1 · 1 |
+| General | **Master controls** · **Capture** · **Interface** · **History** · **Filters** · **Keybindings** | 8 · 4 · 4 · 1 · 1 · 0 |
 
 Inside **Filters** a **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides **Blacklist**
 from **Whitelist**. Its selection is `ctx.activeSubTab["Filters"]` — a table keyed by the primary
@@ -81,7 +81,18 @@ a group's rows must stay **contiguous** — a row filed under a group the page h
 that tab a second time further down. `tests/test_schema.lua` holds the page → tab → count table that
 catches both.
 
-**What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the five tabs
+**The Keybindings tab is the strip's last** (`options-ui-§20`, LibKa0s v1.77.0). It is a **host
+tab**, not a schema group: `settings/Panel.lua` hands `O.RenderTabbedSchema` one `opts.tabs` entry,
+`O.KeybindingsTab({ bindings = NS.BINDINGS })`, with no `before`, so the library puts it after every
+schema tab. The library draws all of it: its fixed intro line, one row per `NS.BINDINGS` entry (today
+one, **Toggle ledger window**, the client's `BINDING_NAME_` text) with **Key 1**, **Key 2** and
+**Clear**, then the set line (*Saved for: all characters* or *this character only*) and the outcome
+line. It edits the client's own binding store, saved to the set in force, so a key set here shows on
+Options → Keybindings → Ka0s Bank Ledger and the other way round; it repaints on `UPDATE_BINDINGS`
+and on show, and refuses every write in combat. A key is not a setting: the page's Defaults,
+*Reset all settings* and `/bl reset` never reach one.
+
+**What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the five schema tabs
 has no settings behind it: `S.BespokeRows` declares a single **renderer-only** row for Filters, which
 carries a `group` (so the tab is drawn) and `skipRender` (so the flow engine walks past it) and
 nothing else. It is deliberately not a setting — the lists are an `architecture-§5` structural
@@ -176,8 +187,8 @@ frameless** and every frame-only row applies.
   *Enable* row's path), *Locked* runs `/bl set settings.locked` (the *Lock frame* row), *Test mode*
   runs `/bl test` (the *Test mode* row's switch), and *Show window* runs `/bl toggle`. While the addon
   is disabled only *Enabled* is live. Beside *Show window* sits its **key binding** (`launcher-§6`):
-  **Toggle the ledger window** under Key Bindings → AddOns → Ka0s Bank Ledger, with no default key,
-  which clicks a hidden button running that same `/bl toggle` handler and, while the addon is
+  **Toggle ledger window**, set under Options → Keybindings → Ka0s Bank Ledger or on General >
+  Keybindings in this addon's settings (`options-ui-§20`), with no default key, which clicks a hidden button running that same `/bl toggle` handler and, while the addon is
   disabled, answers with `/bl toggle`'s refusal line instead.
 - **Test mode** (`state.testMode`, session-only, pairing beside *Minimap button*; standard v2.47.0) is the one switch
   for the **sample ledger**, the same as `/bl test`. It does not touch the session-window preview:
@@ -352,7 +363,8 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 The seventeen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
-**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**. The last carries no settings at
+**Capture** (4) · **Interface** (4) · **History** (1) · **Filters**, then the library's host tab
+**Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
 `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a

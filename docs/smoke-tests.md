@@ -13,7 +13,7 @@ leaves its number unused.
 | ID range | Theme | What it covers |
 |---|---|---|
 | INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
-| SLASH-1 – 7 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding |
+| SLASH-1 – 10 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding, its own Keybindings section and the General > Keybindings tab |
 | PANEL-1 – 31 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
@@ -108,7 +108,8 @@ leaves its number unused.
 - **SLASH-5. The Show window key binding.** Esc → Options → Key Bindings → AddOns → *Ka0s Bank
   Ledger* lists **Toggle the ledger window** with no key bound. Bind one, close the menu, then press
   it → the ledger window opens; press again → it closes. Each press toggles exactly once. Added
-  2026-10-22 (`launcher-§6`, LibKa0s#58). Result: pass (owner-marked 2026-10-23)
+  2026-10-22 (`launcher-§6`, LibKa0s#58). Result: pass (owner-marked 2026-10-23). The path and the
+  label moved on 2026-10-24 (item 015): SLASH-8 checks the new section.
 - **SLASH-6. The key refuses while disabled.** `/bl disable`, then press the bound key → exactly one
   line, `Ka0s Bank Ledger is disabled — enable it with /bl enable` (the same line `/bl toggle` prints),
   and the window does not open. `/bl enable`, press it → the window opens again. Added 2026-10-22
@@ -116,6 +117,24 @@ leaves its number unused.
 - **SLASH-7. The key works in combat.** Enter combat (a training dummy), press the bound key → the
   ledger window opens and a second press closes it, with no taint or blocked-action error. Added
   2026-10-22 (`launcher-§6`). Result: pass (owner-marked 2026-10-23)
+- **SLASH-8. Its own Keybindings section** (SM-BL-KB1). Esc → Options → Keybindings → scroll past
+  Blizzard's sections → a section titled **Ka0s Bank Ledger** holds **Toggle ledger window**, with no
+  blank spacer row above it, and the AddOns section no longer lists it. A key bound before this
+  change is still bound. Added 2026-10-24 (item 015, `launcher-§6` v2.88.0). Result:
+- **SLASH-9. The General > Keybindings tab syncs both ways** (SM-BL-KB2). `/bl config` → General →
+  the strip's last tab is **Keybindings**: the intro line, one row **Toggle ledger window** with
+  **Key 1**, **Key 2** and **Clear**, and *Saved for: all characters*. Click Key 1, press a key → it
+  shows there and the outcome line reads *Key bound.*; open Options → Keybindings → Ka0s Bank Ledger
+  → the same key. Change it there, come back to the tab → the new key. Tick **Character Specific
+  Keybindings**, repeat both directions → the set line reads *Saved for: this character only* and
+  the keys follow that set. Right-click a slot → that key is removed. Added 2026-10-24 (item 015,
+  `options-ui-§20`). Result:
+- **SLASH-10. The tab's key works, Escape cancels, combat refuses** (SM-BL-KB3). The key bound on the
+  tab toggles the ledger window. Click a slot, press Escape → the capture cancels, the slot shows its
+  old key and the Settings window stays open. Enter combat (a training dummy) with the tab open,
+  click a slot or **Clear** → nothing changes and the outcome line reads *Key bindings can be changed
+  after combat.*; a capture already listening when combat starts is canceled. Added 2026-10-24
+  (item 015, `options-ui-§20`). Result:
 
 ## PANEL
 

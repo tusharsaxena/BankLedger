@@ -813,18 +813,19 @@ end)
 local TOGGLE_BUTTON = "BankLedgerToggleWindow"
 local BINDING_NAME  = "CLICK " .. TOGGLE_BUTTON .. ":LeftButton"
 
-test("Key binding: Bindings.xml declares ONE click binding, under the header, with no default key",
+test("Key binding: Bindings.xml declares ONE click binding, in its own category, with no default key",
 function()
   -- red under: a `default=` key (it collides with somebody's binding), Lua in the element, a second
-  -- binding, or a header/category the client files elsewhere.
+  -- binding, the shared ADDONS category, or a header= (a blank spacer row in the addon's section).
+  -- tests/test_keybinds.lua runs the kit's Kit.assertBindingsXml over the same file.
   local xml = readSource("Bindings.xml"):gsub("\r", "")
   local bindings = {}
   for attrs in xml:gmatch("<Binding%s([^>]*)>") do bindings[#bindings + 1] = attrs end
   assertEqual(#bindings, 1, "exactly one <Binding>")
   local attrs = bindings[1]
   assertEqual(attrs:match('name="([^"]*)"'), BINDING_NAME)
-  assertEqual(attrs:match('header="([^"]*)"'), "BANKLEDGER")
-  assertEqual(attrs:match('category="([^"]*)"'), "ADDONS")
+  assertEqual(attrs:match('category="([^"]*)"'), "BINDING_HEADER_BANKLEDGER")
+  assertEqual(attrs:find("header=", 1, true), nil, "no header=: the category is the section title")
   assertEqual(xml:find("default=", 1, true), nil, "Bindings.xml must not carry a default key")
   assertTrue(attrs:match("/%s*$") ~= nil, "the <Binding> is self-closing: no Lua body")
 end)
@@ -850,11 +851,12 @@ function()
   assertTrue(type(b:GetScript("OnClick")) == "function", "the button has no OnClick")
 end)
 
-test("Key binding: the header is the brand name and the action label comes through L", function()
+test("Key binding: the category title is the brand name and the action label comes through L", function()
   assertEqual(_G.BINDING_HEADER_BANKLEDGER, NS.BRAND_NAME)
   assertEqual(NS.BRAND_NAME, "Ka0s Bank Ledger")
-  assertEqual(rawget(_G, "BINDING_NAME_" .. BINDING_NAME), NS.L["Toggle the ledger window"])
-  assertEqual(rawget(_G, "BINDING_NAME_" .. BINDING_NAME), "Toggle the ledger window")
+  -- No article and no brand: the category already carries the brand (launcher-§6).
+  assertEqual(rawget(_G, "BINDING_NAME_" .. BINDING_NAME), NS.L["Toggle ledger window"])
+  assertEqual(rawget(_G, "BINDING_NAME_" .. BINDING_NAME), "Toggle ledger window")
 end)
 
 test("Key binding: a press runs the SAME handler /bl toggle and the Show window entry run", function()
