@@ -82,3 +82,39 @@ bundle: this section is the record.
 - **Gate**: `luacheck .` 0 warnings / 0 errors in 105 files; `lua tests/run.lua` 1446 passed,
   0 failed, 1 skipped (1447); `docs/test-cases.md` regenerated with no change; no authored `.lua`
   file above 1500 lines (largest `tests/test_browser.lua`, 1442).
+
+## Re-vendor after the tag moved again (one key button)
+
+Item BL-RV3 of the same run. LK-96 moved the local annotated tag v1.77.0 in `../LibKa0s` again, to
+carry the owner's follow-up to item 015: one key button and Clear per row on the in-addon
+Keybindings tab (Options -> Keybindings is untouched). No new bundle: this section is the record.
+
+- **Tag**: old target `afae2f75cb7ff61c57156d9a3d8a6b2b9f4c5e10` (the commit BL-RV2 vendored), new
+  target `2f2b2e22b4c9219cd8a4101d7e894681c7aea16e` (`git -C ../LibKa0s rev-parse v1.77.0^{}`); the
+  tag object moved from `b2b8ee2` to `e9b126d961c2970e5b14d0566480f7c1d8b5e5e8`.
+  `git -C ../LibKa0s diff --stat afae2f7 2f2b2e2 -- LibKa0s testkit` names three files.
+- **Minors that moved**: OptionsKeybinds 3 -> 4 (the row is one key button and Clear; the button
+  binds and right-click clears slot 1, reads `<first key> +N` when the action holds more, and its
+  tooltip names every key; strings `KEY1` / `KEY2` gone, `KEY`, `KEY_MORE`, `KEYS_ALL` and
+  `KEYS_OTHER` new, `CLEAR_TIP` reworded). Every other library file's minor is unchanged. The test
+  kit's `bindings_xml.lua` and its README row changed (`Kit.keybindThroughTab` slot 2 on a one-button
+  row is the client page's second key); kit revision stays 42, so the CLAUDE.md provenance line
+  (v1.77.0, kit 42) and the icon declaration are unchanged.
+- **Copy**: `libs/LibKa0s/` and `tests/_kit/` replaced whole from `git -C ../LibKa0s archive v1.77.0
+  LibKa0s testkit tools`; nothing left behind to delete. Prune: `11 icon(s) declared; kept 12
+  file(s), removed 5828`. README credits unchanged.
+- **Surface parity**: no new public Options member (the minor's additions are row internals and
+  `lib.KEYBIND_STRINGS` keys), so the degradation stub in `settings/OptionsSetup.lua` is unchanged
+  and the kit's parity case stays green.
+- **Blocker, fixed in this commit**: `tests/test_keybinds.lua` asserted two key slots per row; it
+  now asserts one key button and a Clear, and a new case binds two keys the way the client's page
+  does and checks the button reads `F7 +1`. No addon test drove slot 2 through the tab.
+- **Docs**: `docs/settings-panel.md` describes the row as one key button and Clear with the `+1`
+  count and tooltip; `docs/smoke-tests.md` SLASH-9 (now also SM-BL-RV3) and SLASH-10 rewritten for
+  the one button, Result left blank and listed under Pending sign-off. `Bindings.xml`,
+  `NS.BINDINGS` and the labels are untouched.
+- **Adopted**: nothing; the row arrives with the copy.
+- **Gate**: `luacheck .` 0 warnings / 0 errors in 105 files; `lua tests/run.lua` 1451 passed,
+  0 failed, 1 skipped (1452); `docs/test-cases.md` regenerated (Total 1451) and the README badge
+  reads 1451/1451; no authored `.lua` file above 1500 lines (largest `tests/test_browser.lua`, 1442);
+  `diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s` empty apart from the pruned icons.

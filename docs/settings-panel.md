@@ -91,9 +91,12 @@ range ("the stored paths, defaults, types, ranges and CLI order are unchanged").
 tab**, not a schema group: `settings/Panel.lua` hands `O.RenderTabbedSchema` one `opts.tabs` entry,
 `O.KeybindingsTab({ bindings = NS.BINDINGS })`, with no `before`, so the library puts it after every
 schema tab. The library draws all of it: its fixed intro line, one row per `NS.BINDINGS` entry (today
-one, **Toggle ledger window**, the client's `BINDING_NAME_` text) with **Key 1**, **Key 2** and
+one, **Toggle ledger window**, the client's `BINDING_NAME_` text) with one **key button** and
 **Clear**, then the set line (*Saved for: all characters* or *this character only*) and the outcome
-line. It edits the client's own binding store, saved to the set in force, so a key set here shows on
+line (OptionsKeybinds minor 4). The key button binds the action's first key and shows it; the
+client keeps a second, set on Options → Keybindings, and when the action holds one the button reads
+`<key> +1` and its tooltip names every key and says where the others were set. Right-click on the
+button removes the first key; **Clear** removes every key. It edits the client's own binding store, saved to the set in force, so a key set here shows on
 Options → Keybindings → Ka0s Bank Ledger and the other way round; it repaints on `UPDATE_BINDINGS`
 and on show, and refuses every write in combat. A key is not a setting: the page's Defaults,
 *Reset all settings* and `/bl reset` never reach one.

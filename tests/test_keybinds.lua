@@ -112,7 +112,8 @@ function()
     assertEqual(rows[i].command, b.command, "row " .. i .. " follows NS.BINDINGS")
     assertEqual(rows[i].label.text, rawget(_G, "BINDING_NAME_" .. b.command),
       "row " .. i .. " shows the client's label, not one of the addon's own")
-    assertEqual(#rows[i].slots, 2, "two key slots, as the client keeps")
+    assertEqual(#rows[i].slots, 1, "one key button per row (OptionsKeybinds minor 4)")
+    assertTrue(rows[i].clear ~= nil, "row " .. i .. " has its Clear button")
   end
   ctxFor("General").activeTab = GENERAL_TABS[1]
 end)
@@ -153,6 +154,21 @@ test("Keybinds: a key set on the client's page shows in the tab after UPDATE_BIN
   panel.__shown = wasShown
   reset()
   if not ok then error(err, 0) end
+  ctxFor("General").activeTab = GENERAL_TABS[1]
+end)
+
+test("Keybinds: a second key from the client's page is counted on the one key button", function()
+  -- The owner's follow-up to 015: the tab shows one key button, and a second key (set on Options ->
+  -- Keybindings, slot 2) reads "<first key> +1" on it rather than vanishing. red under a tab that
+  -- shows only the first key, or one that drops the second when it repaints.
+  reset()
+  mocks.bindKey("F7", COMMAND)
+  mocks.bindKey("F8", COMMAND)
+  local rows = keybindRows()
+  local lib = mocks.LibStub("LibKa0s-Options-1.0")
+  assertEqual(slotText(rows[1], 1), lib.KEYBIND_STRINGS.KEY_MORE:format("F7", 1),
+    "the button names the first key and counts the second")
+  reset()
   ctxFor("General").activeTab = GENERAL_TABS[1]
 end)
 

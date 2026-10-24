@@ -121,20 +121,23 @@ leaves its number unused.
   Blizzard's sections → a section titled **Ka0s Bank Ledger** holds **Toggle ledger window**, with no
   blank spacer row above it, and the AddOns section no longer lists it. A key bound before this
   change is still bound. Added 2026-10-24 (item 015, `launcher-§6` v2.88.0). Result:
-- **SLASH-9. The General > Keybindings tab syncs both ways** (SM-BL-KB2). `/bl config` → General →
-  the strip's last tab is **Keybindings**: the intro line, one row **Toggle ledger window** with
-  **Key 1**, **Key 2** and **Clear**, and *Saved for: all characters*. Click Key 1, press a key → it
-  shows there and the outcome line reads *Key bound.*; open Options → Keybindings → Ka0s Bank Ledger
-  → the same key. Change it there, come back to the tab → the new key. Tick **Character Specific
-  Keybindings**, repeat both directions → the set line reads *Saved for: this character only* and
-  the keys follow that set. Right-click a slot → that key is removed. Added 2026-10-24 (item 015,
-  `options-ui-§20`). Result:
+- **SLASH-9. The General > Keybindings tab syncs both ways** (SM-BL-KB2, SM-BL-RV3). `/bl config` →
+  General → the strip's last tab is **Keybindings**: the intro line, one row **Toggle ledger window**
+  with one **key button** and **Clear** (no second key slot), and *Saved for: all characters*. Click
+  the key button, press a key → it shows on the button, the outcome line reads *Key bound.*, and the
+  key toggles the ledger window; open Options → Keybindings → Ka0s Bank Ledger → the same key. Change
+  it there, come back to the tab → the new key. Set a second key there (the page's second column),
+  come back → the button reads `<key> +1`, and hovering it shows a tooltip naming both keys. Tick
+  **Character Specific Keybindings**, repeat both directions → the set line reads *Saved for: this
+  character only* and the keys follow that set. Right-click the key button → the first key is
+  removed (a second moves up); **Clear** → every key is removed. Added 2026-10-24 (item 015,
+  `options-ui-§20`); rewritten 2026-10-24 for the one key button (owner follow-up to 015). Result:
 - **SLASH-10. The tab's key works, Escape cancels, combat refuses** (SM-BL-KB3). The key bound on the
-  tab toggles the ledger window. Click a slot, press Escape → the capture cancels, the slot shows its
-  old key and the Settings window stays open. Enter combat (a training dummy) with the tab open,
-  click a slot or **Clear** → nothing changes and the outcome line reads *Key bindings can be changed
-  after combat.*; a capture already listening when combat starts is canceled. Added 2026-10-24
-  (item 015, `options-ui-§20`). Result:
+  tab toggles the ledger window. Click the key button, press Escape → the capture cancels, the button
+  shows its old key and the Settings window stays open. Enter combat (a training dummy) with the tab
+  open, click the key button or **Clear** → nothing changes and the outcome line reads *Key bindings
+  can be changed after combat.*; a capture already listening when combat starts is canceled. Added
+  2026-10-24 (item 015, `options-ui-§20`); rewritten 2026-10-24 for the one key button. Result:
 
 ## PANEL
 
@@ -1179,3 +1182,6 @@ a pass.
 - PANEL-32 (added) and SLASH-2, PANEL-4, PANEL-6, PANEL-7, PANEL-8, PANEL-9, PROFILE-7, FILT-1,
   SESS-11, SIM-8, SIM-11 and SIM-12 (rewritten for the new labels and places; item 020, settings layout,
   2026-10-24).
+- SLASH-9 (SM-BL-RV3) and SLASH-10 (rewritten for the one key button and Clear per row; the owner's
+  follow-up to item 015, 2026-10-24). SLASH-8 (item 015, added 2026-10-24) is unchanged and
+  still pending.

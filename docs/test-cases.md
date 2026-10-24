@@ -1022,7 +1022,7 @@ Total.
 - Panel: re-rendering a page releases the previous widgets and their refreshers
 - Filters tab: the id list packs two entries to a line, row-major
 
-### test_keybinds.lua (7)
+### test_keybinds.lua (8)
 
 - Keybinds: Bindings.xml files every binding in the addon's own category, labels and brand
 - Keybinds: NS.BINDINGS is the one table, Show window first, each with a tooltip
@@ -1030,6 +1030,7 @@ Total.
 - Keybinds: the tab's rows are NS.BINDINGS in order, labeled with the BINDING_NAME_ text
 - Keybinds: a key bound through the tab is the client's key (GetBindingKey)
 - Keybinds: a key set on the client's page shows in the tab after UPDATE_BINDINGS
+- Keybinds: a second key from the client's page is counted on the one key button
 - Keybinds: in combat the tab refuses, and no binding is written
 
 ### test_reset_routes.lua (6)
@@ -1664,7 +1665,7 @@ Total.
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
 | test_panel_filters.lua | 41 |
-| test_keybinds.lua | 7 |
+| test_keybinds.lua | 8 |
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
@@ -1700,4 +1701,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1450** |
+| **Total** | **1451** |
