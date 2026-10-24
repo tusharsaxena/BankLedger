@@ -199,8 +199,46 @@ test("Filters tab: an entry reads its item name and id; an empty list reads (non
   assertTrue(line ~= nil and line.text:find("(2589)", 1, true) ~= nil, "name and id on the line")
   made = filtersTab("blacklist")
   assertTrue(firstOf(made, "Label", "(none)") ~= nil, "the empty list says so")
-  assertTrue(firstOf(made, "Button", "Clear all") ~= nil, "Clear all stays the host's button")
+  assertTrue(firstOf(made, "Button", "Clear all\226\128\166") ~= nil, "Clear all… stays the host's button")
   leaveFilters(c)
+end)
+
+--- Where in the drawn order the first widget of `wtype` (text containing `part`) sits.
+local function indexOf(made, wtype, part)
+  for i, w in ipairs(made) do
+    if w.type == wtype and (part == nil
+        or (type(w.text) == "string" and w.text:find(part, 1, true) ~= nil)) then
+      return i
+    end
+  end
+  return nil
+end
+
+-- The two blurbs, spelled here rather than read off settings/Panel.lua. Each closes with the two
+-- sentences Ka0s Loot History's Filters blurbs close with, word for word (XC-26, BAN-L12/LOO-L16).
+local SHARED_CLOSE = "Applies to future movements only; rows already recorded stay. An item can be "
+  .. "on one list only; adding it here takes it off the other."
+local BLURB = {
+  blacklist = "Never recorded. " .. SHARED_CLOSE,
+  whitelist = "Always recorded, even below your Minimum quality (Capture). " .. SHARED_CLOSE,
+}
+
+test("Filters tab: the blurb, then the add box, then Clear all… last on its own line", function()
+  -- BAN-L11: the destructive act is the last thing on its tab, as Purge history… and Reset all
+  -- settings are; the everyday add box comes first under the blurb. BAN-L-new2: the button opens a
+  -- confirm, so it ends in an ellipsis (options-ui-§21).
+  -- red under: makeClearAll called before O.IdList again, or the blurbs drifting from LootHistory's.
+  for _, key in ipairs({ "blacklist", "whitelist" }) do
+    local made, c = filtersTab(key)
+    local blurb = indexOf(made, "Label", BLURB[key])
+    local box = indexOf(made, "EditBox")
+    local clear = indexOf(made, "Button", "Clear all\226\128\166")
+    assertTrue(blurb ~= nil, key .. ": the blurb is not the shared wording")
+    assertTrue(box ~= nil and clear ~= nil, key .. ": the add box or Clear all… is missing")
+    assertTrue(blurb < box, key .. ": the blurb must lead")
+    assertTrue(box < clear, key .. ": Clear all… must follow the list, not lead it")
+    leaveFilters(c)
+  end
 end)
 
 test("Filters tab: an uncached item is asked for, and the list redraws when it lands", function()
@@ -695,11 +733,12 @@ end)
 
 test("Panel: a boolean row is a CheckBox and a range row is a Slider", function()
   -- The two canonical labels moved with their rows: "Enable capture" is "Enable Bank Ledger" and
-  -- "Window scale" is "Master scale", both on Master controls (options-ui-§15).
+  -- "Window scale" is "Master scale", both on Master controls (options-ui-§15). The alpha row reads
+  -- "Master opacity" from OptionsCompose minor 9 (options-ui-§21); its stored leaf is unchanged.
   local master = renderTab("General", "Master controls")
   assertEqual(widgetLabeled(master, "Enable Bank Ledger").type, "CheckBox")
   assertEqual(widgetLabeled(master, "Master scale").type, "Slider")
-  assertEqual(widgetLabeled(master, "Master alpha").type, "Slider")
+  assertEqual(widgetLabeled(master, "Master opacity").type, "Slider")
   assertEqual(widgetLabeled(master, "General visibility").type, "Dropdown")
   assertEqual(widgetLabeled(master, "Test mode").type, "CheckBox")
   local iface = renderTab("General", "Interface")
@@ -745,7 +784,7 @@ end)
 
 test("Panel: a checkbox write goes through the single write seam", function()
   local made = renderTab("General", "Capture")
-  local cb = widgetLabeled(made, "Track gold")
+  local cb = widgetLabeled(made, "Record gold")
   local saved = NS.Schema:Get("settings.trackMoney")
   cb:__fire("OnValueChanged", false)
   assertEqual(NS.Schema:Get("settings.trackMoney"), false, "the widget wrote through NS.Schema:Set")
@@ -763,7 +802,7 @@ test("Panel: History draws Purge alone — Reset all left with the Master contro
   local history = renderTab("General", "History")
   local seenPurge = false
   for _, w in ipairs(history) do
-    if w.type == "Button" and w.text == "Purge ledger\226\128\166" then seenPurge = true
+    if w.type == "Button" and w.text == "Purge history\226\128\166" then seenPurge = true
     elseif seenPurge and w.type == "Button" then
       assertFalse(true, "History drew a second button beside Purge: " .. tostring(w.text))
     end
@@ -775,14 +814,34 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
   -- `skipRender = true` keeps the row out of the flow engine; the page emits this grid itself. The
   -- inversion is the part worth pinning: the row STORES the muted set, so a TICKED box means
   -- "record this store".
-  local made = renderTab("General", "Capture")
-  local group
-  for _, w in ipairs(made) do
-    if w.type == "InlineGroup" then group = w end
-  end
-  assertTrue(group ~= nil, "no InlineGroup for the store grid")
-  assertEqual(group.titleText, NS.Schema:FindRow("settings.excludedStores").label)
+  --
+  -- UNBOXED since item 020 (BAN-L07): a title-less SimpleGroup under the schema-declared
+  -- subsection heading "Banks to record", the flow engine's own heading for the skipRender row, so
+  -- the tab speaks one visual language and no builder draws a heading (options-ui-§7).
   local row = NS.Schema:FindRow("settings.excludedStores")
+  local function storeGrid(made)
+    for _, w in ipairs(made) do
+      if w.type == "SimpleGroup" and w.children and #w.children == #row.values
+          and w.children[1].type == "CheckBox" and w.children[1].labelText == row.values[1].text then
+        return w
+      end
+    end
+    return nil
+  end
+  local made = renderTab("General", "Capture")
+  for _, w in ipairs(made) do
+    assertFalse(w.type == "InlineGroup", "the store grid is boxed again")
+  end
+  local group = storeGrid(made)
+  assertTrue(group ~= nil, "no SimpleGroup for the store grid")
+  assertEqual(group.titleText, nil, "the grid carries no title of its own")
+  local heading
+  for i, w in ipairs(made) do
+    if w == group then break end
+    if w.type == "Heading" then heading = { i = i, text = w.text } end
+  end
+  assertTrue(heading ~= nil and heading.text == "Banks to record",
+    "the grid sits under the Banks to record heading")
   assertEqual(#group.children, #row.values, "one checkbox per store option")
 
   local saved = NS.Schema:Get("settings.excludedStores")
@@ -790,7 +849,7 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
   renderTab("General", "Capture")   -- re-render so the boxes seed from the empty muted set
   local made2 = renderTab("General", "Capture")
   local grid
-  for _, w in ipairs(made2) do if w.type == "InlineGroup" then grid = w end end
+  grid = storeGrid(made2)
   for _, cb in ipairs(grid.children) do
     assertTrue(cb.value == true, cb.labelText .. " should be TICKED when nothing is muted")
   end
@@ -811,7 +870,7 @@ test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", fu
   -- So the claim is not "no Heading" — it is "every Heading on this tab is one its rows asked for,
   -- and none of them repeats the tab's own name".
   --
-  -- Dies under: dropping `subgroup` from the Interface rows (Windows/Table rows vanish), or drawing
+  -- Dies under: dropping `subgroup` from the Interface rows (Windows/Simulator vanish), or drawing
   -- a heading by hand from an afterGroup hook.
   for _, tab in ipairs(GENERAL_TABS) do
     local declared = {}
@@ -848,6 +907,13 @@ test("Panel: the storage read-out lands on the History tab and nowhere else", fu
   assertTrue(readoutIn(renderTab("General", "History")), "no storage read-out on History")
   assertFalse(readoutIn(renderTab("General", "Capture")), "the read-out leaked onto Capture")
   assertFalse(readoutIn(renderTab("General", "Interface")), "the read-out leaked onto Interface")
+  -- BAN-L09: "≈" alone is the hedge, as in the ledger window's footer; "(estimated)" said it twice.
+  for _, w in ipairs(renderTab("General", "History")) do
+    if w.type == "Label" and (w.text or ""):find("Database size", 1, true) then
+      assertTrue(w.text:find("\nDatabase size: \226\137\136 ", 1, true) ~= nil, w.text)
+      assertTrue(w.text:find("estimated", 1, true) == nil, "the read-out hedges twice: " .. w.text)
+    end
+  end
 
   -- And it survives a second visit to the tab, which is the whole point of the afterGroup hook.
   assertTrue(readoutIn(renderTab("General", "History")), "the read-out vanished on a re-render")

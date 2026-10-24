@@ -371,9 +371,12 @@ local function EnsureFrame()
   frame = CreateFrame("Frame", "BankLedgerExportWindow", UIParent, "BackdropTemplate")
   frame:SetSize(372, 150)
   frame:SetPoint("CENTER")
-  -- DIALOG (below the dropdown menu's FULLSCREEN catcher) so an outside click closes the Data Set
-  -- menu; the copy window (FULLSCREEN) still opens above this modal.
-  frame:SetFrameStrata("DIALOG")
+  -- MODAL (DIALOG): above the ledger window (HIGH) that opens it, below the CSV copy window
+  -- (FULLSCREEN) and the dropdown menu (FULLSCREEN_DIALOG). Toplevel, so a click raises it over the
+  -- debug console and the sim panel, its DIALOG peers; the copy window it opens is a strata higher,
+  -- so the raise cannot cover it (frame-layering-§4).
+  frame:SetFrameStrata(C.LAYERS.STRATA.MODAL)
+  frame:SetToplevel(true)
   frame:EnableMouse(true); frame:SetMovable(true); frame:SetClampedToScreen(true)
   -- Master scale, master alpha and Lock frame (options-ui-§15), from the one seam every window
   -- in this addon reads. It runs AFTER SetMovable(true) deliberately: Lock frame is expressed as

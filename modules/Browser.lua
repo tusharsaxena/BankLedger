@@ -1026,7 +1026,12 @@ local function EnsureFrame()
   local minW, minH = B:MinWidth(), SKIN.minH
   B._minW, B._minH = minW, minH
   frame:SetSize(minW, SKIN.defaultH)
-  frame:SetFrameStrata("HIGH")
+  -- WINDOW (HIGH): an on-demand browser, above the bank frames and below every dialog. Toplevel,
+  -- so a click raises it over the session window and the Settings panel, its two strata peers
+  -- (frame-layering-§4). Every popup it opens sits higher (export DIALOG, menus FULLSCREEN_DIALOG),
+  -- so the raise can never bury one of its own.
+  frame:SetFrameStrata(C.LAYERS.STRATA.WINDOW)
+  frame:SetToplevel(true)
   frame:EnableMouse(true)   -- capture clicks over the whole window; no click-through to the world
   frame:SetMovable(true)
   frame:SetClampedToScreen(true)
@@ -1141,6 +1146,10 @@ local function EnsureFrame()
   end)
   frame:HookScript("OnHide", function()
     if W then W.CloseMenu() end
+    -- The row context menu is UIParent's too (modules/LedgerTable.lua), so it closes here with its
+    -- window: Escape, the key binding and a visibility change all land on this OnHide
+    -- (frame-layering-§4, a popup closes on every path its opener closes).
+    if NS.LedgerTable and NS.LedgerTable.HideRowMenu then NS.LedgerTable:HideRowMenu() end
     -- The save that actually carries geometry across a game session: closing the window is
     -- guaranteed to happen, where the drag/resize handlers may never have fired.
     B:SaveGeometry()
@@ -1183,6 +1192,7 @@ end
 
 function B:Hide()
   if W then W.CloseMenu() end
+  if NS.LedgerTable and NS.LedgerTable.HideRowMenu then NS.LedgerTable:HideRowMenu() end
   if self._autocomplete then self._autocomplete:Close() end
   if frame then frame:Hide() end
 end

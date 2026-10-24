@@ -109,10 +109,12 @@ end
 
 -- ── THE SHOW WINDOW KEY BINDING (launcher-§6) ─────────────────────────────────────────────────
 --
--- Bindings.xml at the addon root declares one CLICK binding on the button below, under the
--- BANKLEDGER header in the AddOns category, with NO default key: any key picked here collides with
--- somebody's existing binding, so the player chooses one under Key Bindings -> AddOns -> Ka0s Bank
--- Ledger. The client reads that file from the root by name, which is why the TOC does not list it.
+-- Bindings.xml at the addon root declares one CLICK binding on the button below, in this addon's
+-- OWN category, BINDING_HEADER_BANKLEDGER, with no header= (the category is the section title, and a
+-- header inside it draws as a blank spacer row) and NO default key: any key picked here collides with
+-- somebody's existing binding, so the player chooses one under Options -> Keybindings -> Ka0s Bank
+-- Ledger, or on the General page's Keybindings tab (options-ui-§20). The client reads that file from
+-- the root by name, which is why the TOC does not list it.
 --
 -- THE BUTTON'S NAME IS PERMANENT. The client stores a player's key against the binding's name,
 -- which embeds this one, so renaming the button silently unbinds every player's key.
@@ -148,11 +150,21 @@ do
   end)
 end
 
--- The Key Bindings labels, assigned in the module that creates the button. The header is the brand
--- name above (launcher-§1's spelling); the action label comes through the locale, and needs rawset
--- because its global name holds a space and a colon.
+-- The Keybindings labels, assigned in the module that creates the button, at file scope (the client
+-- reads them at registration). The category global is the brand name above (launcher-§1's
+-- spelling) and is also the section's title on Options -> Keybindings; the action label comes
+-- through the locale, with no article and no brand because the category carries the brand
+-- (launcher-§6), and needs rawset because its global name holds a space and a colon.
 BINDING_HEADER_BANKLEDGER = NS.BRAND_NAME
-rawset(_G, "BINDING_NAME_CLICK " .. TOGGLE_BUTTON .. ":LeftButton", NS.L["Toggle the ledger window"])
+rawset(_G, "BINDING_NAME_CLICK " .. TOGGLE_BUTTON .. ":LeftButton", NS.L["Toggle ledger window"])
+
+-- THE ONE BINDINGS TABLE (launcher-§6): every Bindings.xml command, in that file's order, Show window
+-- first. settings/Panel.lua hands it to O.KeybindingsTab for the General page's Keybindings tab
+-- (options-ui-§20), whose rows follow it, and tests/test_keybinds.lua checks Bindings.xml against it.
+NS.BINDINGS = {
+  { command = "CLICK " .. TOGGLE_BUTTON .. ":LeftButton",
+    tooltip = NS.L["Shows or hides the ledger window."] },
+}
 
 if not Launcher then
   NS.Launcher = {

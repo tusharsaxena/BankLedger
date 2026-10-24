@@ -533,7 +533,11 @@ local function ensureFrame()
 
   frame = CreateFrame("Frame", "BankLedgerSessionWindow", UIParent, "BackdropTemplate")
   frame:SetSize(minW, DEFAULT_H)
-  frame:SetFrameStrata("HIGH")
+  -- WINDOW (HIGH): a bank companion, so it must sit above the bank and guild bank frames (MEDIUM
+  -- and HIGH) and below every dialog and popup. Toplevel, so a click raises it over the ledger
+  -- window, which is routinely open beside it at a bank (frame-layering-§4).
+  frame:SetFrameStrata(C.LAYERS.STRATA.WINDOW)
+  frame:SetToplevel(true)
   frame:EnableMouse(true)
   frame:SetMovable(true)
   frame:SetClampedToScreen(true)

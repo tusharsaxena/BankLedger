@@ -15,7 +15,9 @@ for a path that already has a row.
    owner decision D6: its row carries its own `get`/`set` onto `db.global`) and LibDBIcon's table
    only ([profiles.md](profiles.md)).
 2. Add the row to the schema table in `settings/Schema.lua`, at the position you want it to render —
-   **rows render in schema order, so the table is also the panel layout.** `group` names the **tab**
+   **rows render in schema order, so the table is also the panel layout** (one exception: the
+   Capture tab's page order is `S.CAPTURE_PAGE_ORDER`, and a Capture row it does not name is drawn
+   after those). `group` names the **tab**
    the row draws on (`options-ui-§13`), and the array's declaration order is the tab order, so a
    group's rows must stay **contiguous**: a row filed under a group the page has already left prints
    that tab a second time further down. Within a tab, consecutive rows pair **two to a line** —
@@ -80,7 +82,7 @@ back to the tab.
 
 ## Add a slash command
 
-Append one entry to `NS.COMMANDS` (`settings/Schema.lua:796`). `/bl help` and the settings landing
+Append one entry to `NS.COMMANDS` (`settings/Schema.lua:868`). `/bl help` and the settings landing
 page both read from that table, so nothing else needs editing — the README documents no command
 list of its own (`documentation-§1` item 7). See [slash-dispatch.md](slash-dispatch.md) for what the
 library owns versus what stays the host's.

@@ -25,12 +25,12 @@ local SUITES = {
   "test_ledger", "test_backfill", "test_ledger_guildbank", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_autocomplete", "test_launcher", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
-  "test_panel", "test_panel_filters", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
+  "test_panel", "test_panel_filters", "test_keybinds", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_libka0s_slash", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
   "test_lintconfig", "test_diagnostics", "test_profiles", "test_debug_coverage", "test_debug_library",
   "test_sim_seam", "test_sim_world", "test_sim_drivers", "test_sim_session", "test_sim_scenario", "test_sim_e2e",
-  "test_sim_panel",
+  "test_sim_panel", "test_layers",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.

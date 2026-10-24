@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1428%2F1428_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1451%2F1451_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -49,8 +49,9 @@ You don't have to do anything to start recording. A first visit to the bank goes
   then closes when the bank does. It's only a view, and everything in it lands in your history
   too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
 - Open the ledger. Type `/bl show`, tick **Show window** in the minimap button's right-click
-  menu, or bind a key to **Toggle the ledger window** under Key Bindings → AddOns → Ka0s Bank Ledger
-  (there is no default key; each press opens or closes the window). It opens on the History tab, one line per movement with the newest at the top, and it only
+  menu, or bind a key to **Toggle ledger window** under Options → Keybindings → Ka0s Bank Ledger, or
+  General > Keybindings in this addon's settings (there is no default key; each press opens or
+  closes the window). It opens on the History tab, one line per movement with the newest at the top, and it only
   shows the character you're logged in as until you pick All. `/bl hide`, Escape or the X closes
   it.
 - Narrow it down. The bar above the table has a search box for item names and dropdowns for date,
@@ -88,7 +89,7 @@ bank), `warband` (items and gold put in the warband bank, then taken out by an i
 recorded) and `onesided` (a visit where nothing should be recorded, because nothing crossed both
 ways). The ledger window opens on the simulated rows with an amber strip saying nothing here is
 saved, and a step panel docks beside it. A started simulation plays on its own, a second between
-steps; Pause holds it, and clicking a row plays it by hand. **Simulation step delay** on the settings'
+steps; Pause holds it, and clicking a row plays it by hand. **Simulation step delay (seconds)** on the settings'
 Interface tab changes that. Nothing a simulation does is saved and your real history is never touched. It won't start
 in combat, in test mode, with a real bank open, while General visibility keeps the window shut, or
 while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
@@ -125,22 +126,22 @@ and questing, never ends up in the book.
 | Can one character use different settings? | Yes. Settings, the two filter lists and the saved views belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. `/bl profile <name>` switches from chat. The history stays shared whatever profile you are on. |
 | Does it record currencies like Valorstones? | No. The book covers items and gold; currencies are deliberately out of scope. |
 | Will it see what other people put in the guild bank? | No. It only sees what your own character does. |
-| What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off in Settings ▸ General if you would rather it did not appear. |
+| What is the small window that opens with my bank? | Current Banking Session, a live list of what you have moved during this visit. It keeps nothing of its own; everything in it is also in your history. Turn it off with **Show session window** on Settings > General > Interface if you would rather it did not appear. |
 | Why does the session window forget everything when I reopen the bank? | Because it covers the visit you are on and nothing else. Anything older is in the main window. |
 | Does it slow the game down? | It only does anything while a bank window is open, and both windows build rows only for what fits on screen. |
-| Why did old history disappear? | By default, movements older than 30 days are removed at login. Keep them longer under Settings ▸ General ▸ History ▸ **Keep history for**; **Always** keeps everything. |
+| Why did old history disappear? | By default, movements older than 30 days are removed at login. Keep them longer under Settings > General > History > **Keep history for**; **Always** keeps everything. |
 | Where is my data kept? | In the addon's SavedVariables file, on your own machine. Nothing is sent anywhere. |
 
 ## Troubleshooting
 
 | Symptom | Fix |
 | ------- | --- |
-| Nothing is recorded | Check `Enable Bank Ledger` is on in Settings ▸ General ▸ Master controls, and that the bank you are using is ticked in "Record movements to and from" on the Capture tab. |
-| An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings ▸ General ▸ Filters ▸ Blacklist. |
+| Nothing is recorded | Check `Enable Bank Ledger` is on in Settings > General > Master controls, and that the bank you are using is ticked under **Banks to record** on Settings > General > Capture. |
+| An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings > General > Filters > Blacklist. |
 | Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
-| The window vanished off-screen | The **Reset position** button on Settings ▸ General ▸ Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then resets the current profile's settings, filter lists and saved views (one per tab) as well. Your recorded history is kept; `/bl purge` is what deletes it. |
-| The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and Settings ▸ General turns it off for good. |
+| The window vanished off-screen | The **Reset position** button on Settings > General > Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then resets the current profile's settings, filter lists and saved views (one per tab) as well. Your recorded history is kept; `/bl purge` is what deletes it. |
+| The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and **Show session window** on Settings > General > Interface turns it off for good. |
 | The addon switched itself back on after Reset all settings | That is deliberate. **Reset all settings** returns the current profile to its defaults, and a fresh profile is enabled, so a reset made while the addon is disabled turns it back on. Untick `Enable Bank Ledger` again if you want it off. |
 | The addon switched itself off (or on) when I changed profile | *Enable Bank Ledger* is a setting like any other, so it belongs to the profile. Switching to a profile where it is off turns the addon off. Tick it again on that profile, or switch back. |
 | Something looks wrong and I want to report it | Follow [Reporting a bug](#reporting-a-bug) below. |

@@ -29,6 +29,58 @@ local function rowFor(path)
   return nil
 end
 
+-- ── The stored surface is pinned (item 020, settings layout) ──────────────────────────────────
+--
+-- The 2026-10-24 layout pass moves, regroups and relabels rows and changes nothing a player has
+-- stored: every setting keeps its path, its default, its type and its range, and `/bl list` keeps its
+-- order. This table is that surface as it stood before the pass (BankLedger 6ccb991), written out
+-- by hand rather than read from the schema, so a layout edit that drifts a key, a default or the
+-- CLI order fails here instead of passing against itself. A real setting change edits this table on
+-- purpose, in the commit that makes it.
+local STORED_SURFACE = {
+  -- path, default, type, min, max, step
+  { "settings.enabled",           true,     "bool" },
+  { "settings.visibility",        "always", "string" },
+  { "settings.windowScale",       1,        "number", 0.5, 2, 0.05 },
+  { "settings.alpha",             1,        "number", 0.1, 1, 0.05 },
+  { "settings.locked",            false,    "bool" },
+  { "state.debugConsole",         false,    "bool" },
+  { "minimap.shown",              true,     "bool" },
+  { "state.testMode",             false,    "bool" },
+  { "settings.trackItems",        true,     "bool" },
+  { "settings.trackMoney",        true,     "bool" },
+  { "settings.qualityThreshold",  0,        "number" },
+  { "settings.excludedStores",    "{}",     "table" },
+  { "settings.showSessionWindow", true,     "bool" },
+  { "settings.rowStripeAlpha",    0.03,     "number", 0,   0.3, 0.01 },
+  { "settings.rowHoverAlpha",     0.10,     "number", 0,   0.4, 0.01 },
+  { "settings.sim.stepDelay",     1,        "number", 0.5, 10,  0.5 },
+  { "settings.retentionDays",     30,       "number" },
+}
+
+test("Schema: the stored paths, defaults, types, ranges and CLI order are unchanged", function()
+  assertEqual(#S.Schema, #STORED_SURFACE, "the set of settings changed")
+  for i, want in ipairs(STORED_SURFACE) do
+    local row = S.Schema[i]
+    local path = want[1]
+    assertEqual(row.path, path, "S.Schema row " .. i .. " (the `/bl list` order) moved")
+    if want[3] == "table" then
+      assertTrue(type(row.default) == "table" and next(row.default) == nil, path .. " default drifted")
+    else
+      assertEqual(row.default, want[2], path .. " default drifted")
+    end
+    assertEqual(row.type, want[3], path .. " type drifted")
+    assertEqual(row.min, want[4], path .. " min drifted")
+    assertEqual(row.max, want[5], path .. " max drifted")
+    assertEqual(row.step, want[6], path .. " step drifted")
+  end
+  -- The value lists the dropdowns and the grid offer are data, not layout.
+  assertEqual(#S:FindRow("settings.qualityThreshold").values, #NS.Constants.QUALITY_OPTIONS)
+  assertEqual(#S:FindRow("settings.retentionDays").values, #NS.Constants.RETENTION_OPTIONS)
+  assertEqual(#S:FindRow("settings.excludedStores").values, #NS.Constants.STORE_OPTIONS)
+  assertTrue(S:FindRow("settings.excludedStores").invert == true, "the store grid's inversion moved")
+end)
+
 -- Run `fn` and return the SettingsChanged reasons broadcast while it ran.
 local function reasonsFrom(fn)
   local seen = {}
@@ -235,14 +287,15 @@ end)
 --
 -- Read off S:PageRows(), NOT S.Schema, and that is the whole difference the revamp made: the page
 -- also draws the item-id Filters tab, whose `group` is declared by a renderer-only row that is
--- deliberately not a setting. S.Schema alone would report four tabs for a five-tab strip.
+-- deliberately not a setting. S.Schema alone would report four tabs for a five-tab strip. Filters is
+-- third, straight after Capture, the order Ka0s Loot History shares (BAN-L-new1, LOO-L08).
 local PARTITION = {
   general = {
     { tab = "Master controls", rows = 8 },
     { tab = "Capture",         rows = 4 },
+    { tab = "Filters",         rows = 1 },
     { tab = "Interface",       rows = 4 },
     { tab = "History",         rows = 1 },
-    { tab = "Filters",         rows = 1 },
   },
 }
 
@@ -377,44 +430,58 @@ end)
 
 -- ── Row order inside a tab is LAYOUT ──────────────────────────────────────────
 
-test("Schema: the Capture tab leads with the two kind toggles, paired across one line", function()
-  -- The flow engine pairs consecutive non-wide rows two to a line, so declaration order IS the
-  -- layout. The master switch that used to lead this tab is "Enable Bank Ledger" on Master controls
-  -- now (options-ui-§15) and there is exactly ONE of it — the `solo` that kept it off the toggles'
-  -- line went with it.
-  local first
-  for _, row in ipairs(S.Schema) do
-    if row.group == "Capture" then first = row; break end
+-- The rows of one tab IN THE ORDER THE PAGE DRAWS THEM, which is S:PageRows() and not S.Schema:
+-- item 020 reorders the panel copy of Capture and leaves S.Schema, so `/bl list` prints as before.
+local function pageRowsOf(tab)
+  local out = {}
+  for _, row in ipairs(S:PageRows()) do
+    if row.group == tab then out[#out + 1] = row end
   end
-  assertEqual(first.path, "settings.trackItems", "the item toggle must lead the Capture tab")
-  assertFalse(first.solo == true, "a solo lead row splits the kind toggles across two lines")
+  return out
+end
+
+test("Schema: Capture puts the quality gate beside the item toggle, and gold on the line below", function()
+  -- The flow engine pairs consecutive non-wide rows two to a line, so the PAGE's order is the
+  -- layout: line 1 is Record items | Minimum quality, line 2 is Record gold | -- (BAN-L06). The
+  -- quality gate governs items only, so it sits beside the toggle it depends on.
+  --
+  -- Dies under: reordering S.Schema instead of the panel copy (the stored-surface case goes red), or
+  -- marking any of the three solo or wide (the pairing breaks).
+  local rows = pageRowsOf("Capture")
+  local want = { "settings.trackItems", "settings.qualityThreshold", "settings.trackMoney",
+    "settings.excludedStores" }
+  assertEqual(#rows, #want, "Capture holds the wrong rows")
+  for i, path in ipairs(want) do
+    assertEqual(rows[i].path, path, "Capture row #" .. i .. " is out of order on the page")
+  end
+  for i = 1, 3 do
+    assertFalse(rows[i].solo == true, rows[i].path .. " breaks the two-column pairing")
+    assertFalse(rows[i].wide == true, rows[i].path .. " breaks the two-column pairing")
+  end
+  assertEqual(S:FindRow("settings.trackItems").label, "Record items")
+  assertEqual(S:FindRow("settings.trackMoney").label, "Record gold")
+  assertEqual(S:FindRow("settings.qualityThreshold").label, "Minimum quality")
+  assertEqual(S:FindRow("settings.qualityThreshold").tooltip,
+    "Only record items at or above this quality. Gold is not affected. Items on General > Filters "
+      .. "> Whitelist are always recorded.")
 end)
 
-test("Schema: the Capture kind toggles pair across one line, in item-then-gold order", function()
-  local want = { "settings.trackItems", "settings.trackMoney" }
-  local got = {}
-  for _, row in ipairs(S.Schema) do
-    if row.group == "Capture" and row.widget == "CheckBox" then
-      got[#got + 1] = row.path
-    end
-  end
-  assertEqual(#got, #want, "expected exactly two kind toggles on Capture")
-  for i, path in ipairs(want) do
-    assertEqual(got[i], path, "Capture checkbox #" .. i .. " is out of order")
-    local row = S:FindRow(path)
-    assertFalse(row.solo == true, path .. " breaks the two-column pairing")
-    assertFalse(row.wide == true, path .. " breaks the two-column pairing")
-  end
+test("Schema: the store grid sits under its own subsection heading, Banks to record", function()
+  -- BAN-L07: the skipRender row declares the heading and the flow engine draws it, so no builder
+  -- draws one (options-ui-§7). The row keeps its label, which the CLI and `/bl list` read.
+  local row = S:FindRow("settings.excludedStores")
+  assertEqual(row.subgroup, "Banks to record")
+  assertEqual(row.label, "Record movements to and from")
+  assertTrue(row.tooltip:find("RECORD", 1, true) == nil, "the tooltip still shouts: " .. row.tooltip)
+  local rows = pageRowsOf("Capture")
+  assertEqual(rows[#rows].path, "settings.excludedStores", "the grid must be Capture's last row")
 end)
 
 test("Schema: rest and hover sit on ONE line, so they are read across and not down", function()
   -- The row tint pair. Reading down a column is one state; reading across a line compares the two,
   -- which is the question someone setting a hover actually has. Consecutive and neither solo nor
   -- wide is what puts them on the same line.
-  local order = {}
-  for _, row in ipairs(S.Schema) do
-    if row.group == "Interface" then order[#order + 1] = row end
-  end
+  local order = pageRowsOf("Interface")
   local at
   for i, row in ipairs(order) do
     if row.path == "settings.rowStripeAlpha" then at = i end
@@ -422,16 +489,14 @@ test("Schema: rest and hover sit on ONE line, so they are read across and not do
   assertTrue(at ~= nil, "settings.rowStripeAlpha is not on the Interface tab")
   assertTrue(order[at + 1] ~= nil and order[at + 1].path == "settings.rowHoverAlpha",
     "the hover slider must follow the rest slider immediately")
-  -- An ODD number of rows before them WITHIN THEIR OWN SUBGROUP would push the pair onto separate
-  -- lines. Within the subgroup, and not within the tab, because a subgroup heading FLUSHES the
-  -- pending line before it draws (libs/LibKa0s/OptionsWidgets.lua, startSubgroup) -- so the pair
-  -- starts a fresh line under "Table rows" however many rows the "Windows" block above it holds.
-  -- This used to count from the top of the tab, which happened to agree while Windows held two
-  -- rows and went red when the minimap row left it for Master controls (launcher-§3) without the
-  -- pair having moved at all.
+  -- An ODD number of PAIRING rows before them in their own subgroup would push the pair onto
+  -- separate lines. A subgroup heading flushes the pending line before it draws
+  -- (libs/LibKa0s/OptionsWidgets.lua, startSubgroup), and so does a `solo` row, which takes a line
+  -- of its own -- which is how Show session window shares the Windows subsection with the pair
+  -- (BAN-L01) without splitting it. So the count stops at either.
   local since = 0
   for i = at - 1, 1, -1 do
-    if order[i].subgroup ~= order[at].subgroup then break end
+    if order[i].subgroup ~= order[at].subgroup or order[i].solo or order[i].wide then break end
     since = since + 1
   end
   assertEqual(since % 2, 0, "an odd row count above the pair splits it across two lines")
@@ -450,46 +515,51 @@ test("Schema: the Interface tab opens with the control most players reach for", 
   -- "Hide minimap button" led it after that, and has now gone the same way for the same reason:
   -- launcher-§3 puts the button's visibility on Master controls as the composed "Minimap button"
   -- row, reading the other way round. It was REPLACED, not duplicated -- the path did not move.
-  -- What opens the tab now is the one window this addon can switch on.
-  local first
-  for _, row in ipairs(S.Schema) do
-    if row.group == "Interface" then first = row; break end
-  end
+  -- What opens the tab now is the one window this addon can switch on, alone on its line so the
+  -- tint pair below it still pairs (BAN-L01).
+  local first = pageRowsOf("Interface")[1]
   assertEqual(first.path, "settings.showSessionWindow")
+  assertEqual(first.label, "Show session window")
+  assertTrue(first.solo == true, "the session row must take a line of its own")
+  assertEqual(first.tooltip, "Opens the Current Banking Session window at a bank, listing what you "
+    .. "move. Turning this off never stops capture, only the window.")
   assertEqual(S:FindRow("minimap.shown").group, "Master controls",
     "the minimap row must not be on the Interface tab as well")
 end)
 
 test("Schema: the Interface tab heads each KIND of control it mixes", function()
   -- options-ui-§7: a tab mixing kinds must break them up, and those headings are NOT suppressed the
-  -- way the tab's own section heading is. Interface holds three kinds — the windows you can switch
-  -- on, the tint of a table row and the pace of a playing simulation — so every row on it carries a
-  -- `subgroup`, and no subgroup may repeat the tab's own name.
+  -- way the tab's own section heading is. Interface holds two kinds -- how the windows look and
+  -- behave (the session window and the table row tints, one Windows subsection since BAN-L01) and
+  -- the pace of a playing simulation -- so every row on it carries a `subgroup`, and no subgroup may
+  -- repeat the tab's own name.
   --
   -- Dies under: dropping `subgroup` from any Interface row, or naming one "Interface".
   local kinds, order = {}, {}
-  for _, row in ipairs(S.Schema) do
-    if row.group == "Interface" then
-      assertTrue(type(row.subgroup) == "string" and row.subgroup ~= "",
-        row.path .. " sits on a mixed tab with no subsection heading")
-      assertFalse(row.subgroup == row.group, row.path .. "'s subgroup repeats its tab's name")
-      if not kinds[row.subgroup] then kinds[row.subgroup] = true; order[#order + 1] = row.subgroup end
-    end
+  for _, row in ipairs(pageRowsOf("Interface")) do
+    assertTrue(type(row.subgroup) == "string" and row.subgroup ~= "",
+      row.path .. " sits on a mixed tab with no subsection heading")
+    assertFalse(row.subgroup == row.group, row.path .. "'s subgroup repeats its tab's name")
+    if not kinds[row.subgroup] then kinds[row.subgroup] = true; order[#order + 1] = row.subgroup end
   end
-  assertEqual(#order, 3, "Interface should head exactly three kinds of control")
+  assertEqual(#order, 2, "Interface should head exactly two kinds of control")
   assertEqual(order[1], "Windows")
-  assertEqual(order[2], "Table rows")
-  assertEqual(order[3], "Simulator")
+  assertEqual(order[2], "Simulator")
 end)
 
 test("Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s", function()
   -- The owner's 2026-10-23 ask: a playing simulation waits 1 s between steps by default, and a player can change
   -- it. The row's validate is the host's own check (NS.SimHost.ValidStepDelay), so `/bl set` and the
-  -- slider refuse exactly the values modules/Sim.lua would not use.
+  -- slider refuse exactly the values modules/Sim.lua would not use. Its words are the collection's
+  -- family names (options-ui-§21): the unit in the label, the heading exactly Simulator, and
+  -- the slash verb in the tooltip's opening, never in the heading.
   local row = S:FindRow("settings.sim.stepDelay")
   assertTrue(row ~= nil, "no settings.sim.stepDelay row")
   assertEqual(row.group, "Interface")
   assertEqual(row.subgroup, "Simulator")
+  assertEqual(row.label, "Simulation step delay (seconds)")
+  assertEqual(row.tooltip:sub(1, #"Paces /bl sim: "), "Paces /bl sim: ")
+  assertEqual(row.fmt, "%.1f s", "the readout is not a label and stays")
   assertEqual(row.widget, "Slider")
   assertEqual(row.type, "number")
   assertEqual(row.default, 1)
@@ -500,6 +570,14 @@ test("Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defa
   assertTrue(row.validate(1.5) and true or false, "1.5 refused")
   assertFalse(row.validate(0.75) and true or false, "an off-grid value accepted")
   assertFalse(row.validate(11) and true or false, "an out-of-range value accepted")
+end)
+
+test("Schema: Keep history for says it is account-wide in its opening, and carries no suffix", function()
+  -- options-ui-§21's shared family name for an account-wide row (BAN-L10).
+  local row = S:FindRow("settings.retentionDays")
+  assertEqual(row.label, "Keep history for")
+  assertEqual(row.tooltip, "Account-wide: shared by every profile. Automatically drop movements "
+    .. "older than this. 'Always' keeps everything.")
 end)
 
 -- ── The promoted chrome literals (Step 4) ─────────────────────────────────────
@@ -725,8 +803,26 @@ test("Test mode: the composed row sits right below Debug console, session-only, 
   assertTrue(row.startsLine == nil, "Test mode pairs beside Minimap button rather than opening a line")
   assertEqual(row.default, false, "with no default, a reset cannot end it")
   assertTrue(type(row.get) == "function" and type(row.set) == "function", "the host binds get/set")
-  assertTrue(type(row.tooltip) == "string" and row.tooltip:find("/bl test", 1, true) ~= nil,
-    "the tooltip is this addon's own and names the verb it mirrors: " .. tostring(row.tooltip))
+  -- The composer's words lead, and this addon's note follows them (MasterControls `notes`, compose
+  -- minor 9): the host never replaces a composed tooltip (options-ui-§15). The note names the verb
+  -- the box mirrors and the one route that places the session window (BAN-L13).
+  local canonical = "Show placeholder content, so the display can be seen and placed without "
+    .. "waiting for the real thing."
+  assertEqual(row.tooltip:sub(1, #canonical), canonical, "the composed words must lead: " .. row.tooltip)
+  assertTrue(row.tooltip:find("/bl test", 1, true) ~= nil,
+    "the note names the verb it mirrors: " .. tostring(row.tooltip))
+  assertEqual(row.tooltip:sub(-#"To place the session window, use /bl session."),
+    "To place the session window, use /bl session.", "the note ends naming /bl session")
+  assertEqual((S.MASTER_DECOR[TEST_PATH] or {}).tooltip, nil,
+    "the decor table must not rewrite a composed tooltip")
+end)
+
+test("Master controls: Lock frame names the three windows it covers, after the composed words", function()
+  -- BAN-L16: the note goes through MasterControls `notes.locked`, appended after the canonical
+  -- sentence, never a decor rewrite.
+  local row = S:FindRow("settings.locked")
+  assertEqual(row.tooltip, "Stop the frame being dragged. Covers the ledger, session and export windows.")
+  assertEqual((S.MASTER_DECOR["settings.locked"] or {}).tooltip, nil)
 end)
 
 test("Test mode: the checkbox is never written to SavedVariables", function()

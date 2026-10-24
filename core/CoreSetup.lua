@@ -142,6 +142,11 @@ if not lib then
       f:SetMinResize(minW, minH)
     end
     local grip = CreateFrame("Button", nil, f)
+    -- Above the window's content, at the library's GRIP_LEVEL offset (frame-layering-§3: a degraded
+    -- fallback reproduces the library's offsets), so the table rows (window + 3/4) under the
+    -- bottom-right corner cannot take the mouse over it.
+    local base = type(f.GetFrameLevel) == "function" and f:GetFrameLevel()
+    if type(base) == "number" then grip:SetFrameLevel(base + NS.Constants.LAYERS.LEVEL.GRIP) end
     grip:SetSize(16, 16)
     grip:SetPoint("BOTTOMRIGHT", -2, 2)
     grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")

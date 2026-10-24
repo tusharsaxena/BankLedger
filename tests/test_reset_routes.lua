@@ -196,20 +196,26 @@ end)
 
 -- ── the words a player reads ────────────────────────────────────────────────────────────────────
 
-test("Reset routes: the resetall verb, the Defaults tooltip and the popup say it is this profile, that history is kept, and that it asks first", function()
+test("Reset routes: the resetall verb and the popup say it is this profile, and the Defaults tooltip is Reset all settings' own", function()
   -- Until schema v3 every control here said history went with the reset, because it did. It is a
   -- profile reset now, and a player about to press it needs to know the ledger is safe.
-  -- red under: restoring "including recorded history", or the no-profile popup wording.
+  --
+  -- THE HEADER DEFAULTS CARRIES NO WORDS OF ITS OWN (options-ui-§12, from LibKa0s v1.77.0;
+  -- BAN-L-new3). It is the global reset, so its tooltip is O.ResetAllTooltip with the Keybindings
+  -- tail, the very text the Master controls Reset all settings button carries plus "Key bindings
+  -- are not changed.": two controls for one act cannot describe it two ways.
+  -- red under: restoring "including recorded history", the no-profile popup wording, or a host
+  -- string on the Defaults button.
   local verb
   for _, cmd in ipairs(NS.COMMANDS) do
     if cmd[1] == "resetall" then verb = cmd[2] end
   end
   assertEqual(verb, "Reset this profile's settings to defaults; history is kept (asks first)")
   local tip = panel("General").defaultsTooltip or ""
+  assertEqual(tip, NS.Helpers.ResetAllTooltip(NS.Helpers.KEYBINDS_UNCHANGED))
+  assertEqual(tip, NS.Helpers.ResetAllTooltip() .. " Key bindings are not changed.")
   assertTrue(tip:find("current profile", 1, true) ~= nil,
     "the Defaults tooltip does not name the profile: " .. tip)
-  assertTrue(tip:find("history", 1, true) ~= nil, "the Defaults tooltip does not name history: " .. tip)
-  assertTrue(tip:find("kept", 1, true) ~= nil, "the Defaults tooltip does not say history is kept: " .. tip)
   -- options-ui-§12's FIRST canonical wording, byte for byte: the one for an addon with a profile.
   assertEqual(mocks.StaticPopupDialogs[POPUP].text,
     "Reset this profile to the addon's defaults? Everything you have configured or added in it is "

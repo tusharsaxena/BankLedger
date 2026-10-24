@@ -818,25 +818,36 @@ end
 -- ── Row context menu (right-click) ──────────────────────────────────────────────
 local WHITE8X8 = "Interface\\Buttons\\WHITE8X8"
 local rowMenu
+-- POPUP (FULLSCREEN_DIALOG), over both windows and every dialog. An outside click closes it by
+-- LISTENING, not by intercepting: `GLOBAL_MOUSE_DOWN` fires for a press anywhere, so the press both
+-- dismisses the menu and reaches what is under it (a right-click on another row re-opens the menu
+-- there). It replaced a full-screen FULLSCREEN catcher button that swallowed the dismissing click
+-- and, while up, left every window, dialog and StaticPopup unclickable — the defect LibKa0s retired
+-- from its own dropdown menu (Widgets.lua, minor 5), whose pattern this follows (frame-layering-§4).
+-- Registered on show and dropped on hide, so nothing runs on every press for the session. A press
+-- on the menu itself is exempt, or it would close under the player's own pick before the release.
+-- ShowRowMenu runs from the row's OnClick (a release), so the opening press is already over.
 local function EnsureRowMenu()
   if rowMenu then return rowMenu end
   rowMenu = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-  rowMenu:SetFrameStrata("FULLSCREEN_DIALOG")
+  rowMenu:SetFrameStrata(C.LAYERS.STRATA.POPUP)
   rowMenu:SetBackdrop({ bgFile = WHITE8X8, edgeFile = WHITE8X8, edgeSize = 1 })
   rowMenu:SetBackdropColor(0.06, 0.06, 0.08, 0.98)
   rowMenu:SetBackdropBorderColor(0.62, 0.5, 0.18, 1)
   rowMenu:Hide()
   rowMenu.buttons = {}
 
-  local catcher = CreateFrame("Button", nil, UIParent)
-  catcher:SetAllPoints(UIParent)
-  catcher:SetFrameStrata("FULLSCREEN")
-  catcher:Hide()
-  catcher:SetScript("OnClick", function() rowMenu:Hide() end)
-  catcher:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-  rowMenu.catcher = catcher
-  rowMenu:SetScript("OnHide", function() catcher:Hide() end)
+  rowMenu:SetScript("OnEvent", function(self, event)
+    if event == "GLOBAL_MOUSE_DOWN" and not self:IsMouseOver() then self:Hide() end
+  end)
+  rowMenu:HookScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_DOWN") end)
   return rowMenu
+end
+
+-- Close the row menu, if one was ever built. The ledger window calls it from its OnHide and from
+-- Browser:Hide, because the menu is UIParent's and does not hide with the window on its own.
+function LT:HideRowMenu()
+  if rowMenu then rowMenu:Hide() end
 end
 
 -- The row menu's entries, as plain data — no frames, so the enable rules are unit-testable.
@@ -851,7 +862,8 @@ end
 -- The two filter confirmations hand the printer their parts as arguments (events-frames-taint-§8)
 -- rather than one pre-formatted string. The label is addon-owned (the stored item name, or the id),
 -- and the route ends in the list name with no separator, so that one join stays a literal concat.
-local MANAGE_ROUTE = "\226\128\148 manage it in Settings \226\150\184 General \226\150\184 Filters \226\150\184 "
+-- The separator is ASCII ' > ', options-ui-§21's location-string form (item 020).
+local MANAGE_ROUTE = "\226\128\148 manage it in Settings > General > Filters > "
 local function rowLabel(entry)
   return entry.itemName or ("item " .. tostring(entry.itemID))
 end
@@ -864,7 +876,7 @@ function LT:RowMenuItems(entry)
         if entry.itemLink and ChatEdit_InsertLink then ChatEdit_InsertLink(entry.itemLink) end
       end },
     -- Blacklisting is point-in-time: it stops FUTURE movements of this id being recorded and leaves
-    -- every stored row alone. Manage the list in Settings ▸ General ▸ Filters.
+    -- every stored row alone. Manage the list in Settings > General > Filters.
     { label = "Blacklist item", enabled = live and entry.itemID ~= nil, fn = function()
         if NS.Filters:AddBlacklist(entry.itemID) then
           print("blacklisted", rowLabel(entry), MANAGE_ROUTE .. "Blacklist.")
@@ -921,6 +933,6 @@ function LT:ShowRowMenu(anchor, entry)
   m:SetSize(W, #items * MENU_ROW_H + 8)
   m:ClearAllPoints()
   m:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, 0)
-  m.catcher:Show()
   m:Show()
+  m:RegisterEvent("GLOBAL_MOUSE_DOWN")
 end

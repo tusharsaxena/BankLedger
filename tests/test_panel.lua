@@ -288,9 +288,9 @@ test("Panel: the General page draws a tab strip, one button per schema group", f
 end)
 
 test("Panel: the strip's FIRST tab is Master controls, and it is not the Filters page's", function()
-  -- options-ui-§15 in the drawn page rather than in the data, plus R3's merge: the strip's last
-  -- button is the page that used to be a category of its own, and its body comes up under
-  -- General's strip.
+  -- options-ui-§15 in the drawn page rather than in the data, plus R3's merge: the Filters tab
+  -- is the page that used to be a category of its own, and its body comes up under General's
+  -- strip.
   --
   -- Dies under: splicing the composed rows anywhere but the head of S.Schema, or dropping the
   -- Filters entry from GENERAL_AFTER_TAB.
@@ -309,12 +309,12 @@ test("Panel: the strip's FIRST tab is Master controls, and it is not the Filters
   end
   c.activeSubTab = nil
   local black = bodyText(renderTab("General", "Filters"))
-  assertTrue(black:find("never recorded", 1, true) ~= nil, "the blacklist blurb is missing")
-  assertFalse(black:find("always recorded", 1, true) ~= nil, "the whitelist leaked onto Blacklist")
+  assertTrue(black:find("Never recorded", 1, true) ~= nil, "the blacklist blurb is missing")
+  assertFalse(black:find("Always recorded", 1, true) ~= nil, "the whitelist leaked onto Blacklist")
   c.activeSubTab["Filters"] = "whitelist"
   local white = bodyText(renderTab("General", "Filters"))
-  assertTrue(white:find("always recorded", 1, true) ~= nil, "the whitelist blurb is missing")
-  assertFalse(white:find("never recorded", 1, true) ~= nil, "the blacklist leaked onto Whitelist")
+  assertTrue(white:find("Always recorded", 1, true) ~= nil, "the whitelist blurb is missing")
+  assertFalse(white:find("Never recorded", 1, true) ~= nil, "the blacklist leaked onto Whitelist")
   c.activeSubTab = nil
   c.activeTab = GENERAL_TABS[1]
 end)
