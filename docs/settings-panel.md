@@ -136,7 +136,7 @@ emits the canonical set from one declaration, so nine addons cannot drift into n
 | | |
 |---|---|
 | Enable Bank Ledger | General visibility |
-| Master scale | Master alpha |
+| Master scale | Master opacity |
 | Lock frame | Debug console |
 | Minimap button | Test mode |
 | Reset position | Reset all settings |
@@ -162,7 +162,7 @@ frameless** and every frame-only row applies.
   | Row | Path | Honored by |
   |---|---|---|
   | General visibility | `settings.visibility` | `NS.Util.VisibilityAllows`, consulted by `B:Show` and `SW:Show`; `NS.Util.ApplyVisibility` re-evaluates it on each combat edge, from `addon:OnCombatChanged` |
-  | Master alpha | `settings.alpha` | `NS.Util.ApplyMasterFrame` → `frame:SetAlpha`, at construction and on every settings change |
+  | Master opacity | `settings.alpha` | `NS.Util.ApplyMasterFrame` → `frame:SetAlpha`, at construction and on every settings change |
   | Lock frame | `settings.locked` | `NS.Util.ApplyMasterFrame` → `frame:SetMovable(not locked)`; every drag handler calls `StartMoving`, which the client makes a no-op on an unmovable frame |
 
 - **General visibility is a dropdown, not a boolean** — `Always` / `Only in combat` / `Only out of
@@ -332,7 +332,7 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
   exactly as it was.
 - **Both are clamped at the read**, in `NS.Util.RowTintAlpha`. These arrive from SavedVariables,
   where a hand-edited `5` is not an error — it is a table drawn opaque white, which reads as the
-  slider not working. A non-number falls back to the shipped default, not to zero. **Master alpha**
+  slider not working. A non-number falls back to the shipped default, not to zero. **Master opacity**
   is clamped the same way, in `NS.Util.ApplyMasterFrame`, with a floor of `NS.Constants.MASTER_ALPHA_MIN`
   (`0.1`): a stored `0` would be an invisible addon with no way back to the panel that set it.
   That floor is also the **row's declared `min`** — `S.MASTER_DECOR["settings.alpha"]` narrows the

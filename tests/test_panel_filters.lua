@@ -695,11 +695,12 @@ end)
 
 test("Panel: a boolean row is a CheckBox and a range row is a Slider", function()
   -- The two canonical labels moved with their rows: "Enable capture" is "Enable Bank Ledger" and
-  -- "Window scale" is "Master scale", both on Master controls (options-ui-§15).
+  -- "Window scale" is "Master scale", both on Master controls (options-ui-§15). The alpha row reads
+  -- "Master opacity" from OptionsCompose minor 9 (options-ui-§21); its stored leaf is unchanged.
   local master = renderTab("General", "Master controls")
   assertEqual(widgetLabeled(master, "Enable Bank Ledger").type, "CheckBox")
   assertEqual(widgetLabeled(master, "Master scale").type, "Slider")
-  assertEqual(widgetLabeled(master, "Master alpha").type, "Slider")
+  assertEqual(widgetLabeled(master, "Master opacity").type, "Slider")
   assertEqual(widgetLabeled(master, "General visibility").type, "Dropdown")
   assertEqual(widgetLabeled(master, "Test mode").type, "CheckBox")
   local iface = renderTab("General", "Interface")

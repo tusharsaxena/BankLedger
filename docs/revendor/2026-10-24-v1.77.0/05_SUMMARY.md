@@ -50,3 +50,35 @@ against standard **v2.88.0, 2026-10-24**, read from the local `../WowAddonStanda
 
 The procedure writes no standard version into a repo file (its Step 5 rule): the reference points
 at the live standard, so "to v2.88.0" is this refresh's reading date, recorded here, not a stamp.
+
+## Re-vendor after the tag moved (M3)
+
+Item BL-RV2 of the same run. LK-95 moved the local annotated tag v1.77.0 in `../LibKa0s` to carry
+the M3 settings-layout surface, so the payload above was taken again from the moved tag. No new
+bundle: this section is the record.
+
+- **Tag**: old target `78240f7b2d69df27b74fc9280cbfbf7b95dd4f1f` (the commit BL-RV vendored), new
+  target `afae2f75cb7ff61c57156d9a3d8a6b2b9f4c5e10` (`git -C ../LibKa0s rev-parse v1.77.0^{}`).
+  `git -C ../LibKa0s diff --stat 78240f7 afae2f7 -- LibKa0s testkit` names one file.
+- **Minors that moved**: OptionsCompose 8 -> 11 (minor 9: MasterControls `notes`,
+  `resetPositionTooltip`, `lockIsPreview`, and the alpha row relabeled *Master opacity* with its
+  stored leaf unchanged; minor 10: `tooltips` beside `labels` on the group composers; minor 11:
+  `O.ResetAllTooltip(tail)`). Every other file's minor is unchanged; test-kit revision stays 42, so
+  the CLAUDE.md provenance line (v1.77.0, kit 42) and the icon declaration are unchanged.
+- **Copy**: `libs/LibKa0s/` and `tests/_kit/` replaced whole from `git -C ../LibKa0s archive v1.77.0
+  LibKa0s testkit tools`; both content diffs empty before the prune; nothing deleted against the
+  diffs. Prune: `11 icon(s) declared; kept 12 file(s), removed 5828`. README credits unchanged.
+- **Blockers, fixed in this commit**: (1) the kit's surface parity case was red on the copy alone
+  (`ResetAllTooltip is missing`); the Options degradation stub in `settings/OptionsSetup.lua` gains
+  `ResetAllTooltip` answering an empty string. (2) The relabel is delivered on the copy, so
+  `tests/test_panel_filters.lua` asserted a label the composer no longer draws; it now looks up
+  *Master opacity*, and `docs/settings-panel.md` names the row by its new label. The owner-marked
+  smoke records (PANEL-5, PANEL-18, PANEL-19) keep the words they were passed under.
+- **Adopted**: nothing. `notes`, `resetPositionTooltip`, `lockIsPreview`, `tooltips` and
+  `O.ResetAllTooltip` are BL-LY's.
+- **Standards half**: the `filename-§N` range check over every cite in the repo (80 distinct)
+  against the run branch's section files after WS-95 found no drift; retired `§N.M` notation: 0.
+  No edit.
+- **Gate**: `luacheck .` 0 warnings / 0 errors in 105 files; `lua tests/run.lua` 1446 passed,
+  0 failed, 1 skipped (1447); `docs/test-cases.md` regenerated with no change; no authored `.lua`
+  file above 1500 lines (largest `tests/test_browser.lua`, 1442).

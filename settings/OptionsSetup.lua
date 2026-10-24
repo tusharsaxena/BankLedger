@@ -252,6 +252,10 @@ if not lib then
     KeybindRows = function() return nil end,
     KEYBINDS_UNCHANGED = "",
     StrataTooltip = function() return "" end,
+    -- ResetAllTooltip, new when the v1.77.0 tag moved (OptionsCompose minor 11, options-ui-§12):
+    -- the General header's Reset all settings tooltip. Unreached here (no panel renders), so it
+    -- answers an empty string rather than the library's words (anti-pattern #47).
+    ResetAllTooltip = function() return "" end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
