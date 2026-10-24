@@ -93,7 +93,7 @@ leaves its number unused.
   chat. `/bl help` → the command list prints instead. Result: pass (owner-marked 2026-10-10)
 - **SLASH-2. Panel and CLI read one value.** Toggle a checkbox on General, then `/bl list` → the value
   matches. `/bl set settings.trackMoney false`, reopen the panel → *Record gold* is unticked. Set it
-  back. Rewritten 2026-10-24 (item 020). Result:
+  back. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **SLASH-3. Live verbs answer while disabled.** Disable the addon (`/bl disable`). `/bl` alone opens
   the panel. `/bl version`, `/bl list`, `/bl get settings.qualityThreshold`,
   `/bl set settings.qualityThreshold 3`, `/bl reset settings.qualityThreshold` all answer normally.
@@ -120,7 +120,7 @@ leaves its number unused.
 - **SLASH-8. Its own Keybindings section** (SM-BL-KB1). Esc → Options → Keybindings → scroll past
   Blizzard's sections → a section titled **Ka0s Bank Ledger** holds **Toggle ledger window**, with no
   blank spacer row above it, and the AddOns section no longer lists it. A key bound before this
-  change is still bound. Added 2026-10-24 (item 015, `launcher-§6` v2.88.0). Result:
+  change is still bound. Added 2026-10-24 (item 015, `launcher-§6` v2.88.0). Result: pass (owner, 2026-10-24)
 - **SLASH-9. The General > Keybindings tab syncs both ways** (SM-BL-KB2, SM-BL-RV3). `/bl config` →
   General → the strip's last tab is **Keybindings**: the intro line, one row **Toggle ledger window**
   with one **key button** and **Clear** (no second key slot), and *Saved for: all characters*. Click
@@ -131,13 +131,13 @@ leaves its number unused.
   **Character Specific Keybindings**, repeat both directions → the set line reads *Saved for: this
   character only* and the keys follow that set. Right-click the key button → the first key is
   removed (a second moves up); **Clear** → every key is removed. Added 2026-10-24 (item 015,
-  `options-ui-§20`); rewritten 2026-10-24 for the one key button (owner follow-up to 015). Result:
+  `options-ui-§20`); rewritten 2026-10-24 for the one key button (owner follow-up to 015). Result: pass (owner, 2026-10-24)
 - **SLASH-10. The tab's key works, Escape cancels, combat refuses** (SM-BL-KB3). The key bound on the
   tab toggles the ledger window. Click the key button, press Escape → the capture cancels, the button
   shows its old key and the Settings window stays open. Enter combat (a training dummy) with the tab
   open, click the key button or **Clear** → nothing changes and the outcome line reads *Key bindings
   can be changed after combat.*; a capture already listening when combat starts is canceled. Added
-  2026-10-24 (item 015, `options-ui-§20`); rewritten 2026-10-24 for the one key button. Result:
+  2026-10-24 (item 015, `options-ui-§20`); rewritten 2026-10-24 for the one key button. Result: pass (owner, 2026-10-24)
 
 ## PANEL
 
@@ -155,7 +155,7 @@ leaves its number unused.
   Master controls · Capture · Filters · Interface · History · Keybindings, with Master controls
   selected on first open and no section heading repeating a tab's name (`options-ui-§13`). Open Ka0s
   Loot History's panel beside it → the same five shared names in the same order (Filters third),
-  plus its AH Price tab (once its LOO-L08 has landed). Rewritten 2026-10-24 (item 020). Result:
+  plus its AH Price tab (once its LOO-L08 has landed). Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-5. Master controls rows.** Master controls → *Enable Bank Ledger · General visibility*, then
   *Master scale · Master alpha*, then *Lock frame · Debug console*, then *Minimap button · Test mode*,
   then Reset position and Reset all settings side by side. Nothing renamed, reordered or missing.
@@ -164,20 +164,20 @@ leaves its number unused.
   gold* alone on the second, then a **Banks to record** heading over the three bank checkboxes, with
   no box or border around them. Open *Minimum quality* → six rows, each the quality's own name in its
   own color followed by " and above": Poor, Common, Uncommon, Rare, Epic, Legendary. A bare number or
-  an uncolored row is the Item seam failing. Rewritten 2026-10-24 (item 020). Result:
+  an uncolored row is the Item seam failing. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-7. Interface tab.** Interface → a **Windows** heading over *Show session window* alone on
   its line, then *Row stripe opacity · Row hover opacity*, the two sliders side by side on the next
   line, then a **Simulator** heading over *Simulation step delay (seconds)*. Neither heading reads
-  "Interface" (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020). Result:
+  "Interface" (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-8. History tab.** History → *Keep history for*, the storage read-out ("N movements recorded
   over N days." then "Database size: ≈ X", with no "(estimated)"), then **Purge history…** alone.
   Hover it → *Delete every recorded movement on this account. Your settings are left alone. Asks
-  first.* No Reset all button here or on Interface or Capture: the only one is on Master controls. Rewritten 2026-10-24 (item 020). Result:
+  first.* No Reset all button here or on Interface or Capture: the only one is on Master controls. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-9. Filters tab.** Filters → a secondary strip inside the scroll (it scrolls with the content)
   reading Blacklist · Whitelist, opening on Blacklist. The selected list shows its own blurb, then its
   own add box and id list, then its own **Clear all…** on a line of its own below the list, and never
   both lists at once. Click Whitelist, go to Capture, come back → still on Whitelist. `/reload` → back
-  on Blacklist (none of it is saved). Rewritten 2026-10-24 (item 020). Result:
+  on Blacklist (none of it is saved). Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-10. A second visit redraws.** Click each tab in turn, then back → the store grid, the storage
   read-out, the reset pair and both id lists are still there (they are drawn from the tab's
   `afterGroup` hook; anything drawn by the page body would survive one render). Result: pass (owner-marked 2026-10-10)
@@ -280,7 +280,7 @@ leaves its number unused.
   - `/bl list` → the same rows in the same order with the same values as the output you kept. Change
     one value on each tab, `/reload`, reopen → each kept its value. Put them back.
   **Fail:** a setting missing, renamed in `/bl list`, holding a different value or default, a row on
-  another tab than above, or a value lost on `/reload`. Added 2026-10-24 (item 020). Result:
+  another tab than above, or a value lost on `/reload`. Added 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 
 ## PROFILE
 
@@ -305,7 +305,7 @@ leaves its number unused.
   *Account-wide: shared by every profile.* Switch to `Alt`
   → still Always. Switch back, copy `Alt` into `Default`, press Reset Profile, then `/bl resetall` ▸
   Yes → after each the dropdown still reads Always and the old row is still in History, and with
-  `/bl debug on` none of those writes a `[Prune]` line. Keep `Alt` for PROFILE-8 to 13. Rewritten 2026-10-24 (item 020). Result:
+  `/bl debug on` none of those writes a `[Prune]` line. Keep `Alt` for PROFILE-8 to 13. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PROFILE-8. `/bl profile` lists.** With `Default` and `Alt` present, `/bl profile` → a `Profiles`
   header, one row per profile sorted without regard to case with the current one suffixed
   `(current)`, then `/bl profile <name> switches profile`. No line ends in a colon. Result: pass (owner-marked 2026-10-10)
@@ -652,24 +652,24 @@ leaves its number unused.
   front; click the ledger window → it is in front again. With `/bl config` open, drag the ledger
   window over the Settings panel and click each in turn → the one clicked is on top. Every dropdown
   of the filter bar still opens over the window. **Fail:** a click that leaves the other window on
-  top. Added 2026-10-24 (item 030, BAN-Z01). Result:
+  top. Added 2026-10-24 (item 030, BAN-Z01). Result: pass (owner, 2026-10-24)
 - **LEDG-60. The row menu lets the dismissing click through (SM-BL-ZS).** Right-click a History row
   → the menu opens over the window. Left-click an empty part of the window → the menu closes. Open
   it again and right-click a different row → the menu re-opens at that row in the same click. Open
   it again, then click the title bar's close button → the menu closes and the window closes in that
   one click. Pick an entry (Link to chat) → it runs. **Fail:** a click that only closes the menu, a
   menu that closes under its own entry, or any click that does nothing. Added 2026-10-24 (item 030,
-  BAN-Z03). Result:
+  BAN-Z03). Result: pass (owner, 2026-10-24)
 - **LEDG-61. The row menu closes with the window (SM-BL-ZS).** Right-click a History row, then press
   Escape → the window and the menu both go. Repeat with the Show window key binding and with
   `/bl hide` → the same. Click anywhere afterwards → the click works (nothing invisible ate it).
   **Fail:** a menu floating over nothing, or a swallowed click. Added 2026-10-24 (item 030,
-  BAN-Z09). Result:
+  BAN-Z09). Result: pass (owner, 2026-10-24)
 - **LEDG-62. A click raises the export dialog (SM-BL-ZS).** Open the export dialog from the filter
   bar, then `/bl debug` and `/bl sim` so the console and the step panel overlap it. Click the export
   dialog → it comes to the front; click the console → it does. Its Data Set menu still opens over it,
   and Copy CSV still opens the copy window above it. **Fail:** a click that leaves another window on
-  top, or a copy window under the dialog. Added 2026-10-24 (item 030, BAN-Z05). Result:
+  top, or a copy window under the dialog. Added 2026-10-24 (item 030, BAN-Z05). Result: pass (owner, 2026-10-24)
 
 ## INS
 
@@ -726,7 +726,7 @@ leaves its number unused.
 
 - **FILT-1. Blacklist from a row.** Right-click a ledger row ▸ Blacklist item → `[BL] blacklisted
   <name> — manage it in Settings > General > Filters > Blacklist.`, naming the tab and sub-tab.
-  Whitelisting names General > Filters > Whitelist. Rewritten 2026-10-24 (item 020). Result:
+  Whitelisting names General > Filters > Whitelist. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **FILT-2. Blacklisting is point in time.** Move that item to your bank again → no new row, and the
   row you clicked is still there. Result: pass (owner-marked 2026-10-10)
 - **FILT-3. A list entry.** Filters ▸ Blacklist → the item with an X on the left, its icon, its name,
@@ -799,7 +799,7 @@ leaves its number unused.
   both kept. Result: pass (owner-marked 2026-10-10)
 - **SESS-11. The Show session window setting.** Untick *Show session window* on Interface, open a bank
   → no window, but movements still record in History. Tick it with a bank open → it appears on the
-  next movement. Untick it while shown → it closes at once. Rewritten 2026-10-24 (item 020). Result:
+  next movement. Untick it while shown → it closes at once. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **SESS-12. The preview.** Away from any bank, `/bl session` → it opens on a sample visit; again →
   dismissed. During a real session, `/bl session` → refuses and says so. Result: pass (owner-marked 2026-10-10)
 - **SESS-13. The session window grip is the library's.** Open a bank → resize the session window
@@ -816,7 +816,7 @@ leaves its number unused.
   ledger window over the session window. Click the session window → it comes to the front, still
   above the bank frame; click the ledger window → it is in front again. **Fail:** the session window
   stuck under the ledger window or under the bank frame. Added 2026-10-24 (item 030, BAN-Z02).
-  Result:
+  Result: pass (owner, 2026-10-24)
 
 ## DIAG
 
@@ -999,7 +999,7 @@ failure.
   does the same. `/bl test`
   → `Stop the simulation before turning on test mode.` and the sample does not load. `/bl sim stop`,
   then `/bl purge` → the usual confirm (cancel it). **Fail:** a confirm opening during the
-  simulation, or test mode starting. Rewritten 2026-10-24 (item 020). Result:
+  simulation, or test mode starting. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **SIM-9. The panel's position is session-only (SM-BL-26).** Start a simulation, drag the panel
   away from the ledger window, then `/bl sim panel` twice (hide, show) → it comes back where you
   dragged it. `/reload`, start again → it docks beside the ledger window again. Nothing about it
@@ -1021,7 +1021,7 @@ failure.
   runs → the next pause is about four seconds. `/bl set settings.sim.stepDelay 0.75` → refused, the
   value unchanged; `/bl get settings.sim.stepDelay` → four seconds. Put it back with
   `/bl reset settings.sim.stepDelay` (→ 1.0 s). **Fail:** a 1.5 s pace at the default, a change that
-  waits for the next session, or 0.75 stored. Rewritten 2026-10-24 (item 020). Result:
+  waits for the next session, or 0.75 stored. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **SIM-12. A started simulation plays on its own; the run-all button is gone (SM-BL-01, SM-BL-02).**
   `/bl sim start bank` → the ledger window and the step panel open, the panel's footer shows
   **Pause**, **Restart** and **Stop** (no run-all button), and the five steps play about one second
@@ -1030,7 +1030,7 @@ failure.
   plays. Press **Resume** → the rest play on their own. Hover Settings > General > Interface >
   *Simulation step delay (seconds)* → its tooltip no longer mentions a run-all button. `/bl sim stop`. **Fail:** a
   run-all button, a start that waits for a press, a click that plays two steps or leaves the run
-  playing, or a run-all button named in the tooltip. Rewritten 2026-10-24 (item 020). Result:
+  playing, or a run-all button named in the tooltip. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **SIM-13. No stall on any step (SM-BL-14, BL-11).** In a freshly started client (log in, do not
   open a bank), `/bl sim start bank` → every step, including the flask (bonus-item) deposit and the
   withdrawal after it, follows the previous one about 1 s later with no multi-second stall, and
@@ -1113,7 +1113,7 @@ degrade rather than error.
   restore. `/bl show` with enough History rows to reach the bottom of the window → hover the
   bottom-right grip → its highlight shows, not a row's hover, and dragging it resizes the window.
   **Fail:** the row under the corner highlights or takes the drag. Added 2026-10-24 (item 030,
-  BAN-Z07). Result:
+  BAN-Z07). Result: pass (owner, 2026-10-24)
 
 ## Non-English client
 
@@ -1177,11 +1177,6 @@ On 2026-10-10 the owner marked every check in this file as passed, recorded on i
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
 
-- LEDG-59, LEDG-60, LEDG-61, LEDG-62, SESS-15 and DEGRADED-14 (item 030, frame layering, added
-  2026-10-24).
-- PANEL-32 (added) and SLASH-2, PANEL-4, PANEL-6, PANEL-7, PANEL-8, PANEL-9, PROFILE-7, FILT-1,
-  SESS-11, SIM-8, SIM-11 and SIM-12 (rewritten for the new labels and places; item 020, settings layout,
-  2026-10-24).
-- SLASH-9 (SM-BL-RV3) and SLASH-10 (rewritten for the one key button and Clear per row; the owner's
-  follow-up to item 015, 2026-10-24). SLASH-8 (item 015, added 2026-10-24) is unchanged and
-  still pending.
+On 2026-10-24 the owner reported that every check of the keybindings, settings layout and frame
+layering run passed (items 015, 020 and 030, and the one key button follow-up to 015), recorded on
+each check's `Result:` line as `pass (owner, 2026-10-24)`. No sign-off is owed.
