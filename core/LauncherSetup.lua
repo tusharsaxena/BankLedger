@@ -160,7 +160,7 @@ rawset(_G, "BINDING_NAME_CLICK " .. TOGGLE_BUTTON .. ":LeftButton", NS.L["Toggle
 
 -- THE ONE BINDINGS TABLE (launcher-§6): every Bindings.xml command, in that file's order, Show window
 -- first. settings/Panel.lua hands it to O.KeybindingsTab for the General page's Keybindings tab
--- (options-ui-§20), whose rows follow it, and tests/test_launcher.lua checks Bindings.xml against it.
+-- (options-ui-§20), whose rows follow it, and tests/test_keybinds.lua checks Bindings.xml against it.
 NS.BINDINGS = {
   { command = "CLICK " .. TOGGLE_BUTTON .. ":LeftButton",
     tooltip = NS.L["Shows or hides the ledger window."] },
