@@ -149,6 +149,41 @@ C.STORE_CONTAINERS = {
   WARBAND_BANK = C.WARBAND_BANK_IDS,
 }
 
+-- ── Frame layering (frame-layering-§5) ──────────────────────────────────────────
+-- The addon's one layers table: every SetFrameStrata and SetFrameLevel in core/, modules/ and
+-- settings/ reads it, so no strata string and no bare level number sits at a call site. The keys
+-- are the standard's tier keys (frame-layering-§1). The whole stack, bottom to top:
+--
+--   MEDIUM             LibDBIcon's minimap button (fixed, not ours). The hidden key-binding button
+--                      sets no strata (T0, exempt).
+--   HIGH        WINDOW the ledger window and the session window: on-demand browsers, toplevel, so
+--                      the last one clicked is on top. Above the bags and the bank frames, below
+--                      every dialog, and in the same strata as Blizzard's Settings panel (also
+--                      toplevel), so a click raises either over the other.
+--   DIALOG      MODAL  the export dialog, toplevel; the library's debug console and sim panel
+--                      (toplevel from LibKa0s v1.77.0); Blizzard's StaticPopups.
+--   FULLSCREEN         the library's CSV copy window, one strata above the export dialog that opens
+--                      it (library-chosen, Widgets.lua).
+--   FULLSCREEN_DIALOG
+--               POPUP  the ledger row context menu (ours); the library's dropdown menu, search
+--                      autocomplete and IdList suggestion list.
+--   TOOLTIP            GameTooltip.
+--
+-- Levels inside a window are relative to the window (base W): chrome and panes W+1, table rows
+-- W+3/W+4, the resize grip W+10 (LibKa0s-Core's GRIP_LEVEL, which the degraded grip in
+-- core/CoreSetup.lua reproduces through LEVEL.GRIP). Content stays at or below W+8 so the grip
+-- clears it. The library's combat cover over a settings page computes its own level.
+C.LAYERS = {
+  STRATA = {
+    WINDOW = "HIGH",
+    MODAL  = "DIALOG",
+    POPUP  = "FULLSCREEN_DIALOG",
+  },
+  LEVEL = {
+    GRIP = 10,
+  },
+}
+
 -- ── Settings option lists ───────────────────────────────────────────────────────
 
 -- The LOWEST master alpha the addon will draw at, and therefore the lowest the slider offers.

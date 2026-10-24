@@ -19,13 +19,13 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 58 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it |
+| LEDG-1 – 62 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal |
 | INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
-| SESS-1 – 14 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip |
+| SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| DEGRADED-1 – 13 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker |
+| DEGRADED-1 – 14 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -612,6 +612,29 @@ leaves its number unused.
   visit; nothing here is saved / Ended by: /bl sim stop, combat, a real bank window). `/bl sim stop`
   → the strip goes and both panes move back up under the filter bar. **Fail:** an amber strip, a
   badge, or panes left low. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
+- **LEDG-59. A click raises the ledger window (SM-BL-ZS).** Open a bank so the session window shows,
+  then `/bl show` and drag the ledger window over it. Click the session window → it comes to the
+  front; click the ledger window → it is in front again. With `/bl config` open, drag the ledger
+  window over the Settings panel and click each in turn → the one clicked is on top. Every dropdown
+  of the filter bar still opens over the window. **Fail:** a click that leaves the other window on
+  top. Added 2026-10-24 (item 030, BAN-Z01). Result:
+- **LEDG-60. The row menu lets the dismissing click through (SM-BL-ZS).** Right-click a History row
+  → the menu opens over the window. Left-click an empty part of the window → the menu closes. Open
+  it again and right-click a different row → the menu re-opens at that row in the same click. Open
+  it again, then click the title bar's close button → the menu closes and the window closes in that
+  one click. Pick an entry (Link to chat) → it runs. **Fail:** a click that only closes the menu, a
+  menu that closes under its own entry, or any click that does nothing. Added 2026-10-24 (item 030,
+  BAN-Z03). Result:
+- **LEDG-61. The row menu closes with the window (SM-BL-ZS).** Right-click a History row, then press
+  Escape → the window and the menu both go. Repeat with the Show window key binding and with
+  `/bl hide` → the same. Click anywhere afterwards → the click works (nothing invisible ate it).
+  **Fail:** a menu floating over nothing, or a swallowed click. Added 2026-10-24 (item 030,
+  BAN-Z09). Result:
+- **LEDG-62. A click raises the export dialog (SM-BL-ZS).** Open the export dialog from the filter
+  bar, then `/bl debug` and `/bl sim` so the console and the step panel overlap it. Click the export
+  dialog → it comes to the front; click the console → it does. Its Data Set menu still opens over it,
+  and Copy CSV still opens the copy window above it. **Fail:** a click that leaves another window on
+  top, or a copy window under the dialog. Added 2026-10-24 (item 030, BAN-Z05). Result:
 
 ## INS
 
@@ -754,6 +777,11 @@ leaves its number unused.
   window's, under its title bar, and its rows sit under the strip. After the stop the strip is gone.
   `/bl test` never puts a strip on this window. **Fail:** an amber strip, rows under the strip, or a
   strip in test mode. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
+- **SESS-15. A click raises the session window (SM-BL-ZS).** Open a bank, `/bl show`, and drag the
+  ledger window over the session window. Click the session window → it comes to the front, still
+  above the bank frame; click the ledger window → it is in front again. **Fail:** the session window
+  stuck under the ledger window or under the bank frame. Added 2026-10-24 (item 030, BAN-Z02).
+  Result:
 
 ## DIAG
 
@@ -1045,6 +1073,11 @@ degrade rather than error.
   `/bl show`, then `/bl test` → no strip under the filter bar, the red TEST MODE badge beside the
   title, and the panes where they were. `/bl test` again → the badge goes. **Fail:** no marker at
   all in test mode, or panes that moved. Added 2026-10-23 (BL-10). Result: pass (owner, 2026-10-23)
+- **DEGRADED-14. The fallback grip sits over the rows (SM-BL-ZS).** Run it before DEGRADED-11's
+  restore. `/bl show` with enough History rows to reach the bottom of the window → hover the
+  bottom-right grip → its highlight shows, not a row's hover, and dragging it resizes the window.
+  **Fail:** the row under the corner highlights or takes the drag. Added 2026-10-24 (item 030,
+  BAN-Z07). Result:
 
 ## Non-English client
 
@@ -1108,4 +1141,5 @@ On 2026-10-10 the owner marked every check in this file as passed, recorded on i
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
 
-None.
+- LEDG-59, LEDG-60, LEDG-61, LEDG-62, SESS-15 and DEGRADED-14 (item 030, frame layering, added
+  2026-10-24).

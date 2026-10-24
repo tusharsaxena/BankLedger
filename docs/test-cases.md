@@ -1556,6 +1556,20 @@ Total.
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
 
+### test_layers.lua (11)
+
+- Layers: NS.Constants.LAYERS names the addon's tiers with the standard's keys
+- Layers: the ledger window is HIGH, toplevel and clamped
+- Layers: the session window is HIGH, toplevel and clamped
+- Layers: the export dialog is DIALOG, toplevel and clamped
+- Layers: the row menu is FULLSCREEN_DIALOG and builds no full-screen click catcher
+- Layers: the row menu listens for GLOBAL_MOUSE_DOWN only while it shows
+- Layers: a press outside the row menu closes it; a press on it does not
+- Layers: hiding the ledger window closes the row menu (BAN-Z09)
+- Layers: LedgerTable:HideRowMenu is a no-op before the menu exists
+- Layers: the degraded resize grip sits at window + LEVEL.GRIP, as the library's
+- Layers: no strata string and no bare level number at any call site
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1675,10 +1689,11 @@ Total.
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 9 |
 | test_sim_panel.lua | 18 |
+| test_layers.lua | 11 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1435** |
+| **Total** | **1446** |

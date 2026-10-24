@@ -458,6 +458,26 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
   `table.concat` rather than `..` — the operator propagates secretness without raising, so a
   `..`-based probe would let a combat "secret" through to the real concat and crash.
 
+## Frame layering
+
+The addon follows `frame-layering` (standard v2.88.0). Its strata tiers and level offsets are
+declared once, in `NS.Constants.LAYERS` (`core/Constants.lua`), whose header comment states the
+whole stack; every `SetFrameStrata` and `SetFrameLevel` reads that table, and
+`tests/test_layers.lua` pins each frame class through the kit's layer recorder. The tiers, in
+short:
+
+- **WINDOW (HIGH, toplevel):** the ledger window and the session window. A click raises either over
+  the other and over Blizzard's Settings panel, their strata peer.
+- **MODAL (DIALOG, toplevel):** the export dialog, beside the library's debug console and sim panel
+  (toplevel from LibKa0s v1.77.0) and Blizzard's StaticPopups.
+- **FULLSCREEN:** the library's CSV copy window, one strata above the export dialog that opens it.
+- **POPUP (FULLSCREEN_DIALOG):** the ledger row context menu, and the library's dropdown menu,
+  autocomplete and IdList suggestions. The row menu has no click catcher: a `GLOBAL_MOUSE_DOWN`
+  listener, held only while it shows, closes it on a press outside it, and it closes with the
+  ledger window.
+- **Levels** are relative to the window; the resize grip sits at window + `LEVEL.GRIP` (10) on both
+  the library and the degraded path.
+
 ## Known Limitations
 
 - **Currency movements are not recorded, and are not planned.**
