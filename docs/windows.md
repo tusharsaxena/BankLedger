@@ -28,7 +28,7 @@ frame this addon builds — the ledger window, the session window and the export
 `NS.Util.ApplyMasterFrame(frame)` at construction, after its own `SetMovable(true)`, and
 `NS.Util.ApplyMasterChrome()` re-applies all three across the set whenever one changes. `Lock frame`
 *is* `SetMovable(false)`, which the client makes `StartMoving` a no-op against, so there is no second
-guard in any drag handler to keep in step. Master alpha is clamped up to `NS.Constants.MASTER_ALPHA_MIN`
+guard in any drag handler to keep in step. Master opacity is clamped up to `NS.Constants.MASTER_ALPHA_MIN`
 on the way in — a stored `0` would be an invisible window with no way back to the panel that set it.
 See [settings-panel.md](settings-panel.md) → *Master controls*.
 
