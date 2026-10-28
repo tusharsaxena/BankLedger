@@ -256,6 +256,17 @@ if not lib then
     -- the General header's Reset all settings tooltip. Unreached here (no panel renders), so it
     -- answers an empty string rather than the library's words (anti-pattern #47).
     ResetAllTooltip = function() return "" end,
+    -- The Skin tab (LibKa0s v1.78.0, OptionsAppearance minor 1; skinning-§3) and the first-run
+    -- skin picker (LibKa0s v1.79.0, OptionsSkinPicker minor 1). Every Options stub owes all four,
+    -- adopted or not. Unreached on this arm, as the Keybindings pair above is: no panel renders,
+    -- so AppearanceTab answers nil (no tab entry) and AppearanceRows nil (the live one's answer
+    -- when it cannot draw). Without the library there is no skin to pick: SkinPicker draws nothing
+    -- and answers nil (never the live one's second value, "queued": there is no queue), and
+    -- HideSkinPicker is a no-op.
+    AppearanceTab = function() return nil end,
+    AppearanceRows = function() return nil end,
+    SkinPicker = function() return nil end,
+    HideSkinPicker = function() end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
