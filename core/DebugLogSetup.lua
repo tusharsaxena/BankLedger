@@ -13,10 +13,12 @@ local addonName, NS = ...
 --
 -- WHERE THIS FILE SITS: after core/Constants.lua (FONT_MONO is read at :New time, and is itself
 -- resolved from the core/MediaSetup.lua seam that loads before Constants) and after
--- core/CoreSetup.lua (NS.LIBKA0S_MISSING). Everything else it touches — NS.Browser's skin and close
--- button, NS.InitSummary, NS.State, NS.Panel — is reached through a CLOSURE and therefore resolved
--- at call time, which is what lets the console move out of modules/ without inverting the dependency
--- it used to have on modules/Browser.lua. tests/test_libka0s.lua pins both orderings.
+-- core/CoreSetup.lua (NS.LIBKA0S_MISSING). Everything else it touches — NS.InitSummary, NS.State,
+-- NS.Panel — is reached through a CLOSURE and therefore resolved at call time, which is what lets
+-- the console move out of modules/ without inverting the dependency it used to have on
+-- modules/Browser.lua. The skin owner it names (`addonName`) is asked about by the library when it
+-- builds the window, long after core/SkinSetup.lua registered it. tests/test_libka0s.lua pins both
+-- orderings.
 
 local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
 
@@ -126,29 +128,22 @@ local descriptor = {
     if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
   end,
 
-  -- ── the chrome ─────────────────────────────────────────────────────────────────────────────
+  -- ── no chrome hooks: the skin owner paints the console (DebugLog minor 22) ─────────────────
   --
-  -- `applySkin` ONLY, and the reason is no longer that Core's chrome is different. As of Core minor
-  -- 3, Core.SKIN IS this addon's edge — the flat 1px black border, the 1px gray inner highlight, the
-  -- gold title and the gray divider — because standalone-windows adopted it normatively. So this
-  -- hook no longer rescues the console from a default that does not match; it keeps the console
-  -- tracking modules/Browser.lua's own re-skin seam, which is one of the two purposes the standard
-  -- still sanctions the hook for. LIBKA0S-05's (issue #5) decline is superseded — see LIBKA0S-27 and -28.
-  --
-  -- Resolved through NS.Browser at CALL time. It fires during the console's lazy first build, long
-  -- after every file has loaded, which is the only reason a core/ file may reach a modules/ member —
-  -- hoisting the lookup to a load-time local would reintroduce the ordering hazard and silently
-  -- leave the console unskinned.
-  applySkin = function(frame)
-    if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame) end
-  end,
+  -- NO `applySkin` and NO `skin` (the skinning rollout's BL-04, Ka0s Loot History's LH-05). Either
+  -- one would make the console the host's to draw, and the library would never paint it for its
+  -- owner. The owner is `addonName` above, which core/SkinSetup.lua registered with
+  -- LibKa0s-Skin-1.0: the library hands the window to Core.ApplySkin with that owner (the facade's
+  -- Shell), paints the scroll bar and the status rule, colors the log lines from the skin's palette
+  -- and refills it on every switch. On Ka0s Default it draws the edge NS.Browser:ApplySkin drew
+  -- before (tests/test_skin_tools.lua pins both hooks absent).
 
   -- NO `makeCloseButton`. The console and the copy window are the LIBRARY's windows, so they wear
   -- the library's close glyph — Core's thin 18x18 x — and this addon's own 24x24 class-colored one
   -- stays on the windows it belongs to (`modules/Browser.lua`). Passing it here is what shipped two
   -- adopters' diagnostic windows looking unlike the other three's, and standalone-windows now
   -- makes the split explicit: the window EDGE is shared across every Ka0s window, the CLOSE CONTROL
-  -- on a library-drawn window is the library's. `applySkin` above is the opposite case and stays.
+  -- on a library-drawn window is the library's.
 
   -- No `L`. This addon translates none of the console's strings, and handing a descriptor an
   -- addon-wide locale table is the one mistake that renders every label as its own key at once.

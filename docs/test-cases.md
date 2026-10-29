@@ -1612,6 +1612,38 @@ Total.
 - every allow-list entry carries its reason
 - the gate is falsifiable: a planted literal of each shape is reported
 
+### test_skin_picker.lua (17)
+
+- Skin picker: pickerSeen defaults to false, a skip-render row on the Skin tab
+- Skin picker: the spec names this owner, its seams, the Skin tab and the eye
+- Skin picker: an unseen profile shows it; a seen one does not
+- Skin picker: login arms it once, two seconds in, on a timer the stand-down cancels
+- Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once
+- Skin picker: a held start is dropped by HideSkinPicker
+- Skin picker: never while the addon is switched off
+- Skin picker: a new profile and a reset profile show it again
+- Skin picker: the player's close marks it seen; this addon's own hide does not
+- Skin picker: a profile that has seen it takes a shown picker down, unmarked
+- Skin picker: the title names this addon
+- Skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
+- Skin picker: the close control puts the stored skin back, saves nothing, and marks it seen
+- Skin picker: the eye opens the ledger window in test mode
+- Skin picker: the eye in combat starts nothing and says why
+- Skin picker: the stand-down with a preview pending puts the old skin back, unsaved, unseen
+- Skin picker: degraded, the seam answers nothing and raises nothing
+
+### test_skin_tools.lua (9)
+
+- skin tools: under a non-default skin the panel's own widgets paint, past the proxy
+- skin tools: a release hands every painted widget back stock, the pool clean
+- skin tools: while the Scope ignores the settings panel nothing is painted
+- skin tools: the Profiles page paints the tree AceConfigDialog drew
+- skin tools: degraded, PaintAce and PaintAceTree paint nothing and a release still runs
+- skin tools: the debug console's descriptor names the owner and passes no applySkin
+- skin tools: the live debug console and its copy window are painted for this owner
+- skin tools: the export copy window is painted for this owner
+- skin tools: every remaining factory seam passes the owner
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1735,10 +1767,12 @@ Total.
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 7 |
 | test_skin_literals.lua | 3 |
+| test_skin_picker.lua | 17 |
+| test_skin_tools.lua | 9 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1479** |
+| **Total** | **1505** |

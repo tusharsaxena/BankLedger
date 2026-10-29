@@ -44,6 +44,19 @@ local LOGO_SIZE = 300
 
 local registered
 
+-- Every AceGUI widget this file acquires itself, painted for this addon's skin (skinning-§3; Ka0s
+-- Loot History's acquire). O.AceGUI is normally the Options instance's owner proxy, which paints on
+-- Create already; the explicit NS.SkinPaintAce repaints in place for the same owner, so the page
+-- does not depend on which handle it was given. Nothing is painted while the Scope's Ignore
+-- settings panel is on (a new profile's default), and the release puts the widget back in
+-- AceGUI's shared pool stock (the library chains its restore onto the widget's OnRelease). No
+-- widget here sets a host OnRelease, so none needs NS.SkinOnRelease.
+local function acquire(wtype)
+  local w = O.AceGUI:Create(wtype)
+  NS.SkinPaintAce(w)
+  return w
+end
+
 -- One defaults action per page, reachable from BOTH routes — the header Defaults button and
 -- Blizzard's own Settings-window footer control — and parked rather than wired, because the button
 -- does not exist yet: the library builds it on the panel's first OnShow.
@@ -75,11 +88,11 @@ local bulkDepth = 0
 -- flow rows and no builder draws a heading (options-ui-§7).
 local function makeMultiCheck(ctx, row, scroll)
   local invert = row.invert
-  local group = O.AceGUI:Create("SimpleGroup")
+  local group = acquire("SimpleGroup")
   group:SetFullWidth(true); group:SetLayout("Flow")
   local boxes = {}
   for _, opt in ipairs(row.values) do
-    local cb = O.AceGUI:Create("CheckBox")
+    local cb = acquire("CheckBox")
     cb:SetLabel(opt.text); cb:SetWidth(170)
     cb:SetCallback("OnValueChanged", function(_, _, v)
       local cur = NS.Schema:Get(row.path) or {}
@@ -254,9 +267,9 @@ end
 -- line of its own: the destructive act ends its tab, as Purge history… and Reset all settings do.
 local function makeClearAll(ctx, listKey, list)
   local scroll = O.EnsureScroll(ctx)
-  local clearRow = O.AceGUI:Create("SimpleGroup")
+  local clearRow = acquire("SimpleGroup")
   clearRow:SetLayout("Flow"); clearRow:SetFullWidth(true)
-  local clearBtn = O.AceGUI:Create("Button")
+  local clearBtn = acquire("Button")
   clearBtn:SetText("Clear all\226\128\166"); clearBtn:SetRelativeWidth(0.30)
   clearBtn:SetCallback("OnClick", function()
     if type(StaticPopup_Show) == "function" then
@@ -370,7 +383,7 @@ local function makeFilterSection(ctx, listKey, desc)
   local scroll = O.EnsureScroll(ctx)
   local list = FILTER_LISTS[listKey]
 
-  local descLabel = O.AceGUI:Create("Label")
+  local descLabel = acquire("Label")
   descLabel:SetFullWidth(true); descLabel:SetText(desc)
   scroll:AddChild(descLabel)
   O.AddSpacer(scroll, 6)
@@ -459,7 +472,7 @@ local function buildFiltersTab(ctx)
   -- SimpleGroup added as an ordinary scroll child, sized to whatever height the strip reports.
   -- ClearScroll drains the library's __subTabKids ledger BEFORE it releases this group, which is
   -- what stops the buttons riding a pooled frame into somebody else's page.
-  local host = O.AceGUI:Create("SimpleGroup")
+  local host = acquire("SimpleGroup")
   host:SetLayout(nil); host:SetFullWidth(true)
   scroll:AddChild(host)
 

@@ -260,8 +260,8 @@ local function centerOnBrowser(f)
 end
 
 -- The copy window belongs to LibKa0s-Widgets-1.0. What stays here is the DESCRIPTOR: the frame's
--- global name, the face, the title, the skin and the anchor -- the things a vendored library cannot
--- know about this addon. The build is lazy inside the library, so a session that never exports
+-- global name, the face, the title, the skin owner and the anchor -- the things a vendored library
+-- cannot know about this addon. The build is lazy inside the library, so a session that never exports
 -- creates nothing.
 --
 -- `width` (640), `height` (420), `editWidth` (590) and the 0.06/0.06/0.08/0.95 backdrop are OMITTED
@@ -283,7 +283,10 @@ local function ensureCopyWindow()
     name      = "BankLedgerExportCopyWindow",
     title     = "Export \226\128\148 Ctrl+C, then Esc",
     font      = NS.Constants.FONT_MONO,
-    applySkin = function(f) if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(f) end end,
+    -- NO `applySkin` (the skinning rollout's BL-04). `addonName` is the window's skin OWNER
+    -- (Widgets minor 16), which the library honors only when the host passes no applySkin of its
+    -- own: then Core.ApplySkin paints the window for "BankLedger", the dense fill and the scroll
+    -- bar included, and a skin switch repaints it. On Ka0s Default it is the edge B:ApplySkin drew.
     -- Consulted on EVERY show, so the popup lands over the ledger window wherever the user has
     -- since dragged it, and over the screen when that window is not up.
     anchorTo  = function()

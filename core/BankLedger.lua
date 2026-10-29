@@ -181,7 +181,7 @@ local TIMER_MODULES = { "Ledger", "Browser", "Insights", "Backfill" }
 --    object's own, so it is dropped here: the next PEW after a stand-up re-arms it.
 local function cancelTimers(ad)
   if ad and ad.CancelAllTimers then ad:CancelAllTimers() end
-  if NS.State then NS.State.cleanupPending = nil end
+  if NS.State then NS.State.cleanupPending, NS.State.pickerPending = nil, nil end
   for _, name in ipairs(TIMER_MODULES) do
     local module = NS[name]
     if module and module.CancelPending then module:CancelPending() end
@@ -233,6 +233,10 @@ end
 --    transition, a target swap or a settings change, and the addon is then visibly running while
 --    it claims to be off.
 local function hideWindows()
+  -- The first-run skin picker is a frame this addon shows; it goes down unmarked (its pending
+  -- preview put back, a held combat start dropped), so it comes back on the next stand-up's login
+  -- or profile event while the profile has not seen it.
+  if NS.HideSkinPicker then NS.HideSkinPicker() end
   if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
   if NS.SessionWindow and NS.SessionWindow.Hide then NS.SessionWindow:Hide() end
 end
@@ -325,11 +329,23 @@ function addon:OnCombatChanged(event)
   traceCombat(entering, hid, shown, endedTest)
 end
 
--- Retention cleanup runs once per session, deferred off the login/zone spike.
+-- Retention cleanup and the first-run skin picker's check run once per session, deferred off the
+-- login/zone spike.
 function addon:OnEnterWorld()
   local st = NS.State
-  if st.cleanupDone or st.cleanupPending then return end
   if not self.ScheduleTimer then return end
+  -- The first-run skin picker (core/SkinSetup.lua), once per session, on a profile that has not
+  -- closed it: two seconds in, off the login spike, on an AceTimer handle the stand-down cancels
+  -- (and drops, so the next PLAYER_ENTERING_WORLD after a stand-up re-arms it). The stored skin was
+  -- applied in OnInitialize; in combat it holds for PLAYER_REGEN_ENABLED.
+  if not (st.pickerDone or st.pickerPending) then
+    st.pickerPending = self:ScheduleTimer(function()
+      st.pickerPending = nil
+      st.pickerDone = true
+      if NS.MaybeShowSkinPicker then NS.MaybeShowSkinPicker() end
+    end, 2)
+  end
+  if st.cleanupDone or st.cleanupPending then return end
   -- An AceTimer handle, so NS.StandDown's CancelAllTimers cancels it (slash-commands-§7: every
   -- timer is canceled, not left armed to find a flag). StandDown also drops the handle, and the
   -- latch is set only when the prune actually runs, so a stand-down inside the five seconds

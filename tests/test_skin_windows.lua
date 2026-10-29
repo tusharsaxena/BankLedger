@@ -109,7 +109,7 @@ end))
 test("skin windows: a switch re-resolves the table's cached colors and its tinted marks", clean(function()
   -- The cache is what PaintCell reads 200 times a scroll tick, so a switch that left it alone would
   -- paint every row in the old skin; the marks are strings built once, so they would keep the old
-  -- tint beside a relabelled header.
+  -- tint beside a relabeled header.
   local before = LT._rgb.header[1]
   switch()
   assertEqual(rgb(LT._rgb.gold), tok("bl.gold"), "bl.gold follows the switched skin")
