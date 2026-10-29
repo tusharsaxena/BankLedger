@@ -263,3 +263,17 @@ test("skin windows: a switch back to Ka0s Default puts the close control's art b
     reset()
     assertEqual(painted(), "0.8500,0.8500,0.8500", "Ka0s Default's rest tint, with no hover-out")
   end))
+
+test("skin windows: the close control's fallback glyph takes the skin's font, not only a typed face", clean(function()
+  -- red under: the glyph (drawn when the Media seam has no close icon) set in STANDARD_TEXT_FONT
+  -- alone, a typed face no skin can reach.
+  local realIcon = NS.Icon
+  NS.Icon = function() return nil end
+  local ok, close = pcall(NS.Browser.MakeCloseButton, NS.Browser, mocks.UIParent, function() end)
+  NS.Icon = realIcon
+  assertTrue(ok, tostring(close))
+  assertTrue(close.glyph ~= nil, "no fallback glyph was drawn")
+  local rec = Skin.painted and Skin.painted[close.glyph]
+  assertTrue(rec ~= nil and rec.owner == OWNER and rec.calls and rec.calls.Font ~= nil,
+    "the fallback glyph is not on the skin's font for this owner")
+end))

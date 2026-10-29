@@ -151,6 +151,9 @@ function B:MakeCloseButton(parent, onClick)
   else
     local x = close:CreateFontString(nil, "OVERLAY")
     x:SetFont(STANDARD_TEXT_FONT, 24, "")
+    -- The stock face and size first, then the skin's face over them (its size scaled from the 24),
+    -- so even this fallback follows a skin switch rather than keeping a typed face.
+    NS.Skin.Font(x)
     x:SetPoint("CENTER", close, "CENTER", 0, 2)   -- the × sits low in its font box; nudge it up
     x:SetText("\195\151")
     x:SetTextColor(NS.SkinColor("bl.closeRest"))
