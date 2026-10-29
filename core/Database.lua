@@ -329,6 +329,11 @@ end
 function NS.OnProfileEvent(event, key)
   if event == "OnProfileReset" then endSessionState() end
   NS:RunMigrations()
+  -- The new profile's skin (core/SkinSetup.lua), before anything rebuilds against it: a switch,
+  -- copy or reset hands Skin:SetChoice the profile's pair, exceptions and overrides, which repaints
+  -- every recorded frame and fires OnLooksChanged whether or not a window was ever built
+  -- (skinning-§2). Not through SETTINGS_CHANGED below, which nothing skin-related keys off.
+  if NS.ApplySkinChoice then NS.ApplySkinChoice() end
   NS.ReevaluateEnabled()
   -- The capture gate caches the settings and both lists: SettingsChanged re-caches it (and every
   -- other subscriber re-reads), LedgerChanged repaints what the filter lists decide -- the tables,

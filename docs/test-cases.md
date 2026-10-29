@@ -1280,7 +1280,7 @@ Total.
 - disabled: the `disabled` hold is taken at LOAD from the stored path
 - disabled: while stood down a simulation refuses with the disabled line, and Fire answers 0
 
-### test_surface_parity.lua (23)
+### test_surface_parity.lua (27)
 
 - LibKa0s-Core degraded: the fallback carries the whole live seam surface
 - Core degraded: NS.RegisterEventSafely isolates a raising RegisterEvent
@@ -1305,6 +1305,10 @@ Total.
 - LibKa0s-Sim degraded: the session stub carries the whole live instance surface
 - LibKa0s-Sim degraded: the seam stub carries the live seam surface
 - LibKa0s-Sim degraded: nothing is wrapped and RunVerb prints the absent line once
+- parity: the degraded Skin facade answers every name the live facade carries
+- parity: the Skin seam publishes the same NS members on both paths
+- parity: each host-copy skin token is the live library's Ka0s Default value
+- parity: the degraded facade draws today's edge, and answers the owner tokens' defaults
 
 ### test_register.lua (1)
 
@@ -1575,6 +1579,23 @@ Total.
 - Layers: the degraded resize grip sits at window + LEVEL.GRIP, as the library's
 - Layers: no strata string and no bare level number at any call site
 
+### test_skinsetup.lua (14)
+
+- Skin seam: the owner is the folder name, and NS.Skin is its facade
+- Skin seam: the read answers Ka0s Default before the profile store exists
+- Skin seam: each owner token draws its Ka0s Default pixel and follows its role elsewhere
+- Skin seam: the gold movement token is today's pale gold, not sem.gold
+- Skin seam: the appearance keys default to today's look, as seven skipRender Appearance rows
+- Skin seam: the skin row's values are every registered skin, in the library's order
+- Skin seam: /bl set refuses a skin that is not registered and applies one that is
+- Skin seam: /bl set reaches an exception, and only its own half
+- Skin seam: the Skin tab sits after History and before Keybindings, labeled Skin
+- Skin seam: one tab pick is one effective SetChoice, one repaint and no reload
+- Skin seam: the tab's Ignore fonts reaches the library and the profile, one repaint
+- Skin seam: another addon's copy to every Ka0s addon repaints BankLedger once
+- Skin seam: a profile switch applies the new profile's skin, exceptions and overrides
+- Skin seam: every Widgets factory this addon calls is handed the owner
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1679,7 +1700,7 @@ Total.
 | test_itemsetup.lua | 12 |
 | test_lifecycle.lua | 13 |
 | test_disabled.lua | 20 |
-| test_surface_parity.lua | 23 |
+| test_surface_parity.lua | 27 |
 | test_register.lua | 1 |
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
@@ -1695,10 +1716,11 @@ Total.
 | test_sim_e2e.lua | 9 |
 | test_sim_panel.lua | 18 |
 | test_layers.lua | 11 |
+| test_skinsetup.lua | 14 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1451** |
+| **Total** | **1469** |

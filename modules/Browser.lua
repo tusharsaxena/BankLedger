@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 NS.Browser = NS.Browser or {}
 local B = NS.Browser
 local C = NS.Constants
@@ -298,12 +298,19 @@ B.activeFilter = {}
 --
 -- FONT_MONO for the glyph because the row font has no ▲/▼: the same debug-logging-§2 mono-face
 -- exception the Direction column in modules/LedgerTable.lua uses, for the same reason.
+--
+-- THE SKIN OWNER. Every factory below (the dropdown and its shared menu, the search box, its
+-- suggestion list, the mode strips) names this addon's folder as the widget's skin `owner`
+-- (LibKa0s-Widgets-1.0 minor 16): the library paints it for the owner core/SkinSetup.lua
+-- registered, so it wears the player's skin and follows a switch. Without the Skin major the
+-- field is ignored.
 function B:MakeDropdown(parent, width)
   if not W then return nil end
   return W.Dropdown(parent, width, {
     chevron   = NS.Icon and NS.Icon("chevron-down"),
     check     = NS.Icon and NS.Icon("confirm"),
     glyphFont = C.FONT_MONO,
+    owner     = addonName,
   })
 end
 
@@ -319,6 +326,7 @@ function B:MakeSearchBox(parent, opts)
   if not (W and W.SearchBox) then return nil end
   local o = {}
   for k, v in pairs(opts or {}) do o[k] = v end
+  o.owner = addonName
   return W.SearchBox(parent, nil, o)
 end
 
@@ -335,6 +343,7 @@ function B:MakeAutocomplete(editBox, opts)
   if not (W and W.Autocomplete) then return nil end
   local o = {}
   for k, v in pairs(opts or {}) do o[k] = v end
+  o.owner = addonName
   return W.Autocomplete(editBox, o)
 end
 
@@ -820,7 +829,8 @@ end
 -- mouse on and the dataset's tooltip (B.StripTipLines). nil without the Widgets library.
 local function buildModeStrip(filterHost, kind, text)
   if not (W and W.TestStrip) then return nil end
-  local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info") })
+  local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info"),
+    owner = addonName })
   strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
   strip:EnableMouse(true)

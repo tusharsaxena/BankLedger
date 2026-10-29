@@ -759,7 +759,21 @@ function P:Register()
     -- NS.BINDINGS (core/LauncherSetup.lua) and, with no `before`, puts it after every schema tab, so
     -- it is the strip's last. Its rows edit the client's own binding store, never the profile, so
     -- the page's Defaults and Reset all settings never reach a key.
-    local generalOpts = { tabs = { O.KeybindingsTab({ bindings = NS.BINDINGS }) } }
+    --
+    -- The Skin tab (skinning-§3) is the other: the library's own entry (O.AppearanceTab), the skin
+    -- source, the nine skins, the Font and texture overrides, the Scope and "Copy to every Ka0s
+    -- addon...", drawn from LibKa0s-Skin-1.0 for the owner core/SkinSetup.lua registered. Its key is
+    -- the group of the skipRender Appearance rows (settings/Schema.lua), declared after History, so
+    -- the entry takes that group's place: after History, before Keybindings. `get` and `set` are
+    -- core/SkinSetup.lua's read and write seams, so a pick lands through NS.Schema:Set like every
+    -- other setting; the tab calls Skin:SetChoice first, so the live repaint is the library's and
+    -- the rows' onChange finds nothing left to apply. Seven tabs, inside options-ui-§13's budget.
+    local generalTabs = {}
+    local appearance = O.AppearanceTab({ owner = NS.Skin and NS.Skin.owner, get = NS.SkinChoice,
+      set = NS.WriteSkinChoice })
+    if appearance then generalTabs[#generalTabs + 1] = appearance end
+    generalTabs[#generalTabs + 1] = O.KeybindingsTab({ bindings = NS.BINDINGS })
+    local generalOpts = { tabs = generalTabs }
     O.SetRenderer(ctx, function(c)
       O.ClearScroll(c)
       O.RenderTabbedSchema(c, "general", GENERAL_AFTER_TAB, nil, generalOpts)

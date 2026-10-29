@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 NS.SessionWindow = NS.SessionWindow or {}
 local SW = NS.SessionWindow
 local C = NS.Constants
@@ -482,7 +482,7 @@ local STRIP_GAP = 2
 local function buildStrip(f, titleBar)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
   if not (W and W.TestStrip) then return end
-  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info") })
+  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName })
   strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
   strip:EnableMouse(true)

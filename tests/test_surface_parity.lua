@@ -588,3 +588,85 @@ test("LibKa0s-Sim degraded: nothing is wrapped and RunVerb prints the absent lin
   assertEqual(#lines, 1, "expected exactly one chat line, got: " .. table.concat(lines, " || "))
   assertTrue(lines[1]:find("The simulator needs LibKa0s-Sim-1.0.", 1, true) ~= nil, lines[1])
 end)
+
+-- ── Skin (the owner's facade, and the seam's NS members; the skinning rollout's BL-01) ──────────
+--
+-- core/SkinSetup.lua: live, NS.Skin is LibKa0s-Skin-1.0's `Skin:For("BankLedger")`; without the
+-- library it is the host's table, whose painting names are no-ops (Shell, TitleBar, Text, Divider
+-- and BarTexture excepted) and whose Token / Color answer the host copy NS.SKIN_FALLBACK and the
+-- owner tokens' defaults. A facade is per owner and built by `For`, not a major's lib-level
+-- surface, so the facade case is the two-table form, key for key, with nothing ignored: a
+-- vocabulary name the library adds fails here until the stub answers it. Ka0s Loot History's
+-- tests/test_surface_parity.lua carries the same four cases.
+
+local skinNS = loadDegraded()
+
+test("parity: the degraded Skin facade answers every name the live facade carries", function()
+  T.assertSurfaceParity(NS.Skin, skinNS.Skin, "Skin facade vs host stub", {})
+end)
+
+test("parity: the Skin seam publishes the same NS members on both paths", function()
+  -- Members from: grep -nE '^\s*function NS\.[A-Za-z_]+|^\s*NS\.[A-Za-z_]+\s*=' core/SkinSetup.lua
+  local f = assert(io.open("core/SkinSetup.lua", "rb"))
+  local src = f:read("*a")
+  f:close()
+  local live, degraded, n = {}, {}, 0
+  for line in src:gmatch("[^\r\n]+") do
+    local key = line:match("^%s*function NS%.([A-Za-z_][A-Za-z0-9_]*)")
+      or line:match("^%s*NS%.([A-Za-z_][A-Za-z0-9_]*)%s*=")
+    if key and live[key] == nil then
+      n = n + 1
+      live[key], degraded[key] = NS[key] or false, skinNS[key] or false
+    end
+  end
+  assertTrue(live.ApplySkinChoice ~= nil, "the derivation found no NS.ApplySkinChoice: the file changed shape")
+  for key, v in pairs(live) do
+    assertTrue(v ~= false, "NS." .. key .. " is missing on the live path")
+    assertTrue(degraded[key] ~= false, "NS." .. key .. " is missing on the library-absent path")
+    assertEqual(type(degraded[key]), type(v), "NS." .. key .. ": the two paths publish different kinds")
+  end
+  assertTrue(n > 10, "the derivation found " .. n .. " members, so this case asserts little")
+end)
+
+test("parity: each host-copy skin token is the live library's Ka0s Default value", function()
+  -- A copy is the thing that drifts, so every NS.SKIN_FALLBACK entry is held to LibKa0s-Skin-1.0's
+  -- resolved Ka0s Default here. red under: a token added to the copy with a value of its own, or the
+  -- library moving a value.
+  local live = T.mocks.LibStub("LibKa0s-Skin-1.0"):ResolveSkin("ka0s")
+  local n = 0
+  for name, c in pairs(skinNS.SKIN_FALLBACK) do
+    n = n + 1
+    local want = live[name]
+    assertTrue(type(want) == "table", name .. " is not a Ka0s Default color token in the library")
+    for i = 1, 4 do
+      local a, b = c[i] or 1, want[i] or 1
+      assertTrue(math.abs(a - b) < 1e-6, ("%s[%d]: host copy %s, library %s"):format(name, i, a, b))
+    end
+  end
+  assertTrue(n > 0, "the host copy is empty, so this case asserts nothing")
+end)
+
+test("parity: the degraded facade draws today's edge, and answers the owner tokens' defaults", function()
+  -- Shell routes to core/CoreSetup.lua's pre-library NS.ApplySkin, so a degraded window wears the
+  -- edge it always wore; every other painting name is a no-op that never raises.
+  local S = skinNS.Skin
+  local shelled
+  local apply = skinNS.ApplySkin
+  skinNS.ApplySkin = function(fr) shelled = fr end
+  local frame = {}
+  local ok, err = pcall(S.Shell, frame)
+  skinNS.ApplySkin = apply
+  assertTrue(ok, "the degraded Shell raised: " .. tostring(err))
+  assertTrue(shelled == frame, "the degraded Shell did not route to NS.ApplySkin")
+  for _, name in ipairs({ "Button", "Tab", "ListRow", "MenuFrame", "Strip", "Divider", "Footer", "Card" }) do
+    local fine, why = pcall(S[name], frame, {})
+    assertTrue(fine, "the degraded " .. name .. " raised: " .. tostring(why))
+  end
+  local r, g, b = S.Color("title.text")
+  assertTrue(r == 1 and g == 0.82 and b == 0, "the degraded title color is not today's gold")
+  for name, def in pairs(skinNS.SKIN_TOKENS) do
+    local tr, tg, tb = S.Color(name)
+    assertTrue(tr == def.default[1] and tg == def.default[2] and tb == def.default[3],
+      name .. ": the degraded facade does not answer the owner token's default")
+  end
+end)

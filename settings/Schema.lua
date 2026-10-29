@@ -3,6 +3,9 @@ NS.Schema = NS.Schema or {}
 local S = NS.Schema
 local C = NS.Constants
 local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-frames-taint-§8)
+-- The profile defaults (defaults/Profile.lua), which the Appearance rows read their defaults from
+-- rather than restate, the way the simulator's row does.
+local PD = NS.defaults.profile
 
 -- One row per setting. This single table drives the AceDB defaults check, the panel widgets, and
 -- the slash get/set/list/reset dispatch (architecture-§5) — add a setting here and all three
@@ -170,6 +173,59 @@ S.Schema = {
     onChange = function()
       if NS.Database and NS.Database.PruneOld then NS.Database:PruneOld() end
     end },
+
+  -- ── Appearance ──
+  -- The skin this addon wears (skinning-§2/§3: per addon, per profile). The tab is the library's
+  -- O.AppearanceTab (settings/Panel.lua), which draws every row below as its own choice grids,
+  -- check boxes and dropdowns, so each carries `skipRender`; they stay schema rows so the defaults
+  -- resolve, every reset reaches them, and `/bl get|set settings.appearance.skin` validates
+  -- against `values`. Declared LAST, after History, so the group's tab, which the library's entry
+  -- takes the place of, sits after History and before the Keybindings host tab, which stays last
+  -- (options-ui-§20).
+  --
+  -- Each onChange applies ONLY its own half (core/SkinSetup.lua says why): the tab and another
+  -- addon's "Copy to every Ka0s addon" call Skin:SetChoice before they write, so the write is a
+  -- no-op, and a bare `/bl set` still repaints. Nothing here sends SETTINGS_CHANGED.
+  { path = "settings.appearance.source", default = PD.settings.appearance.source, type = "string",
+    widget = "Dropdown", skipRender = true, values = NS.SKIN_SOURCE_OPTIONS,
+    group = "Appearance", label = "Skin source",
+    tooltip = "Where this addon's look comes from: the Ka0s skin chosen below, or EllesmereUI.",
+    onChange = function(v) NS.ApplySkinChoice(v, nil) end },
+  { path = "settings.appearance.skin", default = PD.settings.appearance.skin, type = "string",
+    widget = "Dropdown", skipRender = true, values = NS.SKIN_OPTIONS,
+    group = "Appearance", label = "Skin",
+    tooltip = "The Ka0s skin this addon wears. Changes every window and panel right away.",
+    onChange = function(v) NS.ApplySkinChoice(nil, v) end },
+  -- The Scope's two exceptions, drawn by the same tab as check boxes.
+  { path = "settings.appearance.ignorePanel", default = PD.settings.appearance.ignorePanel, type = "bool",
+    widget = "CheckBox", skipRender = true,
+    group = "Appearance", label = "Ignore settings panel",
+    tooltip = "Keep this addon's settings panel in the game's own look. Its windows still wear the skin.",
+    onChange = function(v) NS.ApplySkinIgnore(v, nil) end },
+  { path = "settings.appearance.ignoreFonts", default = PD.settings.appearance.ignoreFonts, type = "bool",
+    widget = "CheckBox", skipRender = true,
+    group = "Appearance", label = "Ignore fonts",
+    tooltip = "Keep every font in this addon as the game draws it. The skin still colors the text.",
+    onChange = function(v) NS.ApplySkinIgnore(nil, v) end },
+  -- The Font and texture section's two overrides, drawn by the same tab as dropdowns of
+  -- LibSharedMedia keys; "" is the skin's own. Free text, not a Dropdown with `values`: a media pack
+  -- may register its keys after this file loads, and `/bl set` takes any key.
+  { path = "settings.appearance.font", default = PD.settings.appearance.font, type = "string",
+    widget = "EditBox", skipRender = true,
+    group = "Appearance", label = "Font",
+    tooltip = "The font this addon's text uses, over the skin's own. Empty keeps the skin's.",
+    onChange = function(v) NS.ApplySkinOverride(v, nil) end },
+  { path = "settings.appearance.texture", default = PD.settings.appearance.texture, type = "string",
+    widget = "EditBox", skipRender = true,
+    group = "Appearance", label = "Texture",
+    tooltip = "The texture this addon's bars use, over the skin's own. Empty keeps the skin's.",
+    onChange = function(v) NS.ApplySkinOverride(nil, v) end },
+  -- The first-run skin picker's memory: set when the picker closes, so it shows once per profile.
+  -- Drawn by nothing; a reset puts it back to false.
+  { path = "settings.appearance.pickerSeen", default = PD.settings.appearance.pickerSeen, type = "bool",
+    widget = "CheckBox", skipRender = true,
+    group = "Appearance", label = "Skin picker seen",
+    tooltip = "Whether the first-run skin picker was closed on this profile." },
 }
 
 -- ── The Master controls tab (options-ui-§15) ──────────────────────────────────────────────────

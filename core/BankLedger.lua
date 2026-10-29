@@ -34,6 +34,10 @@ end
 -- face at load time.
 function addon:OnInitialize()
   NS:InitDB()
+  -- The skin the active profile names (core/SkinSetup.lua), right after the store exists: the
+  -- owner registered at file load, before AceDB, and has worn Ka0s Default since. Before any page
+  -- or window is built, so the first paint is already the profile's skin.
+  if NS.ApplySkinChoice then NS.ApplySkinChoice() end
   if NS.Schema and NS.Schema.Register then NS.Schema:Register() end
   if NS.Slash and NS.Slash.Register then NS.Slash:Register() end
   -- Eager settings-category registration (options-ui-§1): the entry is present in the Blizzard
