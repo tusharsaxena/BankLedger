@@ -1596,6 +1596,22 @@ Total.
 - Skin seam: a profile switch applies the new profile's skin, exceptions and overrides
 - Skin seam: every Widgets factory this addon calls is handed the owner
 
+### test_skin_windows.lua (7)
+
+- skin windows: Ka0s Default's table colors are the values the table drew before the skin
+- skin windows: a switch re-resolves the table's cached colors and its tinted marks
+- skin windows: the row tints take the skin's RGB and keep the player's slider alpha
+- skin windows: the row menu's destructive entry is the skin's danger escape
+- skin windows: Ka0s Default's Insights colors are the values Insights drew before the skin
+- skin windows: a switch moves the Insights triples in place, the palette and the escapes
+- skin windows: the close control keeps its own look under Ka0s Default and is the skin's elsewhere
+
+### test_skin_literals.lua (3)
+
+- no color literal outside core/SkinSetup.lua and the named allow-list
+- every allow-list entry carries its reason
+- the gate is falsifiable: a planted literal of each shape is reported
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1717,10 +1733,12 @@ Total.
 | test_sim_panel.lua | 18 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
+| test_skin_windows.lua | 7 |
+| test_skin_literals.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1469** |
+| **Total** | **1479** |

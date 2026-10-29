@@ -30,12 +30,27 @@ local COL_GAP = 8      -- horizontal space between columns
 -- row.
 local ARROW_SIZE, ARROW_GAP = 12, 2
 
+-- ── The skin's colors, resolved once per skin ───────────────────────────────────
+-- Every color this table draws is a token of the player's skin (core/SkinSetup.lua's NS.Skin, over
+-- LibKa0s-Skin-1.0; anti-pattern #107: no typed look value). LT:PaintCell runs about 7 x 30 times
+-- per scroll tick and is allocation-free by design, so the tokens are NOT read per cell: they are
+-- resolved into the reused triples below once at load and again on every skin switch
+-- (NS.Skin.OnLooksChanged, at the bottom of this file), and the painters read the triples.
+--
 -- Gold movements name themselves "Gold" in the Item column. A quality color would be a lie (gold
--- has no quality), so they take a pale gold — deliberately LIGHTER than the 1/0.82/0 the column
--- headers and window title use, so a gold row reads as data and never as a heading.
-local MONEY_RGB = { 1.00, 0.91, 0.55 }
--- Published for the search suggestions (modules/Browser.lua), which color a "Gold" row the same way.
-LT.MONEY_RGB = MONEY_RGB
+-- has no quality), so they take a pale gold, the owner token bl.gold (BL-G1) — deliberately LIGHTER
+-- than the title gold the column headers and window title use, so a gold row reads as data and
+-- never as a heading. The search suggestions (modules/Browser.lua) read the same token.
+local RGB = {
+  gold = {}, body = {}, white = {}, header = {}, good = {}, bad = {},
+  quality = {},   -- [0..5] -> the skin's q.* (else the client's color), NS.QualityColor
+}
+LT._rgb = RGB   -- tests/test_skin_windows.lua
+
+local function resolve(t, name)
+  local r, g, b = NS.Skin.Color(name)
+  t[1], t[2], t[3] = r or 1, g or 1, b or 1
+end
 
 local EM_DASH = "\226\128\148"
 
@@ -169,17 +184,41 @@ end
 --
 -- The tint rides on the ESCAPE, not on the art, so it survives the fall to the Blizzard rung: a
 -- degraded install draws the same boxed +/- and Arrow-Up-Up it always did, in the header's gold.
-local HEADER_RGB = { 1, 0.82, 0 }
+--
+-- The gold is the skin's list.header.text, resolved into HEADER_RGB (the RGB table above), and the
+-- four marks are REBUILT from it on every skin switch (LT.ReskinColors, below): they are strings
+-- built once rather than per draw, so a switch that left them alone would tint the marks in the old
+-- skin's color beside labels in the new one.
+local HEADER_RGB = RGB.header
 local function tint255(rgb)
   local function b(v) return math.floor(v * 255 + 0.5) end
   return ("0:0:0:0:64:64:0:64:0:64:%d:%d:%d"):format(b(rgb[1]), b(rgb[2]), b(rgb[3]))
 end
-local HEADER_TINT = tint255(HEADER_RGB)
 
-local ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",       " ", HEADER_TINT)
-local ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",     " ", HEADER_TINT)
-local GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up",  nil, HEADER_TINT)
-local GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up", nil, HEADER_TINT)
+local ARROW_ASC, ARROW_DESC, GROUP_SHUT, GROUP_OPEN
+
+--- Resolve every cached color from the live skin and rebuild the four tinted marks. At load and on
+--- every skin switch; allocation is fine here, it runs once per switch.
+function LT.ReskinColors()
+  resolve(RGB.gold, "bl.gold")
+  resolve(RGB.body, "text.body")
+  resolve(RGB.white, "q.common")
+  resolve(RGB.header, "list.header.text")
+  resolve(RGB.good, "sem.good")
+  resolve(RGB.bad, "sem.bad")
+  for q = 0, 5 do
+    local t = RGB.quality[q] or {}
+    local r, g, b = NS.QualityColor(q)
+    t[1], t[2], t[3] = r or RGB.white[1], g or RGB.white[2], b or RGB.white[3]
+    RGB.quality[q] = t
+  end
+  local tint = tint255(HEADER_RGB)
+  ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",       " ", tint)
+  ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",     " ", tint)
+  GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up",  nil, tint)
+  GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up", nil, tint)
+end
+LT.ReskinColors()
 
 -- Shared by "type" and "subtype": both key on the EFFECTIVE type, so gold movements gather under
 -- "Gold" exactly as the column shows them, and an untyped item reads "Unknown" rather than blank.
@@ -413,17 +452,21 @@ end
 
 -- ── Pooled rows ─────────────────────────────────────────────────────────────────
 
+-- The six qualities the skin names come out of the cache; any other (artifact, heirloom, token) is
+-- the client's color through NS.QualityColor, read at bind, and white when even that is missing.
 local function qualityColor(q)
-  local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q or 1]
-  if c then return c.r, c.g, c.b end
-  return 1, 1, 1
+  local t = RGB.quality[q or 1]
+  if t then return t[1], t[2], t[3] end
+  local r, g, b = NS.QualityColor(q)
+  if r then return r, g, b end
+  return RGB.white[1], RGB.white[2], RGB.white[3]
 end
 
 -- The Item and Quality columns share ONE painter, because they are the same rule: a gold movement
 -- has no quality, so in either column it takes the pale gold rather than a quality color.
 local function paintQualityCell(fs, entry)
   if entry.kind == C.Kind.MONEY then
-    fs:SetTextColor(MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
+    fs:SetTextColor(RGB.gold[1], RGB.gold[2], RGB.gold[3])
   else
     fs:SetTextColor(qualityColor(entry.quality))
   end
@@ -432,7 +475,8 @@ end
 -- The only painter that touches the row's glyph FontString, and it sets text, color AND shown-state:
 -- rows are pooled, so a glyph left over from the entry that last used this row is the failure mode.
 local function paintDirectionCell(fs, entry, glyphFS)
-  local rgb = C.DirectionRGB[entry.direction] or C.NEUTRAL_RGB
+  local rgb = (entry.direction == "DEPOSIT" and RGB.good)
+    or (entry.direction == "WITHDRAW" and RGB.bad) or RGB.body
   fs:SetTextColor(rgb[1], rgb[2], rgb[3])
   if glyphFS then
     local glyph = C.DirectionGlyph[entry.direction]
@@ -442,16 +486,19 @@ local function paintDirectionCell(fs, entry, glyphFS)
   end
 end
 
+-- The store palette is this addon's own categorical meaning (which bank), kept under every skin as
+-- the rollout's exception E7; a store it does not know takes the body color.
 local function paintStoreCell(fs, entry)
-  local rgb = C.StoreRGB[entry.store] or C.NEUTRAL_RGB
+  local rgb = C.StoreRGB[entry.store] or RGB.body
   fs:SetTextColor(rgb[1], rgb[2], rgb[3])
 end
 
 -- RAID_CLASS_COLORS stays guarded: it does not exist under the headless mock, and an unknown class
--- falls back to the same flat gray every other column uses.
+-- falls back to the same body color every other column uses. A class color is game meaning, kept
+-- under every skin (the rollout's exception E3).
 local function paintCharCell(fs, entry)
   local cc = RAID_CLASS_COLORS and entry.classFile and RAID_CLASS_COLORS[entry.classFile]
-  if cc then fs:SetTextColor(cc.r, cc.g, cc.b) else fs:SetTextColor(0.9, 0.9, 0.9) end
+  if cc then fs:SetTextColor(cc.r, cc.g, cc.b) else fs:SetTextColor(RGB.body[1], RGB.body[2], RGB.body[3]) end
 end
 
 -- Column key → the painter that colors it. MODULE-LEVEL, built once at file load: PaintCell runs
@@ -472,8 +519,32 @@ function LT:PaintCell(fs, colKey, entry, glyphFS)
   if not (fs and col and entry) then return end
   fs:SetText(col.valueFn(entry))
   local paint = CELL_PAINT[colKey]
-  -- Every column without a painter of its own gets the flat gray.
-  if paint then paint(fs, entry, glyphFS) else fs:SetTextColor(0.9, 0.9, 0.9) end
+  -- Every column without a painter of its own gets the body color.
+  if paint then paint(fs, entry, glyphFS) else fs:SetTextColor(RGB.body[1], RGB.body[2], RGB.body[3]) end
+end
+
+-- The tooltip lines both tables write onto GameTooltip, in the skin's colors (skinning-§7: only the
+-- lines this addon writes take skin colors; the frame stays Blizzard's). Shared by the History rows
+-- and headers here and by the session window's (modules/SessionWindow.lua), so the two cannot drift.
+-- Read at each hover, so a skin switch needs no repaint.
+
+--- A gold movement's tooltip body: its title in bl.gold, the amount in gtip.body / gtip.value.
+function LT.AddMoneyTooltip(e)
+  local r, g, b = NS.SkinColor("bl.gold")
+  GameTooltip:AddLine(C.KindLabel.MONEY, r, g, b)
+  local lr, lg, lb = NS.SkinColor("gtip.body")
+  local vr, vg, vb = NS.SkinColor("gtip.value")
+  GameTooltip:AddDoubleLine("Amount", NS.Util.FormatMoney(e.quantity), lr, lg, lb, vr, vg, vb)
+end
+
+--- A column header's tooltip: the label in gtip.title, the description (wrapped) in gtip.body.
+function LT.AddColumnTooltip(col)
+  local tr, tg, tb = NS.SkinColor("gtip.title")
+  GameTooltip:AddLine(col.label, tr, tg, tb)
+  if col.desc then
+    local r, g, b = NS.SkinColor("gtip.body")
+    GameTooltip:AddLine(col.desc, r, g, b, true)
+  end
 end
 
 -- The free/active bookkeeping is LibKa0s-Pool-1.0's now (core/PoolSetup.lua); what is left here is
@@ -504,6 +575,7 @@ function LT:BuildRow()
   row.cells = {}
   for _, col in ipairs(self.COLUMNS) do
     local fs = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    NS.Skin.Font(fs)   -- the skin's face, once at build; the color is the painter's, at bind
     fs:SetJustifyH(col.align)
     fs:SetHeight(ROW_H)
     fs:SetWordWrap(false)
@@ -521,6 +593,7 @@ function LT:BuildRow()
 
   -- Group-header styling; hidden for data rows.
   local header = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  NS.Skin.Font(header)
   header:SetPoint("LEFT", 4, 0)
   header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])
   header:Hide()
@@ -534,15 +607,16 @@ function LT:BuildRow()
     if e.itemLink then
       GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
       GameTooltip:SetHyperlink(e.itemLink)
-      GameTooltip:AddLine("Shift-click to link \194\183 right-click for options", 0.5, 0.5, 0.5)
+      local mr, mg, mb = NS.SkinColor("gtip.muted")
+      GameTooltip:AddLine("Shift-click to link \194\183 right-click for options", mr, mg, mb)
       GameTooltip:Show()
     elseif e.kind == C.Kind.MONEY then
       -- A gold movement has no item to hover, so build the tooltip by hand rather than leave the
       -- row silent: the amount is the one thing the Qty cell can truncate.
       GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
-      GameTooltip:AddLine(C.KindLabel.MONEY, MONEY_RGB[1], MONEY_RGB[2], MONEY_RGB[3])
-      GameTooltip:AddDoubleLine("Amount", NS.Util.FormatMoney(e.quantity), 0.9, 0.9, 0.9, 1, 1, 1)
-      GameTooltip:AddLine("Right-click for options", 0.5, 0.5, 0.5)
+      LT.AddMoneyTooltip(e)
+      local mr, mg, mb = NS.SkinColor("gtip.muted")
+      GameTooltip:AddLine("Right-click for options", mr, mg, mb)
       GameTooltip:Show()
     end
   end)
@@ -634,6 +708,9 @@ function LT:Attach(pane)
   header:SetPoint("TOPRIGHT", -24, 0)
   header:SetHeight(HEADER_H)
   self.headerFrame = header
+  -- The header band (list.header.bg; the rollout's D6 accepts it, as Loot History wears it). The
+  -- labels are the buttons' own, colored list.header.text below.
+  NS.Skin.SortHeaderBar(header)
 
   -- A FauxScrollFrame drives the scrollbar + offset. Pooled rows live in a sibling overlay
   -- (rowHost) aligned with the scroll viewport, so the ScrollFrame never clips them.
@@ -654,7 +731,11 @@ function LT:Attach(pane)
 
   self.rowPool = NS.Pool.New()
 
+  -- The bar's own art faded and a flat knob over a corridor, in the skin's scroll.* tokens.
+  if scroll.ScrollBar then NS.Skin.ScrollBar(scroll.ScrollBar) end
+
   local empty = pane:CreateFontString(nil, "OVERLAY", "GameFontDisableLarge")
+  NS.Skin.Text(empty, "disabled")
   empty:SetPoint("CENTER", scroll, "CENTER", 0, 0)
   empty:Hide()
   self.emptyText = empty
@@ -668,6 +749,7 @@ function LT:MakeHeaderButton(col)
   local btn = CreateFrame("Button", nil, self.headerFrame)
   btn:SetHeight(HEADER_H)
   local fs = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  NS.Skin.Font(fs)
   fs:SetPoint("LEFT", 0, 0)
   fs:SetJustifyH(col.align)
   fs:SetText(col.label)
@@ -676,8 +758,7 @@ function LT:MakeHeaderButton(col)
   btn:SetScript("OnEnter", function(self2)
     if not GameTooltip then return end
     GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-    GameTooltip:AddLine(col.label, 1, 0.82, 0)
-    if col.desc then GameTooltip:AddLine(col.desc, 0.9, 0.9, 0.9, true) end
+    LT.AddColumnTooltip(col)
     GameTooltip:Show()
   end)
   btn:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -798,12 +879,13 @@ function LT:BindRow(row, item, absIndex)
     for _, col in ipairs(self.COLUMNS) do row.cells[col.key]:SetText("") end
     row.dirGlyph:Hide()
     row.header:Show()
+    row.header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])   -- a pooled row, any skin
     -- The expander marks collapsed/expanded, and both spellings were resolved once at load (see
     -- GROUP_SHUT / GROUP_OPEN at the top of this file) — a chevron on a working install, Blizzard's
     -- own +/- box on one without the shared art.
     local arrow = item.collapsed and GROUP_SHUT or GROUP_OPEN
     row.header:SetText(arrow .. "  " .. (item.label or "")
-      .. "  |cff808080(" .. (item.count or 0) .. ")|r")
+      .. "  " .. (NS.SkinEscape("text.disabled") or "") .. "(" .. (item.count or 0) .. ")|r")
     return
   end
 
@@ -816,7 +898,6 @@ function LT:BindRow(row, item, absIndex)
 end
 
 -- ── Row context menu (right-click) ──────────────────────────────────────────────
-local WHITE8X8 = "Interface\\Buttons\\WHITE8X8"
 local rowMenu
 -- POPUP (FULLSCREEN_DIALOG), over both windows and every dialog. An outside click closes it by
 -- LISTENING, not by intercepting: `GLOBAL_MOUSE_DOWN` fires for a press anywhere, so the press both
@@ -831,9 +912,11 @@ local function EnsureRowMenu()
   if rowMenu then return rowMenu end
   rowMenu = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
   rowMenu:SetFrameStrata(C.LAYERS.STRATA.POPUP)
-  rowMenu:SetBackdrop({ bgFile = WHITE8X8, edgeFile = WHITE8X8, edgeSize = 1 })
-  rowMenu:SetBackdropColor(0.06, 0.06, 0.08, 0.98)
-  rowMenu:SetBackdropBorderColor(0.62, 0.5, 0.18, 1)
+  -- The skin's MenuFrame with the `alt` edge: menu.bg under menu.borderAlt, which Ka0s Default keeps
+  -- at the muted gold this menu always wore, the WHITE8X8 box with no insets, call for call the
+  -- backdrop it drew before. Recorded, so a skin switch repaints it; the entries' hover and text are
+  -- read per open (ShowRowMenu).
+  NS.Skin.MenuFrame(rowMenu, { alt = true })
   rowMenu:Hide()
   rowMenu.buttons = {}
 
@@ -887,7 +970,7 @@ function LT:RowMenuItems(entry)
           print("whitelisted", rowLabel(entry), MANAGE_ROUTE .. "Whitelist.")
         end
       end },
-    { label = "|cffff5555Delete|r", enabled = live, fn = function()
+    { label = (NS.SkinEscape("sem.danger") or "") .. "Delete|r", enabled = live, fn = function()
         NS.Database:Delete(function(r) return r == entry end)   -- fires LedgerChanged
         LT:Refresh()
       end },
@@ -906,24 +989,27 @@ function LT:ShowRowMenu(anchor, entry)
       b = CreateFrame("Button", nil, m)
       b:SetHeight(MENU_ROW_H)
       local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      NS.Skin.Font(fs)
       fs:SetPoint("LEFT", 8, 0)
       fs:SetJustifyH("LEFT")
       b.fs = fs
       local hl = b:CreateTexture(nil, "HIGHLIGHT")
       hl:SetAllPoints()
-      hl:SetColorTexture(1, 0.82, 0, 0.15)
+      hl:SetColorTexture(NS.SkinColor("menu.hover"))
+      b.hl = hl
       m.buttons[i] = b
     end
     b:SetWidth(W)
+    b.hl:SetColorTexture(NS.SkinColor("menu.hover"))   -- read per open: the skin may have moved
     b:ClearAllPoints()
     b:SetPoint("TOPLEFT", 0, -4 - (i - 1) * MENU_ROW_H)
     b.fs:SetText(item.label)
     if item.enabled then
-      b.fs:SetTextColor(0.9, 0.9, 0.9)
+      b.fs:SetTextColor(NS.SkinColor("menu.text"))
       b:EnableMouse(true)
       b:SetScript("OnClick", function() m:Hide(); item.fn() end)
     else
-      b.fs:SetTextColor(0.5, 0.5, 0.5)
+      b.fs:SetTextColor(NS.SkinColor("text.disabled"))
       b:EnableMouse(false)
       b:SetScript("OnClick", nil)
     end
@@ -936,3 +1022,21 @@ function LT:ShowRowMenu(anchor, entry)
   m:Show()
   m:RegisterEvent("GLOBAL_MOUSE_DOWN")
 end
+
+-- ── A skin switch ───────────────────────────────────────────────────────────────
+-- Fires after the new skin is resolved and every recorded frame repainted (NS.Skin.OnLooksChanged).
+-- What no primitive records is redone here: the cached colors and the four tinted marks, the row
+-- tints' RGB, the header labels, and then a rebind of both tables, which repaints every pooled row
+-- (cells, group headers, stripe and hover) from the new cache. A no-op walk before either is built.
+function LT:Reskin()
+  LT.ReskinColors()
+  NS.Util.ReskinRowTint()
+  local header = self.headerFrame
+  for _, btn in pairs(header and header.buttons or {}) do
+    if btn.fs then btn.fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3]) end
+  end
+  if self.frame then self:Bind() end
+  if NS.SessionWindow and NS.SessionWindow.Reskin then NS.SessionWindow:Reskin() end
+end
+
+if NS.Skin then NS.Skin.OnLooksChanged(function() LT:Reskin() end) end

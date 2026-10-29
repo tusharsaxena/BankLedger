@@ -403,7 +403,9 @@ local function makeFilterSection(ctx, listKey, desc)
     entries   = function() return filterEntries(list) end,
     onAdd     = function(id) filterWrite(ctx, list.add, id) end,
     onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
-    emptyText = "|cff808080(none)|r",
+    -- The skin's text.disabled (808080 under Ka0s Default), read when the page renders; a skin
+    -- switch re-renders the shown pages.
+    emptyText = (NS.SkinEscape("text.disabled") or "") .. "(none)|r",
     removeStyle = "icon",
   })
 

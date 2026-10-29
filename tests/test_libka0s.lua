@@ -497,13 +497,15 @@ test("LibKa0s-DebugLog: the console wears THIS addon's chrome, not Core's", func
   -- did the latter, and it passed just as happily with `applySkin` deleted from the seam — it was
   -- testing the library, not the wiring.
   --
-  -- Nothing headless can read a backdrop back. What IS observable is the thing Core's skin does not
-  -- do: NS.Browser:ApplySkin builds an `innerBorder` child frame on whatever it skins
-  -- (modules/Browser.lua), and Core's three backdrop calls never create a child of any kind. Its
-  -- presence on the console frame is therefore proof that the HOST's skin ran on it.
+  -- What IS observable is the thing Core's skin does not do: NS.Browser:ApplySkin hands the frame
+  -- to this addon's skin Shell (modules/Browser.lua, the skinning rollout's BL-02), which RECORDS it
+  -- for this addon's owner so a skin switch repaints it, and Core's backdrop calls record nothing.
+  -- The record is therefore proof that the HOST's skin ran on it.
   D:Show()
-  assertTrue(D._frameForTest.innerBorder ~= nil,
-    "the console frame has no innerBorder — it was skinned by Core, not by NS.Browser:ApplySkin")
+  local Skin = T.mocks.LibStub("LibKa0s-Skin-1.0")
+  local rec = Skin.painted and Skin.painted[D._frameForTest]
+  assertTrue(rec ~= nil and rec.owner == "BankLedger",
+    "the console frame is not recorded for this addon's skin — it was skinned by Core, not by NS.Browser:ApplySkin")
   D:Hide()
 end)
 test("LibKa0s-DebugLog: the console's title bar is the library's, at the pitch the ART gives it",

@@ -107,6 +107,10 @@ NS.SKIN_TOKENS = {
   -- The Insights widgets' unknown-quality fallback (D9, ruled by X1 to stay exact): a quality id
   -- the client has no color for. sem.unknown is {0.6, 0.6, 0.6}, 0.02 off in blue.
   ["bl.qualityUnknown"] = { default = { 0.60, 0.60, 0.62, 1 }, follow = "sem.unknown" },
+  -- The close control's rest tint (modules/Browser.lua B:MakeCloseButton, DECISIONS BankLedger D1):
+  -- this addon's own 0.85 under Ka0s Default, where the button keeps its own look; close.rest in
+  -- every other skin, the primitive's own rest color, so the host's OnLeave lands on it there.
+  ["bl.closeRest"]      = { default = { 0.85, 0.85, 0.85, 1 }, follow = "close.rest" },
 }
 
 -- The Ka0s Default LIBRARY tokens the DEGRADED facade answers, copied from the library and limited
@@ -120,6 +124,65 @@ NS.SKIN_FALLBACK = {
   ["win.inner"]  = { 0.24, 0.24, 0.27, 0.85 },
   ["title.text"] = { 1, 0.82, 0, 1 },
   ["divider"]    = { 0.24, 0.24, 0.27, 0.85 },
+  -- The windows' chrome (BL-02): the tab labels and underline, the flat buttons and their marks, the
+  -- footers, the degraded test badge and every tooltip line the windows write.
+  ["text.accent"]   = { 1, 0.82, 0, 1 },
+  ["text.muted"]    = { 0.7, 0.7, 0.72, 1 },
+  ["tab.onLine"]    = { 1, 0.82, 0, 1 },
+  ["btn.bg"]        = { 0.1, 0.1, 0.12, 0.9 },
+  ["btn.border"]    = { 0.24, 0.24, 0.27, 0.9 },
+  ["btn.text"]      = { 1, 1, 1, 1 },
+  ["btn.hover"]     = { 1, 0.82, 0, 1 },
+  ["btn.icon"]      = { 0.85, 0.85, 0.85, 1 },
+  ["text.disabled"] = { 0.5, 0.5, 0.5, 1 },
+  ["sem.modeTest"]  = { 1, 0.15, 0.15, 1 },
+  ["gtip.title"]    = { 1, 0.82, 0, 1 },
+  ["gtip.body"]     = { 0.9, 0.9, 0.9, 1 },
+  ["gtip.muted"]    = { 0.5, 0.5, 0.5, 1 },
+  ["gtip.value"]    = { 1, 1, 1, 1 },
+  ["gtip.subtle"]   = { 0.7, 0.7, 0.7, 1 },
+  -- The History table and the session window's (BL-02): the header labels, arrows and chevrons, the
+  -- pooled rows' stripe and hover, the cells' body text and the direction pair, the row menu (its
+  -- edge is the muted-gold borderAlt) and its destructive entry, the client's white for an item of
+  -- no known quality.
+  ["list.header.text"] = { 1, 0.82, 0, 1 },
+  ["list.stripe"]   = { 1, 1, 1, 0.03 },
+  ["list.hover"]    = { 1, 0.82, 0, 0.10 },
+  ["text.body"]     = { 0.9, 0.9, 0.9, 1 },
+  ["menu.bg"]       = { 0.06, 0.06, 0.08, 0.98 },
+  ["menu.border"]   = { 0, 0, 0, 1 },
+  ["menu.borderAlt"] = { 0.62, 0.5, 0.18, 1 },
+  ["menu.hover"]    = { 1, 0.82, 0, 0.15 },
+  ["menu.text"]     = { 0.9, 0.9, 0.9, 1 },
+  ["q.common"]      = { 1, 1, 1, 1 },
+  ["sem.good"]      = { 0.35, 0.80, 0.45, 1 },
+  ["sem.bad"]       = { 1, 0.33, 0.33, 1 },
+  ["sem.danger"]    = { 1, 1 / 3, 1 / 3, 1 },
+  -- Insights (BL-02): the KPI cards and list panels, the section headings and rules, the chart
+  -- chrome and series, the value gray, and the signed money and count escapes.
+  ["text.heading"]  = { 1, 0.82, 0, 1 },
+  ["text.value"]    = { 0.8, 0.8, 0.82, 1 },
+  ["card.bg"]       = { 0.1, 0.1, 0.12, 0.85 },
+  ["card.border"]   = { 0.24, 0.24, 0.27, 0.9 },
+  ["panel.bg"]      = { 0.08, 0.08, 0.10, 0.6 },
+  ["panel.border"]  = { 0.24, 0.24, 0.27, 0.7 },
+  ["section.rule"]  = { 1, 0.82, 0, 0.35 },
+  ["chart.axis"]    = { 0.45, 0.45, 0.5, 0.8 },
+  ["chart.axisAlt"] = { 0.55, 0.55, 0.60, 0.9 },
+  ["chart.bar"]     = { 0.40, 0.60, 0.95, 0.9 },
+  ["chart.track"]   = { 1, 1, 1, 0.06 },
+  ["chart.other"]   = { 0.55, 0.62, 0.72, 1 },
+  -- Insights' categorical palette: three seven-hue ramps (a list of colors, held entry by entry).
+  ["chart.series"]  = {
+    { 0.90, 0.25, 0.25, 1 }, { 0.95, 0.55, 0.15, 1 }, { 0.88, 0.82, 0.22, 1 }, { 0.35, 0.75, 0.38, 1 },
+    { 0.28, 0.55, 0.90, 1 }, { 0.42, 0.38, 0.82, 1 }, { 0.72, 0.42, 0.86, 1 },
+    { 0.97, 0.58, 0.58, 1 }, { 0.98, 0.76, 0.50, 1 }, { 0.94, 0.90, 0.55, 1 }, { 0.60, 0.87, 0.63, 1 },
+    { 0.58, 0.76, 0.97, 1 }, { 0.68, 0.64, 0.92, 1 }, { 0.86, 0.68, 0.94, 1 },
+    { 0.62, 0.18, 0.18, 1 }, { 0.70, 0.40, 0.10, 1 }, { 0.60, 0.56, 0.12, 1 }, { 0.18, 0.52, 0.28, 1 },
+    { 0.15, 0.38, 0.66, 1 }, { 0.28, 0.24, 0.58, 1 }, { 0.50, 0.28, 0.62, 1 },
+  },
+  ["sem.goodAlt"]   = { 0.25, 1, 0.25, 1 },
+  ["sem.badAlt"]    = { 1, 0.25, 0.25, 1 },
 }
 
 --- A color token's components AS A CALL SITE WRITES THEM: r, g, b for an opaque color and r, g, b,
@@ -325,6 +388,46 @@ if not Skin then
       end
     end
     if type(tex) == "table" and type(tex.SetColorTexture) == "function" then tex:SetColorTexture(r, g, b, a) end
+  end
+  -- The flat-control box the windows drew before the skin engine: WHITE8X8 under a 1px edge, inset
+  -- by one (Loot History's degraded arm, the same shapes).
+  local WHITE = "Interface\\Buttons\\WHITE8X8"
+  local function box(frame, fill, edge)
+    if type(frame) ~= "table" or type(frame.SetBackdrop) ~= "function" then return false end
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
+                        insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+    frame:SetBackdropColor(color(fill))
+    frame:SetBackdropBorderColor(color(edge))
+    return true
+  end
+  -- Insights' KPI card and list panel (modules/InsightsWidgets.lua); a card's `opts.title` in the
+  -- heading gold.
+  S.Card = function(frame, opts)
+    box(frame, "card.bg", "card.border")
+    local fs = type(opts) == "table" and opts.title
+    if type(fs) == "table" and fs.SetTextColor then fs:SetTextColor(NS.SkinColor("text.heading")) end
+  end
+  S.Panel = function(frame) box(frame, "panel.bg", "panel.border") end
+  -- The flat bar button (modules/Browser.lua) and the export modal's (modules/Export.lua): the box,
+  -- a white label (`btn.text`) that turns gold under the pointer, the mark at .85.
+  S.Button = function(btn)
+    if not box(btn, "btn.bg", "btn.border") then return end
+    local fs = rawget(btn, "text")
+    if type(fs) == "table" and fs.SetTextColor then fs:SetTextColor(NS.SkinColor("btn.text")) end
+    local icon = rawget(btn, "icon")
+    if type(icon) == "table" and icon.SetVertexColor then icon:SetVertexColor(NS.SkinColor("btn.icon")) end
+    if type(btn.HookScript) == "function" and type(fs) == "table" and fs.SetTextColor then
+      btn:HookScript("OnEnter", function() fs:SetTextColor(NS.SkinColor("btn.hover")) end)
+      btn:HookScript("OnLeave", function() fs:SetTextColor(NS.SkinColor("btn.text")) end)
+    end
+  end
+  -- The History row menu (modules/LedgerTable.lua EnsureRowMenu): the WHITE8X8 box with no insets,
+  -- its fill, and the muted-gold edge (`alt`).
+  S.MenuFrame = function(frame, opts)
+    if type(frame) ~= "table" or type(frame.SetBackdrop) ~= "function" then return end
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    frame:SetBackdropColor(color("menu.bg"))
+    frame:SetBackdropBorderColor(color(type(opts) == "table" and opts.alt and "menu.borderAlt" or "menu.border"))
   end
   -- A bar of data as it was drawn before the skin engine: the flat color, no texture.
   S.BarTexture = function(tex, r, g, b, a)

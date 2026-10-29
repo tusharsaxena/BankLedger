@@ -155,14 +155,15 @@ end)
 case("Autocomplete: Gold is offered when a gold movement is in the slice, in the table's pale gold", function()
   local got = B.SuggestNames("go")
   assertEqual(texts(got), "Gold")
-  local m = NS.LedgerTable.MONEY_RGB
-  assertEqual(table.concat(got[1].color, ","), table.concat(m, ","))
+  -- The owner token bl.gold (BL-G1), the color a gold row's Item cell wears.
+  assertEqual(table.concat(got[1].color, ","), table.concat({ NS.SkinColor("bl.gold") }, ","))
 end)
 
 case("Autocomplete: an item suggestion wears its quality color", function()
   local got = B.SuggestNames("flask")
-  local c = mocks.ITEM_QUALITY_COLORS[3]
-  assertEqual(table.concat(got[1].color, ","), table.concat({ c.r, c.g, c.b }, ","))
+  -- The skin's q.rare (NS.QualityColor), the color the table paints the item in: under Ka0s
+  -- Default the client's own blue, written out.
+  assertEqual(table.concat(got[1].color, ","), table.concat({ NS.QualityColor(3) }, ","))
 end)
 
 case("Autocomplete: suggestions honor the other filters and set the typed text aside", function()
