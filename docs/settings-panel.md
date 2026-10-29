@@ -10,7 +10,7 @@ only. The finer tree is everything below it.
 
 | Page | Tabs | Covers |
 | --- | --- | ------ |
-| General | Master controls · Capture · Filters · Interface · History · Keybindings | The whole addon, on one strip |
+| General | Master controls · Capture · Filters · Interface · History · Skin · Keybindings | The whole addon, on one strip |
 | Profiles | none | AceDBOptions' profile controls: choose, create, copy, delete and reset a profile ([profiles.md](profiles.md)) |
 
 | Tab | Covers |
@@ -20,6 +20,7 @@ only. The finer tree is everything below it.
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your Minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all…**, below the list, empties it after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 | Interface | What is on screen, under two headings. **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default, for every profile at once — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge history…**, which empties the history after asking first. |
+| Skin | The skin this addon wears: the skin source (Ka0s skins, or EllesmereUI when it can skin the addon), the nine Ka0s skins with their swatches, **Font and texture** (a **Font** and a **Texture** dropdown over the skin's own), the Scope (**Ignore settings panel**, **Ignore fonts**), **Copy to every Ka0s addon…**, and a note that skins change every visual element. Per profile, like every other setting. |
 | Keybindings | The one key binding, **Toggle ledger window** (`options-ui-§20`). |
 
 ## Shape
@@ -69,7 +70,7 @@ those are deliberately not suppressed (`options-ui-§7`).
 | Page | Tab strip, in order | Rows per tab |
 |---|---|---|
 | Landing page | — (exempt: the host's own `buildMain`, `options-ui-§13`) | — |
-| General | **Master controls** · **Capture** · **Filters** · **Interface** · **History** · **Keybindings** | 8 · 4 · 1 · 4 · 1 · 0 |
+| General | **Master controls** · **Capture** · **Filters** · **Interface** · **History** · **Skin** · **Keybindings** | 8 · 4 · 1 · 4 · 1 · 7 · 0 |
 
 Inside **Filters** a **secondary** strip (`O.SubTabStrip`, `options-ui-§13`) divides **Blacklist**
 from **Whitelist**. Its selection is `ctx.activeSubTab["Filters"]` — a table keyed by the primary
@@ -101,7 +102,62 @@ Options → Keybindings → Ka0s Bank Ledger and the other way round; it repaint
 and on show, and refuses every write in combat. A key is not a setting: the page's Defaults,
 *Reset all settings* and `/bl reset` never reach one.
 
-**What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the five schema tabs
+**The Skin tab sits after History and before Keybindings, and it is the library's** (skinning-§3).
+Its key is `Appearance` and its label "Skin". `settings/Panel.lua` hands `O.RenderTabbedSchema` a
+second `opts.tabs` entry, `O.AppearanceTab({ owner, get = NS.SkinChoice, set = NS.WriteSkinChoice })`,
+ahead of Keybindings; its key is the group of the seven `skipRender` Appearance rows, declared last in
+`settings/Schema.lua`, so the entry takes that group's place. Its body is the library's: the skin
+source (two radio choices, *EllesmereUI* disabled with the failing gate conditions listed while it
+cannot skin this addon), **Look** (the nine skins three to a line with their swatches), **Font and
+texture** (a **Font** and a **Texture** dropdown side by side, each listing "Skin's own (<key>)"
+first and then every LibSharedMedia font or status bar), the Scope (**Ignore settings panel** and
+**Ignore fonts**, side by side), **Copy to every Ka0s addon…** (a confirmation naming the other
+loaded owners; it copies the Scope and the font and texture too) and the note. A font override
+replaces the skin's body and title face (the mono face and every size stay the skin's); a texture
+override replaces the bar texture every bar of data is drawn in (`NS.SkinBar`: Insights' ranked,
+stacked, split and back-to-back bars and its day and hour strips); **Ignore fonts** wins over a font
+override. `get` and `set` are `core/SkinSetup.lua`'s read and write seams, so a pick is an ordinary
+`NS.Schema:Set` write, `/bl get|set` reaches the same values, and every reset puts them back on Ka0s
+Default with the settings panel ignored and the fonts skinned (the new-profile defaults). A pick calls
+`Skin:SetChoice` (or, for a font or texture, `Skin:SetOverride`) first, the live repaint with no
+reload, then the write; each row's `onChange` applies only its own half and finds it applied, so one
+pick is one repaint. Leaving EllesmereUI after it painted this session asks for a reload (the
+library's popup). A profile switch, copy or reset applies the new profile's skin, Scope and overrides
+(`NS.OnProfileEvent`). Without LibKa0s there is no settings panel at all (below), and the Options stub's
+`AppearanceTab` answers nil, so `settings/Panel.lua` appends no entry.
+
+**The first-run skin picker** (LibKa0s OptionsSkinPicker 1). A small window, **Choose a skin for Ka0s
+Bank Ledger**: a dropdown of the skins (three swatches and each name in that skin's own face), an eye
+button and a gear beside it, and **Apply**, with **Apply to all Ka0s addons** shown only while another
+Ka0s addon that uses skins is loaded. `NS.MaybeShowSkinPicker` (`core/SkinSetup.lua`) shows it while the
+profile's `settings.appearance.pickerSeen` is false: two seconds after login (`addon:OnEnterWorld`,
+once per session), on an addon that stands up, and after every profile switch, copy or reset (a new
+or reset profile starts from `false`). Every profile, existing ones included, starts unseen (the
+rollout's ruling O3). Never while the addon stands down, and in combat a start waits for
+`PLAYER_REGEN_ENABLED`. A pick **previews**: the skin is worn at once but not saved. **Apply** saves it
+through `NS.WriteSkinChoice` and closes the picker; **Apply to all Ka0s addons** does that and gives
+every other Ka0s addon that uses skins the same skin source and skin. The close control and Escape put
+back the skin the profile stores and save nothing. The eye turns test mode on (`LT:SetTestMode(true)`),
+which opens the ledger window with the sample ledger, so the skin shows on this addon's own frames; in
+combat test mode refuses and says so. The gear saves the pending pick, opens the settings panel on the
+General page itself and selects its Skin tab, then closes the picker. Closing it by Apply, the gear,
+its close control or Escape sets `pickerSeen`, so it does not show again on that profile. One picker
+is up at a time across Ka0s addons; while another's is up this one waits in the library's queue. A
+stand-down, or a profile event (first, before the new profile's skin is applied), takes it down, or
+out of the queue, without setting it.
+
+**This addon's own widgets wear the skin too.** Every AceGUI widget `settings/Panel.lua` acquires
+itself goes through its `acquire` (`O.AceGUI:Create`, then `NS.SkinPaintAce`): the store grid's
+inline group and check boxes, the Filters tab's description, its **Clear all…** row and button, and
+the Filters sub-strip host. The Profiles page's renderer calls `NS.SkinPaintAceTree(container)` after
+`AceConfigDialog:Open`, because AceConfigDialog acquires from AceGUI itself. Each painted widget goes
+back to AceGUI's shared pool stock on release (the library chains its restore onto the widget's
+`OnRelease`; no widget here sets a host `OnRelease`), and nothing is painted while **Ignore settings
+panel** is on, a new profile's default. An empty id list reads *(none)* in the skin's `text.disabled`
+(`NS.SkinEscape`, `|cff808080` on Ka0s Default), built on every render so a skin switch reaches it
+with the page's re-render.
+
+**What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the six schema tabs
 has no settings behind it: `S.BespokeRows` declares a single **renderer-only** row for Filters, which
 carries a `group` (so the tab is drawn) and `skipRender` (so the flow engine walks past it) and
 nothing else. It is deliberately not a setting — the lists are an `architecture-§5` structural
@@ -290,6 +346,13 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `settings.rowHoverAlpha` | number | `0.10` | Interface | Windows | |
 | `settings.sim.stepDelay` | number | `1` | Interface | Simulator | *Simulation step delay (seconds)*, its tooltip opening "Paces /bl sim: "; alone under its heading; slider 0.5–10 s in 0.5 s steps, with a `validate` (`NS.SimHost.ValidStepDelay`) |
 | `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
+| `settings.appearance.source` | string | `"ka0s"` | Skin (key `Appearance`) | — | `skipRender`: the library's Skin tab draws it. `ka0s` or `eui` (`NS.SKIN_SOURCE_OPTIONS`); `onChange` applies only the source half |
+| `settings.appearance.skin` | string | `"ka0s"` | Skin | — | `skipRender`. One of the nine registered skins (`NS.SKIN_OPTIONS`), so `/bl set` refuses a key no skin has; `ka0s` is Ka0s Default |
+| `settings.appearance.ignorePanel` | bool | `true` | Skin | — | `skipRender`. **Ignore settings panel**: this addon's settings pages stay the client's; its windows still wear the skin |
+| `settings.appearance.ignoreFonts` | bool | `false` | Skin | — | `skipRender`. **Ignore fonts**: every string keeps its own face and size; wins over a font override |
+| `settings.appearance.font` | string | `""` | Skin | — | `skipRender`. **Font**: an LSM font key over the skin's face, `""` for the skin's own; free text, so a media pack's later key is accepted |
+| `settings.appearance.texture` | string | `""` | Skin | — | `skipRender`. **Texture**: an LSM status bar key for every bar of data, `""` for the skin's own |
+| `settings.appearance.pickerSeen` | bool | `false` | Skin | — | `skipRender`, drawn by nothing: the first-run skin picker was closed on this profile |
 
 **The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of
 the shared ledger is kept, so every profile reads the one value (`db.global.settings.retentionDays`,
@@ -339,7 +402,8 @@ than hand-writing the pair. `tests/test_schema.lua` pins the emptiness so the co
 it is a guard rather than a vacuous one.
 
 **No font, border or bar group, and no reorder list.** This addon paints no status bar, exposes no
-font picker and stores no list whose *order* is a setting, so `options-ui-§16` and `§18` have nothing
+font picker of its own (the Skin tab's **Font** and **Texture** are the library's) and stores no list
+whose *order* is a setting, so `options-ui-§16` and `§18` have nothing
 to compose here.
 
 ### The promoted chrome literals
@@ -363,9 +427,10 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
   SavedVariables is hand-editable and the slider is not the only way a value gets in. Contrast the
   two tint sliders, whose clamps stay *inside* their declared `0`–`0.3` range and so need no such
   narrowing.
-- Neither is the **shared skin's**: `Core.SKIN` owns the window edge, fill, border and title, and
-  `modules/Browser.lua`'s `B:ApplySkin` note lists them byte for byte. The table interior is this
-  addon's own.
+- The **alpha** is the player's, the **color** the skin's: the stripe takes `list.stripe`'s RGB and
+  the hover `list.hover`'s (white and gold under Ka0s Default, the values these rows always drew), so
+  each skin bands its rows in its own colors while the two sliders keep their meaning and defaults
+  (DECISIONS BankLedger D2). `NS.Util.ReskinRowTint` re-reads the RGB on a skin switch.
 - `NS.Util.ApplyRowTint` is the single read, called from `BuildRow` (so a row is right the moment it
   exists) and from `BindRow` (so a recycled row re-reads after the slider moved).
   `NS.Util.RefreshRowTint` is the `onChange`: it rebinds both tables directly and broadcasts
@@ -382,10 +447,10 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 ## The General page's tabs and the Filters tab
 
-The seventeen schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+The twenty-four schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
-**Capture** (4) · **Filters** · **Interface** (4) · **History** (1), then the library's host tab
-**Keybindings** (`options-ui-§20`, above). Filters carries no settings at
+**Capture** (4) · **Filters** · **Interface** (4) · **History** (1) · **Skin** (7, the Appearance group,
+drawn by the library's entry), then the library's host tab **Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
 `NS.Schema:PageRows()` and not `NS.Schema.Schema` is what the strip partitions. Inside that tab a
@@ -408,8 +473,8 @@ carries the full name. That write fires
 `ctx.__filterWrite`) and the widget's redraw goes through `ctx.rebuild` = `O.RefreshPanel(ctx, true)`:
 one add or Remove repaints this page once, rather than twice across every rendered page.
 
-Those five tab names and their order are **shared with Ka0s Loot History**, whose strip is the same
-five plus **AH Price** (its item 020 change LOO-L08 moves its Filters to the same third place). The two addons keep the same shape of record and a player
+Those tab names and their order are **shared with Ka0s Loot History**, whose strip is the same plus
+**AH price** (its item 020 change LOO-L08 moves its Filters to the same third place). The two addons keep the same shape of record and a player
 compares their panels directly; one naming a subject *Capture* while the other called it *Collection*
 was two names for one thing. A tab name is a `group`, never a stored path, so the convergence was a
 rename and carried no migration (`options-ui-§15`).

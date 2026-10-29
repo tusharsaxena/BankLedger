@@ -1,27 +1,38 @@
 # Windows
 
-Two standalone windows, both plain non-secure frames sharing one `SKIN` / `ApplySkin` seam and one
+Two standalone windows, both plain non-secure frames sharing one skin seam (`B:ApplySkin`) and one
 close-button factory (`modules/Browser.lua`), each with its own persisted geometry carve-out.
 
+**Both wear the player's skin** (skinning-§3; [ARCHITECTURE.md → Skins](ARCHITECTURE.md#skins)).
+`B:ApplySkin` hands the frame to the owner's `Shell` (`NS.Skin.Shell`, LibKa0s-Skin-1.0) with
+`noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`, its divider
+through `NS.Skin.Divider`; the export modal does the same on its 26px bar. Under Ka0s Default that is
+the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it, the
+gold title and the gray divider) plus the skin's faint `title.bg` band on the title bars and
+`list.header.bg` on the table headers (DECISIONS BankLedger D6). Every frame is recorded for this
+addon's owner, so a skin switch repaints it live; the pooled rows, the tab labels and the tinted marks
+are redone by `NS.Skin.OnLooksChanged` listeners. Without the library the degraded facade's `Shell`
+routes to `core/CoreSetup.lua`'s pre-library `NS.ApplySkin`, which draws the same Ka0s Default edge.
+`B.SKIN` keeps only the layout heights; no color lives there.
+
 The debug console and its copy box are a third and a fourth standalone frame, but they are the
-**library's** — `LibKa0s-DebugLog-1.0` draws them. They wear the same edge, because that edge is no
-longer this addon's alone: `Core.SKIN` carries the flat 1px black border, the 1px light-gray line
-synthesized just inside it, the gold title and the gray divider, and the `SKIN` table above agrees
-with it value for value. The descriptor still passes `applySkin`, so the console follows
-`modules/Browser.lua` if that skin is ever retuned. What it does **not** pass is a close-button
-factory: those two windows close with the library's own 18×18 control, not the 24×24 one
-`B:MakeCloseButton` builds for the ledger and session windows. `standalone-windows` draws the line there — the edge is shared
-across every Ka0s window, the close control on a library-drawn window belongs to the library — and
-the point of it is that a user comparing two Ka0s consoles side by side sees one collection's
-diagnostics surface, not five different ones.
+**library's** — `LibKa0s-DebugLog-1.0` draws them, painted for this addon's skin owner because the
+descriptor passes `addonName` and **no** `applySkin` (DebugLog minor 22). What it does not pass
+either is a close-button factory: those two windows close with the library's own 18×18 control, not
+the 24×24 one `B:MakeCloseButton` builds for the ledger and session windows. `standalone-windows`
+draws the line there — the edge is the skin's on every Ka0s window, the close control on a
+library-drawn window belongs to the library — and the point of it is that a user comparing two Ka0s
+consoles side by side sees one collection's diagnostics surface, not five different ones.
 
 Both factories now draw the **same mark**, from opposite directions. `LibKa0s-Media-1.0` ships the
 collection's `close` icon; the library resolves it for its own windows once the descriptor passes
 `addonName`, and `B:MakeCloseButton` resolves it through `NS.Icon` for these two. Neither deleted
 what it drew before: without LibKa0s the library falls back to a multiplication sign and this addon
 falls back to its own 24pt ×, and both windows still close. The sizes still differ on purpose — an
-18×18 control on a 26px library title bar, 24×24 on this addon's 30px one — and the hover tint stays
-this addon's class color on its own windows. See [media.md](media.md).
+18×18 control on a 26px library title bar, 24×24 on this addon's 30px one. `B:MakeCloseButton` paints
+through the skin's `CloseButton` with `stockDefault`: under Ka0s Default the host keeps its own 0.85
+rest (`bl.closeRest`) and the player's class color on hover; under every other skin the primitive
+draws `close.rest` and `close.hot` (DECISIONS BankLedger D1). See [media.md](media.md).
 
 **Master scale, master alpha and `Lock frame` are one seam, not per-window settings.** Every movable
 frame this addon builds — the ledger window, the session window and the export modal — calls

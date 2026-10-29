@@ -172,7 +172,7 @@ lives.
 
 ## Credits
 
-The debug console and the ledger window's sort arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1.
+The debug console and the ledger window's ▲/▼ direction arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1.
 
 Ka0s Default, the skin every profile starts on, draws [Oxanium](https://github.com/sevmeyer/oxanium)
 by The Oxanium Project Authors, also SIL Open Font License 1.1.

@@ -77,8 +77,12 @@ back to the tab.
    the shipped default rather than to zero.
 3. **A pair of literals is usually a pair of settings.** A value at rest and a value on hover are two
    answers to two questions; do not collapse them into one slider.
-4. **Do not promote a value `Core.SKIN` owns.** The shared skin carries the window edge, fill, border
-   and title across every Ka0s window; a per-addon copy of one is the copy that goes stale.
+4. **Do not promote a value the skin owns.** A color, face or texture belongs to the player's skin
+   (`NS.Skin`, `core/SkinSetup.lua`), chosen on the Skin tab; a setting over one is a second answer to
+   the same question. Read the token at the call site (`NS.SkinColor`, `S.Text`, ...) instead, and
+   where Ka0s Default needs a value no library token holds exactly, declare an owner token in
+   `NS.SKIN_TOKENS` (`bl.*`). `tests/test_skin_literals.lua` refuses a typed color outside that file
+   (anti-pattern #107).
 
 ## Add a slash command
 
@@ -167,8 +171,9 @@ rest; names this build rejected land in `NS.EventRecord.unavailable` and are rep
 
 ## Add a window
 
-Both existing windows are plain non-secure frames sharing one `SKIN` / `ApplySkin` seam and one
-close-control factory — `B:MakeCloseButton`, which draws the collection's shared `close` mark and
+Both existing windows are plain non-secure frames sharing one skin seam (`B:ApplySkin`, the
+owner's `Shell`; paint the title bar through `NS.Skin.TitleBar` and every other surface through the
+facade, so the window follows the Skin tab live) and one close-control factory — `B:MakeCloseButton`, which draws the collection's shared `close` mark and
 keeps a 24pt × as the rung below it. Reach for that factory rather than a fourth hand-rolled ×.
 Call `NS.Util.ApplyMasterFrame(frame)` once the frame is built, **after** the stock
 `SetMovable(true)`: it is the single seam behind master scale, master alpha and `Lock frame`
