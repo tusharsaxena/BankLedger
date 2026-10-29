@@ -114,7 +114,17 @@ test("Skin picker: the spec names this owner, its seams, the Skin tab and the ey
   assertEqual(spec.owner, OWNER)
   assertTrue(rawequal(spec.get, NS.SkinChoice), "get is the read seam")
   assertTrue(rawequal(spec.set, NS.WriteSkinChoice), "set is the write seam")
-  assertEqual(spec.page, "General")
+  -- The page key is read from settings/Panel.lua's own registration, not a literal: the library
+  -- matches it exactly (OptionsRegistry's p.key, Options' ctx.pageKey), and a display name in its
+  -- place ("General") opens the landing page and selects no tab.
+  local f = assert(io.open((T.root or ".") .. "/settings/Panel.lua", "rb"))
+  local src = f:read("*a")
+  f:close()
+  local registered = src:match('O%.RegisterOptionsPage%("([^"]+)", "General"')
+  local panelKey = src:match('"BankLedgerGeneralPanel", "General", {%s*pageKey = "([^"]+)"')
+  assertTrue(registered ~= nil, "the General page's RegisterOptionsPage key was not found")
+  assertEqual(panelKey, registered, "the General panel's pageKey is its registered key")
+  assertEqual(spec.page, registered, "the gear opens the page by its registered key")
   assertEqual(spec.tab, "Appearance", "the Skin tab's key")
   assertEqual(type(spec.onPreview), "function", "the eye: this addon has a window to preview in (X6)")
   assertEqual(type(spec.onClose), "function")

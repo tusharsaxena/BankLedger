@@ -375,10 +375,12 @@ end
 function NS.SkinPickerSpec()
   return {
     owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice,
-    -- The gear's default: O.OpenOptionsPanel("General") opens that page's own subcategory, then
-    -- O.SelectTab("General", "Appearance"), the Skin tab's key on the General page
-    -- (settings/Panel.lua, the group of the skipRender appearance rows).
-    page = "General", tab = "Appearance",
+    -- The gear's default: O.OpenOptionsPanel("general") opens that page's own subcategory, then
+    -- O.SelectTab("general", "Appearance"), the Skin tab's key on the General page. "general" is
+    -- the key settings/Panel.lua gives O.RegisterOptionsPage and the panel's pageKey (the library
+    -- matches it exactly; the page's display name "General" opens the landing page instead), and
+    -- "Appearance" is the group of the skipRender appearance rows.
+    page = "general", tab = "Appearance",
     onPreview = previewSkin, onClose = pickerClosed,
   }
 end
