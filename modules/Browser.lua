@@ -105,6 +105,27 @@ end
 -- the owner token bl.closeRest (0.85 under Ka0s Default, close.rest in every other skin), so even
 -- the host's own OnLeave lands on the skin's value there. The class color is game meaning (the
 -- rollout's E3); its fallback, with no class to read, is the accent.
+--
+-- THE WAY BACK. Under another skin the primitive tints the art from close.rest and saves no prior
+-- color, so on a switch back to Ka0s Default its unpaint has nothing to put back and the art would
+-- keep that skin's rest until the first hover-out ran the host's OnLeave. Every close control this
+-- builds is kept in a weak list, and the OnLooksChanged listener below re-tints each from
+-- bl.closeRest: Ka0s Default's 0.85, and close.rest (what the primitive just drew) everywhere else.
+local closeControls = setmetatable({}, { __mode = "k" })
+
+local function restTint(close)
+  local rest = { NS.SkinColor("bl.closeRest") }
+  if rest[1] == nil then return end
+  if close.icon then close.icon:SetVertexColor(rest[1], rest[2], rest[3]) end
+  if close.glyph then close.glyph:SetTextColor(rest[1], rest[2], rest[3]) end
+end
+
+if NS.Skin then
+  NS.Skin.OnLooksChanged(function()
+    for close in pairs(closeControls) do restTint(close) end
+  end)
+end
+
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
@@ -142,6 +163,7 @@ function B:MakeCloseButton(parent, onClick)
   -- After the host's scripts: the primitive HookScripts its hover pair, and a SetScript after it
   -- would replace the hook.
   NS.Skin.CloseButton(close, { stockDefault = true })
+  closeControls[close] = true
   return close
 end
 

@@ -208,3 +208,29 @@ test("skin windows: the close control keeps its own look under Ka0s Default and 
     switch()
     assertEqual(tok("bl.closeRest"), tok("close.rest"), "elsewhere the rest tint is the skin's close.rest")
   end))
+
+test("skin windows: a switch back to Ka0s Default puts the close control's art back on its own rest tint",
+  clean(function()
+    -- red under: a close control nothing re-tints on the way back. The primitive tints the art from
+    -- close.rest under another skin and saves no prior color, so with stockDefault its unpaint has
+    -- nothing to restore and the art keeps that skin's rest until the first hover-out.
+    local close = NS.Browser:MakeCloseButton(mocks.UIParent, function() end)
+    -- The repo mock's regions store no color and name no object type, so the art says what it is
+    -- (the primitive reaches it through close.icon / close.glyph only as a Texture / FontString)
+    -- and remembers its last tint itself, as recTex does above.
+    local art = close.icon or close.glyph
+    local kind = close.icon and "Texture" or "FontString"
+    rawset(art, "GetObjectType", function() return kind end)
+    local last
+    local function remember(_, r, g, b) last = { r, g, b } end
+    rawset(art, "SetVertexColor", remember)
+    rawset(art, "SetTextColor", remember)
+    local function painted()
+      assertTrue(last ~= nil, "nothing tinted the close control's art")
+      return rgb(last)
+    end
+    switch()
+    assertEqual(painted(), tok("close.rest"), "another skin paints its own close.rest")
+    reset()
+    assertEqual(painted(), "0.8500,0.8500,0.8500", "Ka0s Default's rest tint, with no hover-out")
+  end))
