@@ -196,6 +196,9 @@ local function tint255(rgb)
 end
 
 local ARROW_ASC, ARROW_DESC, GROUP_SHUT, GROUP_OPEN
+-- The group header's "(n)" count escape, text.disabled: also resolved once per skin here, because
+-- BindRow runs on every scroll tick and a token read there would be one per bound header.
+local COUNT_ESC = ""
 
 --- Resolve every cached color from the live skin and rebuild the four tinted marks. At load and on
 --- every skin switch; allocation is fine here, it runs once per switch.
@@ -217,6 +220,7 @@ function LT.ReskinColors()
   ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",     " ", tint)
   GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up",  nil, tint)
   GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up", nil, tint)
+  COUNT_ESC   = NS.SkinEscape("text.disabled") or ""
 end
 LT.ReskinColors()
 
@@ -885,7 +889,7 @@ function LT:BindRow(row, item, absIndex)
     -- own +/- box on one without the shared art.
     local arrow = item.collapsed and GROUP_SHUT or GROUP_OPEN
     row.header:SetText(arrow .. "  " .. (item.label or "")
-      .. "  " .. (NS.SkinEscape("text.disabled") or "") .. "(" .. (item.count or 0) .. ")|r")
+      .. "  " .. COUNT_ESC .. "(" .. (item.count or 0) .. ")|r")
     return
   end
 

@@ -128,6 +128,35 @@ test("skin windows: a switch re-resolves the table's cached colors and its tinte
   assertTrue(fs.text:find(want, 1, true) ~= nil, "the sort arrow kept the old skin's tint: " .. fs.text)
 end))
 
+test("skin windows: a group header's count reads the cached escape, never a token per bind", clean(function()
+  -- red under: BindRow resolving text.disabled itself. It runs on every OnVerticalScroll tick, so
+  -- the escape is resolved once per skin in LT.ReskinColors, beside the four tinted marks.
+  switch()
+  local function fsStub()
+    local fs = { text = "" }
+    function fs:SetText(v) self.text = v end
+    fs.SetTextColor, fs.Show, fs.Hide = function() end, function() end, function() end
+    return fs
+  end
+  local row = {
+    stripe = { SetShown = function() end, SetColorTexture = function() end },
+    rowHover = { SetColorTexture = function() end },
+    dirGlyph = { Hide = function() end },
+    header = fsStub(), cells = {},
+  }
+  for _, col in ipairs(LT.COLUMNS) do row.cells[col.key] = fsStub() end
+  local want = NS.SkinEscape("text.disabled") .. "(3)|r"
+  local real, reads = NS.SkinEscape, 0
+  NS.SkinEscape = function(...) reads = reads + 1; return real(...) end
+  local ok, err = pcall(LT.BindRow, LT, row,
+    { kind = "header", collapsed = true, label = "Character Bank", count = 3 }, 1)
+  NS.SkinEscape = real
+  assertTrue(ok, tostring(err))
+  assertEqual(reads, 0, "BindRow resolved a token")
+  assertTrue(row.header.text:find(want, 1, true) ~= nil, "the count is not in the switched skin's "
+    .. "text.disabled: " .. row.header.text)
+end))
+
 test("skin windows: the row tints take the skin's RGB and keep the player's slider alpha", clean(function()
   -- The rollout's D2: list.stripe / list.hover give the color, the Interface sliders the alpha.
   local g = NS.db.profile.settings
