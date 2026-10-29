@@ -552,11 +552,13 @@ leaves its number unused.
 - **LEDG-34. The Insights export.** Export from the Insights tab → the sectioned summary, not raw rows.
   Result: pass (owner-marked 2026-10-10)
 - **LEDG-35. Host close marks.** `/bl show` → the close control is an outlined ×, not a font
-  character; hover → your class color; click → closes. Check `/bl session` and the Export modal → the
-  same mark (all three use `B:MakeCloseButton`). Result: pass (owner-marked 2026-10-23)
+  character; hover → the skin's close hover (red under Ka0s Default; BL-A1 retired the class
+  color); click → closes. Check `/bl session` and the Export modal → the same mark (all three use
+  `B:MakeCloseButton`). Result: pass (owner-marked 2026-10-23, against the class-colored hover);
+  re-run after BL-A1:
 - **LEDG-36. The copy window's close is the library's.** Export to CSV and look at the copy window's
-  title bar → the library's outlined close mark, 18×18 with a red hover (the host's is 24×24 with a
-  class-colored hover), reading as a close button and not clipped by the 26px bar. A font × there is a
+  title bar → the library's outlined close mark, 18×18 with a red hover (the host's is 24×24, with the
+  same red hover since BL-A1), reading as a close button and not clipped by the 26px bar. A font × there is a
   library regression. Result: pass (owner-marked 2026-10-23)
 - **LEDG-37. Dropdown art.** Count the filter bar's dropdowns → eight chevrons, not Blizzard's filled
   arrow: Group by on row 1, then Date, Direction, Store, Quality, Type, Sub-type, Character on row 2;
@@ -1069,7 +1071,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   except the ▲/▼ direction glyphs (mono) and the close ×; the Insights bars of data (ranked, stacked,
   split and back-to-back bars and the day and hour strips) wear the **Ka0s Default** bar texture in
   the colors they had; the three title bars carry the skin's faint title band and both tables' header
-  rows a faint header band (DECISIONS BankLedger D6). Bank Ledger has no HUD, so the rollout's
+  rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
+  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Bank Ledger has no HUD, so the rollout's
   one-time HUD style reset (O2) changes nothing here and there is no HUD change to look for (the
   rollout's X5 does not apply; BL-03 is recorded as an exception). **Fail:** any other changed color,
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
@@ -1088,12 +1091,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   repaint, and text stays readable. Switch to Insights and repeat for a few skins → the cards, panels,
   headings, rules, bars, tracks, axes and legend repaint. Do the same with the session window open
   (`/bl session`). **Fail:** a surface that keeps the old skin until `/reload`. Result:
-- **SKIN-4. The close control (BL-02; DECISIONS BankLedger D1).** Under **Ka0s Default** hover the
-  close control on the ledger window, the session window and the Export modal → light gray at rest,
-  your **class color** on hover, as before. Under **Obsidian** and **Azeroth** → each skin's own close
-  tints at rest and on hover, the same on all three windows, and back to gray-and-class-color on Ka0s
-  Default with no reload. **Fail:** the class color under another skin, or the skin's tints under Ka0s
-  Default. Result:
+- **SKIN-4. The close control (BL-02, rewritten for BL-A1).** Under **Ka0s Default** hover the close
+  control on the ledger window, the session window and the Export modal → the skin's gray at rest and
+  **red** on hover, the same as the copy window's and the debug console's library close control. Under
+  **Obsidian** and **Azeroth** → each skin's own close tints at rest and on hover, the same on all
+  three windows, and back to gray-and-red on Ka0s Default with no reload and no hover needed. **Fail:**
+  your class color on hover in any skin, a 0.85 near-white rest, or a window whose close control keeps
+  the previous skin's tint after a switch. Result:
 - **SKIN-5. Row bands keep their sliders (BL-02; DECISIONS BankLedger D2).** Under a non-default skin
   (Azeroth reads clearest), look at History's even rows and hover a row → the band and the hover wash
   are the skin's colors. General → Interface: drag both row sliders to their maximum, then to 0 → the
@@ -1268,7 +1272,8 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   restore. `/bl show`, `/bl test`, then `/bl session` → both windows draw the Ka0s Default edge (a 1px
   black border with a light-gray line inside, the gold title, the gray divider), the tab labels in
   gold and gray, the bar buttons, the table's gold headers, the row bands and the red `TEST MODE`
-  title badge, all in the game's own fonts; no skin picker opens. **Fail:** a Lua error naming
+  title badge, all in the game's own fonts, the close control gray at rest and red on hover (BL-A1);
+  no skin picker opens. **Fail:** a Lua error naming
   `core/SkinSetup.lua` or `NS.Skin`, a window with no edge, or white text where gold was. Result:
 
 ## Non-English client
@@ -1339,4 +1344,5 @@ each check's `Result:` line as `pass (owner, 2026-10-24)`.
 
 Owed from the skinning rollout (2026-10-29, Ka0sAddonsCommonTasks
 `docs/2026-10-29-SKINNING_ROLLOUT/`, items BL-01 to BL-04), none of them run yet: PANEL-4
-(rewritten for the Skin tab), SKIN-1 to SKIN-26 and DEGRADED-15.
+(rewritten for the Skin tab), SKIN-1 to SKIN-26 and DEGRADED-15. BL-A1 (the close control is the skin's, red on hover under Ka0s
+Default) rewrote SKIN-4 and touched SKIN-1 and DEGRADED-15, and owes a re-run of LEDG-35.

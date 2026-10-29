@@ -76,8 +76,8 @@ function B:ApplySkin(f, opts)
 end
 
 -- The close control every window this addon draws wears: the collection's `close` mark where the
--- shared art is there, and the thin × glyph it has always drawn where it is not. Light gray at
--- rest, the player's class color on hover, either way. Shared by the ledger window (Browser.lua),
+-- shared art is there, and the thin × glyph it has always drawn where it is not. The skin's
+-- close.rest at rest and close.hot on hover, either way (BL-A1). Shared by the ledger window (Browser.lua),
 -- the session window (SessionWindow.lua) and the export modal (Export.lua); the export COPY window
 -- is LibKa0s-Widgets-1.0's CopyWindow and wears the library's close. NOT by the debug
 -- console: that is the LIBRARY's window and wears Core's own 18x18 close — the edge is shared
@@ -94,49 +94,16 @@ end
 --
 -- The art ships WHITE so a multiply lands wherever the caller asks.
 --
--- THE SKIN, AND WHY KA0S DEFAULT KEEPS THIS ADDON'S OWN TINTS. The skin's CloseButton primitive
--- paints the art from `close.rest` and `close.hot` and hooks the hover pair. Under Ka0s Default
--- those are a 0.7 gray and a red, where this button has always been 0.85 at rest and the PLAYER'S
--- CLASS COLOR under the pointer; the rollout's rule is that Ka0s Default looks exactly as it did
--- (DECISIONS, BankLedger D1, left for the owner). So the primitive is called with
--- `stockDefault`: while the owner draws Ka0s Default it paints nothing and its hover hooks are
--- inert, and the host's own pair below draws today's look; under every other skin it paints the
--- skin's pair, and its hooks (which run after the host's scripts) win the hover. The rest color is
--- the owner token bl.closeRest (0.85 under Ka0s Default, close.rest in every other skin), so even
--- the host's own OnLeave lands on the skin's value there. The class color is game meaning (the
--- rollout's E3); its fallback, with no class to read, is the accent.
---
--- THE WAY BACK. Under another skin the primitive tints the art from close.rest and saves no prior
--- color, so on a switch back to Ka0s Default its unpaint has nothing to put back and the art would
--- keep that skin's rest until the first hover-out ran the host's OnLeave. Every close control this
--- builds is kept in a weak list, and the OnLooksChanged listener below re-tints each from
--- bl.closeRest: Ka0s Default's 0.85, and close.rest (what the primitive just drew) everywhere else.
-local closeControls = setmetatable({}, { __mode = "k" })
-
-local function restTint(close)
-  local rest = { NS.SkinColor("bl.closeRest") }
-  if rest[1] == nil then return end
-  if close.icon then close.icon:SetVertexColor(rest[1], rest[2], rest[3]) end
-  if close.glyph then close.glyph:SetTextColor(rest[1], rest[2], rest[3]) end
-end
-
-if NS.Skin then
-  NS.Skin.OnLooksChanged(function()
-    for close in pairs(closeControls) do restTint(close) end
-  end)
-end
-
+-- THE SKIN (BL-A1, the owner's ruling: one close control across every Ka0s addon and skin). The
+-- button is handed to the skin's CloseButton primitive the way every other Ka0s close control is:
+-- no `stockDefault`, and no hover scripts of the host's own to fight it. The primitive tints the art
+-- from `close.rest`, hooks the hover pair (`close.hot` under the pointer, `close.rest` after it) and
+-- repaints on a skin switch, in every skin including Ka0s Default (its gray, and its red on hover).
+-- What stays the host's is the 24x24 size and this addon's own art lookup (standalone-windows).
+-- Degraded, core/SkinSetup.lua's facade draws the same pair from its host copy of Ka0s Default.
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
-  -- A direct read, not NS.Compat.PlayerClass: the tint is cosmetic, applied once at build and never
-  -- stored, so no simulator has to answer it (the compat-boundary test lists it as allowed).
-  local _, class = UnitClass("player")
-  local cc = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
-  local function hot()
-    if cc then return cc.r, cc.g, cc.b end
-    return NS.SkinColor("text.accent")
-  end
 
   local path = NS.Icon and NS.Icon("close")
   if path then
@@ -144,9 +111,6 @@ function B:MakeCloseButton(parent, onClick)
     art:SetPoint("CENTER")
     art:SetSize(12, 12)
     art:SetTexture(path)
-    art:SetVertexColor(NS.SkinColor("bl.closeRest"))
-    close:SetScript("OnEnter", function() art:SetVertexColor(hot()) end)
-    close:SetScript("OnLeave", function() art:SetVertexColor(NS.SkinColor("bl.closeRest")) end)
     close.icon = art
   else
     local x = close:CreateFontString(nil, "OVERLAY")
@@ -156,17 +120,12 @@ function B:MakeCloseButton(parent, onClick)
     NS.Skin.Font(x)
     x:SetPoint("CENTER", close, "CENTER", 0, 2)   -- the × sits low in its font box; nudge it up
     x:SetText("\195\151")
-    x:SetTextColor(NS.SkinColor("bl.closeRest"))
-    close:SetScript("OnEnter", function() x:SetTextColor(hot()) end)
-    close:SetScript("OnLeave", function() x:SetTextColor(NS.SkinColor("bl.closeRest")) end)
     close.glyph = x
   end
 
   close:SetScript("OnClick", onClick)
-  -- After the host's scripts: the primitive HookScripts its hover pair, and a SetScript after it
-  -- would replace the hook.
-  NS.Skin.CloseButton(close, { stockDefault = true })
-  closeControls[close] = true
+  -- The art is in place first: the primitive reaches it through close.icon / close.glyph.
+  NS.Skin.CloseButton(close)
   return close
 end
 

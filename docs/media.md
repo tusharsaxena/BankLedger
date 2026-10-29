@@ -83,8 +83,8 @@ Four rules govern every one of them, and each cost the collection something to l
   CSV** does wear one: it is alone in its window with no unmarked siblings to be odd against.
 - **No mark carries a tooltip.** A mark that needs one is a label that should have stayed a label.
 
-**Every mark is toned to the surface it sits on, in the player's skin.** Under Ka0s Default `close`
-wears 0.85 gray (the owner token `bl.closeRest`; every other skin draws `close.rest`), the dropdown
+**Every mark is toned to the surface it sits on, in the player's skin.** `close` wears the skin's
+`close.rest` (Ka0s Default's 0.7 gray) and turns `close.hot` under the pointer (BL-A1), the dropdown
 chevron and the search magnifier 0.7, the modal's export mark 0.85 (`btn.icon`) — the shared art ships
 white by contract, so a mark on a *widget* is tinted down through `SetVertexColor`.
 

@@ -115,10 +115,8 @@ NS.SKIN_TOKENS = {
   -- The Insights widgets' unknown-quality fallback (D9, ruled by X1 to stay exact): a quality id
   -- the client has no color for. sem.unknown is {0.6, 0.6, 0.6}, 0.02 off in blue.
   ["bl.qualityUnknown"] = { default = { 0.60, 0.60, 0.62, 1 }, follow = "sem.unknown" },
-  -- The close control's rest tint (modules/Browser.lua B:MakeCloseButton, DECISIONS BankLedger D1):
-  -- this addon's own 0.85 under Ka0s Default, where the button keeps its own look; close.rest in
-  -- every other skin, the primitive's own rest color, so the host's OnLeave lands on it there.
-  ["bl.closeRest"]      = { default = { 0.85, 0.85, 0.85, 1 }, follow = "close.rest" },
+  -- (No token for the close control, BL-A1: it is the library's standard one, close.rest at rest and
+  -- close.hot on hover in every skin, Ka0s Default included.)
 }
 
 -- The Ka0s Default LIBRARY tokens the DEGRADED facade answers, copied from the library and limited
@@ -191,6 +189,9 @@ NS.SKIN_FALLBACK = {
   },
   ["sem.goodAlt"]   = { 0.25, 1, 0.25, 1 },
   ["sem.badAlt"]    = { 1, 0.25, 0.25, 1 },
+  -- The close control (modules/Browser.lua B:MakeCloseButton, BL-A1): the art at rest and on hover.
+  ["close.rest"]    = { 0.7, 0.7, 0.72, 1 },
+  ["close.hot"]     = { 1, 0.3, 0.3, 1 },
 }
 
 --- A color token's components AS A CALL SITE WRITES THEM: r, g, b for an opaque color and r, g, b,
@@ -543,6 +544,24 @@ if not Skin then
     if type(btn.HookScript) == "function" and type(fs) == "table" and fs.SetTextColor then
       btn:HookScript("OnEnter", function() fs:SetTextColor(NS.SkinColor("btn.hover")) end)
       btn:HookScript("OnLeave", function() fs:SetTextColor(NS.SkinColor("btn.text")) end)
+    end
+  end
+  -- The close control (modules/Browser.lua B:MakeCloseButton, BL-A1): the library's look from the
+  -- host copy, its art (`icon`, else `glyph`) in close.rest, close.hot under the pointer.
+  S.CloseButton = function(btn)
+    if type(btn) ~= "table" then return end
+    local icon = rawget(btn, "icon")
+    local art = icon or rawget(btn, "glyph")
+    local method = icon and "SetVertexColor" or "SetTextColor"
+    if type(art) ~= "table" or type(art[method]) ~= "function" then return end
+    local function tint(name)
+      local r, g, b = color(name)
+      if r then art[method](art, r, g, b) end
+    end
+    tint("close.rest")
+    if type(btn.HookScript) == "function" then
+      btn:HookScript("OnEnter", function() tint("close.hot") end)
+      btn:HookScript("OnLeave", function() tint("close.rest") end)
     end
   end
   -- The History row menu (modules/LedgerTable.lua EnsureRowMenu): the WHITE8X8 box with no insets,

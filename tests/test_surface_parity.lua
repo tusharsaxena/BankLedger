@@ -673,6 +673,17 @@ test("parity: the degraded facade draws today's edge, and answers the owner toke
   end
   local r, g, b = S.Color("title.text")
   assertTrue(r == 1 and g == 0.82 and b == 0, "the degraded title color is not today's gold")
+  -- The close control (BL-A1): close.rest at rest, close.hot under the pointer, from the host copy.
+  local scripts, last = {}, nil
+  local art = { SetVertexColor = function(_, cr, cg, cb) last = ("%s,%s,%s"):format(cr, cg, cb) end }
+  local btn = { icon = art, HookScript = function(_, script, fn) scripts[script] = fn end }
+  S.CloseButton(btn)
+  assertEqual(last, "0.7,0.7,0.72", "the degraded close control's rest is not close.rest")
+  assertTrue(scripts.OnEnter ~= nil and scripts.OnLeave ~= nil, "the degraded close control has no hover")
+  scripts.OnEnter()
+  assertEqual(last, "1,0.3,0.3", "the degraded close control's hover is not close.hot")
+  scripts.OnLeave()
+  assertEqual(last, "0.7,0.7,0.72", "the degraded close control does not return to close.rest")
   for name, def in pairs(skinNS.SKIN_TOKENS) do
     local tr, tg, tb = S.Color(name)
     assertTrue(tr == def.default[1] and tg == def.default[2] and tb == def.default[3],

@@ -3,9 +3,10 @@
 --
 -- What this pins, and nothing the library pins itself: Ka0s Default draws the values these surfaces
 -- drew before the skin engine (the History table's cached colors and the four tinted marks, the row
--- tints, the Insights triples, the palette and the signed escapes, the close control's own tints),
--- and a skin switch moves every one of them with no reload, because each is either a recorded
--- primitive or a host cache re-resolved in an OnLooksChanged listener.
+-- tints, the Insights triples, the palette and the signed escapes), the close control wears the
+-- skin's own close.rest / close.hot (BL-A1), and a skin switch moves every one of them with no
+-- reload, because each is either a recorded primitive or a host cache re-resolved in an
+-- OnLooksChanged listener.
 --
 -- THE SWITCH SKIN. A shipped skin no longer moves every token these cases compare (Loot History's
 -- tests/skin_support.lua says why), so the cases switch to SWITCH, a test-only skin: Obsidian's
@@ -220,50 +221,73 @@ test("skin windows: a switch moves the Insights triples in place, the palette an
 end))
 
 -- ── the close control ────────────────────────────────────────────────────────────────────────
+--
+-- BL-A1 (the owner's ruling): the close control is the library's standard one, as on every other
+-- Ka0s addon and skin. B:MakeCloseButton hands its button to S.CloseButton with no stockDefault and
+-- sets no hover scripts of its own, so the art wears close.rest at rest and close.hot under the
+-- pointer in EVERY skin, Ka0s Default included (its gray, and its red on hover), and a skin switch
+-- moves both with no reload.
 
-test("skin windows: the close control keeps its own look under Ka0s Default and is the skin's elsewhere",
+-- The repo mock's regions store no color and name no object type, so the art says what it is (the
+-- primitive reaches it through close.icon / close.glyph only as a Texture / FontString) and
+-- remembers its last tint itself, as recTex does above. Answers a reader of that last tint.
+local function watchArt(close)
+  local art = close.icon or close.glyph
+  local kind = close.icon and "Texture" or "FontString"
+  rawset(art, "GetObjectType", function() return kind end)
+  local box = {}
+  local function remember(_, r, g, b) box.last = { r, g, b } end
+  rawset(art, "SetVertexColor", remember)
+  rawset(art, "SetTextColor", remember)
+  return function()
+    assertTrue(box.last ~= nil, "nothing tinted the close control's art")
+    return rgb(box.last)
+  end
+end
+
+test("skin windows: the close control is the skin's under Ka0s Default, close.rest at rest and close.hot on hover",
   clean(function()
-    -- DECISIONS BankLedger D1: today's 0.85 rest and class-color hover are kept while the owner draws
-    -- Ka0s Default (the primitive's stockDefault), and the primitive is recorded so any other skin
-    -- paints close.rest / close.hot.
+    -- red under: the BL-02 stockDefault, whose hover hooks are inert under Ka0s Default so the host's
+    -- own pair drew 0.85 and the player's class color; or a host OnEnter / OnLeave that fights the
+    -- primitive's hooks.
     local close = NS.Browser:MakeCloseButton(mocks.UIParent, function() end)
     local rec = Skin.painted and Skin.painted[close]
     assertTrue(rec ~= nil and rec.owner == OWNER, "the close control is not recorded for this owner")
     local args = rec.calls and rec.calls.CloseButton
-    local opts = type(args) == "table" and (args[1] or args.n and args[1]) or nil
-    assertTrue(type(opts) == "table" and opts.stockDefault == true,
-      "the close control is not kept as this addon's own under Ka0s Default")
-    assertEqual(tok("bl.closeRest"), "0.8500,0.8500,0.8500", "Ka0s Default's rest tint")
-    switch()
-    assertEqual(tok("bl.closeRest"), tok("close.rest"), "elsewhere the rest tint is the skin's close.rest")
+    local opts = type(args) == "table" and args[1] or nil
+    assertTrue(not (type(opts) == "table" and opts.stockDefault), "the close control is still kept stock")
+    local painted = watchArt(close)
+    assertEqual(tok("close.hot"), "1.0000,0.3000,0.3000", "Ka0s Default's close.hot is its red")
+    close:__fire("OnEnter")
+    assertEqual(painted(), tok("close.hot"), "Ka0s Default's hover is close.hot")
+    close:__fire("OnLeave")
+    assertEqual(painted(), tok("close.rest"), "Ka0s Default's rest is close.rest")
   end))
 
-test("skin windows: a switch back to Ka0s Default puts the close control's art back on its own rest tint",
+test("skin windows: the close control follows a switch to another skin and back, at rest and on hover",
   clean(function()
-    -- red under: a close control nothing re-tints on the way back. The primitive tints the art from
-    -- close.rest under another skin and saves no prior color, so with stockDefault its unpaint has
-    -- nothing to restore and the art keeps that skin's rest until the first hover-out.
     local close = NS.Browser:MakeCloseButton(mocks.UIParent, function() end)
-    -- The repo mock's regions store no color and name no object type, so the art says what it is
-    -- (the primitive reaches it through close.icon / close.glyph only as a Texture / FontString)
-    -- and remembers its last tint itself, as recTex does above.
-    local art = close.icon or close.glyph
-    local kind = close.icon and "Texture" or "FontString"
-    rawset(art, "GetObjectType", function() return kind end)
-    local last
-    local function remember(_, r, g, b) last = { r, g, b } end
-    rawset(art, "SetVertexColor", remember)
-    rawset(art, "SetTextColor", remember)
-    local function painted()
-      assertTrue(last ~= nil, "nothing tinted the close control's art")
-      return rgb(last)
-    end
+    local painted = watchArt(close)
+    local defaultRest, defaultHot = tok("close.rest"), tok("close.hot")
     switch()
-    assertEqual(painted(), tok("close.rest"), "another skin paints its own close.rest")
+    assertTrue(tok("close.rest") ~= defaultRest and tok("close.hot") ~= defaultHot,
+      "the switch skin does not move the close tokens")
+    assertEqual(painted(), tok("close.rest"), "another skin paints its own close.rest, with no hover")
+    close:__fire("OnEnter")
+    assertEqual(painted(), tok("close.hot"), "another skin's hover is its own close.hot")
+    close:__fire("OnLeave")
+    assertEqual(painted(), tok("close.rest"), "another skin's rest is its own close.rest")
     reset()
-    assertEqual(painted(), "0.8500,0.8500,0.8500", "Ka0s Default's rest tint, with no hover-out")
+    assertEqual(painted(), defaultRest, "back on Ka0s Default the rest is its close.rest, with no hover-out")
+    close:__fire("OnEnter")
+    assertEqual(painted(), defaultHot, "back on Ka0s Default the hover is its close.hot")
   end))
 
+test("skin windows: the close control has no owner token of its own", function()
+  -- BL-A1 retired bl.closeRest with the stockDefault it served: the rest tint is the skin's close.rest.
+  assertTrue(NS.SKIN_TOKENS["bl.closeRest"] == nil, "bl.closeRest is still an owner token")
+  assertTrue(NS.SKIN_FALLBACK["bl.closeRest"] == nil, "bl.closeRest is still in the host copy")
+end)
 test("skin windows: the close control's fallback glyph takes the skin's font, not only a typed face", clean(function()
   -- red under: the glyph (drawn when the Media seam has no close icon) set in STANDARD_TEXT_FONT
   -- alone, a typed face no skin can reach.
