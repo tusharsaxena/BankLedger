@@ -15,13 +15,22 @@ local W = NS.InsightsWidgets
 -- transitions, so re-allocating widgets on every refresh is what turns a smooth panel into a visible
 -- hitch. Widgets are created once, released on each layout, and re-acquired in place.
 
-local WHITE = "Interface\\Buttons\\WHITE8X8"
-
-W.GOLD    = { 1.00, 0.82, 0.00 }
-W.NEUTRAL = { 0.55, 0.62, 0.72 }
-W.MUTED   = { 0.80, 0.80, 0.82 }
-W.POSITIVE = { 0.35, 0.80, 0.45 }   -- net in — the same green as a DEPOSIT
-W.NEGATIVE = { 1.00, 0.33, 0.33 }   -- net out — the same red as a WITHDRAW
+-- ── The skin's colors ─────────────────────────────────────────────────────────
+-- Every color the Insights tab draws is a token of the player's skin (core/SkinSetup.lua's
+-- NS.Skin, over LibKa0s-Skin-1.0; anti-pattern #107: no typed look value). The named triples below
+-- are REUSED tables, resolved from the tokens at load and again, in place, on every skin switch
+-- (W.ReskinColors, from modules/Insights.lua's OnLooksChanged listener), so a caller that holds one
+-- (a row's color, the segment default) keeps a live color and its identity. Ka0s Default's tokens
+-- are the values these drew before the skin engine.
+W.GOLD     = {}   -- text.heading: section headings, panel titles, the card headline
+W.NEUTRAL  = {}   -- chart.other: the "everything else" bucket and the default bar color
+W.MUTED    = {}   -- text.value: bar values, list text, legend labels and the legend's hover line
+W.POSITIVE = {}   -- sem.good: net in, the same green as a DEPOSIT
+W.NEGATIVE = {}   -- sem.bad: net out, the same red as a WITHDRAW
+W.TIP_TITLE = {}  -- gtip.title: a tooltip's title line
+W.TIP_BODY  = {}  -- gtip.body: a tooltip's wrapped body
+W.TIP_VALUE = {}  -- gtip.value: a one-line element tip
+local TRACK, AXIS_ALT = {}, {}   -- chart.track (a bar's track), chart.axisAlt (a split's baseline)
 
 W.BAR_H, W.BAR_GAP = 16, 3
 W.SPLIT_H, W.SPLIT_CAPTION_H = 22, 14   -- the headline split bar, and the caption row beneath it
@@ -48,15 +57,37 @@ W.COIN_H = 10
 -- lighter and a darker band, so adjacent ranks are always rainbow-distinct and two lookalikes never
 -- end up side by side. Colors are assigned by a category's RANK in its chart's sort order, so
 -- consecutive bars always draw from dissimilar hues.
-local PALETTE = {
-  { 0.90, 0.25, 0.25 }, { 0.95, 0.55, 0.15 }, { 0.88, 0.82, 0.22 }, { 0.35, 0.75, 0.38 },
-  { 0.28, 0.55, 0.90 }, { 0.42, 0.38, 0.82 }, { 0.72, 0.42, 0.86 },
-  { 0.97, 0.58, 0.58 }, { 0.98, 0.76, 0.50 }, { 0.94, 0.90, 0.55 }, { 0.60, 0.87, 0.63 },
-  { 0.58, 0.76, 0.97 }, { 0.68, 0.64, 0.92 }, { 0.86, 0.68, 0.94 },
-  { 0.62, 0.18, 0.18 }, { 0.70, 0.40, 0.10 }, { 0.60, 0.56, 0.12 }, { 0.18, 0.52, 0.28 },
-  { 0.15, 0.38, 0.66 }, { 0.28, 0.24, 0.58 }, { 0.50, 0.28, 0.62 },
-}
-W.PALETTE_SIZE = #PALETTE
+--
+-- The palette is the skin's chart.series (Ka0s Default's is exactly this addon's old palette),
+-- copied into reused { r, g, b } entries by W.ReskinColors, so a skin with its own series recolors
+-- every categorical chart on a switch.
+local PALETTE = {}
+
+local function resolve(t, name)
+  local r, g, b = NS.Skin.Color(name)
+  t[1], t[2], t[3] = r or 1, g or 1, b or 1
+end
+
+--- Resolve every cached color, and the palette, from the live skin. At load and on every switch.
+function W.ReskinColors()
+  resolve(W.GOLD, "text.heading");   resolve(W.NEUTRAL, "chart.other")
+  resolve(W.MUTED, "text.value");    resolve(W.POSITIVE, "sem.good")
+  resolve(W.NEGATIVE, "sem.bad");    resolve(W.TIP_TITLE, "gtip.title")
+  resolve(W.TIP_BODY, "gtip.body");  resolve(W.TIP_VALUE, "gtip.value")
+  resolve(TRACK, "chart.track");     resolve(AXIS_ALT, "chart.axisAlt")
+  TRACK[4] = select(4, NS.Skin.Color("chart.track")) or 1
+  AXIS_ALT[4] = select(4, NS.Skin.Color("chart.axisAlt")) or 1
+  local series = NS.Skin.Token("chart.series")
+  if type(series) ~= "table" or #series == 0 then series = { { 1, 1, 1 } } end
+  for i, c in ipairs(series) do
+    local t = PALETTE[i] or {}
+    t[1], t[2], t[3] = c[1], c[2], c[3]
+    PALETTE[i] = t
+  end
+  for i = #PALETTE, #series + 1, -1 do PALETTE[i] = nil end
+  W.PALETTE_SIZE = #PALETTE
+end
+W.ReskinColors()
 
 -- 1-based rank → palette color (cycles past the end).
 function W.PaletteColor(rank)
@@ -91,17 +122,21 @@ function W.FitFontSize(stringWidth, maxWidth, baseSize, minSize)
   return math.max(minSize or W.MIN_HEADLINE_SIZE, baseSize * maxWidth / stringWidth)
 end
 
--- Item-quality color as {r,g,b}, with a neutral fallback for an unknown id or a headless build.
+-- Item-quality color as {r,g,b}: the skin's q.* where it sets one, else the client's color
+-- (NS.QualityColor; game meaning, never re-hued), with the owner token bl.qualityUnknown for an
+-- unknown id or a headless build (the rollout's D9, kept exact by X1).
 function W.QualityColor(q)
-  local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q or 1]
-  if c then return { c.r, c.g, c.b } end
-  return { 0.60, 0.60, 0.62 }
+  local r, g, b = NS.QualityColor(q or 1)
+  if r then return { r, g, b } end
+  return NS.SkinRGB("bl.qualityUnknown")
 end
 
+-- A class color is game meaning, kept under every skin (the rollout's E3); its fallback is the
+-- skin's text.muted.
 function W.ClassColor(classFile)
   local c = classFile and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
   if c then return { c.r, c.g, c.b } end
-  return { 0.70, 0.70, 0.72 }
+  return NS.SkinRGB("text.muted")
 end
 
 -- "Name-Realm" → "Name". A per-character bar is 118px wide; the realm is the same for almost every
@@ -118,21 +153,26 @@ function W.Money(copper)
 end
 
 -- A SIGNED copper amount, colored: green for a net gain, red for a net loss, a gray em-dash for
--- exactly nothing (which is a real answer, not a missing one).
+-- exactly nothing (which is a real answer, not a missing one). The escapes are the skin's
+-- sem.goodAlt, sem.badAlt and text.disabled (NS.SkinEscape), each rounding to the bytes these wrote
+-- before the skin engine under Ka0s Default (40ff40, ff4040, 808080); read per call, so a switch
+-- reaches the next refresh.
+local function esc(name) return NS.SkinEscape(name) or "" end
+
 function W.SignedMoney(copper)
   copper = copper or 0
-  if copper == 0 then return "|cff808080\226\128\148|r" end
+  if copper == 0 then return esc("text.disabled") .. "\226\128\148|r" end
   local body = W.Money(math.abs(copper))
-  if copper > 0 then return "|cff40ff40+" .. body .. "|r" end
-  return "|cffff4040-" .. body .. "|r"
+  if copper > 0 then return esc("sem.goodAlt") .. "+" .. body .. "|r" end
+  return esc("sem.badAlt") .. "-" .. body .. "|r"
 end
 
 -- A signed COUNT, colored the same way.
 function W.SignedCount(n)
   n = n or 0
-  if n == 0 then return "|cff808080\226\128\148|r" end
-  if n > 0 then return "|cff40ff40+" .. n .. "|r" end
-  return "|cffff4040" .. n .. "|r"
+  if n == 0 then return esc("text.disabled") .. "\226\128\148|r" end
+  if n > 0 then return esc("sem.goodAlt") .. "+" .. n .. "|r" end
+  return esc("sem.badAlt") .. n .. "|r"
 end
 
 -- Two magnitudes as fractions of the LARGER of the two, so the bigger side is always 1.0 and the
@@ -383,7 +423,7 @@ function W.CursorTooltip(owner, text, rgb)
       (cx or 0) / scale + 5, (cy or 0) / scale + 5)
   end
   GameTooltip:ClearLines()
-  rgb = rgb or { 1, 1, 1 }
+  rgb = rgb or W.TIP_VALUE
   GameTooltip:AddLine(text, rgb[1], rgb[2], rgb[3])
   GameTooltip:Show()
 end
@@ -394,12 +434,13 @@ local function hideTooltip() if GameTooltip then GameTooltip:Hide() end end
 -- A bordered panel: gold headline over a gray caption. Every card shares one base headline font;
 -- a long value (money, a date range) shrinks to fit via SetCard rather than clipping.
 
+--
+-- The box and the headline are the skin's Card (card.bg under card.border, the headline in
+-- text.heading and the skin's face), which on Ka0s Default is call for call the backdrop these cards
+-- always drew; the caption is text.disabled. Both are recorded, so a skin switch repaints them, and
+-- W.ReskinCard then re-reads the headline's base font, which the shrink pass resets to.
 function W.MakeCard(parent)
   local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-  card:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                     insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  card:SetBackdropColor(0.10, 0.10, 0.12, 0.85)
-  card:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.90)
 
   -- Every card shares ONE base headline font. A long string (a date range, a coin amount) is
   -- handled by the shrink-to-fit pass in SetCard, not by a second smaller template -- two nominal
@@ -409,31 +450,37 @@ function W.MakeCard(parent)
   value:SetPoint("LEFT", 4, 0)
   value:SetPoint("RIGHT", -4, 0)
   value:SetJustifyH("CENTER")
-  value:SetTextColor(W.GOLD[1], W.GOLD[2], W.GOLD[3])
   value:SetWordWrap(false)
   card.value = value
+  NS.Skin.Card(card, { title = value })
 
   local caption = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   caption:SetPoint("BOTTOM", 0, 7)
   caption:SetJustifyH("CENTER")
+  NS.Skin.Text(caption, "disabled")
   card.caption = caption
 
-  -- Remember the base font so the shrink-to-fit pass can always reset before measuring.
-  local file, size, flags = value:GetFont()
-  if type(size) == "number" then
-    card.fontFile, card.baseSize, card.fontFlags = file, size, flags
-  end
+  W.ReskinCard(card)
 
   card:EnableMouse(true)
   card:SetScript("OnEnter", function(self)
     if not (self._tip and GameTooltip) then return end
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-    GameTooltip:AddLine(self._caption or "", W.GOLD[1], W.GOLD[2], W.GOLD[3])
-    GameTooltip:AddLine(self._tip, 0.9, 0.9, 0.9, true)
+    GameTooltip:AddLine(self._caption or "", W.TIP_TITLE[1], W.TIP_TITLE[2], W.TIP_TITLE[3])
+    GameTooltip:AddLine(self._tip, W.TIP_BODY[1], W.TIP_BODY[2], W.TIP_BODY[3], true)
     GameTooltip:Show()
   end)
   card:SetScript("OnLeave", hideTooltip)
   return card
+end
+
+--- Remember the headline's base font (after the skin painted it), so the shrink-to-fit pass can
+--- always reset before measuring. At build and after every skin switch, which repaints the face.
+function W.ReskinCard(card)
+  local file, size, flags = card.value:GetFont()
+  if type(size) == "number" then
+    card.fontFile, card.baseSize, card.fontFlags = file, size, flags
+  end
 end
 
 -- Paint and place a card. `width` drives the shrink-to-fit measurement.
@@ -457,26 +504,36 @@ function W.MakeBar(parent)
   local bar = CreateFrame("Frame", nil, parent)
   bar:SetHeight(W.BAR_H)
   local label = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(label)
   label:SetJustifyH("LEFT")
   label:SetWordWrap(false)
   bar.label = label
   local track = bar:CreateTexture(nil, "BACKGROUND")
-  track:SetColorTexture(1, 1, 1, 0.06)
   bar.track = track
   local fill = bar:CreateTexture(nil, "ARTWORK")
   bar.fill = fill
   local value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(value)
   value:SetJustifyH("RIGHT")
   value:SetWordWrap(false)
   bar.value = value
   bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.GOLD) end)
+  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.TIP_TITLE) end)
   bar:SetScript("OnLeave", hideTooltip)
   return bar
 end
 
+-- A track's and a baseline's flat colors (chart.track, chart.axisAlt), painted on every placement
+-- so a refresh after a skin switch repaints a pooled bar; never the bar texture (NS.SkinBar), which
+-- is for data alone.
+local function paintTrack(bar)
+  bar.track:SetColorTexture(TRACK[1], TRACK[2], TRACK[3], TRACK[4])
+  if bar.baseline then bar.baseline:SetColorTexture(AXIS_ALT[1], AXIS_ALT[2], AXIS_ALT[3], AXIS_ALT[4]) end
+end
+
 -- Position a bar inside `host` at y with total width barW, filled to `frac` of its track.
 function W.PlaceBar(bar, host, x, y, barW, frac)
+  paintTrack(bar)
   bar:ClearAllPoints()
   bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
   bar:SetWidth(barW)
@@ -507,10 +564,8 @@ function W.MakeSplitBar(parent)
   local bar = CreateFrame("Frame", nil, parent)
   bar:SetHeight(W.SPLIT_H)
   local track = bar:CreateTexture(nil, "BACKGROUND")
-  track:SetColorTexture(1, 1, 1, 0.06)
   bar.track = track
   local baseline = bar:CreateTexture(nil, "OVERLAY")
-  baseline:SetColorTexture(0.55, 0.55, 0.60, 0.9)
   bar.baseline = baseline
   bar.left = CreateFrame("Frame", nil, bar)
   bar.right = CreateFrame("Frame", nil, bar)
@@ -525,11 +580,13 @@ function W.MakeSplitBar(parent)
   -- The captions sit BELOW the bar, pinned to its two ends. Inside the bar they were unreadable at
   -- a lopsided split -- the narrow share had no room for its own text and dropped it entirely.
   local lfs = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(lfs)
   lfs:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -2)
   lfs:SetJustifyH("LEFT")
   lfs:SetWordWrap(false)
   bar.leftText = lfs
   local rfs = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(rfs)
   rfs:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", 0, -2)
   rfs:SetJustifyH("RIGHT")
   rfs:SetWordWrap(false)
@@ -542,6 +599,7 @@ end
 -- row under the bar, each in its own direction color, so both stay readable at any split --
 -- including 97/3, where in-bar text vanishes. The per-side hover tips carry the exact numbers.
 function W.PlaceSplitBar(bar, host, x, y, barW, left, right)
+  paintTrack(bar)
   bar:ClearAllPoints()
   bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
   bar:SetWidth(barW)
@@ -559,7 +617,7 @@ function W.PlaceSplitBar(bar, host, x, y, barW, left, right)
     side:ClearAllPoints()
     side:SetPoint(anchor, bar, "CENTER", 0, 0)
     side:SetSize(math.max(1, w), W.SPLIT_H)
-    side.tex:SetColorTexture(spec.color[1], spec.color[2], spec.color[3], 0.9)
+    NS.SkinBar(side.tex, spec.color[1], spec.color[2], spec.color[3], 0.9)
     side._tip = spec.tip
     side:SetShown(w > 0)
   end
@@ -577,13 +635,14 @@ function W.MakeStackedBar(parent)
   local bar = CreateFrame("Frame", nil, parent)
   bar:SetHeight(W.BAR_H)
   local label = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(label)
   label:SetJustifyH("LEFT")
   label:SetWordWrap(false)
   bar.label = label
   local track = bar:CreateTexture(nil, "BACKGROUND")
-  track:SetColorTexture(1, 1, 1, 0.06)
   bar.track = track
   local value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(value)
   value:SetJustifyH("RIGHT")
   value:SetWordWrap(false)
   bar.value = value
@@ -601,12 +660,13 @@ function W.MakeStackedBar(parent)
     bar.segs[i] = seg
   end
   bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.GOLD) end)
+  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.TIP_TITLE) end)
   bar:SetScript("OnLeave", hideTooltip)
   return bar
 end
 
 function W.PlaceStackedBar(bar, host, x, y, barW, segments)
+  paintTrack(bar)
   bar:ClearAllPoints()
   bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
   bar:SetWidth(barW)
@@ -628,7 +688,7 @@ function W.PlaceStackedBar(bar, host, x, y, barW, segments)
       seg:ClearAllPoints()
       seg:SetPoint("LEFT", bar.track, "LEFT", offset, 0)
       seg:SetSize(segW, W.BAR_H - 4)
-      seg.tex:SetColorTexture(spec.color[1], spec.color[2], spec.color[3], 0.95)
+      NS.SkinBar(seg.tex, spec.color[1], spec.color[2], spec.color[3], 0.95)
       seg._tip = spec.tip
       seg:Show()
       offset = offset + segW
@@ -648,16 +708,16 @@ function W.MakeBackToBackBar(parent)
   local bar = CreateFrame("Frame", nil, parent)
   bar:SetHeight(W.BAR_H)
   local label = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(label)
   label:SetJustifyH("LEFT")
   label:SetWordWrap(false)
   bar.label = label
   local track = bar:CreateTexture(nil, "BACKGROUND")
-  track:SetColorTexture(1, 1, 1, 0.06)
   bar.track = track
   local baseline = bar:CreateTexture(nil, "OVERLAY")
-  baseline:SetColorTexture(0.55, 0.55, 0.60, 0.9)
   bar.baseline = baseline
   local value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(value)
   value:SetJustifyH("RIGHT")
   value:SetWordWrap(false)
   bar.value = value
@@ -674,7 +734,7 @@ function W.MakeBackToBackBar(parent)
     side:SetScript("OnLeave", hideTooltip)
   end
   bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.GOLD) end)
+  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.TIP_TITLE) end)
   bar:SetScript("OnLeave", hideTooltip)
   return bar
 end
@@ -682,6 +742,7 @@ end
 -- `row` is a W.BuildBackToBackRows row ({ leftFrac, rightFrac, leftTip, rightTip }); each fraction
 -- is of ONE HALF of the track, so a 1.0 fills its side exactly.
 function W.PlaceBackToBackBar(bar, host, x, y, barW, row, leftColor, rightColor)
+  paintTrack(bar)
   bar:ClearAllPoints()
   bar:SetPoint("TOPLEFT", host, "TOPLEFT", x, y)
   bar:SetWidth(barW)
@@ -706,7 +767,7 @@ function W.PlaceBackToBackBar(bar, host, x, y, barW, row, leftColor, rightColor)
     side:ClearAllPoints()
     side:SetPoint(anchor, bar.track, "CENTER", 0, 0)
     side:SetSize(math.max(1, w), W.BAR_H - 4)
-    side.tex:SetColorTexture(color[1], color[2], color[3], 0.95)
+    NS.SkinBar(side.tex, color[1], color[2], color[3], 0.95)
     side._tip = tip
     side:SetShown(w > 0)
   end
@@ -722,23 +783,29 @@ function W.MakeStripBar(parent)
   local f = CreateFrame("Frame", nil, parent)
   local fill = f:CreateTexture(nil, "ARTWORK")
   fill:SetPoint("BOTTOM", 0, 0)
-  fill:SetColorTexture(0.40, 0.60, 0.95, 0.9)
   f.fill = fill
   -- The axis label is rotated 90° CCW so it reads bottom-to-top: a horizontal date label needs ~34px
-  -- and the bars are often 6px apart.
+  -- and the bars are often 6px apart. text.muted, recorded, so a switch repaints it.
   local axis = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   axis:SetRotation(math.pi / 2)
-  axis:SetTextColor(0.7, 0.7, 0.72)
+  NS.Skin.Text(axis, "muted")
   f.axis = axis
+  W.PaintStripBar(f)
   f:EnableMouse(true)
   f:SetScript("OnEnter", function(self)
     if not (self._tip and GameTooltip) then return end
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:AddLine(self._tip, 1, 1, 1)
+    GameTooltip:AddLine(self._tip, W.TIP_VALUE[1], W.TIP_VALUE[2], W.TIP_VALUE[3])
     GameTooltip:Show()
   end)
   f:SetScript("OnLeave", hideTooltip)
   return f
+end
+
+--- A strip bar's fill: chart.bar in the owner's bar texture (NS.SkinBar). At build and on every
+--- placement (modules/Insights.lua RenderStrip), so a refresh after a skin switch repaints it.
+function W.PaintStripBar(f)
+  NS.SkinBar(f.fill, NS.SkinColor("chart.bar"))
 end
 
 -- How wide each bar is, and how many buckets to skip between axis labels, for `n` buckets across
@@ -758,13 +825,12 @@ end
 -- never be shared across panels.
 function W.MakeListPanel(parent, title)
   local p = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-  p:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                  insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  p:SetBackdropColor(0.08, 0.08, 0.10, 0.60)
-  p:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.70)
+  -- The skin's Panel (panel.bg under panel.border; on Ka0s Default call for call the backdrop it
+  -- always drew), its title in the heading color: both recorded, so a switch repaints them.
+  NS.Skin.Panel(p)
   local t = p:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   t:SetPoint("TOPLEFT", 6, -5)
-  t:SetTextColor(W.GOLD[1], W.GOLD[2], W.GOLD[3])
+  NS.Skin.Text(t, "heading")
   t:SetText(title or "")
   p.title = t
   p._rows = W.NewPool()
@@ -786,11 +852,13 @@ function W.MakeListRow(parent)
   local r = CreateFrame("Frame", nil, parent)
   r:SetHeight(W.LIST_ROW_H)
   local name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(name)
   name:SetJustifyH("LEFT")
   name:SetPoint("LEFT", 4, 0)
   name:SetWordWrap(false)
   r.name = name
   local right = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(right)
   right:SetJustifyH("RIGHT")
   right:SetPoint("RIGHT", -4, 0)
   right:SetWordWrap(false)
@@ -811,7 +879,8 @@ function W.MakeSwatch(parent)
   sw:SetPoint("LEFT", f, "LEFT", 0, 0)
   local fs = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   fs:SetPoint("LEFT", sw, "RIGHT", 4, 0)
-  fs:SetTextColor(0.8, 0.8, 0.82)
+  -- text.value, recorded; its hover line is the same token (W.MUTED), the inventory's BL-G2 ruling.
+  NS.Skin.Text(fs, "text.value")
   fs:SetJustifyH("LEFT")
   fs:SetWordWrap(false)
   f.sw, f.fs = sw, fs
@@ -824,7 +893,7 @@ end
 function W.MakeSectionHeader(parent, text)
   local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   fs:SetText(text or "")
-  fs:SetTextColor(W.GOLD[1], W.GOLD[2], W.GOLD[3])
+  NS.Skin.Text(fs, "heading")   -- recorded, so a switch repaints it
   return fs
 end
 
@@ -834,21 +903,29 @@ function W.MakeSectionDivider(parent, text)
   local f = CreateFrame("Frame", nil, parent)
   f:SetHeight(26)
   local fs = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  local file, size, flags = fs:GetFont()
-  if type(size) == "number" then fs:SetFont(file, size * 1.5, flags) end
   fs:SetPoint("CENTER", f, "CENTER", 0, 0)
-  fs:SetTextColor(W.GOLD[1], W.GOLD[2], W.GOLD[3])
   fs:SetText(text or "")
   f.fs = fs
+  -- The rules are the skin's section.rule (the heading gold at .35 under Ka0s Default), recorded.
   local lineL = f:CreateTexture(nil, "ARTWORK")
-  lineL:SetColorTexture(W.GOLD[1], W.GOLD[2], W.GOLD[3], 0.35)
+  NS.Skin.Divider(lineL, { token = "section.rule" })
   lineL:SetHeight(1.25)
   lineL:SetPoint("LEFT", f, "LEFT", 0, 0)
   lineL:SetPoint("RIGHT", fs, "LEFT", -8, 0)
   local lineR = f:CreateTexture(nil, "ARTWORK")
-  lineR:SetColorTexture(W.GOLD[1], W.GOLD[2], W.GOLD[3], 0.35)
+  NS.Skin.Divider(lineR, { token = "section.rule" })
   lineR:SetHeight(1.25)
   lineR:SetPoint("LEFT", fs, "RIGHT", 8, 0)
   lineR:SetPoint("RIGHT", f, "RIGHT", 0, 0)
+  W.ReskinDivider(f)
   return f
+end
+
+--- A section divider's title: the heading color and face (S.Text, which a skin switch replays at
+--- the face's own size), then 1.5x that size. At build and after every switch, so the replay never
+--- leaves the title at 1x.
+function W.ReskinDivider(f)
+  NS.Skin.Text(f.fs, "heading")
+  local file, size, flags = f.fs:GetFont()
+  if type(size) == "number" then f.fs:SetFont(file, size * 1.5, flags) end
 end

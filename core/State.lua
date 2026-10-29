@@ -24,6 +24,9 @@ State.lastSnapshot = nil
 State.cleanupDone = false   -- retention prune runs once per session
 State.cleanupPending = nil  -- session-only AceTimer handle for the deferred prune; set while it
                             -- is armed, dropped by NS.StandDown so the next PEW re-arms it.
+State.pickerDone = false    -- the login's first-run skin picker check ran this session
+State.pickerPending = nil   -- its AceTimer handle while armed; dropped by NS.StandDown, like the
+                            -- prune's (core/SkinSetup.lua NS.MaybeShowSkinPicker).
 State.debug = false         -- session-only logging flag, independent of the console window's
                             -- visibility. /bl debug on|off; default off, never in SavedVariables.
 State.testRecords = nil     -- session-only synthetic dataset published by /bl test; when set,

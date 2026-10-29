@@ -872,7 +872,13 @@ test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", fu
   --
   -- Dies under: dropping `subgroup` from the Interface rows (Windows/Simulator vanish), or drawing
   -- a heading by hand from an afterGroup hook.
-  for _, tab in ipairs(GENERAL_TABS) do
+  --
+  -- The Appearance tab is not this addon's to head: its body is the library's O.AppearanceRows
+  -- (skinning-§3), which heads its own sections (Skin source, Look, Font and texture, Scope) and
+  -- draws none of the skipRender rows filed under the group. Its words are the library's, held by
+  -- LibKa0s's own suite.
+  local LIBRARY_DRAWN = { Appearance = true }
+  local function check(tab)
     local declared = {}
     for _, row in ipairs(NS.Schema:PageRows()) do
       if row.group == tab and row.subgroup then declared[row.subgroup] = true end
@@ -890,6 +896,9 @@ test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", fu
       assertTrue(drawn[name] == true, tab .. " declared the subsection '" .. name
         .. "' and drew no heading for it")
     end
+  end
+  for _, tab in ipairs(GENERAL_TABS) do
+    if not LIBRARY_DRAWN[tab] then check(tab) end
   end
 end)
 

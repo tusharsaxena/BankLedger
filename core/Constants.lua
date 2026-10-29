@@ -60,12 +60,22 @@ C.KindLabel = { ITEM = "Item", MONEY = "Gold" }
 -- Colors and glyphs shared by the History table and the filter dropdowns, so a store or a
 -- direction looks the same everywhere it appears. Cosmetic only — never stored, never exported.
 
--- A deposit is money/goods going IN (green); a withdrawal comes OUT (red — the same ff5555 the
--- destructive row-menu action uses, so "leaving" reads consistently addon-wide).
-C.DirectionRGB = {
-  DEPOSIT  = { 0.35, 0.80, 0.45 },
-  WITHDRAW = { 1.00, 0.33, 0.33 },
+-- A deposit is money/goods going IN (green); a withdrawal comes OUT (red, the skin's danger hue's
+-- neighbor, so "leaving" reads consistently addon-wide). Each is a token of the player's skin
+-- (core/SkinSetup.lua's NS.Skin): sem.good and sem.bad, the values these two drew before the skin
+-- engine under Ka0s Default. The History table caches them per skin (modules/LedgerTable.lua);
+-- everything else reads C.DirectionColor at call time.
+C.DirectionToken = {
+  DEPOSIT  = "sem.good",
+  WITHDRAW = "sem.bad",
 }
+
+--- A direction's color as a fresh { r, g, b } from the live skin; nil for a direction it does not
+--- know. Read at call time, so a skin switch reaches the next caller.
+function C.DirectionColor(key)
+  local token = C.DirectionToken[key]
+  return token and NS.SkinRGB and NS.SkinRGB(token) or nil
+end
 
 -- ▲ out of the store, ▼ into it. These are TEXT glyphs: WoW's default font has neither and renders
 -- a box, so anything drawing them must use the LibKa0s mono face below (see FONT_MONO).
@@ -84,8 +94,8 @@ C.StoreRGB = {
   BAGS         = { 0.75, 0.75, 0.78 },
 }
 
--- Fallback for any value the palettes above do not cover (a store from a newer build, say).
-C.NEUTRAL_RGB = { 0.90, 0.90, 0.90 }
+-- A value the palettes above do not cover (a store from a newer build, say) takes the skin's body
+-- color, text.body, at the site that draws it.
 
 -- ── Container id groups ─────────────────────────────────────────────────────────
 -- Which numeric container ids belong to which store, derived **by member name** from

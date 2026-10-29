@@ -98,15 +98,25 @@ if not lib then
   -- library IS present is exactly the copy that drifts (standalone-windows). This one runs only
   -- when the library is absent, and it is byte-for-byte the skin modules/Browser.lua applied
   -- before the seam existed, so a degraded install's windows look like a working one's.
+  --
+  -- Its values are the skin's Ka0s Default tokens, read from core/SkinSetup.lua's host copy
+  -- (NS.SKIN_FALLBACK, which tests/test_surface_parity.lua holds to the library's values) at CALL
+  -- time: that file loads after this one, and every window is built long after both. Each call
+  -- keeps the arity it always had: four components for the backdrop, the edge, the inner rule and
+  -- the divider, three for the title.
   local WHITE = "Interface\\Buttons\\WHITE8X8"
+  local function tok(name)
+    local c = NS.SKIN_FALLBACK[name]
+    return c[1], c[2], c[3], c[4] or 1
+  end
   function NS.ApplySkin(f)
     if not (f and f.SetBackdrop) then return end
     f:SetBackdrop({
       bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
       insets = { left = 1, right = 1, top = 1, bottom = 1 },
     })
-    f:SetBackdropColor(0.06, 0.06, 0.08, 0.92)
-    f:SetBackdropBorderColor(0, 0, 0, 1)
+    f:SetBackdropColor(tok("win.bg"))
+    f:SetBackdropBorderColor(tok("win.border"))
     if type(f.innerBorder) ~= "table" and type(CreateFrame) == "function" then
       local inner = CreateFrame("Frame", nil, f, "BackdropTemplate")
       inner:SetPoint("TOPLEFT", 1, -1)
@@ -115,10 +125,13 @@ if not lib then
       f.innerBorder = inner
     end
     if type(f.innerBorder) == "table" then
-      f.innerBorder:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.85)
+      f.innerBorder:SetBackdropBorderColor(tok("win.inner"))
     end
-    if f.title then f.title:SetTextColor(1.0, 0.82, 0.0) end
-    if f.divider then f.divider:SetColorTexture(0.24, 0.24, 0.27, 0.85) end
+    if f.title then
+      local r, g, b = tok("title.text")
+      f.title:SetTextColor(r, g, b)
+    end
+    if f.divider then f.divider:SetColorTexture(tok("divider")) end
   end
 
   -- The pre-library resize grip, kept in THIS branch for the reason the skin above is. The live
@@ -206,11 +219,11 @@ NS.SafeToString = lib.SafeToString
 
 -- `lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED, and this paragraph is here so the next
 -- reader does not add it back. This addon draws its own close control — modules/Browser.lua's
--- `B:MakeCloseButton`, 24x24, class-colored on hover — and all three of its title bars (ledger,
+-- `B:MakeCloseButton`, 24x24, in the skin's close.rest / close.hot — and all three of its title bars (ledger,
 -- session, export modal) go through that one factory. It resolves the SAME shared
 -- `close` mark, through `NS.Icon`, which knows the folder because core/MediaSetup.lua was handed
--- the first vararg; so the two implementations agree on the art and differ only in size and hover
--- tint, which is the line standalone-windows draws.
+-- the first vararg; so the two implementations agree on the art and the skin's tints and differ
+-- only in size, which is the line standalone-windows draws.
 --
 -- A wrapper here would have had exactly one consumer — its own spy test — and a published, tested
 -- seam that no window reaches reads as coverage of those three title bars while covering nothing a

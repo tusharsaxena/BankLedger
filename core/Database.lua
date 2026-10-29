@@ -329,7 +329,21 @@ end
 function NS.OnProfileEvent(event, key)
   if event == "OnProfileReset" then endSessionState() end
   NS:RunMigrations()
+  -- FIRST, the first-run skin picker down, quietly (core/SkinSetup.lua): a showing belongs to the
+  -- profile it opened on, and taking it down puts back a pending preview (the stored skin, through
+  -- the library's revert), so it lands before NS.ApplySkinChoice below and the new profile's whole
+  -- pair is the last skin written. A new or reset profile still shows it, fresh, below.
+  if NS.HideSkinPicker then NS.HideSkinPicker() end
+  -- The new profile's skin (core/SkinSetup.lua), before anything rebuilds against it: a switch,
+  -- copy or reset hands Skin:SetChoice the profile's pair, exceptions and overrides, which repaints
+  -- every recorded frame and fires OnLooksChanged whether or not a window was ever built
+  -- (skinning-§2). Not through SETTINGS_CHANGED below, which nothing skin-related keys off.
+  if NS.ApplySkinChoice then NS.ApplySkinChoice() end
   NS.ReevaluateEnabled()
+  -- The first-run skin picker (core/SkinSetup.lua): a new or reset profile starts from the
+  -- defaults, `pickerSeen` false, so it shows over the new profile's skin; one that has seen it
+  -- stays down. After the latch, so a profile with the addon switched off shows nothing.
+  if NS.MaybeShowSkinPicker then NS.MaybeShowSkinPicker() end
   -- The capture gate caches the settings and both lists: SettingsChanged re-caches it (and every
   -- other subscriber re-reads), LedgerChanged repaints what the filter lists decide -- the tables,
   -- Insights and the Filters tab. One message each, for the whole act.

@@ -31,9 +31,9 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 `classFile`, and its alt character — and it can only stand in for a read that goes through a
 `Compat` member **read at call time**. A raw `UnitName("player")` in `Util.PlayerKey`, or a raw
 `UnitClass("player")` in `Ledger:BuildEntry` and the session preview, would be unanswerable. Both are
-plain `function Compat.X` members, never cached at load. The one direct read left is the Browser
-close-button tint (`B:MakeCloseButton`): cosmetic, applied once at build and never stored. A source
-scan in `tests/test_compat.lua` holds the boundary.
+plain `function Compat.X` members, never cached at load. No direct read is left: the Browser
+close control's class-colored hover was one until BL-A1 made its hover the skin's `close.hot`. A
+source scan in `tests/test_compat.lua` holds the boundary.
 
 ## The simulator's seam wraps every member
 

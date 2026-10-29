@@ -96,6 +96,12 @@ Three choices worth stating, because they are the ones a future change is most l
   shared palettes in `core/Constants.lua`, so a bar matches the table column it summarizes. Only the
   breakdowns with no palette of their own (item type, sub-type, weekday) fall back to
   `InsightsWidgets.PaletteColor`, assigned by *rank* so adjacent bars are never lookalikes.
+  Every color is the player's skin's (`NS.Skin`, [ARCHITECTURE.md → Skins](ARCHITECTURE.md#skins)):
+  the palette is the skin's `chart.series`, direction `sem.good` / `sem.bad`, quality `q.*`, tracks,
+  baselines and axes `chart.*`, the cards `S.Card` and the list panels `S.Panel`; the store palette
+  and class colors keep their game meaning under every skin. Every bar of data is drawn in the skin's
+  bar texture through `NS.SkinBar` (the Skin tab's **Texture** override reaches it); the legend chips
+  stay flat. A skin switch re-reads the named colors and repaints the pane (`I:Reskin`).
 * **Empty is drawn, missing is not.** A quiet day keeps a ghost bar in a strip (a gap cannot be told
   apart from a day outside the range) and the cards paint "0" rather than vanishing; but the whole
   GOLD block hides when the slice holds no coin movement, because two blank charts under a banner

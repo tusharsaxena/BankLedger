@@ -14,7 +14,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window (owner decision D6) and the Minimap button **account-wide** (`global`), every other setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
-| Layout | `core/ defaults/ locales/ modules/ settings/`, 43 source files |
+| Layout | `core/ defaults/ locales/ modules/ settings/`, 44 source files |
 | Substrate | Ace3 + vendored `LibKa0s`, all committed under `libs/` |
 
 ## Overview
@@ -34,8 +34,8 @@ choreography — in **[data-flow.md](data-flow.md)**. What is deliberately out o
 
 ## Module Map
 
-43 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
-the Compat firewall, the AceDB layer and the nine LibKa0s seams; `defaults/` holds the account-wide
+44 source files across `core/ defaults/ locales/ modules/ settings/`. `core/` holds the bootstrap,
+the Compat firewall, the AceDB layer and the ten LibKa0s seams; `defaults/` holds the account-wide
 and the per-profile defaults; `modules/` holds the capture engine and every window; `settings/` holds
 the schema, the slash seam and the settings pages (General and Profiles). The root `Bindings.xml`
 (not in the TOC; the client reads it by name) declares the Show window key binding (`launcher-§6`),
@@ -46,15 +46,15 @@ simulated world and the seam's providers), `modules/SimDrivers.lua` (one event d
 action), `modules/Sim.lua` (the session host, `NS.Sim`, and its presentation fields) and
 `modules/SimScenario.lua` (the four scenarios). Each has its row in module-map.md.
 
-Load order is load-bearing in ten places (the newest: `core/SimSetup.lua` loads straight after
-`core/Compat.lua`, so the simulator's seam wraps every `NS.Compat` member before any file could read
-one; Sim-1.0 host contract H2), and `tests/test_harness.lua`
+Load order is load-bearing in eleven places (the newest: `core/SkinSetup.lua` registers the skin
+owner at file load and sits above every module and `settings/Schema.lua`, which read `NS.Skin` and
+the Skin tab's option lists; see **Skins** below), and `tests/test_harness.lua`
 guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
 
 ## Settings Schema
 
-**Seventeen** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
+**Twenty-four** schema rows in `settings/Schema.lua` — the single source for the panel widgets, the
 `/bl get|set|list|reset` dispatch and the defaults reset. Every write to a schema-row path goes through
 `NS.Schema:Set`, so a slash write and a panel widget take exactly the same path.
 
@@ -62,8 +62,11 @@ The runtime is `LibKa0s-Schema-1.0` (adopted at LibKa0s v1.55.0); without the li
 `settings/Schema.lua` builds the same instance from a runtime-completing, log-silent stub
 (`options-ui-§1`). A bulk reset logs one line (`debug-logging-§10`), and every reset control reaches
 the one confirm-gated global reset, `Sl:ResetEverything` (`options-ui-§12`). The rows live on the
-tabbed **General** page (`options-ui-§13`): **Master controls** · **Capture** · **Interface** ·
-**History** · **Filters**. The bulk bracket, the reset routes and the tab strip are in
+tabbed **General** page (`options-ui-§13`): **Master controls** · **Capture** · **Filters** ·
+**Interface** · **History** · **Skin**, then the library's **Keybindings** host tab. The seven Skin
+rows (`settings.appearance.*`, group `Appearance`) are `skipRender`: the library's Skin tab draws
+them through `core/SkinSetup.lua`'s read and write seams, which write through `NS.Schema:Set` like
+every other row (see **Skins** below). The bulk bracket, the reset routes and the tab strip are in
 `settings-panel.md`.
 
 Every schema path resolves against the **active profile**, `NS.db.profile` (schema v3), except two
@@ -378,8 +381,8 @@ draw gate does.
 
 ## Event Subscriptions
 
-Twelve registrations **while the addon is enabled**, plus a thirteenth for the few seconds the
-login backfill waits (below); **none** while it is disabled (see *The stand-down* above). **All of
+Twelve registrations **while the addon is enabled**, plus two transient ones: one for the few
+seconds the login backfill waits, one while the first-run skin picker waits out combat (below); **none** while it is disabled (see *The stand-down* above). **All of
 them** go through one helper, `NS.RegisterEventSafely(target, event,
 handler)` in `core/CoreSetup.lua`, over `LibKa0s-Core-1.0`'s `SafeRegisterEvent`
 (`events-frames-taint-§1`, standard v2.65.0). Modern retail **raises** on an unknown event name, so a
@@ -409,6 +412,13 @@ object only while it waits for the client to answer about the item ids it asked 
 when every id has answered or after `C.BACKFILL_TIMEOUT` (10s), and drops the name from
 `NS.EventRecord` again. Being on the addon object, the stand-down's `UnregisterAllEvents` reaches
 it, and the module's `CancelPending` drops the pass.
+
+**So is the skin picker's.** A first-run skin picker due in combat (`NS.MaybeShowSkinPicker`,
+`core/SkinSetup.lua`) registers `PLAYER_REGEN_ENABLED` on a private bus target of its own
+(`NS.NewBusTarget()`, through `NS.RegisterEventSafely`) and drops it on the first edge, before it
+shows the picker. `NS.HideSkinPicker` drops it too, and the stand-down calls that, so a disabled
+addon still keeps no registration. The login delay before it is an AceTimer handle on the addon
+object, which `NS.StandDown`'s `CancelAllTimers` cancels.
 
 **One dispatch table.** The seven capture registrations share one handler shape: `L:Enable`
 registers each name in `L.CLIENT_EVENTS` as `function(e, ...) L:Dispatch(e, ...) end`, and
@@ -478,6 +488,118 @@ short:
 - **Levels** are relative to the window; the resize grip sits at window + `LEVEL.GRIP` (10) on both
   the library and the degraded path.
 
+## Skins
+
+Bank Ledger wears the collection's skins (skinning-§3; Ka0sAddonsCommonTasks
+`docs/2026-10-29-SKINNING_ROLLOUT/`, items BL-01 to BL-04). Every visual element paints through the
+`LibKa0s-Skin-1.0` facade with this addon as its **owner**, on Ka0s Loot History's pattern, member
+for member.
+
+- **The seam.** `core/SkinSetup.lua` registers the owner `"BankLedger"` (the folder name) at file
+  load with its read and write seams (`NS.SkinChoice`, `NS.WriteSkinChoice`, both through
+  `NS.Schema`), publishes `NS.Skin` (the owner's facade) and the call-site helpers `NS.SkinColor`,
+  `NS.SkinRGB`, `NS.SkinEscape`, `NS.SkinBar` (a bar of data in the skin's bar texture),
+  `NS.QualityColor`, `NS.SkinPaintAce` / `NS.SkinPaintAceTree` / `NS.SkinOnRelease`. Its degraded arm
+  answers every facade name from `NS.SKIN_FALLBACK`, a host copy of the Ka0s Default tokens this
+  addon reads, which `tests/test_surface_parity.lua` holds to the library's values. It also
+  registers two **owner tokens** (`NS.SKIN_TOKENS`, skinning-§1), colors this addon drew under Ka0s
+  Default that no library token holds exactly, each following the nearest library role token in
+  every other skin: `bl.gold` (a gold movement's pale gold, follows `sem.gold`) and
+  `bl.qualityUnknown` (the Insights fallback for a quality the client has no color for, follows
+  `sem.unknown`). The close control has none: BL-A1 retired `bl.closeRest` with the `stockDefault`
+  it served. The choice is seven profile
+  keys under `settings.appearance` ([schema.md](schema.md)): `.source` and `.skin`; the Scope's
+  `.ignorePanel` (**Ignore settings panel**, on in a new profile) and `.ignoreFonts`
+  (**Ignore fonts**), applied through `NS.ApplySkinIgnore` (`Skin:SetIgnore`, live both ways); the
+  Font and texture overrides `.font` and `.texture` (an LSM key each, `""` for the skin's own),
+  applied through `NS.ApplySkinOverride` (`Skin:SetOverride`, live); and `.pickerSeen`, the first-run
+  picker's memory. The library's Skin tab (key `Appearance`) on the General page, after History and
+  before Keybindings, draws the first six ([settings-panel.md](settings-panel.md)).
+- **The first-run skin picker.** `NS.MaybeShowSkinPicker` shows the library's picker
+  (`O.SkinPicker`, LibKa0s OptionsSkinPicker 1) while the profile's `pickerSeen` is false (on every
+  profile, old and new: the rollout's ruling O3): two seconds after login on an AceTimer handle the
+  stand-down cancels, and after every profile event. Never while the addon stands down; in combat it
+  waits on a one-shot `PLAYER_REGEN_ENABLED` registration (see **Event Subscriptions**). A pick only
+  previews; **Apply** and the gear save it through `NS.WriteSkinChoice`, and the close control and
+  Escape put the stored skin back. Its eye opens the ledger window in test mode
+  (`LT:SetTestMode(true)`), so in combat it prints test mode's own refusal. `NS.HideSkinPicker` (the
+  stand-down, and first on every profile event) takes it down without setting `pickerSeen`.
+- **Repaint flow.** `NS.ApplySkinChoice` runs right after `NS:InitDB` (`addon:OnInitialize`) and on
+  every profile event (`NS.OnProfileEvent`, `core/Database.lua`), applying the stored Scope and
+  overrides with the stored skin, and from each Skin tab row with only its own half. It calls
+  `Skin:SetChoice`, which resolves the skin, repaints every frame recorded for this owner and then
+  fires `NS.Skin.OnLooksChanged`. What no primitive records subscribes there: the History table's
+  cached cell, header and direction colors, its four tinted marks and the row tints' RGB, then a
+  rebind of both pooled tables (`LT:Reskin`, which calls `SW:Reskin`); the ledger window's tab labels
+  (`ReskinTabs`) and the filter bar's colored Direction and Quality option lists; Insights' palette and
+  colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
+  `settings.alpha` stays whole-window opacity.
+- **What paints what.** The three host windows (ledger, session, export modal) wear the skin's `Shell`
+  with `noTopBar` and a `TitleBar` on their own bar, a `Divider`, `Button` on the flat buttons,
+  `ScrollBar` on every scroll bar, `SortHeaderBar` on both tables' headers, `MenuFrame` (alt edge) on the
+  row menu, and `Card` / `Panel` / `Divider` (`section.rule`) / `NS.SkinBar` in Insights. The row
+  tints take `list.stripe` / `list.hover` RGB with the player's two slider alphas, so the sliders
+  stay. Every tooltip line the addon writes takes a `gtip.*` token. The close control is the host's
+  own button (`B:MakeCloseButton`, 24×24) handed to `S.CloseButton` the way every other Ka0s close
+  control is, with no `stockDefault` and no host hover scripts (BL-A1, the owner's ruling): in every
+  skin, Ka0s Default included, it takes `close.rest` at rest and `close.hot` under the pointer (Ka0s
+  Default's gray and red), and a skin switch repaints it.
+- **The EllesmereUI provider.** The library's (`SkinEUI.lua`). With source `eui` and its gate holding
+  (EllesmereUI's `RegisterSkin` and `EllesmereUIBlizzardSkin` loaded, third-party skins on, this
+  addon not switched off in its list), EllesmereUI's facade paints the vocabulary it has; otherwise
+  the addon wears its Ka0s skin and the Skin tab names the failing condition. Ka0s to EllesmereUI
+  applies live; EllesmereUI back to Ka0s asks for a reload (the tab raises the library's popup; a
+  profile event leaving an EllesmereUI that painted this session prints one `NS.L` line instead).
+  The TOC's `OptionalDeps` names `EllesmereUI`, so it loads first when present. The read of
+  `EllesmereUIDB` is the library's documented deviation, not this addon's.
+- **Owners on every library surface.** Each LibKa0s factory is handed the owner in the form it reads:
+  `opts.owner` for the filter-bar and export dropdowns (and the shared menu they open), the search
+  box, its autocomplete list and both mode strips (`modules/Browser.lua`, `modules/SessionWindow.lua`);
+  the descriptor's `addonName` for the debug console and its copy window (`core/DebugLogSetup.lua`)
+  and the export copy window (`modules/Export.lua`); the Sim descriptor's `name` for the sim panel
+  (`modules/Sim.lua`); the Options instance's `addonName` for the settings chrome. The console and
+  the export copy window pass **no `applySkin`**, because a host hook owns the whole job and the
+  library never paints over it. The settings page's own AceGUI acquisitions go through
+  `NS.SkinPaintAce`, and the Profiles page's tree through `NS.SkinPaintAceTree`. The addon has no
+  perf panel (`performance-§12`) and no HUD, so the rollout's one-time HUD style reset (O2) has
+  nothing to reset here. `tests/test_skin_tools.lua` pins the tool surfaces.
+- **The color gate.** `tests/test_skin_literals.lua` fails on a numeric literal in a color position
+  (r, g or b) of `SetTextColor`, `SetColorTexture`, `SetVertexColor`, `SetBackdropColor`,
+  `SetBackdropBorderColor`, `AddLine` and `AddDoubleLine`, and on any `|cff` escape in code, in every
+  tracked file under `core/`, `modules/` and `settings/`, outside `core/SkinSetup.lua` and the
+  allow-list below (anti-pattern #107). An allow-list entry that matches nothing also fails.
+
+### Intentional exceptions
+
+The gate's allow-list, each with its reason:
+
+| File | What | Why it is not chrome |
+|---|---|---|
+| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels | An item quality's client color, passed through |
+| `core/Namespace.lua` | `NS.PREFIX`, the cyan `[BL]` | Chat output; the chat frame is not a skinned surface |
+| `settings/Slash.lua` | `\|cFFFFFF00` in the disabled-line fallback | Chat output; the fallback is the library's string, pinned byte for byte |
+
+Outside the gate's reach, also on purpose:
+
+- **Game-meaning colors** (the rollout's gap policy, rung 4): item quality (`q.*`, the client's values
+  under Ka0s Default), class colors on the Character column, the Insights per-character labels and
+  the close control's Ka0s Default hover, and the coin and class art in text.
+- **The store identity palette** `C.StoreRGB` (bank gold, warband cyan, guild magenta, bags gray):
+  which store a row is, the same under every skin, the way DPS Race keeps its per-player colors. No
+  token holds three of the four values (DECISIONS BankLedger D3, for the owner to overrule).
+- **Alpha literals** over token components (`NS.SkinBar(fill, r, g, b, 0.95)` in the Insights bars):
+  the surface's opacity, the same under every skin. The legend chips stay flat colors, not bars.
+- **Fonts.** The skin's face reaches every text the addon shows: the primitives draw their own and
+  the addon's `GameFont*` FontStrings take it through `S.Font`, face only, at sizes relative to Ka0s
+  Default's. Ka0s Default's face is Oxanium, so the addon's strings no longer read in Friz Quadrata;
+  with **Ignore fonts** on every string keeps its own face and size. The direction glyph keeps the mono
+  face (`C.FONT_MONO`, for its ▲/▼, `debug-logging-§2`) and the close button's × keeps its own.
+- **Blizzard's own frames stay stock** (skinning-§7): `GameTooltip`'s frame (only the lines are the
+  addon's), the reset and purge `StaticPopup`s, the Settings window's chrome and footer Defaults
+  button, the minimap button (LibDBIcon) and the resize grip's art (`Core.MakeResizable` takes no
+  owner). The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
+  it drew).
+
 ## Known Limitations
 
 - **Currency movements are not recorded, and are not planned.**
@@ -521,7 +643,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The three pages, the five-tab strip, the seventeen rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-four rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 
@@ -552,7 +674,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Covers |
 |---|---|
-| `windows.md` | The two standalone windows, the shared skin seam, and the geometry-save contract |
+| `windows.md` | The two standalone windows, how they wear the skin, and the geometry-save contract |
 | `insights.md` | The Insights tab: `Database:Stats` keys, section order, and the three drawing rules |
 | `media.md` | Where the mono face and the shared marks come from, which surfaces draw which mark and what each falls back to, and the logo art set with its regeneration recipe |
 
@@ -569,8 +691,8 @@ with no re-check trigger is a permanent exemption granted by accident.
 | Rule | What differs | Why | Decided | Re-check trigger |
 |---|---|---|---|---|
 | `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and every event that *can* fire in combat is a row of that page's table with its work named: the three change events (`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY`) and `GUILDBANKBAGSLOTS_CHANGED` reach a single `NS.State.openContext` nil check and return, and the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` also runs `NS.Util.ApplyVisibility` — bounded, allocation-free, once per combat edge. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. Re-checked 2026-09-23 (audit): trigger not fired. |
-| `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and every label, tooltip and message but seventy-eight is a hardcoded English literal. The seventy-eight route through `NS.L` and resolve to their English key through its fallback, with no override in `enUS.lua`: the `profile`, `debug` and `diagnostics` help lines in `NS.COMMANDS` (`settings/Schema.lua`), the library-absent `%s is unavailable: the LibKa0s library did not load.` line (`core/DebugLogSetup.lua`, `settings/Slash.lua`), the ledger window's red `TEST MODE` title badge, and the test-mode strip's line (`TEST MODE: a sample ledger, not your bank. Combat ends it.`) and its three tooltip lines (`modules/Browser.lua`, BankLedger#23), the Show window key binding's action label `Toggle ledger window` and its Keybindings-tab tooltip `Shows or hides the ledger window.` (`core/LauncherSetup.lua`, `launcher-§6`), the simulator-absent line `The simulator needs LibKa0s-Sim-1.0.` (`core/SimSetup.lua`), the simulated world's invented names, the alt character `Simbanker` and the unguilded player's `Simulated Guild` (`modules/SimWorld.lua`, BankLedger#24), the simulator's start line, its four start refusals (test mode, combat, a real bank visit, General visibility) and its three stop lines (`modules/Sim.lua`), the four scenarios' labels and their nineteen distinct step labels (`modules/SimScenario.lua`), the simulator gate's `Waiting for the ledger to settle.` (`modules/Sim.lua`), test mode's refusal while a simulation runs (`modules/LedgerTable_TestMode.lua`), the purge refusal `Stop the simulation first.` (`core/Database.lua`), the `sim` help line in `NS.COMMANDS` (`settings/Schema.lua`), the simulation step panel's twenty-five presentation strings (its step labels and tooltips and the Start and Stop tooltips, `modules/Sim.lua`), and the simulation marker's strip line `Simulation: %s - nothing here is saved.` (`modules/Sim.lua`) with its three tooltip lines (`modules/Browser.lua`). The launcher's `leftClickLabel` (`Toggle ledger window`) routed through it from M5 (2026-09-24) until Launcher minor 4 retired the field (M6, 2026-09-25); the menu's entry labels are the library's own `lib.STRINGS`. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. Re-checked 2026-09-23 (audit): trigger not fired. |
-| `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `B:MakeCloseButton` in `modules/Browser.lua`, 24×24, class-colored on hover — rather than a one-line wrapper over `lib.MakeCloseButton`, which `core/CoreSetup.lua` deliberately does not republish (its "`lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED" paragraph). | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`EnsureFrame` in `modules/Browser.lua`), the session window (`ensureFrame` in `modules/SessionWindow.lua`) and the export modal (`EnsureFrame` in `modules/Export.lua`) are this addon's, and those are the factory's three callers; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon("close")`, inside `B:MakeCloseButton` itself, with the documented fallback ladder beneath it, so the two implementations agree on the art and differ only in size and hover tint. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its three callers and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change three visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. Re-checked 2026-09-23 (audit): trigger not fired. |
+| `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and every label, tooltip and message but seventy-nine is a hardcoded English literal. The seventy-nine route through `NS.L` and resolve to their English key through its fallback, with no override in `enUS.lua`: the `profile`, `debug` and `diagnostics` help lines in `NS.COMMANDS` (`settings/Schema.lua`), the library-absent `%s is unavailable: the LibKa0s library did not load.` line (`core/DebugLogSetup.lua`, `settings/Slash.lua`), the ledger window's red `TEST MODE` title badge, and the test-mode strip's line (`TEST MODE: a sample ledger, not your bank. Combat ends it.`) and its three tooltip lines (`modules/Browser.lua`, BankLedger#23), the Show window key binding's action label `Toggle ledger window` and its Keybindings-tab tooltip `Shows or hides the ledger window.` (`core/LauncherSetup.lua`, `launcher-§6`), the simulator-absent line `The simulator needs LibKa0s-Sim-1.0.` (`core/SimSetup.lua`), the simulated world's invented names, the alt character `Simbanker` and the unguilded player's `Simulated Guild` (`modules/SimWorld.lua`, BankLedger#24), the simulator's start line, its four start refusals (test mode, combat, a real bank visit, General visibility) and its three stop lines (`modules/Sim.lua`), the four scenarios' labels and their nineteen distinct step labels (`modules/SimScenario.lua`), the simulator gate's `Waiting for the ledger to settle.` (`modules/Sim.lua`), test mode's refusal while a simulation runs (`modules/LedgerTable_TestMode.lua`), the purge refusal `Stop the simulation first.` (`core/Database.lua`), the `sim` help line in `NS.COMMANDS` (`settings/Schema.lua`), the simulation step panel's twenty-five presentation strings (its step labels and tooltips and the Start and Stop tooltips, `modules/Sim.lua`), and the simulation marker's strip line `Simulation: %s - nothing here is saved.` (`modules/Sim.lua`) with its three tooltip lines (`modules/Browser.lua`), and the skin seam's `Reload your interface (/reload) to finish changing the skin.` (`core/SkinSetup.lua`). The launcher's `leftClickLabel` (`Toggle ledger window`) routed through it from M5 (2026-09-24) until Launcher minor 4 retired the field (M6, 2026-09-25); the menu's entry labels are the library's own `lib.STRINGS`. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua:6`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. Re-checked 2026-09-23 (audit): trigger not fired. |
+| `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `B:MakeCloseButton` in `modules/Browser.lua`, 24×24 — rather than a one-line wrapper over `lib.MakeCloseButton`; since the owner's close-control ruling of 2026-10-29 it is painted through the skin's `CloseButton` exactly as the library's own control is (no `stockDefault`, no host hover scripts), so every skin, Ka0s Default included, draws `close.rest` / `close.hot` on it, which `core/CoreSetup.lua` deliberately does not republish (its "`lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED" paragraph). | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`EnsureFrame` in `modules/Browser.lua`), the session window (`ensureFrame` in `modules/SessionWindow.lua`) and the export modal (`EnsureFrame` in `modules/Export.lua`) are this addon's, and those are the factory's three callers; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon("close")`, inside `B:MakeCloseButton` itself, with the documented fallback ladder beneath it, so the two implementations agree on the art and the skin's rest and hover tints, and differ only in size. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its three callers and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change three visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. Re-checked 2026-09-23 (audit): trigger not fired. |
 
 No other issue owes a row: the `state:will-not-do` issues #4, #6, #7, #8, #10, #15 and #20 decline
 library adoptions or scope, not rules of the standard (#5 and #9 are cited by the rows above).

@@ -243,7 +243,6 @@ end
 -- ── Export modal ────────────────────────────────────────────────────────────────
 -- A small skinned window: a Data Set selector (All Data / Current View) plus an Export-to-CSV
 -- button. Reuses the Browser's flat skin and close glyph.
-local WHITE = "Interface\\Buttons\\WHITE8X8"
 local frame
 -- Per-open config: { title, providers = { allData, currentView }, csv = function(dataset) }.
 local config = {}
@@ -261,8 +260,8 @@ local function centerOnBrowser(f)
 end
 
 -- The copy window belongs to LibKa0s-Widgets-1.0. What stays here is the DESCRIPTOR: the frame's
--- global name, the face, the title, the skin and the anchor -- the things a vendored library cannot
--- know about this addon. The build is lazy inside the library, so a session that never exports
+-- global name, the face, the title, the skin owner and the anchor -- the things a vendored library
+-- cannot know about this addon. The build is lazy inside the library, so a session that never exports
 -- creates nothing.
 --
 -- `width` (640), `height` (420), `editWidth` (590) and the 0.06/0.06/0.08/0.95 backdrop are OMITTED
@@ -284,7 +283,10 @@ local function ensureCopyWindow()
     name      = "BankLedgerExportCopyWindow",
     title     = "Export \226\128\148 Ctrl+C, then Esc",
     font      = NS.Constants.FONT_MONO,
-    applySkin = function(f) if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(f) end end,
+    -- NO `applySkin` (the skinning rollout's BL-04). `addonName` is the window's skin OWNER
+    -- (Widgets minor 16), which the library honors only when the host passes no applySkin of its
+    -- own: then Core.ApplySkin paints the window for "BankLedger", the dense fill and the scroll
+    -- bar included, and a skin switch repaints it. On Ka0s Default it is the edge B:ApplySkin drew.
     -- Consulted on EVERY show, so the popup lands over the ledger window wherever the user has
     -- since dragged it, and over the screen when that window is not up.
     anchorTo  = function()
@@ -331,29 +333,30 @@ end
 -- Resolved at the CALL SITE for the same reason modules/Browser.lua's makeBarButton is: it keeps
 -- every icon name in this addon spelled inside a literal `NS.Icon("…")`, the one shape the catalog
 -- tripwire in tests/test_marks.lua can see.
+--
+-- THE SKIN. The box, the label, its hover and the mark's tint are the skin's Button primitive
+-- (NS.Skin.Button, `btn.*`), as the filter bar's buttons are (modules/Browser.lua makeBarButton):
+-- on Ka0s Default the box this drew, a white label that turns gold under the pointer and the mark at
+-- .85 (`btn.icon`). The label is `b.text`, the field the primitive reads; `b.fs` is the same string.
 local function makeButton(parent, text, width, onClick, mark)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width, 24)
-  b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                  insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  b:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
-  b:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
 
   if mark then
     local art = b:CreateTexture(nil, "OVERLAY")
     art:SetPoint("LEFT", b, "LEFT", 10, 0)
     art:SetSize(14, 14)
     art:SetTexture(mark)
-    art:SetVertexColor(0.85, 0.85, 0.85)
     b.icon = art
   end
 
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(fs)
   fs:SetPoint("CENTER"); fs:SetText(text)
   b.fs = fs   -- the words, where the mark suite can read them back off the built button
-  b:SetScript("OnEnter", function() fs:SetTextColor(1, 0.82, 0) end)
-  b:SetScript("OnLeave", function() fs:SetTextColor(1, 1, 1) end)
+  b.text = fs
   b:SetScript("OnClick", onClick)
+  NS.Skin.Button(b)
   return b
 end
 
@@ -391,6 +394,10 @@ local function EnsureFrame()
   local t = tbar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   t:SetPoint("CENTER"); t:SetText("Export")
   frame.titleFS = t
+  -- The bar's fill and the title through the skin's TitleBar. The bar is 26px, not the skin's
+  -- 30px title.height, so the Shell's own top band would overhang it: the Shell below is called
+  -- with `noTopBar` and this bar paints itself (the rollout's D6, Loot History's export modal).
+  NS.Skin.TitleBar(tbar, { text = t })
   if NS.Browser and NS.Browser.MakeCloseButton then
     local close = NS.Browser:MakeCloseButton(tbar, function() frame:Hide() end)
     close:SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
@@ -443,7 +450,7 @@ local function EnsureFrame()
     if W then W.CloseMenu() end
   end)
 
-  if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame) end
+  if NS.Browser and NS.Browser.ApplySkin then NS.Browser:ApplySkin(frame, { noTopBar = true }) end
   frame:Hide()
   if type(UISpecialFrames) == "table" then
     table.insert(UISpecialFrames, "BankLedgerExportWindow")

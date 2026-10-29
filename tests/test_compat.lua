@@ -125,9 +125,9 @@ test("Compat.PlayerClass answers the classFile, read at call time", function()
 end)
 
 test("compat boundary: no player identity read outside core/Compat.lua", function()
-  -- Browser's close-button tint reads the class directly at build: it is cosmetic, never stored,
-  -- and no simulator has to answer it.
-  local allowed = { ["core/Compat.lua"] = true, ["modules/Browser.lua"] = true }
+  -- (modules/Browser.lua was allowed while its close control read the class for a hover tint; BL-A1
+  -- made that the skin's close.hot, so no file but Compat reads the player's identity.)
+  local allowed = { ["core/Compat.lua"] = true }
   local offenders = {}
   for _, path in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
     local top = path:match("^(%a+)/")

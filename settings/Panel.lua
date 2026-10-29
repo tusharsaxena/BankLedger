@@ -44,6 +44,19 @@ local LOGO_SIZE = 300
 
 local registered
 
+-- Every AceGUI widget this file acquires itself, painted for this addon's skin (skinning-§3; Ka0s
+-- Loot History's acquire). O.AceGUI is normally the Options instance's owner proxy, which paints on
+-- Create already; the explicit NS.SkinPaintAce repaints in place for the same owner, so the page
+-- does not depend on which handle it was given. Nothing is painted while the Scope's Ignore
+-- settings panel is on (a new profile's default), and the release puts the widget back in
+-- AceGUI's shared pool stock (the library chains its restore onto the widget's OnRelease). No
+-- widget here sets a host OnRelease, so none needs NS.SkinOnRelease.
+local function acquire(wtype)
+  local w = O.AceGUI:Create(wtype)
+  NS.SkinPaintAce(w)
+  return w
+end
+
 -- One defaults action per page, reachable from BOTH routes — the header Defaults button and
 -- Blizzard's own Settings-window footer control — and parked rather than wired, because the button
 -- does not exist yet: the library builds it on the panel's first OnShow.
@@ -75,11 +88,11 @@ local bulkDepth = 0
 -- flow rows and no builder draws a heading (options-ui-§7).
 local function makeMultiCheck(ctx, row, scroll)
   local invert = row.invert
-  local group = O.AceGUI:Create("SimpleGroup")
+  local group = acquire("SimpleGroup")
   group:SetFullWidth(true); group:SetLayout("Flow")
   local boxes = {}
   for _, opt in ipairs(row.values) do
-    local cb = O.AceGUI:Create("CheckBox")
+    local cb = acquire("CheckBox")
     cb:SetLabel(opt.text); cb:SetWidth(170)
     cb:SetCallback("OnValueChanged", function(_, _, v)
       local cur = NS.Schema:Get(row.path) or {}
@@ -254,9 +267,9 @@ end
 -- line of its own: the destructive act ends its tab, as Purge history… and Reset all settings do.
 local function makeClearAll(ctx, listKey, list)
   local scroll = O.EnsureScroll(ctx)
-  local clearRow = O.AceGUI:Create("SimpleGroup")
+  local clearRow = acquire("SimpleGroup")
   clearRow:SetLayout("Flow"); clearRow:SetFullWidth(true)
-  local clearBtn = O.AceGUI:Create("Button")
+  local clearBtn = acquire("Button")
   clearBtn:SetText("Clear all\226\128\166"); clearBtn:SetRelativeWidth(0.30)
   clearBtn:SetCallback("OnClick", function()
     if type(StaticPopup_Show) == "function" then
@@ -370,7 +383,7 @@ local function makeFilterSection(ctx, listKey, desc)
   local scroll = O.EnsureScroll(ctx)
   local list = FILTER_LISTS[listKey]
 
-  local descLabel = O.AceGUI:Create("Label")
+  local descLabel = acquire("Label")
   descLabel:SetFullWidth(true); descLabel:SetText(desc)
   scroll:AddChild(descLabel)
   O.AddSpacer(scroll, 6)
@@ -403,7 +416,9 @@ local function makeFilterSection(ctx, listKey, desc)
     entries   = function() return filterEntries(list) end,
     onAdd     = function(id) filterWrite(ctx, list.add, id) end,
     onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
-    emptyText = "|cff808080(none)|r",
+    -- The skin's text.disabled (808080 under Ka0s Default), read when the page renders; a skin
+    -- switch re-renders the shown pages.
+    emptyText = (NS.SkinEscape("text.disabled") or "") .. "(none)|r",
     removeStyle = "icon",
   })
 
@@ -457,7 +472,7 @@ local function buildFiltersTab(ctx)
   -- SimpleGroup added as an ordinary scroll child, sized to whatever height the strip reports.
   -- ClearScroll drains the library's __subTabKids ledger BEFORE it releases this group, which is
   -- what stops the buttons riding a pooled frame into somebody else's page.
-  local host = O.AceGUI:Create("SimpleGroup")
+  local host = acquire("SimpleGroup")
   host:SetLayout(nil); host:SetFullWidth(true)
   scroll:AddChild(host)
 
@@ -759,7 +774,21 @@ function P:Register()
     -- NS.BINDINGS (core/LauncherSetup.lua) and, with no `before`, puts it after every schema tab, so
     -- it is the strip's last. Its rows edit the client's own binding store, never the profile, so
     -- the page's Defaults and Reset all settings never reach a key.
-    local generalOpts = { tabs = { O.KeybindingsTab({ bindings = NS.BINDINGS }) } }
+    --
+    -- The Skin tab (skinning-§3) is the other: the library's own entry (O.AppearanceTab), the skin
+    -- source, the nine skins, the Font and texture overrides, the Scope and "Copy to every Ka0s
+    -- addon...", drawn from LibKa0s-Skin-1.0 for the owner core/SkinSetup.lua registered. Its key is
+    -- the group of the skipRender Appearance rows (settings/Schema.lua), declared after History, so
+    -- the entry takes that group's place: after History, before Keybindings. `get` and `set` are
+    -- core/SkinSetup.lua's read and write seams, so a pick lands through NS.Schema:Set like every
+    -- other setting; the tab calls Skin:SetChoice first, so the live repaint is the library's and
+    -- the rows' onChange finds nothing left to apply. Seven tabs, inside options-ui-§13's budget.
+    local generalTabs = {}
+    local appearance = O.AppearanceTab({ owner = NS.Skin and NS.Skin.owner, get = NS.SkinChoice,
+      set = NS.WriteSkinChoice })
+    if appearance then generalTabs[#generalTabs + 1] = appearance end
+    generalTabs[#generalTabs + 1] = O.KeybindingsTab({ bindings = NS.BINDINGS })
+    local generalOpts = { tabs = generalTabs }
     O.SetRenderer(ctx, function(c)
       O.ClearScroll(c)
       O.RenderTabbedSchema(c, "general", GENERAL_AFTER_TAB, nil, generalOpts)

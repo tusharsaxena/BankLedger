@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 NS.SessionWindow = NS.SessionWindow or {}
 local SW = NS.SessionWindow
 local C = NS.Constants
@@ -23,7 +23,6 @@ local C = NS.Constants
 -- widths, labels, tooltips, cell text and cell colors all come from LedgerTable's public
 -- `Column` / `PaintCell` seams, so a column reads identically in both windows.
 
-local WHITE = "Interface\\Buttons\\WHITE8X8"
 local ROW_H = 18
 local HEADER_H = 20
 local COL_GAP = 8
@@ -360,6 +359,7 @@ function SW:BuildRow()
   row.cells = {}
   for _, col in ipairs(self:Columns()) do
     local fs = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    NS.Skin.Font(fs)   -- the skin's face, once at build; the color is LT:PaintCell's, at bind
     fs:SetJustifyH(col.align)
     fs:SetHeight(ROW_H)
     fs:SetWordWrap(false)
@@ -395,8 +395,7 @@ function SW:BuildRow()
       GameTooltip:Show()
     elseif e.kind == C.Kind.MONEY then
       GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
-      GameTooltip:AddLine(C.KindLabel.MONEY, 1, 0.91, 0.55)
-      GameTooltip:AddDoubleLine("Amount", NS.Util.FormatMoney(e.quantity), 0.9, 0.9, 0.9, 1, 1, 1)
+      NS.LedgerTable.AddMoneyTooltip(e)   -- the History table's lines, in the skin's colors
       GameTooltip:Show()
     end
   end)
@@ -447,16 +446,16 @@ function SW:BuildHeaderCells()
       cell:SetHeight(HEADER_H)
       cell:EnableMouse(true)
       local fs = cell:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+      NS.Skin.Font(fs)
       fs:SetPoint("LEFT", 0, 0)
       fs:SetJustifyH(col.align)
       fs:SetText(col.label)
-      fs:SetTextColor(1, 0.82, 0)
+      fs:SetTextColor(NS.SkinColor("list.header.text"))
       cell.fs = fs
       cell:SetScript("OnEnter", function(self2)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-        GameTooltip:AddLine(col.label, 1, 0.82, 0)
-        if col.desc then GameTooltip:AddLine(col.desc, 0.9, 0.9, 0.9, true) end
+        NS.LedgerTable.AddColumnTooltip(col)
         GameTooltip:Show()
       end)
       cell:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -482,17 +481,14 @@ local STRIP_GAP = 2
 local function buildStrip(f, titleBar)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
   if not (W and W.TestStrip) then return end
-  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info") })
+  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName })
   strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
   strip:EnableMouse(true)
   strip:HookScript("OnEnter", function(self2)
     if not (GameTooltip and NS.Browser and NS.Browser.StripTipLines) then return end
     GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-    for i, line in ipairs(NS.Browser.StripTipLines()) do
-      if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
-      else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
-    end
+    NS.Browser.AddStripTip()   -- the ledger window's strip lines, in the skin's colors
     GameTooltip:Show()
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -562,11 +558,15 @@ local function ensureFrame()
   title:SetText(TITLE)
   frame.title = title
 
-  local divider = frame:CreateTexture(nil, "ARTWORK")
+  -- The title bar's fill and the divider through the skin, as the ledger window's (modules/
+  -- Browser.lua EnsureFrame says why the divider is a 1px frame and not a region of this window).
+  NS.Skin.TitleBar(titleBar)
+  local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
   divider:SetHeight(1)
-  frame.divider = divider
+  NS.Skin.Divider(divider)
+  frame.dividerBar = divider
 
   if NS.Browser and NS.Browser.MakeCloseButton then
     local close = NS.Browser:MakeCloseButton(titleBar, function() SW:Hide() end)
@@ -587,6 +587,8 @@ local function ensureFrame()
   header:SetPoint("TOPRIGHT", -SCROLLBAR_GUTTER, 0)
   header:SetHeight(HEADER_H)
   SW.headerFrame = header
+  -- The header band (list.header.bg), as the History table's (the rollout's D6).
+  NS.Skin.SortHeaderBar(header)
 
   local scroll = CreateFrame("ScrollFrame", nil, pane, "FauxScrollFrameTemplate")
   scroll:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
@@ -597,6 +599,7 @@ local function ensureFrame()
   end)
   scroll:SetScript("OnSizeChanged", function() SW:Bind() end)
   SW.scroll = scroll
+  if scroll.ScrollBar then NS.Skin.ScrollBar(scroll.ScrollBar) end
 
   local host = CreateFrame("Frame", nil, pane)
   host:SetPoint("TOPLEFT", scroll, "TOPLEFT", 0, 0)
@@ -606,6 +609,7 @@ local function ensureFrame()
   SW.rowPool = NS.Pool.New()
 
   local empty = pane:CreateFontString(nil, "OVERLAY", "GameFontDisableLarge")
+  NS.Skin.Text(empty, "disabled")
   empty:SetPoint("CENTER", scroll, "CENTER", 0, 0)
   empty:SetText("Nothing has moved yet this session.")
   empty:Hide()
@@ -622,12 +626,10 @@ local function ensureFrame()
     end,
   })
 
-  if NS.Browser and NS.Browser.ApplySkin then
-    NS.Browser:ApplySkin(frame)
-  else
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                        insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  end
+  -- The skin's window edge (modules/Browser.lua B:ApplySkin). modules/Browser.lua always loads
+  -- first (the TOC), and degraded the Skin seam's Shell draws the pre-library edge, so there is no
+  -- second, bare-backdrop arm here (the rollout's D11). `noTopBar`: the title bar paints its fill.
+  NS.Browser:ApplySkin(frame, { noTopBar = true })
 
   -- Persist on every hide. This is the save that actually carries the geometry across a game
   -- session: the window hides on every bank close, where the drag/resize handlers may never have
@@ -760,4 +762,15 @@ function SW:Enable()
   if SW.__ev.RegisterEvent then
     NS.RegisterEventSafely(SW.__ev, "PLAYER_LOGOUT", function() SW:OnLogout() end)
   end
+end
+
+-- ── A skin switch ───────────────────────────────────────────────────────────────
+-- Called from modules/LedgerTable.lua's OnLooksChanged listener, after the shared cell colors and
+-- the row tints are re-resolved: the header labels, then a rebind, which repaints every pooled row.
+function SW:Reskin()
+  local header = self.headerFrame
+  for _, cell in pairs(header and header.cells or {}) do
+    if cell.fs then cell.fs:SetTextColor(NS.SkinColor("list.header.text")) end
+  end
+  if self.scroll then self:Bind() end
 end

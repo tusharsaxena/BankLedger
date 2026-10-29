@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 NS.Browser = NS.Browser or {}
 local B = NS.Browser
 local C = NS.Constants
@@ -13,16 +13,13 @@ local frame
 -- incoming tab's onto the bar, and Save · Reset · Clear act on the tab on screen alone.
 -- That per-tab view machinery lives in modules/Browser_Views.lua (see B._viewSeam below).
 
--- The window CHROME this addon owns: the tab strip's two label colors and every height the
--- layout is measured from. The window EDGE is NOT here — background, 1px black border, 1px gray
--- inner highlight, gold title tint and gray divider are the normative Ka0s edge, and they live in
--- Core.SKIN (standalone-windows). B:ApplySkin below delegates to Core.ApplySkin rather than
--- restating them, so the ledger window, the session window, both export popups and the debug
--- console cannot drift apart. The seam stays because those four reach the edge through it.
-local WHITE = "Interface\\Buttons\\WHITE8X8"
+-- The window CHROME's geometry: every height the layout is measured from. No color is here: the
+-- window's look is the player's skin (the Skin tab; core/SkinSetup.lua's NS.Skin, over
+-- LibKa0s-Skin-1.0) -- the edge, the title bar, the divider, the close control, the tab labels and
+-- underline, the buttons, the footers and every tooltip line read its tokens, and a skin switch
+-- repaints them live (anti-pattern #107: no typed look value). Ka0s Default's tokens are the values
+-- these surfaces drew before the skin engine.
 local SKIN = {
-  tabActive   = { 1.0, 0.82, 0.0 },
-  tabIdle     = { 0.7, 0.7, 0.72 },
   titleBarH   = 30,
   tabStripH   = 26,
   contentGap  = 14,
@@ -66,22 +63,21 @@ function B:ExportWidth()
   return math.max(EXPORT_MIN, (self:MinWidth() - 12) - (DROPDOWNS_W + DD_GAP))
 end
 
--- Wear the shared Ka0s window edge. Every value this used to spell out — the WHITE8x8 backdrop at
--- edgeSize 1, the {0.06,0.06,0.08,0.92} fill, the black border, the {0.24,0.24,0.27,0.85} inner
--- highlight and divider, the {1,0.82,0} title — is Core.SKIN, byte for byte, and Core.ApplySkin
--- makes the same six calls in the same order, including building the inner-border child once.
--- Delegated rather than restated so a re-skin lands on all five Ka0s windows at once.
---
--- NS.ApplySkin is core/CoreSetup.lua's seam: the library's on a working install, and that file's
--- own pre-library copy when libs/LibKa0s is missing, so the window wears the same edge either
--- way. Guarded anyway, because this is the only file that skins a frame this addon owns.
-function B:ApplySkin(f)
-  if NS.ApplySkin then NS.ApplySkin(f) end
+-- Wear the skin's window edge: the skin's Shell (NS.Skin.Shell, LibKa0s-Skin-1.0), which on Ka0s
+-- Default is the Core.ApplySkin call this made before the skin engine, object for object (the
+-- WHITE8x8 backdrop, the fill, the black border, the inner rule, the title's gold), and the
+-- player's skin otherwise. The frame is recorded for this addon's owner, so a skin switch repaints
+-- it live. `opts` is Shell's: `noTopBar` for a window whose title bar paints its own fill (each
+-- window here calls NS.Skin.TitleBar on its bar, the rollout's D6). Degraded, NS.Skin.Shell is
+-- core/SkinSetup.lua's, which routes to core/CoreSetup.lua's pre-library NS.ApplySkin. Shared by the
+-- ledger window, the session window and the export modal.
+function B:ApplySkin(f, opts)
+  if NS.Skin then NS.Skin.Shell(f, opts) elseif NS.ApplySkin then NS.ApplySkin(f) end
 end
 
 -- The close control every window this addon draws wears: the collection's `close` mark where the
--- shared art is there, and the thin × glyph it has always drawn where it is not. Light gray at
--- rest, the player's class color on hover, either way. Shared by the ledger window (Browser.lua),
+-- shared art is there, and the thin × glyph it has always drawn where it is not. The skin's
+-- close.rest at rest and close.hot on hover, either way (BL-A1). Shared by the ledger window (Browser.lua),
 -- the session window (SessionWindow.lua) and the export modal (Export.lua); the export COPY window
 -- is LibKa0s-Widgets-1.0's CopyWindow and wears the library's close. NOT by the debug
 -- console: that is the LIBRARY's window and wears Core's own 18x18 close — the edge is shared
@@ -96,17 +92,18 @@ end
 -- existed. Nothing below builds a path by concatenation to route around the nil, because a
 -- plausible path to art that is not there is a title bar with no visible way out of it.
 --
--- The art ships WHITE so a multiply lands wherever the caller asks; the two colors below are the
--- ones the glyph has always used, so the mark obeys this addon's own skin rather than replacing it.
-local CLOSE_REST = { 0.85, 0.85, 0.85 }
-
+-- The art ships WHITE so a multiply lands wherever the caller asks.
+--
+-- THE SKIN (BL-A1, the owner's ruling: one close control across every Ka0s addon and skin). The
+-- button is handed to the skin's CloseButton primitive the way every other Ka0s close control is:
+-- no `stockDefault`, and no hover scripts of the host's own to fight it. The primitive tints the art
+-- from `close.rest`, hooks the hover pair (`close.hot` under the pointer, `close.rest` after it) and
+-- repaints on a skin switch, in every skin including Ka0s Default (its gray, and its red on hover).
+-- What stays the host's is the 24x24 size and this addon's own art lookup (standalone-windows).
+-- Degraded, core/SkinSetup.lua's facade draws the same pair from its host copy of Ka0s Default.
 function B:MakeCloseButton(parent, onClick)
   local close = CreateFrame("Button", nil, parent)
   close:SetSize(24, 24)
-  -- A direct read, not NS.Compat.PlayerClass: the tint is cosmetic, applied once at build and never
-  -- stored, so no simulator has to answer it (the compat-boundary test lists it as allowed).
-  local _, class = UnitClass("player")
-  local cc = (class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]) or { r = 1, g = 0.82, b = 0 }
 
   local path = NS.Icon and NS.Icon("close")
   if path then
@@ -114,26 +111,21 @@ function B:MakeCloseButton(parent, onClick)
     art:SetPoint("CENTER")
     art:SetSize(12, 12)
     art:SetTexture(path)
-    art:SetVertexColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
-    close:SetScript("OnEnter", function() art:SetVertexColor(cc.r, cc.g, cc.b) end)
-    close:SetScript("OnLeave", function()
-      art:SetVertexColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
-    end)
     close.icon = art
   else
     local x = close:CreateFontString(nil, "OVERLAY")
     x:SetFont(STANDARD_TEXT_FONT, 24, "")
+    -- The stock face and size first, then the skin's face over them (its size scaled from the 24),
+    -- so even this fallback follows a skin switch rather than keeping a typed face.
+    NS.Skin.Font(x)
     x:SetPoint("CENTER", close, "CENTER", 0, 2)   -- the × sits low in its font box; nudge it up
     x:SetText("\195\151")
-    x:SetTextColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
-    close:SetScript("OnEnter", function() x:SetTextColor(cc.r, cc.g, cc.b) end)
-    close:SetScript("OnLeave", function()
-      x:SetTextColor(CLOSE_REST[1], CLOSE_REST[2], CLOSE_REST[3])
-    end)
     close.glyph = x
   end
 
   close:SetScript("OnClick", onClick)
+  -- The art is in place first: the primitive reaches it through close.icon / close.glyph.
+  NS.Skin.CloseButton(close)
   return close
 end
 
@@ -241,7 +233,7 @@ function B:SelectTab(name)
   for _, t in ipairs(TABS) do
     local active = (t == name)
     frame.panes[t]:SetShown(active)
-    frame.tabs[t].label:SetTextColor(unpack(active and SKIN.tabActive or SKIN.tabIdle))
+    NS.Skin.Text(frame.tabs[t].label, active and "accent" or "muted")
     frame.tabs[t].underline:SetShown(active)
   end
   BuildPane(name)
@@ -258,8 +250,8 @@ end
 
 local function CreateTabStrip()
   local strip = CreateFrame("Frame", nil, frame)
-  strip:SetPoint("TOPLEFT", frame.divider, "BOTTOMLEFT", 6, -2)
-  strip:SetPoint("TOPRIGHT", frame.divider, "BOTTOMRIGHT", -6, -2)
+  strip:SetPoint("TOPLEFT", frame.dividerBar, "BOTTOMLEFT", 6, -2)
+  strip:SetPoint("TOPRIGHT", frame.dividerBar, "BOTTOMRIGHT", -6, -2)
   strip:SetHeight(SKIN.tabStripH)
   frame.tabStrip = strip
   frame.tabs = {}
@@ -274,7 +266,7 @@ local function CreateTabStrip()
     label:SetText(name)
     tab.label = label
     local underline = tab:CreateTexture(nil, "ARTWORK")
-    underline:SetColorTexture(unpack(SKIN.tabActive))
+    underline:SetColorTexture(NS.SkinColor("tab.onLine"))
     underline:SetHeight(2)
     underline:SetPoint("BOTTOMLEFT", 8, 0)
     underline:SetPoint("BOTTOMRIGHT", -8, 0)
@@ -284,6 +276,22 @@ local function CreateTabStrip()
     x = x + 94
   end
 end
+
+-- The tabs on a skin switch (OnLooksChanged, below). They are not the skin's Tab primitive: on Ka0s
+-- Default that draws the settings tab strip's gradient backing, which these tabs never had, so the
+-- tabs keep their own two calls and take only the colors from the skin -- each label through
+-- `S.Text` in `accent` / `muted` by the active tab, as SelectTab paints it, and the underline in
+-- `tab.onLine` (the rollout's D5, Loot History's way). Ka0s Default's are the gold and gray these
+-- tabs always drew. Nothing to do before the window is built.
+local function ReskinTabs()
+  if not (frame and frame.tabs) then return end
+  for name, tab in pairs(frame.tabs) do
+    NS.Skin.Text(tab.label, name == lastTab and "accent" or "muted")
+    tab.underline:SetColorTexture(NS.SkinColor("tab.onLine"))
+  end
+end
+B._reskinTabs = ReskinTabs   -- tests/test_skin_windows.lua
+if NS.Skin then NS.Skin.OnLooksChanged(ReskinTabs) end
 
 -- ── Filter bar ────────────────────────────────────────────────────────────────
 -- Compact custom dropdowns + a search box matching the flat skin. Deliberately not Blizzard's
@@ -298,12 +306,19 @@ B.activeFilter = {}
 --
 -- FONT_MONO for the glyph because the row font has no ▲/▼: the same debug-logging-§2 mono-face
 -- exception the Direction column in modules/LedgerTable.lua uses, for the same reason.
+--
+-- THE SKIN OWNER. Every factory below (the dropdown and its shared menu, the search box, its
+-- suggestion list, the mode strips) names this addon's folder as the widget's skin `owner`
+-- (LibKa0s-Widgets-1.0 minor 16): the library paints it for the owner core/SkinSetup.lua
+-- registered, so it wears the player's skin and follows a switch. Without the Skin major the
+-- field is ignored.
 function B:MakeDropdown(parent, width)
   if not W then return nil end
   return W.Dropdown(parent, width, {
     chevron   = NS.Icon and NS.Icon("chevron-down"),
     check     = NS.Icon and NS.Icon("confirm"),
     glyphFont = C.FONT_MONO,
+    owner     = addonName,
   })
 end
 
@@ -319,6 +334,7 @@ function B:MakeSearchBox(parent, opts)
   if not (W and W.SearchBox) then return nil end
   local o = {}
   for k, v in pairs(opts or {}) do o[k] = v end
+  o.owner = addonName
   return W.SearchBox(parent, nil, o)
 end
 
@@ -335,6 +351,7 @@ function B:MakeAutocomplete(editBox, opts)
   if not (W and W.Autocomplete) then return nil end
   local o = {}
   for k, v in pairs(opts or {}) do o[k] = v end
+  o.owner = addonName
   return W.Autocomplete(editBox, o)
 end
 
@@ -350,17 +367,22 @@ end
 --
 -- So a mark added back here belongs on ALL of these or none of them, and the tripwire in
 -- tests/test_marks.lua pins the current answer: nothing under this factory resolves NS.Icon.
+--
+-- THE SKIN. The box, the label and its hover are the skin's Button primitive (NS.Skin.Button), from
+-- the `btn.*` tokens, following a skin switch with no reload. On Ka0s Default that is the box this
+-- drew: the WHITE8X8 backdrop at edgeSize 1 with 1px insets, the .1/.1/.12/.9 fill, the
+-- .24/.24/.27/.9 edge, a white label that turns gold under the pointer. The scripts are set BEFORE
+-- the primitive runs (it HookScripts its hover pair); its label is `b.text`, the field it reads. The
+-- tooltip line is the skin's gtip.body, read at each hover.
 local function makeBarButton(parent, text, width, onClick, tooltip)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width, 20)
-  b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-                  insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-  b:SetBackdropColor(0.1, 0.1, 0.12, 0.9)
-  b:SetBackdropBorderColor(0.24, 0.24, 0.27, 0.9)
 
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  NS.Skin.Font(fs)
   fs:SetPoint("CENTER")
   fs:SetText(text)
+  b.text = fs
   -- Exposed the same way LibKa0s-Widgets-1.0's own row builder exposes its own, and for the same kind of reason: the WORDS are
   -- the half of a BESIDE button that no other assertion can reach. Without this the mark suite can
   -- see the art and the anchors but not the label, so a call site that passed "" would ship a
@@ -368,18 +390,18 @@ local function makeBarButton(parent, text, width, onClick, tooltip)
   -- headless instrument in the repo stayed green.
   b.fs = fs
   b:SetScript("OnEnter", function(self2)
-    fs:SetTextColor(1, 0.82, 0)
     if tooltip and GameTooltip then
       GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-      GameTooltip:AddLine(tooltip, 0.9, 0.9, 0.9, true)
+      local r, g, bl = NS.SkinColor("gtip.body")
+      GameTooltip:AddLine(tooltip, r, g, bl, true)
       GameTooltip:Show()
     end
   end)
   b:SetScript("OnLeave", function()
-    fs:SetTextColor(1, 1, 1)
     if GameTooltip then GameTooltip:Hide() end
   end)
   b:SetScript("OnClick", onClick)
+  NS.Skin.Button(b)
   return b
 end
 
@@ -434,7 +456,7 @@ local function directionOptions()
   for _, k in ipairs(C.DirectionOrder) do
     if present[k] then
       items[#items + 1] = { value = k, label = C.DirectionLabel[k],
-                            color = C.DirectionRGB[k], glyph = C.DirectionGlyph[k] }
+                            color = C.DirectionColor(k), glyph = C.DirectionGlyph[k] }
     end
   end
   return items
@@ -487,9 +509,10 @@ local function qualityOptions()
   table.sort(ids)
   local items = { { value = "all", label = "Quality: All" } }
   for _, q in ipairs(ids) do
-    local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
+    -- The skin's q.* where it sets one, else the client's color (NS.QualityColor): game meaning.
+    local r, g, b = NS.QualityColor(q)
     items[#items + 1] = { value = q, label = NS.Item.QualityLabel(q),
-                          color = c and { c.r, c.g, c.b } or nil }
+                          color = r and { r, g, b } or nil }
   end
   return items
 end
@@ -667,15 +690,15 @@ function B._rankSuggestions(items, text, limit)
   return out
 end
 
--- A row's suggestion color is the color its name wears in the table: the quality color for an item,
--- the table's pale gold for a gold movement (which has no quality), none when the quality is unknown.
+-- A row's suggestion color is the color its name wears in the table: the quality color for an item
+-- (the skin's q.* where it sets one, NS.QualityColor), the table's pale gold (the owner token
+-- bl.gold) for a gold movement, which has no quality; none when the quality is unknown. Read when the
+-- list is built, so a skin switch reaches the next suggestion.
 local function suggestColor(e)
-  if e.kind == C.Kind.MONEY then
-    local m = NS.LedgerTable and NS.LedgerTable.MONEY_RGB
-    return m and { m[1], m[2], m[3] } or nil
-  end
-  local c = type(e.quality) == "number" and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[e.quality]
-  return c and { c.r, c.g, c.b } or nil
+  if e.kind == C.Kind.MONEY then return NS.SkinRGB("bl.gold") end
+  if type(e.quality) ~= "number" then return nil end
+  local r, g, b = NS.QualityColor(e.quality)
+  return r and { r, g, b } or nil
 end
 
 --- The search box's suggestions: the distinct item names (and "Gold", when a gold movement is in
@@ -741,6 +764,18 @@ function B:RefreshFilterOptions()
   dd.subtype:SetOptions(subTypeOptions())
   dd.quality:SetOptions(qualityOptions())
   dd.char:SetOptions(charOptions())
+end
+
+-- The Direction and Quality options carry their colors, baked when each list is built, so a skin
+-- switch rebuilds the built bar's lists (the dropdowns themselves are the library's, painted for
+-- this owner). Nothing to do before the bar exists.
+if NS.Skin then
+  NS.Skin.OnLooksChanged(function()
+    if B._dd then
+      B._dd.direction:SetOptions(directionOptions())
+      B._dd.quality:SetOptions(qualityOptions())
+    end
+  end)
 end
 
 -- The view machinery (the views, Save · Reset · Clear, the per-tab live state) lives in
@@ -818,19 +853,32 @@ end
 
 -- One mode strip of the given kind ("test" or "sim"), hung 2 px under the filter bar with the
 -- mouse on and the dataset's tooltip (B.StripTipLines). nil without the Widgets library.
+--- The strip tooltip's lines (B.StripTipLines) onto GameTooltip: the first in gtip.title, the rest
+--- (wrapped) in gtip.body. Shared by both windows' strips (modules/SessionWindow.lua) and read at each
+--- hover, so a skin switch needs no repaint.
+function B.AddStripTip()
+  for i, line in ipairs(B.StripTipLines()) do
+    if i == 1 then
+      local r, g, b = NS.SkinColor("gtip.title")
+      GameTooltip:AddLine(line, r, g, b)
+    else
+      local r, g, b = NS.SkinColor("gtip.body")
+      GameTooltip:AddLine(line, r, g, b, true)
+    end
+  end
+end
+
 local function buildModeStrip(filterHost, kind, text)
   if not (W and W.TestStrip) then return nil end
-  local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info") })
+  local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info"),
+    owner = addonName })
   strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
   strip:EnableMouse(true)
   strip:HookScript("OnEnter", function(self2)
     if not GameTooltip then return end
     GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-    for i, line in ipairs(B.StripTipLines()) do
-      if i == 1 then GameTooltip:AddLine(line, 1, 0.82, 0)
-      else GameTooltip:AddLine(line, 0.9, 0.9, 0.9, true) end
-    end
+    B.AddStripTip()
     GameTooltip:Show()
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -1057,15 +1105,25 @@ local function EnsureFrame()
   local testBadge = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   testBadge:SetPoint("LEFT", title, "RIGHT", 10, 0)
   testBadge:SetText(NS.L["TEST MODE"])
-  testBadge:SetTextColor(1, 0.15, 0.15)
+  NS.Skin.Text(testBadge, "sem.modeTest")
   testBadge:Hide()
   frame.testBadge = testBadge
 
-  local divider = frame:CreateTexture(nil, "ARTWORK")
+  -- The title bar's fill through the skin's TitleBar (Ka0s Default's title.bg band, which the
+  -- rollout's D6 accepts on this 30px bar). The title text is not handed over: it is the window's
+  -- `frame.title`, which the Shell (B:ApplySkin below) paints in the title color and font.
+  NS.Skin.TitleBar(titleBar)
+
+  -- The divider under the title bar is a 1px FRAME, and the skin's Divider draws its line on that
+  -- frame's own holder. Never a direct region of this window: EllesmereUI's FadeRegions fades every
+  -- direct region of the frame it skins, and a texture here would be erased with them. Held as
+  -- `dividerBar` rather than the edge's `divider` field, which names a texture to tint.
+  local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
   divider:SetHeight(1)
-  frame.divider = divider
+  NS.Skin.Divider(divider)
+  frame.dividerBar = divider
 
   local close = B:MakeCloseButton(titleBar, function() B:Hide() end)
   close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
@@ -1108,12 +1166,16 @@ local function EnsureFrame()
   -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
   -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so
   -- the two never overlap.
+  -- Both in the skin's `text.disabled`, the gray their font object draws on Ka0s Default. No footer
+  -- band: the window never drew one.
   local footer = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 8, 3)
+  NS.Skin.Text(footer, "disabled")
   B._footer = footer
   local dbFooter = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   dbFooter:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 3)
   dbFooter:SetJustifyH("RIGHT")
+  NS.Skin.Text(dbFooter, "disabled")
   B._dbFooter = dbFooter
 
   B:BuildFilterBar(filterHost)
@@ -1156,7 +1218,8 @@ local function EnsureFrame()
     if NS.State.debug and NS.Debug then NS.Debug("UI", "window hidden") end
   end)
 
-  B:ApplySkin(frame)
+  -- `noTopBar`: the title bar paints its own fill (TitleBar, above).
+  B:ApplySkin(frame, { noTopBar = true })
   B:ApplyGeometry()
   -- Master scale, master alpha and Lock frame in one read (options-ui-§15). It replaced a bare
   -- SetScale here; the other two rows are new and this is where the window first honors them.

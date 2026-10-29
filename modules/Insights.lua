@@ -123,6 +123,8 @@ function I:Attach(pane)
   scroll:SetPoint("TOPLEFT", pane, "TOPLEFT", 0, 0)
   scroll:SetPoint("BOTTOMRIGHT", pane, "BOTTOMRIGHT", -26, 4)
   self.scroll = scroll
+  -- The bar's own art faded and a flat knob over a corridor, in the skin's scroll.* tokens.
+  if scroll.ScrollBar then NS.Skin.ScrollBar(scroll.ScrollBar) end
 
   local content = CreateFrame("Frame", nil, scroll)
   content:SetSize(1, 1)
@@ -160,6 +162,7 @@ function I:Attach(pane)
   for _, key in ipairs(POOL_KEYS) do self.pools[key] = W.NewPool() end
 
   self.emptyText = content:CreateFontString(nil, "OVERLAY", "GameFontDisableLarge")
+  NS.Skin.Text(self.emptyText, "disabled")
   self.emptyText:Hide()
 
   self:Refresh()
@@ -247,9 +250,13 @@ end
 -- Declared above the render helpers because those close over them; a local declared later would
 -- resolve as a nil global at call time.
 
+-- The store palette is this addon's own categorical meaning, kept under every skin (the rollout's
+-- exception E7); the direction pair is the skin's sem.good / sem.bad (W.POSITIVE / W.NEGATIVE, the
+-- reused triples modules/InsightsWidgets.lua resolves per skin).
 local function storeColor(key) return C.StoreRGB[key] or W.NEUTRAL end
 local function storeLabel(key) return C.StoreLabel[key] or tostring(key) end
-local function directionColor(key) return C.DirectionRGB[key] or W.NEUTRAL end
+local DIRECTION_COLOR = { [C.Direction.DEPOSIT] = W.POSITIVE, [C.Direction.WITHDRAW] = W.NEGATIVE }
+local function directionColor(key) return DIRECTION_COLOR[key] or W.NEUTRAL end
 local function directionLabel(key) return C.DirectionLabel[key] or tostring(key) end
 
 -- ── Render helpers ─────────────────────────────────────────────────────────────
@@ -270,7 +277,7 @@ function I:RenderBars(poolKey, headerKey, rows, y, w, legendPool)
   for _, row in ipairs(rows) do
     local bar = W.Acquire(self.pools[poolKey], function() return W.MakeBar(self.content) end)
     local color = row.color or W.NEUTRAL
-    bar.fill:SetColorTexture(color[1], color[2], color[3], 0.95)
+    NS.SkinBar(bar.fill, color[1], color[2], color[3], 0.95)
     bar._tip = I.ElementTip(row.fullLabel or row.label, row.value)
     bar.label:SetText(I.BarLabel(row))
     -- The label defaults to its bar's color, which makes a single bar self-legending.
@@ -343,7 +350,8 @@ function I:RenderBackToBack(poolKey, headerKey, rows, y, w)
 end
 
 -- A wrapped legend of color-swatch chips, aligned under where the bars begin (not under the text
--- labels), so it reads as belonging to the track.
+-- labels), so it reads as belonging to the track. The chip is a flat 10px color (no bar texture: it
+-- is a key, not a bar of data), in the same token color as the bars it names.
 function I:RenderLegend(poolKey, rows, y, w)
   local x0 = PAD + W.LABEL_W + 6
   local chipW = 122
@@ -376,7 +384,7 @@ end
 -- One axis line under the whole strip, separating the bars from their labels.
 local function stripAxisLine(strip)
   strip.axisLine = strip.axisLine or strip:CreateTexture(nil, "ARTWORK")
-  strip.axisLine:SetColorTexture(0.45, 0.45, 0.5, 0.8)
+  strip.axisLine:SetColorTexture(NS.SkinColor("chart.axis"))
   strip.axisLine:ClearAllPoints()
   strip.axisLine:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", 0, -W.STRIP_AXIS_GAP)
   strip.axisLine:SetPoint("BOTTOMRIGHT", strip, "BOTTOMRIGHT", 0, -W.STRIP_AXIS_GAP)
@@ -419,6 +427,7 @@ function I:RenderStrip(poolKey, headerKey, strip, buckets, y, w)
     f:ClearAllPoints()
     f:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", (i - 1) * slot, 0)
     f:SetSize(barW, W.STRIP_H)
+    W.PaintStripBar(f)   -- a pooled bar, any skin
     local mag = b.magnitude or 0
     f.fill:SetSize(barW, math.max(1, (mag / peak) * (W.STRIP_H - 2)))
     -- An empty bucket keeps a ghost of a bar: it marks that the day existed and was quiet, which a
@@ -1002,3 +1011,20 @@ function I:Enable()
   I.__ev:RegisterMessage(NS.MSG.LEDGER_CHANGED, onChange)
   I.__ev:RegisterMessage(NS.MSG.ENTRY_ADDED, function() I:ScheduleRefresh() end)
 end
+
+-- ── A skin switch ──────────────────────────────────────────────────────────────
+-- Fires after the new skin is resolved and every recorded frame repainted (NS.Skin.OnLooksChanged):
+-- the cards, panels, section headings, captions, rules, axis labels and the scroll bar are recorded
+-- primitives and repaint themselves. What is left is the host's own: the cached color triples and
+-- the palette, each card's base headline font (the shrink pass resets to it), each section
+-- divider's 1.5x title, and then a refresh, which repaints every pooled bar, track, strip and list
+-- row in the new colors while the pane is up; a hidden pane refreshes when its tab is next selected.
+function I:Reskin()
+  W.ReskinColors()
+  if not self.pane then return end
+  for _, card in pairs(self.cards or {}) do W.ReskinCard(card) end
+  for _, d in pairs(self.dividers or {}) do W.ReskinDivider(d) end
+  if self.pane:IsShown() then self:Refresh() end
+end
+
+if NS.Skin then NS.Skin.OnLooksChanged(function() I:Reskin() end) end

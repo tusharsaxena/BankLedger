@@ -311,7 +311,7 @@ test("Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and 
   captureChat(function() Sl:CliSet("settings.rowHoverAlpha 0.3") end)
   local lines
   captureChat(function() lines = setLines(function() Sl:OnSlash("resetall") end) end)
-  assertEqual(#NS.Schema.Schema, 17, "the schema still carries seventeen rows")
+  assertEqual(#NS.Schema.Schema, 24, "the schema still carries twenty-four rows")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
   assertTrue(lines[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "the line names the act and the rows changed, got: " .. tostring(lines[1]))
@@ -345,7 +345,7 @@ test("Slash: /bl resetall with every row already at its default logs 0 rows, and
 end)
 
 test("Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED", function()
-  -- The walk visits all seventeen rows and two of them move.
+  -- The walk visits all twenty-four rows and two of them move.
   -- red under: dropping bulkBegin/bulkEnd from the seam (a `[Set] <path> = <value>` line per row),
   -- muting the seam without emitting the summary (none), or logging the library's `count` (17).
   librarySweep()   -- baseline: every row at its default

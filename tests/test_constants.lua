@@ -145,7 +145,10 @@ end)
 
 test("Constants: every direction has a color and a glyph", function()
   for _, key in ipairs(C.DirectionOrder) do
-    assertTrue(type(C.DirectionRGB[key]) == "table", "no color for direction " .. key)
+    -- A token of the player's skin (sem.good / sem.bad), resolved at call time.
+    assertTrue(type(C.DirectionToken[key]) == "string", "no skin token for direction " .. key)
+    local rgb = C.DirectionColor(key)
+    assertTrue(type(rgb) == "table" and #rgb == 3, "no color for direction " .. key)
     assertTrue((C.DirectionGlyph[key] or "") ~= "", "no glyph for direction " .. key)
   end
   -- ▲ leaves the store, ▼ enters it. Swapping them would invert the table's whole visual language.

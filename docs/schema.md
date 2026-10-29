@@ -13,7 +13,7 @@ One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.de
 | Scope | Defaults file | Holds |
 |---|---|---|
 | `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp |
-| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`), both filter lists, the saved views (one per tab) |
+| `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`, the skin choice `settings.appearance` included), both filter lists, the saved views (one per tab) |
 
 The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
 per-character history would split the very record the addon exists to join up. What a player
@@ -21,6 +21,26 @@ configures is per profile, and every character starts on the one shared `Default
 `true` above). The one exception is the retention window: it decides how much of the shared ledger
 is kept, so it is account-wide too (owner decision D6), and no profile event changes it or prunes.
 Each default value is hardcoded in exactly one of the two files (`savedvariables-§2`).
+
+**The skin choice** (skinning-§2: per addon, per profile) is seven schema rows under
+`db.profile.settings.appearance`, all `skipRender` (the library's Skin tab draws them; the rows are in
+[settings-panel.md](settings-panel.md#rows)):
+
+```lua
+appearance = { source = "ka0s", skin = "ka0s",          -- the skin this addon wears (Ka0s Default)
+               ignorePanel = true, ignoreFonts = false, -- the Scope: settings pages stay the client's
+               font = "", texture = "",                 -- the Font and texture overrides: "" = the skin's own
+               pickerSeen = false },                    -- the first-run skin picker was closed here
+```
+
+They are written only through `NS.Schema:Set`: `core/SkinSetup.lua`'s write seam,
+`NS.WriteSkinChoice`, is what the Skin tab, the first-run picker and another Ka0s addon's
+**Copy to every Ka0s addon…** call, and `/bl set settings.appearance.skin <key>` takes the same path
+(each row's `onChange` applies only its own half). They are new keys with defaults, so AceDB merges
+them into every existing profile and no migration is owed; `pickerSeen` therefore starts `false` on
+every profile, old and new, so each shows the picker once (the rollout's ruling O3). This addon has no
+HUD, so the rollout's one-time HUD style reset (O2) adds no migration step here, and the schema
+version does not move.
 
 One ledger entry per movement, appended to `db.global.ledger` (oldest first):
 

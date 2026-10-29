@@ -92,15 +92,17 @@ test("LibKa0s-Slash: /bl list keeps its section headings", function()
     if g then headings[#headings + 1] = g end
   end
   -- One heading per TAB, in tab order (options-ui-§13): `group` names a tab now, so the chat
-  -- listing and the panel's strip are the same partition read two ways. FOUR, not six: the two
-  -- item-id lists are tabs of the page but not settings, so nothing files a row under them and the
-  -- CLI has nothing to list — which is exactly right, `/bl set blacklist` is not an edit the chat
-  -- grammar has.
+  -- listing and the panel's strip are the same partition read two ways. FIVE, not seven: the
+  -- Filters tab's item-id lists are not settings, so nothing files a row under them and the CLI has
+  -- nothing to list — which is exactly right, `/bl set blacklist` is not an edit the chat grammar
+  -- has — and the Keybindings tab edits the client's binding store, not the profile. Appearance is
+  -- the skin choice's seven rows (core/SkinSetup.lua), drawn by the library's tab.
   assertEqual(headings[1], "Master controls")
   assertEqual(headings[2], "Capture")
   assertEqual(headings[3], "Interface")
   assertEqual(headings[4], "History")
-  assertEqual(#headings, 4)
+  assertEqual(headings[5], "Appearance")
+  assertEqual(#headings, 5)
 end)
 
 test("LibKa0s-Slash: a set-typed row renders as a set, never as the secret sentinel", function()

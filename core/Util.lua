@@ -159,17 +159,42 @@ function Util.RowTintAlpha(key, fallback)
   return v
 end
 
+-- The two tints' RGB: the skin's list.stripe and list.hover (core/SkinSetup.lua's NS.Skin), resolved
+-- into these reused triples once per skin rather than per bind -- ApplyRowTint runs on every row of
+-- every repaint. The ALPHA stays the player's slider (Settings > Interface), the rollout's D2: the
+-- sliders' defaults are Ka0s Default's own alphas, so Ka0s Default draws exactly what it drew.
+-- Filled lazily on the first tint (this file loads before the skin seam) and again by
+-- Util.ReskinRowTint on every skin switch (modules/LedgerTable.lua's OnLooksChanged listener).
+local STRIPE_RGB, HOVER_RGB = {}, {}
+local tintResolved = false
+
+local function resolveTint(t, name)
+  local r, g, b = NS.Skin.Color(name)
+  t[1], t[2], t[3] = r or 1, g or 1, b or 1
+end
+
+--- Re-read the two tints' RGB from the live skin. Safe before the seam exists (no-op).
+function Util.ReskinRowTint()
+  if not (NS.Skin and NS.Skin.Color) then return end
+  resolveTint(STRIPE_RGB, "list.stripe")
+  resolveTint(HOVER_RGB, "list.hover")
+  tintResolved = true
+end
+
 --- Paint one pooled row's stripe and hover textures from the current settings, and show or hide
 --- the stripe. Called from BuildRow (so a row is correct the moment it exists) and from BindRow
 --- (so a row recycled onto a different index, or drawn after the slider moved, re-reads).
 function Util.ApplyRowTint(row, striped)
   if not row then return end
+  if not tintResolved then Util.ReskinRowTint() end
   if row.stripe then
-    row.stripe:SetColorTexture(1, 1, 1, Util.RowTintAlpha("rowStripeAlpha", 0.03))
+    row.stripe:SetColorTexture(STRIPE_RGB[1], STRIPE_RGB[2], STRIPE_RGB[3],
+      Util.RowTintAlpha("rowStripeAlpha", 0.03))
     if striped ~= nil then row.stripe:SetShown(striped and true or false) end
   end
   if row.rowHover then
-    row.rowHover:SetColorTexture(1, 0.82, 0, Util.RowTintAlpha("rowHoverAlpha", 0.10))
+    row.rowHover:SetColorTexture(HOVER_RGB[1], HOVER_RGB[2], HOVER_RGB[3],
+      Util.RowTintAlpha("rowHoverAlpha", 0.10))
   end
 end
 

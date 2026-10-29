@@ -281,7 +281,10 @@ NS.Launcher = Launcher:New({
   -- The live entry count is the one number worth reading without opening anything.
   onTooltipShow = function(tt)
     local n = (NS.Database and NS.Database.Count) and NS.Database:Count() or 0
-    tt:AddLine(n == 1 and "1 movement" or (n .. " movements"), 0.7, 0.7, 0.7)
+    -- In the skin's gtip.subtle (skinning-§7: a line this addon writes takes the skin's color),
+    -- read at each hover; core/SkinSetup.lua loads after this file and before any tooltip shows.
+    local r, g, b = NS.SkinColor("gtip.subtle")
+    tt:AddLine(n == 1 and "1 movement" or (n .. " movements"), r, g, b)
   end,
 
   -- The shared, secret-safe, [BL]-prefixed printer, so the library's own reports read like every

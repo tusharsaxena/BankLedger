@@ -71,5 +71,17 @@ NS.defaults.profile = {
     sim = {
       stepDelay = 1,
     },
+
+    -- The skin this addon wears (skinning-§2: per addon, per profile), applied through
+    -- core/SkinSetup.lua. `source` is where the look comes from ("ka0s", the Ka0s skins, or "eui",
+    -- EllesmereUI's) and `skin` which Ka0s skin; "ka0s"/"ka0s" is Ka0s Default. The Skin tab's
+    -- Scope: `ignorePanel` leaves this addon's settings pages the client's (on for a new profile,
+    -- the collection owner's call of 2026-10-27, as Ka0s Loot History ships it), `ignoreFonts`
+    -- leaves every font the client's. Its Font and texture overrides: an LSM key each, "" for the
+    -- skin's own. `pickerSeen`: the first-run skin picker was closed on this profile, false on
+    -- every profile, old and new (the rollout's ruling O3), so each shows it once. New keys with
+    -- defaults, so AceDB merges them into every existing profile and no migration is owed.
+    appearance = { source = "ka0s", skin = "ka0s", ignorePanel = true, ignoreFonts = false,
+                   font = "", texture = "", pickerSeen = false },
   },
 }
