@@ -595,7 +595,9 @@ Outside the gate's reach, also on purpose:
   the surface's opacity, the same under every skin. The legend chips stay flat colors, not bars.
 - **Fonts.** The skin's face reaches every text the addon shows: the primitives draw their own and
   the addon's `GameFont*` FontStrings take it through `S.Font`, face only, at sizes relative to Ka0s
-  Default's. Ka0s Default's face is Oxanium, so the addon's strings no longer read in Friz Quadrata;
+  Default's. Ka0s Default's face is Prototype (Oxanium until LibKa0s v1.82.0), so the addon's strings
+  no longer read in Friz Quadrata; the skin's Font outline (`settings.appearance.outline`, All text by
+  default) outlines them;
   with **Ignore fonts** on every string keeps its own face and size, the library's controls and tool
   windows included (their menus, strips, suggestion rows and labels; LibKa0s v1.81.0). The direction
   glyph keeps the mono face (`C.FONT_MONO`, for its ▲/▼, `debug-logging-§2`) under every skin; the
