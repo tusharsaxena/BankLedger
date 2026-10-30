@@ -599,8 +599,9 @@ Outside the gate's reach, also on purpose:
   close button's fallback × takes the skin's face like any other string (the skinning rollout's BL-02).
 - **Blizzard's own frames stay stock** (skinning-§7): `GameTooltip`'s frame (only the lines are the
   addon's), the reset and purge `StaticPopup`s, the Settings window's chrome and footer Defaults
-  button, the minimap button (LibDBIcon) and the resize grip's art (`Core.MakeResizable` takes no
-  owner). The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
+  button, the minimap button (LibDBIcon) and the resize grip's art (BankLedger does not pass
+  `Core.MakeResizable` an `opts.owner`, an optional adoption since LibKa0s v1.81.0 it has not taken
+  up). The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
   it drew).
 
 ## Known Limitations
