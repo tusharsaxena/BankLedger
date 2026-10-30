@@ -490,7 +490,7 @@ if not Skin then
     "GetAccentColor", "GetPanelColor", "GetFont",
     "TitleBar", "Divider", "Footer", "Card", "Slider", "NavItem", "Drawer", "ListRow", "MenuFrame",
     "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
-    "BarTexture",
+    "BarTexture", "FontFlags", "HudFontSize",
   }) do S[name] = noop end
 
   S.Token = function(name)
@@ -599,6 +599,18 @@ if not Skin then
   -- A bar of data as it was drawn before the skin engine: the flat color, no texture.
   S.BarTexture = function(tex, r, g, b, a)
     if type(tex) == "table" and type(tex.SetColorTexture) == "function" then tex:SetColorTexture(r, g, b, a) end
+  end
+  -- The font flags and the HUD size (LibKa0s v1.82.0, SkinPaintExtras minor 7), never nil, since
+  -- SetFont reads nil flags as none and refuses a nil size: a picked flag string as it is, and
+  -- OUTLINE for From skin ("@skin") or nothing, the library's default All text mode; a positive size
+  -- as it is, else Ka0s Default's 12, the size the HUD draws at without a skin to scale it.
+  S.FontFlags = function(v)
+    if type(v) == "string" and v ~= S.FROM_SKIN then return v end
+    return "OUTLINE"
+  end
+  S.HudFontSize = function(size)
+    local n = tonumber(size)
+    return (n and n > 0) and n or 12
   end
   S.GetPanelColor = function() return color("win.bg") end
   S.GetFont = function() return STANDARD_TEXT_FONT end

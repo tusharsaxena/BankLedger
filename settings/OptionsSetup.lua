@@ -267,6 +267,10 @@ if not lib then
     AppearanceRows = function() return nil end,
     SkinPicker = function() return nil end,
     HideSkinPicker = function() end,
+    -- The reserved `/bl skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker minor 3, ruling D-16):
+    -- no library, no picker, so it answers nil, "absent", and NS.RunSkinVerb prints the
+    -- library-absent line.
+    SkinVerb = function() return nil, "absent" end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,
