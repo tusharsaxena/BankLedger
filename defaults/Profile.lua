@@ -78,10 +78,11 @@ NS.defaults.profile = {
     -- Scope: `ignorePanel` leaves this addon's settings pages the client's (on for a new profile,
     -- the collection owner's call of 2026-10-27, as Ka0s Loot History ships it), `ignoreFonts`
     -- leaves every font the client's. Its Font and texture overrides: an LSM key each, "" for the
-    -- skin's own. `pickerSeen`: the first-run skin picker was closed on this profile, false on
+    -- skin's own. `outline`: the Font outline (LibKa0s v1.82.0, ruling D-06), "all" text, "hud"
+    -- text only or "off". `pickerSeen`: the first-run skin picker was closed on this profile, false on
     -- every profile, old and new (the rollout's ruling O3), so each shows it once. New keys with
     -- defaults, so AceDB merges them into every existing profile and no migration is owed.
     appearance = { source = "ka0s", skin = "ka0s", ignorePanel = true, ignoreFonts = false,
-                   font = "", texture = "", pickerSeen = false },
+                   font = "", texture = "", outline = "all", pickerSeen = false },
   },
 }

@@ -22,7 +22,7 @@ configures is per profile, and every character starts on the one shared `Default
 is kept, so it is account-wide too (owner decision D6), and no profile event changes it or prunes.
 Each default value is hardcoded in exactly one of the two files (`savedvariables-§2`).
 
-**The skin choice** (skinning-§2: per addon, per profile) is seven schema rows under
+**The skin choice** (skinning-§2: per addon, per profile) is eight schema rows under
 `db.profile.settings.appearance`, all `skipRender` (the library's Skin tab draws them; the rows are in
 [settings-panel.md](settings-panel.md#rows)):
 
@@ -30,6 +30,7 @@ Each default value is hardcoded in exactly one of the two files (`savedvariables
 appearance = { source = "ka0s", skin = "ka0s",          -- the skin this addon wears (Ka0s Default)
                ignorePanel = true, ignoreFonts = false, -- the Scope: settings pages stay the client's
                font = "", texture = "",                 -- the Font and texture overrides: "" = the skin's own
+               outline = "all",                         -- the Font outline: "all", "hud" or "off"
                pickerSeen = false },                    -- the first-run skin picker was closed here
 ```
 

@@ -508,14 +508,16 @@ for member.
   every other skin: `bl.gold` (a gold movement's pale gold, follows `sem.gold`) and
   `bl.qualityUnknown` (the Insights fallback for a quality the client has no color for, follows
   `sem.unknown`). The close control has none: BL-A1 retired `bl.closeRest` (and the stock look it
-  served, which LibKa0s v1.81.0 retired from the library too). The choice is seven profile
+  served, which LibKa0s v1.81.0 retired from the library too). The choice is eight profile
   keys under `settings.appearance` ([schema.md](schema.md)): `.source` and `.skin`; the Scope's
   `.ignorePanel` (**Ignore settings panel**, on in a new profile) and `.ignoreFonts`
   (**Ignore fonts**), applied through `NS.ApplySkinIgnore` (`Skin:SetIgnore`, live both ways); the
   Font and texture overrides `.font` and `.texture` (an LSM key each, `""` for the skin's own),
-  applied through `NS.ApplySkinOverride` (`Skin:SetOverride`, live); and `.pickerSeen`, the first-run
-  picker's memory. The library's Skin tab (key `Appearance`) on the General page, after History and
-  before Keybindings, draws the first six ([settings-panel.md](settings-panel.md)).
+  applied through `NS.ApplySkinOverride` (`Skin:SetOverride`, live); the Font outline `.outline`
+  (`"all"` text, the default, `"hud"` text only or `"off"`; LibKa0s v1.82.0, ruling D-06), applied
+  through `NS.ApplySkinOutline` (`Skin:SetOutline`, live, at load and on every profile event); and
+  `.pickerSeen`, the first-run picker's memory. The library's Skin tab (key `Appearance`) on the
+  General page, after History and before Keybindings, draws the first seven ([settings-panel.md](settings-panel.md)).
 - **The first-run skin picker.** `NS.MaybeShowSkinPicker` shows the library's picker
   (`O.SkinPicker`, LibKa0s OptionsSkinPicker 1) while the profile's `pickerSeen` is false (on every
   profile, old and new: the rollout's ruling O3): two seconds after login on an AceTimer handle the
@@ -647,7 +649,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-four rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-five rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 

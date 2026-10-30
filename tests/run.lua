@@ -31,7 +31,7 @@ local SUITES = {
   "test_lintconfig", "test_diagnostics", "test_profiles", "test_debug_coverage", "test_debug_library",
   "test_sim_seam", "test_sim_world", "test_sim_drivers", "test_sim_session", "test_sim_scenario", "test_sim_e2e",
   "test_sim_panel", "test_layers", "test_skinsetup", "test_skin_windows", "test_skin_literals",
-  "test_skin_picker", "test_skin_tools",
+  "test_skin_picker", "test_skin_tools", "test_skin_outline",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.

@@ -1585,7 +1585,7 @@ Total.
 - Skin seam: the read answers Ka0s Default before the profile store exists
 - Skin seam: each owner token draws its Ka0s Default pixel and follows its role elsewhere
 - Skin seam: the gold movement token is today's pale gold, not sem.gold
-- Skin seam: the appearance keys default to today's look, as seven skipRender Appearance rows
+- Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows
 - Skin seam: the skin row's values are every registered skin, in the library's order
 - Skin seam: /bl set refuses a skin that is not registered and applies one that is
 - Skin seam: /bl set reaches an exception, and only its own half
@@ -1648,6 +1648,18 @@ Total.
 - skin tools: the live debug console and its copy window are painted for this owner
 - skin tools: the export copy window is painted for this owner
 - skin tools: every remaining factory seam passes the owner
+
+### test_skin_outline.lua (9)
+
+- outline: a fresh profile stores All text, the library's default, and applies it
+- outline: the schema row offers the library's three modes, in its order, drawn by the tab
+- outline: the write seam stores media.outline, and leaves it alone when it is nil
+- outline: another addon's copy reaches the store through WriteChoice
+- outline: /bl set applies the mode live, and only the outline
+- outline: /bl set refuses a mode the library does not know
+- outline: the whole-choice apply (load, profile events) applies the stored mode
+- outline: a profile switch applies the incoming profile's mode, and back
+- outline: without the skin engine the apply is a quiet no-op
 
 ### test_eol.lua (2)
 
@@ -1774,10 +1786,11 @@ Total.
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
+| test_skin_outline.lua | 9 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1510** |
+| **Total** | **1519** |

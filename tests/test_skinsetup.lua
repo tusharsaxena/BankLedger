@@ -3,7 +3,7 @@
 --
 -- What this addon owes the skin engine, and nothing the library pins itself: the owner is
 -- registered under the folder name with this addon's read and write seams and its owner tokens; the
--- seven appearance keys default to Ka0s Default and are skipRender schema rows on the Appearance
+-- eight appearance keys default to Ka0s Default and are skipRender schema rows on the Appearance
 -- tab; the tab sits after History and before Keybindings; the profile's skin is applied on every
 -- profile event; one pick, from this addon's tab or from another addon's copy, is ONE effective
 -- SetChoice (one OnLooksChanged, at most one reload request), however many store writes follow it;
@@ -146,10 +146,10 @@ local KEYS = {
   { "source", "ka0s", "string" }, { "skin", "ka0s", "string" },
   { "ignorePanel", true, "bool" }, { "ignoreFonts", false, "bool" },
   { "font", "", "string" }, { "texture", "", "string" },
-  { "pickerSeen", false, "bool" },
+  { "outline", "all", "string" }, { "pickerSeen", false, "bool" },
 }
 
-test("Skin seam: the appearance keys default to today's look, as seven skipRender Appearance rows", function()
+test("Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows", function()
   -- red under: a default other than today's look (ignorePanel on: the owner's call of 2026-10-27;
   -- pickerSeen false on every profile: the rollout's O3), the keys moved out of `settings`, or a row
   -- that renders itself on top of the library's choice grids.

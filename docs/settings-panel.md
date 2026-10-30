@@ -20,7 +20,7 @@ only. The finer tree is everything below it.
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your Minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all…**, below the list, empties it after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 | Interface | What is on screen, under two headings. **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default, for every profile at once — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge history…**, which empties the history after asking first. |
-| Skin | The skin this addon wears: the skin source (Ka0s skins, or EllesmereUI when it can skin the addon), the nine Ka0s skins with their swatches, **Font and texture** (a **Font** and a **Texture** dropdown over the skin's own), the Scope (**Ignore settings panel**, **Ignore fonts**), **Copy to every Ka0s addon…**, and a note that skins change every visual element. Per profile, like every other setting. |
+| Skin | The skin this addon wears: the skin source (Ka0s skins, or EllesmereUI when it can skin the addon), the nine Ka0s skins with their swatches, **Font and texture** (a **Font** and a **Texture** dropdown over the skin's own, the **Reset font** and **Reset texture** buttons, and the **Font outline** dropdown: All text, HUD text only or Off), the Scope (**Ignore settings panel**, **Ignore fonts**), **Copy to every Ka0s addon…**, and a note that skins change every visual element. Per profile, like every other setting. |
 | Keybindings | The one key binding, **Toggle ledger window** (`options-ui-§20`). |
 
 ## Shape
@@ -105,24 +105,29 @@ and on show, and refuses every write in combat. A key is not a setting: the page
 **The Skin tab sits after History and before Keybindings, and it is the library's** (skinning-§3).
 Its key is `Appearance` and its label "Skin". `settings/Panel.lua` hands `O.RenderTabbedSchema` a
 second `opts.tabs` entry, `O.AppearanceTab({ owner, get = NS.SkinChoice, set = NS.WriteSkinChoice })`,
-ahead of Keybindings; its key is the group of the seven `skipRender` Appearance rows, declared last in
+ahead of Keybindings; its key is the group of the eight `skipRender` Appearance rows, declared last in
 `settings/Schema.lua`, so the entry takes that group's place. Its body is the library's: the skin
 source (two radio choices, *EllesmereUI* disabled with the failing gate conditions listed while it
-cannot skin this addon), **Look** (the nine skins three to a line with their swatches), **Font and
-texture** (a **Font** and a **Texture** dropdown side by side, each listing "Skin's own (<key>)"
-first and then every LibSharedMedia font or status bar), the Scope (**Ignore settings panel** and
-**Ignore fonts**, side by side), **Copy to every Ka0s addon…** (a confirmation naming the other
-loaded owners; it copies the Scope and the font and texture too) and the note. A font override
+cannot skin this addon), **Look** (the note, then the nine skins three to a line with their
+swatches), **Font and texture** (a **Font** and a **Texture** dropdown side by side, each listing
+"Skin's own (<key>)" first and then every LibSharedMedia font or status bar; under them **Reset
+font** and **Reset texture**, each disabled while its half is the skin's own; under those the
+**Font outline**, *All text*, *HUD text only* or *Off*, LibKa0s v1.82.0), the Scope (**Ignore
+settings panel** and **Ignore fonts**, side by side), and under its own heading **Other Ka0s addons**,
+**Copy to every Ka0s addon…** (a confirmation naming the other loaded owners; it copies the Scope,
+the font and texture and the outline too). Picking another skin that draws a different look clears
+both overrides (LibKa0s v1.82.0, ruling D-10); `/bl set settings.appearance.skin` stays a raw write
+that keeps them. A font override
 replaces the skin's body and title face (the mono face and every size stay the skin's); a texture
 override replaces the bar texture every bar of data is drawn in (`NS.SkinBar`: Insights' ranked,
 stacked, split and back-to-back bars and its day and hour strips); **Ignore fonts** wins over a font
 override. `get` and `set` are `core/SkinSetup.lua`'s read and write seams, so a pick is an ordinary
 `NS.Schema:Set` write, `/bl get|set` reaches the same values, and every reset puts them back on Ka0s
 Default with the settings panel ignored and the fonts skinned (the new-profile defaults). A pick calls
-`Skin:SetChoice` (or, for a font or texture, `Skin:SetOverride`) first, the live repaint with no
+`Skin:SetChoice` (or, for a font or texture, `Skin:SetOverride`; for the outline, `Skin:SetOutline`) first, the live repaint with no
 reload, then the write; each row's `onChange` applies only its own half and finds it applied, so one
 pick is one repaint. Leaving EllesmereUI after it painted this session asks for a reload (the
-library's popup). A profile switch, copy or reset applies the new profile's skin, Scope and overrides
+library's popup). A profile switch, copy or reset applies the new profile's skin, Scope, overrides and outline
 (`NS.OnProfileEvent`). Without LibKa0s there is no settings panel at all (below), and the Options stub's
 `AppearanceTab` answers nil, so `settings/Panel.lua` appends no entry.
 
@@ -357,6 +362,7 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `settings.appearance.ignoreFonts` | bool | `false` | Skin | — | `skipRender`. **Ignore fonts**: every string keeps its own face and size, the library's controls and tool windows included; wins over a font override |
 | `settings.appearance.font` | string | `""` | Skin | — | `skipRender`. **Font**: an LSM font key over the skin's face, `""` for the skin's own; free text, so a media pack's later key is accepted |
 | `settings.appearance.texture` | string | `""` | Skin | — | `skipRender`. **Texture**: an LSM status bar key for every bar of data, `""` for the skin's own |
+| `settings.appearance.outline` | string | `"all"` | Skin | — | `skipRender`. **Font outline** (LibKa0s v1.82.0): `all` text, `hud` text only or `off` (`NS.SKIN_OUTLINE_OPTIONS`, the library's modes), so `/bl set` refuses any other; `onChange` applies it with `Skin:SetOutline`. Ignore fonts grays it out and wins |
 | `settings.appearance.pickerSeen` | bool | `false` | Skin | — | `skipRender`, drawn by nothing: the first-run skin picker was closed on this profile |
 
 **The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of
@@ -452,9 +458,9 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 ## The General page's tabs and the Filters tab
 
-The twenty-four schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+The twenty-five schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
-**Capture** (4) · **Filters** · **Interface** (4) · **History** (1) · **Skin** (7, the Appearance group,
+**Capture** (4) · **Filters** · **Interface** (4) · **History** (1) · **Skin** (8, the Appearance group,
 drawn by the library's entry), then the library's host tab **Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why

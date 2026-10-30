@@ -57,13 +57,15 @@ local STORED_SURFACE = {
   { "settings.sim.stepDelay",     1,        "number", 0.5, 10,  0.5 },
   { "settings.retentionDays",     30,       "number" },
   -- The skin choice (skinning-§2, the skinning rollout's BL-01): seven new paths under
-  -- settings.appearance, declared last so `/bl list` keeps every earlier row where it was.
+  -- settings.appearance, declared last so `/bl list` keeps every earlier row where it was; the
+  -- eighth, the Font outline (LibKa0s v1.82.0, BL-01 of the skin fonts run), after the overrides.
   { "settings.appearance.source",      "ka0s", "string" },
   { "settings.appearance.skin",        "ka0s", "string" },
   { "settings.appearance.ignorePanel", true,   "bool" },
   { "settings.appearance.ignoreFonts", false,  "bool" },
   { "settings.appearance.font",        "",     "string" },
   { "settings.appearance.texture",     "",     "string" },
+  { "settings.appearance.outline",     "all",  "string" },
   { "settings.appearance.pickerSeen",  false,  "bool" },
 }
 
@@ -305,7 +307,7 @@ local PARTITION = {
     { tab = "Filters",         rows = 1 },
     { tab = "Interface",       rows = 4 },
     { tab = "History",         rows = 1 },
-    { tab = "Appearance",      rows = 7 },
+    { tab = "Appearance",      rows = 8 },
   },
 }
 
@@ -341,17 +343,17 @@ test("schema: the live and library-absent row counts, and the composed delta", f
   -- O.MasterControls is hollow, so S:ComposeMaster adds nothing and the whole Master-controls block
   -- is absent from both S.Schema and S:PageRows(). PageRows carries one row more than the registry
   -- on each arm (the renderer-only Filters row in S.BespokeRows), so the delta is 8 on both. The
-  -- seven Appearance rows (core/SkinSetup.lua's choice) are host rows on both arms.
+  -- eight Appearance rows (core/SkinSetup.lua's choice) are host rows on both arms.
   --
   -- Red under a composer that stops being hollow, or a host row added or removed.
   local Env = dofile("tests/degraded_env.lua")
   local DS = Env.loadDegraded().Schema
   local live = { schema = #S.Schema, page = #S:PageRows() }
   local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
-  assertEqual(live.schema, 24, "live #S.Schema")
-  assertEqual(degraded.schema, 16, "library-absent #S.Schema")
-  assertEqual(live.page, 25, "live #S:PageRows()")
-  assertEqual(degraded.page, 17, "library-absent #S:PageRows()")
+  assertEqual(live.schema, 25, "live #S.Schema")
+  assertEqual(degraded.schema, 17, "library-absent #S.Schema")
+  assertEqual(live.page, 26, "live #S:PageRows()")
+  assertEqual(degraded.page, 18, "library-absent #S:PageRows()")
   local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
     .. "O.MasterControls, which composes nothing without the library"
   assertEqual(live.schema - degraded.schema, 8, "S.Schema live minus degraded" .. why)
