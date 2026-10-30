@@ -96,7 +96,7 @@ end
 --
 -- THE SKIN (BL-A1, the owner's ruling: one close control across every Ka0s addon and skin). The
 -- button is handed to the skin's CloseButton primitive the way every other Ka0s close control is:
--- no `stockDefault`, and no hover scripts of the host's own to fight it. The primitive tints the art
+-- no opts, and no hover scripts of the host's own to fight it. The primitive tints the art
 -- from `close.rest`, hooks the hover pair (`close.hot` under the pointer, `close.rest` after it) and
 -- repaints on a skin switch, in every skin including Ka0s Default (its gray, and its red on hover).
 -- What stays the host's is the 24x24 size and this addon's own art lookup (standalone-windows).

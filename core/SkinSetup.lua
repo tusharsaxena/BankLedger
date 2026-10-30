@@ -44,6 +44,10 @@ local addonName, NS = ...
 --                           widgets hand their painters).
 --   NS.SkinEscape(name)     a color token as a "|cffrrggbb" escape, rounded to the byte, so markup
 --                           written as a literal keeps its bytes on Ka0s Default (|cff808080).
+--   NS.SkinPanelEscape(name) the same escape for markup on this addon's SETTINGS PAGE: the skin's
+--                           while the page wears it, the host copy's (the page's own, |cff808080
+--                           for text.disabled) while the owner ignores its settings panel
+--                           (`Skin:GetIgnore`, decision D-03 of the skin library follow-ups).
 --   NS.SkinBar(t, r,g,b,a)  a bar of data (an Insights fill, a stacked segment, a strip bar): the
 --                           owner's bar texture tinted r, g, b, a through `S.BarTexture`, recorded,
 --                           so a skin switch or a Texture override re-applies it; SetColorTexture,
@@ -215,11 +219,31 @@ end
 --- A color token as a "|cffrrggbb" escape, each channel rounded to the nearest byte (1/3 is 55,
 --- .5 is 80), so markup a call site wrote as a literal keeps its bytes on Ka0s Default. nil for a
 --- token the skin leaves alone.
+local function escape(r, g, b)
+  local function byte(v) return math.floor(v * 255 + 0.5) end
+  return ("|cff%02x%02x%02x"):format(byte(r), byte(g), byte(b))
+end
+
 function NS.SkinEscape(name)
   local r, g, b = NS.Skin.Color(name)
   if r == nil then return nil end
-  local function byte(v) return math.floor(v * 255 + 0.5) end
-  return ("|cff%02x%02x%02x"):format(byte(r), byte(g), byte(b))
+  return escape(r, g, b)
+end
+
+--- A color token as an escape for markup on this addon's settings page, where the Scope's "Ignore
+--- settings panel" decides the look (decision D-03 of the skin library follow-ups: a host paint on
+--- a settings page gates on the public Skin:GetIgnore, so one page never mixes stock and skinned).
+--- While the page wears the skin it is NS.SkinEscape. While the owner ignores its settings panel it
+--- is the host copy's value, which is what the page drew before skins (text.disabled is |cff808080,
+--- the library's own stock id gray), or nil for a token the host copy does not hold. Degraded there
+--- is no Scope, and the facade answers the host copy anyway.
+function NS.SkinPanelEscape(name)
+  if Skin and type(Skin.GetIgnore) == "function" and Skin:GetIgnore(addonName) then
+    local c = NS.SKIN_FALLBACK[name]
+    if not c then return nil end
+    return escape(c[1], c[2], c[3])
+  end
+  return NS.SkinEscape(name)
 end
 
 --- A bar of data in the owner's bar texture, tinted r, g, b, a. Never a track, a rule, an axis, a
