@@ -1628,7 +1628,7 @@ Total.
 - Skin picker: a new profile and a reset profile show it again
 - Skin picker: the player's close marks it seen; this addon's own hide does not
 - Skin picker: a profile that has seen it takes a shown picker down, unmarked
-- Skin picker: the title names this addon
+- Skin picker: the title is Choose a skin and this addon is named on its own line
 - Skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
 - Skin picker: the close control puts the stored skin back, saves nothing, and marks it seen
 - Skin picker: the eye opens the ledger window in test mode
