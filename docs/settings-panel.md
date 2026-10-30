@@ -126,8 +126,9 @@ library's popup). A profile switch, copy or reset applies the new profile's skin
 (`NS.OnProfileEvent`). Without LibKa0s there is no settings panel at all (below), and the Options stub's
 `AppearanceTab` answers nil, so `settings/Panel.lua` appends no entry.
 
-**The first-run skin picker** (LibKa0s OptionsSkinPicker 1). A small window, **Choose a skin for Ka0s
-Bank Ledger**: a dropdown of the skins (three swatches and each name in that skin's own face), an eye
+**The first-run skin picker** (LibKa0s OptionsSkinPicker 1; the layout of OptionsSkinPicker 2, LibKa0s
+v1.81.0). A small window titled **Choose a skin**, with the addon's name, **Ka0s Bank Ledger**, on its
+own line above the dropdown, never cut off (the window widens to fit it): a dropdown of the skins (three swatches and each name in that skin's own face), an eye
 button and a gear beside it, and **Apply**, with **Apply to all Ka0s addons** shown only while another
 Ka0s addon that uses skins is loaded. `NS.MaybeShowSkinPicker` (`core/SkinSetup.lua`) shows it while the
 profile's `settings.appearance.pickerSeen` is false: two seconds after login (`addon:OnEnterWorld`,
@@ -153,9 +154,13 @@ the Filters sub-strip host. The Profiles page's renderer calls `NS.SkinPaintAceT
 `AceConfigDialog:Open`, because AceConfigDialog acquires from AceGUI itself. Each painted widget goes
 back to AceGUI's shared pool stock on release (the library chains its restore onto the widget's
 `OnRelease`; no widget here sets a host `OnRelease`), and nothing is painted while **Ignore settings
-panel** is on, a new profile's default. An empty id list reads *(none)* in the skin's `text.disabled`
-(`NS.SkinEscape`, `|cff808080` on Ka0s Default), built on every render so a skin switch reaches it
-with the page's re-render.
+panel** is on, a new profile's default. The library's own page chrome follows the same switch
+(since LibKa0s v1.81.0 the id list's suggestion rows and its id gray too): it wears the skin while
+the panel is skinned and goes back to the client's look while it is ignored. An empty id list reads *(none)* in the skin's `text.disabled` while the
+page is skinned and in the page's own `|cff808080` while it is ignored (`NS.SkinPanelEscape`, which
+gates on `Skin:GetIgnore`, decision D-03 of the skin library follow-ups; `|cff808080` on Ka0s Default
+either way), built on every render so a skin switch or a Scope change reaches it with the page's
+re-render.
 
 **What the strip partitions is `NS.Schema:PageRows()`, not `NS.Schema.Schema`.** One of the six schema tabs
 has no settings behind it: `S.BespokeRows` declares a single **renderer-only** row for Filters, which
@@ -349,7 +354,7 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `settings.appearance.source` | string | `"ka0s"` | Skin (key `Appearance`) | — | `skipRender`: the library's Skin tab draws it. `ka0s` or `eui` (`NS.SKIN_SOURCE_OPTIONS`); `onChange` applies only the source half |
 | `settings.appearance.skin` | string | `"ka0s"` | Skin | — | `skipRender`. One of the nine registered skins (`NS.SKIN_OPTIONS`), so `/bl set` refuses a key no skin has; `ka0s` is Ka0s Default |
 | `settings.appearance.ignorePanel` | bool | `true` | Skin | — | `skipRender`. **Ignore settings panel**: this addon's settings pages stay the client's; its windows still wear the skin |
-| `settings.appearance.ignoreFonts` | bool | `false` | Skin | — | `skipRender`. **Ignore fonts**: every string keeps its own face and size; wins over a font override |
+| `settings.appearance.ignoreFonts` | bool | `false` | Skin | — | `skipRender`. **Ignore fonts**: every string keeps its own face and size, the library's controls and tool windows included; wins over a font override |
 | `settings.appearance.font` | string | `""` | Skin | — | `skipRender`. **Font**: an LSM font key over the skin's face, `""` for the skin's own; free text, so a media pack's later key is accepted |
 | `settings.appearance.texture` | string | `""` | Skin | — | `skipRender`. **Texture**: an LSM status bar key for every bar of data, `""` for the skin's own |
 | `settings.appearance.pickerSeen` | bool | `false` | Skin | — | `skipRender`, drawn by nothing: the first-run skin picker was closed on this profile |

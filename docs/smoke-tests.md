@@ -1072,7 +1072,11 @@ describes what you see, apart from the changes SKIN-1 lists.
   split and back-to-back bars and the day and hour strips) wear the **Ka0s Default** bar texture in
   the colors they had; the three title bars carry the skin's faint title band and both tables' header
   rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
-  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Bank Ledger has no HUD, so the rollout's
+  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since LibKa0s v1.81.0
+  (BL-RV of the skin library follow-ups) the library's own strings read in Oxanium too: the
+  dropdowns' menu rows, the search suggestions, the test and sim strips' lines, and the labels of the
+  debug console, the copy windows and the sim panel (they drew Friz Quadrata before); and item quality
+  colors are the client's exact values (a sub-byte move from the rounded ones, not visible by eye). Bank Ledger has no HUD, so the rollout's
   one-time HUD style reset (O2) changes nothing here and there is no HUD change to look for (the
   rollout's X5 does not apply; BL-03 is recorded as an exception). **Fail:** any other changed color,
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
@@ -1122,7 +1126,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   description, id list and **Clear all…**, and the Profiles page's controls. Open another AceGUI
   addon's settings and another Ka0s addon's, flip back and forth a few times → those stay **stock**
   every time. Turn **Ignore settings panel** on → Bank Ledger's pages go back to the game's look with
-  no reload, and its windows keep the skin. Result:
+  no reload, and its windows keep the skin. Since LibKa0s v1.81.0 (BL-RV, BL-01 of the skin library
+  follow-ups) the id list's last pieces follow the switch too: type part of an item name into the
+  Filters box for its suggestion rows. With the switch **off** the rows, their ids' gray and the
+  empty list's *(none)* (Filters → an empty Blacklist) wear the skin: under **Obsidian** *(none)* is
+  Obsidian's darker gray, and under **Ka0s Default** the suggestion rows read in Oxanium, a touch off
+  white. With it **on** every one of them is the game's look, *(none)* in the plain mid gray.
+  **Fail:** one control on the page still skinned while the rest are stock, or the reverse. Result:
 - **SKIN-9. Fonts (BL-02).** On an English client each skin draws its own family, body and titles
   alike, with no fallback squares: Ka0s Default Oxanium, Obsidian Inter, Azeroth Vollkorn, Glass
   Nunito, High Contrast Atkinson Hyperlegible, Ember Bitter, WoW Midnight Philosopher, WoW Forever
@@ -1134,6 +1144,11 @@ describes what you see, apart from the changes SKIN-1 lists.
   different face from **Font** → with no reload the title, tabs, buttons, cells and Insights text take
   it at the sizes they had; the debug console keeps its mono face. Turn **Ignore fonts** on → every
   string goes back to the game's own face, the override still selected; off → the override returns.
+  Since LibKa0s v1.81.0 that includes the library's controls and tool windows: with **Ignore fonts**
+  on, open a filter dropdown's menu, type into the search box for its suggestions, show the test strip
+  (`/bl test`) and the sim panel and strip (`/bl sim start bank`), the debug console's labels and its
+  **Copy** window, and the Export copy window → each in the game's face, live, and back in the skin's
+  (or the override's) with it off; any of them still in the skin's face with Ignore fonts on fails.
   Pick *Skin's own* → the skin's face. `/bl get settings.appearance.font` shows the key while set and
   an empty value after. Result:
 - **SKIN-11. A texture override reaches the bars (BL-01, BL-02).** Open Insights with a range that
@@ -1168,12 +1183,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   Blizzard's. The purge and reset confirmations are stock. Hover the minimap button → the button and
   its tooltip look as before the run (the movement count in the same gray). Result:
 - **SKIN-19. The picker on an existing profile (BL-04; the rollout's ruling O3).** On a character whose
-  profile predates this build, log in → about two seconds after the world loads a small window,
-  **Choose a skin for Ka0s Bank Ledger**, opens about three quarters of the way up the screen,
-  already in the profile's skin: a dropdown of the skins, an eye and a gear beside it, **Apply** under
+  profile predates this build, log in → about two seconds after the world loads a small window titled
+  **Choose a skin** opens about three quarters of the way up the screen, already in the profile's skin:
+  **Ka0s Bank Ledger** on its own line under the title and above the dropdown, whole and not cut off
+  (the window is wide enough for it; LibKa0s v1.81.0), then a dropdown of the skins, an eye and a gear beside it, **Apply** under
   it, and a close mark (**Apply to all Ka0s addons** only while another Ka0s addon that uses skins is
   loaded). Close it, `/reload` → it does not come back on that profile. Create a new profile → it opens
-  again. **Fail:** no picker on a profile that never closed it, or one on a profile that did. Result:
+  again. **Fail:** no picker on a profile that never closed it, or one on a profile that did, or the
+  addon's name missing, truncated or in the title. Result:
 - **SKIN-20. The picker previews, and Apply saves (BL-04).** On a fresh profile open the dropdown →
   every skin listed with three swatches and its name in its own face. Pick **Obsidian** → Bank Ledger
   repaints at once, the picker stays open, and `/bl get settings.appearance.skin` still prints the old
@@ -1199,7 +1216,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   a pick, **Apply** and the gear each say they cannot be done in combat, and the close mark still
   closes it. Result:
 - **SKIN-26. One picker at a time (BL-04).** With Ka0s Loot History also on a fresh profile,
-  `/reload` → one picker opens, naming one addon; close it → the other's opens. Reset both and
+  `/reload` → one picker opens, the one addon it is for named above its dropdown; close it → the
+  other's opens, naming the other addon there. Reset both and
   `/reload` → press **Apply to all Ka0s addons** on the first → it closes, no second picker opens, and
   both addons wear the picked skin. Result:
 
@@ -1346,3 +1364,12 @@ Owed from the skinning rollout (2026-10-29, Ka0sAddonsCommonTasks
 `docs/2026-10-29-SKINNING_ROLLOUT/`, items BL-01 to BL-04), none of them run yet: PANEL-4
 (rewritten for the Skin tab), SKIN-1 to SKIN-26 and DEGRADED-15. BL-A1 (the close control is the skin's, red on hover under Ka0s
 Default) rewrote SKIN-4 and touched SKIN-1 and DEGRADED-15, and owes a re-run of LEDG-35.
+
+Owed from the skin library follow-ups (2026-10-30, Ka0sAddonsCommonTasks
+`docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/`, items BL-RV, BL-01 and BL-02 on LibKa0s v1.81.0), none of
+them run yet: SKIN-1 (the library's strings in Oxanium, exact quality colors), SKIN-8 (the id list's
+suggestion rows and the empty list's *(none)* follow **Ignore settings panel**),
+SKIN-10 (**Ignore fonts** reaches the library's controls and tool windows), SKIN-19 (the picker's
+title **Choose a skin** and the addon's name on its own line) and SKIN-26 (the name above the
+dropdown). Bank Ledger has no HUD, so the release's Ignore-fonts-on-the-HUD change and its per-skin
+HUD faces have no check here.

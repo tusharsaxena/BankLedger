@@ -30,7 +30,7 @@ collection's `close` icon; the library resolves it for its own windows once the 
 what it drew before: without LibKa0s the library falls back to a multiplication sign and this addon
 falls back to its own 24pt ×, and both windows still close. The sizes still differ on purpose — an
 18×18 control on a 26px library title bar, 24×24 on this addon's 30px one. `B:MakeCloseButton` hands
-its button to the skin's `CloseButton` the way the library's own control does, with no `stockDefault`
+its button to the skin's `CloseButton` the way the library's own control does, with no opts
 and no host hover scripts (BL-A1, the owner's ruling): in every skin, Ka0s Default included, the
 primitive draws `close.rest` at rest and `close.hot` under the pointer, so the colors match too. See
 [media.md](media.md).
