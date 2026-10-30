@@ -447,7 +447,8 @@ end)
 -- NOT THE STAND-DOWN. Steps 1-6 are. A green case here says nothing about whether the addon is
 -- inert; it says the command surface still answers, which is the other half of the ruling.
 
-local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge", "sim" }
+-- `skin` (LibKa0s v1.82.0's O.SkinVerb, ruling D-16) is reserved but not live: it opens a window.
+local FEATURE_VERBS = { "show", "hide", "toggle", "skin", "session", "test", "purge", "sim" }
 
 -- The live set is the library's reserved verbs (lib.LIVE_VERBS) plus the one host verb this addon
 -- widens it with, `profile` (Slash minor 17: the library leaves `profile` out of its own set and a

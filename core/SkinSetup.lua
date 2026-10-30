@@ -73,6 +73,10 @@ local addonName, NS = ...
 --                           queue WITHOUT marking it seen: the stand-down, a profile that has seen
 --                           it, and first on every profile event; drops a held combat deferral.
 --   NS.SkinPickerSpec()     the spec MaybeShowSkinPicker hands O.SkinPicker.
+--   NS.RunSkinVerb()        the reserved `/bl skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker
+--                           minor 3, ruling D-16): `O.SkinVerb` with that spec, so it shows the
+--                           picker a new profile shows whatever `pickerSeen` says; the library-
+--                           absent line on nil, "absent". Answers the frame, or nil and the reason.
 --
 -- ── WHERE IT LOADS ───────────────────────────────────────────────────────────────────────────
 --
@@ -478,6 +482,19 @@ function NS.MaybeShowSkinPicker()
     return nil
   end
   return O.SkinPicker(NS.SkinPickerSpec())
+end
+
+--- `/bl skin` (settings/Schema.lua's `skin` row). The library prints its own lines: combat on every
+--- call, queued behind another addon's picker, unavailable. The dispatcher refuses the verb while the
+--- addon is disabled, so this never checks. Without LibKa0s the Options stub answers nil, "absent".
+function NS.RunSkinVerb()
+  local O = NS.Helpers
+  local win, why
+  if O and type(O.SkinVerb) == "function" then win, why = O.SkinVerb(NS.SkinPickerSpec()) else why = "absent" end
+  if win == nil and why == "absent" and NS.Print then
+    NS.Print(NS.L["%s is unavailable: the LibKa0s library did not load."]:format("/bl skin"))
+  end
+  return win, why
 end
 
 -- AceGUI keeps ONE callback per event name (options-ui-§19). Without the library's chain there is

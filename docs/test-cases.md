@@ -1661,6 +1661,16 @@ Total.
 - outline: a profile switch applies the incoming profile's mode, and back
 - outline: without the skin engine the apply is a quiet no-op
 
+### test_skin_verb.lua (7)
+
+- skin verb: the row sits right after config, with the library's help words
+- skin verb: /bl skin hands O.SkinVerb this addon's first-run spec
+- skin verb: on a profile that closed the picker, /bl skin shows it
+- skin verb: the library's reason is passed on, and nothing is printed over it
+- skin verb: in combat every call prints the library's gray line and shows nothing
+- skin verb: refused while the addon is disabled, and the act never runs
+- skin verb: without LibKa0s the verb prints the library-absent line
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1787,10 +1797,11 @@ Total.
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 9 |
+| test_skin_verb.lua | 7 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1519** |
+| **Total** | **1526** |

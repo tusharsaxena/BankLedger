@@ -588,7 +588,9 @@ end)
 -- The cases below assert BOTH halves every time, because a case that only reads the message passes
 -- over a verb that printed the refusal and then went ahead and acted anyway.
 
-local FEATURE_VERBS = { "show", "hide", "toggle", "session", "test", "purge", "sim" }
+-- `skin` (LibKa0s v1.82.0, ruling D-16) is a reserved verb but a feature one: it is not in
+-- lib.LIVE_VERBS, so a disabled addon refuses it.
+local FEATURE_VERBS = { "show", "hide", "toggle", "skin", "session", "test", "purge", "sim" }
 local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug", "diagnostics",
                      "get", "set", "list", "reset", "resetall", "profile" }
 

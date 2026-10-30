@@ -936,6 +936,11 @@ NS.COMMANDS = {
   { "config",   "Open settings",           function()
       if NS.Panel then NS.Panel:Open() end
     end },
+  -- THE RESERVED SKIN VERB (LibKa0s v1.82.0's O.SkinVerb, ruling D-16): the first-run skin picker
+  -- on demand, whatever this profile's pickerSeen says (core/SkinSetup.lua's NS.RunSkinVerb, which
+  -- prints the library-absent line itself). A feature verb, not one of lib.LIVE_VERBS, so the
+  -- dispatcher refuses it while the addon is disabled; the help words are the library's VERB_HELP.
+  { "skin",     NS.L["Choose a skin: open the skin picker"], function() NS.RunSkinVerb() end },
   -- RESERVED VERBS, AND ALIASES RATHER THAN A SECOND SWITCH (slash-commands-§2). Both write the
   -- same stored path the Master-controls "Enable Bank Ledger" checkbox writes, through the same
   -- single write seam, so the checkbox and the verbs can never show the player two answers and one

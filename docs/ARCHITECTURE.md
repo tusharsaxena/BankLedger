@@ -296,8 +296,9 @@ gets no close event either.
 ## Slash Commands
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
-page read one table. Twenty verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
-seam. `/bl sim` is the simulator's one feature verb, handing its words to `NS.Sim:RunVerb`
+page read one table. Twenty-one verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+seam. `/bl skin` is the reserved skin verb (LibKa0s v1.82.0's `O.SkinVerb`): the first-run skin
+picker on demand, refused while the addon is disabled. `/bl sim` is the simulator's one feature verb, handing its words to `NS.Sim:RunVerb`
 (LibKa0s-Sim-1.0's grammar); the simulator is slash-only, with no launcher entry or key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
 prints the list (`slash-commands-§4`). `/bl profile` lists the profiles, and `/bl profile <name>`
 switches to an existing one through the library's `CliProfile` (Slash minor 17); it stays live while
@@ -657,7 +658,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 20 verbs in `NS.COMMANDS` (threshold is 8) |
+| `slash-dispatch.md` | Present | 21 verbs in `NS.COMMANDS` (threshold is 8) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon's own |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 15 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
