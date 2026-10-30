@@ -154,9 +154,10 @@ local function renderStorage(ctx)
         tostring(count), s.count == 1 and "movement" or "movements",
         s.days, s.days == 1 and "day" or "days")
     end
-    -- \226\137\136 = "≈". The real SavedVariables file size can't be read in-game, so it's estimated,
-    -- and the "≈" alone says so, as the ledger window's footer does (item 020, BAN-L09).
-    statsLabel:SetText(line1 .. "\nDatabase size: \226\137\136 " .. NS.Util.FormatBytes(s.bytes))
+    -- The real SavedVariables file size can't be read in-game, so it's estimated, and the "~" alone
+    -- says so, as the ledger window's footer does (item 020, BAN-L09). ASCII, not "≈" (U+2248),
+    -- which some skin faces cannot draw (ruling D-19).
+    statsLabel:SetText(line1 .. "\nDatabase size: ~" .. NS.Util.FormatBytes(s.bytes))
   end
   ctx.refreshers[#ctx.refreshers + 1] = refreshStats
   refreshStats()

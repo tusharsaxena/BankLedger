@@ -1671,6 +1671,12 @@ Total.
 - skin verb: refused while the addon is disabled, and the act never runs
 - skin verb: without LibKa0s the verb prints the library-absent line
 
+### test_glyphs.lua (3)
+
+- glyphs: display strings use only characters every shipped skin face draws
+- glyphs: the ledger window's footer estimates the size with ~, not ≈
+- glyphs: the Direction column's tooltip names the directions without the arrows
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1798,10 +1804,11 @@ Total.
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 9 |
 | test_skin_verb.lua | 7 |
+| test_glyphs.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1526** |
+| **Total** | **1529** |

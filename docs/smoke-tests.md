@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 29 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity |
+| SKIN-1 – 30 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws |
 | DEGRADED-1 – 15 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -183,9 +183,10 @@ leaves its number unused.
   line, then a **Simulator** heading over *Simulation step delay (seconds)*. Neither heading reads
   "Interface" (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-8. History tab.** History → *Keep history for*, the storage read-out ("N movements recorded
-  over N days." then "Database size: ≈ X", with no "(estimated)"), then **Purge history…** alone.
+  over N days." then "Database size: ~X", with no "(estimated)"), then **Purge history…** alone.
   Hover it → *Delete every recorded movement on this account. Your settings are left alone. Asks
-  first.* No Reset all button here or on Interface or Capture: the only one is on Master controls. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
+  first.* No Reset all button here or on Interface or Capture: the only one is on Master controls. Rewritten 2026-10-24 (item 020).
+  Re-opened 2026-10-30: the hedge is "~" now, not "≈" (BL-02 of the skin fonts run, ruling D-19). Result:
 - **PANEL-9. Filters tab.** Filters → a secondary strip inside the scroll (it scrolls with the content)
   reading Blacklist · Whitelist, opening on Blacklist. The selected list shows its own blurb, then its
   own add box and id list, then its own **Clear all…** on a line of its own below the list, and never
@@ -1262,6 +1263,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   cards' captions and headline figures, the section titles, the chart legends) and on the session
   window. **Fail:** a header, caption or figure clipped or overlapping under one skin and not under
   Ka0s Default. Result:
+- **SKIN-30. Characters every skin face draws (BL-02 of the skin fonts run, ruling D-19).** Under
+  **Obsidian**, then **WoW Forever** and **Glass**, read the ledger window's footer → *Database ~1.2
+  MB* (a tilde, never an empty box), and General → History's read-out → *Database size: ~1.2 MB*.
+  Hover History's **Direction** column header → *Deposit means it left your bags for the store;
+  withdraw means it came back out.*, with no arrow and no box. The cells' and the session window's
+  ▲/▼ still draw (in the mono face). **Fail:** an empty box or a missing character anywhere in Bank
+  Ledger's windows, tooltips or settings under any skin. Result:
 
 ## DEGRADED
 
@@ -1412,6 +1420,7 @@ have no check here.
 
 Pending since 2026-10-30, the skin fonts and feedback run (Ka0sAddonsCommonTasks
 `docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK/`, items BL-01 and BL-02 on LibKa0s v1.82.0): new checks
-SLASH-11, SKIN-27, SKIN-28 and SKIN-29, and SKIN-1, SKIN-2, SKIN-8, SKIN-9 and SKIN-15 re-opened,
+SLASH-11, SKIN-27, SKIN-28, SKIN-29 and SKIN-30, and PANEL-8, SKIN-1, SKIN-2, SKIN-8, SKIN-9 and
+SKIN-15 re-opened,
 their `Result:` lines emptied, because their faces, layout or copy moved. Bank Ledger has no HUD, so
 the release's HUD size scale (ruling D-09) has no check here.

@@ -67,8 +67,9 @@ LT.COLUMNS = {
     valueFn = function(e) return NS.Util.FormatClock(e.ts) end,
     sortFn = function(e) return e.ts or 0 end },
   { key = "direction", label = "Direction", width = 82, align = "LEFT",
-    desc = "Deposit (\226\150\188) means it left your bags for the store; "
-      .. "withdraw (\226\150\178) means it came back out.",
+    -- No ▼/▲ in the words: the tooltip draws in the skin's face, and most faces lack them (D-19).
+    -- The cells draw the arrows in the mono face.
+    desc = "Deposit means it left your bags for the store; withdraw means it came back out.",
     valueFn = function(e) return C.DirectionLabel[e.direction] or e.direction or "" end,
     sortFn = function(e) return e.direction or "" end },
   { key = "store", label = "Store", width = 112, align = "LEFT",

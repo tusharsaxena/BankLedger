@@ -747,11 +747,12 @@ end
 
 -- Estimated SavedVariables size of the stored ledger (the same estimate the settings panel shows).
 -- Recomputed only when the ledger changes or the window (re)opens — never on a filter keystroke,
--- since filtering cannot change what is stored. \226\137\136 = "≈".
+-- since filtering cannot change what is stored. "~" is the hedge, in ASCII: "≈" (U+2248) drew as
+-- a box under Obsidian, whose Expressway has no such glyph (ruling D-19, the kit's glyph guard).
 function B:UpdateDbSize()
   if not self._dbFooter then return end
   local bytes = (NS.Database and NS.Database.StorageStats and NS.Database:StorageStats().bytes) or 0
-  self._dbFooter:SetText(("Database \226\137\136 %s"):format(NS.Util.FormatBytes(bytes)))
+  self._dbFooter:SetText(("Database ~%s"):format(NS.Util.FormatBytes(bytes)))
 end
 
 -- Recompute the data-driven dropdowns from the current dataset.
