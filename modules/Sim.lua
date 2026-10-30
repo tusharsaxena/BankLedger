@@ -257,16 +257,30 @@ local function refreshPreview(i)
   if Host.world == nil and i == 1 then Host.PreviewPool(true) end
 end
 
--- The name a step's `item` names: the real item's (from its link), from the world's pool while one
--- exists, else from the idle preview pool; the scenario's letter when neither has the item.
-local function itemName(ref)
-  local D = NS.SimDrivers
+-- The item a step's `item` names: from the world's pool while one exists, else from the idle
+-- preview pool; nil when neither exists or the drivers cannot resolve it.
+local function resolveStepItem(ref)
   local pool = Host.world == nil and Host.PreviewPool() or nil
-  local item = (Host.world or pool) and D and D.ResolveItem and D.ResolveItem(ref, pool)
-  local name = item and type(item.link) == "string" and item.link:match("%[(.-)%]")
+  if not (Host.world or pool) then return nil end
+  local D = NS.SimDrivers
+  local resolve = D and D.ResolveItem
+  return resolve and resolve(ref, pool) or nil
+end
+
+-- The scenario's letter for an unresolved `item`: B for the bonus item, A/C/D/E by pool index.
+local function itemLetter(ref)
+  if ref == "bonus" then return "B" end
+  return LETTER[tonumber(ref) or 0] or tostring(ref)
+end
+
+-- The name a step's `item` names: the real item's (from its link), its id when the link carries
+-- no name; the scenario's letter when no pool has the item.
+local function itemName(ref)
+  local item = resolveStepItem(ref)
+  if not item then return L["item %s"]:format(itemLetter(ref)) end
+  local name = type(item.link) == "string" and item.link:match("%[(.-)%]")
   if name and name ~= "" then return name end
-  if item then return tostring(item.itemID) end
-  return L["item %s"]:format(ref == "bonus" and "B" or (LETTER[tonumber(ref) or 0] or tostring(ref)))
+  return tostring(item.itemID)
 end
 
 local function storeLabel(store) return NS.Constants.StoreLabel[store] or tostring(store) end

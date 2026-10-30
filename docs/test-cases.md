@@ -1544,7 +1544,7 @@ Total.
 - Sim pacing: a step moving a blacklisted item does not stall the run
 - Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
-### test_sim_panel.lua (18)
+### test_sim_panel.lua (19)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
@@ -1564,6 +1564,7 @@ Total.
 - sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
+- sim panel: a move step names its item from the link, else its id, else the scenario's letter
 
 ### test_layers.lua (11)
 
@@ -1649,7 +1650,7 @@ Total.
 - skin tools: the export copy window is painted for this owner
 - skin tools: every remaining factory seam passes the owner
 
-### test_skin_outline.lua (9)
+### test_skin_outline.lua (10)
 
 - outline: a fresh profile stores All text, the library's default, and applies it
 - outline: the schema row offers the library's three modes, in its order, drawn by the tab
@@ -1660,6 +1661,7 @@ Total.
 - outline: the whole-choice apply (load, profile events) applies the stored mode
 - outline: a profile switch applies the incoming profile's mode, and back
 - outline: without the skin engine the apply is a quiet no-op
+- outline: the degraded facade's FontFlags and HudFontSize answer a value, never nil
 
 ### test_skin_verb.lua (7)
 
@@ -1795,14 +1797,14 @@ Total.
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 9 |
-| test_sim_panel.lua | 18 |
+| test_sim_panel.lua | 19 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 11 |
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
-| test_skin_outline.lua | 9 |
+| test_skin_outline.lua | 10 |
 | test_skin_verb.lua | 7 |
 | test_glyphs.lua | 3 |
 | test_eol.lua | 2 |
@@ -1811,4 +1813,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1529** |
+| **Total** | **1531** |
