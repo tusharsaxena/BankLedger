@@ -641,12 +641,15 @@ if not Skin then
     if type(tex) == "table" and type(tex.SetColorTexture) == "function" then tex:SetColorTexture(r, g, b, a) end
   end
   -- The font flags and the HUD size (LibKa0s v1.82.0, SkinPaintExtras minor 7), never nil, since
-  -- SetFont reads nil flags as none and refuses a nil size: a picked flag string as it is, and
-  -- OUTLINE for From skin ("@skin") or nothing, the library's default All text mode; a positive size
-  -- as it is, else Ka0s Default's 12, the size the HUD draws at without a skin to scale it.
-  S.FontFlags = function(v)
+  -- SetFont reads nil flags as none and refuses a nil size. FontFlags answers a picked flag as is,
+  -- and for From skin ("@skin") or nothing "OUTLINE" on HUD text but "" on window text
+  -- (`where == "window"`), the live library's answer while fonts are ignored, the closest live match
+  -- for a stock-look load; HudFontSize a positive size as is, else Ka0s Default's 12, the size the
+  -- HUD draws at without a skin to scale it. Nothing in this addon calls either today; they answer
+  -- so a future caller (window text only here) degrades to a value rather than to nil.
+  S.FontFlags = function(v, where)
     if type(v) == "string" and v ~= S.FROM_SKIN then return v end
-    return "OUTLINE"
+    return where == "window" and "" or "OUTLINE"
   end
   S.HudFontSize = function(size)
     local n = tonumber(size)
