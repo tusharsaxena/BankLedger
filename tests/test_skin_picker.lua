@@ -269,10 +269,14 @@ test("Skin picker: a profile that has seen it takes a shown picker down, unmarke
   assertFalse(f:IsShown(), "the picker stayed up on a profile that has seen it")
 end))
 
-test("Skin picker: the title names this addon", clean(function()
+test("Skin picker: the title is Choose a skin and this addon is named on its own line", clean(function()
+  -- red under: v1.80.0's one-line "Choose a skin for <addon>" title, which the client cut off; the
+  -- library (OptionsSkinPicker minor 2, LK-11) now names the addon on frame.ownerLabel instead.
   local f = NS.MaybeShowSkinPicker()
   assertTrue(f ~= nil and f:IsShown())
-  assertEqual(f.title:GetText(), "Choose a skin for " .. NS.BRAND_NAME)
+  assertEqual(f.title:GetText(), "Choose a skin")
+  assertTrue(f.ownerLabel ~= nil, "the picker has an owner line")
+  assertEqual(f.ownerLabel:GetText(), NS.BRAND_NAME)
 end))
 
 test("Skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen", clean(function()

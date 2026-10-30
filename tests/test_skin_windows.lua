@@ -223,10 +223,11 @@ end))
 -- ── the close control ────────────────────────────────────────────────────────────────────────
 --
 -- BL-A1 (the owner's ruling): the close control is the library's standard one, as on every other
--- Ka0s addon and skin. B:MakeCloseButton hands its button to S.CloseButton with no stockDefault and
--- sets no hover scripts of its own, so the art wears close.rest at rest and close.hot under the
--- pointer in EVERY skin, Ka0s Default included (its gray, and its red on hover), and a skin switch
--- moves both with no reload.
+-- Ka0s addon and skin. B:MakeCloseButton hands its button to S.CloseButton with no opts and sets no
+-- hover scripts of its own, so the art wears close.rest at rest and close.hot under the pointer in
+-- EVERY skin, Ka0s Default included (its gray, and its red on hover), and a skin switch moves both
+-- with no reload. (LibKa0s v1.81.0 retired the stockDefault option this once guarded against, so a
+-- check on the call's opts is gone with it: the hover assertions below are the behavior.)
 
 -- The repo mock's regions store no color and name no object type, so the art says what it is (the
 -- primitive reaches it through close.icon / close.glyph only as a Texture / FontString) and
@@ -247,15 +248,12 @@ end
 
 test("skin windows: the close control is the skin's under Ka0s Default, close.rest at rest and close.hot on hover",
   clean(function()
-    -- red under: the BL-02 stockDefault, whose hover hooks are inert under Ka0s Default so the host's
-    -- own pair drew 0.85 and the player's class color; or a host OnEnter / OnLeave that fights the
-    -- primitive's hooks.
+    -- red under: a host OnEnter / OnLeave that fights the primitive's hooks (the host's own pair
+    -- drew 0.85 and the player's class color before BL-A1), or a close control not handed to the
+    -- primitive for this owner.
     local close = NS.Browser:MakeCloseButton(mocks.UIParent, function() end)
     local rec = Skin.painted and Skin.painted[close]
     assertTrue(rec ~= nil and rec.owner == OWNER, "the close control is not recorded for this owner")
-    local args = rec.calls and rec.calls.CloseButton
-    local opts = type(args) == "table" and args[1] or nil
-    assertTrue(not (type(opts) == "table" and opts.stockDefault), "the close control is still kept stock")
     local painted = watchArt(close)
     assertEqual(tok("close.hot"), "1.0000,0.3000,0.3000", "Ka0s Default's close.hot is its red")
     close:__fire("OnEnter")

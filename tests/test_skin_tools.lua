@@ -151,6 +151,35 @@ test("skin tools: while the Scope ignores the settings panel nothing is painted"
   end)
 end)
 
+test("skin tools: the Filters list's (none) wears the skin's gray, and the page's own while ignored", function()
+  -- red under: emptyText read from the skin's text.disabled whatever the Scope says (decision D-03
+  -- of the skin library follow-ups): under Obsidian with the settings panel ignored, "(none)" stayed
+  -- Obsidian's #6a6a72 on an otherwise stock page, where the library's own id gray is |cff808080.
+  local savedBlack = NS.db.profile.blacklist
+  NS.db.profile.blacklist = {}
+  local function noneText()
+    PS.ctxFor("General").activeSubTab = nil
+    for _, w in ipairs(PS.renderTab("General", "Filters")) do
+      if w.type == "Label" and type(w.text) == "string" and w.text:find("(none)", 1, true) then
+        return w.text
+      end
+    end
+  end
+  local ok, err = pcall(function()
+    for _, case in ipairs({ { false, "|cff6a6a72(none)|r" }, { true, "|cff808080(none)|r" } }) do
+      reset(case[1])
+      NS.ApplySkinChoice("ka0s", "obsidian")
+      mocks.__fireTimers()
+      assertEqual(noneText(), case[2], case[1] and "ignored: the page's own gray"
+        or "skinned: the skin's text.disabled")
+    end
+  end)
+  NS.db.profile.blacklist = savedBlack
+  PS.renderTab("General", "Master controls")
+  reset()
+  if not ok then error(err, 0) end
+end)
+
 test("skin tools: the Profiles page paints the tree AceConfigDialog drew", function()
   -- red under: dropping NS.SkinPaintAceTree from settings/Profiles.lua's renderer.
   local seen

@@ -1628,7 +1628,7 @@ Total.
 - Skin picker: a new profile and a reset profile show it again
 - Skin picker: the player's close marks it seen; this addon's own hide does not
 - Skin picker: a profile that has seen it takes a shown picker down, unmarked
-- Skin picker: the title names this addon
+- Skin picker: the title is Choose a skin and this addon is named on its own line
 - Skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
 - Skin picker: the close control puts the stored skin back, saves nothing, and marks it seen
 - Skin picker: the eye opens the ledger window in test mode
@@ -1636,11 +1636,12 @@ Total.
 - Skin picker: the stand-down with a preview pending puts the old skin back, unsaved, unseen
 - Skin picker: degraded, the seam answers nothing and raises nothing
 
-### test_skin_tools.lua (9)
+### test_skin_tools.lua (10)
 
 - skin tools: under a non-default skin the panel's own widgets paint, past the proxy
 - skin tools: a release hands every painted widget back stock, the pool clean
 - skin tools: while the Scope ignores the settings panel nothing is painted
+- skin tools: the Filters list's (none) wears the skin's gray, and the page's own while ignored
 - skin tools: the Profiles page paints the tree AceConfigDialog drew
 - skin tools: degraded, PaintAce and PaintAceTree paint nothing and a release still runs
 - skin tools: the debug console's descriptor names the owner and passes no applySkin
@@ -1772,11 +1773,11 @@ Total.
 | test_skin_windows.lua | 11 |
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
-| test_skin_tools.lua | 9 |
+| test_skin_tools.lua | 10 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1509** |
+| **Total** | **1510** |

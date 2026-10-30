@@ -417,8 +417,9 @@ local function makeFilterSection(ctx, listKey, desc)
     onAdd     = function(id) filterWrite(ctx, list.add, id) end,
     onRemove  = function(id) filterWrite(ctx, list.remove, id) end,
     -- The skin's text.disabled (808080 under Ka0s Default), read when the page renders; a skin
-    -- switch re-renders the shown pages.
-    emptyText = (NS.SkinEscape("text.disabled") or "") .. "(none)|r",
+    -- switch or a Scope change re-renders the shown pages. NS.SkinPanelEscape, not SkinEscape: while
+    -- the settings panel is ignored the page is stock, and so is this gray (D-03).
+    emptyText = (NS.SkinPanelEscape("text.disabled") or "") .. "(none)|r",
     removeStyle = "icon",
   })
 
