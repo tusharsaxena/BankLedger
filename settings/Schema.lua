@@ -106,7 +106,7 @@ S.Schema = {
   -- modules/SessionWindow.lua built every pooled row with `1,1,1,0.03` behind the even rows and
   -- `1,0.82,0,0.10` under the cursor — and they are two answers to two questions, so they are two
   -- sliders rather than one "row emphasis". Neither value is Core.SKIN's: the shared skin owns the
-  -- window edge, fill, border and title, and says so byte for byte in modules/Browser.lua's
+  -- window edge, fill, border and title, and says so byte for byte in modules/Browser_Chrome.lua's
   -- B:ApplySkin note. The table interior is this addon's own.
   --
   -- Both defaults ARE the literals they replaced, so an install that touches neither is drawn
