@@ -298,7 +298,7 @@ test("LibKa0s-Bus degraded: the stub carries the whole live surface", function()
   -- source tests/run.lua registers.
   --
   -- The stub is the untracked-target shape (options-ui-§1), verbatim from the Bus API document's
-  -- Worked example, so it owes the whole live surface -- New and Catalog (members-1.json) -- and
+  -- Worked example, so it owes the whole live surface -- New and Catalog (LibKa0s docs/api/Bus/members-1.json) -- and
   -- nothing is ignored. No BankLedger file calls Bus:New today; an ignore list here would be the
   -- stub drift anti-pattern #56 exists to catch.
   --   Callers from: grep -rn "__busLib\|Bus:New\|Bus.New" core modules settings
@@ -353,7 +353,7 @@ end)
 -- ── LibKa0s-Schema-1.0 ───────────────────────────────────────────────────────────────────────
 
 -- The seventh arm, and the one a player's settings ride on: settings/Schema.lua resolves the major
--- or its runtime-completing stub (docs/api/Schema/version-1-docs.md, "The degradation stub"), builds
+-- or its runtime-completing stub (LibKa0s docs/api/Schema/version-1-docs.md, "The degradation stub"), builds
 -- NS.SchemaRuntime from whichever it got, and publishes the resolved library as NS.__schemaLib. The
 -- stub is TRIMMED to what this addon calls, and the trimmed members are named here as live-only,
 -- each for the same reason: no BankLedger file calls it.

@@ -298,7 +298,7 @@ end)
 
 test("Export modal: with no Widgets library it REFUSES the Data Set control instead of raising",
   function()
-    -- modules/Browser.lua:277's MakeDropdown is documented to answer nil with no library, and the
+    -- modules/Browser.lua's B:MakeDropdown is documented to answer nil with no library, and the
     -- SetHeight / ClearAllPoints that followed it here were unguarded -- so this rung raised.
     -- Latent only because the filter bar refuses to build without the library, so the Export button
     -- that calls Open never exists; a latent raise on a documented nil is still a defect.
@@ -306,7 +306,7 @@ test("Export modal: with no Widgets library it REFUSES the Data Set control inst
     local ns, m = loadEnv(false)
     assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded rung has no library")
     assertTrue(ns.Browser:MakeDropdown(m.__stubFrame(), 100) == nil,
-      "and the factory answers nil, as modules/Browser.lua:277 documents")
+      "and the factory answers nil, as modules/Browser.lua's B:MakeDropdown documents")
     local f
     local ok, err = pcall(function() f = ns.Export:Open({}) end)
     assertTrue(ok, "opening the modal must not raise on the documented nil: " .. tostring(err))

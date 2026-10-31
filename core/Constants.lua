@@ -306,7 +306,7 @@ NS.Kind = C.Kind
 -- receiver's private target comes from NS.NewBusTarget beside it. docs/ARCHITECTURE.md ▸ Message
 -- bus carries the payloads and every consumer.
 --
--- LibKa0s-Bus-1.0's Catalog (docs/api/Bus/version-1-docs.md) validates the names at load and hands
+-- LibKa0s-Bus-1.0's Catalog (LibKa0s docs/api/Bus/version-1-docs.md) validates the names at load and hands
 -- back a STRICT copy, so a mistyped key raises at the call site -- for a publisher too, whose
 -- SendMessage(nil) would otherwise return quietly and send nothing. Only Catalog is adopted: the
 -- receivers keep this addon's own untracked factory, so nothing here calls Bus:New.

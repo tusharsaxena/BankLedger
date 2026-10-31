@@ -22,8 +22,8 @@
 -- list. An entry that matches nothing fails the gate, so the list cannot outlive what it excuses.
 --
 -- IT FAILS RATHER THAN PASSES WHEN IT CANNOT LOOK: no io.popen, no git, or an empty file list is a
--- failure, the bargain tests/test_doc_structure.lua strikes. The last case proves the gate is
--- falsifiable: a planted literal of each shape is reported.
+-- failure, the bargain Ka0s Loot History's tests/test_doc_structure.lua strikes. The last case
+-- proves the gate is falsifiable: a planted literal of each shape is reported.
 
 local T = _G.BL_TEST
 local test, assertEqual, assertTrue, fail = T.test, T.assertEqual, T.assertTrue, T.fail
