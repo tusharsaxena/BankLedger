@@ -723,7 +723,7 @@ function NS.ApplySkinOverride(font, texture)
   return Skin:SetOverride(addonName, font, texture)
 end
 
---- No argument applies the stored mode; the library reads an unknown mode as "all". A copy without
+--- No argument applies the stored mode; the library reads an unknown mode as "hud". A copy without
 --- SetOutline moves nothing.
 function NS.ApplySkinOutline(mode)
   if type(Skin.SetOutline) ~= "function" then return false end
