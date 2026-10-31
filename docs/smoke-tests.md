@@ -962,6 +962,9 @@ leaves its number unused.
   registered, 0 unavailable`; no `[State] stood down` or `[State] stood up` line beside them. Now
   untick Enable Bank Ledger, `/reload`, `/bl debug on` → after `[Init]`, one `[State] stood down at
   login (holds: disabled)` line. Re-tick Enable Bank Ledger. Result: pass (owner-marked 2026-10-10)
+- **DIAG-32. The identity header names Charts (LibKa0s v1.84.0).** `/bl debug`, click Diagnostics
+  → the library line of the identity header lists Charts between Toast and Media, and no module
+  on it reads missing. Fail: no Charts, or a module reported missing. Result:
 
 ## SIM
 
@@ -1467,6 +1470,9 @@ pickers and skin faces run (Ka0sAddonsCommonTasks `docs/2026-10-31-FONT_PICKERS_
 BL-F01 and BL-F02 on LibKa0s v1.83.0) passed: SLASH-11, PANEL-8, SKIN-1, SKIN-2, SKIN-8 to SKIN-11,
 SKIN-15 and SKIN-27 to SKIN-32, each recorded on its `Result:` line as `Owner reported pass, 2026-10-31`.
 Bank Ledger has no HUD, so the HUD size scale (ruling D-09) has no check here.
+
+Added by the findings remediation (Ka0sAddonsCommonTasks `docs/2026-10-31-FINDINGS_REMEDIATION/`, item
+BL-RV on LibKa0s v1.84.0), awaiting the owner: DIAG-32.
 
 Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19

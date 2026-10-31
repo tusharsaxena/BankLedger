@@ -245,6 +245,8 @@ tests/
                            --   test_glyphs.lua
     loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
+    mock_ace.lua           --   the Ace fakes, CallbackHandler through AceAddon, out of mock_base.lua
+                           --   (kit revision 47)
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua;
                            --   since kit revision 40 it holds media/icons/ to CLAUDE.md's
                            --   `LibKa0s icons:` declaration (declared == shipped)

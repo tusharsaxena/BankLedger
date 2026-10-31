@@ -275,7 +275,7 @@ test("LibKa0s-Options tripwire: Options reads no descriptor L", function()
     "Options is expected to own its strings — if that went away, so did the reason for this shape")
   assertTrue(type(rawget(opts, "LAYOUT")) == "table", "and `L` inside that file is this table")
 
-  for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsScroll.lua" }) do
+  for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsFlow.lua", "OptionsScroll.lua" }) do
     local osrc = Loader.readFile("libs/LibKa0s/" .. rel)
     assertTrue(osrc:find("d.L", 1, true) == nil,
       rel .. " now reads a descriptor L — every host descriptor for this major needs a rendered "
