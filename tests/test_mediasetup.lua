@@ -213,3 +213,17 @@ test("LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never 
     assertTrue(ns.Constants.FONT_MONO:find("LibKa0s", 1, true) == nil,
       "the degraded fallback still names the payload that is missing")
   end)
+
+test("Options: the descriptor hands the library LibSharedMedia, for LSMValues and the font preload", function()
+  -- red under: a descriptor with no getLSM (options-ui-§23). The Skin tab's Font and Texture rows are
+  -- media rows; without it LSMValues answers the one "no media" row and the panel's show never loads
+  -- a face before a font picker's row draws in it. The test env loads no LSM, so a fake stands in.
+  local libs = T.mocks.__libs
+  libs["LibSharedMedia-3.0"] = {
+    HashTable = function(_, kind) return { [kind .. " one"] = "path" } end,
+  }
+  local ok, got = pcall(NS.Helpers.LSMValues("font"))
+  libs["LibSharedMedia-3.0"] = nil
+  assertTrue(ok, tostring(got))
+  assertEqual(got["font one"], "font one", "the media library's own keys reach the list")
+end)

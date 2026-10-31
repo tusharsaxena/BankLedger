@@ -123,8 +123,10 @@ local descriptor = {
   -- No `afterRestoreAll`: nothing a reset must clear lives outside the profile and the two
   -- session-only rows (NS.OnProfileEvent re-anchors the windows from the reset profile).
   --
-  -- No `getLSM`: no row is LSM-backed. The vendored console font is a Constants path, not a media
-  -- picker.
+  -- For LSMValues and the font preload every panel show runs, which a font picker's rows rely on to
+  -- draw their faces first time: the Skin tab's Font and Texture rows are media rows, drawn by the
+  -- library's Ka0sMedia_* pickers (options-ui-§23). The vendored console font stays a Constants path.
+  getLSM = function() return LibStub and LibStub("LibSharedMedia-3.0", true) end,
 }
 
 -- ── degradation ──────────────────────────────────────────────────────────────────────────────

@@ -110,7 +110,9 @@ ahead of Keybindings; its key is the group of the eight `skipRender` Appearance 
 source (two radio choices, *EllesmereUI* disabled with the failing gate conditions listed while it
 cannot skin this addon), **Look** (the note, then the nine skins three to a line with their
 swatches), **Font and texture** (a **Font** and a **Texture** dropdown side by side, each listing
-"Skin's default (<key>)" first and then every LibSharedMedia font or status bar; under them **Reset
+"Skin's default (<key>)" first and then every LibSharedMedia font or status bar, each previewed in
+its own face or with its bar (the library's `Ka0sMedia_*` pickers, LibKa0s v1.83.0; the descriptor's
+`getLSM` feeds them and the panel's font preload); under them **Reset
 font** and **Reset texture**, each disabled while its half is the skin's own; under those the
 **Font outline**, *All text*, *HUD text only*, the default, or *Off*, LibKa0s v1.82.0), the Scope (**Ignore
 settings panel** and **Ignore fonts**, side by side), and under its own heading **Other Ka0s addons**,

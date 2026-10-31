@@ -1084,7 +1084,7 @@ Total.
 - Mock AceDB: a scalar default reads through; clearing the key does not unset it
 - Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed
 
-### test_mediasetup.lua (13)
+### test_mediasetup.lua (14)
 
 - LibKa0s-Media: the vendored major registered and the seam is published
 - LibKa0s-Media: NS.Icon answers the vendored path, EXTENSIONLESS
@@ -1099,6 +1099,7 @@ Total.
 - LibKa0s-Media: the seam loads BEFORE core/Constants.lua, which resolves the font from it
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
 - LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
+- Options: the descriptor hands the library LibSharedMedia, for LSMValues and the font preload
 
 ### test_envsetup.lua (10)
 
@@ -1775,7 +1776,7 @@ Total.
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
-| test_mediasetup.lua | 13 |
+| test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 47 |
@@ -1815,4 +1816,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1533** |
+| **Total** | **1534** |

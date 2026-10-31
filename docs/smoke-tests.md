@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 31 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change |
+| SKIN-1 – 32 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change |
 | DEGRADED-1 – 15 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1289,6 +1289,12 @@ describes what you see, apart from the changes SKIN-1 lists.
   write: both overrides stay. **Fail:** an override that survives a skin change from the tab, the
   picker or Apply to all, a Reset button that does nothing, or the raw `/bl set` clearing them.
   Result:
+- **SKIN-32. The pickers preview (BL-F02, options-ui-§23).** On the Skin tab open **Font** → the first
+  row reads *Skin's default (<key>)* and every row is drawn in its own face, with none blank on the
+  first open after a `/reload`; the closed row wears the chosen face. Open **Texture** → every row
+  shows its bar. Under a non-default skin with **Ignore settings panel** off both pull-outs wear the
+  skin. Bank Ledger has no other font, texture, border, background or sound picker. **Fail:** a plain
+  text list, a row blank until reopened, or a picked key that does not apply. Result:
 
 ## DEGRADED
 
@@ -1447,4 +1453,5 @@ the release's HUD size scale (ruling D-09) has no check here.
 Pending since 2026-10-31, the font pickers and skin faces run (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FONT_PICKERS_AND_SKIN_FACES/`, items BL-F01 and BL-F02 on LibKa0s v1.83.0): SKIN-1,
 SKIN-2, SKIN-9, SKIN-27 and SKIN-29 rewritten, and SKIN-10 and SKIN-11 re-opened with their `Result:`
-lines emptied, because the faces, the sizes, the outline default and the rows' wording moved.
+lines emptied, because the faces, the sizes, the outline default and the rows' wording moved; new
+check SKIN-32.
