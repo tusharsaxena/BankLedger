@@ -1,0 +1,5 @@
+Independent review of BL-F01 and BL-F02: 2 low findings, both verified real, both fixed in this commit; none rejected.
+1. docs/settings-panel.md Skin row listed the Font outline modes out of order. Dropdown order is All text, HUD text only, Off (OUTLINE_ORDER, NS.SKIN_OUTLINE_OPTIONS). Fixed; the default is now named in the row.
+2. core/SkinSetup.lua NS.ApplySkinOutline comment said an unknown mode reads as "all". Skin:SetOutline maps it to OUTLINE_DEFAULT, "hud". Fixed.
+Docs and comment only, so no test added and no smoke check changed.
+Gate: 1534 passed, 0 failed, 1 skipped; luacheck 0/0 in 114 files; core/SkinSetup.lua 748 lines.
