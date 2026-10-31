@@ -405,7 +405,7 @@ local function EnsureFrame()
   end
 
   -- GUARDED, because NS.Browser:MakeDropdown answers nil with no LibKa0s-Widgets-1.0
-  -- (modules/Browser.lua:277 documents exactly that) and the SetHeight below would raise on it.
+  -- (modules/Browser.lua's B:MakeDropdown documents exactly that) and the SetHeight below would raise on it.
   -- REFUSE THE CONTROL rather than build a dead one that opens no menu: the modal's one job -- hand
   -- the player the CSV -- still works, on the default data set. This rung is not reachable in game
   -- today, because the filter bar that carries the Export button also refuses to build without the

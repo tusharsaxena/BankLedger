@@ -161,7 +161,7 @@ end
 -- subscription sits on a private target handed out by NS.NewBusTarget() that AceAddon has never
 -- seen and cannot reach. Releasing the latch alone would therefore have the next Enable stand a
 -- SECOND target up beside a first that is still subscribed, and SessionWindow:OnEntryAdded appends
--- unconditionally (modules/SessionWindow.lua:162-167) — one moved stack, two rows. So the targets
+-- unconditionally (modules/SessionWindow.lua:162-165) — one moved stack, two rows. So the targets
 -- go with the latch.
 --
 -- `_guildHooked` deliberately stays set. It is not part of this cycle: it records a `HookScript`

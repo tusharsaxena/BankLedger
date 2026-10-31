@@ -9,13 +9,13 @@ Both of these must pass **before every commit**. A commit with red tests or lint
 forbidden, and a logic change without a covering test is not done.
 
 ```sh
-lua tests/run.lua     # all suites green; exits non-zero on any failure
-luacheck .            # 0 errors, 0 warnings
+lua tests/run.lua                                   # all suites green; exits non-zero on any failure
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck .   # 0 errors, 0 warnings
 ```
 
 ### What that 0/0 is worth — the suppression gate
 
-`luacheck .` at 0/0 only means something if the configuration is not buying the number. Until
+`~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` at 0/0 only means something if the configuration is not buying the number. Until
 `M4c-06` this repo's `.luacheckrc` carried `ignore = { "212/self", "212/event" }` at the top level.
 It *looked* narrow -- both entries already name the variable, which is the form the rule steers
 towards -- and that is exactly why it survived so long. The problem is scope, not spelling: a
@@ -149,7 +149,7 @@ reverts it silently.
 
 Run through this before a version bump, on top of the green gate:
 
-- [ ] `lua tests/run.lua` green and `luacheck .` at 0/0.
+- [ ] `lua tests/run.lua` green and `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` at 0/0.
 - [ ] `docs/test-cases.md` regenerated (`lua tests/run.lua --list > docs/test-cases.md`) and the
       README `[tests]` badge updated in the **same** change.
 - [ ] **A full automated-test bundle produced and its diff read** — see below.
@@ -172,7 +172,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 
 | Suite | Command | Gates the run and the commit? | Gates the tag? |
 |---|---|---|---|
-| `lint` | `luacheck .` | **yes** (`testing-§4`) | **yes** |
+| `lint` | `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` | **yes** (`testing-§4`) | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** (`testing-§4`) | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
 | `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard `-L 1500` over the kit's sighted shadow, with function-count parity) | no — recorded only | **yes**, plus zero functions above CCN 15 |
@@ -245,6 +245,8 @@ tests/
                            --   test_glyphs.lua
     loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
+    mock_ace.lua           --   the Ace fakes, CallbackHandler through AceAddon, out of mock_base.lua
+                           --   (kit revision 47)
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua;
                            --   since kit revision 40 it holds media/icons/ to CLAUDE.md's
                            --   `LibKa0s icons:` declaration (declared == shipped)

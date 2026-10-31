@@ -86,7 +86,7 @@ test("marks: the close path is EXTENSIONLESS, which is the half that fails silen
 end)
 
 test("marks degraded: with no library the close button is still the × it always was", function()
-  local ns = loadDegraded("modules/Browser.lua")
+  local ns = loadDegraded("modules/Browser_Chrome.lua")
   local clicked = false
   local btn = ns.Browser:MakeCloseButton(mocks.__stubFrame(), function() clicked = true end)
   assertNil(btn.icon, "a degraded install resolved art from a payload it does not have")
@@ -104,8 +104,9 @@ test("marks: the × is DRAWN in exactly one place, so one edit reached the three
   -- SetText lines only, deliberately: modules/Insights.lua spells six chart titles "By Character ×
   -- Store", and that × is prose in a heading, not a control anybody clicks.
   local drawn = {}
-  for _, file in ipairs({ "modules/Browser.lua", "modules/SessionWindow.lua", "modules/Export.lua",
-                          "modules/LedgerTable.lua", "modules/Insights.lua",
+  for _, file in ipairs({ "modules/Browser.lua", "modules/Browser_Chrome.lua", "modules/SessionWindow.lua",
+                          "modules/Export.lua", "modules/LedgerTable.lua", "modules/Insights.lua",
+                          "modules/Insights_Render.lua",
                           "modules/InsightsWidgets.lua" }) do
     local n = 0
     for line in io.lines(file) do
@@ -116,7 +117,7 @@ test("marks: the × is DRAWN in exactly one place, so one edit reached the three
     end
   end
   assertEqual(#drawn, 1, "the × is drawn at: " .. table.concat(drawn, ", "))
-  assertTrue(drawn[1]:match("^modules/Browser%.lua:") ~= nil,
+  assertTrue(drawn[1]:match("^modules/Browser_Chrome%.lua:") ~= nil,
     "the × moved out of B:MakeCloseButton's fallback rung, to " .. drawn[1])
 end)
 

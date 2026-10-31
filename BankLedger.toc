@@ -116,6 +116,9 @@ modules\Browser.lua
 # SwapTabState) and captures B._viewSeam at file load, so it must come after modules\Browser.lua,
 # which publishes that seam, and before anything that calls the view API at OnEnable.
 modules\Browser_Views.lua
+# The window chrome and geometry persistence, peeled out of Browser. Conventional: it only extends
+# NS.Browser, and every caller reaches these methods at run time.
+modules\Browser_Chrome.lua
 modules\LedgerTable.lua
 # Extends NS.LedgerTable with the test dataset and LT:SetTestMode. Conventional rather than
 # load-bearing: both files open NS.LedgerTable = NS.LedgerTable or {}, and every caller reaches the
@@ -125,6 +128,8 @@ modules\SessionWindow.lua
 modules\InsightsWidgets.lua
 # LOAD-BEARING: modules/Insights.lua takes NS.InsightsWidgets as a file-scope upvalue; modules\InsightsWidgets.lua above creates it. Swapped, W is nil and every chart call raises.
 modules\Insights.lua
+# LOAD-BEARING: reads I._renderSeam at file load; modules\Insights.lua above publishes it. Swapped, the seam is nil and this file raises.
+modules\Insights_Render.lua
 modules\Export.lua
 # The diagnostics report's sections (debug-logging-§14). Conventional rather than load-bearing: the
 # console descriptor reaches NS.Diagnostics through a closure at report time, never at load.

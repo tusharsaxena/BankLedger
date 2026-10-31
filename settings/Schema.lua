@@ -106,7 +106,7 @@ S.Schema = {
   -- modules/SessionWindow.lua built every pooled row with `1,1,1,0.03` behind the even rows and
   -- `1,0.82,0,0.10` under the cursor — and they are two answers to two questions, so they are two
   -- sliders rather than one "row emphasis". Neither value is Core.SKIN's: the shared skin owns the
-  -- window edge, fill, border and title, and says so byte for byte in modules/Browser.lua's
+  -- window edge, fill, border and title, and says so byte for byte in modules/Browser_Chrome.lua's
   -- B:ApplySkin note. The table interior is this addon's own.
   --
   -- Both defaults ARE the literals they replaced, so an install that touches neither is drawn
@@ -655,7 +655,7 @@ local SchemaLib = LibStub and LibStub("LibKa0s-Schema-1.0", true)
 if not SchemaLib then
   -- Degraded: the payload is missing. THIS STUB IS A DELIBERATE, DOCUMENTED DUPLICATION -- the
   -- runtime-completing stub options-ui-§1 names, in the shape the major's own document prescribes
-  -- (docs/api/Schema/version-1-docs.md, "The degradation stub"), trimmed to what this addon calls.
+  -- (LibKa0s docs/api/Schema/version-1-docs.md, "The degradation stub"), trimmed to what this addon calls.
   -- The settings are read and written by more than the panel and the CLI: the host verbs
   -- (/bl enable, /bl disable), the degraded Reset All in settings/Slash.lua and every row's onChange
   -- all go through this seam, and slash-commands-§1 says the host verbs keep working without the

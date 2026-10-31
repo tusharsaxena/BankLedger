@@ -273,7 +273,7 @@ test("LibKa0s-Options degraded: the stub carries the live surface the addon reac
   -- `__print` IS NO LONGER ON THIS LIST, and that is the whole reason this case moved to the by-name
   -- form. It joined the live surface at LibKa0s v1.27.0 (Options minor 8): the ONE instance print
   -- sink the shell publishes so OptionsWidgets stops building a second one from the same descriptor
-  -- (libs/LibKa0s/Options.lua:510, read at OptionsWidgets.lua:413). Its own comment there calls it
+  -- (libs/LibKa0s/Options.lua:462, read at OptionsWidgets.lua:307). Its own comment there calls it
   -- internal rather than surface and says a degradation stub does not mirror it, BECAUSE
   -- Kit.assertSurfaceParity skips the `__` prefix — which was true of the by-name form and not of
   -- the four-argument form this case used, so the exemption had to be typed here by hand and the
@@ -298,7 +298,7 @@ test("LibKa0s-Bus degraded: the stub carries the whole live surface", function()
   -- source tests/run.lua registers.
   --
   -- The stub is the untracked-target shape (options-ui-§1), verbatim from the Bus API document's
-  -- Worked example, so it owes the whole live surface -- New and Catalog (members-1.json) -- and
+  -- Worked example, so it owes the whole live surface -- New and Catalog (LibKa0s docs/api/Bus/members-1.json) -- and
   -- nothing is ignored. No BankLedger file calls Bus:New today; an ignore list here would be the
   -- stub drift anti-pattern #56 exists to catch.
   --   Callers from: grep -rn "__busLib\|Bus:New\|Bus.New" core modules settings
@@ -353,7 +353,7 @@ end)
 -- ── LibKa0s-Schema-1.0 ───────────────────────────────────────────────────────────────────────
 
 -- The seventh arm, and the one a player's settings ride on: settings/Schema.lua resolves the major
--- or its runtime-completing stub (docs/api/Schema/version-1-docs.md, "The degradation stub"), builds
+-- or its runtime-completing stub (LibKa0s docs/api/Schema/version-1-docs.md, "The degradation stub"), builds
 -- NS.SchemaRuntime from whichever it got, and publishes the resolved library as NS.__schemaLib. The
 -- stub is TRIMMED to what this addon calls, and the trimmed members are named here as live-only,
 -- each for the same reason: no BankLedger file calls it.

@@ -69,7 +69,7 @@ test("LibKa0s-Core: this addon does NOT republish the library's close factory", 
     -- argument — the addon FOLDER the library builds its texture path from — and a wrapper that
     -- forwarded only two would draw a multiplication sign, green in every suite and visible only in
     -- a screenshot (anti-pattern #64). This addon avoids that class entirely by not consuming the
-    -- factory: all three of its own title bars go through modules/Browser.lua's B:MakeCloseButton,
+    -- factory: all three of its own title bars go through modules/Browser_Chrome.lua's B:MakeCloseButton,
     -- which resolves the same shared `close` mark through NS.Icon. A wrapper published here would
     -- have had exactly one caller — a spy test — and would read as coverage of those three bars while
     -- covering nothing on screen.
@@ -275,7 +275,7 @@ test("LibKa0s-Options tripwire: Options reads no descriptor L", function()
     "Options is expected to own its strings — if that went away, so did the reason for this shape")
   assertTrue(type(rawget(opts, "LAYOUT")) == "table", "and `L` inside that file is this table")
 
-  for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsScroll.lua" }) do
+  for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsFlow.lua", "OptionsScroll.lua" }) do
     local osrc = Loader.readFile("libs/LibKa0s/" .. rel)
     assertTrue(osrc:find("d.L", 1, true) == nil,
       rel .. " now reads a descriptor L — every host descriptor for this major needs a rendered "
@@ -408,12 +408,13 @@ test("TOC: InsightsWidgets loads before Insights, and Schema before Slash, each 
   -- an upvalue, settings/Slash.lua hands NS.SchemaRuntime's members to LibKa0s-Slash at load. A
   -- swap fails only in the client, so the order is pinned and the TOC line above says why.
   loadsBefore("modules/InsightsWidgets.lua", "modules/Insights.lua")
+  loadsBefore("modules/Insights.lua", "modules/Insights_Render.lua")
   loadsBefore("settings/Schema.lua", "settings/Slash.lua")
   local lines = {}
   for line in (Loader.readFile("BankLedger.toc") .. "\n"):gmatch("([^\n]*)\n") do
     lines[#lines + 1] = (line:gsub("\r$", ""))
   end
-  for _, entry in ipairs({ "modules\\Insights.lua", "settings\\Slash.lua" }) do
+  for _, entry in ipairs({ "modules\\Insights.lua", "modules\\Insights_Render.lua", "settings\\Slash.lua" }) do
     local found
     for i, line in ipairs(lines) do
       if line == entry then found = i end

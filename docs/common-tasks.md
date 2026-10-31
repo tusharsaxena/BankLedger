@@ -212,4 +212,4 @@ only**, in `modules/Diagnostics.lua` (`debug-logging-§14`).
 
 ## Before committing
 
-`lua tests/run.lua` green **and** `luacheck .` clean. Full instructions in [testing.md](testing.md).
+`lua tests/run.lua` green **and** `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` clean. Full instructions in [testing.md](testing.md).

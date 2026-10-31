@@ -41,7 +41,7 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
 
 ## 2. Development — the contributor toolchain
 
-Install all four. Everything in this section is needed to run the green gate.
+Install all five. Everything in this section is needed to run the green gate.
 
 ### Lua 5.1 — a hard requirement, not a preference
 
@@ -63,7 +63,7 @@ sudo apt update && sudo apt install -y lua5.1
 
 ### luacheck — the lint half of the green gate
 
-`luacheck .` is one of the two commands that must pass before every commit
+`~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` is one of the two commands that must pass before every commit
 (`docs/testing.md:6-14`), and the repo carries a real configuration for it (`.luacheckrc`) that
 declares the WoW globals and the `BankLedgerDB` SavedVariables global. It installs through
 LuaRocks:
@@ -74,6 +74,14 @@ sudo apt install -y lua5.1 luarocks && sudo luarocks install luacheck
 
 **Verify:** `luacheck --version` → `Luacheck: 1.2.0` (or any recent release — the version is not
 pinned and nothing here depends on one).
+
+### ka0s-bounded — the bound on the lint
+
+`~/.claude/dev-copilot/bin/ka0s-bounded` caps a command's memory, time and concurrency (`testing-§15`).
+The kit bounds `lua tests/run.lua` on load, but `luacheck` loads no kit, so it runs through this
+script. It has no version of its own; the `dev-copilot` Claude Code plugin ships it and puts it there.
+
+**Verify:** `ls ~/.claude/dev-copilot/bin/ka0s-bounded`
 
 ### lizard — the complexity report
 
@@ -216,7 +224,7 @@ the release-time report.
 
 ```sh
 lua tests/run.lua                                    # every suite green; non-zero exit on failure
-luacheck .                                           # 0 errors, 0 warnings
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck .    # 0 errors, 0 warnings
 bash tests/_kit/run-automated-tests.sh --suite complexity --no-bundle   # sighted complexity (automated-tests-§3)
 ```
 

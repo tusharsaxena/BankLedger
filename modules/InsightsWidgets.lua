@@ -803,7 +803,7 @@ function W.MakeStripBar(parent)
 end
 
 --- A strip bar's fill: chart.bar in the owner's bar texture (NS.SkinBar). At build and on every
---- placement (modules/Insights.lua RenderStrip), so a refresh after a skin switch repaints it.
+--- placement (modules/Insights_Render.lua RenderStrip), so a refresh after a skin switch repaints it.
 function W.PaintStripBar(f)
   NS.SkinBar(f.fill, NS.SkinColor("chart.bar"))
 end

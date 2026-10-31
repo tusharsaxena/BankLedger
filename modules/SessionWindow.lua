@@ -626,7 +626,7 @@ local function ensureFrame()
     end,
   })
 
-  -- The skin's window edge (modules/Browser.lua B:ApplySkin). modules/Browser.lua always loads
+  -- The skin's window edge (modules/Browser_Chrome.lua B:ApplySkin). That file always loads
   -- first (the TOC), and degraded the Skin seam's Shell draws the pre-library edge, so there is no
   -- second, bare-backdrop arm here (the rollout's D11). `noTopBar`: the title bar paints its fill.
   NS.Browser:ApplySkin(frame, { noTopBar = true })

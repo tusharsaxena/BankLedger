@@ -86,7 +86,7 @@ end
 --- only declared icons; a name the last prune removed needs media/icons re-copied from the tag
 --- before the prune runs again.
 ---
----   close          modules/Browser.lua  B:MakeCloseButton — the three host title bars
+---   close          modules/Browser_Chrome.lua  B:MakeCloseButton — the three host title bars
 ---   chevron-down   modules/Browser.lua  B:MakeDropdown's injected ▼, and the expanded group header
 ---   confirm        modules/Browser.lua  B:MakeDropdown's injected tick, for a multi-select menu's row
 ---   chevron-right  modules/LedgerTable.lua  the collapsed group header

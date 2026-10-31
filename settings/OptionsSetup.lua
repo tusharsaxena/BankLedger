@@ -227,6 +227,9 @@ if not lib then
     BarGroup = function() return {} end,
     InlineButtonPair = function() end,
     SessionCheckbox = function() return nil end,
+    -- The Position block (LibKa0s v1.84.0, OptionsCompose minor 15). Unreached on both arms: this
+    -- addon has no X and Y rows. Answers the live shape of no rows and no reset hook.
+    PositionBlock = function() return {}, nil end,
     -- The choice grid and the id-list surface (LibKa0s v1.35.0, Options widgets minor 16). All
     -- render-time: settings/Panel.lua's Filters tab draws its two lists with IdList, and nothing
     -- calls any of them at load, so a no-op keeps this stub load-completing (options-ui-§1).
