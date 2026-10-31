@@ -19,13 +19,13 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 62 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal |
-| INS-1 – 18 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
+| LEDG-1 – 63 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal |
+| INS-1 – 19 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 32 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change |
+| SKIN-1 – 33 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change |
 | DEGRADED-1 – 15 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -149,7 +149,7 @@ leaves its number unused.
   each time one gray line says the skin picker cannot open during combat. `/bl disable`, then `/bl
   skin` → one line saying Ka0s Bank Ledger is disabled, naming `/bl enable`, and no window; `/bl
   enable`. **Fail:** an unknown-command answer, no window on a seen profile, a window in combat or
-  while disabled, or a combat line only on the first try. Result:
+  while disabled, or a combat line only on the first try. Result: Owner reported pass, 2026-10-31
 
 ## PANEL
 
@@ -186,7 +186,7 @@ leaves its number unused.
   over N days." then "Database size: ~X", with no "(estimated)"), then **Purge history…** alone.
   Hover it → *Delete every recorded movement on this account. Your settings are left alone. Asks
   first.* No Reset all button here or on Interface or Capture: the only one is on Master controls. Rewritten 2026-10-24 (item 020).
-  Re-opened 2026-10-30: the hedge is "~" now, not "≈" (BL-02 of the skin fonts run, ruling D-19). Result:
+  Re-opened 2026-10-30: the hedge is "~" now, not "≈" (BL-02 of the skin fonts run, ruling D-19). Result: Owner reported pass, 2026-10-31
 - **PANEL-9. Filters tab.** Filters → a secondary strip inside the scroll (it scrolls with the content)
   reading Blacklist · Whitelist, opening on Blacklist. The selected list shows its own blurb, then its
   own add box and id list, then its own **Clear all…** on a line of its own below the list, and never
@@ -686,6 +686,12 @@ leaves its number unused.
   dialog → it comes to the front; click the console → it does. Its Data Set menu still opens over it,
   and Copy CSV still opens the copy window above it. **Fail:** a click that leaves another window on
   top, or a copy window under the dialog. Added 2026-10-24 (item 030, BAN-Z05). Result: pass (owner, 2026-10-24)
+- **LEDG-63. The window chrome after the move (FX-BL-SIZE).** Open the ledger window → it wears its
+  edge and its close control. Drag it, resize it with the grip, `/reload` → it reopens where you left
+  it, at that size. Hover the close control → it takes the skin's hover color; click it → the window
+  closes. Open the session window and the export dialog → both wear the same edge and close control.
+  Run *Reset position* → the ledger window goes back to the center. **Fail:** a Lua error, a window
+  with no edge or no close control, or a position lost across the `/reload`. Result:
 
 ## INS
 
@@ -737,6 +743,10 @@ leaves its number unused.
   every section: `No movements match your filters.` while any filter is set (Character: Current, the
   default, counts), or `No bank movements recorded yet. Open your bank and move something.` on
   Character: All with nothing else set. Result: pass (owner-marked 2026-10-10)
+- **INS-19. Every chart shape after the move (FX-BL-SIZE).** In test mode open Insights → the bars, the
+  stacked bars, the back-to-back companions with their legends, the Day and Hour strips and the Top
+  Of The List panels all draw as INS-11 to INS-13 describe, and hovering one of each shows its tip.
+  **Fail:** a Lua error, or a section that draws empty or misplaced. Result:
 
 ## FILT
 
@@ -1092,7 +1102,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   rollout's X5 does not apply; BL-03 is recorded as an exception). **Fail:** any other changed color,
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
   wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype)
-  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default). Result:
+  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default). Result: Owner reported pass, 2026-10-31
 - **SKIN-2. The Skin tab (BL-01).** General → the strip reads Master controls · Capture · Filters ·
   Interface · History · **Skin** · Keybindings. Open **Skin** → **Skin source**, the nine skins with
   their swatches under **Look** (the note that skins change every visual element leads it), **Font and
@@ -1102,7 +1112,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   and **Ignore fonts**, off, each as wide as the dropdowns above), and **Copy to every Ka0s addon…**
   under its own heading, **Other Ka0s addons**. **Fail:** the tab missing, out of place, or a heading
   repeating the tab's name. Re-opened 2026-10-30 for LibKa0s v1.82.0's layout and 2026-10-31 for
-  v1.83.0's labels and outline default. Result:
+  v1.83.0's labels and outline default. Result: Owner reported pass, 2026-10-31
 - **SKIN-3. Each skin, live (BL-02).** With the ledger window open on History, pick each skin in turn:
   Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever, then Ka0s
   Default again → with **no reload** the window edge, title bar, divider, tab labels and underline,
@@ -1149,7 +1159,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   Obsidian's darker gray, and under **Ka0s Default** the suggestion rows read in Prototype, a touch off
   white. With it **on** every one of them is the game's look, *(none)* in the plain mid gray.
   **Fail:** one control on the page still skinned while the rest are stock, or the reverse. Re-opened
-  2026-10-30 for LibKa0s v1.82.0 (Ka0s Default's face is Prototype). Result:
+  2026-10-30 for LibKa0s v1.82.0 (Ka0s Default's face is Prototype). Result: Owner reported pass, 2026-10-31
 - **SKIN-9. Fonts (BL-02).** On an English client each skin draws its own family, body and titles
   with no fallback squares: Ka0s Default Prototype, Obsidian Expressway, Azeroth Open Sans Semibold
   (Open Sans Bold titles), Glass Avant Garde, High Contrast Doris PP, Ember Emblem, WoW Midnight Segoe
@@ -1159,7 +1169,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   of them. The ▲/▼ glyphs stay in the mono face everywhere. **Fail:** an empty square, a clipped
   headline figure, or a ▲/▼ drawn as a box. Re-opened 2026-10-30 for LibKa0s v1.82.0 (Prototype,
   Expressway and Fira Sans Medium replace Oxanium, Inter and Fira Sans Regular) and 2026-10-31 for
-  LibKa0s v1.83.0 (six skins take new faces and sizes). Result:
+  LibKa0s v1.83.0 (six skins take new faces and sizes). Result: Owner reported pass, 2026-10-31
 - **SKIN-10. A font override, and Ignore fonts (BL-01).** With the ledger window open, pick a clearly
   different face from **Font** → with no reload the title, tabs, buttons, cells and Insights text take
   it at the sizes they had; the debug console keeps its mono face. Turn **Ignore fonts** on → every
@@ -1170,13 +1180,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   **Copy** window, and the Export copy window → each in the game's face, live, and back in the skin's
   (or the override's) with it off; any of them still in the skin's face with Ignore fonts on fails.
   Pick *Skin's default* → the skin's face. `/bl get settings.appearance.font` shows the key while set and
-  an empty value after. Re-opened 2026-10-31 for LibKa0s v1.83.0 (the row's new name). Result:
+  an empty value after. Re-opened 2026-10-31 for LibKa0s v1.83.0 (the row's new name). Result: Owner reported pass, 2026-10-31
 - **SKIN-11. A texture override reaches the bars (BL-01, BL-02).** Open Insights with a range that
   draws its charts, pick a clearly different status bar from **Texture** → with no reload every bar of
   data takes it, each keeping its own color; the gray tracks, baselines, axes and the legend chips
   stay flat. Pick *Skin's default* → the skin's texture comes back. **Fail:** a bar on the old texture
   until `/reload`, a bar that turned white, or a track or chip that took the texture. Re-opened 2026-10-31 for LibKa0s v1.83.0 (the row's new
-  name). Result:
+  name). Result: Owner reported pass, 2026-10-31
 - **SKIN-12. EllesmereUI on (BL-01).** With EllesmereUI loaded, its third-party skinning on and Ka0s
   Bank Ledger on in its Third-Party list → Skin → **Skin source** offers **EllesmereUI**; choosing it
   repaints the ledger window, the session window and the Export modal in the EllesmereUI look, live.
@@ -1191,7 +1201,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   confirmation names the other addon and mentions the font, texture and font outline; accept → it
   wears the same skin, font, texture and outline with no reload. With no other adopter loaded the
   button is disabled with its hint. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the copy carries the
-  outline). Result:
+  outline). Result: Owner reported pass, 2026-10-31
 - **SKIN-16. Per profile (BL-01).** Give two profiles different skins, switch between them on the
   Profiles page, then reset one → the skin (and its Scope, font and texture) follows the profile each
   time with no reload; a reset profile is back on Ka0s Default. `/reload` keeps the active profile's
@@ -1208,8 +1218,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   profile predates this build, log in → about two seconds after the world loads a small window titled
   **Choose a skin** opens about three quarters of the way up the screen, already in the profile's skin:
   **Ka0s Bank Ledger** on its own line under the title and above the dropdown, whole and not cut off
-  (the window is wide enough for it; LibKa0s v1.81.0), then a dropdown of the skins, an eye and a gear beside it, **Apply** under
-  it, and a close mark (**Apply to all Ka0s addons** only while another Ka0s addon that uses skins is
+  (the window is wide enough for it; LibKa0s v1.81.0), then a dropdown of the skins, an eye and a gear beside it, the rows SKIN-33
+  checks, **Apply** under them, and a close mark (**Apply to all Ka0s addons** only while another Ka0s addon that uses skins is
   loaded). Close it, `/reload` → it does not come back on that profile. Create a new profile → it opens
   again. **Fail:** no picker on a profile that never closed it, or one on a profile that did, or the
   addon's name missing, truncated or in the title. Result: pass (owner-marked 2026-10-30)
@@ -1253,14 +1263,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   font comes back unoutlined. Switch to another profile and back → each keeps its own outline;
   `/reload` keeps it. **Fail:** an outline that only changes after `/reload`, a string that keeps its
   outline on *Off*, or a mono glyph outlined. Re-opened 2026-10-31 for LibKa0s v1.83.0's default.
-  Result:
+  Result: Owner reported pass, 2026-10-31
 - **SKIN-28. From skin flags (BL-01, ruling D-07).** Bank Ledger stores no font setting of its own:
   every string takes its face, size and outline from the skin (and the Font outline above). With the
   outline on *All text*, compare the ledger window's title, tab labels, a History cell, an Insights
   headline figure and the session window's copy → all outlined alike; on *Off* → none is. Settings →
   General: no tab has a font, size or flags control. **Fail:** a string outlined on *Off* or plain on
   *All text* (a flag typed into the code instead of the skin's), or a font setting that does not
-  offer size, color with a class color, flags with *From skin* and shadow. Result:
+  offer size, color with a class color, flags with *From skin* and shadow. Result: Owner reported pass, 2026-10-31
 - **SKIN-29. Width parity (LibKa0s v1.82.0, ruling D-08).** With the outline on *All text*, open the
   ledger window on History at its default size under **Ka0s Default** and note where the column
   headers, a long item name, the footer and the tab labels end. Switch through every other skin →
@@ -1268,14 +1278,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   nothing truncates, wraps or overlaps that did not under Ka0s Default. Repeat on Insights (the KPI
   cards' captions and headline figures, the section titles, the chart legends) and on the session
   window. **Fail:** a header, caption or figure clipped or overlapping under one skin and not under
-  Ka0s Default. Sizes and faces moved in LibKa0s v1.83.0. Result:
+  Ka0s Default. Sizes and faces moved in LibKa0s v1.83.0. Result: Owner reported pass, 2026-10-31
 - **SKIN-30. Characters every skin face draws (BL-02 of the skin fonts run, ruling D-19).** Under
   **Obsidian**, then **WoW Forever** and **Glass**, read the ledger window's footer → *Database ~1.2
   MB* (a tilde, never an empty box), and General → History's read-out → *Database size: ~1.2 MB*.
   Hover History's **Direction** column header → *Deposit means it left your bags for the store;
   withdraw means it came back out.*, with no arrow and no box. The cells' and the session window's
   ▲/▼ still draw (in the mono face). **Fail:** an empty box or a missing character anywhere in Bank
-  Ledger's windows, tooltips or settings under any skin. Result:
+  Ledger's windows, tooltips or settings under any skin. Result: Owner reported pass, 2026-10-31
 - **SKIN-31. A skin change resets the font and texture overrides (BL-01 of the skin fonts run,
   rulings D-10 and D-11).** On the Skin tab pick a **Font** override and a **Texture** override →
   the ledger window wears both. Press **Reset font** → only the font goes back to the skin's own and
@@ -1288,13 +1298,21 @@ describes what you see, apart from the changes SKIN-1 lists.
   clear here too. Pick both again and run `/bl set settings.appearance.skin <key>` with another skin's key → a raw
   write: both overrides stay. **Fail:** an override that survives a skin change from the tab, the
   picker or Apply to all, a Reset button that does nothing, or the raw `/bl set` clearing them.
-  Result:
+  Result: Owner reported pass, 2026-10-31
 - **SKIN-32. The pickers preview (BL-F02, options-ui-§23).** On the Skin tab open **Font** → the first
   row reads *Skin's default (<key>)* and every row is drawn in its own face, with none blank on the
   first open after a `/reload`; the closed row wears the chosen face. Open **Texture** → every row
   shows its bar. Under a non-default skin with **Ignore settings panel** off both pull-outs wear the
   skin. Bank Ledger has no other font, texture, border, background or sound picker. **Fail:** a plain
-  text list, a row blank until reopened, or a picked key that does not apply. Result:
+  text list, a row blank until reopened, or a picked key that does not apply. Result: Owner reported pass, 2026-10-31
+- **SKIN-33. The picker's Skin tab rows (LibKa0s v1.83.0, LK-A3).** Open the picker with `/bl skin` →
+  under the skin dropdown it carries **Font** and **Texture**, each with a reset icon at its right,
+  then **Font outline**, then **Scope** with **Ignore settings panel** and **Ignore fonts** side by
+  side, all above **Apply**. Change the Font, the Texture, the outline and one Scope box, each
+  previewing live → **Apply** saves all four, and `/reload` keeps them. Open it again, change them and
+  close the window → they go back. With another Ka0s addon that uses skins loaded, **Apply to all Ka0s
+  addons** carries them to it. **Fail:** a row missing, a change that does not preview, a change Apply
+  drops, or one that survives closing the window. Result:
 
 ## DEGRADED
 
@@ -1443,15 +1461,14 @@ the re-run of LEDG-35, each recorded on its `Result:` line as `pass (owner-marke
 Bank Ledger has no HUD, so the release's Ignore-fonts-on-the-HUD change and its per-skin HUD faces
 have no check here.
 
-Pending since 2026-10-30, the skin fonts and feedback run (Ka0sAddonsCommonTasks
-`docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK/`, items BL-01 and BL-02 on LibKa0s v1.82.0): new checks
-SLASH-11, SKIN-27, SKIN-28, SKIN-29, SKIN-30 and SKIN-31, and PANEL-8, SKIN-1, SKIN-2, SKIN-8, SKIN-9 and
-SKIN-15 re-opened,
-their `Result:` lines emptied, because their faces, layout or copy moved. Bank Ledger has no HUD, so
-the release's HUD size scale (ruling D-09) has no check here.
+On 2026-10-31 the owner reported that every check of the skin fonts and feedback run (Ka0sAddonsCommonTasks
+`docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK/`, items BL-01 and BL-02 on LibKa0s v1.82.0) and the font
+pickers and skin faces run (Ka0sAddonsCommonTasks `docs/2026-10-31-FONT_PICKERS_AND_SKIN_FACES/`, items
+BL-F01 and BL-F02 on LibKa0s v1.83.0) passed: SLASH-11, PANEL-8, SKIN-1, SKIN-2, SKIN-8 to SKIN-11,
+SKIN-15 and SKIN-27 to SKIN-32, each recorded on its `Result:` line as `Owner reported pass, 2026-10-31`.
+Bank Ledger has no HUD, so the HUD size scale (ruling D-09) has no check here.
 
-Pending since 2026-10-31, the font pickers and skin faces run (Ka0sAddonsCommonTasks
-`docs/2026-10-31-FONT_PICKERS_AND_SKIN_FACES/`, items BL-F01 and BL-F02 on LibKa0s v1.83.0): SKIN-1,
-SKIN-2, SKIN-9, SKIN-27 and SKIN-29 rewritten, and SKIN-10 and SKIN-11 re-opened with their `Result:`
-lines emptied, because the faces, the sizes, the outline default and the rows' wording moved; new
-check SKIN-32.
+Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
+`docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19
+for the moved window chrome and chart renderers, and SKIN-33 for the picker's rows, which SKIN-19 now
+points at.
