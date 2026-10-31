@@ -59,7 +59,7 @@ The TOC's file order is not cosmetic in twelve places, and the comments in `Bank
 each one. Several more files carry a position note that deliberately says the opposite — `core/EnvSetup.lua`
 (listed below for that reason), `core/LifecycleSetup.lua`, `core/PoolSetup.lua`, `core/LauncherSetup.lua`,
 `modules/Ledger_Diagnose.lua`, `modules/SimWorld.lua`, `modules/SimDrivers.lua`, `modules/Sim.lua`, `modules/SimScenario.lua`, `modules/Backfill.lua`, `modules/LedgerTable_TestMode.lua` and
-`modules/Diagnostics.lua` — and none is one of the eleven:
+`modules/Diagnostics.lua` — and none is one of the twelve:
 
 - **`core/Compat.lua` loads first**, so every later file can shim through it.
 - **`core/SimSetup.lua` follows it immediately** (`# LOAD-BEARING`, Sim-1.0 host contract H2): it

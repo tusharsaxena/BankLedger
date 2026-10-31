@@ -46,7 +46,9 @@ simulated world and the seam's providers), `modules/SimDrivers.lua` (one event d
 action), `modules/Sim.lua` (the session host, `NS.Sim`, and its presentation fields) and
 `modules/SimScenario.lua` (the four scenarios). Each has its row in module-map.md.
 
-Load order is load-bearing in twelve places (the newest: `core/SkinSetup.lua` registers the skin
+Load order is load-bearing in twelve places (the newest: `modules/Insights_Render.lua` reads
+`I._renderSeam` at file load, so it follows `modules/Insights.lua`, which publishes it; before that,
+`core/SkinSetup.lua` registers the skin
 owner at file load and sits above every module and `settings/Schema.lua`, which read `NS.Skin` and
 the Skin tab's option lists; see **Skins** below), and `tests/test_harness.lua`
 guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
