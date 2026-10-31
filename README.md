@@ -95,6 +95,10 @@ in combat, in test mode, with a real bank open, while General visibility keeps t
 while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
 and `/reload`. `/bl purge` is refused until it is over.
 
+The look is per profile too. A small **Choose a skin** window opens once on each profile, and
+`/bl skin` brings it back any time. Pick a skin there, along with the font, texture and text outline,
+or change them later on the settings' Skin tab.
+
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.
 
@@ -176,5 +180,4 @@ The icons come from [Open Iconic](https://github.com/iconic/open-iconic) by Wayb
 license: the window close buttons, the search magnifier, the dropdown chevron and its tick, the sort
 arrows and group expanders, the export mark, the debug console's close, copy and clear buttons, the
 test-mode strip's info mark, and the skin picker's preview eye and settings gear. Only the icons the
-addon draws are shipped. The icons are bundled inside the LibKa0s payload, with their license text
-beside them.
+addon draws are shipped, with their license text beside them.

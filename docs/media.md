@@ -6,8 +6,10 @@ how to regenerate it.
 ## Mono font outside the debug console
 
 JetBrains Mono is a sanctioned styling exception. Its primary scope is the debug console and its copy
-boxes, but the History table's Direction column and the Direction filter dropdown also draw a ▲/▼
-(U+25B2 / U+25BC) in it, because WoW's default font carries neither glyph and renders a box for both.
+boxes, but the History table's Direction column, the session window's and the Direction filter dropdown
+also draw a ▲/▼ (U+25B2 / U+25BC) in it, because WoW's default font carries neither glyph and renders a
+box for both, as do most skin faces. The Direction column's tooltip names the directions in words for
+the same reason: it draws in the skin's face.
 
 **THIS ADDON NO LONGER SHIPS THE FILE.** It used to, under `media/fonts/`, with its own `OFL.txt` and
 its own `LSM:Register("font", "JetBrains Mono", …)` call in `core/BankLedger.lua`. Both are gone. The

@@ -524,8 +524,9 @@ for member.
   profile, old and new: the rollout's ruling O3): two seconds after login on an AceTimer handle the
   stand-down cancels, and after every profile event. Never while the addon stands down; in combat it
   waits on a one-shot `PLAYER_REGEN_ENABLED` registration (see **Event Subscriptions**). A pick only
-  previews; **Apply** and the gear save it through `NS.WriteSkinChoice`, and the close control and
-  Escape put the stored skin back. Its eye opens the ledger window in test mode
+  previews, and so do the Skin tab's font, texture, outline and Scope rows the picker repeats
+  (LibKa0s v1.83.0); **Apply** and the gear save them through `NS.WriteSkinChoice`, and the close
+  control and Escape put the stored look back. Its eye opens the ledger window in test mode
   (`LT:SetTestMode(true)`), so in combat it prints test mode's own refusal. `NS.HideSkinPicker` (the
   stand-down, and first on every profile event) takes it down without setting `pickerSeen`.
 - **Repaint flow.** `NS.ApplySkinChoice` runs right after `NS:InitDB` (`addon:OnInitialize`) and on

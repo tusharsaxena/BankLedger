@@ -136,18 +136,23 @@ library's popup). A profile switch, copy or reset applies the new profile's skin
 **The first-run skin picker** (LibKa0s OptionsSkinPicker 1; the layout of OptionsSkinPicker 2, LibKa0s
 v1.81.0). A small window titled **Choose a skin**, with the addon's name, **Ka0s Bank Ledger**, on its
 own line above the dropdown, never cut off (the window widens to fit it): a dropdown of the skins (three swatches and each name in that skin's own face), an eye
-button and a gear beside it, and **Apply**, with **Apply to all Ka0s addons** shown only while another
+button and a gear beside it, the Skin tab's rows (LibKa0s v1.83.0: under **Font and texture** a
+full-width **Font** and **Texture** picker, each with a reset icon at its right, then **Font outline**;
+under **Scope**, **Ignore settings panel** and **Ignore fonts**), and **Apply**, with **Apply to all Ka0s addons** shown only while another
 Ka0s addon that uses skins is loaded. `NS.MaybeShowSkinPicker` (`core/SkinSetup.lua`) shows it while the
 profile's `settings.appearance.pickerSeen` is false: two seconds after login (`addon:OnEnterWorld`,
 once per session), on an addon that stands up, and after every profile switch, copy or reset (a new
 or reset profile starts from `false`). Every profile, existing ones included, starts unseen (the
 rollout's ruling O3). Never while the addon stands down, and in combat a start waits for
-`PLAYER_REGEN_ENABLED`. A pick **previews**: the skin is worn at once but not saved. **Apply** saves it
-through `NS.WriteSkinChoice` and closes the picker; **Apply to all Ka0s addons** does that and gives
-every other Ka0s addon that uses skins the same skin source and skin. The close control and Escape put
-back the skin the profile stores and save nothing. The eye turns test mode on (`LT:SetTestMode(true)`),
+`PLAYER_REGEN_ENABLED`. A pick **previews**: the skin is worn at once but not saved, and a pick whose look differs from the
+one the window opened with previews with the font and texture overrides cleared, as Apply will save
+it (a pick back to that look restores them). The rows preview the same way. **Apply** saves the pick,
+then a changed Scope, then a changed font, texture or outline, through `NS.WriteSkinChoice` and closes
+the picker; **Apply to all Ka0s addons** does that and gives every other Ka0s addon that uses skins the
+same skin source, skin, Scope, font, texture and outline. The close control and Escape put back what
+the profile stores and save nothing. The eye turns test mode on (`LT:SetTestMode(true)`),
 which opens the ledger window with the sample ledger, so the skin shows on this addon's own frames; in
-combat test mode refuses and says so. The gear saves the pending pick, opens the settings panel on the
+combat test mode refuses and says so. The gear saves as Apply does, opens the settings panel on the
 General page itself and selects its Skin tab, then closes the picker. Closing it by Apply, the gear,
 its close control or Escape sets `pickerSeen`, so it does not show again on that profile. One picker
 is up at a time across Ka0s addons; while another's is up this one waits in the library's queue. A

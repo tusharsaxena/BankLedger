@@ -240,6 +240,9 @@ tests/
                            --   opt-in, unused here so far (kit revision 38)
     latch.lua              --   Kit.assertLatchHoldOrder, the step-10 two-holds helper; opt-in, unused
                            --   here so far (kit revision 39)
+    glyphs.lua             --   the display-glyph guard: no painted string carries a character a
+                           --   shipped skin face cannot draw (kit revision 45); adopted by
+                           --   test_glyphs.lua
     loader.lua             --   loadfile + setfenv over the mock env, and Loader.tocFiles
     mock_base.lua          --   the universal half of the WoW-API mock, shared across the collection
     vendor_sync.lua        --   the shared vendored-payload gate, adopted by test_vendor_sync.lua;

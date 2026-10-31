@@ -32,7 +32,7 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   the copy — this bullet carried a stale one, a re-vendor behind the payload beside it, and a second
   place to bump is a second place to forget. That payload includes **LibKa0s-Widgets-1.0**, the flat
   dropdown and shared menu the filter bar and the export modal draw through.
-- **The monospace face arrives inside that payload**, not beside it. This addon used to ship its own
+- **The monospace face and the skins' faces arrive inside that payload**, not beside it. This addon used to ship its own
   `media/fonts/JetBrainsMono-Regular.ttf`; the bytes are `libs/LibKa0s/media/fonts/` now, resolved
   through `core/MediaSetup.lua` and registered with LibSharedMedia by the library. Nothing under
   `media/fonts/` remains.
@@ -97,7 +97,7 @@ Open a new shell (or `source ~/.profile`) afterwards so `~/.local/bin` is on `PA
 the kit's sighted shadow (kit revision 35) neutralizes the blind spots measured against 1.24.0; an
 upgrade may move them, which the suite's function-count parity then reports as `blindFiles`.
 
-The headless harness reaches it too: `tests/run.lua:45` wires the kit's `test_lizard_sighted` gate,
+The headless harness reaches it too: `tests/run.lua:46` wires the kit's `test_lizard_sighted` gate,
 whose end-to-end case runs `lizard` on a fixture when it is on `PATH` and records a **skip** with its
 reason when it is not (`tests/_kit/test_lizard_sighted.lua:188`). So a missing `lizard` never reddens
 `lua tests/run.lua`, but it does leave that one case unexercised.
@@ -117,7 +117,7 @@ trying to stop.
 Several suites run external commands, so they are dependencies of `lua tests/run.lua` even though
 no Lua code `require`s them:
 
-- **`git`** — `tests/_kit/vendor_sync.lua:409` runs `git -C <path> …` against the **sibling LibKa0s
+- **`git`** — `tests/_kit/vendor_sync.lua:422` runs `git -C <path> …` against the **sibling LibKa0s
   checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
   is one line of adoption over that shared gate; the implementation is vendored, not local.
 - **`git`, again and harder** — `tests/_kit/test_eol.lua` runs `git ls-files` and
@@ -127,8 +127,9 @@ no Lua code `require`s them:
   capability.
 - **`git`, over the tracked set** — the kit's `tests/_kit/test_prose.lua` (`localization-§5`) and
   `tests/_kit/test_layout_cap.lua` (`layout-§1`, from kit revision 25) each run `git ls-files -z`,
-  as does this repo's own `tests/test_lintconfig.lua:219`. All three fail rather than skip when git
-  is absent.
+  as do the kit's display-glyph guard (`tests/_kit/glyphs.lua:412`, adopted by `tests/test_glyphs.lua`)
+  and this repo's own `tests/test_lintconfig.lua:219`. All four fail rather than skip when git is
+  absent.
 - **`ls`** — `tests/test_harness.lua:45` runs `ls tests/test_*.lua` to prove the suite list and the
   files on disk agree in both directions, and `tests/test_register.lua:22` globs with `ls -1`.
 - **`find`** — `tests/_kit/vendor_sync.lua:145` runs `find . -type f` to list a vendored directory
@@ -154,7 +155,7 @@ git clone https://github.com/tusharsaxena/LibKa0s.git ../LibKa0s
 ```
 
 Without it the suite still runs — the pair reports a **skip carrying its reason**
-(`tests/_kit/vendor_sync.lua:510`, `"<path> checkout absent — the vendored payload was NOT
+(`tests/_kit/vendor_sync.lua:523`, `"<path> checkout absent — the vendored payload was NOT
 compared"`) rather than failing, and deliberately not a pass — so this is a **capability**, not a
 blocker. Watch the runner's skip count: a `0 skipped` line is what proves the comparison actually
 ran. `docs/testing.md`'s "The vendor gate" section needs it too: its `diff -r ../LibKa0s/…`
@@ -204,9 +205,9 @@ Nothing to install.
   repo invokes them. If you find a reference, it is stale and should be deleted.
 - **BLP tooling** — the addon ships `.tga`, which the client reads directly (`.pkgmeta:29-33`). No
   converter is needed.
-- **Font tooling** — this addon ships no font. JetBrains Mono comes with the LibKa0s payload
-  (`libs/LibKa0s/media/fonts/`, under its OFL license, recorded there); it is neither generated nor
-  subsetted in this repo, and its provenance is the LibKa0s repo's to keep.
+- **Font tooling** — this addon ships no font of its own. JetBrains Mono and the skins' faces come
+  with the LibKa0s payload (`libs/LibKa0s/media/fonts/`, each under its own terms, recorded there);
+  none is generated or subsetted in this repo, and their provenance is the LibKa0s repo's to keep.
 
 ## 4. Am I set up correctly?
 
