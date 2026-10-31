@@ -1319,7 +1319,7 @@ describes what you see, apart from the changes SKIN-1 lists.
 - **SKIN-34. The skin paints the media rows (LibKa0s v1.84.0, the one media picker).** Bank Ledger's
   panel has no border row; its two media rows are **Font** and **Texture** on the Skin tab. Under a
   non-default skin, open each one's dropdown → the closed bar and the pull-out wear the skin like the
-  **Font outline** dropdown beside them, the same height and width, with each face or bar previewed
+  **Font outline** dropdown under them, the same height and width, with each face or bar previewed
   in its row. Pick an entry → it is stored and takes effect as in SKIN-10 and SKIN-11. Repeat with
   another addon that loads AceGUI-3.0-SharedMediaWidgets enabled → the same picker, not the stock
   LSM30 look. **Fail:** a stock-looking bar or pull-out, a row that does not line up, or a Lua error.
