@@ -414,7 +414,7 @@ return function()
   -- supposed to notice reported the fallback working. The exact bytes are the real client's.
   --
   -- ON THIS TABLE ONLY, never on the real `_G`. Every reader in this addon spells the global BARE
-  -- (core/Constants.lua, modules/Browser.lua's degraded close rung), which the loader's sandbox
+  -- (core/Constants.lua, modules/Browser_Chrome.lua's degraded close rung), which the loader's sandbox
   -- resolves through here — so writing it process-wide would leak one mock's font into every suite
   -- that runs after it, and a case built on mocks WITHOUT a client font would silently still see
   -- this value and report a pass. Same reason core/Compat.lua reads GuildBankFrame bare.

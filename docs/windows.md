@@ -1,7 +1,7 @@
 # Windows
 
 Two standalone windows, both plain non-secure frames sharing one skin seam (`B:ApplySkin`) and one
-close-button factory (`modules/Browser.lua`), each with its own persisted geometry carve-out.
+close-button factory (`modules/Browser_Chrome.lua`), each with its own persisted geometry carve-out.
 
 **Both wear the player's skin** (skinning-§3; [ARCHITECTURE.md → Skins](ARCHITECTURE.md#skins)).
 `B:ApplySkin` hands the frame to the owner's `Shell` (`NS.Skin.Shell`, LibKa0s-Skin-1.0) with

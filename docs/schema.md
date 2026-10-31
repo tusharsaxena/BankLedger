@@ -316,7 +316,7 @@ naming is what makes them compliant, so none has a `Documented deviations` row. 
 empties the state or puts back the shipped default, and *Save* captures what is on screen, so
 neither chooses a value. The Master controls tab's *Reset position* is one of those resets.
 - **Main window geometry.** Storage key `db.profile.settings.window` (`point`, `x`, `y`, `w`, `h`).
-  Owner `NS.Browser` (`modules/Browser.lua`). Writers: `B:SaveGeometry`, on the title bar's
+  Owner `NS.Browser` (`modules/Browser_Chrome.lua`). Writers: `B:SaveGeometry`, on the title bar's
   drag-stop, on the resize grip's release (its `onResizeStop`, never on a size change), on every
   `OnHide`, and at `PLAYER_LOGOUT` through `B:OnLogout`. `B:ResetWindow` empties it, reached from
   `NS.Util.ResetWindowPositions` (the Master controls tab's *Reset position*). A profile event
@@ -356,7 +356,7 @@ both keys in it are per-installation display preferences rather than settings (`
 **Storage carve-outs** are `architecture-§5` **named non-setting state**. No control sets them and
 no row addresses them, and each is written by its one owner module rather than through
 `Schema:Set`:
-- `settings.window`, the main window's geometry (owner `modules/Browser.lua`);
+- `settings.window`, the main window's geometry (owner `modules/Browser_Chrome.lua`);
 - `settings.sessionWindow`, the session window's geometry (owner `modules/SessionWindow.lua`);
 - `db.profile.savedViews`, the filter bar's saved baseline per tab (owner `modules/Browser_Views.lua`).
 

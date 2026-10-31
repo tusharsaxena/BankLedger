@@ -452,7 +452,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (71)
+### test_browser.lua (50)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -464,27 +464,6 @@ Total.
 - Browser:ClearFilters defaults the Character filter to the current character
 - Browser:ClearFilters leaves every other filter empty
 - Browser:ClearFilters does not scope test data to the real player
-- Browser: with nothing saved, the baseline IS the stock view
-- Browser: a corrupt saved view degrades to stock rather than erroring
-- Browser:SaveView then ClearFilters returns to the SAVED view, not stock
-- Browser: a 'typesub' grouping survives SaveView and comes back on Clear
-- Browser:ResetView drops the saved view, and Clear then lands on stock
-- Browser:CaptureView omits sortAsc entirely when the table module is not loaded
-- Browser:CaptureView never captures the character scope
-- Browser:ApplyView always scopes to the current character
-- Browser:ApplyView with the 'all' scope drops the character filter entirely
-- Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
-- Browser: a saved date range is stored as the OPTION, not a resolved timestamp
-- Browser:ApplyView tolerates a scalar filter value in a stored view
-- Slash:CliResetAll (the profile reset) also discards the saved view
-- Per-tab views: Save on a tab writes that tab's slot and never the other's
-- Per-tab views: Reset on a tab drops only that tab's saved view
-- Per-tab views: Clear on a tab returns to that tab's own saved view
-- Per-tab views: switching tabs restores each tab's live state exactly
-- Per-tab views: a tab's first visit opens on its own saved view
-- Per-tab views: a profile event drops every tab's live state onto the new profile's views
-- Per-tab views: a tab switch paints the incoming pane once, not twice
-- Per-tab views: Save and Reset name the tab as a printer argument, same line as ever
 - Browser:MinWidth fits every table column and the whole toolbar
 - Browser:SaveGeometry writes the live position and size
 - Browser:ApplyGeometry restores a saved position and size
@@ -525,6 +504,30 @@ Total.
 - Browser: a simulation shows the sim strip with its scenario line, and never the badge
 - Browser: the strip's tooltip describes the simulation while one runs
 - Browser: a stop repaints the strip through the session listener
+
+### test_browser_views.lua (21)
+
+- Browser: with nothing saved, the baseline IS the stock view
+- Browser: a corrupt saved view degrades to stock rather than erroring
+- Browser:SaveView then ClearFilters returns to the SAVED view, not stock
+- Browser: a 'typesub' grouping survives SaveView and comes back on Clear
+- Browser:ResetView drops the saved view, and Clear then lands on stock
+- Browser:CaptureView omits sortAsc entirely when the table module is not loaded
+- Browser:CaptureView never captures the character scope
+- Browser:ApplyView always scopes to the current character
+- Browser:ApplyView with the 'all' scope drops the character filter entirely
+- Browser:SaveView stores COPIES, so a later toggle cannot rewrite the saved view
+- Browser: a saved date range is stored as the OPTION, not a resolved timestamp
+- Browser:ApplyView tolerates a scalar filter value in a stored view
+- Slash:CliResetAll (the profile reset) also discards the saved view
+- Per-tab views: Save on a tab writes that tab's slot and never the other's
+- Per-tab views: Reset on a tab drops only that tab's saved view
+- Per-tab views: Clear on a tab returns to that tab's own saved view
+- Per-tab views: switching tabs restores each tab's live state exactly
+- Per-tab views: a tab's first visit opens on its own saved view
+- Per-tab views: a profile event drops every tab's live state onto the new profile's views
+- Per-tab views: a tab switch paints the incoming pane once, not twice
+- Per-tab views: Save and Reset name the tab as a printer argument, same line as ever
 
 ### test_autocomplete.lua (17)
 
@@ -1759,7 +1762,8 @@ Total.
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
-| test_browser.lua | 71 |
+| test_browser.lua | 50 |
+| test_browser_views.lua | 21 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 44 |
 | test_sessionwindow.lua | 39 |

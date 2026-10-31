@@ -9,6 +9,7 @@ filter bar holds it while Insights is on screen; History keeps its own), feeds t
   It never touches a ledger entry, which is what makes that math unit-testable headlessly.
 * `modules/Insights.lua` — **what** is drawn: fourteen stat cards and seventeen chart sections, each
   mapping one `Stats` key to rows, plus the reorganized "Top Of The List" ranked-panel grid below them.
+  The `I:Render*` methods that place each chart shape from those rows are in `modules/Insights_Render.lua`.
 
 #### `Database:Stats` keys
 

@@ -204,7 +204,7 @@ NS.SKIN_FALLBACK = {
   },
   ["sem.goodAlt"]   = { 0.25, 1, 0.25, 1 },
   ["sem.badAlt"]    = { 1, 0.25, 0.25, 1 },
-  -- The close control (modules/Browser.lua B:MakeCloseButton, BL-A1): the art at rest and on hover.
+  -- The close control (modules/Browser_Chrome.lua B:MakeCloseButton, BL-A1): the art at rest and on hover.
   ["close.rest"]    = { 0.7, 0.7, 0.72, 1 },
   ["close.hot"]     = { 1, 0.3, 0.3, 1 },
 }
@@ -610,7 +610,7 @@ if not Skin then
       btn:HookScript("OnLeave", function() fs:SetTextColor(NS.SkinColor("btn.text")) end)
     end
   end
-  -- The close control (modules/Browser.lua B:MakeCloseButton, BL-A1): the library's look from the
+  -- The close control (modules/Browser_Chrome.lua B:MakeCloseButton, BL-A1): the library's look from the
   -- host copy, its art (`icon`, else `glyph`) in close.rest, close.hot under the pointer.
   S.CloseButton = function(btn)
     if type(btn) ~= "table" then return end

@@ -137,6 +137,7 @@ files["core/DebugLogSetup.lua"] = {
 -- colon call, which is how the addon survives one of these files failing to load. A plain local
 -- would leave those probes nothing to find.
 files["modules/Browser.lua"]       = { ignore = { "212/self" } }
+files["modules/Browser_Chrome.lua"] = { ignore = { "212/self" } }
 files["modules/Export.lua"]        = { ignore = { "212/self" } }
 files["modules/Filters.lua"]       = { ignore = { "212/self" } }
 files["modules/Ledger.lua"]        = { ignore = { "212/self" } }

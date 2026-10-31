@@ -186,7 +186,7 @@ if not lib then
   return
 end
 
--- The shared Ka0s window edge (standalone-windows). modules/Browser.lua's ApplySkin seam — the
+-- The shared Ka0s window edge (standalone-windows). modules/Browser_Chrome.lua's ApplySkin seam — the
 -- one every window in this addon reaches the edge through — delegates here rather than
 -- restating Core.SKIN's values, so a re-skin lands on all five Ka0s windows at once. Published
 -- as a flat NS member for the same reason NS.SafeToString is: the fallback branch owes the
@@ -218,7 +218,7 @@ NS.IsConcatSafe = lib.IsConcatSafe
 NS.SafeToString = lib.SafeToString
 
 -- `lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED, and this paragraph is here so the next
--- reader does not add it back. This addon draws its own close control — modules/Browser.lua's
+-- reader does not add it back. This addon draws its own close control — modules/Browser_Chrome.lua's
 -- `B:MakeCloseButton`, 24x24, in the skin's close.rest / close.hot — and all three of its title bars (ledger,
 -- session, export modal) go through that one factory. It resolves the SAME shared
 -- `close` mark, through `NS.Icon`, which knows the folder because core/MediaSetup.lua was handed
