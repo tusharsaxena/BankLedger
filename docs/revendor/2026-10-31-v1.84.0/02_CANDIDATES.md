@@ -32,4 +32,4 @@ The `O.PositionBlock` stub is a blocker, not a candidate; `01_DELTA.md` records 
 
 | Candidate | Evidence | Decision |
 |---|---|---|
-| `LibKa0s-Charts-1.0` | `docs/api/Charts/version-1.1-docs.md` | declined (run 2026-10-31): the addon draws no chart; the brief names LootHistory and DpsRace |
+| `LibKa0s-Charts-1.0` | `docs/api/Charts/version-1.1-docs.md` | declined (run 2026-10-31): outside the brief, since LibKa0s#66 and M2 step 4 require only LootHistory and DpsRace. The addon does draw charts: it keeps its private renderer (`modules/Insights_Render.lua`, `modules/InsightsWidgets.lua`), and LibKa0s#66 names it a likely consumer, so a later pass should weigh this again |

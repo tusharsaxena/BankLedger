@@ -504,7 +504,7 @@ test("Schema: rest and hover sit on ONE line, so they are read across and not do
     "the hover slider must follow the rest slider immediately")
   -- An ODD number of PAIRING rows before them in their own subgroup would push the pair onto
   -- separate lines. A subgroup heading flushes the pending line before it draws
-  -- (libs/LibKa0s/OptionsWidgets.lua, startSubgroup), and so does a `solo` row, which takes a line
+  -- (libs/LibKa0s/OptionsFlow.lua, startSubgroup), and so does a `solo` row, which takes a line
   -- of its own -- which is how Show session window shares the Windows subsection with the pair
   -- (BAN-L01) without splitting it. So the count stops at either.
   local since = 0
