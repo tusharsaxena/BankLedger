@@ -326,3 +326,51 @@ test("sim panel: a stand-down stop hides it", function()
     assertFalse(shown, "the panel outlived the stand-down stop")
   end)
 end)
+
+-- ── a move step's item name (BL-03: characterizes modules/Sim.lua's itemName before its split) ──
+
+test("sim panel: a move step names its item from the link, else its id, else the scenario's letter", function()
+  local D = NS.SimDrivers
+  local realWorld, realPool, realResolve = Host.world, Host.PreviewPool, D.ResolveItem
+  local resolved, pool = nil, nil
+  local asked
+  Host.PreviewPool = function() return pool end
+  D.ResolveItem = function(ref, p) asked = { ref = ref, pool = p } return resolved end
+  local function label(ref) return Host.StepLabel({ kind = "Deposit", n = 3, item = ref, store = "Z" }, 2, {}) end
+  local ok, err = pcall(function()
+    -- No world and no preview pool: the letter, and nothing is resolved.
+    Host.world, pool, asked = nil, nil, nil
+    assertEqual(label("1"), "Deposit 3 × item A to Z")
+    assertEqual(label("bonus"), "Deposit 3 × item B to Z")
+    assertEqual(label("4"), "Deposit 3 × item E to Z")
+    assertEqual(label("9"), "Deposit 3 × item 9 to Z", "an index past the letters prints itself")
+    assertEqual(label("x"), "Deposit 3 × item x to Z")
+    assertEqual(asked, nil, "resolved with neither a world nor a pool")
+    -- The idle preview pool resolves against itself.
+    pool, resolved = { "p" }, { link = "|cff|Hitem:1|h[Linen Cloth]|h|r", itemID = 2589 }
+    assertEqual(label("1"), "Deposit 3 × Linen Cloth to Z")
+    assertTrue(asked.pool == pool and asked.ref == "1", "the preview pool was not passed")
+    -- A world resolves against its own pool (nil here), never the preview pool.
+    Host.world, pool = {}, { "p" }
+    assertEqual(label("2"), "Deposit 3 × Linen Cloth to Z")
+    assertEqual(asked.pool, nil, "a world's step resolved against the preview pool")
+    -- A link with an empty or no bracketed name, or no link at all: the item id.
+    resolved = { link = "|cff|Hitem:1|h[]|h|r", itemID = 7 }
+    assertEqual(label("1"), "Deposit 3 × 7 to Z")
+    resolved = { link = "no name", itemID = 8 }
+    assertEqual(label("1"), "Deposit 3 × 8 to Z")
+    resolved = { link = 5, itemID = 9 }
+    assertEqual(label("1"), "Deposit 3 × 9 to Z")
+    -- Nothing resolved: the letter.
+    resolved = nil
+    assertEqual(label("2"), "Deposit 3 × item C to Z")
+    -- No resolver: the letter.
+    D.ResolveItem = nil
+    assertEqual(label("bonus"), "Deposit 3 × item B to Z")
+    -- The Loot step names its item the same way.
+    D.ResolveItem = function() return { link = "[Silk Cloth]", itemID = 1 } end
+    assertEqual(Host.StepLabel({ kind = "Loot", n = 2, item = "1" }, 2, {}), "Loot 2 × Silk Cloth into the bags")
+  end)
+  Host.world, Host.PreviewPool, D.ResolveItem = realWorld, realPool, realResolve
+  if not ok then error(err, 0) end
+end)

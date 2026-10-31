@@ -78,10 +78,13 @@ function C.DirectionColor(key)
 end
 
 -- ▲ out of the store, ▼ into it. These are TEXT glyphs: WoW's default font has neither and renders
--- a box, so anything drawing them must use the LibKa0s mono face below (see FONT_MONO).
+-- a box, and neither do most skin faces, so anything drawing them must use the LibKa0s mono face
+-- below (see FONT_MONO). The `glyph: mono` markers tell the kit's display-glyph guard
+-- (tests/test_glyphs.lua) so; every consumer pins the mono face (LedgerTable, SessionWindow, the
+-- Direction dropdown's glyphFont).
 C.DirectionGlyph = {
-  WITHDRAW = "\226\150\178",   -- ▲ U+25B2
-  DEPOSIT  = "\226\150\188",   -- ▼ U+25BC
+  WITHDRAW = "\226\150\178",   -- ▲ U+25B2  glyph: mono
+  DEPOSIT  = "\226\150\188",   -- ▼ U+25BC  glyph: mono
 }
 
 -- The character bank keeps the addon's gold; the warband bank takes the heirloom cyan (it is

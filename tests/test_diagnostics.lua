@@ -349,7 +349,7 @@ test("diagnostics: the verb is one COMMANDS row, and no alias of it exists", fun
       "an alias of the report is registered: " .. cmd[1])
   end
   assertEqual(#rows, 1, "exactly one diagnostics row")
-  assertEqual(#NS.COMMANDS, 20, "the verb table grew from 19 to 20 (sim)")
+  assertEqual(#NS.COMMANDS, 21, "the verb table grew from 19 to 20 (sim), then 21 (skin)")
 end)
 
 -- ── the simulator (BankLedger#24, LibKa0s-Sim-1.0 host contract H8) ─────────────────────────────

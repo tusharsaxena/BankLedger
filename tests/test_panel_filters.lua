@@ -916,10 +916,10 @@ test("Panel: the storage read-out lands on the History tab and nowhere else", fu
   assertTrue(readoutIn(renderTab("General", "History")), "no storage read-out on History")
   assertFalse(readoutIn(renderTab("General", "Capture")), "the read-out leaked onto Capture")
   assertFalse(readoutIn(renderTab("General", "Interface")), "the read-out leaked onto Interface")
-  -- BAN-L09: "≈" alone is the hedge, as in the ledger window's footer; "(estimated)" said it twice.
+  -- BAN-L09: "~" alone is the hedge (it was "≈" until D-19), as in the ledger window's footer; "(estimated)" said it twice.
   for _, w in ipairs(renderTab("General", "History")) do
     if w.type == "Label" and (w.text or ""):find("Database size", 1, true) then
-      assertTrue(w.text:find("\nDatabase size: \226\137\136 ", 1, true) ~= nil, w.text)
+      assertTrue(w.text:find("\nDatabase size: ~", 1, true) ~= nil, w.text)
       assertTrue(w.text:find("estimated", 1, true) == nil, "the read-out hedges twice: " .. w.text)
     end
   end

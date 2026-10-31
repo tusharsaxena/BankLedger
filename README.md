@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1510%2F1510_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1534%2F1534_passing-green)
 
 Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -95,6 +95,10 @@ in combat, in test mode, with a real bank open, while General visibility keeps t
 while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
 and `/reload`. `/bl purge` is refused until it is over.
 
+The look is per profile too. A small **Choose a skin** window opens once on each profile, and
+`/bl skin` brings it back any time. Pick a skin there, along with the font, texture and text outline,
+or change them later on the settings' Skin tab.
+
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.
 
@@ -172,25 +176,8 @@ lives.
 
 ## Credits
 
-The debug console and the ledger window's ▲/▼ direction arrows use [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL Open Font License 1.1.
-
-Ka0s Default, the skin every profile starts on, draws [Oxanium](https://github.com/sevmeyer/oxanium)
-by The Oxanium Project Authors, also SIL Open Font License 1.1.
-
-The other skins draw on seven more SIL Open Font License 1.1 faces, one family per skin:
-[Inter](https://github.com/rsms/inter) by The Inter Project Authors,
-[Nunito](https://github.com/googlefonts/nunito) by The Nunito Project Authors,
-[Vollkorn](https://github.com/FAlthausen/Vollkorn-Typeface) by The Vollkorn Project Authors,
-[Bitter](https://github.com/solmatas/BitterPro) by The Bitter Project Authors,
-[Philosopher](https://github.com/alexeiva/philosopher) by The Philosopher Project Authors,
-[Fira Sans](https://github.com/mozilla/Fira) by The Mozilla Foundation and Telefonica S.A., and
-[Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) by the Braille Institute of
-America. Inter, Nunito, Vollkorn, Bitter and Oxanium are static weights cut from upstream's
-variable fonts.
-
 The icons come from [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, under the MIT
 license: the window close buttons, the search magnifier, the dropdown chevron and its tick, the sort
 arrows and group expanders, the export mark, the debug console's close, copy and clear buttons, the
 test-mode strip's info mark, and the skin picker's preview eye and settings gear. Only the icons the
-addon draws are shipped. The fonts and the icons are bundled inside the LibKa0s payload, with their
-license text beside them.
+addon draws are shipped, with their license text beside them.

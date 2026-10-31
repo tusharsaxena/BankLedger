@@ -1084,7 +1084,7 @@ Total.
 - Mock AceDB: a scalar default reads through; clearing the key does not unset it
 - Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed
 
-### test_mediasetup.lua (13)
+### test_mediasetup.lua (14)
 
 - LibKa0s-Media: the vendored major registered and the seam is published
 - LibKa0s-Media: NS.Icon answers the vendored path, EXTENSIONLESS
@@ -1099,6 +1099,7 @@ Total.
 - LibKa0s-Media: the seam loads BEFORE core/Constants.lua, which resolves the font from it
 - LibKa0s-Media degraded: with no library there is no art, and that is not an error
 - LibKa0s-Media degraded: FONT_MONO falls back to a REAL CLIENT FONT, never nil and never a path
+- Options: the descriptor hands the library LibSharedMedia, for LSMValues and the font preload
 
 ### test_envsetup.lua (10)
 
@@ -1544,7 +1545,7 @@ Total.
 - Sim pacing: a step moving a blacklisted item does not stall the run
 - Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
-### test_sim_panel.lua (18)
+### test_sim_panel.lua (19)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
@@ -1564,6 +1565,7 @@ Total.
 - sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
+- sim panel: a move step names its item from the link, else its id, else the scenario's letter
 
 ### test_layers.lua (11)
 
@@ -1585,7 +1587,7 @@ Total.
 - Skin seam: the read answers Ka0s Default before the profile store exists
 - Skin seam: each owner token draws its Ka0s Default pixel and follows its role elsewhere
 - Skin seam: the gold movement token is today's pale gold, not sem.gold
-- Skin seam: the appearance keys default to today's look, as seven skipRender Appearance rows
+- Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows
 - Skin seam: the skin row's values are every registered skin, in the library's order
 - Skin seam: /bl set refuses a skin that is not registered and applies one that is
 - Skin seam: /bl set reaches an exception, and only its own half
@@ -1648,6 +1650,37 @@ Total.
 - skin tools: the live debug console and its copy window are painted for this owner
 - skin tools: the export copy window is painted for this owner
 - skin tools: every remaining factory seam passes the owner
+
+### test_skin_outline.lua (12)
+
+- outline: a fresh profile stores HUD text only, the library's default, and applies it
+- outline: before the profile store exists the mode is the library's default
+- outline: a stored All text stays All text, nothing migrates it
+- outline: the schema row offers the library's three modes, in its order, drawn by the tab
+- outline: the write seam stores media.outline, and leaves it alone when it is nil
+- outline: another addon's copy reaches the store through WriteChoice
+- outline: /bl set applies the mode live, and only the outline
+- outline: /bl set refuses a mode the library does not know
+- outline: the whole-choice apply (load, profile events) applies the stored mode
+- outline: a profile switch applies the incoming profile's mode, and back
+- outline: without the skin engine the apply is a quiet no-op
+- outline: the degraded facade's FontFlags and HudFontSize answer a value, never nil
+
+### test_skin_verb.lua (7)
+
+- skin verb: the row sits right after config, with the library's help words
+- skin verb: /bl skin hands O.SkinVerb this addon's first-run spec
+- skin verb: on a profile that closed the picker, /bl skin shows it
+- skin verb: the library's reason is passed on, and nothing is printed over it
+- skin verb: in combat every call prints the library's gray line and shows nothing
+- skin verb: refused while the addon is disabled, and the act never runs
+- skin verb: without LibKa0s the verb prints the library-absent line
+
+### test_glyphs.lua (3)
+
+- glyphs: display strings use only characters every shipped skin face draws
+- glyphs: the ledger window's footer estimates the size with ~, not ≈
+- glyphs: the Direction column's tooltip names the directions without the arrows
 
 ### test_eol.lua (2)
 
@@ -1743,7 +1776,7 @@ Total.
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
 | test_mock.lua | 28 |
-| test_mediasetup.lua | 13 |
+| test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
 | test_marks.lua | 22 |
 | test_libka0s.lua | 47 |
@@ -1767,17 +1800,20 @@ Total.
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 9 |
-| test_sim_panel.lua | 18 |
+| test_sim_panel.lua | 19 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 11 |
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
+| test_skin_outline.lua | 12 |
+| test_skin_verb.lua | 7 |
+| test_glyphs.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1510** |
+| **Total** | **1534** |

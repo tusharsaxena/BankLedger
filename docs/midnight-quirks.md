@@ -106,8 +106,8 @@ crashes there. The shared secret-safe printer probes `table.concat` instead
 
 ## WoW's default font has no ▲ or ▼
 
-It renders a box for both. The History table's Direction column and the Direction filter dropdown draw
-those glyphs in JetBrains Mono, which arrives with the LibKa0s payload — sanctioned by
+It renders a box for both, and so do most skin faces. The History table's Direction column, the
+session window's and the Direction filter dropdown draw those glyphs in JetBrains Mono, which arrives with the LibKa0s payload — sanctioned by
 `debug-logging-§2`, which names direction markers in a table cell as its example and states that an
 audit must not flag it.
 
