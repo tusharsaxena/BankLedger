@@ -53,7 +53,6 @@ C.DirectionSign = { DEPOSIT = 1, WITHDRAW = -1 }
 -- These two are the whole enum. Currencies are deliberately not captured and no member is reserved
 -- for them — see Known limitations in docs/ARCHITECTURE.md.
 C.Kind = { ITEM = "ITEM", MONEY = "MONEY" }
-C.KindOrder = { "ITEM", "MONEY" }
 C.KindLabel = { ITEM = "Item", MONEY = "Gold" }
 
 -- ── Display palette ─────────────────────────────────────────────────────────────

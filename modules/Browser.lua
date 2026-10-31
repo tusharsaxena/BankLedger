@@ -163,7 +163,6 @@ local function ReskinTabs()
     tab.underline:SetColorTexture(NS.SkinColor("tab.onLine"))
   end
 end
-B._reskinTabs = ReskinTabs   -- tests/test_skin_windows.lua
 if NS.Skin then NS.Skin.OnLooksChanged(ReskinTabs) end
 
 -- ── Filter bar ────────────────────────────────────────────────────────────────
