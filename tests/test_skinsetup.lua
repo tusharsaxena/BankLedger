@@ -146,7 +146,7 @@ local KEYS = {
   { "source", "ka0s", "string" }, { "skin", "ka0s", "string" },
   { "ignorePanel", true, "bool" }, { "ignoreFonts", false, "bool" },
   { "font", "", "string" }, { "texture", "", "string" },
-  { "outline", "all", "string" }, { "pickerSeen", false, "bool" },
+  { "outline", "hud", "string" }, { "pickerSeen", false, "bool" },
 }
 
 test("Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows", function()

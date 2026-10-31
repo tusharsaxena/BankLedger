@@ -1,9 +1,9 @@
 -- tests/test_skin_outline.lua — the Font outline (LibKa0s v1.82.0, Skin minor 9; BL-01 of
 -- Ka0sAddonsCommonTasks docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK, ruling D-06): stored as
--- settings.appearance.outline ("all", the default, "hud", "off"), written only through the skin
+-- settings.appearance.outline ("all", "hud", the default since v1.83.0 (D-10), "off"), written only through the skin
 -- write seam (NS.WriteSkinChoice's `media.outline`), and applied with Skin:SetOutline at load, on
 -- every profile event and on the row's own write. LibKa0sSkinTester's tests/test_skin_outline.lua is
--- the pattern; this suite runs on the shared addon, so every case puts the mode back on All text.
+-- the pattern; this suite runs on the shared addon, so every case puts the mode back on HUD text only.
 
 local T = _G.BL_TEST
 local NS, mocks = T.NS, T.mocks
@@ -15,7 +15,7 @@ local PATH = "settings.appearance.outline"
 
 local function stored() return NS.db.profile.settings.appearance.outline end
 
---- Run `fn` with chat silenced (a `/bl set` echoes its value) and the mode back on All text,
+--- Run `fn` with chat silenced (a `/bl set` echoes its value) and the mode back on HUD text only,
 --- stored and applied, whatever `fn` raised.
 local function clean(fn)
   return function()
@@ -23,19 +23,37 @@ local function clean(fn)
     local add = cf.AddMessage
     cf.AddMessage = function() end
     local ok, err = pcall(fn)
-    NS.db.profile.settings.appearance.outline = "all"
-    Skin:SetOutline(OWNER, "all")
+    NS.db.profile.settings.appearance.outline = "hud"
+    Skin:SetOutline(OWNER, "hud")
     cf.AddMessage = add
     if not ok then error(err, 0) end
   end
 end
 
-test("outline: a fresh profile stores All text, the library's default, and applies it", function()
-  assertEqual(NS.defaults.profile.settings.appearance.outline, "all")
+test("outline: a fresh profile stores HUD text only, the library's default, and applies it", function()
+  assertEqual(NS.defaults.profile.settings.appearance.outline, "hud")
   assertEqual(NS.defaults.profile.settings.appearance.outline, Skin.OUTLINE_DEFAULT)
+  assertEqual(stored(), "hud")
+  assertEqual(Skin:GetOutline(OWNER), "hud")
+end)
+
+test("outline: before the profile store exists the mode is the library's default", function()
+  -- red under: core/SkinSetup.lua's OUTLINE_DEFAULT left on "all" while the profile default moved.
+  local db = NS.db
+  NS.db = nil
+  local got = NS.SkinOutline()
+  NS.db = db
+  assertEqual(got, Skin.OUTLINE_DEFAULT)
+end)
+
+test("outline: a stored All text stays All text, nothing migrates it", clean(function()
+  -- red under: a migration or a fallback rewriting a stored choice to the new default (D-10).
+  NS.db.profile.settings.appearance.outline = "all"
+  NS.ApplySkinChoice()
   assertEqual(stored(), "all")
   assertEqual(Skin:GetOutline(OWNER), "all")
-end)
+  assertEqual(NS.Skin.Token("font.outline"), "OUTLINE", "window text keeps its outline")
+end))
 
 test("outline: the schema row offers the library's three modes, in its order, drawn by the tab", function()
   local row = NS.Schema:FindRow(PATH)
@@ -50,10 +68,10 @@ end)
 test("outline: the write seam stores media.outline, and leaves it alone when it is nil", clean(function()
   -- red under: WriteSkinChoice dropping media.outline (the Skin tab's Font outline and another
   -- addon's copy would move the look and never store it).
-  NS.WriteSkinChoice(nil, nil, nil, { font = false, texture = false, outline = "hud" })
-  assertEqual(stored(), "hud")
+  NS.WriteSkinChoice(nil, nil, nil, { font = false, texture = false, outline = "all" })
+  assertEqual(stored(), "all")
   NS.WriteSkinChoice(nil, nil, nil, { font = false, texture = false })
-  assertEqual(stored(), "hud", "a media without outline leaves it")
+  assertEqual(stored(), "all", "a media without outline leaves it")
   NS.WriteSkinChoice(nil, nil, nil, { font = false, texture = false, outline = "off" })
   assertEqual(stored(), "off")
 end))
@@ -64,9 +82,12 @@ test("outline: another addon's copy reaches the store through WriteChoice", clea
 end))
 
 test("outline: /bl set applies the mode live, and only the outline", clean(function()
+  NS.Slash:CliSet(PATH .. " all")
+  assertEqual(stored(), "all")
+  assertEqual(Skin:GetOutline(OWNER), "all", "the row's onChange applied it")
+  assertEqual(NS.Skin.Token("font.outline"), "OUTLINE", "All text outlines window text")
   NS.Slash:CliSet(PATH .. " hud")
-  assertEqual(stored(), "hud")
-  assertEqual(Skin:GetOutline(OWNER), "hud", "the row's onChange applied it")
+  assertEqual(Skin:GetOutline(OWNER), "hud", "and moves it back")
   assertEqual(NS.Skin.Token("font.outline"), "", "window text loses its outline")
   assertEqual(NS.Skin.Token("hud.outline"), "OUTLINE", "the HUD keeps it")
   NS.Slash:CliSet(PATH .. " off")
@@ -78,13 +99,13 @@ end))
 
 test("outline: /bl set refuses a mode the library does not know", clean(function()
   NS.Slash:CliSet(PATH .. " thick")
-  assertEqual(stored(), "all")
+  assertEqual(stored(), "hud")
 end))
 
 test("outline: the whole-choice apply (load, profile events) applies the stored mode", clean(function()
   -- red under: ApplySkinChoice's whole-pair path not applying the stored outline.
   NS.db.profile.settings.appearance.outline = "off"
-  assertEqual(Skin:GetOutline(OWNER), "all", "nothing applied yet")
+  assertEqual(Skin:GetOutline(OWNER), "hud", "nothing applied yet")
   NS.ApplySkinChoice()
   assertEqual(Skin:GetOutline(OWNER), "off")
 end))
@@ -92,11 +113,11 @@ end))
 test("outline: a profile switch applies the incoming profile's mode, and back", clean(function()
   local db = NS.db
   local ok, err = pcall(function()
-    NS.Slash:CliSet(PATH .. " hud")
+    NS.Slash:CliSet(PATH .. " off")
     db:SetProfile("OutlineProbe")
-    assertEqual(Skin:GetOutline(OWNER), "all", "the new profile keeps the default")
+    assertEqual(Skin:GetOutline(OWNER), "hud", "the new profile keeps the default")
     db:SetProfile("Default")
-    assertEqual(Skin:GetOutline(OWNER), "hud", "Default's is back")
+    assertEqual(Skin:GetOutline(OWNER), "off", "Default's is back")
   end)
   if db:GetCurrentProfile() ~= "Default" then db:SetProfile("Default") end
   if db.DeleteProfile then pcall(db.DeleteProfile, db, "OutlineProbe", true) end

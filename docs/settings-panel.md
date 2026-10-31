@@ -20,7 +20,7 @@ only. The finer tree is everything below it.
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your Minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all…**, below the list, empties it after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 | Interface | What is on screen, under two headings. **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default, for every profile at once — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge history…**, which empties the history after asking first. |
-| Skin | The skin this addon wears: the skin source (Ka0s skins, or EllesmereUI when it can skin the addon), the nine Ka0s skins with their swatches, **Font and texture** (a **Font** and a **Texture** dropdown over the skin's own, the **Reset font** and **Reset texture** buttons, and the **Font outline** dropdown: All text, HUD text only or Off), the Scope (**Ignore settings panel**, **Ignore fonts**), **Copy to every Ka0s addon…**, and a note that skins change every visual element. Per profile, like every other setting. |
+| Skin | The skin this addon wears: the skin source (Ka0s skins, or EllesmereUI when it can skin the addon), the nine Ka0s skins with their swatches, **Font and texture** (a **Font** and a **Texture** dropdown over the skin's own, the **Reset font** and **Reset texture** buttons, and the **Font outline** dropdown: HUD text only, All text or Off), the Scope (**Ignore settings panel**, **Ignore fonts**), **Copy to every Ka0s addon…**, and a note that skins change every visual element. Per profile, like every other setting. |
 | Keybindings | The one key binding, **Toggle ledger window** (`options-ui-§20`). |
 
 ## Shape
@@ -110,9 +110,9 @@ ahead of Keybindings; its key is the group of the eight `skipRender` Appearance 
 source (two radio choices, *EllesmereUI* disabled with the failing gate conditions listed while it
 cannot skin this addon), **Look** (the note, then the nine skins three to a line with their
 swatches), **Font and texture** (a **Font** and a **Texture** dropdown side by side, each listing
-"Skin's own (<key>)" first and then every LibSharedMedia font or status bar; under them **Reset
+"Skin's default (<key>)" first and then every LibSharedMedia font or status bar; under them **Reset
 font** and **Reset texture**, each disabled while its half is the skin's own; under those the
-**Font outline**, *All text*, *HUD text only* or *Off*, LibKa0s v1.82.0), the Scope (**Ignore
+**Font outline**, *All text*, *HUD text only*, the default, or *Off*, LibKa0s v1.82.0), the Scope (**Ignore
 settings panel** and **Ignore fonts**, side by side), and under its own heading **Other Ka0s addons**,
 **Copy to every Ka0s addon…** (a confirmation naming the other loaded owners; it copies the Scope,
 the font and texture and the outline too). Picking another skin that draws a different look clears
@@ -362,7 +362,7 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `settings.appearance.ignoreFonts` | bool | `false` | Skin | — | `skipRender`. **Ignore fonts**: every string keeps its own face and size, the library's controls and tool windows included; wins over a font override |
 | `settings.appearance.font` | string | `""` | Skin | — | `skipRender`. **Font**: an LSM font key over the skin's face, `""` for the skin's own; free text, so a media pack's later key is accepted |
 | `settings.appearance.texture` | string | `""` | Skin | — | `skipRender`. **Texture**: an LSM status bar key for every bar of data, `""` for the skin's own |
-| `settings.appearance.outline` | string | `"all"` | Skin | — | `skipRender`. **Font outline** (LibKa0s v1.82.0): `all` text, `hud` text only or `off` (`NS.SKIN_OUTLINE_OPTIONS`, the library's modes), so `/bl set` refuses any other; `onChange` applies it with `Skin:SetOutline`. Ignore fonts grays it out and wins |
+| `settings.appearance.outline` | string | `"hud"` | Skin | — | `skipRender`. **Font outline** (LibKa0s v1.82.0): `all` text, `hud` text only or `off` (`NS.SKIN_OUTLINE_OPTIONS`, the library's modes), so `/bl set` refuses any other; `onChange` applies it with `Skin:SetOutline`. Ignore fonts grays it out and wins |
 | `settings.appearance.pickerSeen` | bool | `false` | Skin | — | `skipRender`, drawn by nothing: the first-run skin picker was closed on this profile |
 
 **The `settings.retentionDays` row is the one setting outside the profile.** It decides how much of

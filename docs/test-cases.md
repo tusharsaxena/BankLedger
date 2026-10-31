@@ -1650,9 +1650,11 @@ Total.
 - skin tools: the export copy window is painted for this owner
 - skin tools: every remaining factory seam passes the owner
 
-### test_skin_outline.lua (10)
+### test_skin_outline.lua (12)
 
-- outline: a fresh profile stores All text, the library's default, and applies it
+- outline: a fresh profile stores HUD text only, the library's default, and applies it
+- outline: before the profile store exists the mode is the library's default
+- outline: a stored All text stays All text, nothing migrates it
 - outline: the schema row offers the library's three modes, in its order, drawn by the tab
 - outline: the write seam stores media.outline, and leaves it alone when it is nil
 - outline: another addon's copy reaches the store through WriteChoice
@@ -1804,7 +1806,7 @@ Total.
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
-| test_skin_outline.lua | 10 |
+| test_skin_outline.lua | 12 |
 | test_skin_verb.lua | 7 |
 | test_glyphs.lua | 3 |
 | test_eol.lua | 2 |
@@ -1813,4 +1815,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1531** |
+| **Total** | **1533** |

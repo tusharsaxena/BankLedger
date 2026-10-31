@@ -1077,9 +1077,9 @@ describes what you see, apart from the changes SKIN-1 lists.
   open the ledger window and walk History and Insights, a row's right-click menu, a filter dropdown
   and the search suggestions, the session window (`/bl session`), the Export modal and its copy
   window → the same colors, edges and spacing as before the rollout, with these changes and no
-  others: every string reads in **Prototype** (LibKa0s v1.82.0; Oxanium before it), outlined (the
-  Font outline's default, *All text*), instead of Friz Quadrata, except the ▲/▼ direction glyphs
-  (mono, never outlined) and the close ×; the Insights bars of data (ranked, stacked,
+  others: every string reads in **Prototype** (LibKa0s v1.82.0; Oxanium before it), with no
+  outline (the Font outline's default, *HUD text only*, and Bank Ledger has no HUD), instead of Friz
+  Quadrata, except the ▲/▼ direction glyphs (mono) and the close ×; the Insights bars of data (ranked, stacked,
   split and back-to-back bars and the day and hour strips) wear the **Ka0s Default** bar texture in
   the colors they had; the three title bars carry the skin's faint title band and both tables' header
   rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
@@ -1091,17 +1091,18 @@ describes what you see, apart from the changes SKIN-1 lists.
   one-time HUD style reset (O2) changes nothing here and there is no HUD change to look for (the
   rollout's X5 does not apply; BL-03 is recorded as an exception). **Fail:** any other changed color,
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
-  wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype,
-  outlined). Result:
+  wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype)
+  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default). Result:
 - **SKIN-2. The Skin tab (BL-01).** General → the strip reads Master controls · Capture · Filters ·
   Interface · History · **Skin** · Keybindings. Open **Skin** → **Skin source**, the nine skins with
   their swatches under **Look** (the note that skins change every visual element leads it), **Font and
-  texture** (**Font** and **Texture**, both *Skin's own* on a new profile; under them **Reset font**
+  texture** (**Font** and **Texture**, both *Skin's default* on a new profile; under them **Reset font**
   and **Reset texture**, each disabled while its half is the skin's own; under those **Font
-  outline**, *All text* on a new profile), the Scope (**Ignore settings panel**, on in a new profile,
+  outline**, *HUD text only* on a new profile), the Scope (**Ignore settings panel**, on in a new profile,
   and **Ignore fonts**, off, each as wide as the dropdowns above), and **Copy to every Ka0s addon…**
   under its own heading, **Other Ka0s addons**. **Fail:** the tab missing, out of place, or a heading
-  repeating the tab's name. Re-opened 2026-10-30 for LibKa0s v1.82.0's layout. Result:
+  repeating the tab's name. Re-opened 2026-10-30 for LibKa0s v1.82.0's layout and 2026-10-31 for
+  v1.83.0's labels and outline default. Result:
 - **SKIN-3. Each skin, live (BL-02).** With the ledger window open on History, pick each skin in turn:
   Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever, then Ka0s
   Default again → with **no reload** the window edge, title bar, divider, tab labels and underline,
@@ -1150,13 +1151,15 @@ describes what you see, apart from the changes SKIN-1 lists.
   **Fail:** one control on the page still skinned while the rest are stock, or the reverse. Re-opened
   2026-10-30 for LibKa0s v1.82.0 (Ka0s Default's face is Prototype). Result:
 - **SKIN-9. Fonts (BL-02).** On an English client each skin draws its own family, body and titles
-  alike, with no fallback squares: Ka0s Default Prototype, Obsidian Expressway, Azeroth Vollkorn,
-  Glass Nunito, High Contrast Atkinson Hyperlegible, Ember Bitter, WoW Midnight Philosopher, WoW
-  Forever Fira Sans (Medium body, SemiBold titles), WoW Default the client's Friz Quadrata. The History table's columns, the Insights cards'
+  with no fallback squares: Ka0s Default Prototype, Obsidian Expressway, Azeroth Open Sans Semibold
+  (Open Sans Bold titles), Glass Avant Garde, High Contrast Doris PP, Ember Emblem, WoW Midnight Segoe
+  UI Semibold (Segoe UI Bold titles), WoW Forever Fira Sans (Medium body, SemiBold titles), WoW Default
+  Ka0s Friz Quadrata, which differs from Ka0s Default whatever the client's own font file holds. The History table's columns, the Insights cards'
   headline figures (they shrink to fit) and the section titles do not truncate or overlap under any
   of them. The ▲/▼ glyphs stay in the mono face everywhere. **Fail:** an empty square, a clipped
   headline figure, or a ▲/▼ drawn as a box. Re-opened 2026-10-30 for LibKa0s v1.82.0 (Prototype,
-  Expressway and Fira Sans Medium replace Oxanium, Inter and Fira Sans Regular). Result:
+  Expressway and Fira Sans Medium replace Oxanium, Inter and Fira Sans Regular) and 2026-10-31 for
+  LibKa0s v1.83.0 (six skins take new faces and sizes). Result:
 - **SKIN-10. A font override, and Ignore fonts (BL-01).** With the ledger window open, pick a clearly
   different face from **Font** → with no reload the title, tabs, buttons, cells and Insights text take
   it at the sizes they had; the debug console keeps its mono face. Turn **Ignore fonts** on → every
@@ -1166,13 +1169,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   (`/bl test`) and the sim panel and strip (`/bl sim start bank`), the debug console's labels and its
   **Copy** window, and the Export copy window → each in the game's face, live, and back in the skin's
   (or the override's) with it off; any of them still in the skin's face with Ignore fonts on fails.
-  Pick *Skin's own* → the skin's face. `/bl get settings.appearance.font` shows the key while set and
-  an empty value after. Result: pass (owner-marked 2026-10-30)
+  Pick *Skin's default* → the skin's face. `/bl get settings.appearance.font` shows the key while set and
+  an empty value after. Re-opened 2026-10-31 for LibKa0s v1.83.0 (the row's new name). Result:
 - **SKIN-11. A texture override reaches the bars (BL-01, BL-02).** Open Insights with a range that
   draws its charts, pick a clearly different status bar from **Texture** → with no reload every bar of
   data takes it, each keeping its own color; the gray tracks, baselines, axes and the legend chips
-  stay flat. Pick *Skin's own* → the skin's texture comes back. **Fail:** a bar on the old texture
-  until `/reload`, a bar that turned white, or a track or chip that took the texture. Result: pass (owner-marked 2026-10-30)
+  stay flat. Pick *Skin's default* → the skin's texture comes back. **Fail:** a bar on the old texture
+  until `/reload`, a bar that turned white, or a track or chip that took the texture. Re-opened 2026-10-31 for LibKa0s v1.83.0 (the row's new
+  name). Result:
 - **SKIN-12. EllesmereUI on (BL-01).** With EllesmereUI loaded, its third-party skinning on and Ka0s
   Bank Ledger on in its Third-Party list → Skin → **Skin source** offers **EllesmereUI**; choosing it
   repaints the ledger window, the session window and the Export modal in the EllesmereUI look, live.
@@ -1239,15 +1243,17 @@ describes what you see, apart from the changes SKIN-1 lists.
   `/reload` → press **Apply to all Ka0s addons** on the first → it closes, no second picker opens, and
   both addons wear the picked skin. Result: pass (owner-marked 2026-10-30)
 - **SKIN-27. The Font outline (LibKa0s v1.82.0; BL-01 of the skin fonts run, ruling D-06).** On a new
-  profile, Skin → **Font outline** reads *All text*, and every string in the ledger window, the
-  session window and the Export modal is outlined (the ▲/▼ mono glyphs are not). Pick *HUD text only*
-  → with no reload every one of them loses its outline (Bank Ledger has no HUD, so nothing keeps
-  one); *Off* → the same. `/bl get settings.appearance.outline` prints `hud`, then `off`; `/bl set
+  profile, Skin → **Font outline** reads *HUD text only*, and no string in the ledger window, the
+  session window or the Export modal is outlined (Bank Ledger has no HUD, so nothing takes one). A
+  profile that stored *Off* keeps it. Pick *All text* → with no reload every one of them is outlined
+  (the ▲/▼ mono glyphs are not); *HUD text only* → every one loses it again; *Off* → the same.
+  `/bl get settings.appearance.outline` prints `hud`, then `off`; `/bl set
   settings.appearance.outline thick` is refused; `/bl set settings.appearance.outline all` puts the
   outline back, live. Turn **Ignore fonts** on → the Font outline is grayed out and the game's own
   font comes back unoutlined. Switch to another profile and back → each keeps its own outline;
   `/reload` keeps it. **Fail:** an outline that only changes after `/reload`, a string that keeps its
-  outline on *Off*, or a mono glyph outlined. Result:
+  outline on *Off*, or a mono glyph outlined. Re-opened 2026-10-31 for LibKa0s v1.83.0's default.
+  Result:
 - **SKIN-28. From skin flags (BL-01, ruling D-07).** Bank Ledger stores no font setting of its own:
   every string takes its face, size and outline from the skin (and the Font outline above). With the
   outline on *All text*, compare the ledger window's title, tab labels, a History cell, an Insights
@@ -1262,7 +1268,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   nothing truncates, wraps or overlaps that did not under Ka0s Default. Repeat on Insights (the KPI
   cards' captions and headline figures, the section titles, the chart legends) and on the session
   window. **Fail:** a header, caption or figure clipped or overlapping under one skin and not under
-  Ka0s Default. Result:
+  Ka0s Default. Sizes and faces moved in LibKa0s v1.83.0. Result:
 - **SKIN-30. Characters every skin face draws (BL-02 of the skin fonts run, ruling D-19).** Under
   **Obsidian**, then **WoW Forever** and **Glass**, read the ledger window's footer → *Database ~1.2
   MB* (a tilde, never an empty box), and General → History's read-out → *Database size: ~1.2 MB*.
@@ -1274,7 +1280,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   rulings D-10 and D-11).** On the Skin tab pick a **Font** override and a **Texture** override →
   the ledger window wears both. Press **Reset font** → only the font goes back to the skin's own and
   the button grays out; press **Reset texture** → the same for the texture. Pick both overrides
-  again, then pick another skin on the tab → both dropdowns read *Skin's own* and, with no reload,
+  again, then pick another skin on the tab → both dropdowns read *Skin's default* and, with no reload,
   the ledger and session windows take the new skin's face and texture. Pick both again and run
   `/bl skin`: preview another skin → both overrides clear; press the close mark → the old skin and
   both overrides come back; preview again and press **Apply** → the new skin is saved with both
@@ -1437,3 +1443,8 @@ SLASH-11, SKIN-27, SKIN-28, SKIN-29, SKIN-30 and SKIN-31, and PANEL-8, SKIN-1, S
 SKIN-15 re-opened,
 their `Result:` lines emptied, because their faces, layout or copy moved. Bank Ledger has no HUD, so
 the release's HUD size scale (ruling D-09) has no check here.
+
+Pending since 2026-10-31, the font pickers and skin faces run (Ka0sAddonsCommonTasks
+`docs/2026-10-31-FONT_PICKERS_AND_SKIN_FACES/`, items BL-F01 and BL-F02 on LibKa0s v1.83.0): SKIN-1,
+SKIN-2, SKIN-9, SKIN-27 and SKIN-29 rewritten, and SKIN-10 and SKIN-11 re-opened with their `Result:`
+lines emptied, because the faces, the sizes, the outline default and the rows' wording moved.

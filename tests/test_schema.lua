@@ -65,7 +65,7 @@ local STORED_SURFACE = {
   { "settings.appearance.ignoreFonts", false,  "bool" },
   { "settings.appearance.font",        "",     "string" },
   { "settings.appearance.texture",     "",     "string" },
-  { "settings.appearance.outline",     "all",  "string" },
+  { "settings.appearance.outline",     "hud",  "string" },
   { "settings.appearance.pickerSeen",  false,  "bool" },
 }
 

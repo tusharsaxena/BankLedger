@@ -515,7 +515,7 @@ for member.
   (**Ignore fonts**), applied through `NS.ApplySkinIgnore` (`Skin:SetIgnore`, live both ways); the
   Font and texture overrides `.font` and `.texture` (an LSM key each, `""` for the skin's own),
   applied through `NS.ApplySkinOverride` (`Skin:SetOverride`, live); the Font outline `.outline`
-  (`"all"` text, the default, `"hud"` text only or `"off"`; LibKa0s v1.82.0, ruling D-06), applied
+  (`"all"` text, `"hud"` text only, the default since LibKa0s v1.83.0, or `"off"`; LibKa0s v1.82.0, ruling D-06), applied
   through `NS.ApplySkinOutline` (`Skin:SetOutline`, live, at load and on every profile event); and
   `.pickerSeen`, the first-run picker's memory. The library's Skin tab (key `Appearance`) on the
   General page, after History and before Keybindings, draws the first seven ([settings-panel.md](settings-panel.md)).
@@ -596,8 +596,8 @@ Outside the gate's reach, also on purpose:
 - **Fonts.** The skin's face reaches every text the addon shows: the primitives draw their own and
   the addon's `GameFont*` FontStrings take it through `S.Font`, face only, at sizes relative to Ka0s
   Default's. Ka0s Default's face is Prototype (Oxanium until LibKa0s v1.82.0), so the addon's strings
-  no longer read in Friz Quadrata; the skin's Font outline (`settings.appearance.outline`, All text by
-  default) outlines them;
+  no longer read in Friz Quadrata; the skin's Font outline (`settings.appearance.outline`) outlines them
+  on All text only, since its default is HUD text only and this addon has no HUD;
   with **Ignore fonts** on every string keeps its own face and size, the library's controls and tool
   windows included (their menus, strips, suggestion rows and labels; LibKa0s v1.81.0). The direction
   glyph keeps the mono face (`C.FONT_MONO`, for its ▲/▼, `debug-logging-§2`) under every skin; the

@@ -25,7 +25,7 @@ local addonName, NS = ...
 --                           overrides, "" for false (the skin's own); its `outline`, when not
 --                           nil, writes the Font outline (LibKa0s v1.82.0, Skin minor 9, D-06).
 --   NS.SKIN_OUTLINE_OPTIONS the outline row's values: "all", "hud", "off", the library's order.
---   NS.SkinOutline()        the stored Font outline mode; "all" before NS:InitDB.
+--   NS.SkinOutline()        the stored Font outline mode; "hud" before NS:InitDB.
 --   NS.ApplySkinOutline(m)  moves the applied Font outline: `Skin:SetOutline`, live; no argument
 --                           applies the stored mode.
 --   NS.ApplySkinIgnore(p,f) moves the applied exceptions: `Skin:SetIgnore`, live; no argument
@@ -109,7 +109,7 @@ local PANEL_PATH, FONTS_PATH = "settings.appearance.ignorePanel", "settings.appe
 local FONT_PATH, TEXTURE_PATH = "settings.appearance.font", "settings.appearance.texture"
 local OUTLINE_PATH = "settings.appearance.outline"
 local DEFAULT = "ka0s"
-local OUTLINE_DEFAULT = "all"
+local OUTLINE_DEFAULT = "hud"
 
 -- The owner tokens (skinning-§1; the rollout's decisions X1, X2 and X12). Each is a color this
 -- addon draws under Ka0s Default whose exact value no library token holds, so it is declared here
@@ -345,7 +345,7 @@ function NS.WriteSkinChoice(source, skin, ignore, media)
   end
 end
 
---- The stored Font outline mode, nil-safely: "all" until the profile store exists.
+--- The stored Font outline mode, nil-safely: "hud" until the profile store exists.
 function NS.SkinOutline()
   local S = NS.Schema
   if not (NS.db and S and S.Get) then return OUTLINE_DEFAULT end

@@ -30,7 +30,7 @@ Each default value is hardcoded in exactly one of the two files (`savedvariables
 appearance = { source = "ka0s", skin = "ka0s",          -- the skin this addon wears (Ka0s Default)
                ignorePanel = true, ignoreFonts = false, -- the Scope: settings pages stay the client's
                font = "", texture = "",                 -- the Font and texture overrides: "" = the skin's own
-               outline = "all",                         -- the Font outline: "all", "hud" or "off"
+               outline = "hud",                         -- the Font outline: "all", "hud" or "off"
                pickerSeen = false },                    -- the first-run skin picker was closed here
 ```
 
