@@ -116,9 +116,11 @@
 -- through Skin:__PaintAceWindow, on acquire and on every change of looks, whatever Ignore settings
 -- panel says: that box's own tooltip says windows still wear the skin. Combat disables them when the
 -- window draws them and refuses them after (O.__combatRefused); a refused row goes back to the truth.
--- The end of combat wakes rows drawn locked: the window holds PLAYER_REGEN_ENABLED while it is up and
--- redraws them next frame, when the page lock's flag, cleared by another frame's handler for the same
--- event, has cleared too. A window never drawn locked moves nothing.
+-- The end of combat wakes rows drawn locked. The window registers no event: a picker can be up on a
+-- stood-down addon, whose registration set must stay exact (slash-commands-§7). While rows are drawn
+-- locked, and only then, a throttled OnUpdate reads the lock that drew them, the page lock's flag
+-- included, and when it clears redraws once and removes itself. Every close takes it off, so a hidden
+-- window carries none, and a window never drawn locked runs none.
 -- Under the eui source they draw and work as on the tab: the leading row names EllesmereUI's face.
 -- Ignore fonts disables the Font outline, as on the tab. No scope change asks for a reload
 -- (Skin:SetIgnore answers false), so the one popup is still the skin's, on Apply, never in a preview.
@@ -176,7 +178,8 @@ if not lib then return end
 -- texture and outline; and the APPLY, APPLY_ALL and SETTINGS tips say so. Its review: dropFocus(), the
 -- rows' wake at the end of combat, MEDIA_H at AceGUI's labeled 40 (44 hung each reset icon 4 below its
 -- bar), the "Font and texture" line, lib.__pickerSettle and lib.__pickerRebase, and saveRows sending
--- the scope and outline that are applied, not the ones the rows last previewed.
+-- the scope and outline that are applied, not the ones the rows last previewed. The wake's event gave
+-- way to the OnUpdate in THE ROWS when re-vendoring turned seven addons' stand-down suites red.
 local PICKER_MINOR = 4
 -- Paired on the SHELL's minor as well as this file's own -- see OptionsScroll.lua for why.
 if lib.__pickerMinor and lib.__pickerMinor >= PICKER_MINOR
@@ -236,6 +239,7 @@ local ROW_FONT = "GameFontHighlight"
 -- Media icon "reset": a consumer's vendored icons are pruned to its `LibKa0s icons:` line, eleven of
 -- them lack that file, and a texture that fails to load draws nothing and raises nothing.
 local RESET_ART = "Interface\\Buttons\\UI-RefreshButton"
+local WAKE_EVERY = 0.25   -- seconds between reads of the lock while rows are drawn locked
 
 local function skinMajor()
   return LibStub and LibStub("LibKa0s-Skin-1.0", true) or nil
@@ -487,9 +491,8 @@ function lib.__AttachSkinPicker(O, d)
   -- that meant and `openedIgnore` its scope (`{ panel, fonts }`); the three `*Left` are what a preview
   -- left in those halves, nil while a half is as it opened (THE ROWS, above); `pending` the skin a
   -- pick previews and Apply has not saved, `reload` whether any pick in this showing asked for a
-  -- reload; `height` the window's, its rows included; `drawnLocked` whether the rows were last drawn
-  -- under combat's lock. The frame's `rows` holds the AceGUI widgets of this showing, nil while it is
-  -- closed.
+  -- reload; `height` the window's, its rows included. The frame's `rows` holds the AceGUI widgets of
+  -- this showing, nil while it is closed.
   local P
   local pickers = {}   -- every owner's picker on this instance, so a window is never orphaned
 
@@ -818,7 +821,7 @@ function lib.__AttachSkinPicker(O, d)
   local function closed(p)
     if not (p and p.shown) then return end
     p.shown = false
-    p.frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    p.frame:SetScript("OnUpdate", nil)
     setOpen(false, p)
     releaseControls(p)
     revert(p)
@@ -1235,10 +1238,10 @@ function lib.__AttachSkinPicker(O, d)
   function syncControls(p)
     local f = p.frame
     local rows = f.rows
+    local locked = rows ~= nil and combatLocked()
+    f:SetScript("OnUpdate", locked and f.wake or nil)
     if not rows then return end
     dropFocus(p)
-    local locked = combatLocked()
-    p.drawnLocked = locked
     local ignore = lib.__readIgnore(p.Skin, p.owner)
     syncMedia(p, locked)
     if rows.outline then
@@ -1281,15 +1284,17 @@ function lib.__AttachSkinPicker(O, d)
     buildDropdown(f)
     buildButtons(f)
     buildList(f)
-    -- Rows drawn locked wake when combat ends (THE ROWS), held for a showing, inert after it.
     f:SetScript("OnMouseDown", function() dropFocus(mine) end)
-    f:SetScript("OnEvent", function()
-      if not (P == mine and mine.shown and mine.drawnLocked) then return end
-      local function wake()
-        if P == mine and mine.shown then refresh() end
-      end
-      if C_Timer and C_Timer.After then C_Timer.After(0, wake) else wake() end
-    end)
+    -- Rows drawn locked wake when combat ends (THE ROWS): syncControls arms this, closed() disarms it.
+    local waited = 0
+    f.wake = function(self, elapsed)
+      waited = waited + (elapsed or 0)
+      if waited < WAKE_EVERY then return end
+      waited = 0
+      if combatLocked() then return end
+      self:SetScript("OnUpdate", nil)
+      if P == mine then refresh() end
+    end
     P.Sk.OnLooksChanged(function()
       if P == mine then
         refresh()
@@ -1355,7 +1360,6 @@ function lib.__AttachSkinPicker(O, d)
     local core = LibStub and LibStub("LibKa0s-Core-1.0", true)
     if core and type(core.RaiseStaticPopups) == "function" then core.RaiseStaticPopups() end
     P.shown = true
-    f:RegisterEvent("PLAYER_REGEN_ENABLED")
     local mine = P
     queue().current = {
       owner = owner, inst = O, frame = f,
