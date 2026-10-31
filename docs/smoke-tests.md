@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 33 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change |
+| SKIN-1 – 34 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
 | DEGRADED-1 – 15 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1316,6 +1316,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   close the window → they go back. With another Ka0s addon that uses skins loaded, **Apply to all Ka0s
   addons** carries them to it. **Fail:** a row missing, a change that does not preview, a change Apply
   drops, or one that survives closing the window. Result:
+- **SKIN-34. The skin paints the media rows (LibKa0s v1.84.0, the one media picker).** Bank Ledger's
+  panel has no border row; its two media rows are **Font** and **Texture** on the Skin tab. Under a
+  non-default skin, open each one's dropdown → the closed bar and the pull-out wear the skin like the
+  **Font outline** dropdown beside them, the same height and width, with each face or bar previewed
+  in its row. Pick an entry → it is stored and takes effect as in SKIN-10 and SKIN-11. Repeat with
+  another addon that loads AceGUI-3.0-SharedMediaWidgets enabled → the same picker, not the stock
+  LSM30 look. **Fail:** a stock-looking bar or pull-out, a row that does not line up, or a Lua error.
+  Result:
 
 ## DEGRADED
 
@@ -1472,7 +1480,8 @@ SKIN-15 and SKIN-27 to SKIN-32, each recorded on its `Result:` line as `Owner re
 Bank Ledger has no HUD, so the HUD size scale (ruling D-09) has no check here.
 
 Added by the findings remediation (Ka0sAddonsCommonTasks `docs/2026-10-31-FINDINGS_REMEDIATION/`, item
-BL-RV on LibKa0s v1.84.0), awaiting the owner: DIAG-32.
+BL-RV on LibKa0s v1.84.0), awaiting the owner: DIAG-32, and SKIN-34 for the owner's one media picker ruling of
+2026-11-01 (item M3-MEDIA).
 
 Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19
