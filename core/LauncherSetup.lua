@@ -236,6 +236,7 @@ NS.Launcher = Launcher:New({
   -- slash gate and the Master-controls checkbox read, so the three cannot disagree. `setEnabled` is
   -- handed the state to move TO and runs `/bl enable` or `/bl disable` — Sl:CliEnabled, which
   -- writes the Enable row's stored path through the one write seam and re-runs the latch.
+  openSkinPicker = function() if NS.RunSkinVerb then NS.RunSkinVerb() end end,
   isEnabled = function() return not (NS.IsDisabled and NS.IsDisabled()) end,
   setEnabled = function(on) verb(on and "enable" or "disable") end,
 
