@@ -254,8 +254,14 @@ tests/
                            --   its own `crashed` complexity bucket, never a pass (kit revision 41)
     lizard_sighted.lua     --   the sanitized shadow the complexity suite measures, and its parity
                            --   check (kit revision 35; wired as the test_lizard_sighted gate)
+    skin_values.lua        --   the typed-value gate, wired as test_skin_values with
+                           --   tests/skin_facts.lua's facts (kit revision 50)
+    skin_switch.lua        --   the probe-skin switch test, wired as test_skin_switch with
+                           --   tests/skin_facts.lua's surfaces (kit revision 50)
     README.md
   run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
+  skin_facts.lua           -- Kit.skinValues and Kit.skinSwitch: the gate's rows and calls, and every
+                           --   painted surface, one narrow object each. Not a suite
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
   degraded_env.lua         -- builds a SECOND environment with libs/LibKa0s left out of the load
                            --   list, so the degradation stubs are exercised as a LOAD rather than

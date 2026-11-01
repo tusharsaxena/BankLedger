@@ -570,21 +570,26 @@ for member.
   `NS.SkinPaintAce`, and the Profiles page's tree through `NS.SkinPaintAceTree`. The addon has no
   perf panel (`performance-§12`) and no HUD, so the rollout's one-time HUD style reset (O2) has
   nothing to reset here. `tests/test_skin_tools.lua` pins the tool surfaces.
-- **The color gate.** `tests/test_skin_literals.lua` fails on a numeric literal in a color position
-  (r, g or b) of `SetTextColor`, `SetColorTexture`, `SetVertexColor`, `SetBackdropColor`,
-  `SetBackdropBorderColor`, `AddLine` and `AddDoubleLine`, and on any `|cff` escape in code, in every
-  tracked file under `core/`, `modules/` and `settings/`, outside `core/SkinSetup.lua` and the
-  allow-list below (anti-pattern #107). An allow-list entry that matches nothing also fails.
+- **The value gate.** The kit's `tests/_kit/test_skin_values.lua` (kit revision 50) fails on a typed
+  color or client texture in every tracked file under `core/`, `modules/` and `settings/` that no kit
+  category takes and no host row names (anti-pattern #107). `core/SkinSetup.lua` is out of scope, and
+  a row that matches nothing fails. `tests/skin_facts.lua` holds this addon's facts: no rows today,
+  and `NS.SkinBar` as its one paint call of its own.
+- **The switch test.** The kit's `tests/_kit/test_skin_switch.lua` flips each surface
+  `tests/skin_facts.lua` declares between Ka0s Default and a probe skin that gives every token its
+  own value, and fails a surface that draws the same. Coverage is that list.
 
 ### Intentional exceptions
 
-The gate's allow-list, each with its reason:
+The gate has no host rows: the kit's own categories take every typed value this addon keeps.
 
-| File | What | Why it is not chrome |
+| File | What | Kit category |
 |---|---|---|
-| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels | An item quality's client color, passed through |
-| `core/Namespace.lua` | `NS.PREFIX`, the cyan `[BL]` | Chat output; the chat frame is not a skinned surface |
-| `settings/Slash.lua` | `\|cFFFFFF00` in the disabled-line fallback | Chat output; the fallback is the library's string, pinned byte for byte |
+| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels | Hyperlink or quality color |
+| `core/Namespace.lua` | `NS.PREFIX`, the cyan `[BL]` | Chat line (L13) |
+| `settings/Slash.lua` | `\|cFFFFFF00` in the disabled-line fallback | Chat line (L13) |
+| `core/CoreSetup.lua` | The fallback resize grip's art | A6 Blizzard art |
+| `core/Util.lua`, `modules/LedgerTable.lua` | The class sheet, and the arrows and plus and minus art the marks fall back to | L10 art |
 
 Outside the gate's reach, also on purpose:
 
@@ -607,9 +612,8 @@ Outside the gate's reach, also on purpose:
   close button's fallback × takes the skin's face like any other string (the skinning rollout's BL-02).
 - **Blizzard's own frames stay stock** (skinning-§7): `GameTooltip`'s frame (only the lines are the
   addon's), the reset and purge `StaticPopup`s, the Settings window's chrome and footer Defaults
-  button, the minimap button (LibDBIcon) and the resize grip's art (BankLedger does not pass
-  `Core.MakeResizable` an `opts.owner`, an optional adoption since LibKa0s v1.81.0 it has not taken
-  up). The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
+  button and the minimap button (LibDBIcon). Both resize grips name the owner, so their art is the skin's;
+  the Blizzard grip art in `core/CoreSetup.lua` is the fallback's. The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
   it drew).
 
 ## Known Limitations

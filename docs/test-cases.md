@@ -1615,7 +1615,7 @@ Total.
 - skin windows: the close control has no owner token of its own
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 
-### test_skin_chrome.lua (12)
+### test_skin_chrome.lua (13)
 
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
@@ -1624,17 +1624,12 @@ Total.
 - skin chrome: both windows' grips name this addon as the skin owner
 - skin chrome: sort arrows and group chevrons take icon.arrow, not the header's color
 - skin chrome: every title bar takes title.height and anchors its title on title.align
+- skin chrome: the typed title height is title.height in every registered skin
 - skin chrome degraded: a Tab draws the label pair and a 2px underline, and selection moves them
 - skin chrome degraded: MarkText tints with the host copy's token
 - skin chrome degraded: HudFont draws, with a client face, the size floor and real flags
 - skin chrome degraded: HudFont writes both shadow arms, so a cleared shadow clears
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
-
-### test_skin_literals.lua (3)
-
-- no color literal outside core/SkinSetup.lua and the named allow-list
-- every allow-list entry carries its reason
-- the gate is falsifiable: a planted literal of each shape is reported
 
 ### test_skin_picker.lua (17)
 
@@ -1762,13 +1757,96 @@ Total.
 - lizard sighted: parity names every file whose counts differ, and only those
 - lizard sighted: lizard lists every function of a hazard fixture once it is sanitized
 
-### test_skin_values.lua (1)
+### test_skin_values.lua (3)
 
-- skin values: skinning-§1 (skipped: Kit.skinValues is not set in the runner, so this repo's typed colors and textures are not gated yet. Every addon that adopted skins owes skinning-§1; wire Kit.skinValues to adopt it)
+- skin values: every host row carries its file, substring, why and cause id
+- skin values: no typed value outside the kit's categories and the host's rows
+- skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (1)
+### test_skin_switch.lua (82)
 
-- skin switch: skinning-§1 (skipped: Kit.skinSwitch is not set in the runner, so this repo's painted surfaces are not declared yet. Every addon that adopted skins owes skinning-§1; wire Kit.skinSwitch to adopt it)
+- skin switch: the check is falsifiable, a surface that redraws a literal is reported
+- skin switch: the window's shell changes
+- skin switch: the window's shell changes with the Scope ignored
+- skin switch: the ledger's title band changes
+- skin switch: the ledger's title band changes with the Scope ignored
+- skin switch: the session window's title band changes
+- skin switch: the session window's title band changes with the Scope ignored
+- skin switch: the export modal's title band changes
+- skin switch: the export modal's title band changes with the Scope ignored
+- skin switch: the ledger's title changes
+- skin switch: the ledger's title changes with the Scope ignored
+- skin switch: the ledger's divider changes
+- skin switch: the ledger's divider changes with the Scope ignored
+- skin switch: the ledger's close control changes
+- skin switch: the ledger's close control changes with the Scope ignored
+- skin switch: the ledger's test badge changes
+- skin switch: the ledger's test badge changes with the Scope ignored
+- skin switch: a ledger tab changes
+- skin switch: a ledger tab changes with the Scope ignored
+- skin switch: the rule under the tabs changes
+- skin switch: the rule under the tabs changes with the Scope ignored
+- skin switch: the footer band changes
+- skin switch: the footer band changes with the Scope ignored
+- skin switch: the footer's text changes
+- skin switch: the footer's text changes with the Scope ignored
+- skin switch: a filter bar button changes
+- skin switch: a filter bar button changes with the Scope ignored
+- skin switch: the test strip changes
+- skin switch: the test strip changes with the Scope ignored
+- skin switch: the History header band changes
+- skin switch: the History header band changes with the Scope ignored
+- skin switch: a History header label changes
+- skin switch: a History header label changes with the Scope ignored
+- skin switch: the History empty text changes
+- skin switch: the History empty text changes with the Scope ignored
+- skin switch: a History row's cell changes
+- skin switch: a History row's cell changes with the Scope ignored
+- skin switch: a History row's stripe changes
+- skin switch: a History row's stripe changes with the Scope ignored
+- skin switch: a History group header changes
+- skin switch: a History group header changes with the Scope ignored
+- skin switch: the session window's title changes
+- skin switch: the session window's title changes with the Scope ignored
+- skin switch: the session window's divider changes
+- skin switch: the session window's divider changes with the Scope ignored
+- skin switch: the session window's header label changes
+- skin switch: the session window's header label changes with the Scope ignored
+- skin switch: the session window's close control changes
+- skin switch: the session window's close control changes with the Scope ignored
+- skin switch: the session window's header band changes
+- skin switch: the session window's header band changes with the Scope ignored
+- skin switch: the session window's empty text changes
+- skin switch: the session window's empty text changes with the Scope ignored
+- skin switch: the export modal's title changes
+- skin switch: the export modal's title changes with the Scope ignored
+- skin switch: the export modal's close control changes
+- skin switch: the export modal's close control changes with the Scope ignored
+- skin switch: the export modal's dataset picker changes
+- skin switch: the export modal's dataset picker changes with the Scope ignored
+- skin switch: the export modal's button changes
+- skin switch: the export modal's button changes with the Scope ignored
+- skin switch: the row menu changes
+- skin switch: the row menu changes with the Scope ignored
+- skin switch: a KPI card changes
+- skin switch: a KPI card changes with the Scope ignored
+- skin switch: a list panel changes
+- skin switch: a list panel changes with the Scope ignored
+- skin switch: a section divider's title changes
+- skin switch: a section divider's title changes with the Scope ignored
+- skin switch: a bar's face changes
+- skin switch: a bar's track changes
+- skin switch: a bar's track changes with the Scope ignored
+- skin switch: a split bar's side changes
+- skin switch: a split bar's side changes with the Scope ignored
+- skin switch: a legend swatch changes
+- skin switch: a legend swatch changes with the Scope ignored
+- skin switch: a list row's face changes
+- skin switch: a strip bar's fill changes
+- skin switch: a strip bar's fill changes with the Scope ignored
+- skin switch: a tooltip's lines changes
+- skin switch: a tooltip's lines changes with the Scope ignored
+- skin switch: the settings page's empty line changes
 
 ## Totals
 
@@ -1831,8 +1909,7 @@ Total.
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 11 |
-| test_skin_chrome.lua | 12 |
-| test_skin_literals.lua | 3 |
+| test_skin_chrome.lua | 13 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 12 |
@@ -1843,5 +1920,7 @@ Total.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
-| Skipped | 3 |
-| **Total** | **1546** |
+| test_skin_values.lua | 3 |
+| test_skin_switch.lua | 82 |
+| Skipped | 1 |
+| **Total** | **1629** |

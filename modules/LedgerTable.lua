@@ -1014,6 +1014,7 @@ function LT:ShowRowMenu(anchor, entry)
   m:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, 0)
   m:Show()
   m:RegisterEvent("GLOBAL_MOUSE_DOWN")
+  return m
 end
 
 -- ── A skin switch ───────────────────────────────────────────────────────────────

@@ -166,6 +166,31 @@ test("skin chrome: every title bar takes title.height and anchors its title on t
   ns.SessionWindow:Hide()
 end)
 
+test("skin chrome: the typed title height is title.height in every registered skin", function()
+  -- Browser's SKIN.titleBarH is what the tab strip, the panes and the session pane measure from, and
+  -- S.TitleBar's `place` gives the bars title.height. A skin that moved the token would stand the
+  -- bar over the content, or leave a gap under it, with nothing else going red.
+  local ns, m, Skin = fresh()
+  local typed = ns.Browser.SKIN.titleBarH
+  ns.Browser:Show()
+  ns.SessionWindow:Show()
+  local export = ns.Export:Open({})
+  local bars = { ledger = ns.Browser:GetWindow().titleBar, session = ns.SessionWindow:GetWindow().titleBar,
+                 export = export.titleBar }
+  assertEqual(ns.SessionWindow:GetWindow()._paneTop, typed + 8, "the session pane's top")
+  local skins = Skin:Skins()
+  assertTrue(#skins > 1, "no skins to read")
+  for _, def in ipairs(skins) do
+    assertEqual(Skin:ResolveSkin(def.key)["title.height"], typed, def.key .. "'s title.height")
+    switch(m, Skin, def.key)
+    for name, bar in pairs(bars) do
+      assertEqual(bar:GetHeight(), typed, name .. "'s bar under " .. def.key)
+    end
+  end
+  switch(m, Skin, "ka0s")
+  ns.SessionWindow:Hide()
+end)
+
 -- ── degraded: today's look, with no skin to read ─────────────────────────────────────────────
 
 local function degraded()

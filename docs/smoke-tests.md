@@ -1517,7 +1517,9 @@ Owed by the full skinning run (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINN
 FS-BL-FIX on LibKa0s v1.85.0), awaiting the owner: new checks SKIN-35 to SKIN-37 and DEGRADED-16, and
 SKIN-1, LEDG-36 and DIAG-7, whose expected results changed, so their pass marks came off. The re-vendor
 also moves the look of the sim panel and both strips, with no check of its own: the Steps title band
-is 30 high, an owned tooltip title takes `gtip.title`, and an owned strip's icon wears `icon.tint`.
+is 30 high, an owned tooltip title takes `gtip.title`, and an owned strip's icon wears `icon.tint`. Item FS-BL-GATE's re-cut of the tag moves no expected
+result here: this addon draws no bar, icon border, glow or cover value of its own, so no pass mark came
+off and no check was added.
 
 Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19
