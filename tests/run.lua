@@ -44,6 +44,10 @@ local SUITES = {
   -- Kit revision 35's sighted-lizard gate (automated-tests-§3): pins the sanitizer the complexity
   -- suite measures through, and runs lizard on a hazard fixture when it is on PATH.
   { name = "test_lizard_sighted", dir = "tests/_kit/" },
+  -- Kit revision 50's skin gates (skinning-§1): the typed-value gate and the probe-skin switch test,
+  -- run against Kit.skinValues and Kit.skinSwitch below.
+  { name = "test_skin_values", dir = "tests/_kit/" },
+  { name = "test_skin_switch", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML

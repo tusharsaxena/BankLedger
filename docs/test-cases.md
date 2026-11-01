@@ -1762,6 +1762,14 @@ Total.
 - lizard sighted: parity names every file whose counts differ, and only those
 - lizard sighted: lizard lists every function of a hazard fixture once it is sanitized
 
+### test_skin_values.lua (1)
+
+- skin values: skinning-§1 (skipped: Kit.skinValues is not set in the runner, so this repo's typed colors and textures are not gated yet. Every addon that adopted skins owes skinning-§1; wire Kit.skinValues to adopt it)
+
+### test_skin_switch.lua (1)
+
+- skin switch: skinning-§1 (skipped: Kit.skinSwitch is not set in the runner, so this repo's painted surfaces are not declared yet. Every addon that adopted skins owes skinning-§1; wire Kit.skinSwitch to adopt it)
+
 ## Totals
 
 | Suite | Cases |
@@ -1835,5 +1843,5 @@ Total.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
-| Skipped | 1 |
+| Skipped | 3 |
 | **Total** | **1546** |

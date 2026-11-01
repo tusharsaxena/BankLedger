@@ -532,9 +532,10 @@ if not Skin then
     "TitleBar", "Divider", "Footer", "Card", "Slider", "NavItem", "Drawer", "ListRow", "MenuFrame",
     "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
     "BarTexture", "FontFlags", "HudFontSize", "Mark",
-    -- LibKa0s v1.85.0: nil is each getter's degraded answer, and BarGloss draws nothing. This addon
-    -- has no HUD, so none of the five has a caller; they answer so a future one degrades quietly.
-    "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss",
+    -- LibKa0s v1.85.0: nil is each getter's degraded answer, and BarGloss and HoverArt draw nothing.
+    -- This addon has no HUD, so none of the six has a caller; they answer so a future one degrades
+    -- quietly.
+    "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss", "HoverArt",
   }) do S[name] = noop end
 
   S.Token = function(name)
@@ -684,6 +685,9 @@ if not Skin then
     fs:SetShadowColor(0, 0, 0, on and 1 or 0)
     fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
   end
+  -- The re-cut v1.85.0 (SkinPaintExtras minor 15): with no skin the stored border stands, so the
+  -- stub answers its first three arguments. No caller here; it must not lose a future one's border.
+  S.BarBorder = function(style, show, size) return style, show, size end
   -- The ledger window's tabs (modules/Browser.lua): the look they drew before the skin engine, a
   -- label in gold or gray and, selected, a 2px gold underline. No backing, and no rule.
   local function paintTab(tab, selected)
