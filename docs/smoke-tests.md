@@ -1357,6 +1357,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   the first switch.
   Result: not run
 
+- **SKIN-39. The sort arrow's own color (SF-FIX, not run).** Under a skin whose sort arrow differs from its header text (Obsidian), the History table's sort arrows wear that arrow color, and the group expanders keep the icon arrow color.
+
 ## DEGRADED
 
 With `libs/LibKa0s` renamed aside (Before you start). Nothing about the addon's own function depends

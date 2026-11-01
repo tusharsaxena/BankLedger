@@ -243,8 +243,10 @@ test("marks: every inline header mark is TINTED to the gold of the word it sits 
   local src = readSource("modules/LedgerTable.lua")
   assertTrue(src:find('resolve(RGB.header, "list.header.text")', 1, true) ~= nil,
     "the one place the header gold is resolved is gone")
-  assertTrue(src:find('NS.Skin.MarkText(path or blizzard, 0, "icon.arrow")', 1, true) ~= nil,
+  assertTrue(src:find('NS.Skin.MarkText(path or blizzard, 0, token or "icon.arrow")', 1, true) ~= nil,
     "the marks stopped taking the skin's icon.arrow")
+  assertTrue(src:find('markup("sort-up", "Interface\\\\Buttons\\\\Arrow-Up-Up", " ", "list.header.arrow")', 1, true) ~= nil,
+    "the sort arrow stopped taking list.header.arrow")
   assertTrue(src:find("fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true) ~= nil,
     "the column header stopped taking its color from HEADER_RGB, so the arrow can drift off it")
   assertTrue(src:find("header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true)

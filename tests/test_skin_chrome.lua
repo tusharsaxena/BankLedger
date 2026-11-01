@@ -120,11 +120,12 @@ test("skin chrome: both windows' grips name this addon as the skin owner", funct
   ns.SessionWindow:Hide()
 end)
 
-test("skin chrome: sort arrows and group chevrons take icon.arrow, not the header's color", function()
+test("skin chrome: sort arrows take list.header.arrow (SF-L2), not icon.arrow", function()
   local ns, m, Skin = fresh()
   local tokens = {}
   for k, v in pairs(Skin:ResolveSkin("obsidian")) do tokens[k] = v end
-  tokens["icon.arrow"] = { 0, 1, 0, 1 }
+  tokens["list.header.arrow"] = { 0, 1, 0, 1 }
+  tokens["icon.arrow"] = { 1, 0, 0, 1 }
   Skin:RegisterSkin({ key = "bl-arrow", label = "Arrow (test)", tokens = tokens })
   switch(m, Skin, "bl-arrow")
   local fs = { text = "" }
@@ -134,7 +135,7 @@ test("skin chrome: sort arrows and group chevrons take icon.arrow, not the heade
   LT.headerFrame, LT.sortKey, LT.sortAsc, LT.groupBy = { buttons = { date = { fs = fs } } }, "date", true, "none"
   LT:UpdateHeaderArrows()
   LT.headerFrame = saved
-  assertTrue(fs.text:find(":0:255:0|t", 1, true) ~= nil, "the sort arrow is not in icon.arrow: " .. fs.text)
+  assertTrue(fs.text:find(":0:255:0|t", 1, true) ~= nil, "the sort arrow is not in list.header.arrow: " .. fs.text)
 end)
 
 -- ── the title bars (L9) ──────────────────────────────────────────────────────────────────────

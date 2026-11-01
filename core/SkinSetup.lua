@@ -168,6 +168,7 @@ NS.SKIN_FALLBACK = {
   -- no known quality.
   ["list.header.text"] = { 1, 0.82, 0, 1 },
   ["icon.arrow"]    = { 1, 0.82, 0, 1 },
+  ["list.header.arrow"] = { 1, 0.82, 0, 1 },
   ["list.stripe"]   = { 1, 1, 1, 0.03 },
   ["list.hover"]    = { 1, 0.82, 0, 0.10 },
   ["text.body"]     = { 0.9, 0.9, 0.9, 1 },

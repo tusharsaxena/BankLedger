@@ -164,14 +164,14 @@ LT.groupAsc = true
 -- ":0" sizes the texture to the surrounding line height. The library's paths are EXTENSIONLESS by
 -- contract and that is exactly what |T…|t wants; a path carrying ".tga" here draws nothing and
 -- raises nothing, which in a column header reads as "this column does not sort".
-local function markup(name, blizzard, lead)
+local function markup(name, blizzard, lead, token)
   local path = NS.Icon and NS.Icon(name)
-  return (lead or "") .. NS.Skin.MarkText(path or blizzard, 0, "icon.arrow")
+  return (lead or "") .. NS.Skin.MarkText(path or blizzard, 0, token or "icon.arrow")
 end
 
 -- The gold every column header and every group header is drawn in: HEADER_RGB feeds the FontString
--- calls below, and the four marks beside those words take the skin's `icon.arrow`, the same gold
--- under Ka0s Default, through S.MarkText. A skin may split the two.
+-- calls below, and the two sort marks take the skin's `list.header.arrow` (SF-L2) and the two
+-- expanders its `icon.arrow`, the same gold under Ka0s Default, through S.MarkText. A skin may split the two.
 --
 -- ALL FOUR ARE TINTED, because all four sit inside gold text — the two sort arrows in the column
 -- header's label, the two expanders in the group header's. The art ships near-white by contract,
@@ -205,8 +205,8 @@ function LT.ReskinColors()
     t[1], t[2], t[3] = r or RGB.white[1], g or RGB.white[2], b or RGB.white[3]
     RGB.quality[q] = t
   end
-  ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",       " ")
-  ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",     " ")
+  ARROW_ASC   = markup("sort-up", "Interface\\Buttons\\Arrow-Up-Up", " ", "list.header.arrow")
+  ARROW_DESC  = markup("sort-down", "Interface\\Buttons\\Arrow-Down-Up", " ", "list.header.arrow")
   GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up")
   GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up")
   COUNT_ESC   = NS.SkinEscape("text.disabled") or ""
