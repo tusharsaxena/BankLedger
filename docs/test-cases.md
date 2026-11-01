@@ -1615,7 +1615,7 @@ Total.
 - skin windows: the close control has no owner token of its own
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 
-### test_skin_chrome.lua (9)
+### test_skin_chrome.lua (12)
 
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
@@ -1626,6 +1626,9 @@ Total.
 - skin chrome: every title bar takes title.height and anchors its title on title.align
 - skin chrome degraded: a Tab draws the label pair and a 2px underline, and selection moves them
 - skin chrome degraded: MarkText tints with the host copy's token
+- skin chrome degraded: HudFont draws, with a client face, the size floor and real flags
+- skin chrome degraded: HudFont writes both shadow arms, so a cleared shadow clears
+- skin chrome degraded: HudFont with no face anywhere leaves the string alone
 
 ### test_skin_literals.lua (3)
 
@@ -1820,7 +1823,7 @@ Total.
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 11 |
-| test_skin_chrome.lua | 9 |
+| test_skin_chrome.lua | 12 |
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -1833,4 +1836,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1543** |
+| **Total** | **1546** |

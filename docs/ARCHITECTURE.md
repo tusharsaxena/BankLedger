@@ -537,12 +537,12 @@ for member.
   `Skin:SetChoice`, which resolves the skin, repaints every frame recorded for this owner and then
   fires `NS.Skin.OnLooksChanged`. What no primitive records subscribes there: the History table's
   cached cell, header and direction colors, its four tinted marks and the row tints' RGB, then a
-  rebind of both pooled tables (`LT:Reskin`, which calls `SW:Reskin`); the ledger window's tab labels
-  (`ReskinTabs`) and the filter bar's colored Direction and Quality option lists; Insights' palette and
-  colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
+  rebind of both pooled tables (`LT:Reskin`, which calls `SW:Reskin`); the filter bar's colored
+  Direction and Quality option lists; Insights' palette and colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
   `settings.alpha` stays whole-window opacity.
 - **What paints what.** The three host windows (ledger, session, export modal) wear the skin's `Shell`
   with `noTopBar` and a `TitleBar` on their own bar, a `Divider`, `Button` on the flat buttons,
+  `Tab` on the ledger window's tabs with `tab.rule` under the strip, `Footer` on its footer band,
   `ScrollBar` on every scroll bar, `SortHeaderBar` on both tables' headers, `MenuFrame` (alt edge) on the
   row menu, and `Card` / `Panel` / `Divider` (`section.rule`) / `NS.SkinBar` in Insights. The row
   tints take `list.stripe` / `list.hover` RGB with the player's two slider alphas, so the sliders

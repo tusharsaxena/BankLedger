@@ -670,9 +670,16 @@ if not Skin then
     return ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(path, size, size, byte(r), byte(g), byte(b))
   end
   -- The re-cut v1.85.0 (SkinPaintExtras minor 14): the one member that must draw, or a caller's
-  -- string has no face. Both shadow arms are written, so a cleared shadow clears.
+  -- string has no face. The stub of the library's Options document, *Moving to this version*, step
+  -- 7: no skin to read, so the face falls straight to the client's and flags go through FontFlags,
+  -- which never hands SetFont the "@skin" sentinel. Both shadow arms are written, so a cleared
+  -- shadow clears.
   S.HudFont = function(fs, opts)
-    fs:SetFont(opts.face, opts.size, opts.flags)
+    opts = type(opts) == "table" and opts or {}
+    local face = opts.face
+    if type(face) ~= "string" or face == "" then face = STANDARD_TEXT_FONT end
+    if type(face) ~= "string" then return nil end
+    fs:SetFont(face, S.HudFontSize(opts.size), S.FontFlags(opts.flags))
     local on = opts.shadow and true or false
     fs:SetShadowColor(0, 0, 0, on and 1 or 0)
     fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)

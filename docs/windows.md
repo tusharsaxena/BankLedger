@@ -10,9 +10,10 @@ through `NS.Skin.Divider`; the export modal does the same. Each hands `TitleBar`
 so the bar takes `title.height` and the title an anchor on `title.align`. Under Ka0s Default that is
 the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it, the
 gold title and the gray divider) plus the skin's faint `title.bg` band on the title bars and
-`list.header.bg` on the table headers (DECISIONS BankLedger D6). Every frame is recorded for this
-addon's owner, so a skin switch repaints it live; the pooled rows, the tab labels and the tinted marks
-are redone by `NS.Skin.OnLooksChanged` listeners. Without the library the degraded facade's `Shell`
+`list.header.bg` on the table headers (DECISIONS BankLedger D6). The ledger window also takes the
+skin's `Tab` on its tabs and its `foot.bg` band behind the footer. Every frame is recorded for this
+addon's owner, so a skin switch repaints it live; the pooled rows and the tinted marks are redone by
+`NS.Skin.OnLooksChanged` listeners. Without the library the degraded facade's `Shell`
 routes to `core/CoreSetup.lua`'s pre-library `NS.ApplySkin`, which draws the same Ka0s Default edge.
 `B.SKIN` keeps only the layout heights; no color lives there.
 

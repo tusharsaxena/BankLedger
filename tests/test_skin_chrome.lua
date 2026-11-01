@@ -85,6 +85,17 @@ test("skin chrome: the ledger footer is the skin's band, under both strings, and
   assertTrue(rec ~= nil and rec.calls.Footer ~= nil, "the band is not the skin's Footer")
   assertEqual(ns.Browser._footer:GetParent(), bar, "a string on the window would sit under the band")
   assertEqual(ns.Browser._dbFooter:GetParent(), bar, "a string on the window would sit under the band")
+  -- The geometry: taller and the band covers the panes' last rows, since they stop at _footerH.
+  local win = ns.Browser:GetWindow()
+  assertEqual(bar:GetHeight(), win._footerH - 1, "the band ends where the panes do")
+  assertEqual(#rawget(bar, "__points"), 2, "the band's two bottom anchors")
+  local left, right = { bar:GetPoint(1) }, { bar:GetPoint(2) }
+  assertEqual(table.concat({ left[1], left[3], left[4], left[5] }, " "), "BOTTOMLEFT BOTTOMLEFT 1 1",
+    "inside the window's 1px edge")
+  assertEqual(left[2], win)
+  assertEqual(table.concat({ right[1], right[3], right[4], right[5] }, " "), "BOTTOMRIGHT BOTTOMRIGHT -1 1",
+    "inside the window's 1px edge")
+  assertEqual(right[2], win)
   local function fill()
     local p = m.__paint(bar)
     return rgb(p.backdropColor or m.__paint(rec.regions.bg or rec.regions.fill).color)
@@ -183,4 +194,46 @@ test("skin chrome degraded: MarkText tints with the host copy's token", function
   local ns = degraded()
   assertEqual(ns.Skin.MarkText("a\\b", 0, "icon.arrow"), "|Ta\\b:0:0:0:0:64:64:0:64:0:64:255:209:0|t")
   assertEqual(ns.Skin.MarkText("a\\b", 14, "no.such.token"), "|Ta\\b:14:14|t", "no color, the art's own")
+end)
+
+test("skin chrome degraded: HudFont draws, with a client face, the size floor and real flags", function()
+  local ns, m = degraded()
+  local S = ns.Skin
+  local fs = m.UIParent:CreateFontString(nil, "OVERLAY")
+  local function font() return table.concat(m.__paint(fs).font, "|") end
+  S.HudFont(fs, { face = "a.ttf", size = 20, flags = "THICKOUTLINE" })
+  assertEqual(font(), "a.ttf|20|THICKOUTLINE", "what the caller resolved, as it is")
+  S.HudFont(fs, {})
+  assertEqual(font(), m.STANDARD_TEXT_FONT .. "|12|OUTLINE", "no face, size or flags")
+  S.HudFont(fs, { face = "a.ttf" })
+  S.HudFont(fs)
+  assertEqual(font(), m.STANDARD_TEXT_FONT .. "|12|OUTLINE", "no opts at all")
+  S.HudFont(fs, { face = "a.ttf" })
+  S.HudFont(fs, { face = "", size = 0, flags = S.FROM_SKIN })
+  assertEqual(font(), m.STANDARD_TEXT_FONT .. "|12|OUTLINE", "the sentinel never reaches SetFont")
+end)
+
+test("skin chrome degraded: HudFont writes both shadow arms, so a cleared shadow clears", function()
+  local ns, m = degraded()
+  local S = ns.Skin
+  local fs = m.UIParent:CreateFontString(nil, "OVERLAY")
+  S.HudFont(fs, { shadow = true })
+  local on = m.__paint(fs)
+  assertEqual(on.shadowColor[4], 1, "on: an opaque shadow")
+  assertEqual(on.shadowOffset[1] .. "," .. on.shadowOffset[2], "1,-1", "on: the offset")
+  S.HudFont(fs, { shadow = false })
+  local off = m.__paint(fs)
+  assertEqual(off.shadowColor[4], 0, "off clears the color")
+  assertEqual(off.shadowOffset[1] .. "," .. off.shadowOffset[2], "0,0", "off clears the offset")
+end)
+
+test("skin chrome degraded: HudFont with no face anywhere leaves the string alone", function()
+  local ns, m = degraded()
+  local fs = m.UIParent:CreateFontString(nil, "OVERLAY")
+  m.STANDARD_TEXT_FONT = nil
+  local answer = ns.Skin.HudFont(fs, { shadow = true })
+  assertEqual(answer, nil)
+  local p = m.__paint(fs)
+  assertEqual(p.font, nil, "no SetFont")
+  assertEqual(p.shadowOffset, nil, "no shadow either")
 end)
