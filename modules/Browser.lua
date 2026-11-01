@@ -731,8 +731,11 @@ end
 
 local function buildModeStrip(filterHost, kind, text)
   if not (W and W.TestStrip) then return nil end
+  -- sim / onEnd (LibKa0s Widgets minor 21, SF-F1): the strip's right-click menu ends the mode.
+  local isSim = kind == "sim"
   local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info"),
-    owner = addonName })
+    owner = addonName, sim = isSim and NS.Sim or nil,
+    onEnd = (not isSim) and function() NS.LedgerTable:SetTestMode(false) end or nil })
   strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
   strip:EnableMouse(true)

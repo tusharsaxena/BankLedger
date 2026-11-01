@@ -481,7 +481,8 @@ local STRIP_GAP = 2
 local function buildStrip(f, titleBar)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
   if not (W and W.TestStrip) then return end
-  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName })
+  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName,
+    sim = NS.Sim })   -- SF-F1: the strip's right-click menu ends, steps and restarts the sim
   strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
   strip:EnableMouse(true)
