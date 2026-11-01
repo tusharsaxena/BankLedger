@@ -276,6 +276,9 @@ if not lib then
     -- no library, no picker, so it answers nil, "absent", and NS.RunSkinVerb prints the
     -- library-absent line.
     SkinVerb = function() return nil, "absent" end,
+    -- A label's font (LibKa0s v1.85.0, OptionsWidgets minor 43), owed by every Options stub. No
+    -- library, no widget to set it on.
+    LabelFont = function() end,
     RefreshAllPanels = function() end,
     RefreshScalars = function() end,
     RefreshPanel = function() end,

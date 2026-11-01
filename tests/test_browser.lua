@@ -532,8 +532,8 @@ test("Browser: MakeDropdown still hands back a working dropdown with no LibKa0s 
   end)
   NS.Icon = realIcon
   assertEqual(capturedOpts.chevron, nil, "no chevron path is handed over when this addon has no art")
-  assertEqual(dd.arrow.__texture, "Interface\\Buttons\\Arrow-Down-Up",
-    "the library falls back to Blizzard's own arrow — dd.arrow is a documented, host-readable field")
+  assertTrue(dd.arrow.__texture:find("chevron-down", 1, true) ~= nil,
+    "an owned dropdown with no host art draws the Ka0s chevron (Widgets minor 18), never the client rung")
 end)
 
 -- ── The item-name search box: LibKa0s-Widgets-1.0's SearchBox (LibKa0s#52) ──────────────────

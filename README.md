@@ -179,5 +179,6 @@ lives.
 The icons come from [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, under the MIT
 license: the window close buttons, the search magnifier, the dropdown chevron and its tick, the sort
 arrows and group expanders, the export mark, the debug console's close, copy and clear buttons, the
-test-mode strip's info mark, and the skin picker's preview eye and settings gear. Only the icons the
-addon draws are shipped, with their license text beside them.
+test-mode strip's info mark, the scroll bars' arrows, the skin picker's preview eye, settings gear and
+reset mark, and the move and sound marks of the library's shared controls. Only the icons the addon
+draws are shipped, with their license text beside them.

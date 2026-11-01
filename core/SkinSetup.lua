@@ -530,7 +530,10 @@ if not Skin then
     "GetAccentColor", "GetPanelColor", "GetFont",
     "TitleBar", "Divider", "Footer", "Card", "Slider", "NavItem", "Drawer", "ListRow", "MenuFrame",
     "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
-    "BarTexture", "FontFlags", "HudFontSize",
+    "BarTexture", "FontFlags", "HudFontSize", "Mark",
+    -- LibKa0s v1.85.0: nil is each getter's degraded answer, and BarGloss draws nothing. This addon
+    -- has no HUD, so none of the five has a caller; they answer so a future one degrades quietly.
+    "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss",
   }) do S[name] = noop end
 
   S.Token = function(name)
@@ -654,6 +657,20 @@ if not Skin then
   S.HudFontSize = function(size)
     local n = tonumber(size)
     return (n and n > 0) and n or 12
+  end
+  -- LibKa0s v1.85.0 (SkinPaintExtras minor 9): a string a caller concatenates, so never nil. The
+  -- same markup in the art's own color, there being no tint to read.
+  S.MarkText = function(path, size)
+    size = size or 14
+    return ("|T%s:%d:%d|t"):format(path, size, size)
+  end
+  -- The re-cut v1.85.0 (SkinPaintExtras minor 14): the one member that must draw, or a caller's
+  -- string has no face. Both shadow arms are written, so a cleared shadow clears.
+  S.HudFont = function(fs, opts)
+    fs:SetFont(opts.face, opts.size, opts.flags)
+    local on = opts.shadow and true or false
+    fs:SetShadowColor(0, 0, 0, on and 1 or 0)
+    fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
   end
   S.GetPanelColor = function() return color("win.bg") end
   S.GetFont = function() return STANDARD_TEXT_FONT end
