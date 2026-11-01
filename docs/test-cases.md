@@ -1615,6 +1615,18 @@ Total.
 - skin windows: the close control has no owner token of its own
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 
+### test_skin_chrome.lua (9)
+
+- skin chrome: the ledger tabs are the skin's Tab, with the active one selected
+- skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
+- skin chrome: the tab strip sits on the skin's tab.rule
+- skin chrome: the ledger footer is the skin's band, under both strings, and follows a switch
+- skin chrome: both windows' grips name this addon as the skin owner
+- skin chrome: sort arrows and group chevrons take icon.arrow, not the header's color
+- skin chrome: every title bar takes title.height and anchors its title on title.align
+- skin chrome degraded: a Tab draws the label pair and a 2px underline, and selection moves them
+- skin chrome degraded: MarkText tints with the host copy's token
+
 ### test_skin_literals.lua (3)
 
 - no color literal outside core/SkinSetup.lua and the named allow-list
@@ -1808,6 +1820,7 @@ Total.
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 11 |
+| test_skin_chrome.lua | 9 |
 | test_skin_literals.lua | 3 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -1820,4 +1833,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1534** |
+| **Total** | **1543** |

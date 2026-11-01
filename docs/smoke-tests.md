@@ -25,8 +25,8 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 34 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
-| DEGRADED-1 – 15 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
+| SKIN-1 – 37 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
+| DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -568,8 +568,8 @@ leaves its number unused.
   re-run after BL-A1: pass (owner-marked 2026-10-30)
 - **LEDG-36. The copy window's close is the library's.** Export to CSV and look at the copy window's
   title bar → the library's outlined close mark, 18×18 with a red hover (the host's is 24×24, with the
-  same red hover since BL-A1), reading as a close button and not clipped by the 26px bar. A font × there is a
-  library regression. Result: pass (owner-marked 2026-10-23)
+  same red hover since BL-A1), reading as a close button and not clipped by the 30px bar (26px before LibKa0s v1.85.0). A font × there is a
+  library regression. Result:
 - **LEDG-37. Dropdown art.** Count the filter bar's dropdowns → eight chevrons, not Blizzard's filled
   arrow: Group by on row 1, then Date, Direction, Store, Quality, Type, Sub-type, Character on row 2;
   the modal's Data set makes nine. Open a multi-select (Store, Type, Quality, Character), pick two →
@@ -861,8 +861,8 @@ leaves its number unused.
   and `/reload` → off again (the flag is session-only). Result: pass (owner-marked 2026-10-10)
 - **DIAG-7. Chrome.** The console and its Copy box wear the ledger window's edge (a flat 1px black
   border with a 1px light-gray line inside, a gold title, a gray divider), with a smaller close
-  control, 18×18 on a 26px title bar, drawn as the outlined × mark. That size is the library's, not
-  drift. Result: pass (owner-marked 2026-10-10)
+  control, 18×18 on a 30px title bar (26px before LibKa0s v1.85.0), drawn as the outlined × mark. That
+  size is the library's, not drift. Result:
 - **DIAG-8. Three title-bar marks.** Right to left: close, clear, copy, one size and pitch, gray at rest
   and brighter under the pointer, the art every Ka0s window uses. **Fail:** the words `Copy` and
   `Clear`, or a thin multiplication sign for close: `core/DebugLogSetup.lua` stopped passing
@@ -1096,7 +1096,11 @@ describes what you see, apart from the changes SKIN-1 lists.
   split and back-to-back bars and the day and hour strips) wear the **Ka0s Default** bar texture in
   the colors they had; the three title bars carry the skin's faint title band and both tables' header
   rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
-  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since LibKa0s v1.81.0
+  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since the full skinning run
+  (FS-BL-FIX, LibKa0s v1.85.0) the ledger tabs wear the skin's tab, with a dark backing, a full-width
+  gold underline on the active one and a faint rule under the strip (SKIN-35); the footer sits on a
+  dark band (SKIN-35); the Export modal's title bar is 30 high, not 26 (SKIN-36); and every scroll bar's
+  up and down buttons are the Ka0s chevrons. Since LibKa0s v1.81.0
   (BL-RV of the skin library follow-ups) the library's own strings read in Ka0s Default's face too: the
   dropdowns' menu rows, the search suggestions, the test and sim strips' lines, and the labels of the
   debug console, the copy windows and the sim panel (they drew Friz Quadrata before); and item quality
@@ -1105,7 +1109,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   rollout's X5 does not apply; BL-03 is recorded as an exception). **Fail:** any other changed color,
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
   wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype)
-  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default). Result: Owner reported pass, 2026-10-31
+  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default), and 2026-11-01 for the look changes above
+  (FS-BL-FIX). Result:
 - **SKIN-2. The Skin tab (BL-01).** General → the strip reads Master controls · Capture · Filters ·
   Interface · History · **Skin** · Keybindings. Open **Skin** → **Skin source**, the nine skins with
   their swatches under **Look** (the note that skins change every visual element leads it), **Font and
@@ -1324,6 +1329,27 @@ describes what you see, apart from the changes SKIN-1 lists.
   another addon that loads AceGUI-3.0-SharedMediaWidgets enabled → the same picker, not the stock
   LSM30 look. **Fail:** a stock-looking bar or pull-out, a row that does not line up, or a Lua error.
   Result:
+- **SKIN-35. The ledger tabs and footer are the skin's (FS-BL-FIX, cause A1).** Under **Ka0s Default**
+  `/bl show` → History and Insights each have a dark backing, the active one in gold with a gold
+  underline across the whole tab, the other in gray, and a faint rule under the strip. Click between
+  them → the backing, label and underline move at once. The footer's `Showing n of N` and `Database ~`
+  sit on a dark band that runs edge to edge and ends where the panes do, with the size text clear of
+  the grip and the grip still draggable. Switch through the other skins with the window open, no
+  reload → the tabs and the band repaint from each skin. **Fail:** a label or underline left in the
+  old skin's color, text hidden under the band, a band overlapping a table row, or a dead grip.
+  Result:
+- **SKIN-36. One title bar shape (FS-BL-FIX, cause L9).** Open the ledger window, the session window,
+  and the Export modal with its Data set dropdown → all three title bars are 30 high with a centered
+  title and an unclipped close control, and the modal's dropdown still clears its bar. The debug
+  console and the copy window match at 30 high. **Fail:** a 26px bar, a title off center, or a control
+  overlapping a bar.
+  Result:
+- **SKIN-37. Grips and sort marks follow the skin (FS-BL-FIX, cause L8).** Under **Ka0s Default** both
+  resize grips stay the client's art and the sort arrows and group chevrons stay gold. Switch to a
+  skin that tints the grip, such as **Obsidian** → the grips of the ledger and session windows take
+  the skin's color with no reload, and the arrows and chevrons take the skin's arrow color, with the
+  headers' words in theirs. Back to Ka0s Default → the client's art again. **Fail:** a stock grip under
+  a tinting skin, or a mark left in the old skin's color. Result:
 
 ## DEGRADED
 
@@ -1397,6 +1423,10 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   title badge, all in the game's own fonts, the close control gray at rest and red on hover (BL-A1);
   no skin picker opens. **Fail:** a Lua error naming
   `core/SkinSetup.lua` or `NS.Skin`, a window with no edge, or white text where gold was. Result: pass (owner-marked 2026-10-30)
+- **DEGRADED-16. The tabs without the skin engine (FS-BL-FIX).** With no library the ledger window
+  does not build its filter bar's controls, but its tabs do → the active tab's label is gold over a
+  2px gold underline, the other is gray, with no backing and no footer band, and clicking moves both.
+  **Fail:** two identical tabs, no underline, or a Lua error naming `S.Tab`. Result:
 
 ## Non-English client
 
@@ -1482,6 +1512,12 @@ Bank Ledger has no HUD, so the HUD size scale (ruling D-09) has no check here.
 Added by the findings remediation (Ka0sAddonsCommonTasks `docs/2026-10-31-FINDINGS_REMEDIATION/`, item
 BL-RV on LibKa0s v1.84.0), awaiting the owner: DIAG-32, and SKIN-34 for the owner's one media picker ruling of
 2026-11-01 (item M3-MEDIA).
+
+Owed by the full skinning run (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/`, items FS-BL-RV and
+FS-BL-FIX on LibKa0s v1.85.0), awaiting the owner: new checks SKIN-35 to SKIN-37 and DEGRADED-16, and
+SKIN-1, LEDG-36 and DIAG-7, whose expected results changed, so their pass marks came off. The re-vendor
+also moves the look of the sim panel and both strips, with no check of its own: the Steps title band
+is 30 high, an owned tooltip title takes `gtip.title`, and an owned strip's icon wears `icon.tint`.
 
 Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19

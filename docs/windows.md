@@ -6,7 +6,8 @@ close-button factory (`modules/Browser_Chrome.lua`), each with its own persisted
 **Both wear the player's skin** (skinning-§3; [ARCHITECTURE.md → Skins](ARCHITECTURE.md#skins)).
 `B:ApplySkin` hands the frame to the owner's `Shell` (`NS.Skin.Shell`, LibKa0s-Skin-1.0) with
 `noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`, its divider
-through `NS.Skin.Divider`; the export modal does the same on its 26px bar. Under Ka0s Default that is
+through `NS.Skin.Divider`; the export modal does the same. Each hands `TitleBar` its title and `place`,
+so the bar takes `title.height` and the title an anchor on `title.align`. Under Ka0s Default that is
 the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it, the
 gold title and the gray divider) plus the skin's faint `title.bg` band on the title bars and
 `list.header.bg` on the table headers (DECISIONS BankLedger D6). Every frame is recorded for this
@@ -29,7 +30,7 @@ collection's `close` icon; the library resolves it for its own windows once the 
 `addonName`, and `B:MakeCloseButton` resolves it through `NS.Icon` for these two. Neither deleted
 what it drew before: without LibKa0s the library falls back to a multiplication sign and this addon
 falls back to its own 24pt ×, and both windows still close. The sizes still differ on purpose — an
-18×18 control on a 26px library title bar, 24×24 on this addon's 30px one. `B:MakeCloseButton` hands
+18×18 control on a 30px library title bar, 24×24 on this addon's 30px one. `B:MakeCloseButton` hands
 its button to the skin's `CloseButton` the way the library's own control does, with no opts
 and no host hover scripts (BL-A1, the owner's ruling): in every skin, Ka0s Default included, the
 primitive draws `close.rest` at rest and `close.hot` under the pointer, so the colors match too. See
