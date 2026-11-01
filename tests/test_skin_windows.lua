@@ -300,3 +300,27 @@ test("skin windows: the close control's fallback glyph takes the skin's font, no
   assertTrue(rec ~= nil and rec.owner == OWNER and rec.calls and rec.calls.Font ~= nil,
     "the fallback glyph is not on the skin's font for this owner")
 end))
+
+test("skin windows: a section divider's title stays one size however many times the skin switches", clean(function()
+  -- red under: ReskinDivider scaling a size the switch had already scaled, so the title grew 1.5x
+  -- on every change (the owner's smoke, SF-BL-1).
+  local frame = mocks.CreateFrame("Frame")
+  local d = W.MakeSectionDivider(frame, "GOLD")
+  local _, first = d.fs:GetFont()
+  -- The client keeps the font object after SetFont and may not re-apply the same one, so the
+  -- string keeps its scaled size through a replay: model that.
+  local setObject = d.fs.SetFontObject
+  d.fs.SetFontObject = function(self, obj)
+    if obj ~= self:GetFontObject() then setObject(self, obj) end
+  end
+  local I = NS.Insights
+  local pane, dividers = I.pane, I.dividers
+  I.pane, I.dividers = { IsShown = function() return false end }, { d }
+  local ok, err = pcall(function()
+    for _ = 1, 3 do switch() end
+    local _, now = d.fs:GetFont()
+    assertEqual(now, first, "the title's size after three switches")
+  end)
+  I.pane, I.dividers = pane, dividers
+  if not ok then error(err, 0) end
+end))

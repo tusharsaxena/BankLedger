@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 37 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
+| SKIN-1 – 38 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1350,6 +1350,12 @@ describes what you see, apart from the changes SKIN-1 lists.
   the skin's color with no reload, and the arrows and chevrons take the skin's arrow color, with the
   headers' words in theirs. Back to Ka0s Default → the client's art again. **Fail:** a stock grip under
   a tinting skin, or a mark left in the old skin's color. Result:
+- **SKIN-38. The Insights headings keep their size (SF-BL-1).** Open Insights with the ledger in a skin,
+  then switch skins five times in a row, such as Ka0s Default, Obsidian, Slate, Obsidian, Ka0s Default
+  → the section headings ITEMS & FLOW, GOLD and TOP OF THE LIST stay the same size on every skin and
+  never grow, and the cards, bars and list rows keep theirs. **Fail:** any heading larger than after
+  the first switch.
+  Result: not run
 
 ## DEGRADED
 
