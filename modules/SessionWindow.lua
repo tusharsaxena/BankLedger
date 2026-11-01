@@ -558,9 +558,9 @@ local function ensureFrame()
   title:SetText(TITLE)
   frame.title = title
 
-  -- The title bar's fill and the divider through the skin, as the ledger window's (modules/
-  -- Browser.lua EnsureFrame says why the divider is a 1px frame and not a region of this window).
-  NS.Skin.TitleBar(titleBar)
+  -- The title bar and the divider through the skin, as the ledger window's (modules/Browser.lua
+  -- EnsureFrame says why the divider is a 1px frame and not a region of this window).
+  NS.Skin.TitleBar(titleBar, { text = title, place = true })
   local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
@@ -619,7 +619,7 @@ local function ensureFrame()
   -- as the ledger window's (modules/Browser.lua says why the save is in `onResizeStop`, once per
   -- release, and never in `onResize`). The rows re-bind live through the scroll's OnSizeChanged.
   NS.MakeResizable(frame, {
-    minWidth = minW, minHeight = MIN_H,
+    minWidth = minW, minHeight = MIN_H, owner = addonName,
     onResizeStop = function()
       SW:SaveGeometry()
       SW:Refresh()

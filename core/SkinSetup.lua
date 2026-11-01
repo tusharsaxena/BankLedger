@@ -167,6 +167,7 @@ NS.SKIN_FALLBACK = {
   -- edge is the muted-gold borderAlt) and its destructive entry, the client's white for an item of
   -- no known quality.
   ["list.header.text"] = { 1, 0.82, 0, 1 },
+  ["icon.arrow"]    = { 1, 0.82, 0, 1 },
   ["list.stripe"]   = { 1, 1, 1, 0.03 },
   ["list.hover"]    = { 1, 0.82, 0, 0.10 },
   ["text.body"]     = { 0.9, 0.9, 0.9, 1 },
@@ -659,10 +660,14 @@ if not Skin then
     return (n and n > 0) and n or 12
   end
   -- LibKa0s v1.85.0 (SkinPaintExtras minor 9): a string a caller concatenates, so never nil. The
-  -- same markup in the art's own color, there being no tint to read.
-  S.MarkText = function(path, size)
+  -- History table's marks read icon.arrow, so the tint is the host copy's; a token it does not hold
+  -- draws the art's own color.
+  S.MarkText = function(path, size, token)
     size = size or 14
-    return ("|T%s:%d:%d|t"):format(path, size, size)
+    local r, g, b = color(token or "icon.tint")
+    if not r then return ("|T%s:%d:%d|t"):format(path, size, size) end
+    local function byte(v) return math.floor(v * 255 + 0.5) end
+    return ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(path, size, size, byte(r), byte(g), byte(b))
   end
   -- The re-cut v1.85.0 (SkinPaintExtras minor 14): the one member that must draw, or a caller's
   -- string has no face. Both shadow arms are written, so a cleared shadow clears.
@@ -671,6 +676,27 @@ if not Skin then
     local on = opts.shadow and true or false
     fs:SetShadowColor(0, 0, 0, on and 1 or 0)
     fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
+  end
+  -- The ledger window's tabs (modules/Browser.lua): the look they drew before the skin engine, a
+  -- label in gold or gray and, selected, a 2px gold underline. No backing, and no rule.
+  local function paintTab(tab, selected)
+    S.Text(tab.__label, selected and "accent" or "muted")
+    tab.__line:SetShown(selected == true)
+  end
+  S.Tab = function(tab, opts)
+    if type(tab) ~= "table" or type(tab.CreateTexture) ~= "function" then return end
+    if type(opts) ~= "table" then return end
+    tab.__label = opts.text
+    local line = tab:CreateTexture(nil, "ARTWORK")
+    line:SetColorTexture(color("tab.onLine"))
+    line:SetHeight(2)
+    line:SetPoint("BOTTOMLEFT", 8, 0)
+    line:SetPoint("BOTTOMRIGHT", -8, 0)
+    tab.__line = line
+    paintTab(tab, opts.selected)
+  end
+  S.SetTabSelection = function(tab, selected)
+    if type(tab) == "table" and tab.__line then paintTab(tab, selected) end
   end
   S.GetPanelColor = function() return color("win.bg") end
   S.GetFont = function() return STANDARD_TEXT_FONT end

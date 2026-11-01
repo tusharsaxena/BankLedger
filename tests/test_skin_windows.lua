@@ -125,7 +125,8 @@ test("skin windows: a switch re-resolves the table's cached colors and its tinte
   LT:UpdateHeaderArrows()
   LT.headerFrame, LT.sortKey, LT.sortAsc, LT.groupBy = frame, sortKey, sortAsc, groupBy
   local function b(v) return math.floor(v * 255 + 0.5) end
-  local want = ("%d:%d:%d|t"):format(b(LT._rgb.header[1]), b(LT._rgb.header[2]), b(LT._rgb.header[3]))
+  local ar, ag, ab = NS.Skin.Color("icon.arrow")
+  local want = ("%d:%d:%d|t"):format(b(ar), b(ag), b(ab))
   assertTrue(fs.text:find(want, 1, true) ~= nil, "the sort arrow kept the old skin's tint: " .. fs.text)
 end))
 

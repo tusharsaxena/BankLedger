@@ -237,14 +237,14 @@ test("marks: every inline header mark is TINTED to the gold of the word it sits 
   -- unless it is spelled out.
   --
   -- 255/209/0 is 1/0.82/0 rounded, and 1/0.82/0 is what LT:MakeHeaderButton sets on the label and
-  -- BindRow sets on the group header: the skin's list.header.text under Ka0s Default. Both read it
-  -- off the same HEADER_RGB the tint is built from (resolved from that token, once per skin), so the
-  -- pair cannot drift; this asserts the NUMBER that reaches the escape.
+  -- BindRow sets on the group header: the skin's list.header.text under Ka0s Default, whose
+  -- icon.arrow is the same gold, so the marks match the words there; this asserts the NUMBER that
+  -- reaches the escape.
   local src = readSource("modules/LedgerTable.lua")
   assertTrue(src:find('resolve(RGB.header, "list.header.text")', 1, true) ~= nil,
     "the one place the header gold is resolved is gone")
-  assertTrue(src:find("local tint = tint255(HEADER_RGB)", 1, true) ~= nil,
-    "the marks' tint stopped being built from HEADER_RGB, so the arrow can drift off the label")
+  assertTrue(src:find('NS.Skin.MarkText(path or blizzard, 0, "icon.arrow")', 1, true) ~= nil,
+    "the marks stopped taking the skin's icon.arrow")
   assertTrue(src:find("fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true) ~= nil,
     "the column header stopped taking its color from HEADER_RGB, so the arrow can drift off it")
   assertTrue(src:find("header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true)

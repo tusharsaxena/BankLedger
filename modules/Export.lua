@@ -387,17 +387,18 @@ local function EnsureFrame()
   NS.Util.ApplyMasterFrame(frame)
 
   local tbar = CreateFrame("Frame", nil, frame)
-  tbar:SetPoint("TOPLEFT", 1, -1); tbar:SetPoint("TOPRIGHT", -1, -1); tbar:SetHeight(26)
+  tbar:SetPoint("TOPLEFT", 1, -1); tbar:SetPoint("TOPRIGHT", -1, -1); tbar:SetHeight(30)
   tbar:EnableMouse(true); tbar:RegisterForDrag("LeftButton")
   tbar:SetScript("OnDragStart", function() frame:StartMoving() end)
   tbar:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
   local t = tbar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   t:SetPoint("CENTER"); t:SetText("Export")
   frame.titleFS = t
-  -- The bar's fill and the title through the skin's TitleBar. The bar is 26px, not the skin's
-  -- 30px title.height, so the Shell's own top band would overhang it: the Shell below is called
-  -- with `noTopBar` and this bar paints itself (the rollout's D6, Loot History's export modal).
-  NS.Skin.TitleBar(tbar, { text = t })
+  frame.titleBar = tbar
+  -- The bar's fill and the title through the skin's TitleBar: `place` takes title.height and anchors
+  -- the title on title.align. The Shell below is called with `noTopBar` because this bar paints
+  -- itself (the rollout's D6, Loot History's export modal).
+  NS.Skin.TitleBar(tbar, { text = t, place = true })
   if NS.Browser and NS.Browser.MakeCloseButton then
     local close = NS.Browser:MakeCloseButton(tbar, function() frame:Hide() end)
     close:SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
