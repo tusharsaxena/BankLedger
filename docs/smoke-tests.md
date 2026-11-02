@@ -569,7 +569,7 @@ leaves its number unused.
 - **LEDG-36. The copy window's close is the library's.** Export to CSV and look at the copy window's
   title bar → the library's outlined close mark, 18×18 with a red hover (the host's is 24×24, with the
   same red hover since BL-A1), reading as a close button and not clipped by the 30px bar (26px before LibKa0s v1.85.0). A font × there is a
-  library regression. Result:
+  library regression. Result: Passed (owner, 2026-11-02)
 - **LEDG-37. Dropdown art.** Count the filter bar's dropdowns → eight chevrons, not Blizzard's filled
   arrow: Group by on row 1, then Date, Direction, Store, Quality, Type, Sub-type, Character on row 2;
   the modal's Data set makes nine. Open a multi-select (Store, Type, Quality, Character), pick two →
@@ -862,7 +862,7 @@ leaves its number unused.
 - **DIAG-7. Chrome.** The console and its Copy box wear the ledger window's edge (a flat 1px black
   border with a 1px light-gray line inside, a gold title, a gray divider), with a smaller close
   control, 18×18 on a 30px title bar (26px before LibKa0s v1.85.0), drawn as the outlined × mark. That
-  size is the library's, not drift. Result:
+  size is the library's, not drift. Result: Passed (owner, 2026-11-02)
 - **DIAG-8. Three title-bar marks.** Right to left: close, clear, copy, one size and pitch, gray at rest
   and brighter under the pointer, the art every Ka0s window uses. **Fail:** the words `Copy` and
   `Clear`, or a thin multiplication sign for close: `core/DebugLogSetup.lua` stopped passing
@@ -1110,7 +1110,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
   wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype)
   and 2026-10-31 for LibKa0s v1.83.0 (no outline by default), and 2026-11-01 for the look changes above
-  (FS-BL-FIX). Result:
+  (FS-BL-FIX). Result: Passed (owner, 2026-11-02)
 - **SKIN-2. The Skin tab (BL-01).** General → the strip reads Master controls · Capture · Filters ·
   Interface · History · **Skin** · Keybindings. Open **Skin** → **Skin source**, the nine skins with
   their swatches under **Look** (the note that skins change every visual element leads it), **Font and
@@ -1338,27 +1338,27 @@ describes what you see, apart from the changes SKIN-1 lists.
   the grip and the grip still draggable. Switch through the other skins with the window open, no
   reload → the tabs and the band repaint from each skin. **Fail:** a label or underline left in the
   old skin's color, text hidden under the band, a band overlapping a table row, or a dead grip.
-  Result:
+  Result: Passed (owner, 2026-11-02)
 - **SKIN-36. One title bar shape (FS-BL-FIX, cause L9).** Open the ledger window, the session window,
   and the Export modal with its Data set dropdown → all three title bars are 30 high with a centered
   title and an unclipped close control, and the modal's dropdown still clears its bar. The debug
   console and the copy window match at 30 high. **Fail:** a 26px bar, a title off center, or a control
   overlapping a bar.
-  Result:
+  Result: Passed (owner, 2026-11-02)
 - **SKIN-37. Grips and sort marks follow the skin (FS-BL-FIX, cause L8).** Under **Ka0s Default** both
   resize grips stay the client's art and the sort arrows and group chevrons stay gold. Switch to a
   skin that tints the grip, such as **Obsidian** → the grips of the ledger and session windows take
   the skin's color with no reload, and the arrows and chevrons take the skin's arrow color, with the
   headers' words in theirs. Back to Ka0s Default → the client's art again. **Fail:** a stock grip under
-  a tinting skin, or a mark left in the old skin's color. Result:
+  a tinting skin, or a mark left in the old skin's color. Result: Passed (owner, 2026-11-02)
 - **SKIN-38. The Insights headings keep their size (SF-BL-1).** Open Insights with the ledger in a skin,
   then switch skins five times in a row, such as Ka0s Default, Obsidian, Slate, Obsidian, Ka0s Default
   → the section headings ITEMS & FLOW, GOLD and TOP OF THE LIST stay the same size on every skin and
   never grow, and the cards, bars and list rows keep theirs. **Fail:** any heading larger than after
   the first switch.
-  Result: not run
+  Result: Passed (owner, 2026-11-02)
 
-- **SKIN-39. The sort arrow's own color (SF-FIX, not run).** Under a skin whose sort arrow differs from its header text (Obsidian), the History table's sort arrows wear that arrow color, and the group expanders keep the icon arrow color.
+- **SKIN-39. The sort arrow's own color (SF-FIX, not run).** Under a skin whose sort arrow differs from its header text (Obsidian), the History table's sort arrows wear that arrow color, and the group expanders keep the icon arrow color. Result: Passed (owner, 2026-11-02)
 - **SKIN-40. A stored Font override of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, not run).** Before you update, set the Skin tab's **Font** to *Ka0s Friz Quadrata TT* and log out. Install the re-vendored build and fully restart the client (a new font file) → the ledger window draws in Ubuntu and the Font row reads *Ka0s Ubuntu* (schema v6 moves the stored override, R3-FRIZ). **Fail:** the window on the game's default face, or the row still naming Ka0s Friz Quadrata TT. Result: not run
 
 ## DEGRADED
@@ -1436,7 +1436,7 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
 - **DEGRADED-16. The tabs without the skin engine (FS-BL-FIX).** With no library the ledger window
   does not build its filter bar's controls, but its tabs do → the active tab's label is gold over a
   2px gold underline, the other is gray, with no backing and no footer band, and clicking moves both.
-  **Fail:** two identical tabs, no underline, or a Lua error naming `S.Tab`. Result:
+  **Fail:** two identical tabs, no underline, or a Lua error naming `S.Tab`. Result: Passed (owner, 2026-11-02)
 
 ## Non-English client
 
@@ -1539,3 +1539,5 @@ points at.
 Owed by the owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUND3/`, item R3-FRIZ):
 new check SKIN-40, and SKIN-9 and PROFILE-14, whose WoW Default face (now Ka0s Ubuntu) and schema stamp
 (now 6) changed, so their pass marks came off.
+
+On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
