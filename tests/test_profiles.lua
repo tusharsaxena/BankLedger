@@ -233,7 +233,7 @@ test("Migrate v3: the [Migrate] line counts each value it moved", function()
     lines = withTag(debugLines(function() NS:RunMigrations() end), "[Migrate]")
   end)
   assertEqual(#lines, 1, "one migration line")
-  assertTrue(lines[1]:find("v2 -> v5, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
+  assertTrue(lines[1]:find("v2 -> v6, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
 end)
 
 -- ── the v4 step: the retention window back to db.global (owner decision D6) ─────────────────────
@@ -411,6 +411,28 @@ test("Migrate v5: idempotent, and a slot a later build already wrote is never ov
     assertEqual(d.savedViews.Insights.groupBy, "day", "an existing slot was overwritten")
     assertEqual(NS.MIGRATIONS[5](db.global, db), 0, "the second pass moved something")
     assertEqual(d.savedViews.History.groupBy, "store", "the second pass changed a slot")
+  end)
+end)
+
+-- R3-FRIZ: LibKa0s v1.85.0 deleted Ka0s Friz Quadrata TT (R3-L7); v6 moves a stored pick of it to Ka0s
+-- Ubuntu in every stored profile. red under: no v6 step, one that reaches only the active profile, or
+-- one that rewrites Blizzard's own "Friz Quadrata TT".
+test("Migrate v6: a stored Ka0s Friz Quadrata TT moves to Ka0s Ubuntu in every profile, Blizzard's Friz kept", function()
+  local sv = {
+    global = { schemaVersion = 5 },
+    profiles = {
+      Default = { skin = { font = "Ka0s Friz Quadrata TT" } },
+      Alt = { skin = { font = "Ka0s Friz Quadrata TT" } },
+      Plain = { skin = { font = "Friz Quadrata TT" } },
+    },
+  }
+  withDb(sv, function(db)
+    NS:RunMigrations()
+    assertEqual(db.global.schemaVersion, 6, "stamped v6")
+    assertEqual(sv.profiles.Default.skin.font, "Ka0s Ubuntu", "the Default profile's override")
+    assertEqual(sv.profiles.Alt.skin.font, "Ka0s Ubuntu", "another profile's override")
+    assertEqual(sv.profiles.Plain.skin.font, "Friz Quadrata TT", "Blizzard's own Friz stays")
+    assertEqual(NS.MIGRATIONS[6](db.global, db), 0, "the second pass moved something")
   end)
 end)
 

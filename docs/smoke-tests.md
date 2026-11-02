@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 38 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
+| SKIN-1 – 40 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -345,9 +345,9 @@ leaves its number unused.
   this build and log in → all of it as you left it, History complete. Log out and open
   `BankLedger.lua` → settings and both lists under `["profiles"]["Default"]`, and the saved view as
   `savedViews` with the same view under both `History` and `Insights` (v5); `["global"]`
-  holds only `ledger`, `minimap`, `schemaVersion = 5` and, if you changed Keep history for, a
+  holds only `ledger`, `minimap`, `schemaVersion = 6` (5 before R3-FRIZ) and, if you changed Keep history for, a
   `settings` table holding `retentionDays` alone (D6). **Fail:** a setting back at its default, or any
-  other key in a `settings` table under `["global"]`. Result: pass (owner-marked 2026-10-10)
+  other key in a `settings` table under `["global"]`. Result: not run (re-opened by R3-FRIZ: the stamp is 6)
 
 ## STATE
 
@@ -1172,12 +1172,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   with no fallback squares: Ka0s Default Prototype, Obsidian Expressway, Azeroth Open Sans Semibold
   (Open Sans Bold titles), Glass Avant Garde, High Contrast Doris PP, Ember Emblem, WoW Midnight Segoe
   UI Semibold (Segoe UI Bold titles), WoW Forever Fira Sans (Medium body, SemiBold titles), WoW Default
-  Ka0s Friz Quadrata, which differs from Ka0s Default whatever the client's own font file holds. The History table's columns, the Insights cards'
+  Ka0s Ubuntu (LibKa0s R3-L6; Ka0s Friz Quadrata before), which differs from Ka0s Default whatever the client's own font file holds. The History table's columns, the Insights cards'
   headline figures (they shrink to fit) and the section titles do not truncate or overlap under any
   of them. The ▲/▼ glyphs stay in the mono face everywhere. **Fail:** an empty square, a clipped
   headline figure, or a ▲/▼ drawn as a box. Re-opened 2026-10-30 for LibKa0s v1.82.0 (Prototype,
   Expressway and Fira Sans Medium replace Oxanium, Inter and Fira Sans Regular) and 2026-10-31 for
-  LibKa0s v1.83.0 (six skins take new faces and sizes). Result: Owner reported pass, 2026-10-31
+  LibKa0s v1.83.0 (six skins take new faces and sizes), and 2026-11-02 for R3-FRIZ (WoW Default on Ka0s
+  Ubuntu; a full client restart first, for the new font file). Result: not run
 - **SKIN-10. A font override, and Ignore fonts (BL-01).** With the ledger window open, pick a clearly
   different face from **Font** → with no reload the title, tabs, buttons, cells and Insights text take
   it at the sizes they had; the debug console keeps its mono face. Turn **Ignore fonts** on → every
@@ -1358,6 +1359,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   Result: not run
 
 - **SKIN-39. The sort arrow's own color (SF-FIX, not run).** Under a skin whose sort arrow differs from its header text (Obsidian), the History table's sort arrows wear that arrow color, and the group expanders keep the icon arrow color.
+- **SKIN-40. A stored Font override of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, not run).** Before you update, set the Skin tab's **Font** to *Ka0s Friz Quadrata TT* and log out. Install the re-vendored build and fully restart the client (a new font file) → the ledger window draws in Ubuntu and the Font row reads *Ka0s Ubuntu* (schema v6 moves the stored override, R3-FRIZ). **Fail:** the window on the game's default face, or the row still naming Ka0s Friz Quadrata TT. Result: not run
 
 ## DEGRADED
 
@@ -1533,3 +1535,7 @@ Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19
 for the moved window chrome and chart renderers, and SKIN-33 for the picker's rows, which SKIN-19 now
 points at.
+
+Owed by the owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUND3/`, item R3-FRIZ):
+new check SKIN-40, and SKIN-9 and PROFILE-14, whose WoW Default face (now Ka0s Ubuntu) and schema stamp
+(now 6) changed, so their pass marks came off.

@@ -317,7 +317,7 @@ Total.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
-- RunMigrations announces the v1->v5 pass in one [Migrate] line
+- RunMigrations announces the v1->v6 pass in one [Migrate] line
 - RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
 - RunMigrations stamps a stamp-less store whose ledger is nil, without raising
 - RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
@@ -594,7 +594,12 @@ Total.
 - Key binding: a press runs the SAME handler /bl toggle and the Show window entry run
 - Key binding: one press opens the ledger window, the next closes it
 - LibKa0s-Launcher degraded: the stub answers every member the addon reaches
-- Launcher: the simulator is slash-only, with no menu entry and no key binding (C.11)
+- Launcher: the simulator has a Sim mode menu entry (SG-L1) and no key binding (C.11)
+
+### test_launcher_skin_entry.lua (2)
+
+- launcher descriptor passes openSkinPicker, which runs the skin verb
+- mode strips pass sim or onEnd, so the right-click menu has something to end (SF-F1)
 
 ### test_sessionwindow.lua (39)
 
@@ -1361,7 +1366,7 @@ Total.
 - diagnostics: running, the sim section reports the scenario, the step, the character and the seam
 - diagnostics: /bl debug scan opens with the simulation header while one runs
 
-### test_profiles.lua (47)
+### test_profiles.lua (48)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1382,6 +1387,7 @@ Total.
 - Migrate v5: a profile's saved view is copied into BOTH tabs' slots and the old key leaves
 - Migrate v5: a profile with no saved view gains nothing
 - Migrate v5: idempotent, and a slot a later build already wrote is never overwritten
+- Migrate v6: a stored Ka0s Friz Quadrata TT moves to Ka0s Ubuntu in every profile, Blizzard's Friz kept
 - Profiles: a switch re-reads every setting from the new profile
 - Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
 - Profiles: a switch to a disabled profile stands the addon down, and back stands it up
@@ -1601,7 +1607,7 @@ Total.
 - Skin seam: a profile switch applies the new profile's skin, exceptions and overrides
 - Skin seam: every Widgets factory this addon calls is handed the owner
 
-### test_skin_windows.lua (11)
+### test_skin_windows.lua (12)
 
 - skin windows: Ka0s Default's table colors are the values the table drew before the skin
 - skin windows: a switch re-resolves the table's cached colors and its tinted marks
@@ -1614,6 +1620,7 @@ Total.
 - skin windows: the close control follows a switch to another skin and back, at rest and on hover
 - skin windows: the close control has no owner token of its own
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
+- skin windows: a section divider's title stays one size however many times the skin switches
 
 ### test_skin_chrome.lua (13)
 
@@ -1622,7 +1629,7 @@ Total.
 - skin chrome: the tab strip sits on the skin's tab.rule
 - skin chrome: the ledger footer is the skin's band, under both strings, and follows a switch
 - skin chrome: both windows' grips name this addon as the skin owner
-- skin chrome: sort arrows and group chevrons take icon.arrow, not the header's color
+- skin chrome: sort arrows take list.header.arrow (SF-L2), not icon.arrow
 - skin chrome: every title bar takes title.height and anchors its title on title.align
 - skin chrome: the typed title height is title.height in every registered skin
 - skin chrome degraded: a Tab draws the label pair and a 2px underline, and selection moves them
@@ -1867,6 +1874,7 @@ Total.
 | test_browser_views.lua | 21 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 44 |
+| test_launcher_skin_entry.lua | 2 |
 | test_sessionwindow.lua | 39 |
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
@@ -1896,7 +1904,7 @@ Total.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
-| test_profiles.lua | 47 |
+| test_profiles.lua | 48 |
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
@@ -1908,7 +1916,7 @@ Total.
 | test_sim_panel.lua | 19 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
-| test_skin_windows.lua | 11 |
+| test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 13 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -1923,4 +1931,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 82 |
 | Skipped | 1 |
-| **Total** | **1629** |
+| **Total** | **1633** |

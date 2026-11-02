@@ -164,6 +164,15 @@ anything reads `db.profile`), as v4 does. Counts one row per profile that held t
   `Default` (it is still in `NS.PROFILE_LIFT_KEYS`), and v5 then splits it. The stamp default stays
   0 (below).
 
+#### Schema v6 — the deleted Friz becomes Ka0s Ubuntu (R3-FRIZ)
+
+`db.global.schemaVersion` is now **6**. LibKa0s v1.85.0 deleted `Ka0s Friz Quadrata TT` (R3-L7) and WoW
+Default draws `Ka0s Ubuntu` in its place (R3-L6). The v5 → v6 step, `NS.MIGRATIONS[6]`, walks every
+stored profile raw, as v4 does, and `NS.RetireFonts` moves every string naming the deleted face, at any
+depth (the skin's Font override is the one this addon stores), to `Ka0s Ubuntu`. Blizzard's own
+`Friz Quadrata TT` is another key and stays. The ledger in `db.global` holds no face and is not walked.
+Counts one row per value moved; idempotent, since a second run finds no retired face.
+
 #### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
 
 `defaults/Global.lua` declares `schemaVersion = 0`, and **0 is never a real version**. That is the
