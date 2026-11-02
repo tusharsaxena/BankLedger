@@ -271,6 +271,13 @@ NS.Launcher = Launcher:New({
   --
   -- The version the TOC stamps, through NS.Version (core/EnvSetup.lua): the same string `/bl
   -- version` prints, falling back to NS.version only where the manifest cannot be read.
+  isSimMode = function() local s = NS.Sim; return type(s) == "table" and type(s.IsActive) == "function" and s:IsActive() == true end,
+  toggleSim = function()
+      local s = NS.Sim
+      if type(s) ~= "table" or type(s.RunVerb) ~= "function" then return end
+      -- The typed verb's own acts: stop a running sim, otherwise the bare verb (status and the sim panel).
+      s:RunVerb(s:IsActive() and "stop" or "")
+  end,
   version = function() return NS.Version and NS.Version() end,
 
   -- `isEnabled`, `isLocked` and `isTestMode` above are the tooltip's three status lines too, so the

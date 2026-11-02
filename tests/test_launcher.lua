@@ -362,7 +362,7 @@ test("Launcher: RIGHT-click opens the options menu: Enabled, Locked, Test mode, 
     assertTrue(menu ~= nil, "right-click opened no menu")
     assertEqual(menu.owner, OWNER, "the menu anchors to the frame that was clicked")
     assertEqual(menu.titles[1], "Ka0s Bank Ledger", "the menu's title is the brand name")
-    assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked / Test mode / Show window")
+    assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked / Test mode / Sim mode / Show window")
   end)
   assertEqual(#opened, 0, "the right click opened the panel as well as the menu")
 end)
@@ -927,12 +927,11 @@ test("LibKa0s-Launcher degraded: the stub answers every member the addon reaches
   assertTrue(type(b:GetScript("OnClick")) == "function", "the degraded arm's button has no OnClick")
 end)
 
-test("Launcher: the simulator is slash-only, with no menu entry and no key binding (C.11)", function()
-  -- LibKa0s-Sim-1.0's host contract H7: `/bl sim` is the one way in.
+test("Launcher: the simulator has a Sim mode menu entry (SG-L1) and no key binding (C.11)", function()
+  -- LibKa0s-Sim-1.0's host contract H7 kept the key binding out; the menu's Sim mode row is the
+  -- launcher's own (Launcher minor 7) and runs the `/bl sim` verb's act.
   local menu = openMenu()
-  for _, text in ipairs(menu:Texts()) do
-    assertFalse(text:lower():find("sim", 1, true) ~= nil, "a simulator entry in the menu: " .. text)
-  end
+  assertTrue(menu:Find("Sim mode") ~= nil, "no Sim mode entry in the menu")
   local fh = assert(io.open("Bindings.xml", "r"))
   local xml = fh:read("*a")
   fh:close()
