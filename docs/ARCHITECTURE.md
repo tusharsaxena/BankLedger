@@ -169,8 +169,10 @@ the engine's own decision.
   first.` before any confirm opens, from `/bl purge` and the settings' *Purge history…* button alike, and
   `Database:Purge` re-checks it. `Delete`, `DeleteAt` and `PruneOld` act on the real ledger only.
 
-The simulator is slash-only, with no launcher entry, no key binding and no schema row; its step
-delay is a constant. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strips
+The simulator has no key binding. `/bl sim`, the launcher menu's *Sim mode* entry and the Master
+controls *Sim mode* checkbox (`state.sim`, session-only, R6-SIM) are one act, through the pair
+`NS.IsSimMode` / `NS.ToggleSim` in `core/SimSetup.lua`; its step delay is the Interface tab's
+`settings.sim.stepDelay` row. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strips
 (one per mode, with the `TEST MODE` title badge only as the library-absent fallback) and the step
 panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)
 and the `[Sim]` lines in [debug.md](debug.md).
@@ -301,7 +303,7 @@ gets no close event either.
 page read one table. Twenty-one verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
 seam. `/bl skin` is the reserved skin verb (LibKa0s v1.82.0's `O.SkinVerb`): the first-run skin
 picker on demand, refused while the addon is disabled. `/bl sim` is the simulator's one feature verb, handing its words to `NS.Sim:RunVerb`
-(LibKa0s-Sim-1.0's grammar); the simulator is slash-only, with no launcher entry or key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
+(LibKa0s-Sim-1.0's grammar); the launcher menu's *Sim mode* entry and the Master controls *Sim mode* checkbox run this same verb (R6-SIM), and there is no key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
 prints the list (`slash-commands-§4`). `/bl profile` lists the profiles, and `/bl profile <name>`
 switches to an existing one through the library's `CliProfile` (Slash minor 17); it stays live while
 the addon is disabled, because the descriptor's `liveVerbs` is `lib.LIVE_VERBS` plus `profile`.

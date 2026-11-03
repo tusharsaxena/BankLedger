@@ -811,7 +811,8 @@ end)
 --
 -- One NS.COMMANDS row whose handler hands the rest of the line to NS.Sim:RunVerb, the library's
 -- grammar. It is a feature verb (FEATURE_VERBS above), so the disabled refusal census covers it; it
--- is not on the live list, and nothing else (no launcher entry, no key binding) reaches it.
+-- is not on the live list. No key binding reaches it; the launcher's Sim mode entry and the Master
+-- controls Sim mode checkbox run this same verb through NS.ToggleSim (tests/test_sim_checkbox.lua).
 
 test("Slash: the sim row sits just before help, and its description points at /bl sim", function()
   local at, helpAt
