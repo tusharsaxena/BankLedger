@@ -1,0 +1,1 @@
+R6-RV independent review (2026-11-04, smoke round 6): PASS. libs/LibKa0s matches LibKa0s v1.85.0 (79d043d) byte for byte apart from the 17-icon prune the CLAUDE.md declaration names (plus LICENSE-open-iconic.txt); tests/_kit identical to the tag; provenance line v1.85.0. Gate fresh at e0210ca: 1647 passed / 0 failed / 1 skipped, luacheck 0/0. No defects.
