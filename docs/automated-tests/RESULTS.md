@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20261104-042200`](20261104-042200/) | `43d690d` | clean | 1.3.0 | 0/0 | 121 | 1653/1/1654 | skip | 30413 | 4894 | 6.1 | 2.0 | 15 | 0 | **green** |
 | [`20261102-004240`](20261102-004240/) | `65cd70a` | clean | 1.3.0 | 0/0 | 118 | 1630/1/1631 | skip | 29880 | 4793 | 6.2 | 2.0 | 15 | 0 | **green** |
 | [`20261101-202157`](20261101-202157/) | `5895958` | clean | 1.3.0 | 0/0 | 118 | 1629/1/1630 | skip | 29858 | 4789 | 6.2 | 2.0 | 15 | 0 | **green** |
 | [`20261101-143115`](20261101-143115/) | `71d50d9` | clean | 1.3.0 | 0/0 | 118 | 1543/1/1544 | skip | 29675 | 4721 | 6.2 | 2.1 | 15 | 0 | **green** |
@@ -59,18 +60,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**1631 cases** — 1630 passed, 0 failed, 1 skipped. The generated inventory
-[`20261102-004240/test-cases.md`](20261102-004240/test-cases.md) is the authority on which cases existed at this run;
+**1654 cases** — 1653 passed, 0 failed, 1 skipped. The generated inventory
+[`20261104-042200/test-cases.md`](20261104-042200/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **1630 → 1631** since the previous run.
+Moved **1631 → 1654** since the previous run.
 
 **1 case(s) reported a `skip`.** A skip is counted in the total and never in `passed`, and at
 the release gate it is NOT EVALUATED rather than passed (`automated-tests-§3`).
 
 ## Lint
 
-**0 warnings / 0 errors over 118 files** (`luacheck .`).
+**0 warnings / 0 errors over 121 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 5 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `_dev/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -87,7 +88,7 @@ combat path for one to measure, not because the question was never asked.
 
 ## Complexity watch list
 
-Current as of [`20261102-004240`](20261102-004240/) — **this run's measurement, not its diff.** Max CCN **15** across 4793
+Current as of [`20261104-042200`](20261104-042200/) — **this run's measurement, not its diff.** Max CCN **15** across 4894
 functions, **0** of them warned on; 7 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
@@ -107,13 +108,13 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `modules/Browser.lua` | 1189 | **Accepted — already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`). 1221 at the 1.2.0 release record; it grew to 1450 with the per-tab view state and the search suggestions (BL-R-02 in the 2026-10-07 review), and BL-03 cut that seam, moving the view machinery whole into `modules/Browser_Views.lua` (303). 1179 at the 1.3.0 release run, then 1323 at `20261031-202022`: the re-check fired, so FX-BL-SIZE took the named seam, moving the skin and close-button factory and the geometry persistence whole into `modules/Browser_Chrome.lua` (140), which leaves this file at 1195. The next seam is the mode strips (`STRIP_GAP` to `buildModeStrip`), which lift out if the file climbs back past 1300. Tracked, so the three-consecutive-releases rule is already discharged. |
+| 1000–1500 (on notice) | `modules/Browser.lua` | 1199 | **Accepted — already tracked as `BL-24`** (`docs/audits/2026-08-04/02_DEVIATIONS.md`). 1221 at the 1.2.0 release record; it grew to 1450 with the per-tab view state and the search suggestions (BL-R-02 in the 2026-10-07 review), and BL-03 cut that seam, moving the view machinery whole into `modules/Browser_Views.lua` (303). 1179 at the 1.3.0 release run, then 1323 at `20261031-202022`: the re-check fired, so FX-BL-SIZE took the named seam, moving the skin and close-button factory and the geometry persistence whole into `modules/Browser_Chrome.lua` (140), which leaves this file at 1195. The next seam is the mode strips (`STRIP_GAP` to `buildModeStrip`), which lift out if the file climbs back past 1300. Tracked, so the three-consecutive-releases rule is already discharged. |
 | 1000–1500 (on notice) | `modules/LedgerTable.lua` | 1036 | **Newly crossed**, back in the band after its 1.2.0-era split took it out. Growth is the skin paint and the row menu's move to a toplevel window. **Accepted**: one cohesive pooled-row table (filter, sort, group, slice, bind), first release cycle back in the band. Peel seam: the row menu (`EnsureRowMenu` to `LT:ShowRowMenu`, `:916`–`:1035`). `LT.GroupEntries` and `LT.UpdateHeaderArrows` sit at CCN 15. |
-| 1000–1500 (on notice) | `settings/Schema.lua` | 1046 | **Newly crossed.** **Accepted**: data table, not tangle. Most of the file is declarative row tables (`S.Schema`, `:38`–`:237`, and the bespoke rows after it), and it grew by the sim and skin rows that `architecture-§5` says belong here. Peel seam: the runtime seam from `:618`. |
+| 1000–1500 (on notice) | `settings/Schema.lua` | 1059 | **Newly crossed.** **Accepted**: data table, not tangle. Most of the file is declarative row tables (`S.Schema`, `:38`–`:237`, and the bespoke rows after it), and it grew by the sim and skin rows that `architecture-§5` says belong here. Peel seam: the runtime seam from `:618`. |
 | 1000–1500 (on notice) | `tests/test_browser.lua` | 1006 | **Peeled (FX-BL-SIZE).** The 1300 re-check fired at 1442, so the saved-view and per-tab view cases moved whole into `tests/test_browser_views.lua` (455), mirroring the `modules/Browser_Views.lua` split, which leaves this file at 1006. **Accepted** there: case count, flat banner sections, first release cycle at this size. Next seam: the mode-strip block, or the search-box block. Re-check trigger: 1300 LOC, or the next Browser feature that adds a suite block here. |
 | 1000–1500 (on notice) | `tests/test_ledger.lua` | 1006 | **Newly crossed**, back in the band after the guild-bank split. **Accepted**: case count, not tangle; flat banner sections over the capture engine, grown by the simulator's and dispatch's cases. Peel seam: the capture-gate section or the bonus-link section, each a whole block. |
 | 1000–1500 (on notice) | `tests/test_panel_filters.lua` | 1003 | **Newly crossed.** **Accepted**: case count; one cohesive suite for the settings panel's Filters tab, itself already peeled out of `tests/test_panel.lua`. Peel seam: the suggestions block (`:382` on). |
-| 1000–1500 (on notice) | `tests/test_profiles.lua` | 1010 | **Newly crossed** (the file is new since `20260927-031851`, added by SP-BL-01 and grown by the v4 and v5 migration steps and the `/bl profile` verb). **Accepted** for this release, first release run in the band. Peel seam: the three migration steps (v3 lift `:132`, v4 retention `:239`, v5 per-tab views `:359`) lift into `tests/test_profiles_migrations.lua`, leaving the adopt path, the Profiles page, the reset veto and the verb. Re-check trigger: 1200 LOC, or a v6 migration step. |
+| 1000–1500 (on notice) | `tests/test_profiles.lua` | 1036 | **Newly crossed** (the file is new since `20260927-031851`, added by SP-BL-01 and grown by the v4 and v5 migration steps and the `/bl profile` verb). **Accepted** for this release, first release run in the band. Peel seam: the three migration steps (v3 lift `:132`, v4 retention `:239`, v5 per-tab views `:359`) lift into `tests/test_profiles_migrations.lua`, leaving the adopt path, the Profiles page, the reset veto and the verb. Re-check trigger: 1200 LOC, or a v6 migration step. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
