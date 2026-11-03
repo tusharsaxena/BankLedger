@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 41 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it |
+| SKIN-1 – 41 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -860,9 +860,10 @@ leaves its number unused.
 - **DIAG-6. Logging off.** `/bl debug off` → a red OFF ack and `[Debug] logging disabled`. Turn it on
   and `/reload` → off again (the flag is session-only). Result: pass (owner-marked 2026-10-10)
 - **DIAG-7. Chrome.** The console and its Copy box wear the ledger window's edge (a flat 1px black
-  border with a 1px light-gray line inside, a gold title, a gray divider), with a smaller close
+  border with a 1px light-gray line inside, a gold title, no line under the title band), with a smaller close
   control, 18×18 on a 30px title bar (26px before LibKa0s v1.85.0), drawn as the outlined × mark. That
-  size is the library's, not drift. Result: Passed (owner, 2026-11-02)
+  size is the library's, not drift. The console's gray divider under the title went with LibKa0s R4-SEP
+  (R4-RV2); the rule above its status line stays. Re-opened 2026-11-03 for R4-RV2. Result:
 - **DIAG-8. Three title-bar marks.** Right to left: close, clear, copy, one size and pitch, gray at rest
   and brighter under the pointer, the art every Ka0s window uses. **Fail:** the words `Copy` and
   `Clear`, or a thin multiplication sign for close: `core/DebugLogSetup.lua` stopped passing
@@ -875,8 +876,9 @@ leaves its number unused.
   Mono")` answered nil (`LibKa0s-Media-1.0` missing, or `core\MediaSetup.lua` after
   `core\Constants.lua` in the TOC). Result: pass (owner-marked 2026-10-10)
 - **DIAG-11. One console look.** Open another Ka0s addon's console beside this one → apart from the
-  titles, indistinguishable: border, inner line, gold title, divider, the same three marks in order. A
-  difference is fixed in `../LibKa0s`, never in `libs/`. Result: pass (owner-marked 2026-10-10)
+  titles, indistinguishable: border, inner line, gold title, no line under the title, the same three marks in order. A
+  difference is fixed in `../LibKa0s`, never in `libs/`. Re-opened 2026-11-03 for R4-RV2 (the divider
+  under the title went with LibKa0s R4-SEP). Result:
 - **DIAG-12. The addon's own dumps.** With logging off, `/bl debug scan` at a bank, then `/bl debug
   panel` after opening `/bl config` once → both open the console and write their lines anyway, tagged
   `[Scan]` and `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
@@ -1094,7 +1096,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   outline (the Font outline's default, *HUD text only*, and Bank Ledger has no HUD), instead of Friz
   Quadrata, except the ▲/▼ direction glyphs (mono) and the close ×; the Insights bars of data (ranked, stacked,
   split and back-to-back bars and the day and hour strips) wear the **Ka0s Default** bar texture in
-  the colors they had; the three title bars carry the skin's faint title band and both tables' header
+  the colors they had; the three title bars carry the skin's title band (since LibKa0s R4-L2, Ka0s
+  Default's is a dark gold gradient, SKIN-42) and both tables' header
   rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
   and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since the full skinning run
   (FS-BL-FIX, LibKa0s v1.85.0) the ledger tabs wear the skin's tab, with a dark backing, a full-width
@@ -1110,7 +1113,7 @@ describes what you see, apart from the changes SKIN-1 lists.
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
   wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype)
   and 2026-10-31 for LibKa0s v1.83.0 (no outline by default), and 2026-11-01 for the look changes above
-  (FS-BL-FIX). Result: Passed (owner, 2026-11-02)
+  (FS-BL-FIX), and 2026-11-03 for Ka0s Default's gold title band (R4-RV2). Result:
 - **SKIN-2. The Skin tab (BL-01).** General → the strip reads Master controls · Capture · Filters ·
   Interface · History · **Skin** · Keybindings. Open **Skin** → **Skin source**, the nine skins with
   their swatches under **Look** (the note that skins change every visual element leads it), **Font and
@@ -1362,6 +1365,14 @@ describes what you see, apart from the changes SKIN-1 lists.
 - **SKIN-40. A stored Font override of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, not run).** Before you update, set the Skin tab's **Font** to *Ka0s Friz Quadrata TT* and log out. Install the re-vendored build and fully restart the client (a new font file) → the ledger window draws in Ubuntu and the Font row reads *Ka0s Ubuntu* (schema v6 moves the stored override, R3-FRIZ). **Fail:** the window on the game's default face, or the row still naming Ka0s Friz Quadrata TT. Result: not run
 - **SKIN-41. A picker's list closes on a click outside it (R4-RV, LibKa0s R4-L1).** Open the settings panel on the Skin tab and open the **Font** picker's list, then click an empty part of the page beside it → the list closes. Open it again and click another dropdown on the page → the first list closes and the second opens. Open the **Texture** picker and click inside its list, on its scrollbar or on the dropdown itself → it stays open or toggles as before. **Fail:** a list that stays open after a click elsewhere on the page, or a click inside the list that closes it without a pick.
   Result:
+- **SKIN-42. Ka0s Default's gold title band (R4-RV2, LibKa0s R4-L2 and R4-SEP).** Under Ka0s Default open the
+  ledger window, the session window (`/bl session`), the Export modal and its copy window, and the debug console
+  (`/bl debug`) with its Copy box → each title band is a dark gold gradient, lighter at the top (#3A2F0A) and
+  darker at the bottom (#1F1905), not the near-black band it was, with the gold title readable on it. The
+  debug console and its Copy box have no line under the title band; the rule above the console's status
+  line stays. Pick Obsidian, then Ka0s Default again → the bands follow with no reload. **Fail:** a
+  near-black or flat band under Ka0s Default, a gray line under the console's title, or a title hard to read.
+  Result:
 
 ## DEGRADED
 
@@ -1544,5 +1555,9 @@ new check SKIN-40, and SKIN-9 and PROFILE-14, whose WoW Default face (now Ka0s U
 
 Owed by the owner's fourth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND4/`, item R4-RV):
 new check SKIN-41, the AceGUI pickers' outside-click close that LibKa0s R4-L1 brings with the copy.
+
+Owed by the same round's second milestone (item R4-RV2): new check SKIN-42, Ka0s Default's dark gold title
+band (LibKa0s R4-L2) and the debug console with no line under its title (LibKa0s R4-SEP); SKIN-1, DIAG-7 and
+DIAG-11, whose title band or console divider changed, so their pass marks came off.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
