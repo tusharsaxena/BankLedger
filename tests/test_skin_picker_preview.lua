@@ -196,7 +196,28 @@ test("Skin preview: test mode already on stays on; an eye that turned it off is 
   assertFalse(testMode(), "the eye turned it off")
   quietly(function() f.close:__fire("OnClick") end)
   assertTrue(testMode(), "the close turned it back on")
-  assertTrue(windowShown(), "with the window showing it")
+  -- red under: a restore whose start (LT:SetTestMode opens the window) leaves up a window that was
+  -- closed when the picker opened.
+  assertFalse(windowShown(), "and the window is closed again, as it was at open")
+end))
+
+test("Skin preview: combat ending test mode under the picker; the close still takes the window down", clean(function()
+  -- red under: a window the preview opened left standing over real rows because the pull, not the
+  -- preview's exit, ended test mode (nothing is owed to the mode, but the window is the picker's).
+  local f = open()
+  assertTrue(testMode() and windowShown(), "entered at show")
+  local real = mocks.InCombatLockdown
+  local ok, err = pcall(function()
+    mocks.InCombatLockdown = function() return true end
+    quietly(function() NS.addon:OnCombatChanged("PLAYER_REGEN_DISABLED") end)
+    assertFalse(testMode(), "the pull ended test mode")
+    assertTrue(windowShown(), "a stop never hides anything on its own")
+    quietly(function() f.close:__fire("OnClick") end)
+  end)
+  mocks.InCombatLockdown = real
+  if not ok then error(err, 0) end
+  assertFalse(testMode(), "test mode stays off")
+  assertFalse(windowShown(), "the window the picker opened is hidden again")
 end))
 
 -- ── refusals ────────────────────────────────────────────────────────────────────────────────

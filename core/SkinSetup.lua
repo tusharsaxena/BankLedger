@@ -402,7 +402,9 @@ end
 -- combat ending take, so the checkbox and the launcher follow and the start's refusals still apply
 -- (combat, a running simulation, General visibility), printed as `/bl test` prints them. A STOP
 -- never hides anything on its own, so `exit` closes the ledger window only when this preview's
--- `enter` was what opened it; a window the player opened stays open on real data.
+-- `enter` was what opened it; a window the player opened stays open on real data. The close does
+-- the same for a window the preview opened that is still up (a pull ended test mode under the
+-- picker, or the restore's start reopened a window the player had closed).
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- O.SkinPicker queues this one and answers nil, "queued", which NS.MaybeShowSkinPicker passes
@@ -451,11 +453,17 @@ local function previewExit()
   return true
 end
 
---- The close, by any route (the library has already put the preview's mode back): the window the
---- preview opened is no longer its own to close; then, on the player's close, the picker seen and
---- nothing else (the library's put-back wears the stored choice already).
+--- The close, by any route (the library has already put the preview's mode back): a ledger window
+--- the preview opened and nothing has closed yet is closed (B:Hide), so the window is back as the
+--- picker found it, hidden. That covers a pull that ended test mode under the picker (the mode owes
+--- no restore, and a stop never hides) and a restore whose start reopened a window the player had
+--- closed. Then, on the player's close, the picker seen and nothing else (the library's put-back
+--- wears the stored choice already).
 local function pickerClosed()
-  previewOpened = false
+  if previewOpened then
+    previewOpened = false
+    if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
+  end
   if quietClose then return end
   local S = NS.Schema
   if not (NS.db and S and S.Set) then return end

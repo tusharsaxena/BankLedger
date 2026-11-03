@@ -536,7 +536,8 @@ for member.
   `LT:SetTestMode`, the path the Master controls checkbox and `/bl test` take, so the checkbox and the
   launcher follow and test mode's refusals apply (in combat it prints its own line); `exit` closes the
   ledger window only when the preview's own `enter` opened it, so a window the player opened stays
-  open. `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes it down without
+  open, and the close takes down a window the preview opened that is still up (a pull that ended
+  test mode under the picker, or a restore whose start reopened a window the player had closed). `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes it down without
   setting `pickerSeen`.
 - **Repaint flow.** `NS.ApplySkinChoice` runs right after `NS:InitDB` (`addon:OnInitialize`) and on
   every profile event (`NS.OnProfileEvent`, `core/Database.lua`), applying the stored Scope and

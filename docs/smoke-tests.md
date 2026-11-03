@@ -1434,9 +1434,10 @@ describes what you see, apart from the changes SKIN-1 lists.
   window shows your real rows; press the eye twice (on, off) → the window stays open; close the
   picker → the window is still open on real rows. Turn test mode on (`/bl test`), close the window,
   `/bl skin` → test mode stays on; press the eye → it turns off; close the picker → test mode is on
-  again. With the window closed, `/bl skin` (test mode turns on), then enter combat → test mode ends,
+  again and the ledger window is closed, as it was when the picker opened. With the window closed, `/bl skin` (test mode turns on), then enter combat → test mode ends,
   as it always does on the pull; press the eye in combat → test mode's own "cannot start test mode
-  during combat." line prints and nothing opens; close the picker → nothing else changes. **Fail:** a picker that opens with the window closed and
+  during combat." line prints and nothing opens; close the picker → the ledger window the picker
+  opened closes, and test mode stays off. **Fail:** a picker that opens with the window closed and
   leaves test mode off, an eye that only turns test mode on, a close that leaves test mode on or the
   sample window open, a window you opened that the picker closes, or the ledger window covering the
   picker.

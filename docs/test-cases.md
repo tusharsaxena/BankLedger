@@ -1659,7 +1659,7 @@ Total.
 - Skin picker: the stand-down with a preview pending puts the old skin back, unsaved, unseen
 - Skin picker: degraded, the seam answers nothing and raises nothing
 
-### test_skin_picker_preview.lua (16)
+### test_skin_picker_preview.lua (17)
 
 - Skin preview: the spec passes spec.preview in test mode, and no one-shot onPreview
 - Skin preview: isActive and isShown read test mode and the ledger window
@@ -1676,6 +1676,7 @@ Total.
 - Skin preview: a ledger window already shown is left alone at show and at close
 - Skin preview: the eye over a shown window turns test mode on and off, the window stays
 - Skin preview: test mode already on stays on; an eye that turned it off is undone at close
+- Skin preview: combat ending test mode under the picker; the close still takes the window down
 - Skin preview: in combat the enter is refused, said once, and the close undoes nothing
 
 ### test_skin_tools.lua (10)
@@ -1935,7 +1936,7 @@ Total.
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
 | test_skin_picker.lua | 15 |
-| test_skin_picker_preview.lua | 16 |
+| test_skin_picker_preview.lua | 17 |
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 12 |
 | test_skin_verb.lua | 7 |
@@ -1948,4 +1949,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 78 |
 | Skipped | 1 |
-| **Total** | **1646** |
+| **Total** | **1647** |
