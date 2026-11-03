@@ -167,6 +167,8 @@ NS.SKIN_FALLBACK = {
   -- edge is the muted-gold borderAlt) and its destructive entry, the client's white for an item of
   -- no known quality.
   ["list.header.text"] = { 1, 0.82, 0, 1 },
+  ["icon.arrow"]    = { 1, 0.82, 0, 1 },
+  ["list.header.arrow"] = { 1, 0.82, 0, 1 },
   ["list.stripe"]   = { 1, 1, 1, 0.03 },
   ["list.hover"]    = { 1, 0.82, 0, 0.10 },
   ["text.body"]     = { 0.9, 0.9, 0.9, 1 },
@@ -390,9 +392,19 @@ end
 -- event takes the picker down FIRST (NS.OnProfileEvent), before the new profile's skin is applied,
 -- so the new profile's whole pair is what is left worn.
 --
--- THE EYE (DECISIONS BankLedger D8). The ledger window in test mode, so the player sees the skin on
--- this addon's own frames. Test mode refuses a start in combat and while General visibility keeps
--- the window shut; the refusal is printed, as `/bl test` prints it.
+-- THE PREVIEW (spec.preview, LibKa0s OptionsSkinPicker 11; Ka0sAddonsCommonTasks
+-- docs/2026-11-03-SMOKE_ROUND6/, item R6-PV, the lead's call 2: test mode, `/bl test`; it replaces
+-- DECISIONS BankLedger D8's enter-only eye). The ledger window in test mode, so the player sees the
+-- skin on this addon's own frames. When the picker shows with test mode off and the ledger window
+-- hidden, the library enters test mode; the eye turns it off and on; every close (Apply, the close
+-- control, the gear, Escape, NS.HideSkinPicker) puts back the state the picker opened on. `enter`
+-- and `exit` are LT:SetTestMode, the one path the Master controls checkbox, `/bl test` and the
+-- combat ending take, so the checkbox and the launcher follow and the start's refusals still apply
+-- (combat, a running simulation, General visibility), printed as `/bl test` prints them. A STOP
+-- never hides anything on its own, so `exit` closes the ledger window only when this preview's
+-- `enter` was what opened it; a window the player opened stays open on real data. The close does
+-- the same for a window the preview opened that is still up (a pull ended test mode under the
+-- picker, or the restore's start reopened a window the player had closed).
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- O.SkinPicker queues this one and answers nil, "queued", which NS.MaybeShowSkinPicker passes
@@ -402,22 +414,56 @@ local PICKER_PATH = "settings.appearance.pickerSeen"
 local pickerTarget       -- the one-shot PLAYER_REGEN_ENABLED target, while a start is held
 local quietClose = false -- true while NS.HideSkinPicker takes the picker down
 
---- The eye: the ledger window in test mode. A mode already on only needs the window shown; a start
---- opens the window itself (LT:SetTestMode), and a refused start prints its own line.
-local function previewSkin()
+local previewOpened = false -- true while the ledger window is up because the preview's enter opened it
+
+--- Test mode on? The Test mode row's own `get` and the launcher's `isTestMode` read the same.
+local function previewActive()
   local LT = NS.LedgerTable
-  if not (LT and LT.SetTestMode and LT.IsTestMode) then return end
-  if LT:IsTestMode() then
-    if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
-    return
-  end
-  local _, refusal = LT:SetTestMode(true)
-  if refusal and NS.Print then NS.Print(refusal) end
+  return LT ~= nil and LT.IsTestMode ~= nil and LT:IsTestMode() and true or false
 end
 
---- The player's close: the picker seen, and nothing else (the library's put-back wears the stored
---- choice already).
+--- The ledger window shown? The launcher's `isWindowShown` reads the same.
+local function previewShown()
+  local f = NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow()
+  return f ~= nil and f:IsShown() and true or false
+end
+
+--- Test mode on through LT:SetTestMode, which opens the ledger window itself; a refused start prints
+--- its own line. Notes whether this call is what put the window up.
+local function previewEnter()
+  local LT = NS.LedgerTable
+  if not (LT and LT.SetTestMode) then return false end
+  local hidden = not previewShown()
+  local on, refusal = LT:SetTestMode(true)
+  if refusal and NS.Print then NS.Print(refusal) end
+  if on and hidden and previewShown() then previewOpened = true end
+  return on and true or false
+end
+
+--- Test mode off through LT:SetTestMode, and the ledger window closed (B:Hide, `/bl hide`'s call)
+--- when the preview's enter opened it.
+local function previewExit()
+  local LT = NS.LedgerTable
+  if not (LT and LT.SetTestMode) then return false end
+  LT:SetTestMode(false)
+  if previewOpened then
+    previewOpened = false
+    if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
+  end
+  return true
+end
+
+--- The close, by any route (the library has already put the preview's mode back): a ledger window
+--- the preview opened and nothing has closed yet is closed (B:Hide), so the window is back as the
+--- picker found it, hidden. That covers a pull that ended test mode under the picker (the mode owes
+--- no restore, and a stop never hides) and a restore whose start reopened a window the player had
+--- closed. Then, on the player's close, the picker seen and nothing else (the library's put-back
+--- wears the stored choice already).
 local function pickerClosed()
+  if previewOpened then
+    previewOpened = false
+    if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
+  end
   if quietClose then return end
   local S = NS.Schema
   if not (NS.db and S and S.Set) then return end
@@ -433,7 +479,11 @@ function NS.SkinPickerSpec()
     -- matches it exactly; the page's display name "General" opens the landing page instead), and
     -- "Appearance" is the group of the skipRender appearance rows.
     page = "general", tab = "Appearance",
-    onPreview = previewSkin, onClose = pickerClosed,
+    preview = {
+      mode = "test", enter = previewEnter, exit = previewExit,
+      isActive = previewActive, isShown = previewShown,
+    },
+    onClose = pickerClosed,
   }
 end
 
@@ -484,6 +534,51 @@ function NS.MaybeShowSkinPicker()
   return O.SkinPicker(NS.SkinPickerSpec())
 end
 
+-- ── the one-time skin notice (LibKa0s OptionsSkinPicker minor 9, SG-L3) ────────────────────────
+-- A release that wants every account to learn skins exist raises lib.SKIN_NOTICE_VERSION. The first
+-- addon to ask in a session claims the notice and shows the picker; every other addon records the
+-- version and stays quiet. The record is `db.global.skinNotice`, a number: account-wide, so a profile
+-- switch never shows it twice. In combat nothing is claimed; it asks again every NOTICE_RETRY seconds until combat ends.
+local NOTICE_RETRY = 5   -- seconds between asks while the player is in combat
+local noticeWaiting = false
+
+local function noticeGlobal()
+    local d = NS.db or (NS.addon and NS.addon.db)
+    return d and d.global or nil
+end
+
+local noticeStore = {
+    get = function() local g = noticeGlobal(); return g and g.skinNotice or nil end,
+    set = function(v) local g = noticeGlobal(); if g then g.skinNotice = v end end,
+}
+
+function NS.MaybeShowSkinNotice()
+    local O = NS.Helpers
+    if not (O and type(O.SkinNotice) == "function" and noticeGlobal()) then return nil, "unavailable" end
+    if NS.IsStoodDown and NS.IsStoodDown() then
+        -- A stood-down addon shows nothing, but a seen record still silences the rest (SG-L3).
+        O.SkinNotice(nil, noticeStore, true)
+        return nil, "standdown"
+    end
+    local spec = NS.SkinPickerSpec()
+    local frame, why = O.SkinNotice(spec, noticeStore)
+    if why == "combat" and not noticeWaiting and type(_G.C_Timer) == "table" and _G.C_Timer.After then
+        noticeWaiting = true
+        _G.C_Timer.After(NOTICE_RETRY, function()
+            noticeWaiting = false
+            NS.MaybeShowSkinNotice()
+        end)
+    end
+    return frame, why
+end
+
+local pickerFirstRun = NS.MaybeShowSkinPicker
+function NS.MaybeShowSkinPicker()
+    local frame, why = NS.MaybeShowSkinNotice()
+    if frame or why == "queued" then return frame, why end
+    return pickerFirstRun()
+end
+
 --- `/bl skin` (settings/Schema.lua's `skin` row). The library prints its own lines: combat on every
 --- call, queued behind another addon's picker, unavailable. The dispatcher refuses the verb while the
 --- addon is disabled, so this never checks. Without LibKa0s the Options stub answers nil, "absent".
@@ -530,8 +625,16 @@ if not Skin then
     "GetAccentColor", "GetPanelColor", "GetFont",
     "TitleBar", "Divider", "Footer", "Card", "Slider", "NavItem", "Drawer", "ListRow", "MenuFrame",
     "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
-    "BarTexture", "FontFlags", "HudFontSize",
+    "BarTexture", "FontFlags", "HudFontSize", "Mark",
+    -- LibKa0s v1.85.0: nil is each getter's degraded answer, and BarGloss and HoverArt draw nothing.
+    -- This addon has no HUD, so none of the six has a caller; they answer so a future one degrades
+    -- quietly.
+    "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss", "HoverArt",
+    -- LibKa0s v1.85.0 round 5: S.Header places a header's children on the band and is a no-op
+    -- here; S.Band (below) answers nil, because without the library no Shell draws a band.
+    "Header",
   }) do S[name] = noop end
+  S.Band = function() return nil end
 
   S.Token = function(name)
     local t = NS.SKIN_TOKENS[name]
@@ -654,6 +757,55 @@ if not Skin then
   S.HudFontSize = function(size)
     local n = tonumber(size)
     return (n and n > 0) and n or 12
+  end
+  -- LibKa0s v1.85.0 (SkinPaintExtras minor 9): a string a caller concatenates, so never nil. The
+  -- History table's marks read icon.arrow, so the tint is the host copy's; a token it does not hold
+  -- draws the art's own color.
+  S.MarkText = function(path, size, token)
+    size = size or 14
+    local r, g, b = color(token or "icon.tint")
+    if not r then return ("|T%s:%d:%d|t"):format(path, size, size) end
+    local function byte(v) return math.floor(v * 255 + 0.5) end
+    return ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(path, size, size, byte(r), byte(g), byte(b))
+  end
+  -- The re-cut v1.85.0 (SkinPaintExtras minor 14): the one member that must draw, or a caller's
+  -- string has no face. The stub of the library's Options document, *Moving to this version*, step
+  -- 7: no skin to read, so the face falls straight to the client's and flags go through FontFlags,
+  -- which never hands SetFont the "@skin" sentinel. Both shadow arms are written, so a cleared
+  -- shadow clears.
+  S.HudFont = function(fs, opts)
+    opts = type(opts) == "table" and opts or {}
+    local face = opts.face
+    if type(face) ~= "string" or face == "" then face = STANDARD_TEXT_FONT end
+    if type(face) ~= "string" then return nil end
+    fs:SetFont(face, S.HudFontSize(opts.size), S.FontFlags(opts.flags))
+    local on = opts.shadow and true or false
+    fs:SetShadowColor(0, 0, 0, on and 1 or 0)
+    fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
+  end
+  -- The re-cut v1.85.0 (SkinPaintExtras minor 15): with no skin the stored border stands, so the
+  -- stub answers its first three arguments. No caller here; it must not lose a future one's border.
+  S.BarBorder = function(style, show, size) return style, show, size end
+  -- The ledger window's tabs (modules/Browser.lua): the look they drew before the skin engine, a
+  -- label in gold or gray and, selected, a 2px gold underline. No backing, and no rule.
+  local function paintTab(tab, selected)
+    S.Text(tab.__label, selected and "accent" or "muted")
+    tab.__line:SetShown(selected == true)
+  end
+  S.Tab = function(tab, opts)
+    if type(tab) ~= "table" or type(tab.CreateTexture) ~= "function" then return end
+    if type(opts) ~= "table" then return end
+    tab.__label = opts.text
+    local line = tab:CreateTexture(nil, "ARTWORK")
+    line:SetColorTexture(color("tab.onLine"))
+    line:SetHeight(2)
+    line:SetPoint("BOTTOMLEFT", 8, 0)
+    line:SetPoint("BOTTOMRIGHT", -8, 0)
+    tab.__line = line
+    paintTab(tab, opts.selected)
+  end
+  S.SetTabSelection = function(tab, selected)
+    if type(tab) == "table" and tab.__line then paintTab(tab, selected) end
   end
   S.GetPanelColor = function() return color("win.bg") end
   S.GetFont = function() return STANDARD_TEXT_FONT end

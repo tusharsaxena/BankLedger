@@ -926,6 +926,12 @@ end
 --- leaves the title at 1x.
 function W.ReskinDivider(f)
   NS.Skin.Text(f.fs, "heading")
-  local file, size, flags = f.fs:GetFont()
+  -- The size to scale is the skin's font OBJECT's, never the string's own: SetFont below leaves the
+  -- object assigned, and a replay that sees the same object may not reset the string, so reading
+  -- the string would scale an already-scaled size on every switch (SF-BL-1).
+  local obj = f.fs.GetFontObject and f.fs:GetFontObject()
+  local file, size, flags
+  if obj and obj.GetFont then file, size, flags = obj:GetFont() end
+  if type(size) ~= "number" then file, size, flags = f.fs:GetFont() end
   if type(size) == "number" then f.fs:SetFont(file, size * 1.5, flags) end
 end

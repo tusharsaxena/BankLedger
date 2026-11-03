@@ -23,15 +23,15 @@ local NS = {}
 local SUITES = {
   "test_util", "test_compat", "test_constants", "test_filters",
   "test_ledger", "test_backfill", "test_ledger_guildbank", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
-  "test_browser", "test_browser_views", "test_autocomplete", "test_launcher", "test_sessionwindow", "test_insights",
+  "test_browser", "test_browser_views", "test_autocomplete", "test_launcher", "test_launcher_skin_entry", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
   "test_panel", "test_panel_filters", "test_keybinds", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
   "test_marks", "test_libka0s", "test_libka0s_slash", "test_vendor_sync", "test_poolsetup", "test_itemsetup",
   "test_lifecycle", "test_disabled", "test_surface_parity", "test_register", "test_docs",
   "test_lintconfig", "test_diagnostics", "test_profiles", "test_debug_coverage", "test_debug_library",
   "test_sim_seam", "test_sim_world", "test_sim_drivers", "test_sim_session", "test_sim_scenario", "test_sim_e2e",
-  "test_sim_panel", "test_layers", "test_skinsetup", "test_skin_windows", "test_skin_literals",
-  "test_skin_picker", "test_skin_tools", "test_skin_outline", "test_skin_verb", "test_glyphs",
+  "test_sim_panel", "test_sim_checkbox", "test_layers", "test_skinsetup", "test_skin_windows", "test_skin_chrome",
+  "test_skin_picker", "test_skin_picker_preview", "test_skin_tools", "test_skin_outline", "test_skin_verb", "test_glyphs",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
@@ -44,6 +44,10 @@ local SUITES = {
   -- Kit revision 35's sighted-lizard gate (automated-tests-§3): pins the sanitizer the complexity
   -- suite measures through, and runs lizard on a hazard fixture when it is on PATH.
   { name = "test_lizard_sighted", dir = "tests/_kit/" },
+  -- Kit revision 50's skin gates (skinning-§1): the typed-value gate and the probe-skin switch test,
+  -- run against Kit.skinValues and Kit.skinSwitch below.
+  { name = "test_skin_values", dir = "tests/_kit/" },
+  { name = "test_skin_switch", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
@@ -110,6 +114,35 @@ _G.BL_TEST = Kit.expose{
   makeMocks = function() return dofile("tests/wow_mock.lua")() end,
 }
 
+-- Every case ends with the skin picker down (NS.HideSkinPicker, the quiet close: nothing marked
+-- seen). A case that resets or switches the profile, or runs the login timer, shows the first-run
+-- picker on the way, and since LibKa0s OptionsSkinPicker 11 (R6-PV) a picker that shows with the
+-- ledger window hidden turns test mode on through spec.preview. Left up, it kept the sample dataset
+-- on for every later case; its close puts test mode back off. The picker's own suites close it
+-- themselves and pin what each close route does.
+do
+  local T = _G.BL_TEST
+  local caseOf = T.test
+  T.test = function(name, fn, ...)
+    if type(fn) ~= "function" then return caseOf(name, fn, ...) end
+    return caseOf(name, function(...)
+      local ok, err = pcall(fn, ...)
+      if NS.HideSkinPicker then NS.HideSkinPicker() end
+      if not ok then error(err, 0) end
+    end, ...)
+  end
+  -- `fn` with the first-run picker held off (NS.MaybeShowSkinPicker a no-op, put back after), for a
+  -- case about a profile act's own effects (its log lines, its repaints, the window bar it leaves),
+  -- not about the picker the act's unseen profile shows and the test mode that picker enters.
+  T.withoutFirstRunPicker = function(fn)
+    local real = NS.MaybeShowSkinPicker
+    NS.MaybeShowSkinPicker = function() return nil end
+    local ok, err = pcall(fn)
+    NS.MaybeShowSkinPicker = real
+    if not ok then error(err, 0) end
+  end
+end
+
 NS:InitDB()
 -- Mirror the in-game lifecycle: OnInitialize registers the schema, OnEnable arms the capture
 -- engine. Enabling the Ledger here is what wires its SettingsChanged subscription, so the tests
@@ -133,5 +166,8 @@ Kit.diagnostics = {
   setDebug    = function(on) NS.State.debug = on and true or false end,
   setDisabled = function(off) NS.SetDisabledHold(off) end,
 }
+
+-- Kit revision 50's skin gates (skinning-§1): this addon's facts are tests/skin_facts.lua.
+Kit.skinValues, Kit.skinSwitch = dofile("tests/skin_facts.lua")(_G.BL_TEST)
 
 Kit.run{ dir = "tests/", suites = SUITES }

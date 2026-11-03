@@ -40,8 +40,8 @@ the bodies reach the module through that file-local upvalue and through `NS`, ne
 receiver. The receiver is still load-bearing, because every call site is a colon call through the
 namespace (`NS.Browser:Show()`, `NS.Schema:Set(path, v)`) -- roughly 900 of them across the addon
 and the suites -- so deleting it would shift every argument one place to the left at all of them.
-Each of those 12 files therefore carries a `files[...]` stanza (14 stanzas today: later files of the
-same shape, most recently `modules/Ledger_Diagnose.lua`, took one each) naming that one file and that one
+Each of those 12 files therefore carries a `files[...]` stanza (16 stanzas today: later files of the
+same shape, most recently `modules/Browser_Chrome.lua`, took one each) naming that one file and that one
 variable, with a comment saying which convention forces it. Re-measured 2026-09-14 with those
 stanzas stripped: still 119 `212/self` findings across the same 12 of the 61 linted files, and
 nothing else.
@@ -254,8 +254,15 @@ tests/
                            --   its own `crashed` complexity bucket, never a pass (kit revision 41)
     lizard_sighted.lua     --   the sanitized shadow the complexity suite measures, and its parity
                            --   check (kit revision 35; wired as the test_lizard_sighted gate)
+    skin_values.lua        --   the typed-value gate, wired as test_skin_values with
+                           --   tests/skin_facts.lua's facts (kit revision 50)
+    skin_switch.lua        --   the probe-skin switch test, wired as test_skin_switch with
+                           --   tests/skin_facts.lua's surfaces (kit revision 50)
     README.md
-  run.lua                  -- the load list, the lifecycle kick and the suite list — nothing else
+  run.lua                  -- the load list, the lifecycle kick, the suite list and the per-case
+                           --   skin picker takedown (below) — nothing else
+  skin_facts.lua           -- Kit.skinValues and Kit.skinSwitch: the gate's rows and calls, and every
+                           --   painted surface, one narrow object each. Not a suite
   wow_mock.lua             -- Bank Ledger's extender over _kit/mock_base.lua (a fresh env per run)
   degraded_env.lua         -- builds a SECOND environment with libs/LibKa0s left out of the load
                            --   list, so the degradation stubs are exercised as a LOAD rather than
@@ -373,6 +380,13 @@ tests/
   the mock `LibStub`'s own answer, written into the map because a table source is all-or-nothing.
   `LibKa0s-Schema-1.0` is in it for the same reason: its stub LIBRARY is compared by name, while its
   stub INSTANCE, which has no member manifest, is compared two-table against `NS.SchemaRuntime`.
+- `run.lua` wraps `BL_TEST.test` so that every case ends with `NS.HideSkinPicker()`, the quiet
+  close. A case that resets or switches the profile, or runs the login timer, shows the first-run
+  skin picker on the way, and since LibKa0s OptionsSkinPicker 11 (`R6-PV`) that picker turns test
+  mode on through `spec.preview` when the ledger window is closed; left up, it kept the sample
+  dataset on for every later case. It also publishes `BL_TEST.withoutFirstRunPicker(fn)`, which holds
+  `NS.MaybeShowSkinPicker` off for a case about a profile act's own lines, repaints or bar, not the
+  picker's. `test_skin_picker.lua` and `test_skin_picker_preview.lua` drive the picker themselves.
 - `_kit/loader.lua` reproduces the addon's two-vararg header by calling each chunk as
   `chunk("BankLedger", NS)` under an environment where WoW globals resolve to the mock table first
   and fall back to real `_G`. It also provides `Loader.tocFiles`, which is what removed the

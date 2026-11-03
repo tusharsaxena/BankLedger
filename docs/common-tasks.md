@@ -81,7 +81,7 @@ back to the tab.
    (`NS.Skin`, `core/SkinSetup.lua`), chosen on the Skin tab; a setting over one is a second answer to
    the same question. Read the token at the call site (`NS.SkinColor`, `S.Text`, ...) instead, and
    where Ka0s Default needs a value no library token holds exactly, declare an owner token in
-   `NS.SKIN_TOKENS` (`bl.*`). `tests/test_skin_literals.lua` refuses a typed color outside that file
+   `NS.SKIN_TOKENS` (`bl.*`). The kit's `test_skin_values` refuses a typed color or texture outside that file
    (anti-pattern #107).
 
 ## Add a slash command

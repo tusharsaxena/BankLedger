@@ -92,6 +92,25 @@ local function newSimStub(say)
   return sim
 end
 
+-- ── the Sim mode pair (Launcher minor 7, OptionsCompose minor 19) ──────────────────────────────
+--
+-- ONE pair for every Sim mode switch: the launcher menu's entry (core/LauncherSetup.lua) and the
+-- Master controls checkbox (settings/Schema.lua's S:ComposeMaster) both take these two functions,
+-- so neither can drift from `/bl sim`. IsSimMode answers whether a session runs. ToggleSim is the
+-- typed verb's own acts: stop a running sim, otherwise the bare verb (the status, the verbs and the
+-- sim panel, where a scenario is picked). Both read NS.Sim at call time, the live instance
+-- modules/Sim.lua builds or the stub below.
+function NS.IsSimMode()
+  local s = NS.Sim
+  return type(s) == "table" and type(s.IsActive) == "function" and s:IsActive() == true
+end
+
+function NS.ToggleSim()
+  local s = NS.Sim
+  if type(s) ~= "table" or type(s.RunVerb) ~= "function" then return end
+  s:RunVerb(NS.IsSimMode() and "stop" or "")
+end
+
 -- ── the seam ──────────────────────────────────────────────────────────────────────────────────
 
 if Sim then

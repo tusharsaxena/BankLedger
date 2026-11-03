@@ -1,12 +1,12 @@
-# Ka0s Bank Ledger
+# Bank Ledger
 
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1534%2F1534_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1653%2F1653_passing-green)
 
-Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
+Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
 when. Gold is tracked the same way at the two banks that hold gold.
 
@@ -93,7 +93,10 @@ steps; Pause holds it, and clicking a row plays it by hand. **Simulation step de
 Interface tab changes that. Nothing a simulation does is saved and your real history is never touched. It won't start
 in combat, in test mode, with a real bank open, while General visibility keeps the window shut, or
 while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
-and `/reload`. `/bl purge` is refused until it is over.
+and `/reload`. `/bl purge` is refused until it is over. The **Sim mode** box on the settings'
+Master controls tab, on its own line below Test mode, and the matching entry in the minimap button's
+right-click menu are the same switch: tick it with nothing running and the step panel opens so you
+can pick a scenario, untick it and the running one stops.
 
 The look is per profile too. A small **Choose a skin** window opens once on each profile, and
 `/bl skin` brings it back any time. Pick a skin there, along with the font, texture and text outline,
@@ -179,5 +182,6 @@ lives.
 The icons come from [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, under the MIT
 license: the window close buttons, the search magnifier, the dropdown chevron and its tick, the sort
 arrows and group expanders, the export mark, the debug console's close, copy and clear buttons, the
-test-mode strip's info mark, and the skin picker's preview eye and settings gear. Only the icons the
-addon draws are shipped, with their license text beside them.
+test-mode strip's info mark, the scroll bars' arrows, the skin picker's preview eye, settings gear and
+reset mark, and the move and sound marks of the library's shared controls. Only the icons the addon
+draws are shipped, with their license text beside them.

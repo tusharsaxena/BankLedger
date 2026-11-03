@@ -16,10 +16,10 @@ local frame
 
 -- The window CHROME's geometry: every height the layout is measured from. No color is here: the
 -- window's look is the player's skin (the Skin tab; core/SkinSetup.lua's NS.Skin, over
--- LibKa0s-Skin-1.0) -- the edge, the title bar, the divider, the close control, the tab labels and
--- underline, the buttons, the footers and every tooltip line read its tokens, and a skin switch
--- repaints them live (anti-pattern #107: no typed look value). Ka0s Default's tokens are the values
--- these surfaces drew before the skin engine.
+-- LibKa0s-Skin-1.0) -- the edge, the title bar, the close control, the tabs and the rule under them, the
+-- buttons, the footer band and every tooltip line read its tokens, and a skin switch repaints them
+-- live (anti-pattern #107: no typed look value). `titleBarH` is what the layout below measures from:
+-- the bars themselves take the skin's `title.height`, which skinning-§4 holds the same in every skin.
 local SKIN = {
   titleBarH   = 30,
   tabStripH   = 26,
@@ -106,8 +106,7 @@ function B:SelectTab(name)
   for _, t in ipairs(TABS) do
     local active = (t == name)
     frame.panes[t]:SetShown(active)
-    NS.Skin.Text(frame.tabs[t].label, active and "accent" or "muted")
-    frame.tabs[t].underline:SetShown(active)
+    NS.Skin.SetTabSelection(frame.tabs[t], active)
   end
   BuildPane(name)
   -- After lastTab moves, so the incoming tab's filter is applied as that tab's (ApplyFilter reads
@@ -138,32 +137,23 @@ local function CreateTabStrip()
     label:SetPoint("CENTER")
     label:SetText(name)
     tab.label = label
-    local underline = tab:CreateTexture(nil, "ARTWORK")
-    underline:SetColorTexture(NS.SkinColor("tab.onLine"))
-    underline:SetHeight(2)
-    underline:SetPoint("BOTTOMLEFT", 8, 0)
-    underline:SetPoint("BOTTOMRIGHT", -8, 0)
-    tab.underline = underline
+    NS.Skin.Tab(tab, { text = label, selected = name == lastTab })
     tab:SetScript("OnClick", function() B:SelectTab(name) end)
     frame.tabs[name] = tab
     x = x + 94
   end
-end
 
--- The tabs on a skin switch (OnLooksChanged, below). They are not the skin's Tab primitive: on Ka0s
--- Default that draws the settings tab strip's gradient backing, which these tabs never had, so the
--- tabs keep their own two calls and take only the colors from the skin -- each label through
--- `S.Text` in `accent` / `muted` by the active tab, as SelectTab paints it, and the underline in
--- `tab.onLine` (the rollout's D5, Loot History's way). Ka0s Default's are the gold and gray these
--- tabs always drew. Nothing to do before the window is built.
-local function ReskinTabs()
-  if not (frame and frame.tabs) then return end
-  for name, tab in pairs(frame.tabs) do
-    NS.Skin.Text(tab.label, name == lastTab and "accent" or "muted")
-    tab.underline:SetColorTexture(NS.SkinColor("tab.onLine"))
-  end
+  -- The rule the tabs stand on: a 1px frame inside the gap under the strip, so the layout does not
+  -- move. Never a direct region of this window: EllesmereUI's FadeRegions fades every direct region
+  -- of the frame it skins, and a texture here would be erased with them. A body rule, not a header
+  -- line, so it stays (R4-SEP).
+  local rule = CreateFrame("Frame", nil, frame)
+  rule:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, 0)
+  rule:SetPoint("TOPRIGHT", strip, "BOTTOMRIGHT", 0, 0)
+  rule:SetHeight(1)
+  NS.Skin.Divider(rule, { token = "tab.rule" })
+  frame.tabRule = rule
 end
-if NS.Skin then NS.Skin.OnLooksChanged(ReskinTabs) end
 
 -- ── Filter bar ────────────────────────────────────────────────────────────────
 -- Compact custom dropdowns + a search box matching the flat skin. Deliberately not Blizzard's
@@ -743,8 +733,11 @@ end
 
 local function buildModeStrip(filterHost, kind, text)
   if not (W and W.TestStrip) then return nil end
+  -- sim / onEnd (LibKa0s Widgets minor 21, SF-F1): the strip's right-click menu ends the mode.
+  local isSim = kind == "sim"
   local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info"),
-    owner = addonName })
+    owner = addonName, sim = isSim and NS.Sim or nil,
+    onEnd = (not isSim) and function() NS.LedgerTable:SetTestMode(false) end or nil })
   strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
   strip:EnableMouse(true)
@@ -982,25 +975,29 @@ local function EnsureFrame()
   testBadge:Hide()
   frame.testBadge = testBadge
 
-  -- The title bar's fill through the skin's TitleBar (Ka0s Default's title.bg band, which the
-  -- rollout's D6 accepts on this 30px bar). The title text is not handed over: it is the window's
-  -- `frame.title`, which the Shell (B:ApplySkin below) paints in the title color and font.
-  NS.Skin.TitleBar(titleBar)
+  -- The title bar through the skin's TitleBar: its title.bg band (the rollout's D6). Where the bar
+  -- and the title stand is S.Header's, below.
+  NS.Skin.TitleBar(titleBar, { text = title })
 
-  -- The divider under the title bar is a 1px FRAME, and the skin's Divider draws its line on that
-  -- frame's own holder. Never a direct region of this window: EllesmereUI's FadeRegions fades every
-  -- direct region of the frame it skins, and a texture here would be erased with them. Held as
-  -- `dividerBar` rather than the edge's `divider` field, which names a texture to tint.
+  -- A 1px FRAME under the title bar, with nothing drawn on it: no window has a line under its
+  -- title band (R4-SEP, the owner's round 4 sign-off, as the Skin Tester's showroom). It stays as
+  -- the anchor the tab strip hangs from (CreateTabStrip), so the layout does not move. Held as
+  -- `dividerBar` rather than the edge's `divider` field, which names a texture ApplySkin would hide.
   local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
   divider:SetHeight(1)
-  NS.Skin.Divider(divider)
   frame.dividerBar = divider
 
   local close = B:MakeCloseButton(titleBar, function() B:Hide() end)
   close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
   frame.closeButton = close
+  -- The header on the window's band (S.Band, R5-WIN of the smoke round 5): the bar takes the band's
+  -- rect, Shell's own inset and title.height in every skin, so no body color shows between the edge
+  -- and the band; the title (by title.align) and the close are anchored to the band at y 0, its
+  -- middle. The badge rides the title's right edge, so it is on the same middle. Degraded, Header is
+  -- a no-op and the anchors above stand.
+  NS.Skin.Header(frame, { title = title, right = { close }, bars = { titleBar } })
 
   -- Shared window chrome: one filter bar above both panes (each tab's own state painted onto it),
   -- one shared footer below them.
@@ -1039,13 +1036,20 @@ local function EnsureFrame()
   -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
   -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so
   -- the two never overlap.
-  -- Both in the skin's `text.disabled`, the gray their font object draws on Ka0s Default. No footer
-  -- band: the window never drew one.
-  local footer = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  -- Both in the skin's `text.disabled`, the gray their font object draws on Ka0s Default, on the
+  -- skin's footer band (foot.bg). The band is a frame inside the window's 1px edge that ends where
+  -- the panes do, and the strings are its children, or the band would cover them.
+  local footerBar = CreateFrame("Frame", nil, frame)
+  footerBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 1, 1)
+  footerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
+  footerBar:SetHeight(FOOTER_H - 1)
+  NS.Skin.Footer(footerBar)
+  frame.footerBar = footerBar
+  local footer = footerBar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 8, 3)
   NS.Skin.Text(footer, "disabled")
   B._footer = footer
-  local dbFooter = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  local dbFooter = footerBar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   dbFooter:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 3)
   dbFooter:SetJustifyH("RIGHT")
   NS.Skin.Text(dbFooter, "disabled")
@@ -1065,7 +1069,7 @@ local function EnsureFrame()
   -- ApplyGeometry write geometry (docs/schema.md). The table re-flows live without it, through the
   -- scroll frame's own OnSizeChanged (modules/LedgerTable.lua).
   NS.MakeResizable(frame, {
-    minWidth = minW, minHeight = minH,
+    minWidth = minW, minHeight = minH, owner = addonName,
     onResizeStop = function()
       B:SaveGeometry()
       if NS.LedgerTable and NS.LedgerTable.Refresh then NS.LedgerTable:Refresh() end

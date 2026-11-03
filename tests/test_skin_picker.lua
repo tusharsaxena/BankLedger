@@ -6,8 +6,9 @@
 -- shows (a profile whose `pickerSeen` is false, once after login and after every profile event,
 -- never while the addon stands down, held through combat); and that only the player's close marks
 -- it seen. The trigger cases spy on O.SkinPicker; the last cases drive the library's real window:
--- a pick previews unsaved and Apply saves it, the close control puts the stored skin back, the
--- eye opens the ledger window in test mode, and the stand-down takes a pending preview down unseen.
+-- a pick previews unsaved and Apply saves it, the close control puts the stored skin back, and the
+-- stand-down takes a pending preview down unseen. The eye (spec.preview, test mode) is
+-- tests/test_skin_picker_preview.lua's.
 --
 -- Ka0s Loot History's tests/test_skin_picker.lua is the pattern. Leaves the harness on `Default`,
 -- the picker down and marked unseen, the skin on Ka0s Default.
@@ -126,7 +127,8 @@ test("Skin picker: the spec names this owner, its seams, the Skin tab and the ey
   assertEqual(panelKey, registered, "the General panel's pageKey is its registered key")
   assertEqual(spec.page, registered, "the gear opens the page by its registered key")
   assertEqual(spec.tab, "Appearance", "the Skin tab's key")
-  assertEqual(type(spec.onPreview), "function", "the eye: this addon has a window to preview in (X6)")
+  assertEqual(type(spec.preview), "table", "the eye: this addon has a window to preview in (X6)")
+  assertEqual(spec.onPreview, nil, "spec.preview, not the one-shot onPreview (R6-PV)")
   assertEqual(type(spec.onClose), "function")
 end)
 
@@ -306,43 +308,6 @@ test("Skin picker: the close control puts the stored skin back, saves nothing, a
     assertEqual(stored(), "ka0s", "and writes nothing")
     assertEqual(NS.Schema:Get(PATH), true, "a close by the player still counts as seen")
   end)
-end))
-
-test("Skin picker: the eye opens the ledger window in test mode", clean(function()
-  -- DECISIONS BankLedger D8. red under: an onPreview that opens nothing, or one that starts test
-  -- mode a second time over a mode already on.
-  local LT, B = NS.LedgerTable, NS.Browser
-  local ok, err = pcall(function()
-    quietly(function() NS.SkinPickerSpec().onPreview() end)
-    assertTrue(LT:IsTestMode(), "the eye did not start test mode")
-    local f = B:GetWindow()
-    assertTrue(f ~= nil and f:IsShown(), "the eye did not show the ledger window")
-    B:Hide()
-    quietly(function() NS.SkinPickerSpec().onPreview() end)
-    assertTrue(B:GetWindow():IsShown(), "with test mode already on, the eye still shows the window")
-  end)
-  quietly(function() if LT:IsTestMode() then LT:SetTestMode(false) end end)
-  B:Hide()
-  if not ok then error(err, 0) end
-end))
-
-test("Skin picker: the eye in combat starts nothing and says why", clean(function()
-  local LT = NS.LedgerTable
-  local real = mocks.InCombatLockdown
-  mocks.InCombatLockdown = function() return true end
-  local lines = {}
-  local cf = mocks.DEFAULT_CHAT_FRAME
-  local add = cf.AddMessage
-  cf.AddMessage = function(_, m) lines[#lines + 1] = m end
-  local ok, err = pcall(function()
-    NS.SkinPickerSpec().onPreview()
-    assertFalse(LT:IsTestMode(), "test mode started in combat")
-    assertEqual(#lines, 1, "the refusal is printed once")
-    assertTrue(tostring(lines[1]):find("combat", 1, true) ~= nil, "the line names combat")
-  end)
-  cf.AddMessage = add
-  mocks.InCombatLockdown = real
-  if not ok then error(err, 0) end
 end))
 
 test("Skin picker: the stand-down with a preview pending puts the old skin back, unsaved, unseen", clean(function()

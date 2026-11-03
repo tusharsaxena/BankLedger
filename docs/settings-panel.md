@@ -15,7 +15,7 @@ only. The finer tree is everything below it.
 
 | Tab | Covers |
 | --- | ------ |
-| Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), put the windows back where they started, or return every setting to stock. |
+| Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), run the simulator (**Sim mode**, the same as `/bl sim`), put the windows back where they started, or return every setting to stock. |
 | Capture | What actually gets recorded: **Record items** beside **Minimum quality** (items only; gold has no quality), **Record gold** under them, and which banks you care about, under the **Banks to record** heading. |
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your Minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all…**, below the list, empties it after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
 | Interface | What is on screen, under two headings. **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
@@ -150,9 +150,12 @@ it (a pick back to that look restores them). The rows preview the same way. **Ap
 then a changed Scope, then a changed font, texture or outline, through `NS.WriteSkinChoice` and closes
 the picker; **Apply to all Ka0s addons** does that and gives every other Ka0s addon that uses skins the
 same skin source, skin, Scope, font, texture and outline. The close control and Escape put back what
-the profile stores and save nothing. The eye turns test mode on (`LT:SetTestMode(true)`),
-which opens the ledger window with the sample ledger, so the skin shows on this addon's own frames; in
-combat test mode refuses and says so. The gear saves as Apply does, opens the settings panel on the
+the profile stores and save nothing. The picker's preview is test mode (`/bl test`): when the picker
+shows with test mode off and the ledger window closed, test mode turns on (`LT:SetTestMode(true)`),
+which opens the ledger window with the sample ledger, so the skin shows on this addon's own frames.
+The eye turns test mode off and on (lit while on, dimmed while off, its tooltip saying which), and
+however the picker closes, test mode and the window go back to how they were when it opened. A ledger
+window already open is left alone. In combat test mode refuses and says so. The gear saves as Apply does, opens the settings panel on the
 General page itself and selects its Skin tab, then closes the picker. Closing it by Apply, the gear,
 its close control or Escape sets `pickerSeen`, so it does not show again on that profile. One picker
 is up at a time across Ka0s addons; while another's is up this one waits in the library's queue. A
@@ -221,6 +224,7 @@ emits the canonical set from one declaration, so nine addons cannot drift into n
 | Master scale | Master opacity |
 | Lock frame | Debug console |
 | Minimap button | Test mode |
+| Sim mode | |
 | Reset position | Reset all settings |
 
 Bank Ledger draws three movable frames — the ledger window (`modules/Browser.lua`), the session
@@ -294,6 +298,24 @@ frameless** and every frame-only row applies.
     profile reset cannot reach it; the profile handler (`NS.OnProfileEvent`) ends it by name on
     every reset, and closes the debug console the same way (`state.debugConsole` defaults to
     false).
+- **Sim mode** (`state.sim`, session-only, opening the fifth line below *Test mode*; LibKa0s compose
+  minor 19, R6-SIM) is the simulator's box, the owner's "a sim checkbox in settings (next to test)".
+  The composer emits it, with its own `get` and `set`, from the pair `S:ComposeMaster` passes as
+  `isSimMode` / `toggleSim`: `NS.IsSimMode` and `NS.ToggleSim` (`core/SimSetup.lua`), the same two
+  functions the launcher menu's *Sim mode* entry takes, so the box, the entry and `/bl sim` are one
+  act. `S.MASTER_DECOR` adds the widget name only. Its tooltip is the composer's, then
+  `S.MASTER_SPEC.notes.simMode`.
+  - **Ticking it** with no simulation running runs the bare `/bl sim`: the status line, the verbs and
+    the step panel, where a scenario starts. The box reads the live session, so it ticks once a
+    scenario runs and stays unticked if none does or the start is refused (test mode, combat, a real
+    bank frame, General visibility).
+  - **Unticking it** runs `/bl sim stop`.
+  - **It follows the session.** `modules/Sim.lua`'s session listener calls `NS.Panel:Refresh()`
+    (`O.RefreshScalars()`) on every start and stop, so a simulation started from the slash verb, the
+    step panel or the launcher, or ended by combat or a real bank frame, shows on an open page at
+    once; the library re-reads it on each show of the page as well.
+  - **The global reset leaves it running** (OWNER_SCOPE C.13): the reset touches no state the session
+    reads, so the box stays ticked. A /reload ends the session, and the box reads unticked.
 - **Reset position** is a real button now. The act existed only as a side effect folded into
   `P:RestoreDefaults`; it calls `NS.Util.ResetWindowPositions()`, which is the one body.
 - **Reset all settings** raises the confirm-gated `KA0S_BANKLEDGER_RESETALL` popup, whose text is
@@ -354,6 +376,7 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `state.debugConsole` | bool (session-only) | `false` | Master controls | — | |
 | `minimap.shown` | bool | `true` (stored inverted as `minimap.hide = false`, so the box ships ticked) | Master controls | — | `startsLine`, pairs with `testMode` |
 | `state.testMode` | bool (session-only) | `false` | Master controls | — | pairs beside `minimap.shown` |
+| `state.sim` | bool (session-only) | `false` | Master controls | — | `startsLine`, alone on the fifth line (compose minor 19) |
 | `settings.trackItems` | bool | `true` | Capture | — | *Record items*; on the page pairs with `qualityThreshold` |
 | `settings.trackMoney` | bool | `true` | Capture | — | *Record gold*; on the page alone on the second line |
 | `settings.qualityThreshold` | number | `0` | Capture | — | *Minimum quality*; drawn beside `trackItems` (`S.CAPTURE_PAGE_ORDER`) |
@@ -465,8 +488,8 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 ## The General page's tabs and the Filters tab
 
-The twenty-five schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
-the array's declaration order is the tab order, and the strip reads **Master controls** (8) ·
+The twenty-six schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+the array's declaration order is the tab order, and the strip reads **Master controls** (9) ·
 **Capture** (4) · **Filters** · **Interface** (4) · **History** (1) · **Skin** (8, the Appearance group,
 drawn by the library's entry), then the library's host tab **Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one

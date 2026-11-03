@@ -691,7 +691,8 @@ function()
     assertEqual(#out, 0, "opening the menu printed: " .. table.concat(out, "\n"))
     assertEqual(opened, 1, "the right click opened the panel instead of the menu")
     assertEqual(table.concat(menu:Texts(), " / "), "Enabled / Locked (enable the addon first) / "
-      .. "Test mode (enable the addon first) / Show window (enable the addon first)")
+      .. "Test mode (enable the addon first) / Sim mode (enable the addon first) / "
+      .. "Show window (enable the addon first)")
     assertTrue(menu:Find("Enabled").enabled, "Enabled stays live while disabled")
     assertFalse(menu:Checked("Enabled"), "a disabled addon's Enabled entry is unchecked")
     for _, entry in ipairs({ "Locked", "Test mode", "Show window" }) do

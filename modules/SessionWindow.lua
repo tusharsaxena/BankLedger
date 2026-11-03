@@ -481,7 +481,8 @@ local STRIP_GAP = 2
 local function buildStrip(f, titleBar)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
   if not (W and W.TestStrip) then return end
-  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName })
+  local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName,
+    sim = NS.Sim })   -- SF-F1: the strip's right-click menu ends, steps and restarts the sim
   strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
   strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
   strip:EnableMouse(true)
@@ -558,14 +559,13 @@ local function ensureFrame()
   title:SetText(TITLE)
   frame.title = title
 
-  -- The title bar's fill and the divider through the skin, as the ledger window's (modules/
-  -- Browser.lua EnsureFrame says why the divider is a 1px frame and not a region of this window).
-  NS.Skin.TitleBar(titleBar)
+  -- The title bar through the skin, as the ledger window's. The 1px `dividerBar` under it draws
+  -- nothing: no window has a line under its title band (R4-SEP, modules/Browser.lua EnsureFrame).
+  NS.Skin.TitleBar(titleBar, { text = title })
   local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
   divider:SetHeight(1)
-  NS.Skin.Divider(divider)
   frame.dividerBar = divider
 
   if NS.Browser and NS.Browser.MakeCloseButton then
@@ -573,6 +573,8 @@ local function ensureFrame()
     close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
     frame.closeButton = close
   end
+  -- The header on the window's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).
+  NS.Skin.Header(frame, { title = title, right = { frame.closeButton }, bars = { titleBar } })
 
   -- One pane, straight under the title bar: no tab strip, no filter bar, no footer. It moves down
   -- by the strip's reserve while the simulation strip shows (SW:UpdateTestStrip).
@@ -619,7 +621,7 @@ local function ensureFrame()
   -- as the ledger window's (modules/Browser.lua says why the save is in `onResizeStop`, once per
   -- release, and never in `onResize`). The rows re-bind live through the scroll's OnSizeChanged.
   NS.MakeResizable(frame, {
-    minWidth = minW, minHeight = MIN_H,
+    minWidth = minW, minHeight = MIN_H, owner = addonName,
     onResizeStop = function()
       SW:SaveGeometry()
       SW:Refresh()

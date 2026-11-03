@@ -459,4 +459,7 @@ NS.Sim:AddListener(function(sim)
   if active == wasActive then return end
   wasActive = active
   repaintMarkers()
+  -- The Master controls Sim mode box (R6-SIM) re-reads the sim: a start or stop from the slash
+  -- verb, the sim panel, the launcher or an auto-stop shows on an open page at once.
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
 end)

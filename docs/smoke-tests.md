@@ -25,8 +25,8 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 34 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows |
-| DEGRADED-1 – 15 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
+| SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
+| DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -171,8 +171,9 @@ leaves its number unused.
   (the skinning rollout, BL-01: the Skin tab). Result: pass (owner-marked 2026-10-30)
 - **PANEL-5. Master controls rows.** Master controls → *Enable Bank Ledger · General visibility*, then
   *Master scale · Master alpha*, then *Lock frame · Debug console*, then *Minimap button · Test mode*,
-  then Reset position and Reset all settings side by side. Nothing renamed, reordered or missing.
-  Result: pass (owner-marked 2026-10-10)
+  then *Sim mode* alone on its own line (R6-SIM), then Reset position and Reset all settings side by
+  side. Nothing renamed, reordered or missing. Rewritten 2026-11-04 (R6-SIM: the Sim mode line).
+  Result:
 - **PANEL-6. Capture tab.** Capture → *Record items · Minimum quality* on the first line, *Record
   gold* alone on the second, then a **Banks to record** heading over the three bank checkboxes, with
   no box or border around them. Open *Minimum quality* → six rows, each the quality's own name in its
@@ -345,9 +346,9 @@ leaves its number unused.
   this build and log in → all of it as you left it, History complete. Log out and open
   `BankLedger.lua` → settings and both lists under `["profiles"]["Default"]`, and the saved view as
   `savedViews` with the same view under both `History` and `Insights` (v5); `["global"]`
-  holds only `ledger`, `minimap`, `schemaVersion = 5` and, if you changed Keep history for, a
+  holds only `ledger`, `minimap`, `schemaVersion = 6` (5 before R3-FRIZ) and, if you changed Keep history for, a
   `settings` table holding `retentionDays` alone (D6). **Fail:** a setting back at its default, or any
-  other key in a `settings` table under `["global"]`. Result: pass (owner-marked 2026-10-10)
+  other key in a `settings` table under `["global"]`. Result: not run (re-opened by R3-FRIZ: the stamp is 6)
 
 ## STATE
 
@@ -568,8 +569,8 @@ leaves its number unused.
   re-run after BL-A1: pass (owner-marked 2026-10-30)
 - **LEDG-36. The copy window's close is the library's.** Export to CSV and look at the copy window's
   title bar → the library's outlined close mark, 18×18 with a red hover (the host's is 24×24, with the
-  same red hover since BL-A1), reading as a close button and not clipped by the 26px bar. A font × there is a
-  library regression. Result: pass (owner-marked 2026-10-23)
+  same red hover since BL-A1), reading as a close button and not clipped by the 30px bar (26px before LibKa0s v1.85.0). A font × there is a
+  library regression. Result: Passed (owner, 2026-11-02)
 - **LEDG-37. Dropdown art.** Count the filter bar's dropdowns → eight chevrons, not Blizzard's filled
   arrow: Group by on row 1, then Date, Direction, Store, Quality, Type, Sub-type, Character on row 2;
   the modal's Data set makes nine. Open a multi-select (Store, Type, Quality, Character), pick two →
@@ -860,9 +861,10 @@ leaves its number unused.
 - **DIAG-6. Logging off.** `/bl debug off` → a red OFF ack and `[Debug] logging disabled`. Turn it on
   and `/reload` → off again (the flag is session-only). Result: pass (owner-marked 2026-10-10)
 - **DIAG-7. Chrome.** The console and its Copy box wear the ledger window's edge (a flat 1px black
-  border with a 1px light-gray line inside, a gold title, a gray divider), with a smaller close
-  control, 18×18 on a 26px title bar, drawn as the outlined × mark. That size is the library's, not
-  drift. Result: pass (owner-marked 2026-10-10)
+  border with a 1px light-gray line inside, a gold title, no line under the title band), with a smaller close
+  control, 18×18 on a 30px title bar (26px before LibKa0s v1.85.0), drawn as the outlined × mark. That
+  size is the library's, not drift. The console's gray divider under the title went with LibKa0s R4-SEP
+  (R4-RV2); the rule above its status line stays. Re-opened 2026-11-03 for R4-RV2. Result:
 - **DIAG-8. Three title-bar marks.** Right to left: close, clear, copy, one size and pitch, gray at rest
   and brighter under the pointer, the art every Ka0s window uses. **Fail:** the words `Copy` and
   `Clear`, or a thin multiplication sign for close: `core/DebugLogSetup.lua` stopped passing
@@ -875,8 +877,9 @@ leaves its number unused.
   Mono")` answered nil (`LibKa0s-Media-1.0` missing, or `core\MediaSetup.lua` after
   `core\Constants.lua` in the TOC). Result: pass (owner-marked 2026-10-10)
 - **DIAG-11. One console look.** Open another Ka0s addon's console beside this one → apart from the
-  titles, indistinguishable: border, inner line, gold title, divider, the same three marks in order. A
-  difference is fixed in `../LibKa0s`, never in `libs/`. Result: pass (owner-marked 2026-10-10)
+  titles, indistinguishable: border, inner line, gold title, no line under the title, the same three marks in order. A
+  difference is fixed in `../LibKa0s`, never in `libs/`. Re-opened 2026-11-03 for R4-RV2 (the divider
+  under the title went with LibKa0s R4-SEP). Result:
 - **DIAG-12. The addon's own dumps.** With logging off, `/bl debug scan` at a bank, then `/bl debug
   panel` after opening `/bl config` once → both open the console and write their lines anyway, tagged
   `[Scan]` and `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
@@ -1077,6 +1080,23 @@ failure.
   **Warband transfer** and **Guild bank**. `/bl sim stop`. **Fail:** a letter (`item A`, `item B`,
   ...) before Start, or any item name that changes when the run starts.
   Result: pass (owner-marked 2026-10-23)
+- **SIM-15. The Master controls Sim mode box is `/bl sim` (R6-SIM, LibKa0s R6-SIM-L).** Out of combat,
+  with test mode off and no bank open, `/bl config` → General → Master controls → *Sim mode* sits alone
+  on the line below *Minimap button · Test mode*, unticked. Hover it → the library's sentence, then
+  *The same as /bl sim: with no simulation running it opens the sim panel, where you start a
+  scenario. Combat and a real bank visit end it, and test mode must be off to start one.* Tick it → chat prints the status line and the sim verbs, the step panel opens, exactly as
+  a bare `/bl sim` does, and the box goes back to unticked (nothing runs yet). On the panel pick
+  **Personal bank** and press Start → the box ticks while the settings window stays open. Untick it →
+  the simulation stops (its stop line prints) and the ledger window's sim strip goes. With the page
+  open, `/bl sim start bank` → the box ticks at once; `/bl sim stop` → it unticks at once. Close the
+  settings window, `/bl sim start bank`, reopen Master controls → the box is ticked; the launcher's
+  right-click menu shows *Sim mode* checked too. Pull a target dummy → combat ends the simulation and
+  the box reads unticked; in combat tick it → no simulation starts and it reads unticked. Start one,
+  then Reset all settings ▸ Yes → the simulation keeps running and the box stays ticked (OWNER_SCOPE
+  C.13: a reset touches no state the session reads). `/reload` → the box is unticked. **Fail:** a
+  tick that does anything other than what bare `/bl sim` does, an untick that leaves the simulation
+  running, a box that disagrees with `/bl sim status`, or a Lua error.
+  Result:
 
 ## SKIN
 
@@ -1094,9 +1114,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   outline (the Font outline's default, *HUD text only*, and Bank Ledger has no HUD), instead of Friz
   Quadrata, except the ▲/▼ direction glyphs (mono) and the close ×; the Insights bars of data (ranked, stacked,
   split and back-to-back bars and the day and hour strips) wear the **Ka0s Default** bar texture in
-  the colors they had; the three title bars carry the skin's faint title band and both tables' header
+  the colors they had; the three title bars carry the skin's title band (since LibKa0s R4-L2, Ka0s
+  Default's is a dark gold gradient, SKIN-42) and both tables' header
   rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
-  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since LibKa0s v1.81.0
+  and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since the full skinning run
+  (FS-BL-FIX, LibKa0s v1.85.0) the ledger tabs wear the skin's tab, with a dark backing, a full-width
+  gold underline on the active one and a faint rule under the strip (SKIN-35); the footer sits on a
+  dark band (SKIN-35); the Export modal's title bar is 30 high, not 26 (SKIN-36); and every scroll bar's
+  up and down buttons are the Ka0s chevrons. Since LibKa0s v1.81.0
   (BL-RV of the skin library follow-ups) the library's own strings read in Ka0s Default's face too: the
   dropdowns' menu rows, the search suggestions, the test and sim strips' lines, and the labels of the
   debug console, the copy windows and the sim panel (they drew Friz Quadrata before); and item quality
@@ -1105,7 +1130,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   rollout's X5 does not apply; BL-03 is recorded as an exception). **Fail:** any other changed color,
   edge or spacing, a string still in Friz Quadrata, text clipped or overlapping because the face is
   wider, or a bar of data still flat. Re-opened 2026-10-30 for LibKa0s v1.82.0 (the face is Prototype)
-  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default). Result: Owner reported pass, 2026-10-31
+  and 2026-10-31 for LibKa0s v1.83.0 (no outline by default), and 2026-11-01 for the look changes above
+  (FS-BL-FIX), and 2026-11-03 for Ka0s Default's gold title band (R4-RV2). Result:
 - **SKIN-2. The Skin tab (BL-01).** General → the strip reads Master controls · Capture · Filters ·
   Interface · History · **Skin** · Keybindings. Open **Skin** → **Skin source**, the nine skins with
   their swatches under **Look** (the note that skins change every visual element leads it), **Font and
@@ -1118,12 +1144,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   v1.83.0's labels and outline default. Result: Owner reported pass, 2026-10-31
 - **SKIN-3. Each skin, live (BL-02).** With the ledger window open on History, pick each skin in turn:
   Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever, then Ka0s
-  Default again → with **no reload** the window edge, title bar, divider, tab labels and underline,
+  Default again → with **no reload** the window edge, title bar, tab labels and underline,
   the four bar buttons, the search box, the dropdowns and their menus, the footers, the table header,
   its sort and group marks, the rows (scroll to reach pooled rows), the scroll bar and the row menu all
   repaint, and text stays readable. Switch to Insights and repeat for a few skins → the cards, panels,
   headings, rules, bars, tracks, axes and legend repaint. Do the same with the session window open
-  (`/bl session`). **Fail:** a surface that keeps the old skin until `/reload`. Result: pass (owner-marked 2026-10-30)
+  (`/bl session`). **Fail:** a surface that keeps the old skin until `/reload`. Re-opened 2026-11-03
+  for R4-SEP: neither window has a divider under its title any more (SKIN-43). Result:
 - **SKIN-4. The close control (BL-02, rewritten for BL-A1).** Under **Ka0s Default** hover the close
   control on the ledger window, the session window and the Export modal → the skin's gray at rest and
   **red** on hover, the same as the copy window's and the debug console's library close control. Under
@@ -1167,12 +1194,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   with no fallback squares: Ka0s Default Prototype, Obsidian Expressway, Azeroth Open Sans Semibold
   (Open Sans Bold titles), Glass Avant Garde, High Contrast Doris PP, Ember Emblem, WoW Midnight Segoe
   UI Semibold (Segoe UI Bold titles), WoW Forever Fira Sans (Medium body, SemiBold titles), WoW Default
-  Ka0s Friz Quadrata, which differs from Ka0s Default whatever the client's own font file holds. The History table's columns, the Insights cards'
+  Ka0s Ubuntu (LibKa0s R3-L6; Ka0s Friz Quadrata before), which differs from Ka0s Default whatever the client's own font file holds. The History table's columns, the Insights cards'
   headline figures (they shrink to fit) and the section titles do not truncate or overlap under any
   of them. The ▲/▼ glyphs stay in the mono face everywhere. **Fail:** an empty square, a clipped
   headline figure, or a ▲/▼ drawn as a box. Re-opened 2026-10-30 for LibKa0s v1.82.0 (Prototype,
   Expressway and Fira Sans Medium replace Oxanium, Inter and Fira Sans Regular) and 2026-10-31 for
-  LibKa0s v1.83.0 (six skins take new faces and sizes). Result: Owner reported pass, 2026-10-31
+  LibKa0s v1.83.0 (six skins take new faces and sizes), and 2026-11-02 for R3-FRIZ (WoW Default on Ka0s
+  Ubuntu; a full client restart first, for the new font file). Result: not run
 - **SKIN-10. A font override, and Ignore fonts (BL-01).** With the ledger window open, pick a clearly
   different face from **Font** → with no reload the title, tabs, buttons, cells and Insights text take
   it at the sizes they had; the debug console keeps its mono face. Turn **Ignore fonts** on → every
@@ -1235,7 +1263,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   → the ledger window opens in test mode (the amber strip shows) with the sample rows in the
   previewed skin, and the picker stays above it, clickable. In combat press the eye → test mode's own
   refusal prints and nothing opens. **Fail:** the ledger window covering the picker, or the preview
-  lost. Result: pass (owner-marked 2026-10-30)
+  lost. Since R6-PV the picker enters test mode at show and the eye toggles it, so the first press
+  turns test mode off: SKIN-48 is the check now, and this one's pass mark came off. Result:
 - **SKIN-22. The picker's gear (BL-04).** On a fresh profile preview **Obsidian** and press the gear →
   the settings panel opens on **General** with **Skin** selected, showing Obsidian, and the picker
   closes; `/reload` keeps Obsidian. Result: pass (owner-marked 2026-10-30)
@@ -1324,6 +1353,113 @@ describes what you see, apart from the changes SKIN-1 lists.
   another addon that loads AceGUI-3.0-SharedMediaWidgets enabled → the same picker, not the stock
   LSM30 look. **Fail:** a stock-looking bar or pull-out, a row that does not line up, or a Lua error.
   Result:
+- **SKIN-35. The ledger tabs and footer are the skin's (FS-BL-FIX, cause A1).** Under **Ka0s Default**
+  `/bl show` → History and Insights each have a dark backing, the active one in gold with a gold
+  underline across the whole tab, the other in gray, and a faint rule under the strip. Click between
+  them → the backing, label and underline move at once. The footer's `Showing n of N` and `Database ~`
+  sit on a dark band that runs edge to edge and ends where the panes do, with the size text clear of
+  the grip and the grip still draggable. Switch through the other skins with the window open, no
+  reload → the tabs and the band repaint from each skin. **Fail:** a label or underline left in the
+  old skin's color, text hidden under the band, a band overlapping a table row, or a dead grip.
+  Result: Passed (owner, 2026-11-02)
+- **SKIN-36. One title bar shape (FS-BL-FIX, cause L9).** Open the ledger window, the session window,
+  and the Export modal with its Data set dropdown → all three title bars are 30 high with a centered
+  title and an unclipped close control, and the modal's dropdown still clears its bar. The debug
+  console and the copy window match at 30 high. **Fail:** a 26px bar, a title off center, or a control
+  overlapping a bar.
+  Result: Passed (owner, 2026-11-02)
+- **SKIN-37. Grips and sort marks follow the skin (FS-BL-FIX, cause L8).** Under **Ka0s Default** both
+  resize grips stay the client's art and the sort arrows and group chevrons stay gold. Switch to a
+  skin that tints the grip, such as **Obsidian** → the grips of the ledger and session windows take
+  the skin's color with no reload, and the arrows and chevrons take the skin's arrow color, with the
+  headers' words in theirs. Back to Ka0s Default → the client's art again. **Fail:** a stock grip under
+  a tinting skin, or a mark left in the old skin's color. Result: Passed (owner, 2026-11-02)
+- **SKIN-38. The Insights headings keep their size (SF-BL-1).** Open Insights with the ledger in a skin,
+  then switch skins five times in a row, such as Ka0s Default, Obsidian, Slate, Obsidian, Ka0s Default
+  → the section headings ITEMS & FLOW, GOLD and TOP OF THE LIST stay the same size on every skin and
+  never grow, and the cards, bars and list rows keep theirs. **Fail:** any heading larger than after
+  the first switch.
+  Result: Passed (owner, 2026-11-02)
+
+- **SKIN-39. The sort arrow's own color (SF-FIX, not run).** Under a skin whose sort arrow differs from its header text (Obsidian), the History table's sort arrows wear that arrow color, and the group expanders keep the icon arrow color. Result: Passed (owner, 2026-11-02)
+- **SKIN-40. A stored Font override of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, not run).** Before you update, set the Skin tab's **Font** to *Ka0s Friz Quadrata TT* and log out. Install the re-vendored build and fully restart the client (a new font file) → the ledger window draws in Ubuntu and the Font row reads *Ka0s Ubuntu* (schema v6 moves the stored override, R3-FRIZ). **Fail:** the window on the game's default face, or the row still naming Ka0s Friz Quadrata TT. Result: not run
+- **SKIN-41. A picker's list closes on a click outside it (R4-RV, LibKa0s R4-L1).** Open the settings panel on the Skin tab and open the **Font** picker's list, then click an empty part of the page beside it → the list closes. Open it again and click another dropdown on the page → the first list closes and the second opens. Open the **Texture** picker and click inside its list, on its scrollbar or on the dropdown itself → it stays open or toggles as before. **Fail:** a list that stays open after a click elsewhere on the page, or a click inside the list that closes it without a pick.
+  Result:
+- **SKIN-42. Ka0s Default's gold title band (R4-RV2, LibKa0s R4-L2 and R4-SEP).** Under Ka0s Default open the
+  ledger window, the session window (`/bl session`), the Export modal and its copy window, and the debug console
+  (`/bl debug`) with its Copy box → each title band is a dark gold gradient, lighter at the top and darker at
+  the bottom (darker than round 4 since R5-RV), not the near-black band it was, with the gold title readable on it. The
+  debug console and its Copy box have no line under the title band; the rule above the console's status
+  line stays. Pick Obsidian, then Ka0s Default again → the bands follow with no reload. **Fail:** a
+  near-black or flat band under Ka0s Default, a gray line under the console's title, or a title hard to read.
+  Result:
+- **SKIN-43. No line under any window's title (R4-SEP).** Open the ledger window (`/bl show`), the session
+  window (`/bl session`), the Export modal and its copy window, the debug console (`/bl debug`) and its Copy
+  box, the simulation panel (`/bl sim`) and the skin picker (`/bl skin`) → none has a line under its title
+  band: the band meets the body directly, like the Skin Tester's showroom (`/skintester`). The ledger
+  window's tabs still sit where they did, with their rule under the tab strip, and Insights' section
+  dividers and chart axes stay. Repeat under Obsidian and WoW Default. **Fail:** a gray or colored 1px line
+  under any title band, the tab strip moved up or down, or the rule under the tabs gone.
+  Result:
+- **SKIN-44. The HUD icon edge leaves the windows alone (R4-RV3, LibKa0s R4-L4).** Install the re-vendored
+  build and `/reload` under Ka0s Default → no Lua error, and the ledger window (`/bl show`), the session window
+  (`/bl session`), the settings panel (`/bl config`) and the debug console (`/bl debug`) look exactly as they did
+  on the R4-RV2 build. R4-L4 changes only icons a HUD edges through `S.IconBorder` with `hud = true`, and Bank
+  Ledger has no HUD and no `S.IconBorder` caller, so nothing here moves. Switch to Obsidian and back → the same.
+  **Fail:** a Lua error naming `SkinPaintControls.lua`, or any window's edge, title band or rows changed.
+  Result:
+- **SKIN-45. The round 5 library: a darker band, and the skin list closes on an outside press (R5-RV, LibKa0s
+  R5-L1 to R5-L5).** Install the re-vendored build and `/reload` under Ka0s Default → no Lua error. Open the
+  ledger window (`/bl show`), the session window (`/bl session`), the Export modal and its copy window, the
+  debug console (`/bl debug`), the simulation panel (`/bl sim`) and the skin picker (`/bl skin`) → every title
+  band is the same gold gradient, a little darker than round 4, and each window shows exactly one band, flush
+  inside its edge with no strip of body color above or beside it. On every band the title and the close
+  button sit on the band's vertical middle. Now open the skin picker's skin list and press, in turn, the
+  picker window's body, the game world, and the settings panel's **Font** dropdown on the Skin tab → each press
+  closes the list, and the last one also opens the Font list. Escape still closes the picker window. Switch to
+  Obsidian and back → the same. **Fail:** a Lua error naming `SkinPaint.lua`, `SkinPaintExtras.lua` or
+  `OptionsSkinPicker.lua`, two bands on one window, a body-color strip between the edge and the band, a title
+  above or below the close button's middle, or a skin list that stays open after a press outside it.
+  Result:
+- **SKIN-46. Each window's header sits on its band (R5-WIN).** Under Ka0s Default open the ledger window
+  (`/bl show`), the session window (`/bl session`) and the Export modal (the ledger's **Export** button) →
+  each title band starts right inside the window's edge, with no strip of body color above it or at its
+  ends, and the title and the close button sit on the band's vertical middle (the title's letters level
+  with the close mark's center line). Turn on test mode → the TEST MODE badge beside the ledger's title sits
+  on the same middle. Switch to WoW Midnight (a 2 px edge) → the band moves 1 px down with the edge, still
+  flush inside it, and the title and close follow it (the content under the band moves the same 1 px).
+  Every skin this build ships centers its title (`title.align` CENTER), so in each one the title stays
+  centered along the band and on its middle. Back to Ka0s Default → as before. **Fail:** a strip of body
+  color between the edge and the band, the band overlapping the edge, a title or close above or below the
+  band's middle, or, under Ka0s Default, the tab strip, filter bar or export form moved.
+  Result:
+- **SKIN-47. The round 6 library's picker loads (R6-RV, LibKa0s R6-L1).** Install the re-vendored build and
+  `/reload` → no Lua error. Run `/bl skin` → the skin picker opens, with the eye beside the gear. Pick
+  **Obsidian** → the addon repaints; press the close control → Ka0s Default comes back. Run `/bl skin`
+  again, pick Obsidian and press **Apply** → Obsidian stays; set it back to Ka0s Default the same way.
+  **Fail:** a Lua error naming `OptionsSkinPicker.lua`, no eye, or a pick that does not preview or save as
+  SKIN-19 to SKIN-23 describe. The eye's own behavior is SKIN-48.
+  Result:
+- **SKIN-48. The picker's preview: `/bl test` mode (R6-PV, LibKa0s R6-L1).** `/bl skin` with the ledger
+  window closed and test mode off → test mode turns on: the ledger window opens with the sample rows
+  and the amber test strip, the picker stays in front of it, and the eye is lit; hover the eye → its
+  tooltip says test mode is on. Press the eye → test mode turns off, the ledger window closes, and the
+  eye dims with a tooltip saying test mode is off. Press it again → test mode and the window are back.
+  Now close the picker by each route in turn, reopening it with `/bl skin` each time: the close
+  control, Escape, **Apply**, and the gear → after each, test mode is off and the ledger window is
+  closed (the gear leaves the settings panel open; its Master controls **Test mode** box is
+  unticked). Open the window yourself (`/bl show`), then `/bl skin` → test mode stays off and the
+  window shows your real rows; press the eye twice (on, off) → the window stays open; close the
+  picker → the window is still open on real rows. Turn test mode on (`/bl test`), close the window,
+  `/bl skin` → test mode stays on; press the eye → it turns off; close the picker → test mode is on
+  again and the ledger window is closed, as it was when the picker opened. With the window closed, `/bl skin` (test mode turns on), then enter combat → test mode ends,
+  as it always does on the pull; press the eye in combat → test mode's own "cannot start test mode
+  during combat." line prints and nothing opens; close the picker → the ledger window the picker
+  opened closes, and test mode stays off. **Fail:** a picker that opens with the window closed and
+  leaves test mode off, an eye that only turns test mode on, a close that leaves test mode on or the
+  sample window open, a window you opened that the picker closes, or the ledger window covering the
+  picker.
+  Result:
 
 ## DEGRADED
 
@@ -1392,11 +1528,16 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   BAN-Z07). Result: pass (owner, 2026-10-24)
 - **DEGRADED-15. Today's look without the skin engine (BL-01, BL-02).** Run it before DEGRADED-11's
   restore. `/bl show`, `/bl test`, then `/bl session` → both windows draw the Ka0s Default edge (a 1px
-  black border with a light-gray line inside, the gold title, the gray divider), the tab labels in
+  black border with a light-gray line inside, the gold title, no line under the title, R4-SEP), the tab labels in
   gold and gray, the bar buttons, the table's gold headers, the row bands and the red `TEST MODE`
   title badge, all in the game's own fonts, the close control gray at rest and red on hover (BL-A1);
   no skin picker opens. **Fail:** a Lua error naming
-  `core/SkinSetup.lua` or `NS.Skin`, a window with no edge, or white text where gold was. Result: pass (owner-marked 2026-10-30)
+  `core/SkinSetup.lua` or `NS.Skin`, a window with no edge, or white text where gold was. Re-opened 2026-11-03 for R4-SEP (the gray divider under
+  the title is gone). Result:
+- **DEGRADED-16. The tabs without the skin engine (FS-BL-FIX).** With no library the ledger window
+  does not build its filter bar's controls, but its tabs do → the active tab's label is gold over a
+  2px gold underline, the other is gray, with no backing and no footer band, and clicking moves both.
+  **Fail:** two identical tabs, no underline, or a Lua error naming `S.Tab`. Result: Passed (owner, 2026-11-02)
 
 ## Non-English client
 
@@ -1483,7 +1624,53 @@ Added by the findings remediation (Ka0sAddonsCommonTasks `docs/2026-10-31-FINDIN
 BL-RV on LibKa0s v1.84.0), awaiting the owner: DIAG-32, and SKIN-34 for the owner's one media picker ruling of
 2026-11-01 (item M3-MEDIA).
 
+Owed by the full skinning run (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/`, items FS-BL-RV and
+FS-BL-FIX on LibKa0s v1.85.0), awaiting the owner: new checks SKIN-35 to SKIN-37 and DEGRADED-16, and
+SKIN-1, LEDG-36 and DIAG-7, whose expected results changed, so their pass marks came off. The re-vendor
+also moves the look of the sim panel and both strips, with no check of its own: the Steps title band
+is 30 high, an owned tooltip title takes `gtip.title`, and an owned strip's icon wears `icon.tint`. Item FS-BL-GATE's re-cut of the tag moves no expected
+result here: this addon draws no bar, icon border, glow or cover value of its own, so no pass mark came
+off and no check was added.
+
 Pending since 2026-10-31, the findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, items FX-BL-SIZE and FX-BL-DOCS): new checks LEDG-63 and INS-19
 for the moved window chrome and chart renderers, and SKIN-33 for the picker's rows, which SKIN-19 now
 points at.
+
+Owed by the owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUND3/`, item R3-FRIZ):
+new check SKIN-40, and SKIN-9 and PROFILE-14, whose WoW Default face (now Ka0s Ubuntu) and schema stamp
+(now 6) changed, so their pass marks came off.
+
+Owed by the owner's fourth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND4/`, item R4-RV):
+new check SKIN-41, the AceGUI pickers' outside-click close that LibKa0s R4-L1 brings with the copy.
+
+Owed by the same round's second milestone (item R4-RV2): new check SKIN-42, Ka0s Default's dark gold title
+band (LibKa0s R4-L2) and the debug console with no line under its title (LibKa0s R4-SEP); SKIN-1, DIAG-7 and
+DIAG-11, whose title band or console divider changed, so their pass marks came off.
+
+Owed by the same round's item R4-SEP: new check SKIN-43, no line under the ledger or session window's
+title; SKIN-3 and DEGRADED-15, which named that divider, so their pass marks came off.
+
+Owed by the same round's item R4-RV3: new check SKIN-44, the re-vendored LibKa0s R4-L4 (a HUD icon's
+edge drawn in `icon.border`), which changes nothing in this addon; no pass mark came off.
+
+Owed by the owner's fifth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND5/`, item R5-RV):
+new check SKIN-45, the re-vendored LibKa0s R5-L1 to R5-L5 (Ka0s Default's darker band, the band over a
+backdrop window's fill, header children on the band, the skin list's outside-press close); SKIN-42 no longer
+quotes round 4's hexes.
+
+Owed by the same round's item R5-WIN: new check SKIN-46, each window's title bar on the band's rect and its
+title, close and test badge on the band's middle; no pass mark came off.
+
+Owed by the owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, item R6-RV):
+new check SKIN-47, the re-vendored LibKa0s R6-L1 (the skin picker at minor 11); no pass mark came off.
+
+Owed by the same round's item R6-PV: new check SKIN-48, the picker's preview in test mode (entered at
+show with the ledger window closed, toggled by the eye, put back on every close); SKIN-21, whose eye
+now toggles, so its pass mark came off.
+
+Owed by the same round's item R6-SIM (the owner's "a sim checkbox in settings (next to test)", LibKa0s
+R6-SIM-L): new check SIM-15, the Master controls *Sim mode* box; PANEL-5, which gains its line, so its
+pass mark came off.
+
+On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.

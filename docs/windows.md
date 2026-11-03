@@ -5,13 +5,19 @@ close-button factory (`modules/Browser_Chrome.lua`), each with its own persisted
 
 **Both wear the player's skin** (skinning-§3; [ARCHITECTURE.md → Skins](ARCHITECTURE.md#skins)).
 `B:ApplySkin` hands the frame to the owner's `Shell` (`NS.Skin.Shell`, LibKa0s-Skin-1.0) with
-`noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`, its divider
-through `NS.Skin.Divider`; the export modal does the same on its 26px bar. Under Ka0s Default that is
-the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it, the
-gold title and the gray divider) plus the skin's faint `title.bg` band on the title bars and
-`list.header.bg` on the table headers (DECISIONS BankLedger D6). Every frame is recorded for this
-addon's owner, so a skin switch repaints it live; the pooled rows, the tab labels and the tinted marks
-are redone by `NS.Skin.OnLooksChanged` listeners. Without the library the degraded facade's `Shell`
+`noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`; the export
+modal does the same. No window draws a line under its title band (R4-SEP, as the Skin Tester's
+showroom): the ledger and session windows keep a 1px `dividerBar` frame under the bar, with nothing
+drawn on it, because the ledger's tab strip anchors to it. Each then hands its header to
+`NS.Skin.Header` (R5-WIN of the smoke round 5): the bar takes the band's rect (`S.Band`, Shell's own
+inset and `title.height`, so no body color shows between the edge and the band in any skin), and the
+title (by `title.align`) and the close are anchored to the band at y 0, its middle. Under Ka0s Default that is
+the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it and
+the gold title) plus the skin's `title.bg` band on the title bars (a dark gold gradient) and
+`list.header.bg` on the table headers (DECISIONS BankLedger D6). The ledger window also takes the
+skin's `Tab` on its tabs and its `foot.bg` band behind the footer. Every frame is recorded for this
+addon's owner, so a skin switch repaints it live; the pooled rows and the tinted marks are redone by
+`NS.Skin.OnLooksChanged` listeners. Without the library the degraded facade's `Shell`
 routes to `core/CoreSetup.lua`'s pre-library `NS.ApplySkin`, which draws the same Ka0s Default edge.
 `B.SKIN` keeps only the layout heights; no color lives there.
 
@@ -29,7 +35,7 @@ collection's `close` icon; the library resolves it for its own windows once the 
 `addonName`, and `B:MakeCloseButton` resolves it through `NS.Icon` for these two. Neither deleted
 what it drew before: without LibKa0s the library falls back to a multiplication sign and this addon
 falls back to its own 24pt ×, and both windows still close. The sizes still differ on purpose — an
-18×18 control on a 26px library title bar, 24×24 on this addon's 30px one. `B:MakeCloseButton` hands
+18×18 control on a 30px library title bar, 24×24 on this addon's 30px one. `B:MakeCloseButton` hands
 its button to the skin's `CloseButton` the way the library's own control does, with no opts
 and no host hover scripts (BL-A1, the owner's ruling): in every skin, Ka0s Default included, the
 primitive draws `close.rest` at rest and `close.hot` under the pointer, so the colors match too. See

@@ -164,37 +164,26 @@ LT.groupAsc = true
 -- ":0" sizes the texture to the surrounding line height. The library's paths are EXTENSIONLESS by
 -- contract and that is exactly what |T…|t wants; a path carrying ".tga" here draws nothing and
 -- raises nothing, which in a column header reads as "this column does not sort".
-local function markup(name, blizzard, lead, tint)
+local function markup(name, blizzard, lead, token)
   local path = NS.Icon and NS.Icon(name)
-  return (lead or "") .. "|T" .. (path or blizzard) .. ":" .. (tint or "0") .. "|t"
+  return (lead or "") .. NS.Skin.MarkText(path or blizzard, 0, token or "icon.arrow")
 end
 
--- The gold every column header and every group header is drawn in, and the ONE place it is written
--- down: HEADER_RGB feeds the FontString calls below (SetTextColor takes 0-1) AND the tint on all
--- four marks (the escape takes 0-255), so a mark cannot drift away from the word beside it.
+-- The gold every column header and every group header is drawn in: HEADER_RGB feeds the FontString
+-- calls below, and the two sort marks take the skin's `list.header.arrow` (SF-L2) and the two
+-- expanders its `icon.arrow`, the same gold under Ka0s Default, through S.MarkText. A skin may split the two.
 --
 -- ALL FOUR ARE TINTED, because all four sit inside gold text — the two sort arrows in the column
 -- header's label, the two expanders in the group header's. The art ships near-white by contract,
 -- and near-white beside gold reads as a second color inside one string rather than as one control.
 --
--- The tint is why they carry the LONG form of the escape. ":0" alone is "size to the line and draw
--- the art as it is". Vertex color is the LAST three arguments of the full sequence, so all eleven
--- in front of them have to be spelled: height and width 0 keep the auto-size that ":0" gave, and
--- 64:64 with 0:64:0:64 is the whole texture uncropped (the numbers are a ratio, so they hold
--- whatever the file's real dimensions are).
---
 -- The tint rides on the ESCAPE, not on the art, so it survives the fall to the Blizzard rung: a
 -- degraded install draws the same boxed +/- and Arrow-Up-Up it always did, in the header's gold.
 --
 -- The gold is the skin's list.header.text, resolved into HEADER_RGB (the RGB table above), and the
--- four marks are REBUILT from it on every skin switch (LT.ReskinColors, below): they are strings
--- built once rather than per draw, so a switch that left them alone would tint the marks in the old
--- skin's color beside labels in the new one.
+-- four marks are REBUILT on every skin switch (LT.ReskinColors, below): they are strings built once
+-- rather than per draw, so a switch that left them alone would keep the old skin's tint.
 local HEADER_RGB = RGB.header
-local function tint255(rgb)
-  local function b(v) return math.floor(v * 255 + 0.5) end
-  return ("0:0:0:0:64:64:0:64:0:64:%d:%d:%d"):format(b(rgb[1]), b(rgb[2]), b(rgb[3]))
-end
 
 local ARROW_ASC, ARROW_DESC, GROUP_SHUT, GROUP_OPEN
 -- The group header's "(n)" count escape, text.disabled: also resolved once per skin here, because
@@ -216,11 +205,10 @@ function LT.ReskinColors()
     t[1], t[2], t[3] = r or RGB.white[1], g or RGB.white[2], b or RGB.white[3]
     RGB.quality[q] = t
   end
-  local tint = tint255(HEADER_RGB)
-  ARROW_ASC   = markup("sort-up",       "Interface\\Buttons\\Arrow-Up-Up",       " ", tint)
-  ARROW_DESC  = markup("sort-down",     "Interface\\Buttons\\Arrow-Down-Up",     " ", tint)
-  GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up",  nil, tint)
-  GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up", nil, tint)
+  ARROW_ASC   = markup("sort-up", "Interface\\Buttons\\Arrow-Up-Up", " ", "list.header.arrow")
+  ARROW_DESC  = markup("sort-down", "Interface\\Buttons\\Arrow-Down-Up", " ", "list.header.arrow")
+  GROUP_SHUT  = markup("chevron-right", "Interface\\Buttons\\UI-PlusButton-Up")
+  GROUP_OPEN  = markup("chevron-down",  "Interface\\Buttons\\UI-MinusButton-Up")
   COUNT_ESC   = NS.SkinEscape("text.disabled") or ""
 end
 LT.ReskinColors()
@@ -1026,6 +1014,7 @@ function LT:ShowRowMenu(anchor, entry)
   m:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, 0)
   m:Show()
   m:RegisterEvent("GLOBAL_MOUSE_DOWN")
+  return m
 end
 
 -- ── A skin switch ───────────────────────────────────────────────────────────────

@@ -169,8 +169,10 @@ the engine's own decision.
   first.` before any confirm opens, from `/bl purge` and the settings' *Purge history…* button alike, and
   `Database:Purge` re-checks it. `Delete`, `DeleteAt` and `PruneOld` act on the real ledger only.
 
-The simulator is slash-only, with no launcher entry, no key binding and no schema row; its step
-delay is a constant. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strips
+The simulator has no key binding. `/bl sim`, the launcher menu's *Sim mode* entry and the Master
+controls *Sim mode* checkbox (`state.sim`, session-only, R6-SIM) are one act, through the pair
+`NS.IsSimMode` / `NS.ToggleSim` in `core/SimSetup.lua`; its step delay is the Interface tab's
+`settings.sim.stepDelay` row. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strips
 (one per mode, with the `TEST MODE` title badge only as the library-absent fallback) and the step
 panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)
 and the `[Sim]` lines in [debug.md](debug.md).
@@ -301,7 +303,7 @@ gets no close event either.
 page read one table. Twenty-one verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
 seam. `/bl skin` is the reserved skin verb (LibKa0s v1.82.0's `O.SkinVerb`): the first-run skin
 picker on demand, refused while the addon is disabled. `/bl sim` is the simulator's one feature verb, handing its words to `NS.Sim:RunVerb`
-(LibKa0s-Sim-1.0's grammar); the simulator is slash-only, with no launcher entry or key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
+(LibKa0s-Sim-1.0's grammar); the launcher menu's *Sim mode* entry and the Master controls *Sim mode* checkbox run this same verb (R6-SIM), and there is no key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
 prints the list (`slash-commands-§4`). `/bl profile` lists the profiles, and `/bl profile <name>`
 switches to an existing one through the library's `CliProfile` (Slash minor 17); it stays live while
 the addon is disabled, because the descriptor's `liveVerbs` is `lib.LIVE_VERBS` plus `profile`.
@@ -528,21 +530,29 @@ for member.
   waits on a one-shot `PLAYER_REGEN_ENABLED` registration (see **Event Subscriptions**). A pick only
   previews, and so do the Skin tab's font, texture, outline and Scope rows the picker repeats
   (LibKa0s v1.83.0); **Apply** and the gear save them through `NS.WriteSkinChoice`, and the close
-  control and Escape put the stored look back. Its eye opens the ledger window in test mode
-  (`LT:SetTestMode(true)`), so in combat it prints test mode's own refusal. `NS.HideSkinPicker` (the
-  stand-down, and first on every profile event) takes it down without setting `pickerSeen`.
+  control and Escape put the stored look back. Its preview is test mode (`spec.preview`, LibKa0s
+  OptionsSkinPicker 11, R6-PV): a picker that shows with test mode off and the ledger window closed
+  turns test mode on (`LT:SetTestMode(true)`, which opens the window with the sample ledger), the
+  eye turns it off and on, and every close (Apply, the gear, the close control, Escape,
+  `NS.HideSkinPicker`) puts back the state the picker opened on. `enter` and `exit` are
+  `LT:SetTestMode`, the path the Master controls checkbox and `/bl test` take, so the checkbox and the
+  launcher follow and test mode's refusals apply (in combat it prints its own line); `exit` closes the
+  ledger window only when the preview's own `enter` opened it, so a window the player opened stays
+  open, and the close takes down a window the preview opened that is still up (a pull that ended
+  test mode under the picker, or a restore whose start reopened a window the player had closed). `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes it down without
+  setting `pickerSeen`.
 - **Repaint flow.** `NS.ApplySkinChoice` runs right after `NS:InitDB` (`addon:OnInitialize`) and on
   every profile event (`NS.OnProfileEvent`, `core/Database.lua`), applying the stored Scope and
   overrides with the stored skin, and from each Skin tab row with only its own half. It calls
   `Skin:SetChoice`, which resolves the skin, repaints every frame recorded for this owner and then
   fires `NS.Skin.OnLooksChanged`. What no primitive records subscribes there: the History table's
   cached cell, header and direction colors, its four tinted marks and the row tints' RGB, then a
-  rebind of both pooled tables (`LT:Reskin`, which calls `SW:Reskin`); the ledger window's tab labels
-  (`ReskinTabs`) and the filter bar's colored Direction and Quality option lists; Insights' palette and
-  colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
+  rebind of both pooled tables (`LT:Reskin`, which calls `SW:Reskin`); the filter bar's colored
+  Direction and Quality option lists; Insights' palette and colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
   `settings.alpha` stays whole-window opacity.
 - **What paints what.** The three host windows (ledger, session, export modal) wear the skin's `Shell`
-  with `noTopBar` and a `TitleBar` on their own bar, a `Divider`, `Button` on the flat buttons,
+  with `noTopBar` and a `TitleBar` on their own bar, no line under it (R4-SEP), `Button` on the flat buttons,
+  `Tab` on the ledger window's tabs with `tab.rule` under the strip, `Footer` on its footer band,
   `ScrollBar` on every scroll bar, `SortHeaderBar` on both tables' headers, `MenuFrame` (alt edge) on the
   row menu, and `Card` / `Panel` / `Divider` (`section.rule`) / `NS.SkinBar` in Insights. The row
   tints take `list.stripe` / `list.hover` RGB with the player's two slider alphas, so the sliders
@@ -570,21 +580,26 @@ for member.
   `NS.SkinPaintAce`, and the Profiles page's tree through `NS.SkinPaintAceTree`. The addon has no
   perf panel (`performance-§12`) and no HUD, so the rollout's one-time HUD style reset (O2) has
   nothing to reset here. `tests/test_skin_tools.lua` pins the tool surfaces.
-- **The color gate.** `tests/test_skin_literals.lua` fails on a numeric literal in a color position
-  (r, g or b) of `SetTextColor`, `SetColorTexture`, `SetVertexColor`, `SetBackdropColor`,
-  `SetBackdropBorderColor`, `AddLine` and `AddDoubleLine`, and on any `|cff` escape in code, in every
-  tracked file under `core/`, `modules/` and `settings/`, outside `core/SkinSetup.lua` and the
-  allow-list below (anti-pattern #107). An allow-list entry that matches nothing also fails.
+- **The value gate.** The kit's `tests/_kit/test_skin_values.lua` (kit revision 50) fails on a typed
+  color or client texture in every tracked file under `core/`, `modules/` and `settings/` that no kit
+  category takes and no host row names (anti-pattern #107). `core/SkinSetup.lua` is out of scope, and
+  a row that matches nothing fails. `tests/skin_facts.lua` holds this addon's facts: no rows today,
+  and `NS.SkinBar` as its one paint call of its own.
+- **The switch test.** The kit's `tests/_kit/test_skin_switch.lua` flips each surface
+  `tests/skin_facts.lua` declares between Ka0s Default and a probe skin that gives every token its
+  own value, and fails a surface that draws the same. Coverage is that list.
 
 ### Intentional exceptions
 
-The gate's allow-list, each with its reason:
+The gate has no host rows: the kit's own categories take every typed value this addon keeps.
 
-| File | What | Why it is not chrome |
+| File | What | Kit category |
 |---|---|---|
-| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels | An item quality's client color, passed through |
-| `core/Namespace.lua` | `NS.PREFIX`, the cyan `[BL]` | Chat output; the chat frame is not a skinned surface |
-| `settings/Slash.lua` | `\|cFFFFFF00` in the disabled-line fallback | Chat output; the fallback is the library's string, pinned byte for byte |
+| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels | Hyperlink or quality color |
+| `core/Namespace.lua` | `NS.PREFIX`, the cyan `[BL]` | Chat line (L13) |
+| `settings/Slash.lua` | `\|cFFFFFF00` in the disabled-line fallback | Chat line (L13) |
+| `core/CoreSetup.lua` | The fallback resize grip's art | A6 Blizzard art |
+| `core/Util.lua`, `modules/LedgerTable.lua` | The class sheet, and the arrows and plus and minus art the marks fall back to | L10 art |
 
 Outside the gate's reach, also on purpose:
 
@@ -607,9 +622,8 @@ Outside the gate's reach, also on purpose:
   close button's fallback × takes the skin's face like any other string (the skinning rollout's BL-02).
 - **Blizzard's own frames stay stock** (skinning-§7): `GameTooltip`'s frame (only the lines are the
   addon's), the reset and purge `StaticPopup`s, the Settings window's chrome and footer Defaults
-  button, the minimap button (LibDBIcon) and the resize grip's art (BankLedger does not pass
-  `Core.MakeResizable` an `opts.owner`, an optional adoption since LibKa0s v1.81.0 it has not taken
-  up). The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
+  button and the minimap button (LibDBIcon). Both resize grips name the owner, so their art is the skin's;
+  the Blizzard grip art in `core/CoreSetup.lua` is the fallback's. The launcher tooltip's one host line, the record count, takes `gtip.subtle` (the 0.7 gray
   it drew).
 
 ## Known Limitations
@@ -655,7 +669,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-five rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-six rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 

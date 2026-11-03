@@ -44,16 +44,17 @@ TGAs ship in the LibKa0s payload under `libs/LibKa0s/media/icons/`. `core/MediaS
 `NS.Icon(name)` over it and `NS.ICON_NAMES` lists the nine this addon resolves itself.
 
 **Which icons ship.** Since the LibKa0s v1.75.0 re-vendor this build does not carry the whole
-catalog. It carries the thirteen names on the `LibKa0s icons:` line directly under the provenance
+catalog. It carries the seventeen names on the `LibKa0s icons:` line directly under the provenance
 line in the root [`CLAUDE.md`](../CLAUDE.md), all from Open Iconic, plus that set's license text.
 A re-vendor copies the whole tag and then prunes `media/icons/` to that line with the tag's own
 `tools/prune-icons.lua`, and `tests/test_vendor_sync.lua` fails if declared and shipped ever differ.
 Eight of the names are the host marks in the table below, `close` among them, and a ninth, `info`,
 is the test-mode strip's mark, which this addon resolves and hands the library's strip. The other
-four are drawn only by the library, not by this addon, and are declared all the same, because an
+eight are drawn only by the library, not by this addon, and are declared all the same, because an
 undeclared icon still resolves to a path and draws blank: `copy` and `clear` on the debug console's
-title bar, and `eye` and `settings` on the first-run skin picker (LibKa0s OptionsSkinPicker 1: its
-preview eye and its gear). The library also draws `close` on the debug console and the export copy
+title bar, `eye` and `settings` on the first-run skin picker (LibKa0s OptionsSkinPicker 1: its
+preview eye and its gear), `chevron-up` on every scroll bar's step button, and `move`, `reset` and
+`volume-high` on the library's shared controls (`VendorSync.LIBRARY_MARKS`, LibKa0s v1.85.0). The library also draws `close` on the debug console and the export copy
 window (`Core.MakeCloseButton` given this addon's folder name). A new mark goes on that line in the same commit
 that starts drawing it; a name the prune already removed needs `media/icons` re-copied from the tag
 before the prune runs again.
@@ -96,10 +97,9 @@ header's label and both group expanders inside the group header's row, and both 
 in 1/0.82/0 — art left near-white in front of them read as a second color inside one string. Vertex
 color is the last three arguments (0-255) of the full sequence, so all eleven in front of them are
 spelled: `0:0:0:0` keeps the auto-size the short `:0` gave, `64:64:0:64:0:64` is the whole texture
-uncropped, and `255:209:0` is the gold. One `HEADER_RGB` table feeds the tint and both
-`SetTextColor` calls, so a mark cannot drift off the word beside it. It is the skin's
-`list.header.text` (that gold under Ka0s Default), and a skin switch rebuilds all four escapes from
-the new value (`LT:Reskin`). The tint rides on the escape
+uncropped, and `255:209:0` is the gold. The escape is `NS.Skin.MarkText(path, 0, "icon.arrow")`: the
+marks take the skin's `icon.arrow` and the words `list.header.text`, both that gold under Ka0s
+Default, and a skin may split them. A skin switch rebuilds all four escapes (`LT.ReskinColors`). The tint rides on the escape
 rather than on the art, so it survives the fall to the Blizzard rung.
 
 **The multi-select tick, drawn by `LibKa0s-Widgets-1.0`'s shared menu from the `confirm` path this

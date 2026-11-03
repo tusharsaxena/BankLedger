@@ -212,7 +212,40 @@ NS.MIGRATIONS = {
     end
     return n
   end,
+
+  -- v5 -> v6 (R3-FRIZ): LibKa0s v1.85.0 deleted Ka0s Friz Quadrata TT (R3-L7) and WoW Default draws
+  -- Ka0s Ubuntu in its place (R3-L6). A stored skin Font override naming the deleted face moves to its
+  -- successor in every STORED profile, walked raw as v4 does; Blizzard's own "Friz Quadrata TT" is
+  -- another key and stays. The ledger in db.global holds no face and is not walked.
+  --
+  -- IDEMPOTENT: a second run finds no retired face and touches nothing. Counts one row per value moved.
+  [6] = function(_, db)
+    local sv = db and db.sv
+    local profiles = type(sv) == "table" and sv.profiles
+    if type(profiles) ~= "table" then return 0 end
+    local n = 0
+    for _, p in pairs(profiles) do
+      if type(p) == "table" then n = n + NS.RetireFonts(p) end
+    end
+    return n
+  end,
 }
+
+-- The shipped faces LibKa0s retired, each to its successor (R3-FRIZ; LibKa0s R3-L7).
+local RETIRED_FONTS = { ["Ka0s Friz Quadrata TT"] = "Ka0s Ubuntu" }
+
+--- Moves every string naming a retired face, at any depth of `t`, to its successor. Answers how many moved.
+function NS.RetireFonts(t)
+  local n = 0
+  for k, v in pairs(t) do
+    if type(v) == "table" then
+      n = n + NS.RetireFonts(v)
+    elseif RETIRED_FONTS[v] then
+      t[k], n = RETIRED_FONTS[v], n + 1
+    end
+  end
+  return n
+end
 
 -- Schema-migration runner (toc-file-§2 / savedvariables-§1, standard v2.65.0). Invoked once at init,
 -- before any read of db.profile or db.global.ledger, and again from every profile event, where it is

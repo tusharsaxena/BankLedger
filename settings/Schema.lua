@@ -387,6 +387,10 @@ S.MASTER_SPEC = {
     testMode = "Here it opens the ledger window on a sample ledger, and your real ledger is "
       .. "untouched. Combat ends it. The same as /bl test. To place the session window, use "
       .. "/bl session.",
+    -- Sim mode (compose minor 19, R6-SIM) is the bare `/bl sim` when idle: it opens the sim panel,
+    -- where a scenario starts, so the box ticks once one runs.
+    simMode  = "The same as /bl sim: with no simulation running it opens the sim panel, where "
+      .. "you start a scenario. Combat and a real bank visit end it, and test mode must be off to start one.",
   },
 }
 
@@ -485,6 +489,10 @@ S.MASTER_DECOR = {
       local _, refusal = LT:SetTestMode(v)
       if refusal then print(refusal) end
     end },
+
+  -- Sim mode (compose minor 19, R6-SIM): the widget name only. The composer's own get and set read
+  -- and drive NS.IsSimMode / NS.ToggleSim (S:ComposeMaster), and a get or set here would replace them.
+  ["state.sim"] = { widget = "CheckBox" },
 }
 
 --- Compose the Master controls rows and splice them at the HEAD of S.Schema.
@@ -501,6 +509,10 @@ function S:ComposeMaster(O)
   local spec = {}
   for k, v in pairs(S.MASTER_SPEC) do spec[k] = v end
   spec.onResetPosition = function() NS.Util.ResetWindowPositions() end
+  -- The Sim mode checkbox (compose minor 19, R6-SIM): the SAME pair the launcher descriptor takes
+  -- (core/SimSetup.lua), so ticking runs `/bl sim` and unticking `/bl sim stop`. Its path is the
+  -- composer's default, state.sim; modules/Sim.lua's listener repaints the page on each start and stop.
+  spec.isSimMode, spec.toggleSim = NS.IsSimMode, NS.ToggleSim
   -- options-ui-§12's global reset, verbatim: the confirm-gated KA0S_BANKLEDGER_RESETALL popup
   -- (whose text is that rule's first canonical wording, byte for byte), never the deed on the click,
   -- and Yes resets the active profile. Through NS.Slash:RequestResetAll, the single entry point
@@ -1038,8 +1050,9 @@ NS.COMMANDS = {
     end },
   -- THE SIMULATOR (BankLedger#24, LibKa0s-Sim-1.0's host contract H7). One feature verb, so the
   -- dispatcher refuses it while the addon is disabled; its grammar (start, step, run, pause, resume,
-  -- restart, stop, status, panel) is the library's RunVerb. Slash-only (OWNER_SCOPE C.11): no
-  -- launcher entry, no key binding, no schema row.
+  -- restart, stop, status, panel) is the library's RunVerb. OWNER_SCOPE C.11 made it slash-only; the
+  -- owner has since added the launcher's Sim mode entry (Launcher minor 7) and the Master controls
+  -- Sim mode checkbox (R6-SIM), both on NS.IsSimMode / NS.ToggleSim. There is still no key binding.
   { "sim",      NS.L["Simulate bank visits through the real capture engine; /bl sim for its verbs"],
     function(rest) NS.Sim:RunVerb(rest) end },
   { "help",     "Show this help",          function() NS.Slash:PrintHelp() end },

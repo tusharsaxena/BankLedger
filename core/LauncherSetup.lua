@@ -236,6 +236,7 @@ NS.Launcher = Launcher:New({
   -- slash gate and the Master-controls checkbox read, so the three cannot disagree. `setEnabled` is
   -- handed the state to move TO and runs `/bl enable` or `/bl disable` — Sl:CliEnabled, which
   -- writes the Enable row's stored path through the one write seam and re-runs the latch.
+  openSkinPicker = function() if NS.RunSkinVerb then NS.RunSkinVerb() end end,
   isEnabled = function() return not (NS.IsDisabled and NS.IsDisabled()) end,
   setEnabled = function(on) verb(on and "enable" or "disable") end,
 
@@ -270,6 +271,10 @@ NS.Launcher = Launcher:New({
   --
   -- The version the TOC stamps, through NS.Version (core/EnvSetup.lua): the same string `/bl
   -- version` prints, falling back to NS.version only where the manifest cannot be read.
+  -- The menu's Sim mode entry: the one pair core/SimSetup.lua publishes, which the Master controls
+  -- checkbox takes too (settings/Schema.lua), so the entry, the box and `/bl sim` are one act.
+  isSimMode = NS.IsSimMode,
+  toggleSim = NS.ToggleSim,
   version = function() return NS.Version and NS.Version() end,
 
   -- `isEnabled`, `isLocked` and `isTestMode` above are the tooltip's three status lines too, so the
