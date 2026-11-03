@@ -1408,10 +1408,11 @@ describes what you see, apart from the changes SKIN-1 lists.
   ends, and the title and the close button sit on the band's vertical middle (the title's letters level
   with the close mark's center line). Turn on test mode → the TEST MODE badge beside the ledger's title sits
   on the same middle. Switch to WoW Midnight (a 2 px edge) → the band moves 1 px down with the edge, still
-  flush inside it, and the title and close follow it. Switch to a skin whose title aligns left → the title
-  moves left and stays on the middle. Back to Ka0s Default → as before. **Fail:** a strip of body color
-  between the edge and the band, the band overlapping the edge, a title or close above or below the
-  band's middle, or the tab strip, filter bar or export form moved.
+  flush inside it, and the title and close follow it (the content under the band moves the same 1 px).
+  Every skin this build ships centers its title (`title.align` CENTER), so in each one the title stays
+  centered along the band and on its middle. Back to Ka0s Default → as before. **Fail:** a strip of body
+  color between the edge and the band, the band overlapping the edge, a title or close above or below the
+  band's middle, or, under Ka0s Default, the tab strip, filter bar or export form moved.
   Result:
 
 ## DEGRADED
