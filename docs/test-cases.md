@@ -1622,7 +1622,7 @@ Total.
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 - skin windows: a section divider's title stays one size however many times the skin switches
 
-### test_skin_chrome.lua (13)
+### test_skin_chrome.lua (15)
 
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
@@ -1632,11 +1632,13 @@ Total.
 - skin chrome: sort arrows take list.header.arrow (SF-L2), not icon.arrow
 - skin chrome: every title bar takes title.height and anchors its title on title.align
 - skin chrome: the typed title height is title.height in every registered skin
+- skin chrome: no window draws a line under its title band (R4-SEP)
 - skin chrome degraded: a Tab draws the label pair and a 2px underline, and selection moves them
 - skin chrome degraded: MarkText tints with the host copy's token
 - skin chrome degraded: HudFont draws, with a client face, the size floor and real flags
 - skin chrome degraded: HudFont writes both shadow arms, so a cleared shadow clears
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
+- skin chrome degraded: no window draws a line under its title band (R4-SEP)
 
 ### test_skin_picker.lua (17)
 
@@ -1770,7 +1772,7 @@ Total.
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (82)
+### test_skin_switch.lua (78)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
 - skin switch: the window's shell changes
@@ -1783,8 +1785,6 @@ Total.
 - skin switch: the export modal's title band changes with the Scope ignored
 - skin switch: the ledger's title changes
 - skin switch: the ledger's title changes with the Scope ignored
-- skin switch: the ledger's divider changes
-- skin switch: the ledger's divider changes with the Scope ignored
 - skin switch: the ledger's close control changes
 - skin switch: the ledger's close control changes with the Scope ignored
 - skin switch: the ledger's test badge changes
@@ -1815,8 +1815,6 @@ Total.
 - skin switch: a History group header changes with the Scope ignored
 - skin switch: the session window's title changes
 - skin switch: the session window's title changes with the Scope ignored
-- skin switch: the session window's divider changes
-- skin switch: the session window's divider changes with the Scope ignored
 - skin switch: the session window's header label changes
 - skin switch: the session window's header label changes with the Scope ignored
 - skin switch: the session window's close control changes
@@ -1917,7 +1915,7 @@ Total.
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
-| test_skin_chrome.lua | 13 |
+| test_skin_chrome.lua | 15 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 12 |
@@ -1929,6 +1927,6 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 82 |
+| test_skin_switch.lua | 78 |
 | Skipped | 1 |
-| **Total** | **1633** |
+| **Total** | **1631** |

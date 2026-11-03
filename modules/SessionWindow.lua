@@ -559,14 +559,13 @@ local function ensureFrame()
   title:SetText(TITLE)
   frame.title = title
 
-  -- The title bar and the divider through the skin, as the ledger window's (modules/Browser.lua
-  -- EnsureFrame says why the divider is a 1px frame and not a region of this window).
+  -- The title bar through the skin, as the ledger window's. The 1px `dividerBar` under it draws
+  -- nothing: no window has a line under its title band (R4-SEP, modules/Browser.lua EnsureFrame).
   NS.Skin.TitleBar(titleBar, { text = title, place = true })
   local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
   divider:SetHeight(1)
-  NS.Skin.Divider(divider)
   frame.dividerBar = divider
 
   if NS.Browser and NS.Browser.MakeCloseButton then

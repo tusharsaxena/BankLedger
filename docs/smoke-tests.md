@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 41 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band |
+| SKIN-1 – 43 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1126,12 +1126,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   v1.83.0's labels and outline default. Result: Owner reported pass, 2026-10-31
 - **SKIN-3. Each skin, live (BL-02).** With the ledger window open on History, pick each skin in turn:
   Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever, then Ka0s
-  Default again → with **no reload** the window edge, title bar, divider, tab labels and underline,
+  Default again → with **no reload** the window edge, title bar, tab labels and underline,
   the four bar buttons, the search box, the dropdowns and their menus, the footers, the table header,
   its sort and group marks, the rows (scroll to reach pooled rows), the scroll bar and the row menu all
   repaint, and text stays readable. Switch to Insights and repeat for a few skins → the cards, panels,
   headings, rules, bars, tracks, axes and legend repaint. Do the same with the session window open
-  (`/bl session`). **Fail:** a surface that keeps the old skin until `/reload`. Result: pass (owner-marked 2026-10-30)
+  (`/bl session`). **Fail:** a surface that keeps the old skin until `/reload`. Re-opened 2026-11-03
+  for R4-SEP: neither window has a divider under its title any more (SKIN-43). Result:
 - **SKIN-4. The close control (BL-02, rewritten for BL-A1).** Under **Ka0s Default** hover the close
   control on the ledger window, the session window and the Export modal → the skin's gray at rest and
   **red** on hover, the same as the copy window's and the debug console's library close control. Under
@@ -1373,6 +1374,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   line stays. Pick Obsidian, then Ka0s Default again → the bands follow with no reload. **Fail:** a
   near-black or flat band under Ka0s Default, a gray line under the console's title, or a title hard to read.
   Result:
+- **SKIN-43. No line under any window's title (R4-SEP).** Open the ledger window (`/bl show`), the session
+  window (`/bl session`), the Export modal and its copy window, the debug console (`/bl debug`) and its Copy
+  box, the simulation panel (`/bl sim`) and the skin picker (`/bl skin`) → none has a line under its title
+  band: the band meets the body directly, like the Skin Tester's showroom (`/skintester`). The ledger
+  window's tabs still sit where they did, with their rule under the tab strip, and Insights' section
+  dividers and chart axes stay. Repeat under Obsidian and WoW Default. **Fail:** a gray or colored 1px line
+  under any title band, the tab strip moved up or down, or the rule under the tabs gone.
+  Result:
 
 ## DEGRADED
 
@@ -1441,11 +1450,12 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   BAN-Z07). Result: pass (owner, 2026-10-24)
 - **DEGRADED-15. Today's look without the skin engine (BL-01, BL-02).** Run it before DEGRADED-11's
   restore. `/bl show`, `/bl test`, then `/bl session` → both windows draw the Ka0s Default edge (a 1px
-  black border with a light-gray line inside, the gold title, the gray divider), the tab labels in
+  black border with a light-gray line inside, the gold title, no line under the title, R4-SEP), the tab labels in
   gold and gray, the bar buttons, the table's gold headers, the row bands and the red `TEST MODE`
   title badge, all in the game's own fonts, the close control gray at rest and red on hover (BL-A1);
   no skin picker opens. **Fail:** a Lua error naming
-  `core/SkinSetup.lua` or `NS.Skin`, a window with no edge, or white text where gold was. Result: pass (owner-marked 2026-10-30)
+  `core/SkinSetup.lua` or `NS.Skin`, a window with no edge, or white text where gold was. Re-opened 2026-11-03 for R4-SEP (the gray divider under
+  the title is gone). Result:
 - **DEGRADED-16. The tabs without the skin engine (FS-BL-FIX).** With no library the ledger window
   does not build its filter bar's controls, but its tabs do → the active tab's label is gold over a
   2px gold underline, the other is gray, with no backing and no footer band, and clicking moves both.
@@ -1559,5 +1569,8 @@ new check SKIN-41, the AceGUI pickers' outside-click close that LibKa0s R4-L1 br
 Owed by the same round's second milestone (item R4-RV2): new check SKIN-42, Ka0s Default's dark gold title
 band (LibKa0s R4-L2) and the debug console with no line under its title (LibKa0s R4-SEP); SKIN-1, DIAG-7 and
 DIAG-11, whose title band or console divider changed, so their pass marks came off.
+
+Owed by the same round's item R4-SEP: new check SKIN-43, no line under the ledger or session window's
+title; SKIN-3 and DEGRADED-15, which named that divider, so their pass marks came off.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.

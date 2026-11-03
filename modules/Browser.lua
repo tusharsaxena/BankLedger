@@ -16,7 +16,7 @@ local frame
 
 -- The window CHROME's geometry: every height the layout is measured from. No color is here: the
 -- window's look is the player's skin (the Skin tab; core/SkinSetup.lua's NS.Skin, over
--- LibKa0s-Skin-1.0) -- the edge, the title bar, the divider, the close control, the tabs, the
+-- LibKa0s-Skin-1.0) -- the edge, the title bar, the close control, the tabs and the rule under them, the
 -- buttons, the footer band and every tooltip line read its tokens, and a skin switch repaints them
 -- live (anti-pattern #107: no typed look value). `titleBarH` is what the layout below measures from:
 -- the bars themselves take the skin's `title.height`, which skinning-§4 holds the same in every skin.
@@ -143,8 +143,10 @@ local function CreateTabStrip()
     x = x + 94
   end
 
-  -- The rule the tabs stand on: a 1px frame, for the reason the title divider is one, inside the
-  -- gap under the strip, so the layout does not move.
+  -- The rule the tabs stand on: a 1px frame inside the gap under the strip, so the layout does not
+  -- move. Never a direct region of this window: EllesmereUI's FadeRegions fades every direct region
+  -- of the frame it skins, and a texture here would be erased with them. A body rule, not a header
+  -- line, so it stays (R4-SEP).
   local rule = CreateFrame("Frame", nil, frame)
   rule:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, 0)
   rule:SetPoint("TOPRIGHT", strip, "BOTTOMRIGHT", 0, 0)
@@ -977,15 +979,14 @@ local function EnsureFrame()
   -- takes title.height and anchors the title on title.align.
   NS.Skin.TitleBar(titleBar, { text = title, place = true })
 
-  -- The divider under the title bar is a 1px FRAME, and the skin's Divider draws its line on that
-  -- frame's own holder. Never a direct region of this window: EllesmereUI's FadeRegions fades every
-  -- direct region of the frame it skins, and a texture here would be erased with them. Held as
-  -- `dividerBar` rather than the edge's `divider` field, which names a texture to tint.
+  -- A 1px FRAME under the title bar, with nothing drawn on it: no window has a line under its
+  -- title band (R4-SEP, the owner's round 4 sign-off, as the Skin Tester's showroom). It stays as
+  -- the anchor the tab strip hangs from (CreateTabStrip), so the layout does not move. Held as
+  -- `dividerBar` rather than the edge's `divider` field, which names a texture ApplySkin would hide.
   local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
   divider:SetHeight(1)
-  NS.Skin.Divider(divider)
   frame.dividerBar = divider
 
   local close = B:MakeCloseButton(titleBar, function() B:Hide() end)

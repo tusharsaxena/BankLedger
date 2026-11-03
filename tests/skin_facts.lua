@@ -116,6 +116,8 @@ return function(T)
     return spec
   end
 
+  -- No surface for the line under a title band: no window draws one (R4-SEP); each window's
+  -- 1px dividerBar is an anchor with nothing on it (tests/test_skin_chrome.lua holds that).
   local surfaces = {
     surface("the window's shell", { build = function()
       addon()
@@ -127,7 +129,6 @@ return function(T)
     surface("the session window's title band", { build = function() return band(session().titleBar) end }),
     surface("the export modal's title band", { build = function() return band(export().titleBar) end }),
     surface("the ledger's title", { build = function() return ledger().title end }),
-    surface("the ledger's divider", { build = function() return ledger().dividerBar end }),
     surface("the ledger's close control", { build = function() return ledger().closeButton end }),
     surface("the ledger's test badge", { build = function() return ledger().testBadge end }),
     surface("a ledger tab", { build = function() return ledger().tabs.History end }),
@@ -168,7 +169,6 @@ return function(T)
       paint = function() bind(1, HEADER) end,
     }),
     surface("the session window's title", { build = function() return session().title end }),
-    surface("the session window's divider", { build = function() return session().dividerBar end }),
     surface("the session window's header label", { build = function()
       session()
       local _, cell = next(ns.SessionWindow.headerFrame.cells)

@@ -192,6 +192,45 @@ test("skin chrome: the typed title height is title.height in every registered sk
   ns.SessionWindow:Hide()
 end)
 
+-- ── no line under the title (R4-SEP) ────────────────────────────────────────────────────────
+
+-- The owner's round 4 sign-off: no window has a line under its title band, as the Skin Tester's
+-- showroom. Each window keeps its 1px `dividerBar` frame, because the ledger's tab strip anchors to
+-- it, but nothing is drawn on it: no S.Divider call, so no rule texture. The rule under the tabs
+-- (`tabRule`) is a body rule and stays.
+local function watchDividers(ns)
+  local seen, real = {}, ns.Skin.Divider
+  ns.Skin.Divider = function(target, opts)
+    seen[target] = true
+    return real(target, opts)
+  end
+  return seen
+end
+
+local function headerLines(ns, Skin, seen)
+  local lines = {}
+  for name, win in pairs({ ledger = ns.Browser:GetWindow(), session = ns.SessionWindow:GetWindow() }) do
+    local bar = win.dividerBar
+    assertTrue(bar ~= nil, name .. " lost the dividerBar the layout anchors to")
+    assertEqual(bar:GetHeight(), 1, name .. "'s dividerBar keeps its 1px")
+    if seen[bar] or (Skin and Skin.painted[bar]) then lines[#lines + 1] = name end
+  end
+  table.sort(lines)
+  return table.concat(lines, ",")
+end
+
+test("skin chrome: no window draws a line under its title band (R4-SEP)", function()
+  local ns, _, Skin = fresh()
+  local seen = watchDividers(ns)
+  ns.Browser:Show()
+  ns.SessionWindow:Show()
+  assertEqual(headerLines(ns, Skin, seen), "", "a window with a line under its title")
+  local win = ns.Browser:GetWindow()
+  assertEqual(select(2, win.tabStrip:GetPoint(1)), win.dividerBar, "the tab strip still hangs from it")
+  assertTrue(seen[win.tabRule] == true, "the rule under the tabs is a body rule and stays")
+  ns.SessionWindow:Hide()
+end)
+
 -- ── degraded: today's look, with no skin to read ─────────────────────────────────────────────
 
 local function degraded()
@@ -262,4 +301,16 @@ test("skin chrome degraded: HudFont with no face anywhere leaves the string alon
   local p = m.__paint(fs)
   assertEqual(p.font, nil, "no SetFont")
   assertEqual(p.shadowOffset, nil, "no shadow either")
+end)
+
+test("skin chrome degraded: no window draws a line under its title band (R4-SEP)", function()
+  local ns = degraded()
+  ns:InitDB()
+  ns.Schema:Register()
+  ns.Ledger:Enable()
+  local seen = watchDividers(ns)
+  ns.Browser:Show()
+  ns.SessionWindow:Show()
+  assertEqual(headerLines(ns, nil, seen), "", "a window with a line under its title")
+  ns.SessionWindow:Hide()
 end)

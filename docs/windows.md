@@ -5,11 +5,13 @@ close-button factory (`modules/Browser_Chrome.lua`), each with its own persisted
 
 **Both wear the player's skin** (skinning-§3; [ARCHITECTURE.md → Skins](ARCHITECTURE.md#skins)).
 `B:ApplySkin` hands the frame to the owner's `Shell` (`NS.Skin.Shell`, LibKa0s-Skin-1.0) with
-`noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`, its divider
-through `NS.Skin.Divider`; the export modal does the same. Each hands `TitleBar` its title and `place`,
+`noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`; the export
+modal does the same. No window draws a line under its title band (R4-SEP, as the Skin Tester's
+showroom): the ledger and session windows keep a 1px `dividerBar` frame under the bar, with nothing
+drawn on it, because the ledger's tab strip anchors to it. Each hands `TitleBar` its title and `place`,
 so the bar takes `title.height` and the title an anchor on `title.align`. Under Ka0s Default that is
-the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it, the
-gold title and the gray divider) plus the skin's faint `title.bg` band on the title bars and
+the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it and
+the gold title) plus the skin's `title.bg` band on the title bars (a dark gold gradient) and
 `list.header.bg` on the table headers (DECISIONS BankLedger D6). The ledger window also takes the
 skin's `Tab` on its tabs and its `foot.bg` band behind the footer. Every frame is recorded for this
 addon's owner, so a skin switch repaints it live; the pooled rows and the tinted marks are redone by

@@ -541,7 +541,7 @@ for member.
   Direction and Quality option lists; Insights' palette and colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
   `settings.alpha` stays whole-window opacity.
 - **What paints what.** The three host windows (ledger, session, export modal) wear the skin's `Shell`
-  with `noTopBar` and a `TitleBar` on their own bar, a `Divider`, `Button` on the flat buttons,
+  with `noTopBar` and a `TitleBar` on their own bar, no line under it (R4-SEP), `Button` on the flat buttons,
   `Tab` on the ledger window's tabs with `tab.rule` under the strip, `Footer` on its footer band,
   `ScrollBar` on every scroll bar, `SortHeaderBar` on both tables' headers, `MenuFrame` (alt edge) on the
   row menu, and `Card` / `Panel` / `Divider` (`section.rule`) / `NS.SkinBar` in Insights. The row
