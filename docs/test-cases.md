@@ -1622,7 +1622,7 @@ Total.
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 - skin windows: a section divider's title stays one size however many times the skin switches
 
-### test_skin_chrome.lua (15)
+### test_skin_chrome.lua (16)
 
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
@@ -1632,6 +1632,7 @@ Total.
 - skin chrome: sort arrows take list.header.arrow (SF-L2), not icon.arrow
 - skin chrome: every title bar takes title.height and anchors its title on title.align
 - skin chrome: the typed title height is title.height in every registered skin
+- skin chrome: every window's header is on its band, in every skin (R5-WIN)
 - skin chrome: no window draws a line under its title band (R4-SEP)
 - skin chrome degraded: a Tab draws the label pair and a 2px underline, and selection moves them
 - skin chrome degraded: MarkText tints with the host copy's token
@@ -1915,7 +1916,7 @@ Total.
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
-| test_skin_chrome.lua | 15 |
+| test_skin_chrome.lua | 16 |
 | test_skin_picker.lua | 17 |
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 12 |
@@ -1929,4 +1930,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 78 |
 | Skipped | 1 |
-| **Total** | **1631** |
+| **Total** | **1632** |

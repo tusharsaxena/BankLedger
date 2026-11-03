@@ -192,6 +192,67 @@ test("skin chrome: the typed title height is title.height in every registered sk
   ns.SessionWindow:Hide()
 end)
 
+-- ── the header on the band (R5-WIN) ─────────────────────────────────────────────────────────
+
+-- Round 5 (Ka0sAddonsCommonTasks docs/2026-11-03-SMOKE_ROUND5, the owner's items 2 and 5, the lead's
+-- call 6): each window's title bar takes the band's rect (S.Band: Shell's own inset, `win.borderSize`
+-- in from a flat edge, else 1, at `title.height`), so no body color shows between the edge and the
+-- band in any skin; and every header child is anchored LEFT, CENTER or RIGHT to the band at y 0, its
+-- geometric middle, never to a hand-placed bar at a hard-coded 1 px. The test badge rides the title's
+-- right edge at y 0, so it is on the same middle. Headless, only the anchor shape can be measured.
+local CENTERED = { LEFT = true, CENTER = true, RIGHT = true }
+
+local function assertOnBand(region, band, what)
+  local n = region:GetNumPoints()
+  assertTrue(n >= 1 and n <= 2, what .. ": anchored")
+  for i = 1, n do
+    local point, rel, relPoint, _, y = region:GetPoint(i)
+    assertTrue(CENTERED[point], ("%s: a %s point, never TOP*"):format(what, tostring(point)))
+    assertEqual(relPoint, point, what .. ": to the band's own " .. tostring(point))
+    assertTrue(rel == band, what .. ": anchored to the band")
+    assertEqual(y, 0, what .. ": y 0, the band's middle")
+  end
+end
+
+test("skin chrome: every window's header is on its band, in every skin (R5-WIN)", function()
+  local ns, m, Skin = fresh()
+  ns.Browser:Show()
+  ns.SessionWindow:Show()
+  local export = ns.Export:Open({})
+  local ledger, session = ns.Browser:GetWindow(), ns.SessionWindow:GetWindow()
+  local windows = {
+    { "ledger", ledger, ledger.titleBar, ledger.title, ledger.closeButton },
+    { "session", session, session.titleBar, session.title, session.closeButton },
+    { "export", export, export.titleBar, export.titleFS, export.closeBtn },
+  }
+  local insets = {}
+  for _, def in ipairs(Skin:Skins()) do
+    switch(m, Skin, def.key)
+    local t = Skin:ResolveSkin(def.key)
+    local inset = (t["win.borderStyle"] or "flat") == "flat" and t["win.borderSize"] or 1
+    insets[inset] = true
+    for _, w in ipairs(windows) do
+      local what = w[1] .. " under " .. def.key
+      local band = ns.Skin.Band(w[2])
+      assertTrue(band ~= nil, what .. ": a band")
+      local _, rel, _, x, y = band:GetPoint(1)
+      assertTrue(rel == w[2], what .. ": the band is the window's")
+      assertEqual(x, inset, what .. ": the band at Shell's inset")
+      assertEqual(y, -inset, what .. ": the band at Shell's inset")
+      assertTrue(rawget(w[3], "__allPoints") == band, what .. ": the title bar takes the band's rect")
+      assertOnBand(w[4], band, what .. "'s title")
+      assertOnBand(w[5], band, what .. "'s close")
+    end
+  end
+  assertTrue(insets[1] and insets[2], "the skins cover a 1 px and a 2 px edge")
+  local badge = ledger.testBadge
+  local point, rel, relPoint, _, y = badge:GetPoint(1)
+  assertEqual(point .. relPoint, "LEFTRIGHT", "the badge rides the title's right edge")
+  assertTrue(rel == ledger.title and y == 0, "on the title's, so the band's, middle")
+  switch(m, Skin, "ka0s")
+  ns.SessionWindow:Hide()
+end)
+
 -- ── no line under the title (R4-SEP) ────────────────────────────────────────────────────────
 
 -- The owner's round 4 sign-off: no window has a line under its title band, as the Skin Tester's

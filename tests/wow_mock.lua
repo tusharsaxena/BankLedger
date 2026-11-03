@@ -185,7 +185,18 @@ FRAME_METHODS.SetPoint = function(f)
 end
 
 FRAME_METHODS.ClearAllPoints = function(f)
-  return function() f.__points = {}; return f end
+  return function() f.__points, f.__allPoints = {}, nil; return f end
+end
+
+-- SetAllPoints keeps the frame it was laid on (`__allPoints`, the kit's mock_paint name), so a suite
+-- can see a title bar take the band's rect (S.Header's `bars`, R5-WIN); GetNumPoints counts the
+-- recorded anchors, as the client does.
+FRAME_METHODS.SetAllPoints = function(f)
+  return function(_, rel) f.__points, f.__allPoints = {}, rel or f.__parent; return f end
+end
+
+FRAME_METHODS.GetNumPoints = function(f)
+  return function() return #f.__points end
 end
 
 FRAME_METHODS.GetPoint = function(f)

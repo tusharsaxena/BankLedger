@@ -561,7 +561,7 @@ local function ensureFrame()
 
   -- The title bar through the skin, as the ledger window's. The 1px `dividerBar` under it draws
   -- nothing: no window has a line under its title band (R4-SEP, modules/Browser.lua EnsureFrame).
-  NS.Skin.TitleBar(titleBar, { text = title, place = true })
+  NS.Skin.TitleBar(titleBar, { text = title })
   local divider = CreateFrame("Frame", nil, frame)
   divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
   divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
@@ -573,6 +573,8 @@ local function ensureFrame()
     close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
     frame.closeButton = close
   end
+  -- The header on the window's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).
+  NS.Skin.Header(frame, { title = title, right = { frame.closeButton }, bars = { titleBar } })
 
   -- One pane, straight under the title bar: no tab strip, no filter bar, no footer. It moves down
   -- by the strip's reserve while the simulation strip shows (SW:UpdateTestStrip).

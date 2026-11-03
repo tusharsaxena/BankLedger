@@ -975,9 +975,9 @@ local function EnsureFrame()
   testBadge:Hide()
   frame.testBadge = testBadge
 
-  -- The title bar through the skin's TitleBar: its title.bg band (the rollout's D6), and `place`
-  -- takes title.height and anchors the title on title.align.
-  NS.Skin.TitleBar(titleBar, { text = title, place = true })
+  -- The title bar through the skin's TitleBar: its title.bg band (the rollout's D6). Where the bar
+  -- and the title stand is S.Header's, below.
+  NS.Skin.TitleBar(titleBar, { text = title })
 
   -- A 1px FRAME under the title bar, with nothing drawn on it: no window has a line under its
   -- title band (R4-SEP, the owner's round 4 sign-off, as the Skin Tester's showroom). It stays as
@@ -992,6 +992,12 @@ local function EnsureFrame()
   local close = B:MakeCloseButton(titleBar, function() B:Hide() end)
   close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
   frame.closeButton = close
+  -- The header on the window's band (S.Band, R5-WIN of the smoke round 5): the bar takes the band's
+  -- rect, Shell's own inset and title.height in every skin, so no body color shows between the edge
+  -- and the band; the title (by title.align) and the close are anchored to the band at y 0, its
+  -- middle. The badge rides the title's right edge, so it is on the same middle. Degraded, Header is
+  -- a no-op and the anchors above stand.
+  NS.Skin.Header(frame, { title = title, right = { close }, bars = { titleBar } })
 
   -- Shared window chrome: one filter bar above both panes (each tab's own state painted onto it),
   -- one shared footer below them.

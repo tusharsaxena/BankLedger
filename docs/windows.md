@@ -8,8 +8,10 @@ close-button factory (`modules/Browser_Chrome.lua`), each with its own persisted
 `noTopBar`, and each title bar paints its own fill and title through `NS.Skin.TitleBar`; the export
 modal does the same. No window draws a line under its title band (R4-SEP, as the Skin Tester's
 showroom): the ledger and session windows keep a 1px `dividerBar` frame under the bar, with nothing
-drawn on it, because the ledger's tab strip anchors to it. Each hands `TitleBar` its title and `place`,
-so the bar takes `title.height` and the title an anchor on `title.align`. Under Ka0s Default that is
+drawn on it, because the ledger's tab strip anchors to it. Each then hands its header to
+`NS.Skin.Header` (R5-WIN of the smoke round 5): the bar takes the band's rect (`S.Band`, Shell's own
+inset and `title.height`, so no body color shows between the edge and the band in any skin), and the
+title (by `title.align`) and the close are anchored to the band at y 0, its middle. Under Ka0s Default that is
 the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it and
 the gold title) plus the skin's `title.bg` band on the title bars (a dark gold gradient) and
 `list.header.bg` on the table headers (DECISIONS BankLedger D6). The ledger window also takes the

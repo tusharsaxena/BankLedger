@@ -395,15 +395,16 @@ local function EnsureFrame()
   t:SetPoint("CENTER"); t:SetText("Export")
   frame.titleFS = t
   frame.titleBar = tbar
-  -- The bar's fill and the title through the skin's TitleBar: `place` takes title.height and anchors
-  -- the title on title.align. The Shell below is called with `noTopBar` because this bar paints
-  -- itself (the rollout's D6, Loot History's export modal).
-  NS.Skin.TitleBar(tbar, { text = t, place = true })
+  -- The bar's fill and the title through the skin's TitleBar. The Shell below is called with
+  -- `noTopBar` because this bar paints itself (the rollout's D6, Loot History's export modal).
+  NS.Skin.TitleBar(tbar, { text = t })
   if NS.Browser and NS.Browser.MakeCloseButton then
     local close = NS.Browser:MakeCloseButton(tbar, function() frame:Hide() end)
     close:SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
     frame.closeBtn = close   -- the suite fires this to prove the close ROUTE, not just Hide()
   end
+  -- The header on the modal's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).
+  NS.Skin.Header(frame, { title = t, right = { frame.closeBtn }, bars = { tbar } })
 
   -- GUARDED, because NS.Browser:MakeDropdown answers nil with no LibKa0s-Widgets-1.0
   -- (modules/Browser.lua's B:MakeDropdown documents exactly that) and the SetHeight below would raise on it.
