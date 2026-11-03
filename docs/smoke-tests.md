@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 43 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title |
+| SKIN-1 – 44 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1382,6 +1382,13 @@ describes what you see, apart from the changes SKIN-1 lists.
   dividers and chart axes stay. Repeat under Obsidian and WoW Default. **Fail:** a gray or colored 1px line
   under any title band, the tab strip moved up or down, or the rule under the tabs gone.
   Result:
+- **SKIN-44. The HUD icon edge leaves the windows alone (R4-RV3, LibKa0s R4-L4).** Install the re-vendored
+  build and `/reload` under Ka0s Default → no Lua error, and the ledger window (`/bl show`), the session window
+  (`/bl session`), the settings panel (`/bl config`) and the debug console (`/bl debug`) look exactly as they did
+  on the R4-RV2 build. R4-L4 changes only icons a HUD edges through `S.IconBorder` with `hud = true`, and Bank
+  Ledger has no HUD and no `S.IconBorder` caller, so nothing here moves. Switch to Obsidian and back → the same.
+  **Fail:** a Lua error naming `SkinPaintControls.lua`, or any window's edge, title band or rows changed.
+  Result:
 
 ## DEGRADED
 
@@ -1572,5 +1579,8 @@ DIAG-11, whose title band or console divider changed, so their pass marks came o
 
 Owed by the same round's item R4-SEP: new check SKIN-43, no line under the ledger or session window's
 title; SKIN-3 and DEGRADED-15, which named that divider, so their pass marks came off.
+
+Owed by the same round's item R4-RV3: new check SKIN-44, the re-vendored LibKa0s R4-L4 (a HUD icon's
+edge drawn in `icon.border`), which changes nothing in this addon; no pass mark came off.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
