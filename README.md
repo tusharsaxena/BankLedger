@@ -1,4 +1,4 @@
-# Ka0s Bank Ledger
+# Bank Ledger
 
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
@@ -6,7 +6,7 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-1647%2F1647_passing-green)
 
-Ka0s Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
+Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
 when. Gold is tracked the same way at the two banks that hold gold.
 
