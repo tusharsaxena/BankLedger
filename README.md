@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1647%2F1647_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1653%2F1653_passing-green)
 
 Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -93,7 +93,10 @@ steps; Pause holds it, and clicking a row plays it by hand. **Simulation step de
 Interface tab changes that. Nothing a simulation does is saved and your real history is never touched. It won't start
 in combat, in test mode, with a real bank open, while General visibility keeps the window shut, or
 while the addon is disabled. `/bl sim stop` ends it, and so do entering combat, opening a real bank
-and `/reload`. `/bl purge` is refused until it is over.
+and `/reload`. `/bl purge` is refused until it is over. The **Sim mode** box on the settings'
+Master controls tab, on its own line below Test mode, and the matching entry in the minimap button's
+right-click menu are the same switch: tick it with nothing running and the step panel opens so you
+can pick a scenario, untick it and the running one stops.
 
 The look is per profile too. A small **Choose a skin** window opens once on each profile, and
 `/bl skin` brings it back any time. Pick a skin there, along with the font, texture and text outline,
