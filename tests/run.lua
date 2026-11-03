@@ -31,7 +31,7 @@ local SUITES = {
   "test_lintconfig", "test_diagnostics", "test_profiles", "test_debug_coverage", "test_debug_library",
   "test_sim_seam", "test_sim_world", "test_sim_drivers", "test_sim_session", "test_sim_scenario", "test_sim_e2e",
   "test_sim_panel", "test_layers", "test_skinsetup", "test_skin_windows", "test_skin_chrome",
-  "test_skin_picker", "test_skin_tools", "test_skin_outline", "test_skin_verb", "test_glyphs",
+  "test_skin_picker", "test_skin_picker_preview", "test_skin_tools", "test_skin_outline", "test_skin_verb", "test_glyphs",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
@@ -113,6 +113,35 @@ _G.BL_TEST = Kit.expose{
   NS = NS, mocks = mocks, Loader = Loader, suites = SUITES, libka0sFiles = LIBKA0S_FILES,
   makeMocks = function() return dofile("tests/wow_mock.lua")() end,
 }
+
+-- Every case ends with the skin picker down (NS.HideSkinPicker, the quiet close: nothing marked
+-- seen). A case that resets or switches the profile, or runs the login timer, shows the first-run
+-- picker on the way, and since LibKa0s OptionsSkinPicker 11 (R6-PV) a picker that shows with the
+-- ledger window hidden turns test mode on through spec.preview. Left up, it kept the sample dataset
+-- on for every later case; its close puts test mode back off. The picker's own suites close it
+-- themselves and pin what each close route does.
+do
+  local T = _G.BL_TEST
+  local caseOf = T.test
+  T.test = function(name, fn, ...)
+    if type(fn) ~= "function" then return caseOf(name, fn, ...) end
+    return caseOf(name, function(...)
+      local ok, err = pcall(fn, ...)
+      if NS.HideSkinPicker then NS.HideSkinPicker() end
+      if not ok then error(err, 0) end
+    end, ...)
+  end
+  -- `fn` with the first-run picker held off (NS.MaybeShowSkinPicker a no-op, put back after), for a
+  -- case about a profile act's own effects (its log lines, its repaints, the window bar it leaves),
+  -- not about the picker the act's unseen profile shows and the test mode that picker enters.
+  T.withoutFirstRunPicker = function(fn)
+    local real = NS.MaybeShowSkinPicker
+    NS.MaybeShowSkinPicker = function() return nil end
+    local ok, err = pcall(fn)
+    NS.MaybeShowSkinPicker = real
+    if not ok then error(err, 0) end
+  end
+end
 
 NS:InitDB()
 -- Mirror the in-game lifecycle: OnInitialize registers the schema, OnEnable arms the capture

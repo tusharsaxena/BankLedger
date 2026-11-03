@@ -219,7 +219,9 @@ test("Panel: /bl resetall repaints, and only once", function()
   local before = page.count()
   local saved = mocks.DEFAULT_CHAT_FRAME.AddMessage
   mocks.DEFAULT_CHAT_FRAME.AddMessage = function() end
-  NS.Slash:CliResetAll()
+  -- The reset's unseen profile shows the first-run picker, and its preview's test mode repaints
+  -- the panel once more (LT:SetTestMode); that is the picker's own act (R6-PV), not the reset's.
+  T.withoutFirstRunPicker(function() NS.Slash:CliResetAll() end)
   mocks.DEFAULT_CHAT_FRAME.AddMessage = saved
   assertEqual(page.count() - before, 1, "the whole reset is one repaint")
   page.remove()

@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
-| SKIN-1 – 47 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading |
+| SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1245,7 +1245,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   → the ledger window opens in test mode (the amber strip shows) with the sample rows in the
   previewed skin, and the picker stays above it, clickable. In combat press the eye → test mode's own
   refusal prints and nothing opens. **Fail:** the ledger window covering the picker, or the preview
-  lost. Result: pass (owner-marked 2026-10-30)
+  lost. Since R6-PV the picker enters test mode at show and the eye toggles it, so the first press
+  turns test mode off: SKIN-48 is the check now, and this one's pass mark came off. Result:
 - **SKIN-22. The picker's gear (BL-04).** On a fresh profile preview **Obsidian** and press the gear →
   the settings panel opens on **General** with **Skin** selected, showing Obsidian, and the picker
   closes; `/reload` keeps Obsidian. Result: pass (owner-marked 2026-10-30)
@@ -1420,6 +1421,25 @@ describes what you see, apart from the changes SKIN-1 lists.
   again, pick Obsidian and press **Apply** → Obsidian stays; set it back to Ka0s Default the same way.
   **Fail:** a Lua error naming `OptionsSkinPicker.lua`, no eye, or a pick that does not preview or save as
   SKIN-19 to SKIN-23 describe. The eye's own behavior is SKIN-48.
+  Result:
+- **SKIN-48. The picker's preview: `/bl test` mode (R6-PV, LibKa0s R6-L1).** `/bl skin` with the ledger
+  window closed and test mode off → test mode turns on: the ledger window opens with the sample rows
+  and the amber test strip, the picker stays in front of it, and the eye is lit; hover the eye → its
+  tooltip says test mode is on. Press the eye → test mode turns off, the ledger window closes, and the
+  eye dims with a tooltip saying test mode is off. Press it again → test mode and the window are back.
+  Now close the picker by each route in turn, reopening it with `/bl skin` each time: the close
+  control, Escape, **Apply**, and the gear → after each, test mode is off and the ledger window is
+  closed (the gear leaves the settings panel open; its Master controls **Test mode** box is
+  unticked). Open the window yourself (`/bl show`), then `/bl skin` → test mode stays off and the
+  window shows your real rows; press the eye twice (on, off) → the window stays open; close the
+  picker → the window is still open on real rows. Turn test mode on (`/bl test`), close the window,
+  `/bl skin` → test mode stays on; press the eye → it turns off; close the picker → test mode is on
+  again. With the window closed, `/bl skin` (test mode turns on), then enter combat → test mode ends,
+  as it always does on the pull; press the eye in combat → test mode's own "cannot start test mode
+  during combat." line prints and nothing opens; close the picker → nothing else changes. **Fail:** a picker that opens with the window closed and
+  leaves test mode off, an eye that only turns test mode on, a close that leaves test mode on or the
+  sample window open, a window you opened that the picker closes, or the ledger window covering the
+  picker.
   Result:
 
 ## DEGRADED
@@ -1625,5 +1645,9 @@ title, close and test badge on the band's middle; no pass mark came off.
 
 Owed by the owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, item R6-RV):
 new check SKIN-47, the re-vendored LibKa0s R6-L1 (the skin picker at minor 11); no pass mark came off.
+
+Owed by the same round's item R6-PV: new check SKIN-48, the picker's preview in test mode (entered at
+show with the ledger window closed, toggled by the eye, put back on every close); SKIN-21, whose eye
+now toggles, so its pass mark came off.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.

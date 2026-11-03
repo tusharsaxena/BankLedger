@@ -392,9 +392,17 @@ end
 -- event takes the picker down FIRST (NS.OnProfileEvent), before the new profile's skin is applied,
 -- so the new profile's whole pair is what is left worn.
 --
--- THE EYE (DECISIONS BankLedger D8). The ledger window in test mode, so the player sees the skin on
--- this addon's own frames. Test mode refuses a start in combat and while General visibility keeps
--- the window shut; the refusal is printed, as `/bl test` prints it.
+-- THE PREVIEW (spec.preview, LibKa0s OptionsSkinPicker 11; Ka0sAddonsCommonTasks
+-- docs/2026-11-03-SMOKE_ROUND6/, item R6-PV, the lead's call 2: test mode, `/bl test`; it replaces
+-- DECISIONS BankLedger D8's enter-only eye). The ledger window in test mode, so the player sees the
+-- skin on this addon's own frames. When the picker shows with test mode off and the ledger window
+-- hidden, the library enters test mode; the eye turns it off and on; every close (Apply, the close
+-- control, the gear, Escape, NS.HideSkinPicker) puts back the state the picker opened on. `enter`
+-- and `exit` are LT:SetTestMode, the one path the Master controls checkbox, `/bl test` and the
+-- combat ending take, so the checkbox and the launcher follow and the start's refusals still apply
+-- (combat, a running simulation, General visibility), printed as `/bl test` prints them. A STOP
+-- never hides anything on its own, so `exit` closes the ledger window only when this preview's
+-- `enter` was what opened it; a window the player opened stays open on real data.
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- O.SkinPicker queues this one and answers nil, "queued", which NS.MaybeShowSkinPicker passes
@@ -404,22 +412,50 @@ local PICKER_PATH = "settings.appearance.pickerSeen"
 local pickerTarget       -- the one-shot PLAYER_REGEN_ENABLED target, while a start is held
 local quietClose = false -- true while NS.HideSkinPicker takes the picker down
 
---- The eye: the ledger window in test mode. A mode already on only needs the window shown; a start
---- opens the window itself (LT:SetTestMode), and a refused start prints its own line.
-local function previewSkin()
+local previewOpened = false -- true while the ledger window is up because the preview's enter opened it
+
+--- Test mode on? The Test mode row's own `get` and the launcher's `isTestMode` read the same.
+local function previewActive()
   local LT = NS.LedgerTable
-  if not (LT and LT.SetTestMode and LT.IsTestMode) then return end
-  if LT:IsTestMode() then
-    if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
-    return
-  end
-  local _, refusal = LT:SetTestMode(true)
-  if refusal and NS.Print then NS.Print(refusal) end
+  return LT ~= nil and LT.IsTestMode ~= nil and LT:IsTestMode() and true or false
 end
 
---- The player's close: the picker seen, and nothing else (the library's put-back wears the stored
---- choice already).
+--- The ledger window shown? The launcher's `isWindowShown` reads the same.
+local function previewShown()
+  local f = NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow()
+  return f ~= nil and f:IsShown() and true or false
+end
+
+--- Test mode on through LT:SetTestMode, which opens the ledger window itself; a refused start prints
+--- its own line. Notes whether this call is what put the window up.
+local function previewEnter()
+  local LT = NS.LedgerTable
+  if not (LT and LT.SetTestMode) then return false end
+  local hidden = not previewShown()
+  local on, refusal = LT:SetTestMode(true)
+  if refusal and NS.Print then NS.Print(refusal) end
+  if on and hidden and previewShown() then previewOpened = true end
+  return on and true or false
+end
+
+--- Test mode off through LT:SetTestMode, and the ledger window closed (B:Hide, `/bl hide`'s call)
+--- when the preview's enter opened it.
+local function previewExit()
+  local LT = NS.LedgerTable
+  if not (LT and LT.SetTestMode) then return false end
+  LT:SetTestMode(false)
+  if previewOpened then
+    previewOpened = false
+    if NS.Browser and NS.Browser.Hide then NS.Browser:Hide() end
+  end
+  return true
+end
+
+--- The close, by any route (the library has already put the preview's mode back): the window the
+--- preview opened is no longer its own to close; then, on the player's close, the picker seen and
+--- nothing else (the library's put-back wears the stored choice already).
 local function pickerClosed()
+  previewOpened = false
   if quietClose then return end
   local S = NS.Schema
   if not (NS.db and S and S.Set) then return end
@@ -435,7 +471,11 @@ function NS.SkinPickerSpec()
     -- matches it exactly; the page's display name "General" opens the landing page instead), and
     -- "Appearance" is the group of the skipRender appearance rows.
     page = "general", tab = "Appearance",
-    onPreview = previewSkin, onClose = pickerClosed,
+    preview = {
+      mode = "test", enter = previewEnter, exit = previewExit,
+      isActive = previewActive, isShown = previewShown,
+    },
+    onClose = pickerClosed,
   }
 end
 

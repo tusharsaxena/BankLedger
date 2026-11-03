@@ -528,9 +528,16 @@ for member.
   waits on a one-shot `PLAYER_REGEN_ENABLED` registration (see **Event Subscriptions**). A pick only
   previews, and so do the Skin tab's font, texture, outline and Scope rows the picker repeats
   (LibKa0s v1.83.0); **Apply** and the gear save them through `NS.WriteSkinChoice`, and the close
-  control and Escape put the stored look back. Its eye opens the ledger window in test mode
-  (`LT:SetTestMode(true)`), so in combat it prints test mode's own refusal. `NS.HideSkinPicker` (the
-  stand-down, and first on every profile event) takes it down without setting `pickerSeen`.
+  control and Escape put the stored look back. Its preview is test mode (`spec.preview`, LibKa0s
+  OptionsSkinPicker 11, R6-PV): a picker that shows with test mode off and the ledger window closed
+  turns test mode on (`LT:SetTestMode(true)`, which opens the window with the sample ledger), the
+  eye turns it off and on, and every close (Apply, the gear, the close control, Escape,
+  `NS.HideSkinPicker`) puts back the state the picker opened on. `enter` and `exit` are
+  `LT:SetTestMode`, the path the Master controls checkbox and `/bl test` take, so the checkbox and the
+  launcher follow and test mode's refusals apply (in combat it prints its own line); `exit` closes the
+  ledger window only when the preview's own `enter` opened it, so a window the player opened stays
+  open. `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes it down without
+  setting `pickerSeen`.
 - **Repaint flow.** `NS.ApplySkinChoice` runs right after `NS:InitDB` (`addon:OnInitialize`) and on
   every profile event (`NS.OnProfileEvent`, `core/Database.lua`), applying the stored Scope and
   overrides with the stored skin, and from each Skin tab row with only its own half. It calls

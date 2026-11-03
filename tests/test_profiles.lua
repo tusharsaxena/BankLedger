@@ -583,13 +583,17 @@ test("Profiles: under the shipped 30-day retention, a switch, a copy and a reset
   -- red under: the adopt path running the retention prune, or any reactor logging beside the act.
   local now = T.mocks.__now
   local switch, copy, reset
+  -- The first-run picker an unseen profile shows logs its preview's test mode (R6-PV); that is the
+  -- picker's own line, pinned in its own suite, so it is held off here.
   withLedger({ recentEntryAt(now) }, function()
     withAltProfile({ qualityThreshold = 2 }, function()
       assertEqual(NS.Database:RetentionDays(), 30, "precondition: the account keeps 30 days")
-      switch = debugLines(function() NS.db:SetProfile("Alt") end)
-      muted(function() NS.db:SetProfile("Default") end)
-      copy = debugLines(function() NS.db:CopyProfile("Alt") end)
-      reset = debugLines(function() NS.db:ResetProfile() end)
+      T.withoutFirstRunPicker(function()
+        switch = debugLines(function() NS.db:SetProfile("Alt") end)
+        muted(function() NS.db:SetProfile("Default") end)
+        copy = debugLines(function() NS.db:CopyProfile("Alt") end)
+        reset = debugLines(function() NS.db:ResetProfile() end)
+      end)
     end)
     assertEqual(#NS.db.global.ledger, 1, "a recent entry was pruned")
   end)

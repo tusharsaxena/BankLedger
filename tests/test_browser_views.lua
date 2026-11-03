@@ -227,10 +227,12 @@ end)
 test("Slash:CliResetAll (the profile reset) also discards the saved view", function()
   -- `/bl resetall` is Sl:ResetEverything now (options-ui-§12), and its db:ResetProfile() takes
   -- savedViews with the rest of the profile. red under: a reset that keeps savedViews.
+  -- The reset's unseen profile would show the first-run picker, whose preview turns test mode on
+  -- and repaints the bar this fake cannot take; the picker is its own suite (R6-PV).
   withFakeBar(function(dd)
     dd.store:SetSelected({ BANK = true })
     B:SaveView()
-    NS.Slash:CliResetAll()
+    T.withoutFirstRunPicker(function() NS.Slash:CliResetAll() end)
     assertEqual(NS.db.profile.savedViews, nil)
   end)
 end)

@@ -150,9 +150,12 @@ it (a pick back to that look restores them). The rows preview the same way. **Ap
 then a changed Scope, then a changed font, texture or outline, through `NS.WriteSkinChoice` and closes
 the picker; **Apply to all Ka0s addons** does that and gives every other Ka0s addon that uses skins the
 same skin source, skin, Scope, font, texture and outline. The close control and Escape put back what
-the profile stores and save nothing. The eye turns test mode on (`LT:SetTestMode(true)`),
-which opens the ledger window with the sample ledger, so the skin shows on this addon's own frames; in
-combat test mode refuses and says so. The gear saves as Apply does, opens the settings panel on the
+the profile stores and save nothing. The picker's preview is test mode (`/bl test`): when the picker
+shows with test mode off and the ledger window closed, test mode turns on (`LT:SetTestMode(true)`),
+which opens the ledger window with the sample ledger, so the skin shows on this addon's own frames.
+The eye turns test mode off and on (lit while on, dimmed while off, its tooltip saying which), and
+however the picker closes, test mode and the window go back to how they were when it opened. A ledger
+window already open is left alone. In combat test mode refuses and says so. The gear saves as Apply does, opens the settings panel on the
 General page itself and selects its Skin tab, then closes the picker. Closing it by Apply, the gear,
 its close control or Escape sets `pickerSeen`, so it does not show again on that profile. One picker
 is up at a time across Ka0s addons; while another's is up this one waits in the library's queue. A

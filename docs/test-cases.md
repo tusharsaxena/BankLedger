@@ -1641,7 +1641,7 @@ Total.
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
 - skin chrome degraded: no window draws a line under its title band (R4-SEP)
 
-### test_skin_picker.lua (17)
+### test_skin_picker.lua (15)
 
 - Skin picker: pickerSeen defaults to false, a skip-render row on the Skin tab
 - Skin picker: the spec names this owner, its seams, the Skin tab and the eye
@@ -1656,10 +1656,27 @@ Total.
 - Skin picker: the title is Choose a skin and this addon is named on its own line
 - Skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
 - Skin picker: the close control puts the stored skin back, saves nothing, and marks it seen
-- Skin picker: the eye opens the ledger window in test mode
-- Skin picker: the eye in combat starts nothing and says why
 - Skin picker: the stand-down with a preview pending puts the old skin back, unsaved, unseen
 - Skin picker: degraded, the seam answers nothing and raises nothing
+
+### test_skin_picker_preview.lua (16)
+
+- Skin preview: the spec passes spec.preview in test mode, and no one-shot onPreview
+- Skin preview: isActive and isShown read test mode and the ledger window
+- Skin preview: enter and exit go through LT:SetTestMode, the write seam
+- Skin preview: the picker opened with the window hidden enters test mode
+- Skin preview: the eye turns test mode off and on, and the window with it
+- Skin preview: closing by the close control puts test mode and the window back
+- Skin preview: closing by Apply puts test mode and the window back
+- Skin preview: closing by the gear puts test mode and the window back
+- Skin preview: closing by Escape puts test mode and the window back
+- Skin preview: closing by NS.HideSkinPicker (the stand-down, a profile event) puts test mode and the window back
+- Skin preview: closing by O.HideSkinPicker puts test mode and the window back
+- Skin preview: an eye that turned it off leaves nothing to undo at the close
+- Skin preview: a ledger window already shown is left alone at show and at close
+- Skin preview: the eye over a shown window turns test mode on and off, the window stays
+- Skin preview: test mode already on stays on; an eye that turned it off is undone at close
+- Skin preview: in combat the enter is refused, said once, and the close undoes nothing
 
 ### test_skin_tools.lua (10)
 
@@ -1917,7 +1934,8 @@ Total.
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
-| test_skin_picker.lua | 17 |
+| test_skin_picker.lua | 15 |
+| test_skin_picker_preview.lua | 16 |
 | test_skin_tools.lua | 10 |
 | test_skin_outline.lua | 12 |
 | test_skin_verb.lua | 7 |
@@ -1930,4 +1948,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 78 |
 | Skipped | 1 |
-| **Total** | **1632** |
+| **Total** | **1646** |
