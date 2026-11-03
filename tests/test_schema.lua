@@ -47,6 +47,8 @@ local STORED_SURFACE = {
   { "state.debugConsole",         false,    "bool" },
   { "minimap.shown",              true,     "bool" },
   { "state.testMode",             false,    "bool" },
+  -- The Sim mode checkbox (R6-SIM, compose minor 19): session-only, opening the line below Test mode.
+  { "state.sim",                  false,    "bool" },
   { "settings.trackItems",        true,     "bool" },
   { "settings.trackMoney",        true,     "bool" },
   { "settings.qualityThreshold",  0,        "number" },
@@ -302,7 +304,7 @@ end)
 -- third, straight after Capture, the order Ka0s Loot History shares (BAN-L-new1, LOO-L08).
 local PARTITION = {
   general = {
-    { tab = "Master controls", rows = 8 },
+    { tab = "Master controls", rows = 9 },
     { tab = "Capture",         rows = 4 },
     { tab = "Filters",         rows = 1 },
     { tab = "Interface",       rows = 4 },
@@ -342,7 +344,8 @@ test("schema: the live and library-absent row counts, and the composed delta", f
   -- options-ui-§1 (when the missing content is COMPOSED): without LibKa0s, the OptionsSetup stub's
   -- O.MasterControls is hollow, so S:ComposeMaster adds nothing and the whole Master-controls block
   -- is absent from both S.Schema and S:PageRows(). PageRows carries one row more than the registry
-  -- on each arm (the renderer-only Filters row in S.BespokeRows), so the delta is 8 on both. The
+  -- on each arm (the renderer-only Filters row in S.BespokeRows), so the delta is 9 on both (Sim
+  -- mode, R6-SIM, the ninth). The
   -- eight Appearance rows (core/SkinSetup.lua's choice) are host rows on both arms.
   --
   -- Red under a composer that stops being hollow, or a host row added or removed.
@@ -350,14 +353,14 @@ test("schema: the live and library-absent row counts, and the composed delta", f
   local DS = Env.loadDegraded().Schema
   local live = { schema = #S.Schema, page = #S:PageRows() }
   local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
-  assertEqual(live.schema, 25, "live #S.Schema")
+  assertEqual(live.schema, 26, "live #S.Schema")
   assertEqual(degraded.schema, 17, "library-absent #S.Schema")
-  assertEqual(live.page, 26, "live #S:PageRows()")
+  assertEqual(live.page, 27, "live #S:PageRows()")
   assertEqual(degraded.page, 18, "library-absent #S:PageRows()")
   local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
     .. "O.MasterControls, which composes nothing without the library"
-  assertEqual(live.schema - degraded.schema, 8, "S.Schema live minus degraded" .. why)
-  assertEqual(live.page - degraded.page, 8, "S:PageRows() live minus degraded" .. why)
+  assertEqual(live.schema - degraded.schema, 9, "S.Schema live minus degraded" .. why)
+  assertEqual(live.page - degraded.page, 9, "S:PageRows() live minus degraded" .. why)
 end)
 
 test("Schema: Master controls is the FIRST tab, and holds exactly the canonical rows", function()
@@ -376,6 +379,9 @@ test("Schema: Master controls is the FIRST tab, and holds exactly the canonical 
     -- The fourth line, since LibKa0s v1.39.0 (compose minor 7): [Minimap button] [Test mode].
     -- Minimap button takes column 1 because EVERY addon has one and only some have a test mode.
     "minimap.shown", "state.testMode",
+    -- The fifth line, since LibKa0s compose minor 19 (R6-SIM): [Sim mode], opening its own line
+    -- because Test mode sits in the second column.
+    "state.sim",
   }
   local got = {}
   for _, row in ipairs(S:PageRows()) do

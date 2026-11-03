@@ -667,7 +667,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-five rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-six rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 

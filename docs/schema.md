@@ -413,4 +413,6 @@ written to SavedVariables. The current banking session's movements are `NS.State
 references to already-stored entries, held only while a bank frame is open and never persisted.
 The sample ledger is `NS.State.testRecords`, never persisted either. Its switch, `state.testMode`
 (the Master controls **Test mode** box), is a schema row but a **session-only** one: it answers
-through `LT:IsTestMode()` and writes nothing to SavedVariables.
+through `LT:IsTestMode()` and writes nothing to SavedVariables. The simulator's box, `state.sim`
+(Master controls **Sim mode**, R6-SIM), is session-only the same way: the composer's `get` and `set`
+read and drive `NS.IsSimMode` / `NS.ToggleSim`, and nothing is stored.

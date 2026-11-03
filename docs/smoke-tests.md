@@ -171,8 +171,9 @@ leaves its number unused.
   (the skinning rollout, BL-01: the Skin tab). Result: pass (owner-marked 2026-10-30)
 - **PANEL-5. Master controls rows.** Master controls → *Enable Bank Ledger · General visibility*, then
   *Master scale · Master alpha*, then *Lock frame · Debug console*, then *Minimap button · Test mode*,
-  then Reset position and Reset all settings side by side. Nothing renamed, reordered or missing.
-  Result: pass (owner-marked 2026-10-10)
+  then *Sim mode* alone on its own line (R6-SIM), then Reset position and Reset all settings side by
+  side. Nothing renamed, reordered or missing. Rewritten 2026-11-04 (R6-SIM: the Sim mode line).
+  Result:
 - **PANEL-6. Capture tab.** Capture → *Record items · Minimum quality* on the first line, *Record
   gold* alone on the second, then a **Banks to record** heading over the three bank checkboxes, with
   no box or border around them. Open *Minimum quality* → six rows, each the quality's own name in its
@@ -1079,6 +1080,23 @@ failure.
   **Warband transfer** and **Guild bank**. `/bl sim stop`. **Fail:** a letter (`item A`, `item B`,
   ...) before Start, or any item name that changes when the run starts.
   Result: pass (owner-marked 2026-10-23)
+- **SIM-15. The Master controls Sim mode box is `/bl sim` (R6-SIM, LibKa0s R6-SIM-L).** Out of combat,
+  with test mode off and no bank open, `/bl config` → General → Master controls → *Sim mode* sits alone
+  on the line below *Minimap button · Test mode*, unticked. Hover it → the library's sentence, then
+  *The same as /bl sim: with no simulation running it opens the sim panel, where you start a
+  scenario. Combat and a real bank visit end it, and test mode must be off to start one.* Tick it → chat prints the status line and the sim verbs, the step panel opens, exactly as
+  a bare `/bl sim` does, and the box goes back to unticked (nothing runs yet). On the panel pick
+  **Personal bank** and press Start → the box ticks while the settings window stays open. Untick it →
+  the simulation stops (its stop line prints) and the ledger window's sim strip goes. With the page
+  open, `/bl sim start bank` → the box ticks at once; `/bl sim stop` → it unticks at once. Close the
+  settings window, `/bl sim start bank`, reopen Master controls → the box is ticked; the launcher's
+  right-click menu shows *Sim mode* checked too. Pull a target dummy → combat ends the simulation and
+  the box reads unticked; in combat tick it → no simulation starts and it reads unticked. Start one,
+  then Reset all settings ▸ Yes → the simulation keeps running and the box stays ticked (OWNER_SCOPE
+  C.13: a reset touches no state the session reads). `/reload` → the box is unticked. **Fail:** a
+  tick that does anything other than what bare `/bl sim` does, an untick that leaves the simulation
+  running, a box that disagrees with `/bl sim status`, or a Lua error.
+  Result:
 
 ## SKIN
 
@@ -1650,5 +1668,9 @@ new check SKIN-47, the re-vendored LibKa0s R6-L1 (the skin picker at minor 11); 
 Owed by the same round's item R6-PV: new check SKIN-48, the picker's preview in test mode (entered at
 show with the ledger window closed, toggled by the eye, put back on every close); SKIN-21, whose eye
 now toggles, so its pass mark came off.
+
+Owed by the same round's item R6-SIM (the owner's "a sim checkbox in settings (next to test)", LibKa0s
+R6-SIM-L): new check SIM-15, the Master controls *Sim mode* box; PANEL-5, which gains its line, so its
+pass mark came off.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
