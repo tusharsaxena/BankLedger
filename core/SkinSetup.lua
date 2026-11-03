@@ -582,7 +582,11 @@ if not Skin then
     -- This addon has no HUD, so none of the six has a caller; they answer so a future one degrades
     -- quietly.
     "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss", "HoverArt",
+    -- LibKa0s v1.85.0 round 5: S.Header places a header's children on the band and is a no-op
+    -- here; S.Band (below) answers nil, because without the library no Shell draws a band.
+    "Header",
   }) do S[name] = noop end
+  S.Band = function() return nil end
 
   S.Token = function(name)
     local t = NS.SKIN_TOKENS[name]
