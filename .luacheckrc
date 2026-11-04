@@ -43,6 +43,8 @@ read_globals = {
   "C_Item", "C_Container", "C_Map", "C_AddOns",
   "GetGuildBankItemLink", "GetGuildBankItemInfo", "GetNumGuildBankTabs",
   "MAX_GUILDBANK_SLOTS_PER_TAB", "QueryGuildBankTab", "GetCurrentGuildBankTab", "GuildBankFrame",
+  -- The simulator window LibKa0s-Sim-1.0 builds and names `<name>SimPanel`; modules/Sim.lua hooks it
+  "BankLedgerSimPanel",
   -- Store-held coin balances: the corroboration side of a money movement
   "GetGuildBankMoney", "C_Bank",
   -- UI globals used by the window, console and panel

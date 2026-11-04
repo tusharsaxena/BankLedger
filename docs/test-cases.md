@@ -1576,12 +1576,16 @@ Total.
 - sim panel: a stand-down stop hides it
 - sim panel: a move step names its item from the link, else its id, else the scenario's letter
 
-### test_sim_checkbox.lua (6)
+### test_sim_checkbox.lua (10)
 
 - Sim mode: the composed row opens the line below Minimap button and Test mode, session-only
 - Sim mode: the box and the launcher carry the same pair, NS.IsSimMode and NS.ToggleSim
-- Sim mode: ticking with no sim running runs the bare /bl sim verb, and the box reads the live state
-- Sim mode: the box reads a running sim, and unticking it stops the sim through /bl sim stop
+- Sim mode: ticking with no sim running runs the bare /bl sim verb, and the open window keeps it ticked
+- Sim mode: the window open and idle reads ticked, and closing it unticks the box (R7-SIM)
+- Sim mode: a running sim with its window hidden still reads ticked (R7-SIM)
+- Sim mode: unticking over an open idle window hides it (R7-SIM)
+- Sim mode: the sim window's OnShow and OnHide repaint the settings page (R7-SIM)
+- Sim mode: the box reads a running sim, and unticking it stops the sim through /bl sim stop and hides the window
 - Sim mode: a sim started or ended from elsewhere repaints the settings page
 - Sim mode: Reset all settings leaves a running sim running and its box ticked (OWNER_SCOPE C.13)
 
@@ -1940,7 +1944,7 @@ Total.
 | test_sim_scenario.lua | 8 |
 | test_sim_e2e.lua | 9 |
 | test_sim_panel.lua | 19 |
-| test_sim_checkbox.lua | 6 |
+| test_sim_checkbox.lua | 10 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
@@ -1959,4 +1963,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 78 |
 | Skipped | 1 |
-| **Total** | **1653** |
+| **Total** | **1657** |

@@ -171,7 +171,8 @@ the engine's own decision.
 
 The simulator has no key binding. `/bl sim`, the launcher menu's *Sim mode* entry and the Master
 controls *Sim mode* checkbox (`state.sim`, session-only, R6-SIM) are one act, through the pair
-`NS.IsSimMode` / `NS.ToggleSim` in `core/SimSetup.lua`; its step delay is the Interface tab's
+`NS.IsSimMode` / `NS.ToggleSim` in `core/SimSetup.lua`, and read checked while the step panel is open or
+a simulation runs (R7-SIM); its step delay is the Interface tab's
 `settings.sim.stepDelay` row. The pipeline is in [data-flow.md](data-flow.md#a-simulated-visit), the strips
 (one per mode, with the `TEST MODE` title badge only as the library-absent fallback) and the step
 panel in [windows.md](windows.md), the verb in [slash-dispatch.md](slash-dispatch.md)

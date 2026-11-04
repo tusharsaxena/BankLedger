@@ -5,7 +5,7 @@
 -- one session for good, so an isolated copy would not be the session the addon runs. Every case
 -- therefore starts and stops inside `withSession`, which restores what it touched whatever happens:
 -- the mock's real containers, the real guild frame's visibility, the chat frame, the ledger window,
--- and the timer queue. Each pending AceTimer or session timer is drained before the next case.
+-- the sim window, and the timer queue. Each pending AceTimer or session timer is drained before the next case.
 if rawget(_G, "__BL_SIM_SUPPORT") then return rawget(_G, "__BL_SIM_SUPPORT") end
 
 local T = _G.BL_TEST
@@ -131,6 +131,9 @@ end
 
 local function restore(saved)
   if NS.Sim:IsActive() then NS.Sim:Stop("stop") end
+  -- A start opens the sim window (Host.Prepare), and since R7-SIM an open window reads as Sim mode
+  -- on, so a window left open would tick the box for every later suite.
+  NS.Sim:HidePanel()
   M.drain()
   mocks.__guildVisible = saved.guild
   mocks.__containers[M.BACKPACK] = saved.backpack

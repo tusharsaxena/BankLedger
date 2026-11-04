@@ -5,6 +5,12 @@
 -- addon hands it NS.IsSimMode and NS.ToggleSim, the SAME two functions its launcher descriptor
 -- carries, so the box, the launcher's Sim mode entry and `/bl sim` are one act. The sim's listener
 -- repaints the page, so a sim started or ended elsewhere shows on the box at once.
+--
+-- The owner's seventh smoke round (R7-SIM, Ka0sAddonsCommonTasks docs/2026-11-04-SMOKE_ROUND7 call
+-- 2): "checked while the sim window is open and/or a sim is running", unchecked when neither. So
+-- NS.IsSimMode answers window shown OR sim running, ticking opens the window as bare `/bl sim`
+-- does (the box stays ticked), unticking stops a running sim and hides the window, and the window's
+-- OnShow and OnHide repaint the page as the sim's start and stop do.
 
 local T = _G.BL_TEST
 local NS = T.NS
@@ -18,6 +24,19 @@ local function read(path)
   local body = fh:read("*a")
   fh:close()
   return body
+end
+
+local function panelFrame() return T.mocks.BankLedgerSimPanel end
+
+--- Run fn with O.RefreshScalars counted: answers how many times the settings page was repainted.
+local function countRefreshes(fn)
+  local O = NS.Helpers
+  local real, calls = O.RefreshScalars, 0
+  O.RefreshScalars = function(...) calls = calls + 1; return real(...) end
+  local ok, err = pcall(fn)
+  O.RefreshScalars = real
+  if not ok then error(err, 0) end
+  return calls
 end
 
 local function findRow(path)
@@ -78,24 +97,79 @@ test("Sim mode: the box and the launcher carry the same pair, NS.IsSimMode and N
     "the Master controls spec does not pass the same pair")
 end)
 
-test("Sim mode: ticking with no sim running runs the bare /bl sim verb, and the box reads the live state", function()
+test("Sim mode: ticking with no sim running runs the bare /bl sim verb, and the open window keeps it ticked", function()
   -- The bare verb prints the status and the verbs and opens the sim panel, the act the launcher's
-  -- Sim mode entry has always taken; it starts no scenario by itself, so the box reads unticked
-  -- until one starts.
+  -- Sim mode entry has always taken. It starts no scenario by itself, and the box still reads
+  -- ticked: the owner's rule (R7-SIM) is window shown OR sim running.
+  -- Dies under: NS.IsSimMode answering the session alone (R6-SIM's rule).
   S.withSession(nil, function(sim)
-    assertFalse(NS.Schema:Get(SIM_PATH), "the box is ticked with no sim running")
+    sim:HidePanel()
+    assertFalse(NS.Schema:Get(SIM_PATH), "the box is ticked with no window and no sim")
     local seen = withVerbSpy(function()
       S.chat(function() NS.Schema:Set(SIM_PATH, true) end)
     end)
     assertEqual(#seen, 1, "ticking must run the verb once")
     assertEqual(seen[1], "", "ticking must run the bare verb, as /bl sim does")
     assertTrue(sim:IsPanelShown(), "the bare verb opens the sim panel")
-    assertFalse(NS.Schema:Get(SIM_PATH), "no scenario started, so the box reads unticked")
+    assertFalse(sim:IsActive(), "the bare verb started a scenario")
+    assertTrue(NS.Schema:Get(SIM_PATH), "the sim window is open, so the box must read ticked")
+    assertTrue(NS.IsSimMode(), "the launcher's Sim mode entry reads the same pair")
     sim:HidePanel()
   end)
 end)
 
-test("Sim mode: the box reads a running sim, and unticking it stops the sim through /bl sim stop", function()
+test("Sim mode: the window open and idle reads ticked, and closing it unticks the box (R7-SIM)", function()
+  S.withSession(nil, function(sim)
+    S.chat(function() sim:RunVerb("") end)
+    assertTrue(sim:IsPanelShown(), "/bl sim did not open the window")
+    assertTrue(NS.Schema:Get(SIM_PATH), "window open, idle: the box must read ticked")
+    -- The window's own close (its close button and Escape hide the frame, never through HidePanel).
+    local frame = panelFrame()
+    assertTrue(frame ~= nil, "no sim panel frame")
+    frame:Hide()
+    assertFalse(sim:IsPanelShown(), "the frame did not hide")
+    assertFalse(NS.Schema:Get(SIM_PATH), "no window and no sim: the box must read unticked")
+    assertFalse(NS.IsSimMode(), "the launcher's entry must read unchecked too")
+  end)
+end)
+
+test("Sim mode: a running sim with its window hidden still reads ticked (R7-SIM)", function()
+  S.withSession("bank", function(sim)
+    sim:HidePanel()
+    assertFalse(sim:IsPanelShown(), "the window is still shown")
+    assertTrue(sim:IsActive(), "hiding the window stopped the sim")
+    assertTrue(NS.Schema:Get(SIM_PATH), "a running sim must read ticked with its window hidden")
+  end)
+end)
+
+test("Sim mode: unticking over an open idle window hides it (R7-SIM)", function()
+  -- Dies under: ToggleSim running the bare verb again, which re-shows the window it should close.
+  S.withSession(nil, function(sim)
+    S.chat(function() sim:RunVerb("") end)
+    assertTrue(NS.Schema:Get(SIM_PATH), "window open: the box must read ticked")
+    local seen = withVerbSpy(function()
+      S.chat(function() NS.Schema:Set(SIM_PATH, false) end)
+    end)
+    assertEqual(#seen, 0, "an idle untick has no verb to run, only the window to close")
+    assertFalse(sim:IsPanelShown(), "unticking did not hide the sim window")
+    assertFalse(NS.Schema:Get(SIM_PATH), "the box still reads ticked")
+  end)
+end)
+
+test("Sim mode: the sim window's OnShow and OnHide repaint the settings page (R7-SIM)", function()
+  -- So an open page follows a window opened from the slash verb or the launcher, and one closed by
+  -- its own close button or Escape. The listener covers the sim's start and stop.
+  -- Dies under: dropping the frame hooks modules/Sim.lua installs on the panel's first show.
+  S.withSession(nil, function(sim)
+    S.chat(function() sim:RunVerb("") end)
+    local frame = panelFrame()
+    assertTrue(frame ~= nil, "no sim panel frame")
+    assertTrue(countRefreshes(function() frame:__fire("OnShow") end) > 0, "OnShow did not refresh the page")
+    assertTrue(countRefreshes(function() frame:Hide() end) > 0, "OnHide did not refresh the page")
+  end)
+end)
+
+test("Sim mode: the box reads a running sim, and unticking it stops the sim through /bl sim stop and hides the window", function()
   S.withSession("bank", function(sim)
     assertTrue(NS.Schema:Get(SIM_PATH), "a running sim must read ticked")
     -- Ticking a box that already reads ticked is no act at all.
@@ -109,6 +183,8 @@ test("Sim mode: the box reads a running sim, and unticking it stops the sim thro
     end)
     assertEqual(seen[1], "stop", "unticking must run /bl sim stop")
     assertFalse(sim:IsActive(), "unticking did not stop the sim")
+    -- R7-SIM: the untick also closes the window, so one untick leaves the box unticked.
+    assertFalse(sim:IsPanelShown(), "unticking a running sim left its window open")
     assertFalse(NS.Schema:Get(SIM_PATH), "the box still reads ticked after the stop")
   end)
 end)

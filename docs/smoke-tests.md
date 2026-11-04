@@ -24,7 +24,7 @@ leaves its number unused.
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
-| SIM-1 – 14 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names |
+| SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
 | SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
 | DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
@@ -1083,20 +1083,37 @@ failure.
 - **SIM-15. The Master controls Sim mode box is `/bl sim` (R6-SIM, LibKa0s R6-SIM-L).** Out of combat,
   with test mode off and no bank open, `/bl config` → General → Master controls → *Sim mode* sits alone
   on the line below *Minimap button · Test mode*, unticked. Hover it → the library's sentence, then
-  *The same as /bl sim: with no simulation running it opens the sim panel, where you start a
-  scenario. Combat and a real bank visit end it, and test mode must be off to start one.* Tick it → chat prints the status line and the sim verbs, the step panel opens, exactly as
-  a bare `/bl sim` does, and the box goes back to unticked (nothing runs yet). On the panel pick
-  **Personal bank** and press Start → the box ticks while the settings window stays open. Untick it →
-  the simulation stops (its stop line prints) and the ledger window's sim strip goes. With the page
-  open, `/bl sim start bank` → the box ticks at once; `/bl sim stop` → it unticks at once. Close the
-  settings window, `/bl sim start bank`, reopen Master controls → the box is ticked; the launcher's
-  right-click menu shows *Sim mode* checked too. Pull a target dummy → combat ends the simulation and
-  the box reads unticked; in combat tick it → no simulation starts and it reads unticked. Start one,
+  *The same as /bl sim: ticked while the sim panel is open or a simulation runs. Ticking opens the
+  panel, where you start a scenario; unticking stops a running one and closes the panel. Combat and a
+  real bank visit end a simulation, and test mode must be off to start one.* Tick it → chat prints the
+  status line and the sim verbs, the step panel opens, exactly as a bare `/bl sim` does, and the box
+  stays ticked (the panel is open). On the panel pick **Personal bank** and press Start → the box stays
+  ticked. Untick it → the simulation stops (its stop line prints), the ledger window's sim strip goes,
+  the step panel closes and the box reads unticked. With the page open, `/bl sim start bank` → the box
+  ticks at once; `/bl sim stop` → it stays ticked while the step panel is still open, and closing the
+  panel with its close button unticks it at once. Close the settings window, `/bl sim start bank`,
+  reopen Master controls → the box is ticked; the launcher's right-click menu shows *Sim mode* checked
+  too. Pull a target dummy → combat ends the simulation; the box stays ticked while the step panel is
+  open and unticks once you close it. In combat, with the panel closed, tick it → no simulation starts
+  and the panel opens, so the box reads ticked; untick it → the panel closes. Start one,
   then Reset all settings ▸ Yes → the simulation keeps running and the box stays ticked (OWNER_SCOPE
   C.13: a reset touches no state the session reads). `/reload` → the box is unticked. **Fail:** a
   tick that does anything other than what bare `/bl sim` does, an untick that leaves the simulation
-  running, a box that disagrees with `/bl sim status`, or a Lua error.
-  Result:
+  running or the step panel open, a box that disagrees with "the step panel is open or `/bl sim
+  status` says one runs", or a Lua error. Rewritten 2026-11-04 (R7-SIM: the box follows the panel).
+  Result: Passed (owner, 2026-11-04)
+- **SIM-16. The Sim mode box follows the step panel as well as the run (R7-SIM, LibKa0s R7-L1).** Out
+  of combat, with test mode off and no bank open, open `/bl config` → General → Master controls and
+  leave it open. `/bl sim` → the step panel opens idle and the box ticks at once. Untick it → the panel
+  closes and the box is unticked. Tick it → the panel opens and the box stays ticked. Press Escape (or
+  the panel's close button) → the panel closes and the box unticks at once. `/bl sim start bank`, then
+  close the step panel with its close button while the run plays → the box stays ticked until the run
+  ends or `/bl sim stop`, then unticks. `/bl sim` again, so the panel is open and idle, then open the
+  minimap button's right-click menu → *Sim mode* is checked; click it → the panel closes, and the box
+  and the menu entry both read unchecked. **Fail:** the box or the menu entry unticked while the panel
+  is open, ticked with the panel closed and nothing running, a tick that leaves it unticked, an untick
+  that leaves the panel open, or a Lua error.
+  Result: Passed (owner, 2026-11-04)
 
 ## SKIN
 
@@ -1673,4 +1690,10 @@ Owed by the same round's item R6-SIM (the owner's "a sim checkbox in settings (n
 R6-SIM-L): new check SIM-15, the Master controls *Sim mode* box; PANEL-5, which gains its line, so its
 pass mark came off.
 
+Owed by the owner's seventh smoke round (Ka0sAddonsCommonTasks `docs/2026-11-04-SMOKE_ROUND7/`, item
+R7-SIM, LibKa0s R7-L1: the box is checked while the sim window is open or a sim runs): new check SIM-16;
+SIM-15, rewritten because it said a tick goes back to unticked, and it carried no pass mark.
+
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
+
+On 2026-11-04 the owner reported that every check of the seventh smoke round passed (Ka0sAddonsCommonTasks `docs/2026-11-04-SMOKE_ROUND7/`, R7-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-04)`: SIM-15 and SIM-16.

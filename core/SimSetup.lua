@@ -96,19 +96,30 @@ end
 --
 -- ONE pair for every Sim mode switch: the launcher menu's entry (core/LauncherSetup.lua) and the
 -- Master controls checkbox (settings/Schema.lua's S:ComposeMaster) both take these two functions,
--- so neither can drift from `/bl sim`. IsSimMode answers whether a session runs. ToggleSim is the
--- typed verb's own acts: stop a running sim, otherwise the bare verb (the status, the verbs and the
--- sim panel, where a scenario is picked). Both read NS.Sim at call time, the live instance
--- modules/Sim.lua builds or the stub below.
+-- so neither can drift from `/bl sim`. The owner's rule (R7-SIM, smoke round 7 call 2): checked
+-- while the sim window is open and/or a sim runs, unchecked when neither. So IsSimMode answers
+-- window shown OR session running. ToggleSim is `/bl sim`'s own acts: from off the bare verb (the
+-- status, the verbs and the sim window, where a scenario is picked), which leaves the box ticked;
+-- from on, `/bl sim stop` when a session runs, then the window closed, so one untick (or one click
+-- on the launcher's entry) leaves it unticked. Both read NS.Sim at call time, the live instance
+-- modules/Sim.lua builds or the stub below. The start's refusals (test mode, combat, a real bank)
+-- are the session's own and unchanged: opening the window starts nothing.
 function NS.IsSimMode()
   local s = NS.Sim
-  return type(s) == "table" and type(s.IsActive) == "function" and s:IsActive() == true
+  if type(s) ~= "table" then return false end
+  if type(s.IsActive) == "function" and s:IsActive() == true then return true end
+  return type(s.IsPanelShown) == "function" and s:IsPanelShown() == true
 end
 
 function NS.ToggleSim()
   local s = NS.Sim
   if type(s) ~= "table" or type(s.RunVerb) ~= "function" then return end
-  s:RunVerb(NS.IsSimMode() and "stop" or "")
+  if not NS.IsSimMode() then
+    s:RunVerb("")
+    return
+  end
+  if type(s.IsActive) == "function" and s:IsActive() then s:RunVerb("stop") end
+  if type(s.HidePanel) == "function" then s:HidePanel() end
 end
 
 -- ── the seam ──────────────────────────────────────────────────────────────────────────────────
