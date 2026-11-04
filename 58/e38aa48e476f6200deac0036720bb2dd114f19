@@ -1,0 +1,4 @@
+R7-RD review (independent adversarial, 2026-11-04): PASS, no defects.
+- README Usage names /bl skin and says hover/select previews, Apply keeps, with the ledger window closed the picker turns test mode on, the eye toggles it, close restores. True to core/SkinSetup.lua (preview = { mode = "test", enter/exit via LT:SetTestMode, previewOpened closes a window the preview opened }).
+- Same paragraph and voice, no command table, display name unchanged.
+- Gate fresh at this head: 1657 passed, 0 failed, 1 skipped; luacheck 0/0.
