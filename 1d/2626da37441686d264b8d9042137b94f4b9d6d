@@ -5,3 +5,9 @@ R7-SIM review (independent adversarial, 2026-11-04): PASS, no defects.
 - Red without fix (scratch copy with master's core/SimSetup.lua + modules/Sim.lua): 5 sim cases fail; the running-with-window-hidden case passes on both, as expected (old rule also ticked it).
 - SIM-15 rewritten (had no pass mark), SIM-16 added with blank Result; combat claims checked (bare verb opens the panel in combat, no start).
 - Gate fresh: 1657 passed, 0 failed, 1 skipped; luacheck 0/0 in 121 files.
+
+R7-SIM second independent review (2026-11-04): PASS, no defects.
+- Red check: scratch copy at the branch with master's core/SimSetup.lua and modules/Sim.lua -> 5 R7 sim cases fail (the hidden-window running case passes either way, as expected under R6's rule too).
+- Gate fresh: 1657 passed, 0 failed, 1 skipped; luacheck 0/0 in 121 files.
+- Refresh paths: window X and Escape hide the frame (UISpecialFrames) -> OnHide hook; /bl sim stop and sim end -> the Sim listener; combat Stop('combat') leaves the panel open (not stood down), so the box stays ticked until it closes, as SIM-15 says; stand-down hides the panel via leaveCleanup -> OnHide. Hook installs on the first ShowPanel, since place() asks anchorTo whenever P.point is nil, which it always is before the first drag.
+- No persistence: state.sim is sessionOnly; ToggleSim writes nothing.
