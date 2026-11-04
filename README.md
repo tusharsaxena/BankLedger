@@ -100,8 +100,11 @@ it and the step panel opens so you can pick a scenario, untick it and any runnin
 panel closes.
 
 The look is per profile too. A small **Choose a skin** window opens once on each profile, and
-`/bl skin` brings it back any time. Pick a skin there, along with the font, texture and text outline,
-or change them later on the settings' Skin tab.
+`/bl skin` brings it back any time. Hover or select a skin in its list to preview it on the addon's
+windows, and **Apply** keeps it. With the ledger window closed, the picker turns test mode on so there
+is a sample ledger to see the skin on; the eye beside the list turns test mode off and on, and closing
+the picker puts it back as it was. Pick the font, texture and text outline there too, or change them
+later on the settings' Skin tab.
 
 Everything else is on the addon's page under Settings → AddOns, which a bare `/bl` opens, and
 `/bl help` (or `/bankledger help`) lists every command.
