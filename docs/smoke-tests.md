@@ -1101,7 +1101,7 @@ failure.
   tick that does anything other than what bare `/bl sim` does, an untick that leaves the simulation
   running or the step panel open, a box that disagrees with "the step panel is open or `/bl sim
   status` says one runs", or a Lua error. Rewritten 2026-11-04 (R7-SIM: the box follows the panel).
-  Result:
+  Result: Passed (owner, 2026-11-04)
 - **SIM-16. The Sim mode box follows the step panel as well as the run (R7-SIM, LibKa0s R7-L1).** Out
   of combat, with test mode off and no bank open, open `/bl config` → General → Master controls and
   leave it open. `/bl sim` → the step panel opens idle and the box ticks at once. Untick it → the panel
@@ -1113,7 +1113,7 @@ failure.
   and the menu entry both read unchecked. **Fail:** the box or the menu entry unticked while the panel
   is open, ticked with the panel closed and nothing running, a tick that leaves it unticked, an untick
   that leaves the panel open, or a Lua error.
-  Result:
+  Result: Passed (owner, 2026-11-04)
 
 ## SKIN
 
@@ -1695,3 +1695,5 @@ R7-SIM, LibKa0s R7-L1: the box is checked while the sim window is open or a sim 
 SIM-15, rewritten because it said a tick goes back to unticked, and it carried no pass mark.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
+
+On 2026-11-04 the owner reported that every check of the seventh smoke round passed (Ka0sAddonsCommonTasks `docs/2026-11-04-SMOKE_ROUND7/`, R7-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-04)`: SIM-15 and SIM-16.
