@@ -1,0 +1,7 @@
+R7-SIM review (independent adversarial, 2026-11-04): PASS, no defects.
+- NS.IsSimMode = IsActive() or IsPanelShown(); NS.ToggleSim: off -> bare RunVerb("") (opens the panel, box stays ticked); on -> RunVerb("stop") when running, then HidePanel. Matches 00_PLAN.md call 2. Refusals untouched (start checks combat/test/bank in modules/Sim.lua).
+- Write seam: the box is the composer's simMode row (set calls toggleSim only on a change); the launcher entry reads the same pair and re-asks on every menu open.
+- Refresh paths: Sim listener (start, /bl sim stop, sim end, combat/bank auto-stop) and BankLedgerSimPanel OnShow/OnHide hooks (close button, Escape via UISpecialFrames, HidePanel). Hook installed from anchorTo, which place() asks on the first ShowPanel before panel.Show (P.point is nil until a drag), so the first OnShow is caught. Frame global name confirmed as d.name = <addon>SimPanel (SimPanelRender.lua CreateFrame).
+- Red without fix (scratch copy with master's core/SimSetup.lua + modules/Sim.lua): 5 sim cases fail; the running-with-window-hidden case passes on both, as expected (old rule also ticked it).
+- SIM-15 rewritten (had no pass mark), SIM-16 added with blank Result; combat claims checked (bare verb opens the panel in combat, no start).
+- Gate fresh: 1657 passed, 0 failed, 1 skipped; luacheck 0/0 in 121 files.
