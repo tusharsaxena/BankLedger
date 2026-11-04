@@ -124,7 +124,9 @@ rows, states, run controls, scenario picker, click-ahead and placement are the l
 Cloth to Warband Bank*, with *(N recorded)* once the engine has recorded rows for it), its tooltip
 (what it moves, a lagged warband half, the client events it fires, and once played what it did and
 how many rows it recorded), the Start and Stop tooltips, and the `confirm` tick. A start opens it
-(from `prepare`, after the ledger window), as does a bare `/bl sim`; `/bl sim panel` toggles it. It
+(from `prepare`, after the ledger window), as does a bare `/bl sim`; `/bl sim panel` toggles it. While
+it is shown the Master controls *Sim mode* box reads ticked, and its `OnShow` and `OnHide` repaint an
+open settings page (`NS.SimHost.WatchPanel()`, R7-SIM). It
 **docks** right of the ledger window (8px, top edges aligned), or left when the right has no room, and
 floats when the ledger window is shut (`NS.SimHost.PanelAnchor()` answers the window only while it is
 shown). **Its position is session-only** (OWNER_SCOPE C.11, host contract H10): a dragged point is

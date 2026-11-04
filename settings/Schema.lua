@@ -387,10 +387,12 @@ S.MASTER_SPEC = {
     testMode = "Here it opens the ledger window on a sample ledger, and your real ledger is "
       .. "untouched. Combat ends it. The same as /bl test. To place the session window, use "
       .. "/bl session.",
-    -- Sim mode (compose minor 19, R6-SIM) is the bare `/bl sim` when idle: it opens the sim panel,
-    -- where a scenario starts, so the box ticks once one runs.
-    simMode  = "The same as /bl sim: with no simulation running it opens the sim panel, where "
-      .. "you start a scenario. Combat and a real bank visit end it, and test mode must be off to start one.",
+    -- Sim mode (compose minor 19, R6-SIM) is the bare `/bl sim` when off: it opens the sim panel,
+    -- where a scenario starts. Since R7-SIM the box reads ticked while that panel is open or a
+    -- simulation runs, so it stays ticked after the tick.
+    simMode  = "The same as /bl sim: ticked while the sim panel is open or a simulation runs. Ticking "
+      .. "opens the panel, where you start a scenario; unticking stops a running one and closes the "
+      .. "panel. Combat and a real bank visit end a simulation, and test mode must be off to start one.",
   },
 }
 
@@ -510,8 +512,9 @@ function S:ComposeMaster(O)
   for k, v in pairs(S.MASTER_SPEC) do spec[k] = v end
   spec.onResetPosition = function() NS.Util.ResetWindowPositions() end
   -- The Sim mode checkbox (compose minor 19, R6-SIM): the SAME pair the launcher descriptor takes
-  -- (core/SimSetup.lua), so ticking runs `/bl sim` and unticking `/bl sim stop`. Its path is the
-  -- composer's default, state.sim; modules/Sim.lua's listener repaints the page on each start and stop.
+  -- (core/SimSetup.lua), so ticking runs `/bl sim` and unticking `/bl sim stop` and closes the sim
+  -- panel (R7-SIM). Its path is the composer's default, state.sim; modules/Sim.lua repaints the page
+  -- on each start and stop and on the sim panel's OnShow and OnHide.
   spec.isSimMode, spec.toggleSim = NS.IsSimMode, NS.ToggleSim
   -- options-ui-§12's global reset, verbatim: the confirm-gated KA0S_BANKLEDGER_RESETALL popup
   -- (whose text is that rule's first canonical wording, byte for byte), never the deed on the click,

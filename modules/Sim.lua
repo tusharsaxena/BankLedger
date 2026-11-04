@@ -355,8 +355,33 @@ function Host.StepTip(step, i)
   return lines
 end
 
+-- ── the Sim mode box follows the window (R7-SIM) ─────────────────────────────────────────────
+--
+-- NS.IsSimMode reads the window as well as the session (core/SimSetup.lua), so an open settings
+-- page repaints on the window's OnShow and OnHide, whichever route opened or closed it: `/bl sim`,
+-- the launcher, the box, the window's own close button or Escape (which hide the frame directly).
+-- The frame is the library's, built on the first show and named `<name>SimPanel` (Sim's `name`
+-- field); the hooks go on once. The launcher's menu needs nothing: it asks again on every open.
+local panelHooked = false
+local function repaintSettings()
+  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
+end
+
+--- Hook the sim window's OnShow and OnHide once, as soon as its frame exists. Called from the
+--- panel's anchorTo, which the library asks on every show after building the frame and before
+--- showing it, so even the first OnShow is caught.
+function Host.WatchPanel()
+  if panelHooked then return end
+  local frame = BankLedgerSimPanel
+  if type(frame) ~= "table" or type(frame.HookScript) ~= "function" then return end
+  panelHooked = true
+  frame:HookScript("OnShow", repaintSettings)
+  frame:HookScript("OnHide", repaintSettings)
+end
+
 --- The window the panel docks beside: the ledger window while it is shown, else nil (it floats).
 function Host.PanelAnchor()
+  Host.WatchPanel()
   local f = NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow()
   if f and f:IsShown() then return f end
   return nil
@@ -461,5 +486,5 @@ NS.Sim:AddListener(function(sim)
   repaintMarkers()
   -- The Master controls Sim mode box (R6-SIM) re-reads the sim: a start or stop from the slash
   -- verb, the sim panel, the launcher or an auto-stop shows on an open page at once.
-  if NS.Panel and NS.Panel.Refresh then NS.Panel:Refresh() end
+  repaintSettings()
 end)

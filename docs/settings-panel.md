@@ -305,15 +305,22 @@ frameless** and every frame-only row applies.
   functions the launcher menu's *Sim mode* entry takes, so the box, the entry and `/bl sim` are one
   act. `S.MASTER_DECOR` adds the widget name only. Its tooltip is the composer's, then
   `S.MASTER_SPEC.notes.simMode`.
-  - **Ticking it** with no simulation running runs the bare `/bl sim`: the status line, the verbs and
-    the step panel, where a scenario starts. The box reads the live session, so it ticks once a
-    scenario runs and stays unticked if none does or the start is refused (test mode, combat, a real
-    bank frame, General visibility).
-  - **Unticking it** runs `/bl sim stop`.
-  - **It follows the session.** `modules/Sim.lua`'s session listener calls `NS.Panel:Refresh()`
-    (`O.RefreshScalars()`) on every start and stop, so a simulation started from the slash verb, the
-    step panel or the launcher, or ended by combat or a real bank frame, shows on an open page at
-    once; the library re-reads it on each show of the page as well.
+  - **It reads ticked while the step panel is open or a simulation runs**, and unticked when neither
+    (the owner's rule, R7-SIM, Ka0sAddonsCommonTasks `docs/2026-11-04-SMOKE_ROUND7/` call 2):
+    `NS.IsSimMode` answers `NS.Sim:IsPanelShown() or NS.Sim:IsActive()`. The launcher menu's
+    *Sim mode* entry reads the same function.
+  - **Ticking it** with neither runs the bare `/bl sim`: the status line, the verbs and the step
+    panel, where a scenario starts. The panel is open, so the box stays ticked whether or not a
+    scenario then starts; a refused start (test mode, combat, a real bank frame, General
+    visibility) still starts nothing.
+  - **Unticking it** runs `/bl sim stop` when a simulation runs, then closes the step panel, so one
+    untick leaves the box unticked.
+  - **It follows the session and the panel.** `modules/Sim.lua`'s session listener calls
+    `NS.Panel:Refresh()` (`O.RefreshScalars()`) on every start and stop, and `Host.WatchPanel` hooks
+    the step panel's `OnShow` and `OnHide` to the same refresh on the panel's first show, so a panel
+    opened from `/bl sim` or the launcher, closed by its close button or Escape, or a simulation
+    ended by combat or a real bank frame, shows on an open page at once; the library re-reads it on
+    each show of the page as well.
   - **The global reset leaves it running** (OWNER_SCOPE C.13): the reset touches no state the session
     reads, so the box stays ticked. A /reload ends the session, and the box reads unticked.
 - **Reset position** is a real button now. The act existed only as a side effect folded into
