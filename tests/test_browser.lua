@@ -224,7 +224,7 @@ test("the ledger window closes an open dropdown menu when it hides", function()
   local onClick = dd:GetScript("OnClick")
   assertTrue(onClick ~= nil, "the dropdown wires an OnClick that opens the shared menu")
 
-  -- The shared menu is a file-local inside Widgets.lua with no handle exposed to a host; capture
+  -- The shared menu is a file-local inside WidgetsDropdown.lua with no handle exposed to a host; capture
   -- the frame the click builds by spying on CreateFrame for the duration of the click, the same
   -- way the library's own suite captures it.
   --

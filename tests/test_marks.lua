@@ -151,12 +151,12 @@ test("marks: a chosen row of a multi-select menu wears the collection's tick", f
   -- site; what is pinned HERE is the LADDER — split across two files since the widget's own
   -- fallback moved with it. This addon's half is the injection: it must still ASK the seam for the
   -- mark, in modules/Browser.lua's B:MakeDropdown. The library's half is the Blizzard rung, in the
-  -- vendored libs/LibKa0s/Widgets.lua, so a nil `opts.check` still resolves to an escape rather
-  -- than concatenating nil into one.
+  -- vendored libs/LibKa0s/WidgetsDropdown.lua (peeled out of Widgets.lua at LibKa0s v1.91.0), so a
+  -- nil `opts.check` still resolves to an escape rather than concatenating nil into one.
   local browserSrc = readSource("modules/Browser.lua")
   assertTrue(browserSrc:find('NS.Icon and NS.Icon("confirm")', 1, true) ~= nil,
     "the multi-select tick's injection stopped asking the seam for the collection's mark")
-  local widgetsSrc = readSource("libs/LibKa0s/Widgets.lua")
+  local widgetsSrc = readSource("libs/LibKa0s/WidgetsDropdown.lua")
   assertTrue(widgetsSrc:find('"Interface\\\\Buttons\\\\UI-CheckBox-Check"', 1, true) ~= nil,
     "the tick's Blizzard rung is gone from the vendored library — a nil opts.check would concatenate"
     .. " nil into a |T…|t escape")

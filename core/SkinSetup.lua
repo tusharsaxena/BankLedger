@@ -768,7 +768,8 @@ if not Skin then
     local function byte(v) return math.floor(v * 255 + 0.5) end
     return ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(path, size, size, byte(r), byte(g), byte(b))
   end
-  -- The re-cut v1.85.0 (SkinPaintExtras minor 14): the one member that must draw, or a caller's
+  -- The re-cut v1.85.0 (SkinPaintExtras minor 14; since LibKa0s v1.91.0 the live member is in
+  -- SkinPaintHud.lua, minor 1, unchanged): the one member that must draw, or a caller's
   -- string has no face. The stub of the library's Options document, *Moving to this version*, step
   -- 7: no skin to read, so the face falls straight to the client's and flags go through FontFlags,
   -- which never hands SetFont the "@skin" sentinel. Both shadow arms are written, so a cleared
