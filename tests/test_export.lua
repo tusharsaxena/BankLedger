@@ -266,7 +266,7 @@ end)
 --
 -- The environments are ISOLATED (T.makeMocks + the loader) rather than the shared NS, for two
 -- reasons: the popup menu is a process-wide singleton behind a file-local, so the only way to get a
--- handle on it is to be the FIRST click in a freshly loaded Widgets.lua; and the degraded rung is
+-- handle on it is to be the FIRST click in a freshly loaded WidgetsDropdown.lua; and the degraded rung is
 -- honestly reachable only by loading every LibKa0s major EXCEPT Widgets, which is the real shape of
 -- "the vendored copy's NEEDS_CORE floor is unmet" or "the file was never copied in".
 
