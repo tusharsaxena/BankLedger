@@ -14,18 +14,18 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
 
 **World of Warcraft (Retail). Nothing else.**
 
-- The TOC targets `## Interface: 120105` (`BankLedger.toc:1`) — Midnight 12.1.5. Retail only; there
+- The TOC targets `## Interface: 120105` (`BankLedger.toc`) — Midnight 12.1.5. Retail only; there
   is no Classic build.
-- There is **no** `## Dependencies` line. The `## OptionalDeps` line (`BankLedger.toc:8`) names
+- There is **no** `## Dependencies` line. The `## OptionalDeps` line (`BankLedger.toc`) names
   Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1 and LibDBIcon-1.0, and
-  every one of them is **vendored** under `libs/` and committed (`BankLedger.toc:16-31`,
-  `.pkgmeta:3`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
+  every one of them is **vendored** under `libs/` and committed (the TOC's library block in `BankLedger.toc`, and the
+  "vendored in libs/" comment at the top of `.pkgmeta`). `OptionalDeps` here only asks the client to load a standalone copy *first* if the
   player happens to have one; it never means the player must install anything.
 - The Ace3 set vendored is AceAddon, AceEvent, AceTimer, AceConsole, AceDB, AceGUI, **AceConfig-3.0**
   (with its AceConfigRegistry, AceConfigCmd and AceConfigDialog parts) and **AceDBOptions-3.0**
-  (`BankLedger.toc:24-25`). The last two draw the Profiles page (`settings/Profiles.lua`) and nothing
+  (the `AceConfig-3.0` and `AceDBOptions-3.0` lines of `BankLedger.toc`). The last two draw the Profiles page (`settings/Profiles.lua`) and nothing
   else; they are the same Ace3 release the rest of the collection vendors, byte for byte.
-- LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml` (`BankLedger.toc:31`).
+- LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml`, the last line of the TOC's library block.
   **Which release, is not written here.** The one answer is the provenance line in the root
   [`CLAUDE.md`](CLAUDE.md), and `tests/test_vendor_sync.lua` machine-reads *that* line and compares
   both vendored payloads against the tag it names. A version restated in prose does not move with
@@ -46,7 +46,7 @@ Install all five. Everything in this section is needed to run the green gate.
 ### Lua 5.1 — a hard requirement, not a preference
 
 The headless harness loads each source file and swaps its environment with **`setfenv`**
-(`tests/_kit/loader.lua:72` and `:91`). `setfenv` was **removed in Lua 5.2**, so 5.2, 5.3 and 5.4
+(`tests/_kit/loader.lua`, `Loader.load` and `Loader.loadSource`). `setfenv` was **removed in Lua 5.2**, so 5.2, 5.3 and 5.4
 cannot run this suite at all — this is not a "5.1 is what WoW uses, so we match it" preference, it
 is the interpreter the runner requires. (WoW does also run 5.1, which is why the addon code is
 written to that dialect in the first place.)
@@ -58,13 +58,13 @@ sudo apt update && sudo apt install -y lua5.1
 **Verify:** `lua5.1 -v` → `Lua 5.1.5`.
 
 > On Ubuntu the `lua` command may be unversioned or may not exist. `docs/testing.md` and
-> `tests/run.lua:2` both spell the command as `lua tests/run.lua`, so make sure plain `lua` resolves
+> `tests/run.lua`'s header comment both spell the command as `lua tests/run.lua`, so make sure plain `lua` resolves
 > to 5.1 (`lua -v` should also say `Lua 5.1.5`); if it does not, run `lua5.1 tests/run.lua` instead.
 
 ### luacheck — the lint half of the green gate
 
 `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` is one of the two commands that must pass before every commit
-(`docs/testing.md:6-14`), and the repo carries a real configuration for it (`.luacheckrc`) that
+(`docs/testing.md`, *The green gate*), and the repo carries a real configuration for it (`.luacheckrc`) that
 declares the WoW globals and the `BankLedgerDB` SavedVariables global. It installs through
 LuaRocks:
 
@@ -105,9 +105,9 @@ Open a new shell (or `source ~/.profile`) afterwards so `~/.local/bin` is on `PA
 the kit's sighted shadow (kit revision 35) neutralizes the blind spots measured against 1.24.0; an
 upgrade may move them, which the suite's function-count parity then reports as `blindFiles`.
 
-The headless harness reaches it too: `tests/run.lua:46` wires the kit's `test_lizard_sighted` gate,
+The headless harness reaches it too: `tests/run.lua` wires the kit's `test_lizard_sighted` gate,
 whose end-to-end case runs `lizard` on a fixture when it is on `PATH` and records a **skip** with its
-reason when it is not (`tests/_kit/test_lizard_sighted.lua:188`). So a missing `lizard` never reddens
+reason when it is not (the `Kit.skip("lizard is not on PATH …")` in `tests/_kit/test_lizard_sighted.lua`). So a missing `lizard` never reddens
 `lua tests/run.lua`, but it does leave that one case unexercised.
 
 <details>
@@ -125,7 +125,7 @@ trying to stop.
 Several suites run external commands, so they are dependencies of `lua tests/run.lua` even though
 no Lua code `require`s them:
 
-- **`git`** — `tests/_kit/vendor_sync.lua:422` runs `git -C <path> …` against the **sibling LibKa0s
+- **`git`** — `tests/_kit/vendor_sync.lua`'s `gitOut` runs `git -C <path> …` against the **sibling LibKa0s
   checkout** to compare the vendored payload against the tag `CLAUDE.md` names. `tests/test_vendor_sync.lua`
   is one line of adoption over that shared gate; the implementation is vendored, not local.
 - **`git`, again and harder** — `tests/_kit/test_eol.lua` runs `git ls-files` and
@@ -135,14 +135,14 @@ no Lua code `require`s them:
   capability.
 - **`git`, over the tracked set** — the kit's `tests/_kit/test_prose.lua` (`localization-§5`) and
   `tests/_kit/test_layout_cap.lua` (`layout-§1`, from kit revision 25) each run `git ls-files -z`,
-  as do the kit's display-glyph guard (`tests/_kit/glyphs.lua:412`, adopted by `tests/test_glyphs.lua`)
-  and this repo's own `tests/test_lintconfig.lua:219`. All four fail rather than skip when git is
+  as do the kit's display-glyph guard (`tests/_kit/glyphs.lua`'s `tracked`, adopted by `tests/test_glyphs.lua`)
+  and this repo's own `tests/test_lintconfig.lua` (`trackedLua`). All four fail rather than skip when git is
   absent.
-- **`ls`** — `tests/test_harness.lua:45` runs `ls tests/test_*.lua` to prove the suite list and the
-  files on disk agree in both directions, and `tests/test_register.lua:22` globs with `ls -1`.
-- **`find`** — `tests/_kit/vendor_sync.lua:145` runs `find . -type f` to list a vendored directory
+- **`ls`** — `tests/test_harness.lua`'s `suiteFilesOnDisk` runs `ls tests/test_*.lua` to prove the suite list and the
+  files on disk agree in both directions, and `tests/test_register.lua`'s `glob` lists with `ls -1`.
+- **`find`** — `tests/_kit/vendor_sync.lua`'s `localNames` runs `find . -type f` to list a vendored directory
   (Lua 5.1 has no directory API and this repo deliberately does not depend on LuaFileSystem —
-  `tests/_kit/vendor_sync.lua:126`). A `dir /b /s` fallback at `:151` covers cmd.exe only; under
+  the comment above `localNames` in `tests/_kit/vendor_sync.lua`). A `dir /b /s` fallback in the same function covers cmd.exe only; under
   WSL2 it is `find` that runs.
 
 All three are present on any Ubuntu install; `git` is the only one that might not be.
@@ -155,7 +155,7 @@ sudo apt install -y git
 
 ### The sibling LibKa0s checkout — optional, but the vendor gate is blind without it
 
-`tests/_kit/vendor_sync.lua:89` resolves the library repo as `<repo root>/../LibKa0s`. Clone it
+`tests/_kit/vendor_sync.lua` (`DEFAULT_SIBLING`) resolves the library repo as `<repo root>/../LibKa0s`. Clone it
 beside this repo if you want the vendor gate to actually compare anything:
 
 ```sh
@@ -163,7 +163,7 @@ git clone https://github.com/tusharsaxena/LibKa0s.git ../LibKa0s
 ```
 
 Without it the suite still runs — the pair reports a **skip carrying its reason**
-(`tests/_kit/vendor_sync.lua:523`, `"<path> checkout absent — the vendored payload was NOT
+(`tests/_kit/vendor_sync.lua`'s `siblingTag`, `"<path> checkout absent — the vendored payload was NOT
 compared"`) rather than failing, and deliberately not a pass — so this is a **capability**, not a
 blocker. Watch the runner's skip count: a `0 skipped` line is what proves the comparison actually
 ran. `docs/testing.md`'s "The vendor gate" section needs it too: its `diff -r ../LibKa0s/…`
@@ -178,7 +178,7 @@ item exists for one job that is done rarely and by hand.
 
 `media/logos/bankledger.logo.png` is the 2000×2000 master. The 512×512 `.tga` the settings page loads and
 the 256×256 `.jpg` project avatar are produced from it by a short Pillow script recorded
-verbatim in **`docs/media.md:133-141`** (`from PIL import Image, ImageFilter`, `LANCZOS`
+verbatim in **`docs/media.md`**, *Logo art* (`from PIL import Image, ImageFilter`, `LANCZOS`
 downscales, an unsharp mask on the 256). The derivatives are **committed**, so this is needed only
 when the artwork changes.
 
@@ -202,7 +202,7 @@ python3 -m venv /tmp/pillow && /tmp/pillow/bin/pip install pillow
 ### Packaging — no local tooling
 
 `.pkgmeta` is read by the **CurseForge/BigWigs packager**, which runs on the distribution side, not
-here. There is no `Makefile`, no build script, and no local packaging step: `.pkgmeta:5-33` only
+here. There is no `Makefile`, no build script, and no local packaging step: `.pkgmeta`'s `ignore:` block only
 lists what to exclude from the built zip (`docs`, `tests`, `_dev`, the root dev-only dotfiles,
 this file and `CLAUDE.md`, `media/screenshots`, and the non-`.tga` logo sources).
 Nothing to install.
@@ -211,7 +211,7 @@ Nothing to install.
 
 - **ImageMagick, `ffmpeg`, Node/npm** — none are used anywhere. No script, config, or doc in this
   repo invokes them. If you find a reference, it is stale and should be deleted.
-- **BLP tooling** — the addon ships `.tga`, which the client reads directly (`.pkgmeta:29-33`). No
+- **BLP tooling** — the addon ships `.tga`, which the client reads directly (`.pkgmeta`'s `media/logos/*.png` and `*.jpg` ignores). No
   converter is needed.
 - **Font tooling** — this addon ships no font of its own. JetBrains Mono and the skins' faces come
   with the LibKa0s payload (`libs/LibKa0s/media/fonts/`, each under its own terms, recorded there);

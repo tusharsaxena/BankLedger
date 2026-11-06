@@ -1565,17 +1565,17 @@ string is green whether it is right or wrong.
 
 What this addon reads in the player's language:
 
-- **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua:372-377`, via
-  `core/Compat.lua:173-179`): `C_Item.GetItemInfo`'s localized strings. `core/DatabaseStats.lua:64-95`
+- **`entry.itemType` / `entry.itemSubType`** (`modules/Ledger.lua`, `L:BuildEntry`, via
+  `core/Compat.lua`, `Compat.GetItemDetails`): `C_Item.GetItemInfo`'s localized strings. `core/DatabaseStats.lua`'s `accumulateItemTaxonomy`
   uses them as analytics keys (`byItemType`, `byItemSubType`, `byTypeSub`), they are persisted on every
-  row, and the CSV emits them raw. `core/Compat.lua:176` discards the locale-independent `classID` /
+  row, and the CSV emits them raw. `Compat.GetItemDetails` discards the locale-independent `classID` /
   `subClassID`; unlike `quality` and `store`, these two have no `*Raw` column.
-- **`NS.Item.QualityLabel`** (`core/ItemSetup.lua:61-64`): `_G["ITEM_QUALITY" .. q .. "_DESC"]`,
+- **`NS.Item.QualityLabel`** (`core/ItemSetup.lua`): `_G["ITEM_QUALITY" .. q .. "_DESC"]`,
   localized by design, with the numeric `qualityRaw` beside it in the CSV.
-- **`Util.FormatDate`** (`core/Util.lua:18-20`): `date("%d-%b-%Y")`, whose `%b` is the month in the
+- **`Util.FormatDate`** (`core/Util.lua`): `date("%d-%b-%Y")`, whose `%b` is the month in the
   client's language.
-- **Case folding**: `modules/LedgerTable.lua:68`, `:87`, `:91`, `:96` sort on `:lower()`, and
-  `core/Database.lua:474` and `:491` lowercase names and search text. Lua's `string.lower` folds ASCII
+- **Case folding**: `modules/LedgerTable.lua`'s `LT.COLUMNS` sort the Item, Type, Sub-type and Character columns on `:lower()`, and
+  `core/Database.lua` (`textOK`, `Database:QueryList`) lowercases names and search text. Lua's `string.lower` folds ASCII
   only.
 
 English by design, and not a failure: `C.StoreLabel`, `C.DirectionLabel`, `C.KindLabel` and every

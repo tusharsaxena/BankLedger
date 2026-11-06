@@ -346,7 +346,7 @@ neither chooses a value. The Master controls tab's *Reset position* is one of th
 - **Minimap button position.** Storage key `db.global.minimap.minimapPos`. Owner **`NS.Launcher`**
   (`core/LauncherSetup.lua`), which hands `db.global.minimap` to LibDBIcon at `Register` time.
   Writer: LibDBIcon itself, when the player drags the button
-  (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:194`). The addon never writes the field. The same table
+  (`libs/LibDBIcon-1.0/LibDBIcon-1.0.lua`, its drag `onUpdate`). The addon never writes the field. The same table
   holds `hide`, the Minimap button row's stored key (CLI path `minimap.shown`), so the addon never
   replaces the table whole either. AceDB supplies
   it from `defaults/Global.lua`, and the seam has no seed of its own. It was `NS.Browser`'s
