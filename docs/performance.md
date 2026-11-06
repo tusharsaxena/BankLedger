@@ -53,6 +53,7 @@ exemption is over.
 | `modules/Ledger.lua` — `ADDON_LOADED` | `OnAddonLoaded` -> `HookGuildBankFrame` | Fires once per addon that loads. Latched by `L._guildHooked` and gated on one string compare, so every firing after the guild bank UI lands is two comparisons. |
 | `modules/Browser.lua`, `modules/SessionWindow.lua` | `PLAYER_LOGOUT` on each window's private bus target (`NS.NewBusTarget()`) | Saves the window's view state. Fires once, at logout. |
 | `core/SkinSetup.lua` `NS.MaybeShowSkinPicker` | `PLAYER_REGEN_ENABLED` on a private bus target | **One-shot, on the combat edge.** Armed only when the first-run skin picker falls due in combat, and dropped the moment it fires, so it shows the picker after combat and does nothing during it. |
+| `core/SkinSetup.lua` `NS.MaybeShowSkinNotice` | `C_Timer.After(NOTICE_RETRY, …)` (5 s) | **One-shot, re-armed one at a time, and only while the account's skin notice is pending.** The library's `SkinNotice` answers `"combat"` when the player is in combat. The retry is armed only then, and only when none is already waiting (`noticeWaiting`). Each tick is one library call, which shows nothing and records nothing in combat; the retries stop at the first tick out of combat, when the notice is shown or recorded. |
 | `modules/LedgerTable.lua` `LT:ShowRowMenu` | `GLOBAL_MOUSE_DOWN` on the row menu | **Only while the row menu is open.** Registered on show and dropped on hide, and one press closes the menu. Opening the menu is a player's click on a row, and the handler is one `IsMouseOver` check and a `Hide`. |
 
 The combat pair is the one row that arrived *after* this exemption was ratified — the **General
@@ -61,6 +62,8 @@ honored. It was assessed against the register row's own re-check trigger and doe
 the trigger is an in-combat handler *doing real work*, and this one is bounded, allocation-free,
 fires twice per fight rather than per frame or per event, and does nothing at all on the default
 setting. It is named here rather than left for the next sweep to find.
+
+The skin notice's combat retry (`NS.MaybeShowSkinNotice`) is the second row added after ratification, and the owner ruled on it on 2026-11-06: it is **not** a combat path. It is a one-shot that re-arms one at a time, only while the account's notice is pending, and each tick is one library call that shows or records nothing in combat. It does not trip the register row's re-check trigger.
 
 **No `OnUpdate` handler exists in this repo** — `grep -rn "OnUpdate" core modules settings` returns
 nothing — and **no repeating ticker**: no `C_Timer.NewTicker`, no `ScheduleRepeatingTimer`. Every
