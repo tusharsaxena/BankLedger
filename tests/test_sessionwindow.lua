@@ -565,7 +565,7 @@ do
       assertTrue(strip ~= nil and strip:IsShown(), "no simulation strip on the session window")
       assertEqual(strip.kind, "sim", "the session window's strip is not the simulation flavor")
       assertEqual(strip.text:GetText(),
-        NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Guild bank"]))
+        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(NS.L["Guild bank"]))
       local p1, rel1, rp1 = strip:GetPoint(1)
       assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT")
       assertTrue(rel1 == f.titleBar, "the strip is not anchored under the title bar")

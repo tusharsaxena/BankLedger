@@ -970,7 +970,7 @@ do
       assertEqual(f.simStrip.kind, "sim", "the simulation's strip is not the simulation flavor")
       assertEqual(f.simStrip.text:GetText(), NS.SimHost.MarkerText())
       assertEqual(f.simStrip.text:GetText(),
-        NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Warband transfer"]))
+        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(NS.L["Warband transfer"]))
       assertFalse(f.testStrip:IsShown(), "the test strip shows for a simulation")
       assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
       inH, inI = paneY(NS, "History"), paneY(NS, "Insights")
