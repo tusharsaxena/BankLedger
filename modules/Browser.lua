@@ -707,7 +707,7 @@ end
 --- The session window's strip (modules/SessionWindow.lua) reads the same lines.
 function B.StripTipLines()
   if NS.Database:DatasetKind() == "sim" then
-    return { NS.L["Simulation"], NS.L["Shows: a simulated bank visit; nothing here is saved"],
+    return { NS.L["SIM"], NS.L["Shows: a simulated bank visit; nothing here is saved"],
       NS.L["Ended by: /bl sim stop, combat, a real bank window"] }
   end
   return { NS.L["Test mode"], NS.L["Shows: a sample ledger, not your bank"],

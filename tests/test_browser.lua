@@ -985,7 +985,7 @@ do
 
   test("Browser: the strip's tooltip describes the simulation while one runs", function()
     SS.withSession("bank", function()
-      assertEqual(table.concat(NS.Browser.StripTipLines(), " | "), "Simulation | Shows: a simulated bank"
+      assertEqual(table.concat(NS.Browser.StripTipLines(), " | "), "SIM | Shows: a simulated bank"
         .. " visit; nothing here is saved | Ended by: /bl sim stop, combat, a real bank window")
     end)
     assertEqual(NS.Browser.StripTipLines()[1], "Test mode", "the test lines are back once it stops")

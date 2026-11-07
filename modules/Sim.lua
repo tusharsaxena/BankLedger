@@ -388,7 +388,7 @@ function Host.PanelAnchor()
 end
 
 local PANEL = {
-  title = NS.BRAND_NAME .. " - Simulation",
+  title = NS.BRAND_NAME .. " - SIM",
   stepLabel = function(step, i, steps) return Host.StepLabel(step, i, steps) end,
   stepTip = function(step, i) return Host.StepTip(step, i) end,
   startTip = {
