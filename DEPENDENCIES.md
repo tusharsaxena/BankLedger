@@ -25,6 +25,7 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
   (with its AceConfigRegistry, AceConfigCmd and AceConfigDialog parts) and **AceDBOptions-3.0**
   (the `AceConfig-3.0` and `AceDBOptions-3.0` lines of `BankLedger.toc`). The last two draw the Profiles page (`settings/Profiles.lua`) and nothing
   else; they are the same Ace3 release the rest of the collection vendors, byte for byte.
+  Ace3: WoWUIDev/Ace3@ac3d1225 (untagged master; LibKa0s#76).
 - LibKa0s ships inside the addon the same way — `libs/LibKa0s/LibKa0s.xml`, the last line of the TOC's library block.
   **Which release, is not written here.** The one answer is the provenance line in the root
   [`CLAUDE.md`](CLAUDE.md), and `tests/test_vendor_sync.lua` machine-reads *that* line and compares
