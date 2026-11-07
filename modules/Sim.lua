@@ -388,7 +388,7 @@ function Host.PanelAnchor()
 end
 
 local PANEL = {
-  title = NS.BRAND_NAME .. " - Simulation",
+  title = NS.BRAND_NAME .. " - SIM",
   stepLabel = function(step, i, steps) return Host.StepLabel(step, i, steps) end,
   stepTip = function(step, i) return Host.StepTip(step, i) end,
   startTip = {
@@ -413,7 +413,7 @@ function Host.MarkerText()
   if NS.Database:DatasetKind() ~= "sim" then return nil end
   local name = NS.Sim:Status().scenario
   local def = name and Host.SCENARIOS.defs[name]
-  return L["Simulation: %s - nothing here is saved."]:format(def and def.label or tostring(name))
+  return L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(def and def.label or tostring(name))
 end
 
 -- Both windows' strips follow the dataset: the ledger window's, and the session window's (it draws

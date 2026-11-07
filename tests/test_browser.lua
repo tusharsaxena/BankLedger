@@ -970,7 +970,7 @@ do
       assertEqual(f.simStrip.kind, "sim", "the simulation's strip is not the simulation flavor")
       assertEqual(f.simStrip.text:GetText(), NS.SimHost.MarkerText())
       assertEqual(f.simStrip.text:GetText(),
-        NS.L["Simulation: %s - nothing here is saved."]:format(NS.L["Warband transfer"]))
+        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(NS.L["Warband transfer"]))
       assertFalse(f.testStrip:IsShown(), "the test strip shows for a simulation")
       assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
       inH, inI = paneY(NS, "History"), paneY(NS, "Insights")
@@ -985,7 +985,7 @@ do
 
   test("Browser: the strip's tooltip describes the simulation while one runs", function()
     SS.withSession("bank", function()
-      assertEqual(table.concat(NS.Browser.StripTipLines(), " | "), "Simulation | Shows: a simulated bank"
+      assertEqual(table.concat(NS.Browser.StripTipLines(), " | "), "SIM | Shows: a simulated bank"
         .. " visit; nothing here is saved | Ended by: /bl sim stop, combat, a real bank window")
     end)
     assertEqual(NS.Browser.StripTipLines()[1], "Test mode", "the test lines are back once it stops")

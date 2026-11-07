@@ -6,7 +6,7 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-1657%2F1657_passing-green)
 
-Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
+Retail only for now; WoW Forever support is planned. Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
 when. Gold is tracked the same way at the two banks that hold gold.
 

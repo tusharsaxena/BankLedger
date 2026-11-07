@@ -35,7 +35,7 @@ local function panelFrame() return mocks.BankLedgerSimPanel end
 
 test("sim panel: the descriptor carries Bank Ledger's presentation fields, and no store", function()
   local P = Host.PANEL
-  assertEqual(P.title, NS.BRAND_NAME .. " - Simulation")
+  assertEqual(P.title, NS.BRAND_NAME .. " - SIM")
   assertEqual(P.check, NS.Icon("confirm"), "the done tick is the declared confirm icon")
   assertEqual(P.store, nil, "a panel store: the position must be session-only (C.11)")
   for _, key in ipairs({ "stepLabel", "stepTip", "anchorTo" }) do
