@@ -48,6 +48,7 @@ local SUITES = {
   -- run against Kit.skinValues and Kit.skinSwitch below.
   { name = "test_skin_values", dir = "tests/_kit/" },
   { name = "test_skin_switch", dir = "tests/_kit/" },
+  { name = "test_client_globals", dir = "tests/_kit/" },
 }
 
 -- The vendored library, every file of libs/LibKa0s/LibKa0s.xml in XML order. DERIVED FROM THE XML
