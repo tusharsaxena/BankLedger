@@ -5,8 +5,8 @@
 - Delivered for free (class A): Perf spec-name read, kit loader client stamp.
 - Contract blockers: none.
 - LibKa0s icons: line kept as written. Prune: prune-icons: /mnt/d/Profile/Users/Tushar/Documents/GIT/BankLedger: 17 icon(s) declared; kept 18 file(s), removed 5822
-- README credits: unchanged (no icon set added or removed). Provenance split: none. Dead stub mirrors removed: ./settings/OptionsSetup.lua:190:    -- so it is that, not the case, which keeps them here. __releaseChrome is gone: the library.
-- Standards reference moved to v2.103.1: vendored quirks block in docs/midnight-quirks.md replaced and stamped v2.103.1; X-Standard URL ok=1, bare badge ok=1, linked badge=0, Standards compliance section=1. Notation sweep (`grep -rEn '§[0-9]+\.[0-9]' . --exclude-dir=.git --exclude-dir=libs --exclude-dir=_kit --exclude-dir=audits --exclude-dir=reviews --exclude-dir=automated-tests`): 0 hits. .gitattributes pin: * text=auto eol=crlf. The RESULTS.md lead-in is runner-generated and was not swept.
+- README credits: unchanged (no icon set added or removed). Provenance split: none. Dead stub mirrors removed: ./settings/OptionsSetup.lua:190:    -- so it is that, not the case, which keeps them here. __releaseChrome is gone: the library.
+- Standards reference moved to v2.103.1: vendored quirks block in docs/midnight-quirks.md replaced and stamped v2.103.1; X-Standard URL ok=1, bare badge ok=1, linked badge=0, Standards compliance section=1. Notation sweep (`grep -rEn '§[0-9]+\.[0-9]' . --exclude-dir=.git --exclude-dir=libs --exclude-dir=_kit --exclude-dir=audits --exclude-dir=reviews --exclude-dir=automated-tests`): 0 hits. .gitattributes pin: * text=auto eol=crlf. The RESULTS.md lead-in is runner-generated and was not swept.
 - README description now opens with the supported-clients sentence (documentation-§1 item 3, owner-controller ruling): "Retail only for now; WoW Forever support is planned."
 - Ace3 provenance recorded in DEPENDENCIES.md (WoWUIDev/Ace3@ac3d1225, LibKa0s#76).
 - Adopted: nothing. Declined: 3 candidates, "deferred to the addon's Forever port", no issues filed (owner ruling).
