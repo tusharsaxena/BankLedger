@@ -56,6 +56,19 @@ if not lib then
   function D:BuildDiagnostics() return { lines = {}, dropped = 0, capped = false, capsHit = false } end
   function D:DebugVerb() return false end
 
+  -- The report seam and its serializer (DebugLog minor 23, DebugLogDiagnostics minor 11, LibKa0s
+  -- v1.105.0). Owed by every DebugLog stub, adopted or not. With no console the body streams to chat
+  -- line by line, with no pointer line after it, and answers the lines written. Serialize answers
+  -- one line, a table as `<table>`: the library's serializer is not copied here (anti-pattern #47).
+  function D:Report(_, _, fn)
+    local n = 0
+    fn(function(line) n = n + 1; NS.Print(NS.SafeToString(line)) end)
+    return n
+  end
+  function D:Serialize(value)
+    return { NS.SafeToString(type(value) == "table" and "<table>" or value) }
+  end
+
   -- The change gates and the at-enable queue (DebugLogGates 1, LibKa0s v1.65.0). Plain dot
   -- functions on the live instance, like D.Debug; with no console there is nothing to write to, so
   -- each answers nothing.

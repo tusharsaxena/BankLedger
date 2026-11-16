@@ -248,6 +248,9 @@ if not lib then
     -- NavRail, new at LibKa0s v1.61.0 (OptionsNav minor 1): drawn only by a page render, and no
     -- page here draws a rail, so a no-op keeps the stub matching the live surface.
     NavRail = function() end,
+    -- SideTabs, new at LibKa0s v1.105.0 (OptionsNav minor 7): a side-tab group drawn only by a page
+    -- render. No page here draws one, so it answers nil, the live one's answer when it draws nothing.
+    SideTabs = function() return nil end,
     -- The Keybindings tab (options-ui-§20, OptionsKeybinds minor 2) and the one strata tooltip
     -- (frame-layering-§1, OptionsCompose minor 8), new at LibKa0s v1.77.0. Unreached on this arm:
     -- no panel renders, so no tab or row is drawn. KeybindingsTab answers nil (no tab entry),
