@@ -1654,6 +1654,11 @@ Total.
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
 - skin chrome degraded: no window draws a line under its title band (R4-SEP)
 
+### test_title_bar.lua (2)
+
+- title bar: every control on each of this addon's windows shows its tooltip above it, in gtip.title
+- title bar: every window's close rests in icon.tint and lights close.hot, under Ka0s Default and Obsidian
+
 ### test_skin_picker.lua (15)
 
 - Skin picker: pickerSeen defaults to false, a skip-render row on the Skin tab
@@ -1955,6 +1960,7 @@ Total.
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
+| test_title_bar.lua | 2 |
 | test_skin_picker.lua | 15 |
 | test_skin_picker_preview.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -1970,4 +1976,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1660** |
+| **Total** | **1662** |
