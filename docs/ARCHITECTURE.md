@@ -579,7 +579,8 @@ for member.
   `OpenSettings("BankLedger")`, which reaches the launcher's `openSettings` (`NS.Panel:Open`). No
   window opts out. The addon builds no `DragHandle`, so the drag strip's settings mark does not
   apply. Degraded, with no `HeaderButtons`, each window keeps its close alone, 6 px in.
-  `tests/test_title_bar.lua` pins the order, the offsets, the click and the colors.
+  `tests/test_title_bar.lua` pins the order, the offsets, the click and the colors, and the degraded
+  rung too: the close alone, `RIGHT` 6 px in, and no settings mark recorded.
 - **The EllesmereUI provider.** The library's (`SkinEUI.lua`). With source `eui` and its gate holding
   (EllesmereUI's `RegisterSkin` and `EllesmereUIBlizzardSkin` loaded, third-party skins on, this
   addon not switched off in its list), EllesmereUI's facade paints the vocabulary it has; otherwise

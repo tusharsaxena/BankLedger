@@ -246,3 +246,36 @@ test("title bar: every window's settings mark rests in icon.tint and lights text
     m.GameTooltip = nil
     if not ok then error(err, 0) end
   end)
+
+-- The degraded rung (B:HeaderMarks's fallback, docs/ARCHITECTURE.md): a Widgets without HeaderButtons
+-- leaves each window its close alone, the host factory's 24 px control 6 px in from the bar's right
+-- edge, and no settings mark recorded.
+test("title bar degraded: with no HeaderButtons each window keeps its close alone, 6 px in, no settings mark",
+  function()
+    local ns, m, _, built = fresh()
+    local W = m.LibStub("LibKa0s-Widgets-1.0")
+    local real = W.HeaderButtons
+    W.HeaderButtons = nil
+    local ok, err = pcall(function()
+      for _, w in ipairs(markWindows(ns)) do
+        assertTrue(w.close ~= nil, w.name .. ": no close control")
+        assertTrue(w.frame.settingsButton == nil, w.name .. ": a settings mark was recorded without HeaderButtons")
+        assertTrue(w.frame.headerButtons == nil, w.name .. ": a HeaderButtons record without HeaderButtons")
+        local controls = controlsOn(built, w.bar)
+        assertEqual(#controls, 1, w.name .. ": the degraded title bar carries more than its close")
+        assertTrue(controls[1] == w.close, w.name .. ": the one control is not the close")
+        assertEqual(w.close:GetWidth(), 24, w.name .. ": the close is not the host's 24 px factory")
+        local point, rel, relPoint, x, y = w.close:GetPoint(1)
+        assertEqual(point, "RIGHT", w.name .. ": the close's anchor point")
+        -- S.Header lays the marks on the window's band and the bar takes the band's whole rect, so the
+        -- close sits on the bar or on the band the bar fills.
+        assertTrue(rel == w.bar or (rel ~= nil and rawget(w.bar, "__allPoints") == rel),
+          w.name .. ": the close is not anchored to the title bar or the band it fills")
+        assertEqual(relPoint, "RIGHT", w.name .. ": the close's relative point")
+        assertEqual(x, -6, w.name .. ": the close's inset from the bar's right edge")
+        assertEqual(y, 0, w.name .. ": the close's vertical offset")
+      end
+    end)
+    W.HeaderButtons = real
+    if not ok then error(err, 0) end
+  end)
