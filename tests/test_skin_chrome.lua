@@ -225,12 +225,26 @@ test("skin chrome: every window's header is on its band, in every skin (R5-WIN)"
     { "session", session, session.titleBar, session.title, session.closeButton },
     { "export", export, export.titleBar, export.titleFS, export.closeBtn },
   }
-  local insets = {}
+  -- Smoke round 2 (SR2-L2): no shipped skin draws a flat 2 px edge any more, so the 2 px branch of
+  -- Shell's inset is kept covered by a test-local skin that sets one, and the nine shipped skins are
+  -- pinned at their 1 px separately below.
+  local shipped = {}
+  for _, def in ipairs(Skin:Skins()) do shipped[#shipped + 1] = def.key end
+  local tokens = {}
+  for k, v in pairs(Skin:ResolveSkin("obsidian")) do tokens[k] = v end
+  tokens["win.borderStyle"], tokens["win.borderSize"] = "flat", 2
+  Skin:RegisterSkin({ key = "bl-edge2", label = "Edge 2 (test)", tokens = tokens })
+  local insets, shippedInsets = {}, {}
   for _, def in ipairs(Skin:Skins()) do
     switch(m, Skin, def.key)
     local t = Skin:ResolveSkin(def.key)
     local inset = (t["win.borderStyle"] or "flat") == "flat" and t["win.borderSize"] or 1
     insets[inset] = true
+    if def.key ~= "bl-edge2" then
+      shippedInsets[inset] = true
+      -- Ka0s Default keeps its own inner rule (EDGE); every other shipped skin draws none (SR2-L2).
+      assertEqual(not t["win.inner"], def.key ~= "ka0s", def.key .. "'s inner rule (SR2-L2)")
+    end
     for _, w in ipairs(windows) do
       local what = w[1] .. " under " .. def.key
       local band = ns.Skin.Band(w[2])
@@ -245,6 +259,8 @@ test("skin chrome: every window's header is on its band, in every skin (R5-WIN)"
     end
   end
   assertTrue(insets[1] and insets[2], "the skins cover a 1 px and a 2 px edge")
+  assertEqual(#shipped, 9, "the nine shipped skins")
+  assertTrue(shippedInsets[1] and not shippedInsets[2], "every shipped skin sits its band at a 1 px inset")
   local badge = ledger.testBadge
   local point, rel, relPoint, _, y = badge:GetPoint(1)
   assertEqual(point .. relPoint, "LEFTRIGHT", "the badge rides the title's right edge")

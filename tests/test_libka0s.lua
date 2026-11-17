@@ -520,8 +520,12 @@ test("LibKa0s-DebugLog: the console's title bar is the library's, at the pitch t
     -- WHAT MOVED IS COPY. The descriptor now passes `addonName`, so the library can build a texture
     -- path and Clear becomes an 18-wide MARK where it used to be the 42-wide word "Clear" — icons
     -- are narrower than words, and the library derives the pitch from what it actually built rather
-    -- than from a constant. So Copy lands at -54 rather than -78, and -78 coming back would mean
-    -- the folder name never arrived and the library fell back to two words.
+    -- than from a constant.
+    --
+    -- LibKa0s v1.105.0 (DebugLogWindow minor 5, LibKa0s#86) put the header settings mark between
+    -- Clear and Close, so the marks read Copy | Clear | settings | Close: settings at -30, Clear at
+    -- -54 and Copy at -78. -102 for Copy would mean the folder name never arrived and the library
+    -- fell back to the word "Clear" (-54 - 42 - 6).
     --
     -- This addon's mock models SetSize/GetWidth as real state, textures included
     -- (tests/wow_mock.lua, override 1), so Core's `SetSize(18, 18)` is genuinely MEASURED here and
@@ -531,8 +535,9 @@ test("LibKa0s-DebugLog: the console's title bar is the library's, at the pitch t
     local off = D._frameForTest.titleBarOffsets
     assertTrue(off ~= nil, "the library records the computed offsets")
     assertEqual(off.close, -6)
-    assertEqual(off.clear, -30, "-6 - 18 - 6 — a 24-wide close button would give -36")
-    assertEqual(off.copy, -54, "-30 - 18 - 6 — the 42-wide word would give -78")
+    assertEqual(off.settings, -30, "-6 - 18 - 6 — a 24-wide close button would give -36")
+    assertEqual(off.clear, -54, "-30 - 18 - 6, beside the settings mark")
+    assertEqual(off.copy, -78, "-54 - 18 - 6 — the 42-wide word would give -102")
     D:Hide()
   end)
 

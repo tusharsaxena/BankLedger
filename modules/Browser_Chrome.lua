@@ -1,4 +1,4 @@
-local _, NS = ...
+local addonName, NS = ...
 NS.Browser = NS.Browser or {}
 local B = NS.Browser
 
@@ -22,8 +22,10 @@ end
 
 -- The close control every window this addon draws wears: the collection's `close` mark where the
 -- shared art is there, and the thin × glyph it has always drawn where it is not. The skin's
--- close.rest at rest and close.hot on hover, either way (BL-A1). Shared by the ledger window (Browser.lua),
--- the session window (SessionWindow.lua) and the export modal (Export.lua); the export COPY window
+-- close.rest at rest (which follows icon.tint in every skin since LibKa0s v1.105.0, SR-L3) and
+-- close.hot on hover, either way (BL-A1), and a one-line "Close" tooltip above it (SR-L2). Shared
+-- by the ledger window (Browser.lua), the session window (SessionWindow.lua) and the export modal
+-- (Export.lua); the export COPY window
 -- is LibKa0s-Widgets-1.0's CopyWindow and wears the library's close. NOT by the debug
 -- console: that is the LIBRARY's window and wears Core's own 18x18 close — the edge is shared
 -- across every Ka0s window, but the close control on a library-drawn window is the library's
@@ -71,6 +73,14 @@ function B:MakeCloseButton(parent, onClick)
   close:SetScript("OnClick", onClick)
   -- The art is in place first: the primitive reaches it through close.icon / close.glyph.
   NS.Skin.CloseButton(close)
+  -- The tooltip (smoke round 1's SR-L2 and SR-BL): one line, "Close" (Tooltip.CloseTip, so a
+  -- SetCloseTip for this owner reaches it on the next hover), above the control by PlaceAttached,
+  -- in this owner's gtip.title. Hooked, so the primitive's close.hot / close.rest pair keeps
+  -- running. Degraded, with no LibKa0s-Tooltip-1.0, the control has no tooltip and still closes.
+  local Tip = LibStub and LibStub("LibKa0s-Tooltip-1.0", true)
+  if Tip and Tip.AttachTitleTip then
+    Tip.AttachTitleTip(close, function() return Tip.CloseTip(addonName) end, addonName)
+  end
   return close
 end
 
