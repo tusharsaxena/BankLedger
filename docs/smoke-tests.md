@@ -19,10 +19,10 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 65 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer |
+| LEDG-1 – 67 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog |
 | INS-1 – 19 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
-| SESS-1 – 16 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar |
+| SESS-1 – 17 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
 | SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
@@ -709,6 +709,22 @@ leaves its number unused.
   ends above the hairline. Type in the search box → the count follows. Switch through the other
   skins with the window open, no reload → the hairline and both lines repaint. **Fail:** a filled
   band, text under the grip, a row under the hairline, or a dead grip. Added 2026-11-17. Result:
+- **LEDG-66. The ledger window's settings mark (AD-86-BL, LibKa0s#86).** `/bl show` under Ka0s
+  Default → the title bar's right end carries two marks, left to right a gear and the close ×, the
+  gear a little left of the ×, both on the band's middle and the title still centered. Hover the gear →
+  it turns orange (`text.link`) and "Open settings" shows above it; leave → it goes back to gray, the
+  same gray as the ×. Hover the × → it still turns red and says "Close". Click the gear → the
+  Settings panel opens on Ka0s Bank Ledger and comes up over the ledger window, which stays open.
+  Switch to Obsidian with the window open, no reload → the gear repaints in that skin's gray, and its
+  hover is that skin's link color. **Fail:** no gear, a gear right of the ×, a gear that opens nothing
+  or another addon's settings, the panel under the window, or a Lua error. Added 2026-11-17. Result:
+- **LEDG-67. The export dialog's settings mark (AD-86-BL, LibKa0s#86).** `/bl show`, then Export on
+  the filter bar → the dialog's title bar carries a gear left of its ×, like the ledger window's.
+  Hover the gear → orange and "Open settings" above it. Click it → the export dialog closes and the
+  Settings panel opens on Ka0s Bank Ledger, with nothing over it. The ledger window stays open. Open
+  the dialog again → it still works, and Export to CSV still opens the copy window. **Fail:** the
+  dialog left over the Settings panel, a gear that opens nothing, or a Lua error. Added 2026-11-17.
+  Result:
 
 ## INS
 
@@ -866,6 +882,11 @@ leaves its number unused.
   inside its edge, flush under the title bar (it used to sit a few pixels in from each side and 2 px
   down), and the column header and rows start just below it. After the stop the rows move back up.
   **Fail:** a gap or side inset around the strip, or rows under it. Added 2026-11-17. Result:
+- **SESS-17. The session window's settings mark (AD-86-BL, LibKa0s#86).** `/bl session` → the
+  title bar carries a gear left of the ×, like the ledger window's. Hover the gear → orange and
+  "Open settings" above it; leave → gray. Click it → the Settings panel opens on Ka0s Bank Ledger,
+  over the session window, which stays open. **Fail:** no gear, a gear that opens nothing, the panel
+  under the window, or a Lua error. Added 2026-11-17. Result:
 
 ## DIAG
 

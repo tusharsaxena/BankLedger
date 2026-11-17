@@ -568,13 +568,16 @@ local function ensureFrame()
   divider:SetHeight(1)
   frame.dividerBar = divider
 
-  if NS.Browser and NS.Browser.MakeCloseButton then
-    local close = NS.Browser:MakeCloseButton(titleBar, function() SW:Hide() end)
-    close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
+  -- Settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
+  -- No hideOnSettings: the window and the settings panel are HIGH peers, and the panel raises over it.
+  local marks
+  if NS.Browser and NS.Browser.HeaderMarks then
+    local close
+    close, marks = NS.Browser:HeaderMarks(frame, titleBar, function() SW:Hide() end)
     frame.closeButton = close
   end
   -- The header on the window's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).
-  NS.Skin.Header(frame, { title = title, right = { frame.closeButton }, bars = { titleBar } })
+  NS.Skin.Header(frame, { title = title, right = marks or {}, bars = { titleBar } })
 
   -- One pane, straight under the title bar: no tab strip, no filter bar, no footer. It moves down
   -- by the strip's body offset while the simulation strip shows (SW:UpdateTestStrip).

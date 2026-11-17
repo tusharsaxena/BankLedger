@@ -1027,15 +1027,16 @@ local function EnsureFrame()
   divider:SetHeight(1)
   frame.dividerBar = divider
 
-  local close = B:MakeCloseButton(titleBar, function() B:Hide() end)
-  close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
+  -- Settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
+  -- No hideOnSettings: the window and the settings panel are HIGH peers, and the panel raises over it.
+  local close, marks = B:HeaderMarks(frame, titleBar, function() B:Hide() end)
   frame.closeButton = close
   -- The header on the window's band (S.Band, R5-WIN of the smoke round 5): the bar takes the band's
   -- rect, Shell's own inset and title.height in every skin, so no body color shows between the edge
-  -- and the band; the title (by title.align) and the close are anchored to the band at y 0, its
-  -- middle. The badge rides the title's right edge, so it is on the same middle. Degraded, Header is
-  -- a no-op and the anchors above stand.
-  NS.Skin.Header(frame, { title = title, right = { close }, bars = { titleBar } })
+  -- and the band; the title (by title.align) and the marks (at the strip's own offsets) are anchored
+  -- to the band at y 0, its middle. The badge rides the title's right edge, so it is on the same
+  -- middle. Degraded, Header is a no-op and the anchors above stand.
+  NS.Skin.Header(frame, { title = title, right = marks, bars = { titleBar } })
 
   -- Shared window chrome: one filter bar above both panes (each tab's own state painted onto it),
   -- one shared footer below them.
