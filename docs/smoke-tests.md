@@ -19,10 +19,10 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 67 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog |
-| INS-1 – 19 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
+| LEDG-1 – 69 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog, where the row, header, filter-bar and strip tooltips open |
+| INS-1 – 20 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates, every tip beside the window |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
-| SESS-1 – 17 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark |
+| SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
 | DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
 | SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
@@ -725,6 +725,22 @@ leaves its number unused.
   the dialog again → it still works, and Export to CSV still opens the copy window. **Fail:** the
   dialog left over the Settings panel, a gear that opens nothing, or a Lua error. Added 2026-11-17.
   Result:
+- **LEDG-68. History tooltips open beside the window (AD-92-BL, LibKa0s#92).** `/bl show` with the
+  window in the middle of the screen. Hover an item row → the item's tooltip, with its *Shift-click
+  to link · right-click for options* line, opens just right of the window, its top level with the
+  row, covering no row. Hold Shift over an equippable item → the comparison opens on the far side
+  of it, away from the window. Hover a gold row → its gold tooltip in the same place. Hover a column
+  header → its tooltip in the same place, level with the header. Drag the window to the right edge
+  of the screen and hover the same row → the tooltip now opens left of the window. **Fail:** a
+  tooltip over the rows, off the row's right corner or under the cursor, a tooltip that opens on the
+  same side when there is no room, or lost lines. Added 2026-11-18. Result:
+- **LEDG-69. Filter-bar and strip tooltips sit above their control (AD-92-BL, LibKa0s#92).** `/bl
+  show`. Hover Export, Save, Reset and Clear in turn → each tooltip is centered just above its
+  button, not below it, and covers none of the filter bar's other controls' labels. `/bl test` and
+  hover the test-mode strip → its tooltip (Test mode, what it shows, what ends it) is centered above
+  the strip. Move the window to the top of the screen and hover the strip again → the tooltip flips
+  below the strip. **Fail:** a tooltip under the button, under the cursor or off a corner, or lost
+  lines. Added 2026-11-18. Result:
 
 ## INS
 
@@ -780,6 +796,13 @@ leaves its number unused.
   stacked bars, the back-to-back companions with their legends, the Day and Hour strips and the Top
   Of The List panels all draw as INS-11 to INS-13 describe, and hovering one of each shows its tip.
   **Fail:** a Lua error, or a section that draws empty or misplaced. Result:
+- **INS-20. Every Insights tip opens beside the window (AD-92-BL, LibKa0s#92).** In test mode open
+  Insights with the window in the middle of the screen. Hover a card, a bar, one side of a split bar,
+  a stacked segment, a Day strip column, a Top Of The List row and a legend swatch in turn → each
+  tip opens just right of the ledger window, its top level with what you hover, and stays put while
+  the mouse moves over that element. Drag the window to the right edge of the screen → the tips open
+  left of it. **Fail:** a tip that follows the cursor, a tip over the charts, or lost text. Added
+  2026-11-18. Result:
 
 ## FILT
 
@@ -887,6 +910,13 @@ leaves its number unused.
   "Open settings" above it; leave → gray. Click it → the Settings panel opens on Ka0s Bank Ledger,
   over the session window, which stays open. **Fail:** no gear, a gear that opens nothing, the panel
   under the window, or a Lua error. Added 2026-11-17. Result:
+- **SESS-18. The session window's tooltips (AD-92-BL, LibKa0s#92).** `/bl sim start bank` and let it
+  record rows. Hover a session row → the item's tooltip opens just right of the session window, top
+  level with the row; a gold row's the same. Hover a column header → its tooltip in the same place.
+  Hover the cyan strip → the Simulation tooltip is centered above the strip. Drag the session window
+  to the right edge of the screen and hover a row again → it opens left of the window. `/bl sim
+  stop`. **Fail:** a tooltip over the rows, off a corner or under the cursor, or lost lines. Added
+  2026-11-18. Result:
 
 ## DIAG
 
@@ -1741,3 +1771,7 @@ SIM-15, rewritten because it said a tick goes back to unticked, and it carried n
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
 
 On 2026-11-04 the owner reported that every check of the seventh smoke round passed (Ka0sAddonsCommonTasks `docs/2026-11-04-SMOKE_ROUND7/`, R7-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-04)`: SIM-15 and SIM-16.
+
+Owed by the LibKa0s v1.105.0 adoption, wave C (Ka0sAddonsCommonTasks `docs/2026-11-17-LIBKA0S_V1_105_ADOPTION/`,
+item AD-92-BL, LibKa0s#92): new checks LEDG-68, LEDG-69, INS-20 and SESS-18, where every tooltip the
+addon places itself now opens. No pass mark came off: no other check names where a tooltip opens.

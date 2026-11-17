@@ -107,7 +107,8 @@ strip's `strip:BodyOffset()`, its height, and by 0 otherwise or with no Widgets 
 `onOffset` and `B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the
 Master controls box, the launcher menu and the combat ending all reach it) both run it.
 `B:UpdateTestStrip()` shows the dataset's strip and hides the other. Until LibKa0s#88 the strips hung
-2px under the filter bar with a host reserve of 22. Each strip's mouse is on for one plain `GameTooltip`: *Test mode*,
+2px under the filter bar with a host reserve of 22. Each strip's mouse is on for one plain `GameTooltip`, centered above the
+strip (the chrome rule, AD-92-BL; ARCHITECTURE.md *Tooltip placement*): *Test mode*,
 what it shows, and what ends it. The red `TEST MODE` title badge is the **degraded fallback only**:
 it shows in test mode when no strip was built (no Widgets library, so no shift either), and never
 beside a strip.

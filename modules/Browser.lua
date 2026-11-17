@@ -252,11 +252,12 @@ local function makeBarButton(parent, text, width, onClick, tooltip)
   -- headless instrument in the repo stayed green.
   b.fs = fs
   b:SetScript("OnEnter", function(self2)
-    if tooltip and GameTooltip then
-      GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    local tip = tooltip and NS.Util.TipOwn(self2)
+    if tip then
       local r, g, bl = NS.SkinColor("gtip.body")
-      GameTooltip:AddLine(tooltip, r, g, bl, true)
-      GameTooltip:Show()
+      tip:AddLine(tooltip, r, g, bl, true)
+      tip:Show()
+      NS.Util.TipAttached(tip, self2)   -- chrome: a filter-bar control, above it (AD-92-BL)
     end
   end)
   b:SetScript("OnLeave", function()
@@ -758,10 +759,11 @@ local function buildModeStrip(kind, text)
     dock = "title", titleBar = frame.titleBar, window = frame, onOffset = function() anchorPanes() end })
   strip:EnableMouse(true)
   strip:HookScript("OnEnter", function(self2)
-    if not GameTooltip then return end
-    GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    local tip = NS.Util.TipOwn(self2)
+    if not tip then return end
     B.AddStripTip()
-    GameTooltip:Show()
+    tip:Show()
+    NS.Util.TipAttached(tip, self2)   -- chrome: the strip, above it (AD-92-BL)
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
   return strip

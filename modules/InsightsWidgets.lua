@@ -409,23 +409,28 @@ W.ReleaseAll = function(pool) return NS.Pool.ReleaseAll(pool) end
 
 -- ── Tooltips ───────────────────────────────────────────────────────────────────
 
--- A one-line tip pinned just above-right of the cursor rather than anchored to a (far-right) row
--- edge, so it reads beside whatever the mouse is actually over. GetCursorPosition returns physical
--- pixels, hence the divide by UIParent's effective scale.
-function W.CursorTooltip(owner, text, rgb)
+-- Every Insights element is a body element (a card, a bar, a bar's side or segment, a strip
+-- column, a list row, a legend swatch), so its tip opens beside the ledger window, right when it
+-- fits and otherwise left, top level with the element (AD-92-BL). It used to follow the cursor.
+local function windowGroup()
+  return NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow() or nil
+end
+
+--- Show the tip `fill(tip)` writes for `owner`, beside the ledger window.
+local function besideTip(owner, fill)
+  local tip = NS.Util.TipOwn(owner)
+  if not tip then return end
+  tip:ClearLines()
+  fill(tip)
+  tip:Show()
+  NS.Util.TipBeside(tip, owner, windowGroup())
+end
+
+--- A one-line tip for `owner`, in `rgb` (W.TIP_VALUE by default), beside the ledger window.
+function W.BesideTooltip(owner, text, rgb)
   if not (text and text ~= "" and GameTooltip) then return end
-  GameTooltip:SetOwner(owner, "ANCHOR_NONE")
-  if GetCursorPosition and UIParent and UIParent.GetEffectiveScale then
-    local scale = UIParent:GetEffectiveScale() or 1
-    local cx, cy = GetCursorPosition()
-    GameTooltip:ClearAllPoints()
-    GameTooltip:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT",
-      (cx or 0) / scale + 5, (cy or 0) / scale + 5)
-  end
-  GameTooltip:ClearLines()
   rgb = rgb or W.TIP_VALUE
-  GameTooltip:AddLine(text, rgb[1], rgb[2], rgb[3])
-  GameTooltip:Show()
+  besideTip(owner, function(tip) tip:AddLine(text, rgb[1], rgb[2], rgb[3]) end)
 end
 
 local function hideTooltip() if GameTooltip then GameTooltip:Hide() end end
@@ -465,10 +470,10 @@ function W.MakeCard(parent)
   card:EnableMouse(true)
   card:SetScript("OnEnter", function(self)
     if not (self._tip and GameTooltip) then return end
-    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-    GameTooltip:AddLine(self._caption or "", W.TIP_TITLE[1], W.TIP_TITLE[2], W.TIP_TITLE[3])
-    GameTooltip:AddLine(self._tip, W.TIP_BODY[1], W.TIP_BODY[2], W.TIP_BODY[3], true)
-    GameTooltip:Show()
+    besideTip(self, function(tip)
+      tip:AddLine(self._caption or "", W.TIP_TITLE[1], W.TIP_TITLE[2], W.TIP_TITLE[3])
+      tip:AddLine(self._tip, W.TIP_BODY[1], W.TIP_BODY[2], W.TIP_BODY[3], true)
+    end)
   end)
   card:SetScript("OnLeave", hideTooltip)
   return card
@@ -518,7 +523,7 @@ function W.MakeBar(parent)
   value:SetWordWrap(false)
   bar.value = value
   bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.TIP_TITLE) end)
+  bar:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip, W.TIP_TITLE) end)
   bar:SetScript("OnLeave", hideTooltip)
   return bar
 end
@@ -574,7 +579,7 @@ function W.MakeSplitBar(parent)
     local tex = side:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(side)
     side.tex = tex
-    side:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip) end)
+    side:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip) end)
     side:SetScript("OnLeave", hideTooltip)
   end
   -- The captions sit BELOW the bar, pinned to its two ends. Inside the bar they were unreadable at
@@ -655,12 +660,12 @@ function W.MakeStackedBar(parent)
     local tex = seg:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(seg)
     seg.tex = tex
-    seg:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip) end)
+    seg:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip) end)
     seg:SetScript("OnLeave", hideTooltip)
     bar.segs[i] = seg
   end
   bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.TIP_TITLE) end)
+  bar:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip, W.TIP_TITLE) end)
   bar:SetScript("OnLeave", hideTooltip)
   return bar
 end
@@ -730,11 +735,11 @@ function W.MakeBackToBackBar(parent)
     local tex = side:CreateTexture(nil, "ARTWORK")
     tex:SetAllPoints(side)
     side.tex = tex
-    side:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip) end)
+    side:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip) end)
     side:SetScript("OnLeave", hideTooltip)
   end
   bar:EnableMouse(true)
-  bar:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.TIP_TITLE) end)
+  bar:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip, W.TIP_TITLE) end)
   bar:SetScript("OnLeave", hideTooltip)
   return bar
 end
@@ -793,10 +798,7 @@ function W.MakeStripBar(parent)
   W.PaintStripBar(f)
   f:EnableMouse(true)
   f:SetScript("OnEnter", function(self)
-    if not (self._tip and GameTooltip) then return end
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:AddLine(self._tip, W.TIP_VALUE[1], W.TIP_VALUE[2], W.TIP_VALUE[3])
-    GameTooltip:Show()
+    W.BesideTooltip(self, self._tip)   -- a chart column: body, beside the window (AD-92-BL)
   end)
   f:SetScript("OnLeave", hideTooltip)
   return f
@@ -864,7 +866,7 @@ function W.MakeListRow(parent)
   right:SetWordWrap(false)
   r.right = right
   r:EnableMouse(true)
-  r:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip) end)
+  r:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip) end)
   r:SetScript("OnLeave", hideTooltip)
   return r
 end
@@ -885,7 +887,7 @@ function W.MakeSwatch(parent)
   fs:SetWordWrap(false)
   f.sw, f.fs = sw, fs
   f:EnableMouse(true)
-  f:SetScript("OnEnter", function(self) W.CursorTooltip(self, self._tip, W.MUTED) end)
+  f:SetScript("OnEnter", function(self) W.BesideTooltip(self, self._tip, W.MUTED) end)
   f:SetScript("OnLeave", hideTooltip)
   return f
 end

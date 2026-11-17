@@ -945,6 +945,8 @@ test("Browser: hovering the strip shows the test-mode tooltip, and leaving hides
   local lines, hidden = {}, false
   m.GameTooltip = {
     SetOwner = function() end, Show = function() end,
+    -- AD-92-BL: the strip is placed after Show (above it), so the recorder takes points too.
+    ClearAllPoints = function() end, SetPoint = function() end,
     Hide = function() hidden = true end,
     AddLine = function(_, text) lines[#lines + 1] = text end,
   }

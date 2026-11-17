@@ -389,14 +389,18 @@ function SW:BuildRow()
   row:SetScript("OnEnter", function(self2)
     local e = self2.entry
     if not (e and GameTooltip) then return end
+    -- A body element: beside the session window, right when it fits, else left, top level with
+    -- the row (AD-92-BL; the comparison side follows it).
     if e.itemLink then
-      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
-      GameTooltip:SetHyperlink(e.itemLink)
-      GameTooltip:Show()
+      local tip = NS.Util.TipOwn(self2)
+      tip:SetHyperlink(e.itemLink)
+      tip:Show()
+      NS.Util.TipBeside(tip, self2, frame)
     elseif e.kind == C.Kind.MONEY then
-      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
+      local tip = NS.Util.TipOwn(self2)
       NS.LedgerTable.AddMoneyTooltip(e)   -- the History table's lines, in the skin's colors
-      GameTooltip:Show()
+      tip:Show()
+      NS.Util.TipBeside(tip, self2, frame)
     end
   end)
   row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -453,10 +457,11 @@ function SW:BuildHeaderCells()
       fs:SetTextColor(NS.SkinColor("list.header.text"))
       cell.fs = fs
       cell:SetScript("OnEnter", function(self2)
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        local tip = NS.Util.TipOwn(self2)
+        if not tip then return end
         NS.LedgerTable.AddColumnTooltip(col)
-        GameTooltip:Show()
+        tip:Show()
+        NS.Util.TipBeside(tip, self2, frame)   -- a column header is a body element (AD-92-BL)
       end)
       cell:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
       header.cells[col.key] = cell
@@ -489,9 +494,10 @@ local function buildStrip(f, titleBar)
   strip:EnableMouse(true)
   strip:HookScript("OnEnter", function(self2)
     if not (GameTooltip and NS.Browser and NS.Browser.StripTipLines) then return end
-    GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    local tip = NS.Util.TipOwn(self2)
     NS.Browser.AddStripTip()   -- the ledger window's strip lines, in the skin's colors
-    GameTooltip:Show()
+    tip:Show()
+    NS.Util.TipAttached(tip, self2)   -- chrome: the strip, above it (AD-92-BL)
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
   f.simStrip = strip

@@ -474,6 +474,52 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
   `table.concat` rather than `..` — the operator propagates secretness without raising, so a
   `..`-based probe would let a combat "secret" through to the real concat and crash.
 
+## Tooltip placement
+
+The addon follows standalone-windows *Tooltip placement* (AD-92-BL, LibKa0s#92). Every tooltip it
+places itself goes through three helpers in `core/Util.lua`, which read LibKa0s-Tooltip-1.0 at call
+time. `Util.TipOwn(el)` owns the game tooltip at `ANCHOR_NONE`. The caller adds the lines and shows
+the tooltip, so its size is known, and then calls one of two placers:
+
+- `Util.TipBeside(tip, el, window)` is the body rule (`PlaceBeside`). The tooltip opens right of the
+  element's window when it fits and otherwise left of it, top level with the element, and never
+  covers the window. It also sets the comparison side, so an item's Shift-compare follows it.
+- `Util.TipAttached(tip, el)` is the chrome rule (`PlaceAttached`). The tooltip is centered above the
+  control and flips below only when there is no room above.
+
+When the geometry cannot be read, or the library is absent, both placers attach the tooltip above the
+element by a relative point (`BOTTOM` on its `TOP`, 2 px). No tooltip follows the cursor or opens off a
+corner. `tests/test_tooltip_place.lua` pins each surface, and a source guard in it rejects any
+`ANCHOR_*` other than `ANCHOR_NONE`, any `GetCursorPosition` and any `GameTooltip:SetOwner` outside
+`Util.TipOwn`.
+
+| Surface | File | Element | Placed |
+|---|---|---|---|
+| A History row: the item's tooltip, or a gold row's built one | `modules/LedgerTable.lua` | body | beside the ledger window (it was `ANCHOR_RIGHT`) |
+| A History column header | `modules/LedgerTable.lua` | body | beside the ledger window (it was `ANCHOR_BOTTOM`) |
+| A session row: item or gold | `modules/SessionWindow.lua` | body | beside the session window (it was `ANCHOR_RIGHT`) |
+| A session column header | `modules/SessionWindow.lua` | body | beside the session window (it was `ANCHOR_BOTTOM`) |
+| Every Insights card, bar, split or back-to-back side, stacked bar and segment, Day and Hour strip column, list row and legend swatch | `modules/InsightsWidgets.lua` (`W.BesideTooltip`) | body | beside the ledger window (most followed the cursor through `W.CursorTooltip`; the card used `ANCHOR_BOTTOM` and the strip column `ANCHOR_TOP`) |
+| The filter bar's Export, Clear, Reset and Save buttons | `modules/Browser.lua` (`makeBarButton`) | chrome | above the button (it was `ANCHOR_BOTTOM`) |
+| The ledger window's test-mode and simulation strips | `modules/Browser.lua` (`buildModeStrip`) | chrome | above the strip (it was `ANCHOR_BOTTOM`) |
+| The session window's simulation strip | `modules/SessionWindow.lua` (`buildStrip`) | chrome | above the strip (it was `ANCHOR_BOTTOM`) |
+
+Each tooltip keeps its content. These tooltips are not placed here, and stay as they are:
+
+- **The title-bar marks** (the settings gear and the close × on all three windows). The library's
+  `W.HeaderButtons` and `AttachTitleTip` place them by the chrome rule. They are pinned in
+  `tests/test_title_bar.lua`.
+- **The minimap button and its LDB display.** The library's Launcher draws that tooltip and places
+  it by `launcher-§7`. A broker display's tooltip is placed by the display, which standalone-windows
+  *What it does not bind* exempts.
+- **The library's own widgets**: the filter bar's dropdown rows, the simulation step panel and its
+  Start and Stop buttons. Each places its own tooltip by the rule.
+- **The settings pages** (Settings ▸ AddOns ▸ Ka0s Bank Ledger): every row, add box and id-list tip.
+  They are settings canvas pages, which the rule exempts.
+- **The Show window key binding's tooltip** on the game's Keybindings page. That is a Blizzard frame,
+  which the rule exempts.
+- **Item links clicked in chat.** The client places `ItemRefTooltip`, which the rule exempts.
+
 ## Frame layering
 
 The addon follows `frame-layering` (standard v2.88.0). Its strata tiers and level offsets are
