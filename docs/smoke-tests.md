@@ -520,9 +520,9 @@ leaves its number unused.
 - **LEDG-19. Quality words.** The Quality column and the Quality filter read the quality names, and an
   export writes the same names into its rows. Result: pass (owner-marked 2026-10-10)
 - **LEDG-20. Test mode.** `/bl test` → the window opens on a sample ledger with the amber test strip
-  under the filter bar (no red TEST MODE badge; that is only the library-absent fallback,
+  directly under the title bar (no red TEST MODE badge; that is only the library-absent fallback,
   DEGRADED-13) (procedure amended for one strip per mode, BL-10, 2026-10-23); filters, grouping, Insights and export all work on it.
-  Result: pass (owner-marked 2026-10-23)
+  Result: owed (procedure amended for the docked strip, AD-88-BL, 2026-11-17; last pass owner-marked 2026-10-23)
 - **LEDG-21. Test mode ignores the saved view.** With a view saved, `/bl test` → the sample opens
   unscoped and unfiltered. Leave test mode → the saved view is back, scoped to Current. Result: pass (owner-marked 2026-10-10)
 - **LEDG-22. The sample reads like a real bank.** In test mode → character-bank rows dominate, warband

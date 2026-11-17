@@ -910,6 +910,33 @@ test("Browser: with no Widgets library there is no strip and no shift, and the b
     ns.LedgerTable:SetTestMode(false)
   end)
 
+test("Browser: with no Widgets library the bare footer is 24 tall and carries both lines", function()
+  -- B.BareFooter is the degraded twin of W.Footer (AD-89-BL): same height, same two lines, same
+  -- setters, so the record count and the DB size still reach the window through SetLeft/SetRight.
+  local ns, m = loadFresh(true)
+  assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded arm still has the library")
+  ns.Browser:Show()
+  local win = ns.Browser:GetWindow()
+  local foot = win.footer
+  assertTrue(foot ~= nil, "the degraded window has no footer")
+  assertTrue(type(foot.SetLeft) == "function" and type(foot.SetRight) == "function",
+    "the bare footer lacks W.Footer's setters")
+  assertEqual(foot:GetHeight(), 24, "the bare footer is not 24 tall")
+  assertTrue(ns.Browser._footer == foot.left, "the record count is not the bare footer's left line")
+  assertTrue(ns.Browser._dbFooter == foot.right, "the database size is not the bare footer's right line")
+  assertTrue((foot.left:GetText() or ""):find("^Showing %d+ of %d+$") ~= nil,
+    "the left line did not get the record count: " .. tostring(foot.left:GetText()))
+  assertTrue((foot.right:GetText() or ""):find("^Database ~") ~= nil,
+    "the right line did not get the DB size: " .. tostring(foot.right:GetText()))
+  for _, name in ipairs({ "History", "Insights" }) do
+    local _, _, _, _, by = win.panes[name]:GetPoint(2)
+    assertEqual(by, 24, name .. " does not end 24 above the bottom edge")
+  end
+  foot:SetLeft(nil)
+  assertEqual(foot.left:GetText(), "", "SetLeft(nil) did not clear the left line")
+  ns.Browser:Hide()
+end)
+
 test("Browser: hovering the strip shows the test-mode tooltip, and leaving hides it", function()
   local ns, m = loadFresh()
   local seen = showSpyingOnStrip(ns, m)

@@ -452,7 +452,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (52)
+### test_browser.lua (53)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -499,6 +499,7 @@ Total.
 - Browser: opening the window while test mode is already on reserves the strip's space
 - Browser: combat ending test mode hides the strip and restores the panes
 - Browser: with no Widgets library there is no strip and no shift, and the badge still shows
+- Browser: with no Widgets library the bare footer is 24 tall and carries both lines
 - Browser: hovering the strip shows the test-mode tooltip, and leaving hides it
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
@@ -1913,7 +1914,7 @@ Total.
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
-| test_browser.lua | 52 |
+| test_browser.lua | 53 |
 | test_browser_views.lua | 21 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 44 |
@@ -1978,4 +1979,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1664** |
+| **Total** | **1665** |
