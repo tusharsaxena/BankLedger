@@ -275,20 +275,79 @@ test("tooltips: with geometry it cannot read, a helper attaches above the elemen
     if not ok then error(err, 0) end
   end)
 
+-- ── The window group ────────────────────────────────────────────────────────────
+
+test("tooltips: one window-group lookup, the ledger window, serves the table and Insights", function()
+  -- red under: the lookup missing from NS.Util, or a copy of it left in the table or the widgets.
+  local ns = fresh()
+  assertTrue(type(ns.Util.TipWindowGroup) == "function", "NS.Util.TipWindowGroup is missing")
+  local win = {}
+  local realB = ns.Browser
+  ns.Browser = { GetWindow = function() return win end }
+  local got = ns.Util.TipWindowGroup()
+  ns.Browser = nil
+  local none = ns.Util.TipWindowGroup()
+  ns.Browser = realB
+  assertTrue(got == win, "the group is not the ledger window")
+  assertEqual(none, nil, "the group is not nil before the ledger window exists")
+  assertEqual(ns.LedgerTable and ns.LedgerTable.WindowGroup, nil, "the table keeps its own copy of the lookup")
+  for _, path in ipairs({ "modules/LedgerTable.lua", "modules/InsightsWidgets.lua" }) do
+    local src = T.Loader.readFile(path)
+    assertTrue(not src:find("Browser:GetWindow", 1, true), path .. " looks the ledger window up itself")
+  end
+end)
+
 -- ── Source guard ────────────────────────────────────────────────────────────────
+
+-- The files the guard reads: every TOC-listed .lua, plus every .lua and .xml git knows of (tracked
+-- or untracked, ignored files left out) outside libs/ and tests/, so a file loaded through an XML
+-- include or a Bindings.xml script is guarded too, not only what the TOC names. It fails rather
+-- than passes when it cannot look (no io.popen, or git answers nothing).
+local function guardedFiles()
+  local files, seen = {}, {}
+  local function add(f)
+    f = f:gsub("\r", ""):gsub("\\", "/")
+    if f == "" or seen[f] or f:match("^libs/") or f:match("^tests/") then return end
+    if not (f:match("%.lua$") or f:match("%.xml$")) then return end
+    seen[f] = true
+    files[#files + 1] = f
+  end
+  for _, f in ipairs(T.Loader.tocFiles("BankLedger.toc")) do add(f) end
+  assertTrue(io.popen ~= nil, "the guard cannot list the repo's files: io.popen is unavailable")
+  local p = assert(io.popen("git ls-files -co --exclude-standard -- '*.lua' '*.xml' 2>/dev/null"))
+  local listed = 0
+  for line in p:lines() do listed = listed + 1; add(line) end
+  p:close()
+  assertTrue(listed > 20, "the guard found too few files in git to be reading the repo")
+  return files
+end
+
+-- A source with its comments stripped: Lua's block and line comments, and XML's <!-- -->.
+local function stripComments(path, src)
+  if path:match("%.xml$") then return (src:gsub("<!%-%-.-%-%->", "")) end
+  return (src:gsub("%-%-%[%[.-%]%]", ""):gsub("%-%-[^\n]*", ""))
+end
+
+test("tooltips: the source guard reads the whole repo, XML includes and Bindings.xml too", function()
+  -- red under a guard that reads only the TOC: Bindings.xml is not TOC-listed.
+  local seen = {}
+  for _, f in ipairs(guardedFiles()) do seen[f] = true end
+  assertTrue(seen["Bindings.xml"], "the guard does not read Bindings.xml")
+  for _, f in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
+    assertTrue(seen[f], "the guard skips the TOC-listed " .. f)
+  end
+  for f in pairs(seen) do
+    assertTrue(not f:match("^libs/") and not f:match("^tests/"), "the guard reads read-only " .. f)
+  end
+end)
 
 test("tooltips: the addon's own code anchors no tooltip at the cursor or a corner, and reads no cursor", function()
   -- red under: any ANCHOR_* literal other than ANCHOR_NONE, a GetCursorPosition call, or a
   -- GameTooltip:SetOwner outside core/Util.lua's TipOwn. Comments are stripped first.
-  local files = {}
-  for _, f in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
-    if f:match("%.lua$") then files[#files + 1] = f end
-  end
-  assertTrue(#files > 20, "the guard found too few addon files to be reading the TOC")
-  for _, path in ipairs(files) do
+  for _, path in ipairs(guardedFiles()) do
     local fh = assert(io.open(path, "rb"))
     local src = fh:read("*a"); fh:close()
-    src = src:gsub("%-%-%[%[.-%]%]", ""):gsub("%-%-[^\n]*", "")
+    src = stripComments(path, src)
     for anchor in src:gmatch("ANCHOR_[%u_]+") do
       assertEqual(anchor, "ANCHOR_NONE", path .. " anchors a tooltip at " .. anchor)
     end

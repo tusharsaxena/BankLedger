@@ -412,9 +412,6 @@ W.ReleaseAll = function(pool) return NS.Pool.ReleaseAll(pool) end
 -- Every Insights element is a body element (a card, a bar, a bar's side or segment, a strip
 -- column, a list row, a legend swatch), so its tip opens beside the ledger window, right when it
 -- fits and otherwise left, top level with the element (AD-92-BL). It used to follow the cursor.
-local function windowGroup()
-  return NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow() or nil
-end
 
 --- Show the tip `fill(tip)` writes for `owner`, beside the ledger window.
 local function besideTip(owner, fill)
@@ -423,7 +420,7 @@ local function besideTip(owner, fill)
   tip:ClearLines()
   fill(tip)
   tip:Show()
-  NS.Util.TipBeside(tip, owner, windowGroup())
+  NS.Util.TipBeside(tip, owner, NS.Util.TipWindowGroup())
 end
 
 --- A one-line tip for `owner`, in `rgb` (W.TIP_VALUE by default), beside the ledger window.

@@ -478,7 +478,8 @@ client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks
 
 The addon follows standalone-windows *Tooltip placement* (AD-92-BL, LibKa0s#92). Every tooltip it
 places itself goes through three helpers in `core/Util.lua`, which read LibKa0s-Tooltip-1.0 at call
-time. `Util.TipOwn(el)` owns the game tooltip at `ANCHOR_NONE`. The caller adds the lines and shows
+time, plus `Util.TipWindowGroup()`, the one lookup of the ledger window that the History table and
+every Insights widget pass as the group. `Util.TipOwn(el)` owns the game tooltip at `ANCHOR_NONE`. The caller adds the lines and shows
 the tooltip, so its size is known, and then calls one of two placers:
 
 - `Util.TipBeside(tip, el, window)` is the body rule (`PlaceBeside`). The tooltip opens right of the
@@ -489,7 +490,9 @@ the tooltip, so its size is known, and then calls one of two placers:
 
 When the geometry cannot be read, or the library is absent, both placers attach the tooltip above the
 element by a relative point (`BOTTOM` on its `TOP`, 2 px). No tooltip follows the cursor or opens off a
-corner. `tests/test_tooltip_place.lua` pins each surface, and a source guard in it rejects any
+corner. `tests/test_tooltip_place.lua` pins each surface, and a source guard in it reads every TOC-listed
+`.lua` plus every `.lua` and `.xml` git knows of outside `libs/` and `tests/` (so an XML include or
+`Bindings.xml` is covered too) and rejects any
 `ANCHOR_*` other than `ANCHOR_NONE`, any `GetCursorPosition` and any `GameTooltip:SetOwner` outside
 `Util.TipOwn`.
 

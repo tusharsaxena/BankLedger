@@ -542,12 +542,6 @@ end
 
 -- The free/active bookkeeping is LibKa0s-Pool-1.0's now (core/PoolSetup.lua); what is left here is
 -- the frame construction, in LT:BuildRow below.
---- The window group the table's tooltips open beside: the ledger window (nil before it is built,
---- and the library then finds the row's outermost frame itself).
-function LT.WindowGroup()
-  return NS.Browser and NS.Browser.GetWindow and NS.Browser:GetWindow() or nil
-end
-
 function LT:AcquireRow()
   return NS.Pool.Acquire(self.rowPool, function() return self:BuildRow() end)
 end
@@ -611,7 +605,7 @@ function LT:BuildRow()
       local mr, mg, mb = NS.SkinColor("gtip.muted")
       tip:AddLine("Shift-click to link \194\183 right-click for options", mr, mg, mb)
       tip:Show()
-      NS.Util.TipBeside(tip, self2, LT.WindowGroup())
+      NS.Util.TipBeside(tip, self2, NS.Util.TipWindowGroup())
     elseif e.kind == C.Kind.MONEY then
       -- A gold movement has no item to hover, so build the tooltip by hand rather than leave the
       -- row silent: the amount is the one thing the Qty cell can truncate.
@@ -620,7 +614,7 @@ function LT:BuildRow()
       local mr, mg, mb = NS.SkinColor("gtip.muted")
       tip:AddLine("Right-click for options", mr, mg, mb)
       tip:Show()
-      NS.Util.TipBeside(tip, self2, LT.WindowGroup())
+      NS.Util.TipBeside(tip, self2, NS.Util.TipWindowGroup())
     end
   end)
   row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -763,7 +757,7 @@ function LT:MakeHeaderButton(col)
     if not tip then return end
     LT.AddColumnTooltip(col)
     tip:Show()
-    NS.Util.TipBeside(tip, self2, LT.WindowGroup())   -- a column header is a body element (AD-92-BL)
+    NS.Util.TipBeside(tip, self2, NS.Util.TipWindowGroup())   -- a column header is a body element (AD-92-BL)
   end)
   btn:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
   btn:SetScript("OnClick", function() LT:SetSort(col.key) end)

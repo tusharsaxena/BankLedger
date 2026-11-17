@@ -1666,7 +1666,7 @@ Total.
 - title bar: every window's settings mark rests in icon.tint and lights text.link, under Ka0s Default and Obsidian
 - title bar degraded: with no HeaderButtons each window keeps its close alone, 6 px in, no settings mark
 
-### test_tooltip_place.lua (10)
+### test_tooltip_place.lua (12)
 
 - tooltips: a History row's item tooltip opens beside the ledger window, not off its corner
 - tooltips: a History column header is a body element, placed beside the ledger window
@@ -1677,6 +1677,8 @@ Total.
 - tooltips: Util.TipBeside opens right of the window when it fits, left when it does not, top level with the row
 - tooltips: Util.TipAttached centers the tip 2 px above its control
 - tooltips: with geometry it cannot read, a helper attaches above the element, never at the cursor
+- tooltips: one window-group lookup, the ledger window, serves the table and Insights
+- tooltips: the source guard reads the whole repo, XML includes and Bindings.xml too
 - tooltips: the addon's own code anchors no tooltip at the cursor or a corner, and reads no cursor
 
 ### test_skin_picker.lua (15)
@@ -1981,7 +1983,7 @@ Total.
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
 | test_title_bar.lua | 6 |
-| test_tooltip_place.lua | 10 |
+| test_tooltip_place.lua | 12 |
 | test_skin_picker.lua | 15 |
 | test_skin_picker_preview.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -1997,4 +1999,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1679** |
+| **Total** | **1681** |

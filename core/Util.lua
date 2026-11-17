@@ -371,6 +371,14 @@ function Util.TipBeside(tip, el, group)
   return attachAbove(tip, el)
 end
 
+--- The window group a body element's tooltip opens beside: the ledger window (nil before it is
+--- built, and the library then finds the element's outermost frame itself). The History table and
+--- every Insights widget sit in that window, so they share this one lookup.
+function Util.TipWindowGroup()
+  local B = NS.Browser
+  return B and B.GetWindow and B:GetWindow() or nil
+end
+
 --- The chrome rule on a shown tooltip: centered above `el`, below only without room above.
 --- Answers "above" or "below", or nil when only the relative fallback could run.
 function Util.TipAttached(tip, el)
