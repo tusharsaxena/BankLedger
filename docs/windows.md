@@ -15,7 +15,8 @@ title (by `title.align`) and the close are anchored to the band at y 0, its midd
 the edge these windows always wore (the 1px black border, the 1px light-gray line just inside it and
 the gold title) plus the skin's `title.bg` band on the title bars (a dark gold gradient) and
 `list.header.bg` on the table headers (DECISIONS BankLedger D6). The ledger window also takes the
-skin's `Tab` on its tabs and its `foot.bg` band behind the footer. Every frame is recorded for this
+skin's `Tab` on its tabs, and its footer is `LibKa0s-Widgets-1.0`'s `Footer` (below), painted for
+this owner. Every frame is recorded for this
 addon's owner, so a skin switch repaints it live; the pooled rows and the tinted marks are redone by
 `NS.Skin.OnLooksChanged` listeners. Without the library the degraded facade's `Shell`
 routes to `core/CoreSetup.lua`'s pre-library `NS.ApplySkin`, which draws the same Ka0s Default edge.
@@ -70,7 +71,8 @@ method names:
 **The resize grip is LibKa0s-Core's.** Both windows call `NS.MakeResizable(frame, { minWidth, minHeight,
 onResizeStop })`, the `core/CoreSetup.lua` seam over `Core.MakeResizable`. It makes the frame
 resizable, bounds it at the window's floor and draws the grip in the bottom-right corner, 1px inside
-the edge. *Resize-stop* above is the grip's `onResizeStop`, which runs once per release and runs
+the edge. The ledger window also passes `gripParent = frame.footer`, so its grip is built on the
+footer, in the footer's corner, which is the window's (LibKa0s#89). *Resize-stop* above is the grip's `onResizeStop`, which runs once per release and runs
 `SaveGeometry()` and then the table refresh. Neither window passes `onResize`: it also runs on every
 `OnSizeChanged`, so a save there would write on every drag tick and make `ApplyGeometry()` and
 *Reset position* write geometry. The tables re-flow live through their scroll frames' own
@@ -88,18 +90,24 @@ hand-edited SavedVariables) cannot reopen a window too small to read.
 | Ledger | `BankLedgerWindow` | `/bl show`, the minimap button | History table + Insights, over one filter bar; each tab keeps its own filter state and saved view |
 | Current Banking Session | `BankLedgerSessionWindow` | a bank frame opening (`SessionChanged`), or `/bl session` | One slim table of this visit's movements |
 
+**The ledger window's chrome stacks in the standard's order** (`standalone-windows`, *Window chrome
+geometry*): the title bar (30), the mode strip while one shows (`TEST_STRIP.HEIGHT`, 18), the tab
+strip, the filter bar, both panes, and the footer (`FOOTER.HEIGHT`, 24).
+
 **One strip per mode on the ledger window, and the badge only where no strip was built**
-(BankLedger#23, #24). `LibKa0s-Widgets-1.0`'s `TestStrip` (LibKa0s#48; the `kind` flavor since
-minor 14) is built twice by one local, `buildModeStrip(filterHost, kind, text)`, and both hang 2px
-under the filter bar: `frame.testStrip`, the amber test flavor with the `info` mark and *TEST MODE: a
-sample ledger, not your bank. Combat ends it.*, and `frame.simStrip`, the cyan simulation flavor.
-Their texts go through `NS.L`. The library publishes the strip's height (`W.TEST_STRIP.HEIGHT`, 18)
-and deliberately no reserve, so `modules/Browser.lua` computes its own: `HEIGHT + 2 * STRIP_GAP`
-(22) while either strip shows, 0 otherwise or with no Widgets library. `anchorPanes()` hangs both the
-History and the Insights pane from the filter bar's bottom plus that reserve, and
-`B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the Master controls
-box, the launcher menu and the combat ending all reach it) shows the dataset's strip, hides the
-other, and re-anchors the panes. Each strip's mouse is on for one plain `GameTooltip`: *Test mode*,
+(BankLedger#23, #24, LibKa0s#88). `LibKa0s-Widgets-1.0`'s `TestStrip` (LibKa0s#48; the `kind`
+flavor since minor 14) is built twice by one local, `buildModeStrip(kind, text)`, and both are
+**docked by the library directly under the title bar** (`dock = "title"`, `titleBar`, `window`,
+Widgets minor 27; `preview-mode`, *Where the strip sits*), full width inside the window's edge; the
+host never anchors them. `frame.testStrip` is the amber test flavor with the `info` mark and *TEST
+MODE: a sample ledger, not your bank. Combat ends it.*, and `frame.simStrip` the cyan simulation
+flavor. Their texts go through `NS.L`. While either shows, `anchorPanes()` moves everything below
+the title bar (the tab strip, the filter bar and the History and Insights panes) down by that
+strip's `strip:BodyOffset()`, its height, and by 0 otherwise or with no Widgets library; the strip's
+`onOffset` and `B:UpdateTestStrip()` (from `B:Show` and `B:OnDatasetChanged`, so `/bl test`, the
+Master controls box, the launcher menu and the combat ending all reach it) both run it.
+`B:UpdateTestStrip()` shows the dataset's strip and hides the other. Until LibKa0s#88 the strips hung
+2px under the filter bar with a host reserve of 22. Each strip's mouse is on for one plain `GameTooltip`: *Test mode*,
 what it shows, and what ends it. The red `TEST MODE` title badge is the **degraded fallback only**:
 it shows in test mode when no strip was built (no Widgets library, so no shift either), and never
 beside a strip.
@@ -107,15 +115,26 @@ beside a strip.
 **A simulation is marked by the simulation strip, never the badge** (BankLedger#24, `preview-mode`,
 `LibKa0s-Sim-1.0` host contract H8). While `Database:DatasetKind()` is `"sim"`, `B:UpdateTestStrip()`
 sets `frame.simStrip`'s text to *Simulation: &lt;scenario&gt; - nothing here is saved.* (the running
-scenario's label, `NS.SimHost.MarkerText()`) and shows it with the same 22px reserve; the test strip
+scenario's label, `NS.SimHost.MarkerText()`) and shows it with the same body offset; the test strip
 and the badge stay hidden. Its tooltip (`B.StripTipLines()`) says *Simulation*, what it
 shows and what ends it (`/bl sim stop`, combat, a real bank window). The **session window** draws the
 simulated rows too, so it gets its own `TestStrip` in the simulation flavor (`kind = "sim"`,
 `f.simStrip`) with the same line while the dataset is `"sim"`,
-anchored 2px under its title bar, its pane moved down by `HEIGHT + 4` (`SW:UpdateTestStrip()`, also
-run on every `SW:Show`). Test mode never marks the session window: its session rows are real. Both
+docked by the library directly under its title bar (`dock = "title"`, LibKa0s#88; it was 5px in and
+2px down), its pane moved down by the strip's `strip:BodyOffset()`, 18 (`SW:UpdateTestStrip()`, also
+run on every `SW:Show`, and the strip's `onOffset`). Test mode never marks the session window: its session rows are real. Both
 strips read the one predicate, and a session listener (`NS.Sim:AddListener` in `modules/Sim.lua`)
 repaints both when a simulation starts and when it stops.
+
+**The ledger window's footer is the library's** (LibKa0s#89; `standalone-windows`, *The footer*).
+`EnsureFrame` builds it with `W.Footer(frame, { owner, grip = true })`: `FOOTER.HEIGHT` (24) tall
+along the window's bottom edge, with no fill of its own, a hairline in the skin's `divider` along its
+top, *Showing n of N* on its left line (`B:UpdateFooter`, `foot:SetLeft`) and *Database ~size* on its
+right (`B:UpdateDbSize`, `foot:SetRight`), both in `text.muted`; `grip` insets the right line by
+`FOOTER.GRIP` (22) to clear the resize grip in its corner. Both panes end `FOOTER.HEIGHT` above the
+window's bottom edge, over the hairline. Without the Widgets library `B.BareFooter` builds a frame of
+the same height with the same two lines and setters and no hairline. It replaced an 18px band on the
+skin's `foot.bg` (`S.Footer`) with its two strings in `text.disabled`.
 
 **The simulation step panel** (`BankLedgerSimPanel`) is `LibKa0s-Sim-1.0`'s, not this addon's: its
 rows, states, run controls, scenario picker, click-ahead and placement are the library's.

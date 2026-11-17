@@ -452,7 +452,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (50)
+### test_browser.lua (52)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -477,7 +477,8 @@ Total.
 - the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release
 - the ledger window is resizable with its floor as the minimum bound
 - a size change outside the grip neither saves nor rebuilds the display list
-- the footer's size text stays clear of the grip
+- the footer's size text stays clear of the grip, which sits in the footer's corner
+- the footer is the library's W.Footer, FOOTER.HEIGHT tall, and the panes end above it
 - one grip implementation per arm: neither window hand-builds a grip
 - Browser:ExportWidth leaves the Export button a usable width
 - Browser: a burst of search keystrokes costs ONE filter application
@@ -492,7 +493,8 @@ Total.
 - Browser: the search box's RIGHT edge is pinned to the Character dropdown
 - Browser: typing runs the library's hint, then the filter, then the Autocomplete hook
 - Browser: the window still opens and the ledger table still populates with no Widgets library
-- Browser: test mode on shows the strip under the filter bar and shifts both panes by 22
+- Browser: both strips are built docked under the title bar (dock = "title")
+- Browser: test mode on shows the strip under the title bar and shifts everything under it by 18
 - Browser: test mode off hides the strip and the badge and puts both panes back
 - Browser: opening the window while test mode is already on reserves the strip's space
 - Browser: combat ending test mode hides the strip and restores the panes
@@ -1640,7 +1642,7 @@ Total.
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
 - skin chrome: the tab strip sits on the skin's tab.rule
-- skin chrome: the ledger footer is the skin's band, under both strings, and follows a switch
+- skin chrome: the ledger footer is the library's, unfilled, and its hairline and lines follow a switch
 - skin chrome: both windows' grips name this addon as the skin owner
 - skin chrome: sort arrows take list.header.arrow (SF-L2), not icon.arrow
 - skin chrome: every title bar takes title.height and anchors its title on title.align
@@ -1830,8 +1832,8 @@ Total.
 - skin switch: a ledger tab changes with the Scope ignored
 - skin switch: the rule under the tabs changes
 - skin switch: the rule under the tabs changes with the Scope ignored
-- skin switch: the footer band changes
-- skin switch: the footer band changes with the Scope ignored
+- skin switch: the footer's hairline changes
+- skin switch: the footer's hairline changes with the Scope ignored
 - skin switch: the footer's text changes
 - skin switch: the footer's text changes with the Scope ignored
 - skin switch: a filter bar button changes
@@ -1911,7 +1913,7 @@ Total.
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
-| test_browser.lua | 50 |
+| test_browser.lua | 52 |
 | test_browser_views.lua | 21 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 44 |
@@ -1976,4 +1978,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1662** |
+| **Total** | **1664** |

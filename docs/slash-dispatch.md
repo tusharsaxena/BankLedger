@@ -47,7 +47,7 @@ Options absent). The degraded refusal line is built from `Sl.__DISABLED_LINE_FOR
 `tests/test_surface_parity.lua` holds to `LibKa0s-Slash-1.0`'s `DISABLED_LINE_FORMAT` byte for byte.
 
 `/bl test` is the renamed History-table sample data (`LT:IsTestMode`, `LT:ToggleTestMode`,
-`LT:BuildTestData`; marked by the amber test-flavor `TestStrip` under the filter bar, or by the red
+`LT:BuildTestData`; marked by the amber test-flavor `TestStrip` under the title bar, or by the red
 `TEST MODE` title badge only where no strip was built (no Widgets library), both shown by
 `B:UpdateTestStrip`, see [windows.md](windows.md)) — matching the Ka0s house vocabulary set by LootHistory's
 `/lh test`. It is one of two ways to flip one switch: `LT:ToggleTestMode` calls `LT:SetTestMode`,

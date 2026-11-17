@@ -363,15 +363,45 @@ test("a size change outside the grip neither saves nor rebuilds the display list
   B:Hide()
 end)
 
-test("the footer's size text stays clear of the grip", function()
+test("the footer's size text stays clear of the grip, which sits in the footer's corner", function()
+  -- AD-89-BL: the grip is built on the library footer (gripParent = the footer), and the footer
+  -- insets its right line by FOOTER.GRIP (22) to clear it. It was the window's grip with the text at
+  -- a host inset of -20; this pins the library's corner instead.
   B:Show()
-  local grip = B:GetWindow().resizeGrip
-  local point, _, _, gx = grip:GetPoint(1)
+  local win = B:GetWindow()
+  local grip, foot = win.resizeGrip, win.footer
+  local W = mocks.LibStub("LibKa0s-Widgets-1.0")
+  local point, grel, _, gx = grip:GetPoint(1)
   assertEqual(point, "BOTTOMRIGHT")
-  local _, _, _, fx = B._dbFooter:GetPoint(1)
-  assertEqual(fx, -20, "the DB-size text moved off its right inset")
+  assertTrue(grel == foot, "the grip is not in the footer's corner")
+  local rp, rel, _, fx = B._dbFooter:GetPoint(1)
+  assertEqual(rp, "RIGHT")
+  assertTrue(rel == foot, "the DB-size text is not on the footer")
+  assertEqual(fx, -W.FOOTER.GRIP, "the DB-size text is not at the footer's grip inset")
   assertTrue(grip:GetWidth() + math.abs(gx) < math.abs(fx),
     "the DB-size text sits under the grip")
+  B:Hide()
+end)
+
+test("the footer is the library's W.Footer, FOOTER.HEIGHT tall, and the panes end above it", function()
+  B:Show()
+  local win = B:GetWindow()
+  local W = mocks.LibStub("LibKa0s-Widgets-1.0")
+  local foot = win.footer
+  assertTrue(foot ~= nil and type(foot.SetLeft) == "function", "the window has no library footer")
+  assertEqual(foot:GetHeight(), W.FOOTER.HEIGHT, "the footer is not FOOTER.HEIGHT tall")
+  assertEqual(W.FOOTER.HEIGHT, 24)
+  assertTrue(B._footer == foot.left, "the record count is not the footer's left line")
+  assertTrue(B._dbFooter == foot.right, "the database size is not the footer's right line")
+  assertTrue((B._footer:GetText() or ""):find("^Showing %d+ of %d+$") ~= nil,
+    "the left line lost its text: " .. tostring(B._footer:GetText()))
+  assertTrue((B._dbFooter:GetText() or ""):find("^Database ~") ~= nil,
+    "the right line lost its text: " .. tostring(B._dbFooter:GetText()))
+  T.assertNil(win.footerBar, "the hand-built footer band is still there")
+  for _, name in ipairs({ "History", "Insights" }) do
+    local _, _, _, _, by = win.panes[name]:GetPoint(2)
+    assertEqual(by, W.FOOTER.HEIGHT, name .. " does not end FOOTER.HEIGHT above the bottom edge")
+  end
   B:Hide()
 end)
 
@@ -685,19 +715,21 @@ test("Browser: the window still opens and the ledger table still populates with 
     ns.Browser:Hide()
   end)
 
--- ── The test-mode strip: LibKa0s-Widgets-1.0's TestStrip (BankLedger#23, LibKa0s#48) ─────────
+-- ── The test-mode strip: LibKa0s-Widgets-1.0's TestStrip (BankLedger#23, LibKa0s#48, #88) ─────
 --
--- One strip per kind, both directly under the filter bar: the library's amber test strip
--- (f.testStrip, kind "test") and its cyan simulation strip (f.simStrip, kind "sim"). The red TEST
--- MODE badge on the title is only the degraded fallback: it shows in test mode when no strip was
--- built (no Widgets library), and never beside a strip. The library publishes the strip's HEIGHT
--- and nothing about the body below it, so the host computes its own reserve
--- (TEST_STRIP.HEIGHT + 2 * STRIP_GAP = 22) and shifts BOTH panes down by it while either strip shows.
+-- One strip per kind, both docked directly under the title bar (dock = "title", Widgets minor 27;
+-- preview-mode, *Where the strip sits*): the library's amber test strip (f.testStrip, kind "test")
+-- and its cyan simulation strip (f.simStrip, kind "sim"). The red TEST MODE badge on the title is
+-- only the degraded fallback: it shows in test mode when no strip was built (no Widgets library),
+-- and never beside a strip. While a strip shows, everything below the title bar (the tab strip, the
+-- filter bar and BOTH panes) moves down by the strip's strip:BodyOffset(), which is its height
+-- (TEST_STRIP.HEIGHT, 18). AD-88-BL replaced the strip under the filter bar and its host reserve of
+-- 22 (TEST_STRIP.HEIGHT + 2 * 2): these cases pin the new rule.
 -- Each case runs in a FRESH environment: the window is a singleton built once, and the strip's
 -- constructor call is only observable while it is being built.
 
 local STRIP_TEXT = "TEST MODE: a sample ledger, not your bank. Combat ends it."
-local STRIP_RESERVE = 22
+local STRIP_RESERVE = 18
 
 local function loadFresh(withoutWidgets)
   local m = T.makeMocks()
@@ -745,11 +777,49 @@ local function paneY(ns, name)
   return y
 end
 
-test("Browser: test mode on shows the strip under the filter bar and shifts both panes by 22", function()
+-- The chrome under the title bar, which moves with the panes: the tab strip's and the filter bar's
+-- first-point y.
+local function chromeY(ns)
+  local f = ns.Browser:GetWindow()
+  local _, _, _, _, tabY = f.tabStrip:GetPoint(1)
+  local _, _, _, _, barY = f.filterHost:GetPoint(1)
+  return tabY, barY
+end
+
+-- A strip docked under the window's title bar: TOPLEFT and TOPRIGHT on the bar's bottom corners at
+-- 0, 0, full width inside the window's edge (the title bar already sits inside it).
+local function assertDockedUnderTitle(f, strip, what)
+  local p1, rel1, rp1, x1, y1 = strip:GetPoint(1)
+  local p2, rel2, rp2, x2, y2 = strip:GetPoint(2)
+  assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT", what .. "'s first point")
+  assertEqual(p2 .. ">" .. rp2, "TOPRIGHT>BOTTOMRIGHT", what .. "'s second point")
+  assertTrue(rel1 == f.titleBar and rel2 == f.titleBar, what .. " is not docked under the title bar")
+  assertTrue(x1 == 0 and y1 == 0 and x2 == 0 and y2 == 0, what .. " is not flush under the bar: "
+    .. table.concat({ x1, y1, x2, y2 }, ","))
+end
+
+test("Browser: both strips are built docked under the title bar (dock = \"title\")", function()
+  local ns, m = loadFresh()
+  local seen = showSpyingOnStrip(ns, m)
+  local f = ns.Browser:GetWindow()
+  for _, o in ipairs({ seen.opts, seen.simOpts }) do
+    assertEqual(o.dock, "title", "a strip was not built with the title dock")
+    assertTrue(o.titleBar == f.titleBar, "a strip was docked under something else than the title bar")
+    assertTrue(o.window == f, "a strip was not told its window")
+  end
+  assertTrue(type(f.testStrip.BodyOffset) == "function" and type(f.simStrip.BodyOffset) == "function",
+    "the library did not dock the strips")
+  assertEqual(f.testStrip:BodyOffset(), 0, "a hidden strip moves the body")
+  assertDockedUnderTitle(f, f.simStrip, "the simulation strip")
+end)
+
+test("Browser: test mode on shows the strip under the title bar and shifts everything under it by 18",
+function()
   local ns, m = loadFresh()
   local seen = showSpyingOnStrip(ns, m)
   local f = ns.Browser:GetWindow()
   local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  local baseTab, baseBar = chromeY(ns)
   assertTrue(f.testStrip ~= nil, "the window built no test-mode strip")
   assertFalse(f.testStrip:IsShown(), "the strip shows outside test mode")
   assertTrue(seen.opts ~= nil, "the strip was not built through W.TestStrip")
@@ -761,21 +831,17 @@ test("Browser: test mode on shows the strip under the filter bar and shifts both
   assertTrue(seen.simOpts ~= nil and seen.simOpts.icon == ns.Icon("info"),
     "the simulation strip's mark is not the info icon")
   assertTrue(seen.simMouse == true, "the simulation strip's mouse was not enabled")
-  local sp1, srel1, srp1, sx1, sy1 = f.simStrip:GetPoint(1)
-  assertEqual(sp1 .. ">" .. srp1 .. "@" .. sx1 .. "," .. sy1, "TOPLEFT>BOTTOMLEFT@0,-2")
-  assertTrue(srel1 == f.filterHost, "the simulation strip is not anchored to the filter bar")
 
   assertTrue(ns.LedgerTable:SetTestMode(true), "test mode did not start")
   assertTrue(f.testStrip:IsShown(), "the strip is hidden in test mode")
   assertEqual(f.testStrip.text:GetText(), ns.L[STRIP_TEXT])
-  local p1, rel1, rp1, x1, y1 = f.testStrip:GetPoint(1)
-  local p2, rel2, rp2, x2, y2 = f.testStrip:GetPoint(2)
-  assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT")
-  assertEqual(p2 .. ">" .. rp2, "TOPRIGHT>BOTTOMRIGHT")
-  assertTrue(rel1 == f.filterHost and rel2 == f.filterHost, "the strip is not anchored to the filter bar")
-  assertEqual(x1 .. "," .. y1 .. "," .. x2 .. "," .. y2, "0,-2,0,-2")
-  assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "History did not move down by the reserve")
-  assertEqual(paneY(ns, "Insights"), baseI - STRIP_RESERVE, "Insights did not move down by the reserve")
+  assertDockedUnderTitle(f, f.testStrip, "the test strip")
+  assertEqual(f.testStrip:BodyOffset(), STRIP_RESERVE, "the strip's body offset is not its height")
+  assertEqual(paneY(ns, "History"), baseH - STRIP_RESERVE, "History did not move down by the offset")
+  assertEqual(paneY(ns, "Insights"), baseI - STRIP_RESERVE, "Insights did not move down by the offset")
+  local tabY, barY = chromeY(ns)
+  assertEqual(tabY, baseTab - STRIP_RESERVE, "the tab strip did not move down under the strip")
+  assertEqual(barY, baseBar - STRIP_RESERVE, "the filter bar did not move down under the strip")
   assertFalse(f.simStrip:IsShown(), "the simulation strip shows in test mode")
   assertFalse(f.testBadge:IsShown(), "the red badge shows beside the strip; it is the fallback only")
   ns.LedgerTable:SetTestMode(false)
@@ -786,6 +852,7 @@ test("Browser: test mode off hides the strip and the badge and puts both panes b
   ns.Browser:Show()
   local f = ns.Browser:GetWindow()
   local baseH, baseI = paneY(ns, "History"), paneY(ns, "Insights")
+  local baseTab, baseBar = chromeY(ns)
   ns.LedgerTable:SetTestMode(true)
   assertFalse(ns.LedgerTable:SetTestMode(false), "test mode did not stop")
   assertFalse(f.testStrip:IsShown(), "the strip outlived test mode")
@@ -793,6 +860,9 @@ test("Browser: test mode off hides the strip and the badge and puts both panes b
   assertFalse(f.testBadge:IsShown(), "the badge outlived test mode")
   assertEqual(paneY(ns, "History"), baseH)
   assertEqual(paneY(ns, "Insights"), baseI)
+  local tabY, barY = chromeY(ns)
+  assertEqual(tabY, baseTab, "the tab strip did not move back")
+  assertEqual(barY, baseBar, "the filter bar did not move back")
 end)
 
 test("Browser: opening the window while test mode is already on reserves the strip's space", function()

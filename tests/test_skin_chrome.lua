@@ -74,35 +74,39 @@ test("skin chrome: the tab strip sits on the skin's tab.rule", function()
   assertEqual(rgb(m.__paint(rec.regions.line).color), tok(ns, "tab.rule"))
 end)
 
--- ── the footer band (A1) ─────────────────────────────────────────────────────────────────────
+-- ── the footer (A1; the library's W.Footer since AD-89-BL) ───────────────────────────────────
+--
+-- The ledger's footer is LibKa0s-Widgets-1.0's Footer (standalone-windows, *The footer*): no fill of
+-- its own, a hairline in the skin's `divider` along its top, both lines in `text.muted`, painted for
+-- this owner so a switch repaints them. AD-89-BL retired the hand-built 18 px band on the skin's
+-- `foot.bg` (S.Footer) that this case pinned before; it now pins the library's look.
 
-test("skin chrome: the ledger footer is the skin's band, under both strings, and follows a switch", function()
+test("skin chrome: the ledger footer is the library's, unfilled, and its hairline and lines follow a switch",
+function()
   local ns, m, Skin = fresh()
   ns.Browser:Show()
-  local bar = ns.Browser:GetWindow().footerBar
-  assertTrue(bar ~= nil, "no footer band")
-  local rec = Skin.painted[bar]
-  assertTrue(rec ~= nil and rec.calls.Footer ~= nil, "the band is not the skin's Footer")
-  assertEqual(ns.Browser._footer:GetParent(), bar, "a string on the window would sit under the band")
-  assertEqual(ns.Browser._dbFooter:GetParent(), bar, "a string on the window would sit under the band")
-  -- The geometry: taller and the band covers the panes' last rows, since they stop at _footerH.
   local win = ns.Browser:GetWindow()
-  assertEqual(bar:GetHeight(), win._footerH - 1, "the band ends where the panes do")
-  assertEqual(#rawget(bar, "__points"), 2, "the band's two bottom anchors")
-  local left, right = { bar:GetPoint(1) }, { bar:GetPoint(2) }
-  assertEqual(table.concat({ left[1], left[3], left[4], left[5] }, " "), "BOTTOMLEFT BOTTOMLEFT 1 1",
-    "inside the window's 1px edge")
-  assertEqual(left[2], win)
-  assertEqual(table.concat({ right[1], right[3], right[4], right[5] }, " "), "BOTTOMRIGHT BOTTOMRIGHT -1 1",
-    "inside the window's 1px edge")
-  assertEqual(right[2], win)
-  local function fill()
-    local p = m.__paint(bar)
-    return rgb(p.backdropColor or m.__paint(rec.regions.bg or rec.regions.fill).color)
+  local foot = win.footer
+  assertTrue(foot ~= nil and foot.line ~= nil, "no library footer")
+  T.assertNil(win.footerBar, "the hand-built band is still there")
+  local rec = Skin.painted[foot]
+  assertTrue(rec == nil or rec.calls.Footer == nil, "the footer is still painted as the skin's filled band")
+  T.assertNil(m.__paint(foot).backdropColor, "the footer draws a fill of its own")
+  assertEqual(ns.Browser._footer:GetParent(), foot, "the record count is not on the footer")
+  assertEqual(ns.Browser._dbFooter:GetParent(), foot, "the database size is not on the footer")
+  local function looks()
+    return rgb(m.__paint(foot.line).color), rgb(m.__paint(foot.left).textColor),
+      rgb(m.__paint(foot.right).textColor)
   end
-  assertEqual(fill(), tok(ns, "foot.bg"))
+  local line, left, right = looks()
+  assertEqual(line, tok(ns, "divider"), "the hairline is not the skin's divider")
+  assertEqual(left, tok(ns, "text.muted"), "the left line is not text.muted")
+  assertEqual(right, tok(ns, "text.muted"), "the right line is not text.muted")
   switch(m, Skin, "obsidian")
-  assertEqual(fill(), tok(ns, "foot.bg"), "the band after a switch")
+  line, left, right = looks()
+  assertEqual(line, tok(ns, "divider"), "the hairline after a switch")
+  assertEqual(left, tok(ns, "text.muted"), "the left line after a switch")
+  assertEqual(right, tok(ns, "text.muted"), "the right line after a switch")
 end)
 
 -- ── the grips and the marks (L8) ─────────────────────────────────────────────────────────────

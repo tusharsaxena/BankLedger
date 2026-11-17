@@ -540,8 +540,10 @@ end)
 -- ── The simulation strip (BankLedger#24, preview-mode; LibKa0s-Sim-1.0 host contract H8) ──────
 --
 -- The session window draws a simulation's rows, so it wears the ledger window's marker while one
--- runs: its own W.TestStrip in the simulation flavor (kind "sim", f.simStrip) under the title bar,
--- the same line, and the rows moved down by the strip's HEIGHT + 4. Both windows read Database:DatasetKind(). Test mode never marks this window.
+-- runs: its own W.TestStrip in the simulation flavor (kind "sim", f.simStrip), docked directly under
+-- the title bar (dock = "title", AD-88-BL; it was hand-anchored 5 px in and 2 px down), the same
+-- line, and the rows moved down by the strip's strip:BodyOffset(), its height (18; the host reserve
+-- of HEIGHT + 4 is gone). Both windows read Database:DatasetKind(). Test mode never marks this window.
 
 do
   local SS = dofile("tests/sim_support.lua")
@@ -566,11 +568,17 @@ do
       assertEqual(strip.kind, "sim", "the session window's strip is not the simulation flavor")
       assertEqual(strip.text:GetText(),
         NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(NS.L["Guild bank"]))
-      local p1, rel1, rp1 = strip:GetPoint(1)
+      local p1, rel1, rp1, x1, y1 = strip:GetPoint(1)
+      local p2, rel2, rp2, x2, y2 = strip:GetPoint(2)
       assertEqual(p1 .. ">" .. rp1, "TOPLEFT>BOTTOMLEFT")
-      assertTrue(rel1 == f.titleBar, "the strip is not anchored under the title bar")
+      assertEqual(p2 .. ">" .. rp2, "TOPRIGHT>BOTTOMRIGHT")
+      assertTrue(rel1 == f.titleBar and rel2 == f.titleBar, "the strip is not docked under the title bar")
+      assertTrue(x1 == 0 and y1 == 0 and x2 == 0 and y2 == 0, "the strip is not flush under the bar: "
+        .. table.concat({ x1, y1, x2, y2 }, ","))
+      assertTrue(type(strip.BodyOffset) == "function", "the library did not dock the strip")
+      assertEqual(strip:BodyOffset(), 18, "the strip's body offset is not its height")
       base = f._paneTop
-      assertEqual(paneTop(), -(base + 22), "the rows did not move down by HEIGHT + 4")
+      assertEqual(paneTop(), -(base + 18), "the rows did not move down by the strip's body offset")
     end)
     local f = SW:GetWindow()
     assertFalse(f.simStrip:IsShown(), "the strip outlived the simulation")

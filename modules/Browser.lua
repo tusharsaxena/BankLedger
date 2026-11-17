@@ -601,10 +601,10 @@ B._SUGGEST_MAX = SUGGEST_MAX
 B._GROUP_W, B._SEARCH_MIN, B._DROPDOWNS_W, B._DD_GAP = GROUP_W, SEARCH_MIN, DROPDOWNS_W, DD_GAP
 
 function B:UpdateFooter()
-  if not self._footer then return end
+  if not self._foot then return end
   local shown = (NS.LedgerTable and NS.LedgerTable.matchCount) or 0
   local total = #dataset()
-  self._footer:SetText(("Showing %d of %d"):format(shown, total))
+  self._foot:SetLeft(("Showing %d of %d"):format(shown, total))
 end
 
 -- Estimated SavedVariables size of the stored ledger (the same estimate the settings panel shows).
@@ -612,9 +612,9 @@ end
 -- since filtering cannot change what is stored. "~" is the hedge, in ASCII: "≈" (U+2248) drew as
 -- a box under Obsidian, whose Expressway has no such glyph (ruling D-19, the kit's glyph guard).
 function B:UpdateDbSize()
-  if not self._dbFooter then return end
+  if not self._foot then return end
   local bytes = (NS.Database and NS.Database.StorageStats and NS.Database:StorageStats().bytes) or 0
-  self._dbFooter:SetText(("Database ~%s"):format(NS.Util.FormatBytes(bytes)))
+  self._foot:SetRight(("Database ~%s"):format(NS.Util.FormatBytes(bytes)))
 end
 
 -- Recompute the data-driven dropdowns from the current dataset.
@@ -652,26 +652,40 @@ B._viewSeam = {
   dropFilterDebounce = dropFilterDebounce,
 }
 
--- ── The mode strips' reserve (BankLedger#23, #24) ───────────────────────────────────────────────
+-- ── The mode strips' body offset (BankLedger#23, #24; LibKa0s#88) ─────────────────────────────
 -- One strip per kind: the test strip (frame.testStrip) and the simulation strip (frame.simStrip),
--- both in the same place, and at most one shown. LibKa0s-Widgets-1.0 publishes the strip's HEIGHT
--- and deliberately NO RESERVE: the body shift is host layout, so this file adds its own gap above
--- and below the band. 18 + 2 * 2 = 22 while either strip shows, and 0 when both are hidden or were
--- never built (no Widgets library).
-local STRIP_GAP = 2
-
-local function stripReserve()
-  if not (frame and W and W.TEST_STRIP) then return 0 end
-  local test, sim = frame.testStrip, frame.simStrip
-  if not ((test and test:IsShown()) or (sim and sim:IsShown())) then return 0 end
-  return W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
+-- both docked in the same place, directly under the title bar (dock = "title", Widgets minor 27;
+-- preview-mode, *Where the strip sits*), and at most one shown. The library places the strip; the
+-- host never anchors it. While one shows, everything below the title bar moves down by that strip's
+-- strip:BodyOffset() (its height, TEST_STRIP.HEIGHT), and by 0 when both are hidden or were never
+-- built (no Widgets library).
+local function stripOffset()
+  if not frame then return 0 end
+  for _, strip in ipairs({ frame.testStrip or false, frame.simStrip or false }) do
+    if strip and strip:IsShown() and strip.BodyOffset then return strip:BodyOffset() end
+  end
+  return 0
 end
 
--- Both panes hang from the same top: under the filter bar, and under the strip while it shows.
--- Their BOTTOMRIGHT never moves. EnsureFrame records `_paneTop` before the first call.
+-- The chrome under the title bar, in the stack's order: the tab strip (2 px under the 1px
+-- dividerBar it hangs from), the filter bar and both panes, each moved down by the strip's offset.
+-- The panes' BOTTOMRIGHT never moves: FOOTER.HEIGHT above the window's bottom edge, over the
+-- footer's hairline. EnsureFrame records `_paneTop` and `_barTop` before the first call; a band not
+-- built yet is skipped.
 local function anchorPanes()
   if not (frame and frame.panes and frame._paneTop) then return end
-  local top = frame._paneTop + stripReserve()
+  local off = stripOffset()
+  if frame.tabStrip and frame.dividerBar then
+    frame.tabStrip:ClearAllPoints()
+    frame.tabStrip:SetPoint("TOPLEFT", frame.dividerBar, "BOTTOMLEFT", 6, -2 - off)
+    frame.tabStrip:SetPoint("TOPRIGHT", frame.dividerBar, "BOTTOMRIGHT", -6, -2 - off)
+  end
+  if frame.filterHost and frame._barTop then
+    frame.filterHost:ClearAllPoints()
+    frame.filterHost:SetPoint("TOPLEFT",  frame, "TOPLEFT",   6, -(frame._barTop + off))
+    frame.filterHost:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -(frame._barTop + off))
+  end
+  local top = frame._paneTop + off
   for _, pane in pairs(frame.panes) do
     pane:ClearAllPoints()
     pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -top)
@@ -680,7 +694,7 @@ local function anchorPanes()
 end
 
 -- A synthetic dataset (Database:DatasetKind ~= "live") is marked by one strip per kind under the
--- filter bar: the amber test strip, which always says TEST_LINE, or under a simulation
+-- title bar: the amber test strip, which always says TEST_LINE, or under a simulation
 -- (BankLedger#24) the cyan simulation strip, saying `Simulation: <scenario> - nothing here is
 -- saved.` (NS.SimHost.MarkerText). The red title badge is only the degraded fallback: it marks test
 -- mode where no strip was built (no Widgets library). All follow the dataset, and the panes make
@@ -714,8 +728,9 @@ function B.StripTipLines()
     NS.L["Ended by: combat, /bl test, the launcher menu"] }
 end
 
--- One mode strip of the given kind ("test" or "sim"), hung 2 px under the filter bar with the
--- mouse on and the dataset's tooltip (B.StripTipLines). nil without the Widgets library.
+-- One mode strip of the given kind ("test" or "sim"), docked by the library directly under the
+-- title bar, with the mouse on and the dataset's tooltip (B.StripTipLines). nil without the Widgets
+-- library.
 --- The strip tooltip's lines (B.StripTipLines) onto GameTooltip: the first in gtip.title, the rest
 --- (wrapped) in gtip.body. Shared by both windows' strips (modules/SessionWindow.lua) and read at each
 --- hover, so a skin switch needs no repaint.
@@ -731,15 +746,16 @@ function B.AddStripTip()
   end
 end
 
-local function buildModeStrip(filterHost, kind, text)
+local function buildModeStrip(kind, text)
   if not (W and W.TestStrip) then return nil end
   -- sim / onEnd (LibKa0s Widgets minor 21, SF-F1): the strip's right-click menu ends the mode.
+  -- dock (Widgets minor 27, LibKa0s#88): the library anchors it under the title bar, and tells
+  -- anchorPanes the body offset on each show and hide.
   local isSim = kind == "sim"
   local strip = W.TestStrip(frame, { kind = kind, text = text, icon = NS.Icon and NS.Icon("info"),
     owner = addonName, sim = isSim and NS.Sim or nil,
-    onEnd = (not isSim) and function() NS.LedgerTable:SetTestMode(false) end or nil })
-  strip:SetPoint("TOPLEFT",  filterHost, "BOTTOMLEFT",  0, -STRIP_GAP)
-  strip:SetPoint("TOPRIGHT", filterHost, "BOTTOMRIGHT", 0, -STRIP_GAP)
+    onEnd = (not isSim) and function() NS.LedgerTable:SetTestMode(false) end or nil,
+    dock = "title", titleBar = frame.titleBar, window = frame, onOffset = function() anchorPanes() end })
   strip:EnableMouse(true)
   strip:HookScript("OnEnter", function(self2)
     if not GameTooltip then return end
@@ -749,6 +765,28 @@ local function buildModeStrip(filterHost, kind, text)
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
   return strip
+end
+
+--- The footer of a degraded install (no Widgets library; with it the footer is always W.Footer):
+--- a bare frame `h` tall across `parent`'s bottom edge with W.Footer's two lines and setters, in
+--- the skin's `text.muted`, and no hairline. Its right line clears the grip as the library's does.
+--- @param parent table
+--- @param h number
+--- @return table { left, right, SetLeft, SetRight }
+function B.BareFooter(parent, h)
+  local foot = CreateFrame("Frame", nil, parent)
+  foot:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 0, 0)
+  foot:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
+  foot:SetHeight(h)
+  foot.left = foot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  foot.left:SetPoint("LEFT", foot, "LEFT", 8, 0)
+  foot.right = foot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  foot.right:SetPoint("RIGHT", foot, "RIGHT", -22, 0)
+  foot.right:SetJustifyH("RIGHT")
+  for _, fs in ipairs({ foot.left, foot.right }) do NS.Skin.Text(fs, "muted") end
+  foot.SetLeft = function(self, text) self.left:SetText(type(text) == "string" and text or "") end
+  foot.SetRight = function(self, text) self.right:SetText(type(text) == "string" and text or "") end
+  return foot
 end
 
 -- Build the SHARED, singleton filter bar into `bar` — a window-level host anchored once in
@@ -1001,14 +1039,18 @@ local function EnsureFrame()
 
   -- Shared window chrome: one filter bar above both panes (each tab's own state painted onto it),
   -- one shared footer below them.
-  -- Layout, top to bottom: title bar · tab strip · gap · FILTER BAR · panes · FOOTER.
-  local FILTERBAR_H, FILTER_GAP, FOOTER_H = 46, 8, 18
+  -- Layout, top to bottom (standalone-windows, *Window chrome geometry*): title bar · the mode
+  -- strip while one shows · tab strip · gap · FILTER BAR · panes · FOOTER. The footer's height is
+  -- the library's published FOOTER.HEIGHT (24); the 24 below is only the degraded install's, which
+  -- has no Widgets library to read it from.
+  local FILTERBAR_H, FILTER_GAP = 46, 8
+  local FOOTER_H = (W and W.FOOTER and W.FOOTER.HEIGHT) or 24
   local barTop  = SKIN.titleBarH + SKIN.tabStripH + SKIN.contentGap
   local paneTop = barTop + FILTERBAR_H + FILTER_GAP
 
-  -- The panes are anchored by anchorPanes() (above B:UpdateTestStrip), which adds the test-mode
-  -- strip's reserve to this top while the strip shows.
-  frame._paneTop, frame._footerH = paneTop, FOOTER_H
+  -- The tab strip, the filter bar and the panes are anchored by anchorPanes() (above
+  -- B:UpdateTestStrip), which adds the shown strip's body offset to these tops.
+  frame._paneTop, frame._barTop, frame._footerH = paneTop, barTop, FOOTER_H
   frame.panes = {}
   for _, name in ipairs(TABS) do
     local pane = CreateFrame("Frame", nil, frame)
@@ -1020,40 +1062,29 @@ local function EnsureFrame()
   CreateTabStrip()
 
   local filterHost = CreateFrame("Frame", nil, frame)
-  filterHost:SetPoint("TOPLEFT",  frame, "TOPLEFT",   6, -barTop)
-  filterHost:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -barTop)
   filterHost:SetHeight(FILTERBAR_H)
   frame.filterHost = filterHost
+  anchorPanes()
 
   -- One mode strip per kind (LibKa0s-Widgets-1.0's TestStrip, BankLedger#23/#24): the test
-  -- flavor and the simulation flavor (kind = "sim"), each born hidden, unanchored and mouse-off.
-  -- Both hang 2 px under the filter bar, B:UpdateTestStrip shows the dataset's one and makes the
-  -- panes room for it, and the tooltip says what the data is and what ends it. Without the library
-  -- neither is built, and the title badge marks test mode instead.
-  frame.testStrip = buildModeStrip(filterHost, "test", TEST_LINE)
-  frame.simStrip = buildModeStrip(filterHost, "sim", "")
+  -- flavor and the simulation flavor (kind = "sim"), each born hidden and mouse-off. Both are docked
+  -- by the library directly under the title bar (LibKa0s#88); B:UpdateTestStrip shows the dataset's
+  -- one and moves the tab strip, the filter bar and the panes down by its body offset, and the
+  -- tooltip says what the data is and what ends it. Without the library neither is built, and the
+  -- title badge marks test mode instead.
+  frame.testStrip = buildModeStrip("test", TEST_LINE)
+  frame.simStrip = buildModeStrip("sim", "")
 
-  -- Shared footer: "Showing X of Y" bottom-left, estimated DB size bottom-right. x = -20 keeps the
-  -- size text left of the 16px resize grip (1px inset from Core, 2px from the degraded fallback) so
-  -- the two never overlap.
-  -- Both in the skin's `text.disabled`, the gray their font object draws on Ka0s Default, on the
-  -- skin's footer band (foot.bg). The band is a frame inside the window's 1px edge that ends where
-  -- the panes do, and the strings are its children, or the band would cover them.
-  local footerBar = CreateFrame("Frame", nil, frame)
-  footerBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 1, 1)
-  footerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
-  footerBar:SetHeight(FOOTER_H - 1)
-  NS.Skin.Footer(footerBar)
-  frame.footerBar = footerBar
-  local footer = footerBar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 8, 3)
-  NS.Skin.Text(footer, "disabled")
-  B._footer = footer
-  local dbFooter = footerBar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  dbFooter:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 3)
-  dbFooter:SetJustifyH("RIGHT")
-  NS.Skin.Text(dbFooter, "disabled")
-  B._dbFooter = dbFooter
+  -- Shared footer (LibKa0s#89): LibKa0s-Widgets-1.0's Footer (standalone-windows, *The footer*),
+  -- FOOTER.HEIGHT (24) tall along the window's bottom edge, with no fill of its own, a hairline in
+  -- the skin's `divider` and both lines in `text.muted`: "Showing X of Y" on the left, the estimated
+  -- DB size on the right. `grip`: the resize grip is built on the footer, in its corner
+  -- (NS.MakeResizable's gripParent, below), and the right line starts FOOTER.GRIP in, clear of it.
+  -- Without the library it is a bare frame of the same height with the same two lines and setters.
+  local foot = (W and W.Footer) and W.Footer(frame, { owner = addonName, grip = true })
+    or B.BareFooter(frame, FOOTER_H)
+  frame.footer = foot
+  B._foot, B._footer, B._dbFooter = foot, foot.left, foot.right
 
   B:BuildFilterBar(filterHost)
   B:RefreshFilterOptions()
@@ -1069,7 +1100,7 @@ local function EnsureFrame()
   -- ApplyGeometry write geometry (docs/schema.md). The table re-flows live without it, through the
   -- scroll frame's own OnSizeChanged (modules/LedgerTable.lua).
   NS.MakeResizable(frame, {
-    minWidth = minW, minHeight = minH, owner = addonName,
+    minWidth = minW, minHeight = minH, owner = addonName, gripParent = foot,
     onResizeStop = function()
       B:SaveGeometry()
       if NS.LedgerTable and NS.LedgerTable.Refresh then NS.LedgerTable:Refresh() end

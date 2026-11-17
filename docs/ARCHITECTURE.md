@@ -553,7 +553,8 @@ for member.
   `settings.alpha` stays whole-window opacity.
 - **What paints what.** The three host windows (ledger, session, export modal) wear the skin's `Shell`
   with `noTopBar` and a `TitleBar` on their own bar, no line under it (R4-SEP), `Button` on the flat buttons,
-  `Tab` on the ledger window's tabs with `tab.rule` under the strip, `Footer` on its footer band,
+  `Tab` on the ledger window's tabs with `tab.rule` under the strip, the library's `W.Footer` for its footer
+  (no fill, the `divider` hairline, both lines `text.muted`; LibKa0s#89),
   `ScrollBar` on every scroll bar, `SortHeaderBar` on both tables' headers, `MenuFrame` (alt edge) on the
   row menu, and `Card` / `Panel` / `Divider` (`section.rule`) / `NS.SkinBar` in Insights. The row
   tints take `list.stripe` / `list.hover` RGB with the player's two slider alphas, so the sliders
