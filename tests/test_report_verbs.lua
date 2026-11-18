@@ -91,7 +91,7 @@ for _, verb in ipairs({
       local chat, added, after = runVerb(verb.word)
       assertTrue(after.shown, "the hidden console was not revealed")
       -- Falsification (testing-§12): a report printed to chat line by line, or a second
-      -- acknowledgement beside the library's pointer, makes #chat > 1 and goes red.
+      -- acknowledgment beside the library's pointer, makes #chat > 1 and goes red.
       assertEqual(#chat, 1, "exactly one chat line: " .. table.concat(chat, " | "))
       assertTrue(chat[1]:find(POINTER:format(title, #added), 1, true) ~= nil,
         "the pointer names the report and its line count: " .. tostring(chat[1]))
