@@ -126,7 +126,8 @@ Two consequences follow:
   `Report` streams a dump to chat, one line per body line, with no pointer: the player asked for
   that read-out by name and chat is the only place left to show it (`debug-logging-§15`).
   `/bl diagnostics` prints `/bl diagnostics is unavailable: the LibKa0s library did not load.` and
-  writes nothing. A report of a few hundred lines sent to chat instead would be worse than none.
+  writes nothing. Unlike the scan, the diagnostics report runs to a few hundred lines, and sent
+  to chat instead it would be worse than none.
 
 ## `/bl diagnostics`
 
