@@ -1029,19 +1029,24 @@ NS.COMMANDS = {
       elseif arg == "on" then NS.DebugLog:SetEnabled(true)
       elseif arg == "off" then NS.DebugLog:SetEnabled(false)
       elseif arg == "panel" then
-        -- Structured dump of the settings header's Defaults button (debug-logging-§4). Same RAW
-        -- append as `scan`, so it works whether or not logging is enabled.
-        NS.DebugLog:Show()
-        if NS.Panel and NS.Panel.Diagnose then
-          for _, line in ipairs(NS.Panel:Diagnose()) do NS.DebugLog:Add("Panel", line) end
-        else
-          NS.DebugLog:Add("Panel", "settings panel not built yet \226\128\148 run /bl config first")
+        -- A REPORT (debug-logging-§15, LibKa0s#79): the settings header's Defaults button as it
+        -- really is. D:Report writes it ungated under [Panel] after a `/bl debug panel` header,
+        -- reveals the console and prints the one chat pointer. With no settings panel to read it
+        -- is a refusal, which stays in chat and writes nothing (tests/test_report_verbs.lua).
+        local P = NS.Panel
+        if not (P and P.Diagnose) then
+          print("settings panel not built yet \226\128\148 run /bl config first")
+          return
         end
+        NS.DebugLog:Report("Panel", "debug panel", function(out)
+          for _, line in ipairs(P:Diagnose()) do out(line) end
+        end)
       elseif arg == "scan" then
-        -- A structured dump verb (debug-logging-§4): writes the client's real container model into
-        -- the console through the RAW append, so it works whether or not logging is enabled.
-        NS.DebugLog:Show()
-        for _, line in ipairs(NS.Ledger:Diagnose()) do NS.DebugLog:Add("Scan", line) end
+        -- A REPORT (debug-logging-§15): the client's real container model, NS.Ledger:Diagnose line
+        -- for line, under [Scan], through the same seam as `panel` above.
+        NS.DebugLog:Report("Scan", "debug scan", function(out)
+          for _, line in ipairs(NS.Ledger:Diagnose()) do out(line) end
+        end)
       else NS.DebugLog:Toggle() end
     end },
   -- THE DIAGNOSTICS REPORT (debug-logging-§14, a reserved verb since slash-commands-§2 v2.68.0).

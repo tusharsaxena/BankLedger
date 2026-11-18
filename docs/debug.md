@@ -7,7 +7,7 @@ way they drive every Ka0s console (`debug-logging`; the in-game walk is the DIAG
 [smoke-tests.md](smoke-tests.md)).
 
 This page covers what the library does not: the **diagnostics report**, whose sections this addon
-writes, and the two **addon-owned** topic dumps that also write into that console.
+writes, and the two **addon-owned** reports that also write into that console.
 
 | Verb | Runs | Console tag | Answers |
 |---|---|---|---|
@@ -16,10 +16,21 @@ writes, and the two **addon-owned** topic dumps that also write into that consol
 | `/bl debug panel` | `NS.Panel:Diagnose()` (`settings/Panel.lua`) | `[Panel]` | What the settings header's **Defaults** button actually is at runtime |
 
 All three are wired in `NS.COMMANDS` (`settings/Schema.lua`): the report as its own `diagnostics`
-row and as the first word the `debug` row tests, the two dumps as words of the `debug` row. Each
-dump opens the console first, then appends one line per entry of the array its `Diagnose()`
-returns. `Diagnose()` returns plain strings rather than printing, which is what lets `tests/` assert
-on them, and it is also what lets the report fold the scan in as a section.
+row and as the first word the `debug` row tests, the two dumps as words of the `debug` row.
+`Diagnose()` returns plain strings rather than printing, which is what lets `tests/` assert on them,
+and it is also what lets the report fold the scan in as a section.
+
+**The report verbs** (`debug-logging-§15`, LibKa0s#79): `/bl debug scan` and `/bl debug panel` are
+reports, and they write through the library's `NS.DebugLog:Report(tag, title, fn)`. Each writes a
+`/bl debug scan` (or `/bl debug panel`) header and then one line per entry of its `Diagnose()`, under
+its tag, whether or not logging is on. It opens the console if it is hidden, and prints **exactly one**
+chat line: `debug scan: N lines written to the debug console. Use Copy to share it.`, where N counts
+the header. `/bl debug panel` with no settings panel loaded is a refusal: its one line,
+`settings panel not built yet — run /bl config first`, stays in chat and nothing is written. The
+diagnostics report keeps its own helper and pointer line (`debug-logging-§14`). Every other verb's
+answer is one or two lines and stays in chat: `/bl session` toggles the session window's sample and
+says which way it went, and `/bl list` is the reserved settings list (`slash-commands-§5`).
+`tests/test_report_verbs.lua` holds both report verbs to this.
 
 ## Coverage
 
@@ -98,8 +109,9 @@ on. Every other line above is written by a user action or a state edge, not by a
 
 ## The raw-append rule
 
-The report and both dumps write through the library's raw append (`NS.DebugLog:Add(tag, line)`,
-which `RunDiagnostics` uses too), and **not** through the gated sink `NS.Debug`. So they print
+The report and both dumps write through the library's ungated append (the diagnostics report
+through `RunDiagnostics`, the two dumps through `D:Report`), and **not** through the gated sink
+`NS.Debug`. So they print
 whether logging is on or off: you do not need `/bl debug on` first, and turning logging on adds
 nothing to them (running the report does turn logging on for the session, below, but it writes
 in full either way). A dump the player asked for explicitly is not idle cost, and a console that stays
@@ -110,11 +122,11 @@ Two consequences follow:
 - `debug` and `diagnostics` are reserved verbs (`slash-commands-§2`), so the report and both dumps
   still answer while the addon is **disabled**. `/bl debug scan` then describes a stood-down addon
   (see the event record below), and the report says which of its sections are stood down.
-- Without LibKa0s, `core/DebugLogSetup.lua`'s degraded stub keeps the verbs from raising: `Show`
-  prints the one "debug console window is unavailable" line and `Add` is a no-op, so neither dump
-  has anywhere to go. `/bl diagnostics` prints `/bl diagnostics is unavailable: the LibKa0s library
-  did not load.` and writes nothing. A report of a few hundred lines sent to chat instead would be
-  worse than none.
+- Without LibKa0s, `core/DebugLogSetup.lua`'s degraded stub keeps the verbs from raising. Its
+  `Report` streams a dump to chat, one line per body line, with no pointer: the player asked for
+  that read-out by name and chat is the only place left to show it (`debug-logging-§15`).
+  `/bl diagnostics` prints `/bl diagnostics is unavailable: the LibKa0s library did not load.` and
+  writes nothing. A report of a few hundred lines sent to chat instead would be worse than none.
 
 ## `/bl diagnostics`
 

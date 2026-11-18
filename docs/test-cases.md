@@ -1369,6 +1369,15 @@ Total.
 - diagnostics: running, the sim section reports the scenario, the step, the character and the seam
 - diagnostics: /bl debug scan opens with the simulation header while one runs
 
+### test_report_verbs.lua (6)
+
+- report verbs: /bl debug scan writes the report with logging off and leaves it off
+- report verbs: /bl debug scan reveals the console and prints exactly one chat pointer
+- report verbs: /bl debug panel writes the report with logging off and leaves it off
+- report verbs: /bl debug panel reveals the console and prints exactly one chat pointer
+- report verbs: /bl debug panel with no settings panel refuses in chat and writes nothing
+- report verbs: without LibKa0s the stub streams /bl debug scan to chat with no pointer
+
 ### test_profiles.lua (48)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
@@ -1967,6 +1976,7 @@ Total.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
+| test_report_verbs.lua | 6 |
 | test_profiles.lua | 48 |
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
@@ -1999,4 +2009,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1681** |
+| **Total** | **1687** |

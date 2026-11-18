@@ -298,6 +298,11 @@ tests/
                            --   feature-verb refusal, the launcher's clicks and grayed menu, its
                            --   tooltip, no host gate on it, restore-from-current-state, the
                            --   two-hold latch, and the `disabled` hold re-taken at load
+  test_report_verbs.lua    -- the two report verbs on D:Report (debug-logging-15, LibKa0s#79):
+                           --   `/bl debug scan` and `/bl debug panel` land with logging off and
+                           --   leave it off, reveal the console, print exactly one chat pointer;
+                           --   the panel refusal writes nothing; the library-absent stub streams
+                           --   the scan to chat with no pointer
   test_diagnostics.lua     -- the diagnostics report's content (debug-logging-14, DX-BL): every
                            --   section in order, the always-print rows, the capped filter list,
                            --   ledger counts and the link-free tail, a secret-shaped ledger value,

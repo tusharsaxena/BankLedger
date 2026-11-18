@@ -23,10 +23,10 @@ leaves its number unused.
 | INS-1 – 20 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates, every tip beside the window |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
-| DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
+| DIAG-1 – 33 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges), the identity header, a report's one chat pointer |
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
 | SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
-| DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
+| DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -953,10 +953,12 @@ leaves its number unused.
   titles, indistinguishable: border, inner line, gold title, no line under the title, the same three marks in order. A
   difference is fixed in `../LibKa0s`, never in `libs/`. Re-opened 2026-11-03 for R4-RV2 (the divider
   under the title went with LibKa0s R4-SEP). Result:
-- **DIAG-12. The addon's own dumps.** With logging off, `/bl debug scan` at a bank, then `/bl debug
-  panel` after opening `/bl config` once → both open the console and write their lines anyway, tagged
-  `[Scan]` and `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
-  ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Result: pass (owner-marked 2026-10-10)
+- **DIAG-12. The addon's own dumps.** With logging off and the console closed, `/bl debug scan` at a
+  bank, then `/bl debug panel` after opening `/bl config` once → both open the console and write their
+  lines anyway, each under a `/bl debug scan` or `/bl debug panel` header, tagged `[Scan]` and
+  `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
+  ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Re-opened
+  2026-11-18 for AD-79-BL (the dumps moved onto `D:Report`). Result:
 - **DIAG-13. The report appends with logging off.** `/bl debug on`, move something, `/bl debug off`,
   then `/bl diagnostics` at the open bank → the `[Move]` lines sit above a `[Diag] ==== Ka0s Bank Ledger
   diagnostics begin ====` line and the report is complete, although logging was off when it ran (the
@@ -1041,6 +1043,12 @@ leaves its number unused.
 - **DIAG-32. The identity header names Charts (LibKa0s v1.84.0).** `/bl debug`, click Diagnostics
   → the library line of the identity header lists Charts between Toast and Media, and no module
   on it reads missing. Fail: no Charts, or a module reported missing. Result:
+- **DIAG-33. A report prints one chat pointer (AD-79-BL, LibKa0s#79).** With the console closed,
+  `/bl debug scan` → chat shows exactly one new line, `debug scan: N lines written to the debug
+  console. Use Copy to share it.`, the console opens, and its last N lines are the header and the
+  scan. Copy pastes them with no `|c` color codes. `/bl session` and `/bl list` still answer in chat
+  and open nothing. **Fail:** the scan in chat, a second chat line, the console staying shut, or N
+  not matching the lines written. Result:
 
 ## SIM
 
@@ -1629,6 +1637,10 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   does not build its filter bar's controls, but its tabs do → the active tab's label is gold over a
   2px gold underline, the other is gray, with no backing and no footer band, and clicking moves both.
   **Fail:** two identical tabs, no underline, or a Lua error naming `S.Tab`. Result: Passed (owner, 2026-11-02)
+- **DEGRADED-17. A report without the library goes to chat (AD-79-BL).** With `libs/LibKa0s` renamed
+  aside, `/bl debug scan` → the scan's lines print in chat, one per line, with no "lines written to
+  the debug console" pointer after them. **Fail:** nothing printed, only the "debug console window is
+  unavailable" line, or a Lua error. Result:
 
 ## Non-English client
 
@@ -1775,3 +1787,7 @@ On 2026-11-04 the owner reported that every check of the seventh smoke round pas
 Owed by the LibKa0s v1.105.0 adoption, wave C (Ka0sAddonsCommonTasks `docs/2026-11-17-LIBKA0S_V1_105_ADOPTION/`,
 item AD-92-BL, LibKa0s#92): new checks LEDG-68, LEDG-69, INS-20 and SESS-18, where every tooltip the
 addon places itself now opens. No pass mark came off: no other check names where a tooltip opens.
+
+Owed by the LibKa0s v1.105.0 adoption, wave D (the same bundle, item AD-79-BL, LibKa0s#79): new checks
+DIAG-33 and DEGRADED-17, the two report verbs on `D:Report`; DIAG-12, re-opened, so its pass mark came
+off.
