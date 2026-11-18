@@ -67,7 +67,7 @@ test("InsightsWidgets.Truncate handles nil as an empty label", function()
 end)
 
 test("InsightsWidgets.ShortChar drops the realm from a Name-Realm key", function()
-  assertEqual(W.ShortChar("Mageling-Ravencrest"), "Mageling")
+  assertEqual(W.ShortChar("Mageling-Samplerealm"), "Mageling")
   assertEqual(W.ShortChar("Mageling"), "Mageling")
   assertEqual(W.ShortChar(nil), "?")
 end)
@@ -610,7 +610,7 @@ test("Insights: character bars carry the icon out of band", function()
   -- character-bar section by temporarily wrapping I:RenderBars.
   unfiltered()
   NS.db.global.ledger = {
-    { ts = NOW, char = "Verylongcharactername-Ravencrest", classFile = "MAGE", kind = "ITEM",
+    { ts = NOW, char = "Verylongcharactername-Samplerealm", classFile = "MAGE", kind = "ITEM",
       direction = "DEPOSIT", store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
   }

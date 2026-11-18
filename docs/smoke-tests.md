@@ -19,7 +19,7 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 69 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog, where the row, header, filter-bar and strip tooltips open |
+| LEDG-1 – 70 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters |
 | INS-1 – 20 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates, every tip beside the window |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
@@ -530,6 +530,12 @@ leaves its number unused.
   classes with two or three clear mains; six real bank-city zones; a hot-item head over a long tail in
   Top Items; an evening-leaning hour curve; every store, both directions and qualities 0–5 at least
   once; a date range over 14 days. Result: pass (owner-marked 2026-10-10)
+- **LEDG-70. The sample ledger's people are sample characters (AD-87-BL, LibKa0s#87).** `/bl test`,
+  group by Character → eight characters, each named `Sample…` or `Mock…`: `Mockflame` (mage),
+  `Sampleblade` (paladin), `Samplemender` (priest) and `Mockshield` (warrior), the collection's shared
+  four, plus `Mockshade`, `Samplegrove`, `Mocktotem` and `Samplescale`. Export the sample as CSV →
+  every `char` value ends `-Samplerealm` or `-Mockrealm`, and guild-bank rows carry `Sample Company`. **Fail:** a name like
+  `Mage-Ravencrest`, any real realm, or the guild `Ka0s`. Result:
 - **LEDG-23. Sample rows cannot touch real data.** Right-click a sample row → Link to chat available;
   Blacklist item, Whitelist item and Delete grayed out and click-inert. Then both filter lists on
   Filters are unchanged. Result: pass (owner-marked 2026-10-10)
@@ -1081,16 +1087,17 @@ failure.
   run plays on its own), then `/bl sim step` once at a time (procedure amended for auto-play, BL-01,
   2026-10-23). The second step (the item deposit) → no row at once; the Warband Bank row appears about
   1.5 s later, when the store half lands. Run the rest → four Warband Bank rows: your item and gold
-  deposits, then the alt's item and gold withdrawals, whose Character column reads
-  `Simbanker-<your realm>` in a class color that is not yours. `/bl sim stop`. **Fail:** the
-  deposit row appearing before the delay, a doubled row, or the alt's rows under your name.
-  Result: pass (owner-marked 2026-10-23)
+  deposits, then the alt's item and gold withdrawals, whose Character column reads `Sampleblade`
+  in paladin pink (`Mockshield` in warrior tan when you are a paladin), a class color that is not
+  yours (procedure amended for the shared sample characters, AD-87-BL, 2026-11-18). `/bl sim stop`.
+  **Fail:** the deposit row appearing before the delay, a doubled row, the alt's rows under your name,
+  or `Simbanker`. Result:
 - **SIM-4. The guild bank (SM-BL-21).** On a guilded character, `/bl sim start guild` and step
   through. The first step (guild data arriving while you are away) → no row and no session window.
   The rest → three Guild Bank rows (an item withdrawal, an item deposit and a gold withdrawal)
   carrying your guild's name. Repeat on an unguilded character → the same three rows carrying
-  `Simulated Guild`. **Fail:** a row from the first step, or a guild row with no guild name.
-  Result: pass (owner-marked 2026-10-23)
+  `Sample Company` (amended for AD-87-BL, 2026-11-18, was `Simulated Guild`). **Fail:** a row from
+  the first step, or a guild row with no guild name. Result:
 - **SIM-5. A one-sided visit records nothing (SM-BL-22).** `/bl debug on`, `/bl sim start onesided`,
   run it all → no row in History or the session window, and the console has a `[Store]` line ending
   `closed, held change dropped` when the simulated bank closes. `/bl sim stop`, `/bl debug off`.
@@ -1790,4 +1797,5 @@ addon places itself now opens. No pass mark came off: no other check names where
 
 Owed by the LibKa0s v1.105.0 adoption, wave D (the same bundle, item AD-79-BL, LibKa0s#79): new checks
 DIAG-33 and DEGRADED-17, the two report verbs on `D:Report`; DIAG-12, re-opened, so its pass mark came
-off.
+off. Item AD-87-BL (LibKa0s#87): new check LEDG-70, the sample ledger's characters; SIM-3 and SIM-4,
+amended for the simulator's sample alt and guild, so their pass marks came off.

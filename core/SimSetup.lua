@@ -122,6 +122,42 @@ function NS.ToggleSim()
   if type(s.HidePanel) == "function" then s:HidePanel() end
 end
 
+-- ── the sample characters (LibKa0s#87, Sim minor 3) ────────────────────────────────────────────
+--
+-- The made-up people this addon shows: test mode's sample ledger (modules/LedgerTable_TestMode.lua)
+-- and the simulator's alt (modules/SimWorld.lua). They are the collection's one set,
+-- LibKa0s-Sim-1.0's Sim.SAMPLE, under preview-mode's convention: a name starts Sample or Mock, the
+-- realm is Samplerealm or Mockrealm and never a real one, and a name is data, never localized.
+-- NS.SampleCharacters() answers Sim.Sample() (the client asked at call time), a fresh copy the
+-- caller owns. Without the library it answers a copy of NS.SAMPLE_FALLBACK, the library's Retail
+-- rows limited to the four fields this addon reads; tests/test_sample_characters.lua holds that copy
+-- to the library's rows field for field, so it cannot drift. Retail rows, because this addon ships
+-- Retail alone (WowAddonStandards ADDONS.md).
+NS.SAMPLE_FALLBACK = {
+  { name = "Samplehunter", realm = "Samplerealm", fullName = "Samplehunter-Samplerealm", classFile = "HUNTER" },
+  { name = "Sampleblade",  realm = "Samplerealm", fullName = "Sampleblade-Samplerealm",  classFile = "PALADIN" },
+  { name = "Mockflame",    realm = "Mockrealm",   fullName = "Mockflame-Mockrealm",      classFile = "MAGE" },
+  { name = "Samplemender", realm = "Samplerealm", fullName = "Samplemender-Samplerealm", classFile = "PRIEST" },
+  { name = "Mockshield",   realm = "Mockrealm",   fullName = "Mockshield-Mockrealm",     classFile = "WARRIOR" },
+}
+
+function NS.SampleCharacters()
+  if Sim and type(Sim.Sample) == "function" then return Sim.Sample() end
+  local rows = {}
+  for i, row in ipairs(NS.SAMPLE_FALLBACK) do
+    rows[i] = { name = row.name, realm = row.realm, fullName = row.fullName, classFile = row.classFile }
+  end
+  return rows
+end
+
+--- The shared sample character of `classFile`, or nil when the set has none of that class.
+function NS.SampleCharacterOf(classFile)
+  for _, row in ipairs(NS.SampleCharacters()) do
+    if row.classFile == classFile then return row end
+  end
+  return nil
+end
+
 -- ── the seam ──────────────────────────────────────────────────────────────────────────────────
 
 if Sim then

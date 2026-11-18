@@ -453,7 +453,7 @@ return function()
   M.GetSubZoneText = function() return "The Vault" end
   M.InCombatLockdown = function() return false end
   M.C_Map = { GetBestMapForUnit = function() return 2657 end }
-  M.GetGuildInfo = function() return "Ka0s" end
+  M.GetGuildInfo = function() return "Mock Brigade" end
 
   -- Carried money, in copper. Tests set M.__money directly.
   M.__money = 1000000

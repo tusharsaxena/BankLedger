@@ -204,7 +204,7 @@ test("SimDrivers: Switch closes an open frame first and fires no PLAYER_ENTERING
     NS.State.openContext = nil
     assertEqual(w.current, "alt")
     assertEqual(S.sequence(seen), "BANKFRAME_CLOSED, GUILDBANK_FRAME_HIDDEN")
-    assertEqual(NS.Compat.PlayerName(), NS.L["Simbanker"], "the seam does not answer the alt")
+    assertEqual(NS.Compat.PlayerName(), w.chars.alt.name, "the seam does not answer the alt")
     D.Switch{ to = "main" }
     assertEqual(S.sequence(seen), "BANKFRAME_CLOSED, GUILDBANK_FRAME_HIDDEN", "a closed frame was closed again")
   end)

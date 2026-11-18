@@ -1478,7 +1478,7 @@ Total.
 - TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
 - Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
 
-### test_sim_world.lua (16)
+### test_sim_world.lua (17)
 
 - SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
 - SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
@@ -1488,6 +1488,7 @@ Total.
 - SimWorld: warband money answers the world's balance, and Money moves it
 - SimWorld: the purse follows `current` across Switch
 - SimWorld: main is the real player; after Switch the identity members answer the alt
+- SimWorld: a paladin's alt is the shared sample warrior
 - SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept
 - SimWorld: an empty bag falls back to the fixed ids, warmed, and reports it once
 - SimWorld: an unguilded player's world invents the guild name
@@ -1496,6 +1497,16 @@ Total.
 - SimWorld: Move edits the world only, with the touched ids; a short move changes nothing
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
+
+### test_sample_characters.lua (7)
+
+- sample characters: NS.SampleCharacters answers the library's rows for this client
+- sample characters: the library-absent copy matches the library's Retail rows field for field
+- sample characters: without the library NS.SampleCharacters answers a copy of the host rows
+- sample characters: every test-mode character follows the convention, none on a real realm
+- sample characters: test mode's protagonists are the shared rows, by class
+- sample characters: test mode's guild-bank rows carry the sample guild
+- sample characters: without the library test mode draws the same characters
 
 ### test_sim_drivers.lua (16)
 
@@ -1981,7 +1992,8 @@ Total.
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
-| test_sim_world.lua | 16 |
+| test_sim_world.lua | 17 |
+| test_sample_characters.lua | 7 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
@@ -2009,4 +2021,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1687** |
+| **Total** | **1695** |

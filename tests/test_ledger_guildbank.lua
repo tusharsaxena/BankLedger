@@ -70,7 +70,7 @@ test("Ledger: a guild-bank deposit is recorded", function()
   assertEqual(e.store, "GUILD_BANK")
   assertEqual(e.direction, "DEPOSIT")
   assertEqual(e.quantity, 4)
-  assertEqual(e.guild, "Ka0s", "guild-bank rows carry the guild name")
+  assertEqual(e.guild, "Mock Brigade", "guild-bank rows carry the guild name")
 
   NS.Database:Delete(function(x) return x.itemID == 171276 end)
   mocks.__guildTabs, mocks.__containers[BAG_ID] = savedTabs, savedBag
