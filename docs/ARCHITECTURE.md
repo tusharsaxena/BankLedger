@@ -676,7 +676,7 @@ Outside the gate's reach, also on purpose:
   under Ka0s Default, byte for byte since LibKa0s v1.81.0), class colors on the Character column
   and the Insights per-character labels, and the coin and class art in text.
 - **The store identity palette** `C.StoreRGB` (bank gold, warband cyan, guild magenta, bags gray):
-  which store a row is, the same under every skin, the way DPS Race keeps its per-player colors. No
+  which store a row is, the same under every skin, the way Combat Trail's race window keeps its per-player colors. No
   token holds three of the four values (DECISIONS BankLedger D3, for the owner to overrule).
 - **Alpha literals** over token components (`NS.SkinBar(fill, r, g, b, 0.95)` in the Insights bars):
   the surface's opacity, the same under every skin. The legend chips stay flat colors, not bars.
