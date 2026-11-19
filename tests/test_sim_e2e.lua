@@ -17,7 +17,6 @@ local test, assertEqual, assertTrue, assertFalse = T.test, T.assertEqual, T.asse
 
 local S = dofile("tests/sim_support.lua")
 local C = NS.Constants
-local L = NS.L
 local Host = NS.SimHost
 local GOLD = 10000
 
@@ -158,10 +157,13 @@ end
 
 -- The identities the rows are stamped with, read live before any session.
 local function identities()
-  local name, realm = NS.Compat.PlayerName()
+  local name = NS.Compat.PlayerName()
   local main = { key = NS.Util.PlayerKey(), class = NS.Compat.PlayerClass() }
-  local alt = { key = (L["Simbanker"] .. "-" .. realm):gsub(" ", ""), class = nil }
-  alt.class = main.class == "PALADIN" and "WARRIOR" or "PALADIN"
+  -- The alt is the shared sample character of the other class (Sim.Sample, AD-87-BL).
+  local alt = { class = main.class == "PALADIN" and "WARRIOR" or "PALADIN" }
+  for _, row in ipairs(NS.SampleCharacters()) do
+    if row.classFile == alt.class then alt.key = row.fullName end
+  end
   return main, alt, name
 end
 
@@ -208,7 +210,7 @@ end)
 test("Sim e2e: guild records 3 GUILD_BANK rows stamped with the guild", function()
   local before, count = S.copy(NS.db.global.ledger), NS.Database:Count()
   local main = identities()
-  local guild = NS.Compat.GetGuildName() or L["Simulated Guild"]
+  local guild = NS.Compat.GetGuildName() or "Sample Company"
   local r = play("guild")
   local G = C.Store.GUILD_BANK
   assertRows(r.rows, {

@@ -67,8 +67,8 @@ test("InsightsWidgets.Truncate handles nil as an empty label", function()
 end)
 
 test("InsightsWidgets.ShortChar drops the realm from a Name-Realm key", function()
-  assertEqual(W.ShortChar("Mageling-Ravencrest"), "Mageling")
-  assertEqual(W.ShortChar("Mageling"), "Mageling")
+  assertEqual(W.ShortChar("Samplemage-Samplerealm"), "Samplemage")
+  assertEqual(W.ShortChar("Samplemage"), "Samplemage")
   assertEqual(W.ShortChar(nil), "?")
 end)
 
@@ -486,7 +486,7 @@ end)
 test("Insights:Refresh lays out every section against a populated ledger", function()
   unfiltered()
   local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
-  local chars = { { "Mageling-Realm", "MAGE" }, { "Sneakerz-Realm", "ROGUE" } }
+  local chars = { { "Samplemage-Samplerealm", "MAGE" }, { "Mocksneak-Mockrealm", "ROGUE" } }
   local ledger = {}
   for i = 1, 24 do
     local who = chars[(i % #chars) + 1]
@@ -500,10 +500,10 @@ test("Insights:Refresh lays out every section against a populated ledger", funct
     }
   end
   -- Two coin movements, so the GOLD section is exercised too.
-  ledger[#ledger + 1] = { ts = NOW, char = "Mageling-Realm", classFile = "MAGE",
+  ledger[#ledger + 1] = { ts = NOW, char = "Samplemage-Samplerealm", classFile = "MAGE",
     kind = "MONEY", direction = "DEPOSIT", store = "WARBAND_BANK",
     itemName = "Gold", quantity = 500000, zone = "Valdrakken" }
-  ledger[#ledger + 1] = { ts = NOW - DAY, char = "Sneakerz-Realm", classFile = "ROGUE",
+  ledger[#ledger + 1] = { ts = NOW - DAY, char = "Mocksneak-Mockrealm", classFile = "ROGUE",
     kind = "MONEY", direction = "WITHDRAW", store = "GUILD_BANK",
     itemName = "Gold", quantity = 120000, zone = "Valdrakken" }
   NS.db.global.ledger = ledger
@@ -519,7 +519,7 @@ test("Insights:Refresh renders a slice with no gold at all", function()
   -- The GOLD divider and its two charts must hide rather than render empty: two blank charts under a
   -- banner read as a broken addon, not as "you moved no gold".
   NS.db.global.ledger = {
-    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+    { ts = NOW, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
       store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5,
       zone = "Valdrakken" },
@@ -538,7 +538,7 @@ end)
 test("Insights: a negative moneyMoved hides the GOLD section rather than drawing it", function()
   unfiltered()
   NS.db.global.ledger = {
-    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+    { ts = NOW, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
       store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
   }
@@ -569,10 +569,10 @@ end)
 test("Insights: the four direction-split companions render without raising", function()
   unfiltered()
   NS.db.global.ledger = {
-    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+    { ts = NOW, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
       store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
-    { ts = NOW - DAY, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+    { ts = NOW - DAY, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM",
       direction = "WITHDRAW", store = "GUILD_BANK", itemID = 4306, itemName = "Silk Cloth",
       quality = 2, itemType = "Tradegoods", itemSubType = "Cloth", quantity = 2,
       zone = "Valdrakken" },
@@ -589,13 +589,13 @@ end)
 
 test("Insights.BarLabel truncates the name and leaves the icon escape intact", function()
   local icon = "|TInterface\\TargetingFrame\\UI-Classes-Circles:12:12:0:0:256:256:0:64:0:64|t "
-  local out = I.BarLabel({ icon = icon, label = "Verylongcharactername", labelMax = 14 })
+  local out = I.BarLabel({ icon = icon, label = "Samplelongcharactername", labelMax = 14 })
   assertTrue(out:sub(1, #icon) == icon, "the icon escape is emitted whole and unmodified")
   assertTrue(out:find("|t", 1, true) ~= nil, "the escape is still closed")
   -- The budget applies to the NAME only: the rendered label is the icon verbatim followed by
   -- exactly what W.Truncate makes of the name. Asserting that relationship rather than a byte
   -- count keeps the test honest if the ellipsis ever changes.
-  assertEqual(out, icon .. (W.Truncate("Verylongcharactername", 14)),
+  assertEqual(out, icon .. (W.Truncate("Samplelongcharactername", 14)),
     "only the name passes through the budget")
 end)
 
@@ -610,7 +610,7 @@ test("Insights: character bars carry the icon out of band", function()
   -- character-bar section by temporarily wrapping I:RenderBars.
   unfiltered()
   NS.db.global.ledger = {
-    { ts = NOW, char = "Verylongcharactername-Ravencrest", classFile = "MAGE", kind = "ITEM",
+    { ts = NOW, char = "Samplelongcharactername-Samplerealm", classFile = "MAGE", kind = "ITEM",
       direction = "DEPOSIT", store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
   }
@@ -680,7 +680,7 @@ test("Insights: the reorganized list section renders every group", function()
   local ledger = {}
   for i = 1, 18 do
     ledger[#ledger + 1] = {
-      ts = NOW - (i % 5) * DAY, char = "Mageling-Realm", classFile = "MAGE",
+      ts = NOW - (i % 5) * DAY, char = "Samplemage-Samplerealm", classFile = "MAGE",
       kind = "ITEM", direction = (i % 3 == 0) and "WITHDRAW" or "DEPOSIT",
       store = stores[(i % #stores) + 1],
       itemID = 2589 + (i % 4), itemName = "Item " .. (i % 4), quality = i % 5,
@@ -723,7 +723,7 @@ test("Insights: a bar's tip carries its untruncated label AND its value", functi
   end
   unfiltered()
   NS.db.global.ledger = {
-    { ts = NOW, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
+    { ts = NOW, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM", direction = "DEPOSIT",
       store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 5, zone = "Valdrakken" },
   }
@@ -750,7 +750,7 @@ test("Insights: the headline split puts withdrawals left, deposits right, peak-s
   -- Three deposits, one withdrawal: deposits fill their half, withdrawals show as a third of it.
   local ledger = {}
   for i = 1, 4 do
-    ledger[i] = { ts = NOW - i, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+    ledger[i] = { ts = NOW - i, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM",
       direction = (i == 4) and "WITHDRAW" or "DEPOSIT", store = "BANK",
       itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 1, zone = "Valdrakken" }
@@ -777,7 +777,7 @@ test("Insights: a back-to-back half's tip carries its count and its share of the
   -- Three deposits and one withdrawal at the same store: 75% / 25%.
   local ledger = {}
   for i = 1, 4 do
-    ledger[i] = { ts = NOW - i, char = "Mageling-Realm", classFile = "MAGE", kind = "ITEM",
+    ledger[i] = { ts = NOW - i, char = "Samplemage-Samplerealm", classFile = "MAGE", kind = "ITEM",
       direction = (i == 4) and "WITHDRAW" or "DEPOSIT", store = "BANK",
       itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth", quantity = 1, zone = "Valdrakken" }

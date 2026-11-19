@@ -452,7 +452,7 @@ Total.
 - LedgerTable: the whitelist confirmation names the tab the list actually lives on
 - LedgerTable: blacklisting from the row menu prints one line naming the item and where to manage it
 
-### test_browser.lua (50)
+### test_browser.lua (53)
 
 - Browser.ResolveCharFilter resolves the Current sentinel to the logged-in character
 - Browser.ResolveCharFilter passes ordinary character keys through
@@ -477,7 +477,8 @@ Total.
 - the ledger window's grip sizes from BOTTOMRIGHT and saves geometry on release
 - the ledger window is resizable with its floor as the minimum bound
 - a size change outside the grip neither saves nor rebuilds the display list
-- the footer's size text stays clear of the grip
+- the footer's size text stays clear of the grip, which sits in the footer's corner
+- the footer is the library's W.Footer, FOOTER.HEIGHT tall, and the panes end above it
 - one grip implementation per arm: neither window hand-builds a grip
 - Browser:ExportWidth leaves the Export button a usable width
 - Browser: a burst of search keystrokes costs ONE filter application
@@ -492,11 +493,13 @@ Total.
 - Browser: the search box's RIGHT edge is pinned to the Character dropdown
 - Browser: typing runs the library's hint, then the filter, then the Autocomplete hook
 - Browser: the window still opens and the ledger table still populates with no Widgets library
-- Browser: test mode on shows the strip under the filter bar and shifts both panes by 22
+- Browser: both strips are built docked under the title bar (dock = "title")
+- Browser: test mode on shows the strip under the title bar and shifts everything under it by 18
 - Browser: test mode off hides the strip and the badge and puts both panes back
 - Browser: opening the window while test mode is already on reserves the strip's space
 - Browser: combat ending test mode hides the strip and restores the panes
 - Browser: with no Widgets library there is no strip and no shift, and the badge still shows
+- Browser: with no Widgets library the bare footer is 24 tall and carries both lines
 - Browser: hovering the strip shows the test-mode tooltip, and leaving hides it
 - Browser: a saved filter with no row in today's option list is NAMED, not hidden behind All
 - Browser: a selection that DOES have a row still labels from that row
@@ -1366,6 +1369,15 @@ Total.
 - diagnostics: running, the sim section reports the scenario, the step, the character and the seam
 - diagnostics: /bl debug scan opens with the simulation header while one runs
 
+### test_report_verbs.lua (6)
+
+- report verbs: /bl debug scan writes the report with logging off and leaves it off
+- report verbs: /bl debug scan reveals the console and prints exactly one chat pointer
+- report verbs: /bl debug panel writes the report with logging off and leaves it off
+- report verbs: /bl debug panel reveals the console and prints exactly one chat pointer
+- report verbs: /bl debug panel with no settings panel refuses in chat and writes nothing
+- report verbs: without LibKa0s the stub streams /bl debug scan to chat with no pointer
+
 ### test_profiles.lua (48)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
@@ -1466,7 +1478,7 @@ Total.
 - TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
 - Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
 
-### test_sim_world.lua (16)
+### test_sim_world.lua (17)
 
 - SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
 - SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
@@ -1476,6 +1488,7 @@ Total.
 - SimWorld: warband money answers the world's balance, and Money moves it
 - SimWorld: the purse follows `current` across Switch
 - SimWorld: main is the real player; after Switch the identity members answer the alt
+- SimWorld: a paladin's alt is the shared sample warrior
 - SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept
 - SimWorld: an empty bag falls back to the fixed ids, warmed, and reports it once
 - SimWorld: an unguilded player's world invents the guild name
@@ -1484,6 +1497,16 @@ Total.
 - SimWorld: Move edits the world only, with the touched ids; a short move changes nothing
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
+
+### test_sample_characters.lua (7)
+
+- sample characters: NS.SampleCharacters answers the library's rows for this client
+- sample characters: the library-absent copy matches the library's Retail rows field for field
+- sample characters: without the library NS.SampleCharacters answers a copy of the host rows
+- sample characters: every test-mode character follows the convention, none on a real realm
+- sample characters: test mode's protagonists are the shared rows, by class
+- sample characters: test mode's guild-bank rows carry the sample guild
+- sample characters: without the library test mode draws the same characters
 
 ### test_sim_drivers.lua (16)
 
@@ -1640,7 +1663,7 @@ Total.
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
 - skin chrome: the tab strip sits on the skin's tab.rule
-- skin chrome: the ledger footer is the skin's band, under both strings, and follows a switch
+- skin chrome: the ledger footer is the library's, unfilled, and its hairline and lines follow a switch
 - skin chrome: both windows' grips name this addon as the skin owner
 - skin chrome: sort arrows take list.header.arrow (SF-L2), not icon.arrow
 - skin chrome: every title bar takes title.height and anchors its title on title.align
@@ -1654,10 +1677,29 @@ Total.
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
 - skin chrome degraded: no window draws a line under its title band (R4-SEP)
 
-### test_title_bar.lua (2)
+### test_title_bar.lua (6)
 
 - title bar: every control on each of this addon's windows shows its tooltip above it, in gtip.title
 - title bar: every window's close rests in icon.tint and lights close.hot, under Ka0s Default and Obsidian
+- title bar: each window's marks are HeaderButtons', settings then close, right-aligned (LibKa0s#86)
+- title bar: each window's settings mark opens this addon's settings; the export modal hides first
+- title bar: every window's settings mark rests in icon.tint and lights text.link, under Ka0s Default and Obsidian
+- title bar degraded: with no HeaderButtons each window keeps its close alone, 6 px in, no settings mark
+
+### test_tooltip_place.lua (12)
+
+- tooltips: a History row's item tooltip opens beside the ledger window, not off its corner
+- tooltips: a History column header is a body element, placed beside the ledger window
+- tooltips: a session row and a session column header open beside the session window
+- tooltips: every Insights widget's tip opens beside the ledger window, never at the cursor
+- tooltips: a filter-bar button's tip is attached above the button
+- tooltips: both windows' mode strips attach their tip above the strip
+- tooltips: Util.TipBeside opens right of the window when it fits, left when it does not, top level with the row
+- tooltips: Util.TipAttached centers the tip 2 px above its control
+- tooltips: with geometry it cannot read, a helper attaches above the element, never at the cursor
+- tooltips: one window-group lookup, the ledger window, serves the table and Insights
+- tooltips: the source guard reads the whole repo, XML includes and Bindings.xml too
+- tooltips: the addon's own code anchors no tooltip at the cursor or a corner, and reads no cursor
 
 ### test_skin_picker.lua (15)
 
@@ -1830,8 +1872,8 @@ Total.
 - skin switch: a ledger tab changes with the Scope ignored
 - skin switch: the rule under the tabs changes
 - skin switch: the rule under the tabs changes with the Scope ignored
-- skin switch: the footer band changes
-- skin switch: the footer band changes with the Scope ignored
+- skin switch: the footer's hairline changes
+- skin switch: the footer's hairline changes with the Scope ignored
 - skin switch: the footer's text changes
 - skin switch: the footer's text changes with the Scope ignored
 - skin switch: a filter bar button changes
@@ -1911,7 +1953,7 @@ Total.
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 64 |
-| test_browser.lua | 50 |
+| test_browser.lua | 53 |
 | test_browser_views.lua | 21 |
 | test_autocomplete.lua | 17 |
 | test_launcher.lua | 44 |
@@ -1945,11 +1987,13 @@ Total.
 | test_docs.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
+| test_report_verbs.lua | 6 |
 | test_profiles.lua | 48 |
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
-| test_sim_world.lua | 16 |
+| test_sim_world.lua | 17 |
+| test_sample_characters.lua | 7 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
@@ -1960,7 +2004,8 @@ Total.
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
-| test_title_bar.lua | 2 |
+| test_title_bar.lua | 6 |
+| test_tooltip_place.lua | 12 |
 | test_skin_picker.lua | 15 |
 | test_skin_picker_preview.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -1976,4 +2021,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1662** |
+| **Total** | **1695** |

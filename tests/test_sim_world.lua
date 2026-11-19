@@ -147,10 +147,22 @@ test("SimWorld: main is the real player; after Switch the identity members answe
   assertEqual(w.chars.main.key, "Mock-Realm")
   ns.SimWorld.Switch("alt")
   name, realm = P.PlayerName(live)
-  assertEqual(name, "Simbanker")
-  assertEqual(realm, "Realm", "the alt is not on the real realm")
-  assertTrue(P.PlayerClass(live) ~= "MAGE" and P.PlayerClass(live) ~= nil, "the alt shares main's class")
-  assertEqual(w.chars.alt.key, "Simbanker-Realm")
+  -- Re-pinned by AD-87-BL (LibKa0s#87): the alt is the shared sample character of its class
+  -- (Sim.Sample), on its own fictional realm, where it was NS.L["Simbanker"] on the real realm.
+  assertEqual(name, "Sampleblade")
+  assertEqual(realm, "Samplerealm", "the alt is not the shared sample paladin's realm")
+  assertEqual(P.PlayerClass(live), "PALADIN", "a mage's alt is the sample paladin")
+  assertEqual(w.chars.alt.key, "Sampleblade-Samplerealm")
+end)
+
+test("SimWorld: a paladin's alt is the shared sample warrior", function()
+  local ns, _, w, P = built(function(m) m.UnitClass = function() return "Paladin", "PALADIN", 2 end end)
+  ns.SimWorld.Switch("alt")
+  local name, realm = P.PlayerName(live)
+  assertEqual(name, "Mockshield")
+  assertEqual(realm, "Mockrealm")
+  assertEqual(P.PlayerClass(live), "WARRIOR")
+  assertEqual(w.chars.alt.key, "Mockshield-Mockrealm")
 end)
 
 test("SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept", function()
@@ -184,10 +196,12 @@ end)
 
 test("SimWorld: an unguilded player's world invents the guild name", function()
   local _, _, w, P = built(function(m) m.GetGuildInfo = function() return nil end end)
-  assertEqual(w.guild.name, "Simulated Guild")
-  assertEqual(P.GetGuildName(live), "Simulated Guild")
+  -- Re-pinned by AD-87-BL: the invented guild is the convention's "Sample Company", data and never
+  -- localized, where it was NS.L["Simulated Guild"].
+  assertEqual(w.guild.name, "Sample Company")
+  assertEqual(P.GetGuildName(live), "Sample Company")
   local _, _, w2 = built()
-  assertEqual(w2.guild.name, "Ka0s", "a guilded player's world did not keep the real guild")
+  assertEqual(w2.guild.name, "Mock Brigade", "a guilded player's world did not keep the real guild")
 end)
 
 test("SimWorld: providers are registered for exactly seam:Keys() minus the guarded key", function()

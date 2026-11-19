@@ -39,7 +39,7 @@ test("Compat.GetContainerSlot returns nil for an empty slot", function()
 end)
 
 test("Compat.GetGuildName returns the player's guild", function()
-  assertEqual(NS.Compat.GetGuildName(), "Ka0s")
+  assertEqual(NS.Compat.GetGuildName(), "Mock Brigade")
 end)
 
 test("Compat.GetMoney reads the carried balance", function()
@@ -91,21 +91,23 @@ end)
 
 test("Compat.PlayerName answers the name and the normalized realm, whitespace stripped", function()
   local savedName, savedNorm = mocks.UnitName, mocks.GetNormalizedRealmName
-  mocks.UnitName = function() return "Ka0s" end
-  mocks.GetNormalizedRealmName = function() return "Argent Dawn" end
+  -- Sample names (preview-mode's convention, AD-87-BL): a realm with a space proves the strip
+  -- without naming a real realm.
+  mocks.UnitName = function() return "Samplehunter" end
+  mocks.GetNormalizedRealmName = function() return "Sample realm" end
   local name, realm = NS.Compat.PlayerName()
   mocks.UnitName, mocks.GetNormalizedRealmName = savedName, savedNorm
-  assertEqual(name, "Ka0s")
-  assertEqual(realm, "ArgentDawn")
+  assertEqual(name, "Samplehunter")
+  assertEqual(realm, "Samplerealm")
 end)
 
 test("Compat.PlayerName falls back to GetRealmName, then to 'Unknown'", function()
   local savedName, savedNorm, savedRealm =
     mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName
   mocks.GetNormalizedRealmName = nil
-  mocks.GetRealmName = function() return "Twisting Nether" end
+  mocks.GetRealmName = function() return "Mock realm" end
   local _, realm = NS.Compat.PlayerName()
-  assertEqual(realm, "TwistingNether")
+  assertEqual(realm, "Mockrealm")
   mocks.GetRealmName = nil
   mocks.UnitName = function() return nil end
   local name, realm2 = NS.Compat.PlayerName()

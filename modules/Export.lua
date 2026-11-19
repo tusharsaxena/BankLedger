@@ -398,13 +398,16 @@ local function EnsureFrame()
   -- The bar's fill and the title through the skin's TitleBar. The Shell below is called with
   -- `noTopBar` because this bar paints itself (the rollout's D6, Loot History's export modal).
   NS.Skin.TitleBar(tbar, { text = t })
-  if NS.Browser and NS.Browser.MakeCloseButton then
-    local close = NS.Browser:MakeCloseButton(tbar, function() frame:Hide() end)
-    close:SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
+  -- Settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
+  -- hideOnSettings: the modal is DIALOG, a strata above the settings panel, so it hides first.
+  local marks
+  if NS.Browser and NS.Browser.HeaderMarks then
+    local close
+    close, marks = NS.Browser:HeaderMarks(frame, tbar, function() frame:Hide() end, { hideOnSettings = true })
     frame.closeBtn = close   -- the suite fires this to prove the close ROUTE, not just Hide()
   end
   -- The header on the modal's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).
-  NS.Skin.Header(frame, { title = t, right = { frame.closeBtn }, bars = { tbar } })
+  NS.Skin.Header(frame, { title = t, right = marks or {}, bars = { tbar } })
 
   -- GUARDED, because NS.Browser:MakeDropdown answers nil with no LibKa0s-Widgets-1.0
   -- (modules/Browser.lua's B:MakeDropdown documents exactly that) and the SetHeight below would raise on it.

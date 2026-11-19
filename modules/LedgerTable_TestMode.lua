@@ -104,14 +104,29 @@ end
 -- out of did. A helper that draws must therefore stay at its old position in the statement order —
 -- never hoisted above a neighbor that also draws, and never sequenced by argument-evaluation order.
 
--- "MAGE" -> "Mage-Ravencrest". Draws nothing.
+-- THE SAMPLE CHARACTERS (LibKa0s#87, preview-mode's sample-character convention). A class's
+-- character is the collection's shared one where the set has that class (core/SimSetup.lua's
+-- NS.SampleCharacterOf: Mockflame-Mockrealm the mage, Sampleblade-Samplerealm the paladin,
+-- Samplemender-Samplerealm the priest, Mockshield-Mockrealm the warrior), and this ledger's own
+-- name for the four classes it has none of. Every name starts Sample or Mock, every realm is
+-- Samplerealm or Mockrealm, never a real one; names are data and never localized.
+local TEST_OWN_CHARS = {
+  ROGUE  = "Mockshade-Samplerealm",
+  DRUID  = "Samplegrove-Mockrealm",
+  SHAMAN = "Mocktotem-Samplerealm",
+  EVOKER = "Samplescale-Mockrealm",
+}
+local TEST_GUILD = "Sample Company"
+
+-- "MAGE" -> "Mockflame-Mockrealm". Draws nothing.
 local function testCharName(cls)
-  return cls:sub(1, 1) .. cls:sub(2):lower() .. "-Ravencrest"
+  local shared = NS.SampleCharacterOf(cls)
+  return shared and shared.fullName or TEST_OWN_CHARS[cls]
 end
 
 -- Only guild-bank rows carry a guild. Draws nothing.
 local function testGuild(store)
-  return (store == "GUILD_BANK") and "Ka0s" or nil
+  return (store == "GUILD_BANK") and TEST_GUILD or nil
 end
 
 -- ~45% of movements land on a hot item, the rest on the long tail. Draws once or twice.

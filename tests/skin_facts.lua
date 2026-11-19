@@ -133,7 +133,7 @@ return function(T)
     surface("the ledger's test badge", { build = function() return ledger().testBadge end }),
     surface("a ledger tab", { build = function() return ledger().tabs.History end }),
     surface("the rule under the tabs", { build = function() return ledger().tabRule end }),
-    surface("the footer band", { build = function() return band(ledger().footerBar) end }),
+    surface("the footer's hairline", { build = function() return band(ledger().footer) end }),
     surface("the footer's text", { build = function()
       ledger()
       return ns.Browser._footer

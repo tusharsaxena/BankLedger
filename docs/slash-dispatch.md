@@ -24,8 +24,8 @@ settings landing page both read from one place.
 | `/bl purge` | Delete all history (confirm-gated). Refused while a simulation runs: `Stop the simulation first.`, and no confirm opens (`Database:PurgeRefused`) |
 | `/bl debug` | Toggle the console; `on`/`off` set logging |
 | `/bl diagnostics` / `/bl debug diagnostics` | Write the diagnostics report into the console, after whatever it already holds, and show it, first turning debug logging on for the session when it is off (`debug-logging-§14`; the console's Diagnostics link runs the same report). The only two forms: no `diag` or other alias exists, and `/bl debug` tests `diagnostics` before its other words. Live while disabled. Sections in `modules/Diagnostics.lua` |
-| `/bl debug scan` | Dump the client's live container model **and its money-balance readers** into the console. The same lines are the report's `scan` section; the verb stays as a topic dump |
-| `/bl debug panel` | Dump what the settings header's Defaults button actually is at runtime |
+| `/bl debug scan` | A report (`debug-logging-§15`): the client's live container model **and its money-balance readers**, written to the console through `D:Report` whether or not logging is on, the console revealed, and one chat pointer (`debug scan: N lines written to the debug console. Use Copy to share it.`). The same lines are the diagnostics report's `scan` section; the verb stays as a topic dump |
+| `/bl debug panel` | A report, the same way: what the settings header's Defaults button actually is at runtime. With no settings panel loaded it refuses in chat and writes nothing |
 | `/bl sim` | The simulator (BankLedger#24): bare, the status line, the usage and the step panel. `start <bank\|warband\|guild\|onesided>`, `step`, `run`, `pause`, `resume`, `restart`, `stop`, `status` and `panel` are `LibKa0s-Sim-1.0`'s grammar: the row's handler is `NS.Sim:RunVerb(rest)` and nothing else (host contract H7). Each verb prints one line, for example `Simulation step 3 of 5: Deposit 1 × Thunderfury to Character Bank.` There is no `help` verb (any unknown word prints the usage), no per-driver verb and no key binding. OWNER_SCOPE C.11 made the simulator slash-only; the owner has since added the launcher menu's *Sim mode* entry and the Master controls *Sim mode* checkbox (R6-SIM), both on `NS.IsSimMode` / `NS.ToggleSim`, so they run this same verb: the bare line when neither the step panel is open nor a session runs, and otherwise `stop` while a session runs followed by closing the step panel (R7-SIM). **Feature verb**: refused on one line while the addon is disabled |
 | `/bl help` | Print the command list (the help index) |
 
@@ -47,7 +47,7 @@ Options absent). The degraded refusal line is built from `Sl.__DISABLED_LINE_FOR
 `tests/test_surface_parity.lua` holds to `LibKa0s-Slash-1.0`'s `DISABLED_LINE_FORMAT` byte for byte.
 
 `/bl test` is the renamed History-table sample data (`LT:IsTestMode`, `LT:ToggleTestMode`,
-`LT:BuildTestData`; marked by the amber test-flavor `TestStrip` under the filter bar, or by the red
+`LT:BuildTestData`; marked by the amber test-flavor `TestStrip` under the title bar, or by the red
 `TEST MODE` title badge only where no strip was built (no Widgets library), both shown by
 `B:UpdateTestStrip`, see [windows.md](windows.md)) — matching the Ka0s house vocabulary set by LootHistory's
 `/lh test`. It is one of two ways to flip one switch: `LT:ToggleTestMode` calls `LT:SetTestMode`,

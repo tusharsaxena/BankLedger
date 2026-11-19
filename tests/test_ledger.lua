@@ -550,7 +550,7 @@ end)
 test("Ledger:BuildEntry stamps the guild name on a guild-bank movement only", function()
   local guildMove = { kind = "ITEM", direction = "DEPOSIT", store = "GUILD_BANK",
                       itemID = 2589, quantity = 1 }
-  assertEqual(NS.Ledger:BuildEntry(guildMove).guild, "Ka0s")
+  assertEqual(NS.Ledger:BuildEntry(guildMove).guild, "Mock Brigade")
   assertEqual(NS.Ledger:BuildEntry(itemMove(2589)).guild, nil)
 end)
 

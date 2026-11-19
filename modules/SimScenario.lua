@@ -42,7 +42,7 @@ end
 
 -- warband: a warband transfer between characters. Expect 4 WARBAND_BANK rows: main's item and gold
 -- deposits, then the alt's item and gold withdrawals, stamped with the alt's key
--- (Simbanker-<realm>) and class. The lagged store half runs the held-baseline path: [Diff]
+-- (the shared sample paladin, Sampleblade-Samplerealm, or the sample warrior for a paladin) and class. The lagged store half runs the held-baseline path: [Diff]
 -- "one-sided change: baseline held", then "held change settled".
 local function warbandTimeline()
   return {

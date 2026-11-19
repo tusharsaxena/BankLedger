@@ -19,14 +19,14 @@ leaves its number unused.
 | STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 63 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal |
-| INS-1 – 19 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates |
+| LEDG-1 – 70 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters |
+| INS-1 – 20 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates, every tip beside the window |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
-| SESS-1 – 15 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window |
-| DIAG-1 – 31 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges) |
+| SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
+| DIAG-1 – 33 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges), the identity header, a report's one chat pointer |
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
 | SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
-| DEGRADED-1 – 16 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine |
+| DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -520,9 +520,9 @@ leaves its number unused.
 - **LEDG-19. Quality words.** The Quality column and the Quality filter read the quality names, and an
   export writes the same names into its rows. Result: pass (owner-marked 2026-10-10)
 - **LEDG-20. Test mode.** `/bl test` → the window opens on a sample ledger with the amber test strip
-  under the filter bar (no red TEST MODE badge; that is only the library-absent fallback,
+  directly under the title bar (no red TEST MODE badge; that is only the library-absent fallback,
   DEGRADED-13) (procedure amended for one strip per mode, BL-10, 2026-10-23); filters, grouping, Insights and export all work on it.
-  Result: pass (owner-marked 2026-10-23)
+  Result: owed (procedure amended for the docked strip, AD-88-BL, 2026-11-17; last pass owner-marked 2026-10-23)
 - **LEDG-21. Test mode ignores the saved view.** With a view saved, `/bl test` → the sample opens
   unscoped and unfiltered. Leave test mode → the saved view is back, scoped to Current. Result: pass (owner-marked 2026-10-10)
 - **LEDG-22. The sample reads like a real bank.** In test mode → character-bank rows dominate, warband
@@ -530,6 +530,12 @@ leaves its number unused.
   classes with two or three clear mains; six real bank-city zones; a hot-item head over a long tail in
   Top Items; an evening-leaning hour curve; every store, both directions and qualities 0–5 at least
   once; a date range over 14 days. Result: pass (owner-marked 2026-10-10)
+- **LEDG-70. The sample ledger's people are sample characters (AD-87-BL, LibKa0s#87).** `/bl test`,
+  group by Character → eight characters, each named `Sample…` or `Mock…`: `Mockflame` (mage),
+  `Sampleblade` (paladin), `Samplemender` (priest) and `Mockshield` (warrior), the collection's shared
+  four, plus `Mockshade`, `Samplegrove`, `Mocktotem` and `Samplescale`. Export the sample as CSV →
+  every `char` value ends `-Samplerealm` or `-Mockrealm`, and guild-bank rows carry `Sample Company`. **Fail:** a name like
+  `Mage-Ravencrest`, any real realm, or the guild `Ka0s`. Result:
 - **LEDG-23. Sample rows cannot touch real data.** Right-click a sample row → Link to chat available;
   Blacklist item, Whitelist item and Delete grayed out and click-inert. Then both filter lists on
   Filters are unchanged. Result: pass (owner-marked 2026-10-10)
@@ -641,29 +647,29 @@ leaves its number unused.
   box at its width, and picking a name applies it at once. Added 2026-10-22 (LibKa0s#52).
   Result: pass (owner-marked 2026-10-23)
 - **LEDG-52. The test-mode strip.** `/bl test` → an amber strip with the info mark reads "TEST MODE: a
-  sample ledger, not your bank. Combat ends it." directly under the filter bar, the History table
-  starts below it, and no red TEST MODE badge sits beside the title (procedure amended for one strip per mode, BL-10, 2026-10-23). **Fail:** the
-  strip overlapping the table's header, or the badge beside it. Added 2026-10-22 (BankLedger#23).
-  Result: pass (owner-marked 2026-10-23)
+  sample ledger, not your bank. Combat ends it." directly under the title bar, the tabs, the filter
+  bar and the History table start below it, and no red TEST MODE badge sits beside the title (procedure amended for one strip per mode, BL-10, 2026-10-23; for the docked strip, AD-88-BL, 2026-11-17). **Fail:** the
+  strip overlapping the tabs or the table's header, or the badge beside it. Added 2026-10-22 (BankLedger#23).
+  Result: owed (procedure amended for the docked strip and the library footer, AD-88-BL + AD-89-BL, 2026-11-17; last pass owner-marked 2026-10-23)
 - **LEDG-53. Insights makes the same room.** In test mode, switch to Insights → its content is shifted
   down by the same amount, clear of the strip. Added 2026-10-22 (BankLedger#23). Result: pass (owner-marked 2026-10-23)
 - **LEDG-54. Combat ends the strip.** In test mode, enter combat → test mode ends, the strip hides and
-  both panes move back up under the filter bar. Added 2026-10-22 (BankLedger#23). Result: pass (owner-marked 2026-10-23)
+  the tabs, the filter bar and both panes move back up under the title bar. Added 2026-10-22 (BankLedger#23). Result: owed (procedure amended for the docked strip and the library footer, AD-88-BL + AD-89-BL, 2026-11-17; last pass owner-marked 2026-10-23)
 - **LEDG-55. The strip's tooltip.** In test mode, hover the strip → a tooltip reads Test mode / Shows:
   a sample ledger, not your bank / Ended by: combat, /bl test, the launcher menu. Added 2026-10-22
   (BankLedger#23). Result: pass (owner-marked 2026-10-23)
 - **LEDG-56. Opening in test mode.** With test mode on, close the window and `/bl show` → the strip
   is there at once and the table starts below it. Added 2026-10-22 (BankLedger#23). Result: pass (owner-marked 2026-10-23)
 - **LEDG-57. One marker in test mode (SM-BL-10).** With the ledger open, `/bl test` → the amber strip
-  sits under the filter bar, there is NO red TEST MODE beside the title, both panes start under the
-  strip, and hovering the strip shows the Test mode tooltip. **Fail:** the badge beside the title, a
-  pane under the strip, or no tooltip. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
+  sits under the title bar, there is NO red TEST MODE beside the title, the tabs, the filter bar and
+  both panes start under the strip, and hovering the strip shows the Test mode tooltip. **Fail:** the
+  badge beside the title, a pane under the strip, or no tooltip. Added 2026-10-23 (BL-10). Result: owed (procedure amended for the docked strip and the library footer, AD-88-BL + AD-89-BL, 2026-11-17; last pass owner-marked 2026-10-23)
 - **LEDG-58. The simulation's cyan strip (SM-BL-11).** `/bl sim start bank` → the ledger window shows
-  a CYAN strip under the filter bar saying `Simulation: Personal bank - nothing here is saved.`, and
+  a CYAN strip under the title bar saying `Simulation: Personal bank - nothing here is saved.`, and
   no word beside the title. Hover it → the Simulation tooltip (Simulation / Shows: a simulated bank
   visit; nothing here is saved / Ended by: /bl sim stop, combat, a real bank window). `/bl sim stop`
-  → the strip goes and both panes move back up under the filter bar. **Fail:** an amber strip, a
-  badge, or panes left low. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
+  → the strip goes and the tabs, the filter bar and both panes move back up under the title bar.
+  **Fail:** an amber strip, a badge, or panes left low. Added 2026-10-23 (BL-10). Result: owed (procedure amended for the docked strip and the library footer, AD-88-BL + AD-89-BL, 2026-11-17; last pass owner-marked 2026-10-23)
 - **LEDG-59. A click raises the ledger window (SM-BL-ZS).** Open a bank so the session window shows,
   then `/bl show` and drag the ledger window over it. Click the session window → it comes to the
   front; click the ledger window → it is in front again. With `/bl config` open, drag the ledger
@@ -693,6 +699,54 @@ leaves its number unused.
   closes. Open the session window and the export dialog → both wear the same edge and close control.
   Run *Reset position* → the ledger window goes back to the center. **Fail:** a Lua error, a window
   with no edge or no close control, or a position lost across the `/reload`. Result:
+- **LEDG-64. The strip sits directly under the title bar (AD-88-BL, LibKa0s#88).** `/bl show`, note
+  where the History and Insights tabs sit, then `/bl test` → the amber strip spans the window's full
+  width inside its edge, flush under the title bar with no gap, and the tabs, the filter bar and the
+  table all move down by the strip's height; nothing is covered. Switch to Insights → the same.
+  `/bl test` again → everything moves back up to where it was. `/bl sim start bank` → the cyan strip
+  takes the same place, and `/bl sim stop` puts the window back. Resize the window → the strip keeps
+  the full width. **Fail:** a strip between the filter bar and the table, a gap above it, a tab or a
+  dropdown under it, or chrome left low after the strip goes. Added 2026-11-17. Result:
+- **LEDG-65. The footer is the library's, 24 px (AD-89-BL, LibKa0s#89).** `/bl show` under Ka0s
+  Default → the footer has no dark band: the window's own background shows through, with one faint
+  hairline along its top. `Showing n of N` sits at the left and `Database ~size` at the right, both
+  in the same muted gray, centered in a footer a little taller than before (24 px), with the size
+  text clear of the grip, and the grip in the bottom-right corner still resizes. The table's last row
+  ends above the hairline. Type in the search box → the count follows. Switch through the other
+  skins with the window open, no reload → the hairline and both lines repaint. **Fail:** a filled
+  band, text under the grip, a row under the hairline, or a dead grip. Added 2026-11-17. Result:
+- **LEDG-66. The ledger window's settings mark (AD-86-BL, LibKa0s#86).** `/bl show` under Ka0s
+  Default → the title bar's right end carries two marks, left to right a gear and the close ×, the
+  gear a little left of the ×, both on the band's middle and the title still centered. Hover the gear →
+  it turns orange (`text.link`) and "Open settings" shows above it; leave → it goes back to gray, the
+  same gray as the ×. Hover the × → it still turns red and says "Close". Click the gear → the
+  Settings panel opens on Ka0s Bank Ledger and comes up over the ledger window, which stays open.
+  Switch to Obsidian with the window open, no reload → the gear repaints in that skin's gray, and its
+  hover is that skin's link color. **Fail:** no gear, a gear right of the ×, a gear that opens nothing
+  or another addon's settings, the panel under the window, or a Lua error. Added 2026-11-17. Result:
+- **LEDG-67. The export dialog's settings mark (AD-86-BL, LibKa0s#86).** `/bl show`, then Export on
+  the filter bar → the dialog's title bar carries a gear left of its ×, like the ledger window's.
+  Hover the gear → orange and "Open settings" above it. Click it → the export dialog closes and the
+  Settings panel opens on Ka0s Bank Ledger, with nothing over it. The ledger window stays open. Open
+  the dialog again → it still works, and Export to CSV still opens the copy window. **Fail:** the
+  dialog left over the Settings panel, a gear that opens nothing, or a Lua error. Added 2026-11-17.
+  Result:
+- **LEDG-68. History tooltips open beside the window (AD-92-BL, LibKa0s#92).** `/bl show` with the
+  window in the middle of the screen. Hover an item row → the item's tooltip, with its *Shift-click
+  to link · right-click for options* line, opens just right of the window, its top level with the
+  row, covering no row. Hold Shift over an equippable item → the comparison opens on the far side
+  of it, away from the window. Hover a gold row → its gold tooltip in the same place. Hover a column
+  header → its tooltip in the same place, level with the header. Drag the window to the right edge
+  of the screen and hover the same row → the tooltip now opens left of the window. **Fail:** a
+  tooltip over the rows, off the row's right corner or under the cursor, a tooltip that opens on the
+  same side when there is no room, or lost lines. Added 2026-11-18. Result:
+- **LEDG-69. Filter-bar and strip tooltips sit above their control (AD-92-BL, LibKa0s#92).** `/bl
+  show`. Hover Export, Save, Reset and Clear in turn → each tooltip is centered just above its
+  button, not below it, and covers none of the filter bar's other controls' labels. `/bl test` and
+  hover the test-mode strip → its tooltip (Test mode, what it shows, what ends it) is centered above
+  the strip. Move the window to the top of the screen and hover the strip again → the tooltip flips
+  below the strip. **Fail:** a tooltip under the button, under the cursor or off a corner, or lost
+  lines. Added 2026-11-18. Result:
 
 ## INS
 
@@ -748,6 +802,13 @@ leaves its number unused.
   stacked bars, the back-to-back companions with their legends, the Day and Hour strips and the Top
   Of The List panels all draw as INS-11 to INS-13 describe, and hovering one of each shows its tip.
   **Fail:** a Lua error, or a section that draws empty or misplaced. Result:
+- **INS-20. Every Insights tip opens beside the window (AD-92-BL, LibKa0s#92).** In test mode open
+  Insights with the window in the middle of the screen. Hover a card, a bar, one side of a split bar,
+  a stacked segment, a Day strip column, a Top Of The List row and a legend swatch in turn → each
+  tip opens just right of the ledger window, its top level with what you hover, and stays put while
+  the mouse moves over that element. Drag the window to the right edge of the screen → the tips open
+  left of it. **Fail:** a tip that follows the cursor, a tip over the charts, or lost text. Added
+  2026-11-18. Result:
 
 ## FILT
 
@@ -838,12 +899,30 @@ leaves its number unused.
   bank's open → the session window shows the cyan simulation strip, with the same line as the ledger
   window's, under its title bar, and its rows sit under the strip. After the stop the strip is gone.
   `/bl test` never puts a strip on this window. **Fail:** an amber strip, rows under the strip, or a
-  strip in test mode. Added 2026-10-23 (BL-10). Result: pass (owner-marked 2026-10-23)
+  strip in test mode. Added 2026-10-23 (BL-10). Result: owed (procedure unchanged; the strip moved in
+  AD-88-BL, 2026-11-17, see SESS-16; last pass owner-marked 2026-10-23)
 - **SESS-15. A click raises the session window (SM-BL-ZS).** Open a bank, `/bl show`, and drag the
   ledger window over the session window. Click the session window → it comes to the front, still
   above the bank frame; click the ledger window → it is in front again. **Fail:** the session window
   stuck under the ledger window or under the bank frame. Added 2026-10-24 (item 030, BAN-Z02).
   Result: pass (owner, 2026-10-24)
+- **SESS-16. The session strip is docked under the title bar (AD-88-BL, LibKa0s#88).** `/bl sim start
+  bank` and let it reach the bank's open → the cyan strip spans the session window's full width
+  inside its edge, flush under the title bar (it used to sit a few pixels in from each side and 2 px
+  down), and the column header and rows start just below it. After the stop the rows move back up.
+  **Fail:** a gap or side inset around the strip, or rows under it. Added 2026-11-17. Result:
+- **SESS-17. The session window's settings mark (AD-86-BL, LibKa0s#86).** `/bl session` → the
+  title bar carries a gear left of the ×, like the ledger window's. Hover the gear → orange and
+  "Open settings" above it; leave → gray. Click it → the Settings panel opens on Ka0s Bank Ledger,
+  over the session window, which stays open. **Fail:** no gear, a gear that opens nothing, the panel
+  under the window, or a Lua error. Added 2026-11-17. Result:
+- **SESS-18. The session window's tooltips (AD-92-BL, LibKa0s#92).** `/bl sim start bank` and let it
+  record rows. Hover a session row → the item's tooltip opens just right of the session window, top
+  level with the row; a gold row's the same. Hover a column header → its tooltip in the same place.
+  Hover the cyan strip → the Simulation tooltip is centered above the strip. Drag the session window
+  to the right edge of the screen and hover a row again → it opens left of the window. `/bl sim
+  stop`. **Fail:** a tooltip over the rows, off a corner or under the cursor, or lost lines. Added
+  2026-11-18. Result:
 
 ## DIAG
 
@@ -880,10 +959,12 @@ leaves its number unused.
   titles, indistinguishable: border, inner line, gold title, no line under the title, the same three marks in order. A
   difference is fixed in `../LibKa0s`, never in `libs/`. Re-opened 2026-11-03 for R4-RV2 (the divider
   under the title went with LibKa0s R4-SEP). Result:
-- **DIAG-12. The addon's own dumps.** With logging off, `/bl debug scan` at a bank, then `/bl debug
-  panel` after opening `/bl config` once → both open the console and write their lines anyway, tagged
-  `[Scan]` and `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
-  ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Result: pass (owner-marked 2026-10-10)
+- **DIAG-12. The addon's own dumps.** With logging off and the console closed, `/bl debug scan` at a
+  bank, then `/bl debug panel` after opening `/bl config` once → both open the console and write their
+  lines anyway, each under a `/bl debug scan` or `/bl debug panel` header, tagged `[Scan]` and
+  `[Panel]`; the scan ends with the `events registered` / `events UNAVAILABLE` pair
+  ([debug.md](debug.md)). An empty console means a dump went through the gated sink. Re-opened
+  2026-11-18 for AD-79-BL (the dumps moved onto `D:Report`). Result:
 - **DIAG-13. The report appends with logging off.** `/bl debug on`, move something, `/bl debug off`,
   then `/bl diagnostics` at the open bank → the `[Move]` lines sit above a `[Diag] ==== Ka0s Bank Ledger
   diagnostics begin ====` line and the report is complete, although logging was off when it ran (the
@@ -968,6 +1049,12 @@ leaves its number unused.
 - **DIAG-32. The identity header names Charts (LibKa0s v1.84.0).** `/bl debug`, click Diagnostics
   → the library line of the identity header lists Charts between Toast and Media, and no module
   on it reads missing. Fail: no Charts, or a module reported missing. Result:
+- **DIAG-33. A report prints one chat pointer (AD-79-BL, LibKa0s#79).** With the console closed,
+  `/bl debug scan` → chat shows exactly one new line, `debug scan: N lines written to the debug
+  console. Use Copy to share it.`, the console opens, and its last N lines are the header and the
+  scan. Copy pastes them with no `|c` color codes. `/bl session` and `/bl list` still answer in chat
+  and open nothing. **Fail:** the scan in chat, a second chat line, the console staying shut, or N
+  not matching the lines written. Result:
 
 ## SIM
 
@@ -1000,16 +1087,17 @@ failure.
   run plays on its own), then `/bl sim step` once at a time (procedure amended for auto-play, BL-01,
   2026-10-23). The second step (the item deposit) → no row at once; the Warband Bank row appears about
   1.5 s later, when the store half lands. Run the rest → four Warband Bank rows: your item and gold
-  deposits, then the alt's item and gold withdrawals, whose Character column reads
-  `Simbanker-<your realm>` in a class color that is not yours. `/bl sim stop`. **Fail:** the
-  deposit row appearing before the delay, a doubled row, or the alt's rows under your name.
-  Result: pass (owner-marked 2026-10-23)
+  deposits, then the alt's item and gold withdrawals, whose Character column reads `Sampleblade`
+  in paladin pink (`Mockshield` in warrior tan when you are a paladin), a class color that is not
+  yours (procedure amended for the shared sample characters, AD-87-BL, 2026-11-18). `/bl sim stop`.
+  **Fail:** the deposit row appearing before the delay, a doubled row, the alt's rows under your name,
+  or `Simbanker`. Result:
 - **SIM-4. The guild bank (SM-BL-21).** On a guilded character, `/bl sim start guild` and step
   through. The first step (guild data arriving while you are away) → no row and no session window.
   The rest → three Guild Bank rows (an item withdrawal, an item deposit and a gold withdrawal)
   carrying your guild's name. Repeat on an unguilded character → the same three rows carrying
-  `Simulated Guild`. **Fail:** a row from the first step, or a guild row with no guild name.
-  Result: pass (owner-marked 2026-10-23)
+  `Sample Company` (amended for AD-87-BL, 2026-11-18, was `Simulated Guild`). **Fail:** a row from
+  the first step, or a guild row with no guild name. Result:
 - **SIM-5. A one-sided visit records nothing (SM-BL-22).** `/bl debug on`, `/bl sim start onesided`,
   run it all → no row in History or the session window, and the console has a `[Store]` line ending
   `closed, held change dropped` when the simulated bank closes. `/bl sim stop`, `/bl debug off`.
@@ -1136,8 +1224,8 @@ describes what you see, apart from the changes SKIN-1 lists.
   rows a faint header band (DECISIONS BankLedger D6); the close control wears the skin's gray at rest
   and red on hover, no longer 0.85 and your class color (SKIN-4, BL-A1). Since the full skinning run
   (FS-BL-FIX, LibKa0s v1.85.0) the ledger tabs wear the skin's tab, with a dark backing, a full-width
-  gold underline on the active one and a faint rule under the strip (SKIN-35); the footer sits on a
-  dark band (SKIN-35); the Export modal's title bar is 30 high, not 26 (SKIN-36); and every scroll bar's
+  gold underline on the active one and a faint rule under the strip (SKIN-35); the footer sat on a
+  dark band (SKIN-35) until AD-89-BL (2026-11-17) made it the library's unfilled footer; the Export modal's title bar is 30 high, not 26 (SKIN-36); and every scroll bar's
   up and down buttons are the Ka0s chevrons. Since LibKa0s v1.81.0
   (BL-RV of the skin library follow-ups) the library's own strings read in Ka0s Default's face too: the
   dropdowns' menu rows, the search suggestions, the test and sim strips' lines, and the labels of the
@@ -1374,11 +1462,12 @@ describes what you see, apart from the changes SKIN-1 lists.
   `/bl show` → History and Insights each have a dark backing, the active one in gold with a gold
   underline across the whole tab, the other in gray, and a faint rule under the strip. Click between
   them → the backing, label and underline move at once. The footer's `Showing n of N` and `Database ~`
-  sit on a dark band that runs edge to edge and ends where the panes do, with the size text clear of
-  the grip and the grip still draggable. Switch through the other skins with the window open, no
-  reload → the tabs and the band repaint from each skin. **Fail:** a label or underline left in the
-  old skin's color, text hidden under the band, a band overlapping a table row, or a dead grip.
-  Result: Passed (owner, 2026-11-02)
+  sit on the library's footer (no band since AD-89-BL, 2026-11-17: a hairline along its top, both
+  lines muted gray, the panes ending above it), with the size text clear of the grip and the grip
+  still draggable. Switch through the other skins with the window open, no reload → the tabs, the
+  hairline and both lines repaint from each skin. **Fail:** a label or underline left in the old
+  skin's color, a filled band, a hairline overlapping a table row, or a dead grip.
+  Result: owed (procedure amended for the library footer, AD-89-BL, 2026-11-17; last pass owner, 2026-11-02)
 - **SKIN-36. One title bar shape (FS-BL-FIX, cause L9).** Open the ledger window, the session window,
   and the Export modal with its Data set dropdown → all three title bars are 30 high with a centered
   title and an unclipped close control, and the modal's dropdown still clears its bar. The debug
@@ -1535,7 +1624,7 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   the window. Open a bank → the session window's grip does the same. `/reload` → both sizes are
   kept. Result: pass (owner-marked 2026-10-10)
 - **DEGRADED-13. The badge is the fallback marker (SM-BL-13).** Run it before DEGRADED-11's restore.
-  `/bl show`, then `/bl test` → no strip under the filter bar, the red TEST MODE badge beside the
+  `/bl show`, then `/bl test` → no strip under the title bar, the red TEST MODE badge beside the
   title, and the panes where they were. `/bl test` again → the badge goes. **Fail:** no marker at
   all in test mode, or panes that moved. Added 2026-10-23 (BL-10). Result: pass (owner, 2026-10-23)
 - **DEGRADED-14. The fallback grip sits over the rows (SM-BL-ZS).** Run it before DEGRADED-11's
@@ -1555,6 +1644,10 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   does not build its filter bar's controls, but its tabs do → the active tab's label is gold over a
   2px gold underline, the other is gray, with no backing and no footer band, and clicking moves both.
   **Fail:** two identical tabs, no underline, or a Lua error naming `S.Tab`. Result: Passed (owner, 2026-11-02)
+- **DEGRADED-17. A report without the library goes to chat (AD-79-BL).** With `libs/LibKa0s` renamed
+  aside, `/bl debug scan` → the scan's lines print in chat, one per line, with no "lines written to
+  the debug console" pointer after them. **Fail:** nothing printed, only the "debug console window is
+  unavailable" line, or a Lua error. Result:
 
 ## Non-English client
 
@@ -1697,3 +1790,12 @@ SIM-15, rewritten because it said a tick goes back to unticked, and it carried n
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: DEGRADED-16, DIAG-7, LEDG-36, SKIN-1, SKIN-35, SKIN-36, SKIN-37, SKIN-38 and SKIN-39.
 
 On 2026-11-04 the owner reported that every check of the seventh smoke round passed (Ka0sAddonsCommonTasks `docs/2026-11-04-SMOKE_ROUND7/`, R7-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-04)`: SIM-15 and SIM-16.
+
+Owed by the LibKa0s v1.105.0 adoption, wave C (Ka0sAddonsCommonTasks `docs/2026-11-17-LIBKA0S_V1_105_ADOPTION/`,
+item AD-92-BL, LibKa0s#92): new checks LEDG-68, LEDG-69, INS-20 and SESS-18, where every tooltip the
+addon places itself now opens. No pass mark came off: no other check names where a tooltip opens.
+
+Owed by the LibKa0s v1.105.0 adoption, wave D (the same bundle, item AD-79-BL, LibKa0s#79): new checks
+DIAG-33 and DEGRADED-17, the two report verbs on `D:Report`; DIAG-12, re-opened, so its pass mark came
+off. Item AD-87-BL (LibKa0s#87): new check LEDG-70, the sample ledger's characters; SIM-3 and SIM-4,
+amended for the simulator's sample alt and guild, so their pass marks came off.

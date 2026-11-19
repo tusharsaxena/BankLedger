@@ -597,20 +597,24 @@ function LT:BuildRow()
     if not (item and item.kind == "row") then return end
     local e = item.entry
     if not GameTooltip then return end
+    -- A body element: beside the ledger window, right when it fits, else left, top level with the
+    -- row, so it covers none of the rows being compared (AD-92-BL; the comparison side follows it).
     if e.itemLink then
-      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
-      GameTooltip:SetHyperlink(e.itemLink)
+      local tip = NS.Util.TipOwn(self2)
+      tip:SetHyperlink(e.itemLink)
       local mr, mg, mb = NS.SkinColor("gtip.muted")
-      GameTooltip:AddLine("Shift-click to link \194\183 right-click for options", mr, mg, mb)
-      GameTooltip:Show()
+      tip:AddLine("Shift-click to link \194\183 right-click for options", mr, mg, mb)
+      tip:Show()
+      NS.Util.TipBeside(tip, self2, NS.Util.TipWindowGroup())
     elseif e.kind == C.Kind.MONEY then
       -- A gold movement has no item to hover, so build the tooltip by hand rather than leave the
       -- row silent: the amount is the one thing the Qty cell can truncate.
-      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
+      local tip = NS.Util.TipOwn(self2)
       LT.AddMoneyTooltip(e)
       local mr, mg, mb = NS.SkinColor("gtip.muted")
-      GameTooltip:AddLine("Right-click for options", mr, mg, mb)
-      GameTooltip:Show()
+      tip:AddLine("Right-click for options", mr, mg, mb)
+      tip:Show()
+      NS.Util.TipBeside(tip, self2, NS.Util.TipWindowGroup())
     end
   end)
   row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -749,10 +753,11 @@ function LT:MakeHeaderButton(col)
   fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])
   btn.fs = fs
   btn:SetScript("OnEnter", function(self2)
-    if not GameTooltip then return end
-    GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    local tip = NS.Util.TipOwn(self2)
+    if not tip then return end
     LT.AddColumnTooltip(col)
-    GameTooltip:Show()
+    tip:Show()
+    NS.Util.TipBeside(tip, self2, NS.Util.TipWindowGroup())   -- a column header is a body element (AD-92-BL)
   end)
   btn:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
   btn:SetScript("OnClick", function() LT:SetSort(col.key) end)

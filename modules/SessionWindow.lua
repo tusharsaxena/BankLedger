@@ -389,14 +389,18 @@ function SW:BuildRow()
   row:SetScript("OnEnter", function(self2)
     local e = self2.entry
     if not (e and GameTooltip) then return end
+    -- A body element: beside the session window, right when it fits, else left, top level with
+    -- the row (AD-92-BL; the comparison side follows it).
     if e.itemLink then
-      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
-      GameTooltip:SetHyperlink(e.itemLink)
-      GameTooltip:Show()
+      local tip = NS.Util.TipOwn(self2)
+      tip:SetHyperlink(e.itemLink)
+      tip:Show()
+      NS.Util.TipBeside(tip, self2, frame)
     elseif e.kind == C.Kind.MONEY then
-      GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
+      local tip = NS.Util.TipOwn(self2)
       NS.LedgerTable.AddMoneyTooltip(e)   -- the History table's lines, in the skin's colors
-      GameTooltip:Show()
+      tip:Show()
+      NS.Util.TipBeside(tip, self2, frame)
     end
   end)
   row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -453,10 +457,11 @@ function SW:BuildHeaderCells()
       fs:SetTextColor(NS.SkinColor("list.header.text"))
       cell.fs = fs
       cell:SetScript("OnEnter", function(self2)
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        local tip = NS.Util.TipOwn(self2)
+        if not tip then return end
         NS.LedgerTable.AddColumnTooltip(col)
-        GameTooltip:Show()
+        tip:Show()
+        NS.Util.TipBeside(tip, self2, frame)   -- a column header is a body element (AD-92-BL)
       end)
       cell:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
       header.cells[col.key] = cell
@@ -471,37 +476,38 @@ end
 -- ── The simulation strip (preview-mode marker, BankLedger#24) ───────────────────
 
 -- While a simulation runs this window draws its rows, so it wears the ledger window's marker:
--- LibKa0s-Widgets-1.0's TestStrip in the strip's simulation flavor (kind "sim", cyan) under the
--- title bar, with the same line (NS.SimHost.MarkerText) and the same one predicate
--- (Database:DatasetKind() == "sim"). The rows move down by HEIGHT + 4.
+-- LibKa0s-Widgets-1.0's TestStrip in the strip's simulation flavor (kind "sim", cyan), docked by
+-- the library directly under the title bar (dock = "title", Widgets minor 27, LibKa0s#88;
+-- preview-mode, *Where the strip sits*), with the same line (NS.SimHost.MarkerText) and the same
+-- one predicate (Database:DatasetKind() == "sim"). The rows move down by the strip's
+-- strip:BodyOffset(), its height, while it shows.
 -- Test mode never reaches this window (its session rows are the real ones), so the strip is the
 -- simulation's alone.
-local STRIP_GAP = 2
+local anchorPane
 
 local function buildStrip(f, titleBar)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
   if not (W and W.TestStrip) then return end
   local strip = W.TestStrip(f, { kind = "sim", icon = NS.Icon and NS.Icon("info"), owner = addonName,
-    sim = NS.Sim })   -- SF-F1: the strip's right-click menu ends, steps and restarts the sim
-  strip:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 5, -STRIP_GAP)
-  strip:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -5, -STRIP_GAP)
+    sim = NS.Sim,   -- SF-F1: the strip's right-click menu ends, steps and restarts the sim
+    dock = "title", titleBar = titleBar, window = f, onOffset = function() anchorPane() end })
   strip:EnableMouse(true)
   strip:HookScript("OnEnter", function(self2)
     if not (GameTooltip and NS.Browser and NS.Browser.StripTipLines) then return end
-    GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+    local tip = NS.Util.TipOwn(self2)
     NS.Browser.AddStripTip()   -- the ledger window's strip lines, in the skin's colors
-    GameTooltip:Show()
+    tip:Show()
+    NS.Util.TipAttached(tip, self2)   -- chrome: the strip, above it (AD-92-BL)
   end)
   strip:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
   f.simStrip = strip
-  f._stripReserve = W.TEST_STRIP.HEIGHT + 2 * STRIP_GAP
 end
 
-local function anchorPane()
+anchorPane = function()
   local pane = SW.pane
   if not (frame and pane and frame._paneTop) then return end
   local strip = frame.simStrip
-  local top = frame._paneTop + ((strip and strip:IsShown()) and frame._stripReserve or 0)
+  local top = frame._paneTop + ((strip and strip:IsShown() and strip.BodyOffset) and strip:BodyOffset() or 0)
   pane:ClearAllPoints()
   pane:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -top)
   pane:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 6)
@@ -568,16 +574,19 @@ local function ensureFrame()
   divider:SetHeight(1)
   frame.dividerBar = divider
 
-  if NS.Browser and NS.Browser.MakeCloseButton then
-    local close = NS.Browser:MakeCloseButton(titleBar, function() SW:Hide() end)
-    close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
+  -- Settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
+  -- No hideOnSettings: the window and the settings panel are HIGH peers, and the panel raises over it.
+  local marks
+  if NS.Browser and NS.Browser.HeaderMarks then
+    local close
+    close, marks = NS.Browser:HeaderMarks(frame, titleBar, function() SW:Hide() end)
     frame.closeButton = close
   end
   -- The header on the window's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).
-  NS.Skin.Header(frame, { title = title, right = { frame.closeButton }, bars = { titleBar } })
+  NS.Skin.Header(frame, { title = title, right = marks or {}, bars = { titleBar } })
 
   -- One pane, straight under the title bar: no tab strip, no filter bar, no footer. It moves down
-  -- by the strip's reserve while the simulation strip shows (SW:UpdateTestStrip).
+  -- by the strip's body offset while the simulation strip shows (SW:UpdateTestStrip).
   local pane = CreateFrame("Frame", nil, frame)
   SW.pane = pane
   frame._paneTop = (skin.titleBarH or 30) + 8

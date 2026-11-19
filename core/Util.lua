@@ -327,6 +327,64 @@ function Util.ResetWindowPositions()
   if NS.SessionWindow and NS.SessionWindow.ResetWindow then NS.SessionWindow:ResetWindow() end
 end
 
+-- ── Tooltip placement (AD-92-BL, LibKa0s#92) ───────────────────────────────────────
+-- Every tooltip this addon places itself goes through these three (standalone-windows, *Tooltip
+-- placement*; the classification per surface is docs/ARCHITECTURE.md's ## Tooltip placement):
+-- owned at ANCHOR_NONE, filled and shown by the caller, then placed by LibKa0s-Tooltip-1.0, read at
+-- call time. A BODY element (a row, a column header, an Insights card, bar or swatch) opens beside
+-- its window, right when it fits and otherwise left, top level with the element (PlaceBeside, which
+-- also sets the comparison side for an item's Shift-compare). A CHROME element (a filter-bar button,
+-- a mode strip) is attached above its control, centered (PlaceAttached). When nothing can be read,
+-- or the library is absent, the tooltip is attached above the element by a relative point, as the
+-- library's own sites do: never the cursor, never a corner.
+
+local function tipLib()
+  return LibStub and LibStub("LibKa0s-Tooltip-1.0", true) or nil
+end
+
+local function attachAbove(tip, el)
+  local Tip = tipLib()
+  local placed = Tip and Tip.PlaceAttached and Tip.PlaceAttached(tip, el)
+  if placed then return placed end
+  tip:ClearAllPoints()
+  tip:SetPoint("BOTTOM", el, "TOP", 0, (Tip and Tip.TIP_GAP) or 2)
+  return nil
+end
+
+--- Own `tip` (GameTooltip by default) for `el` at ANCHOR_NONE. Answers the tooltip, or nil when
+--- there is none (the headless harness leaves GameTooltip nil).
+function Util.TipOwn(el, tip)
+  tip = tip or GameTooltip
+  if not tip then return nil end
+  local Tip = tipLib()
+  if Tip and Tip.Own then Tip.Own(tip, el) else tip:SetOwner(el, "ANCHOR_NONE") end
+  return tip
+end
+
+--- The body rule on a shown tooltip: beside `group` (the element's window; nil lets the library
+--- find it). Answers where it went ("right", "left", "above", "below"), or nil when only the
+--- relative fallback above the element could run.
+function Util.TipBeside(tip, el, group)
+  local Tip = tipLib()
+  local side = Tip and Tip.PlaceBeside and Tip.PlaceBeside(tip, el, group)
+  if side then return side end
+  return attachAbove(tip, el)
+end
+
+--- The window group a body element's tooltip opens beside: the ledger window (nil before it is
+--- built, and the library then finds the element's outermost frame itself). The History table and
+--- every Insights widget sit in that window, so they share this one lookup.
+function Util.TipWindowGroup()
+  local B = NS.Browser
+  return B and B.GetWindow and B:GetWindow() or nil
+end
+
+--- The chrome rule on a shown tooltip: centered above `el`, below only without room above.
+--- Answers "above" or "below", or nil when only the relative fallback could run.
+function Util.TipAttached(tip, el)
+  return attachAbove(tip, el)
+end
+
 -- ── Secret-safe chat printer ────────────────────────────────────────────────────
 -- Moved to core/CoreSetup.lua, which builds it from LibKa0s-Core-1.0 (library-stack). The guard
 -- (NS.IsConcatSafe), the stringifier (NS.SafeToString) and the printer (NS.Print / NS.Util.print)

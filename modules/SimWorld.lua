@@ -140,24 +140,30 @@ function SW.BuildPool()
   return pool, true
 end
 
--- main is the real player; alt is invented on the real realm with a different class.
+-- main is the real player; alt is the shared sample character (core/SimSetup.lua's
+-- NS.SampleCharacterOf, LibKa0s-Sim-1.0's Sim.SAMPLE, LibKa0s#87) of a class that is not main's:
+-- Sampleblade-Samplerealm, the sample paladin, or Mockshield-Mockrealm, the sample warrior, for a
+-- paladin. Its name and realm are the set's data, never localized and never the real realm.
 local function buildChars()
   local seam = NS.SimSeam
   local name, realm = seam:Live(NS.Compat.PlayerName)
   local classFile = seam:Live(NS.Compat.PlayerClass)
   local altClass = ALT_CLASSES[1] == classFile and ALT_CLASSES[2] or ALT_CLASSES[1]
-  local altName = NS.L["Simbanker"]
+  local alt = NS.SampleCharacterOf(altClass)
   return {
     main = { key = name .. "-" .. realm, name = name, realm = realm, classFile = classFile },
-    alt = { key = altName .. "-" .. realm, name = altName, realm = realm, classFile = altClass },
+    alt = { key = alt.fullName, name = alt.name, realm = alt.realm, classFile = altClass },
   }
 end
+
+-- The guild an unguilded player's world invents: the convention's sample guild, data, not localized.
+SW.SAMPLE_GUILD = "Sample Company"
 
 local function buildGuild()
   local tabs = {}
   for t = 1, SW.GUILD_TABS do tabs[t] = newContainer(NS.Compat.GuildBankTabSize()) end
   return {
-    name = NS.SimSeam:Live(NS.Compat.GetGuildName) or NS.L["Simulated Guild"],
+    name = NS.SimSeam:Live(NS.Compat.GetGuildName) or SW.SAMPLE_GUILD,
     visible = false, tabs = tabs, queried = {}, money = SW.GUILD_MONEY,
   }
 end

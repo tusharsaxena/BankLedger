@@ -84,6 +84,37 @@ function B:MakeCloseButton(parent, onClick)
   return close
 end
 
+-- The title-bar marks every window this addon draws wears (AD-86-BL, LibKa0s#86; standalone-windows,
+-- *Title-bar controls*, v2.113.0): LibKa0s-Widgets-1.0's HeaderButtons, left to right settings ·
+-- close, right-aligned from the bar's corner, the library's PAD (6) in and GAP (6) apart. The close is
+-- still this addon's one host factory, B:MakeCloseButton above (24x24, the ratified decline in
+-- docs/ARCHITECTURE.md's register), handed to the strip as its `makeClose`, so every close control
+-- this addon builds still goes through it and the grep the decline's condition 3 names still returns
+-- one factory. The settings mark is the library's: the `settings` art out of this addon's copy, in
+-- icon.tint at rest and text.link under the pointer, "Open settings" above it, and its click opens
+-- this addon's settings through the opener the launcher registered for the folder (Core minor 18's
+-- OpenSettings(addonName), core/LauncherSetup.lua's `openSettings`). `opts.hideOnSettings` hides the
+-- window first, for one whose strata would cover the settings panel (the export modal's DIALOG).
+--
+-- Answers the close and what S.Header's `right` takes (the strip's own offsets, outermost first);
+-- records `frame.settingsButton` beside the `frame.headerButtons` HeaderButtons records. Degraded,
+-- with no HeaderButtons, the window keeps the close alone, where it always stood, 6 px in.
+function B:HeaderMarks(frame, bar, onClose, opts)
+  local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+  if W and type(W.HeaderButtons) == "function" then
+    local hb = W.HeaderButtons(bar, {
+      owner = addonName, frame = frame, close = onClose,
+      makeClose = function(parent, onClick) return B:MakeCloseButton(parent, onClick) end,
+      hideOnSettings = (type(opts) == "table" and opts.hideOnSettings) and frame or nil,
+    })
+    frame.settingsButton = hb.settings
+    return hb.close, hb.right
+  end
+  local close = B:MakeCloseButton(bar, onClose)
+  close:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
+  return close, { close }
+end
+
 -- ── Window position/size persistence ──────────────────────────────────────────
 -- settings.window = { point, x, y, w, h } relative to UIParent. Window geometry is runtime view
 -- state, deliberately NOT a Schema row — an architecture-§5 carve-out written directly here
