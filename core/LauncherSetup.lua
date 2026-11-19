@@ -241,11 +241,11 @@ NS.Launcher = Launcher:New({
   setEnabled = function(on) verb(on and "enable" or "disable") end,
 
   -- LOCKED. The Master-controls "Lock frame" row, stored at settings.locked, which core/Util.lua's
-  -- ApplyMasterFrame honors. This addon has no `lock` / `unlock` verb (settings/Schema.lua says so
-  -- above S.WRITE_THROUGH), so the toggle is the one verb that DOES write the row:
-  -- `/bl set settings.locked <bool>`, Sl:CliSet, through the same seam and the row's own onChange.
+  -- ApplyMasterFrame honors. The toggle runs `/bl lock` or `/bl unlock` (AF-HDR-BL), Sl:CliLocked,
+  -- the seam the ledger window's lock mark calls too, so the menu, the mark, the verbs and the
+  -- checkbox are one act on one stored value.
   isLocked = isLocked,
-  toggleLock = function() verb("set", "settings.locked " .. tostring(not isLocked())) end,
+  toggleLock = function() verb(isLocked() and "unlock" or "lock") end,
 
   -- TEST MODE. The sample ledger. `isTestMode` is the Test mode row's own `get`
   -- (settings/Schema.lua), LT:IsTestMode; the toggle is `/bl test`, which reports a refused start.

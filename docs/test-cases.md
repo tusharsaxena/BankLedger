@@ -878,7 +878,7 @@ Total.
 - Schema:Register reports a second row declaring a path already taken, and FindRow keeps the first
 - Options: the page Defaults act skips the Minimap button row and logs one [Set] line
 
-### test_slash.lua (57)
+### test_slash.lua (59)
 
 - Slash: a set renders as a sorted brace list, through the format hook
 - Slash: an empty set renders as (none), not as an empty brace pair
@@ -927,6 +927,8 @@ Total.
 - Slash: while disabled, every feature verb refuses on ONE line naming /bl enable, and does not act
 - Slash: /bl show while disabled leaves the ledger window shut, and opens it once enabled
 - Slash: /bl test while disabled does not start test mode
+- Slash: /bl lock and /bl unlock write settings.locked through Sl:CliLocked and echo it
+- Slash: Sl:ToggleLock flips settings.locked through Sl:CliLocked
 - Slash: an unknown verb is never REFUSED while disabled -- it is still unknown
 - Slash: the live verbs keep answering while disabled, and none of them is refused
 - Slash: dispatch lower-cases only the verb, preserving the argument's case
@@ -1677,11 +1679,14 @@ Total.
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
 - skin chrome degraded: no window draws a line under its title band (R4-SEP)
 
-### test_title_bar.lua (6)
+### test_title_bar.lua (9)
 
 - title bar: every control on each of this addon's windows shows its tooltip above it, in gtip.title
 - title bar: every window's close rests in icon.tint and lights close.hot, under Ka0s Default and Obsidian
 - title bar: each window's marks are HeaderButtons', settings then close, right-aligned (LibKa0s#86)
+- title bar: the ledger window's lock mark draws lock or unlock and says what a click does
+- title bar: clicking the lock mark toggles settings.locked through Sl:CliLocked and repaints it
+- title bar: the lock mark repaints when the lock moves by a verb or by the Lock frame row
 - title bar: each window's settings mark opens this addon's settings; the export modal hides first
 - title bar: every window's settings mark rests in icon.tint and lights text.link, under Ka0s Default and Obsidian
 - title bar degraded: with no HeaderButtons each window keeps its close alone, 6 px in, no settings mark
@@ -1964,7 +1969,7 @@ Total.
 | test_debuglog.lua | 18 |
 | test_schema.lua | 57 |
 | test_schema_runtime.lua | 18 |
-| test_slash.lua | 57 |
+| test_slash.lua | 59 |
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
 | test_panel_filters.lua | 41 |
@@ -2004,7 +2009,7 @@ Total.
 | test_skinsetup.lua | 14 |
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
-| test_title_bar.lua | 6 |
+| test_title_bar.lua | 9 |
 | test_tooltip_place.lua | 12 |
 | test_skin_picker.lua | 15 |
 | test_skin_picker_preview.lua | 17 |
@@ -2021,4 +2026,4 @@ Total.
 | test_skin_switch.lua | 78 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1695** |
+| **Total** | **1700** |

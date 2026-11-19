@@ -174,6 +174,11 @@ local function markWindows(ns)
   return list
 end
 
+-- The ledger window is the primary window (the launcher's Show window entry opens it), so it also
+-- carries the lock mark as an extra inward of settings (AF-HDR-BL; standalone-windows, *Which marks
+-- a window owes*, v2.115.0). The session window and the export modal are secondary: settings · close.
+local ORDER = { ledger = "lock,settings,close", session = "settings,close", export = "settings,close" }
+
 test("title bar: each window's marks are HeaderButtons', settings then close, right-aligned (LibKa0s#86)",
   function()
     local ns, m, _, built = fresh()
@@ -181,7 +186,7 @@ test("title bar: each window's marks are HeaderButtons', settings then close, ri
     for _, w in ipairs(markWindows(ns)) do
       local hb = w.frame and w.frame.headerButtons
       assertTrue(type(hb) == "table", w.name .. ": the title bar's marks are not HeaderButtons'")
-      assertEqual(table.concat(hb.order, ","), "settings,close", w.name .. ": the marks' order, left to right")
+      assertEqual(table.concat(hb.order, ","), ORDER[w.name], w.name .. ": the marks' order, left to right")
       assertTrue(hb.close == w.close, w.name .. ": the strip's close is not the window's close")
       assertTrue(hb.settings ~= nil and hb.settings.icon ~= nil, w.name .. ": no settings mark drawn from art")
       assertTrue(w.frame.settingsButton == hb.settings, w.name .. ": the settings mark is not recorded")
@@ -189,10 +194,87 @@ test("title bar: each window's marks are HeaderButtons', settings then close, ri
       assertEqual(hb.offsets.close, -W.HEADER.PAD, w.name .. ": the close's inset from the corner")
       assertEqual(hb.offsets.settings, -(W.HEADER.PAD + 24 + W.HEADER.GAP), w.name .. ": the settings mark's inset")
       assertEqual(hb.settings:GetWidth(), W.HEADER.SIZE, w.name .. ": the settings mark's slot")
-      assertEqual(#controlsOn(built, w.bar), 2, w.name .. ": the title bar carries settings and close, nothing else")
+      local marks = w.name == "ledger" and 3 or 2
+      assertEqual(#controlsOn(built, w.bar), marks, w.name .. ": the title bar carries its marks, nothing else")
       assertTrue(hb.optOut == nil, w.name .. ": the window opted out of the settings mark")
+      if w.name == "ledger" then
+        local lock = hb.extras.lock
+        assertTrue(lock ~= nil and lock.icon ~= nil, "ledger: no lock mark drawn from art")
+        assertTrue(w.frame.lockButton == lock, "ledger: the lock mark is not recorded")
+        assertEqual(hb.offsets.lock, -(W.HEADER.PAD + 24 + W.HEADER.GAP + W.HEADER.SIZE + W.HEADER.GAP),
+          "ledger: the lock mark's inset, inward of settings")
+      else
+        assertTrue(hb.extras.lock == nil, w.name .. ": a secondary window drew a lock mark")
+      end
     end
   end)
+
+-- ── The ledger window's lock mark (AF-HDR-BL; standalone-windows, *Which marks a window owes*) ────
+--
+-- The mark draws `lock` while settings.locked is true and `unlock` while it is false, its tooltip
+-- says what a click does, and its click goes through Sl:CliLocked, the seam `/bl lock`, `/bl unlock`
+-- and the launcher's Locked entry call. HeaderButtons evaluates `icon` and `tip` once, so the host
+-- repaints the mark whenever the lock moves, by any route: the mark, a verb, the checkbox's write.
+
+local function lockState(ns)
+  local lock = ns.Browser:GetWindow().headerButtons.extras.lock
+  return lock, lock.icon.__texture, lock.__tip
+end
+
+test("title bar: the ledger window's lock mark draws lock or unlock and says what a click does", function()
+  local ns = fresh()
+  ns.Schema:Set("settings.locked", false)
+  ns.Browser:Show()
+  local _, art, tip = lockState(ns)
+  assertEqual(art, ns.Icon("unlock"), "an unlocked window's mark is not the unlock art")
+  assertEqual(tip, "Lock the windows", "an unlocked window's mark does not offer to lock")
+  ns.Browser:Hide()
+
+  local ns2 = fresh()
+  ns2.Schema:Set("settings.locked", true)
+  ns2.Browser:Show()
+  local _, art2, tip2 = lockState(ns2)
+  assertEqual(art2, ns2.Icon("lock"), "a window built locked does not draw the lock art")
+  assertEqual(tip2, "Unlock the windows", "a locked window's mark does not offer to unlock")
+end)
+
+test("title bar: clicking the lock mark toggles settings.locked through Sl:CliLocked and repaints it", function()
+  local ns = fresh()
+  ns.Schema:Set("settings.locked", false)
+  ns.Browser:Show()
+  local lock = lockState(ns)
+  local seen = {}
+  local real = ns.Slash.CliLocked
+  ns.Slash.CliLocked = function(self, on) seen[#seen + 1] = on; return real(self, on) end
+  local ok, err = pcall(function()
+    lock:__fire("OnClick", "LeftButton")
+    assertEqual(ns.Schema:Get("settings.locked"), true, "the click did not lock")
+    local _, art, tip = lockState(ns)
+    assertEqual(art, ns.Icon("lock"), "the mark did not repaint to lock after the click")
+    assertEqual(tip, "Unlock the windows", "the tooltip did not move with the lock")
+    lock:__fire("OnClick", "LeftButton")
+    assertEqual(ns.Schema:Get("settings.locked"), false, "a second click did not unlock")
+    assertEqual(select(2, lockState(ns)), ns.Icon("unlock"), "the mark did not repaint to unlock")
+  end)
+  ns.Slash.CliLocked = real
+  if not ok then error(err, 0) end
+  assertEqual(#seen, 2, "each click reaches Sl:CliLocked once")
+  assertEqual(seen[1], true)
+  assertEqual(seen[2], false)
+end)
+
+test("title bar: the lock mark repaints when the lock moves by a verb or by the Lock frame row", function()
+  local ns = fresh()
+  ns.Schema:Set("settings.locked", false)
+  ns.Browser:Show()
+  ns.Slash:OnSlash("lock")
+  assertEqual(select(2, lockState(ns)), ns.Icon("lock"), "/bl lock did not repaint the mark")
+  ns.Slash:OnSlash("unlock")
+  assertEqual(select(2, lockState(ns)), ns.Icon("unlock"), "/bl unlock did not repaint the mark")
+  ns.Slash:OnSlash("set settings.locked true")
+  assertEqual(select(2, lockState(ns)), ns.Icon("lock"), "the Lock frame row's write did not repaint the mark")
+  assertEqual(select(3, lockState(ns)), "Unlock the windows")
+end)
 
 test("title bar: each window's settings mark opens this addon's settings; the export modal hides first",
   function()

@@ -273,7 +273,7 @@ frameless** and every frame-only row applies.
   row's own `get`, each read on every hover. The button's **left** click opens this panel, and its
   **right** click opens the options menu (LibKa0s-Launcher minor 4, standard v2.67.0), whose checkboxes
   are three of this block's rows plus the ledger window: *Enabled* runs `/bl enable|disable` (the
-  *Enable* row's path), *Locked* runs `/bl set settings.locked` (the *Lock frame* row), *Test mode*
+  *Enable* row's path), *Locked* runs `/bl lock` or `/bl unlock` (the *Lock frame* row, through `Sl:CliLocked`, as the ledger window's lock mark does), *Test mode*
   runs `/bl test` (the *Test mode* row's switch), and *Show window* runs `/bl toggle`. While the addon
   is disabled only *Enabled* is live. Beside *Show window* sits its **key binding** (`launcher-§6`):
   **Toggle ledger window**, set under Options → Keybindings → Ka0s Bank Ledger or on General >

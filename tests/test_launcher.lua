@@ -377,8 +377,8 @@ test("Launcher: with no MenuUtil the right click falls back to the settings pane
 end)
 
 test("Launcher: each menu entry runs the SAME handler its slash verb runs", function()
-  -- Enabled -> `/bl enable|disable` (Sl:CliEnabled); Locked -> `/bl set settings.locked`, the only
-  -- verb that writes the Lock frame row (Sl:CliSet); Test mode -> `/bl test` (LT:ToggleTestMode);
+  -- Enabled -> `/bl enable|disable` (Sl:CliEnabled); Locked -> `/bl lock|unlock` (Sl:CliLocked,
+  -- AF-HDR-BL), the seam the ledger window's lock mark calls too; Test mode -> `/bl test` (LT:ToggleTestMode);
   -- Show window -> `/bl toggle` (B:Toggle). Each pair below drives the verb AND the entry into one
   -- spy, so a menu that grew its own copy of any of them goes red.
   local LT = NS.LedgerTable
@@ -393,13 +393,13 @@ test("Launcher: each menu entry runs the SAME handler its slash verb runs", func
     assertEqual(calls[1][2], false)
     assertEqual(calls[2][2], false, "an enabled addon's Enabled entry moves it to disabled")
 
-    calls = spyOn(NS.Slash, "CliSet", function()
-      NS.Slash:OnSlash("set settings.locked true")
+    calls = spyOn(NS.Slash, "CliLocked", function()
+      NS.Slash:OnSlash("lock")
       openMenu():Click("Locked")
     end)
-    assertEqual(#calls, 2, "/bl set settings.locked and the Locked entry reach Sl:CliSet once each")
-    assertEqual(calls[1][2], "settings.locked true")
-    assertEqual(calls[2][2], "settings.locked true", "an unlocked addon's Locked entry locks it")
+    assertEqual(#calls, 2, "/bl lock and the Locked entry reach Sl:CliLocked once each")
+    assertEqual(calls[1][2], true)
+    assertEqual(calls[2][2], true, "an unlocked addon's Locked entry locks it")
 
     calls = spyOn(LT, "ToggleTestMode", function()
       captureChat(function() NS.Slash:OnSlash("test") end)

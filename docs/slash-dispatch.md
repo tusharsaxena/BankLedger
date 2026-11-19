@@ -14,6 +14,7 @@ settings landing page both read from one place.
 | `/bl show` / `hide` / `toggle` | Open, close or toggle the ledger window. **Feature verbs**: refused on one line while the addon is disabled (see below). |
 | `/bl config` | Open the settings panel |
 | `/bl skin` | Choose a skin: open the skin picker, the one a new profile shows, whatever this profile's `pickerSeen` says (a reserved verb, LibKa0s v1.82.0's `O.SkinVerb`, ruling D-16; `NS.RunSkinVerb` in `core/SkinSetup.lua`). In combat it shows nothing and prints a gray line on every call; behind another Ka0s addon's picker it says it is queued. **Feature verb**: refused on one line while the addon is disabled. Without LibKa0s it prints `/bl skin is unavailable: the LibKa0s library did not load.` |
+| `/bl lock` / `unlock` | Lock the ledger, session and export windows in place, or unlock them so they drag (`slash-commands-§8`, AF-HDR-BL). **Aliases**, not a second switch: both write `settings.locked`, the path the Master controls **Lock frame** checkbox writes, through `Sl:CliLocked` (`Sl:CliSet`, then `NS.Util.ApplyMasterChrome`), and echo `settings.locked = <value>`. The ledger window's lock mark (`Sl:ToggleLock`) and the launcher's *Locked* entry reach the same seam. Neither is a toggle: a second `/bl lock` leaves it locked. **Feature verbs**: refused on one line while the addon is disabled. They keep working without the library, through the same `S.WRITE_THROUGH` route as `enable` / `disable` below |
 | `/bl enable` / `disable` | Turn the addon on or off. **Aliases**, not a second switch: both write `settings.enabled` — the path the Master controls **Enable Bank Ledger** checkbox writes — through `NS.Schema:Set`, and hold no state of their own (`slash-commands-§2`). `/bl set settings.enabled true|false` is the same write by its long name. The dispatcher keeps answering while the addon is disabled, so the pair is never one-way. |
 | `/bl version` | Print the addon version |
 | `/bl get` / `set` / `list` / `reset` | Read and write settings |
@@ -71,7 +72,7 @@ the settings registration are **setup**, not features, so the pair is never one-
 
 | | Verbs |
 |---|---|
-| Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `skin`, `session`, `test`, `purge`, `sim` |
+| Refused while `settings.enabled` is false | `show`, `hide`, `toggle`, `skin`, `lock`, `unlock`, `session`, `test`, `purge`, `sim` |
 | Always live | `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, the schema CLI — `get`, `set`, `list`, `reset`, `resetall` — `profile`, and the bare `/bl`, which opens the settings panel |
 
 The live set is the standard's, and its reasoning is that a player must be able to **read and repair
@@ -120,7 +121,7 @@ reach it, and the entry that used to sit in `locales/enUS.lua` was deleted rathe
 **The minimap button runs these same verbs.** Since Launcher minor 4 (LibKa0s v1.58.0,
 `launcher-§2` as of standard v2.67.0) its left click opens the settings panel in either state, and
 its right click opens an options menu whose four checkboxes call the handlers in `NS.COMMANDS`
-directly: *Enabled* → `enable` / `disable`, *Locked* → `set settings.locked <bool>`, *Test mode* →
+directly: *Enabled* → `enable` / `disable`, *Locked* → `lock` / `unlock`, *Test mode* →
 `test`, *Show window* → `toggle` (`core/LauncherSetup.lua`'s `verb`). The menu does not go through
 `Sl:OnSlash`, so it does not meet this gate: while the addon is disabled the **library** grays
 Locked, Test mode and Show window instead, and a grayed entry calls nothing. *Enabled* stays live,

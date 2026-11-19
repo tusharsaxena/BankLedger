@@ -255,7 +255,8 @@ to the live instance and the stub library to the major.
 With `libs/LibKa0s` missing, `settings/Schema.lua` builds `NS.SchemaRuntime` from its
 runtime-completing stub (the paragraph above says what it carries), and the composed
 Master controls rows do not exist, because their composer is `LibKa0s-Options-1.0`. One of them is a
-path a host verb writes: `settings.enabled`, written by `/bl enable` and `/bl disable`. So it is
+path a host verb writes: `settings.enabled`, written by `/bl enable` and `/bl disable`, and
+`settings.locked`, written by `/bl lock` and `/bl unlock` (AF-HDR-BL). So both are
 listed in **`S.WRITE_THROUGH`** and handed to the seam as the descriptor's `writeThrough`
 (`options-ui-§1` route (a)). A row-less listed path is stored raw (a copy), announced, and refused
 only on a missing store; every other row-less path still answers `unknown path`. A path that has a
@@ -263,8 +264,9 @@ row always takes the row, so on a full load the checkbox's validate and `onChang
 The live `LibKa0s-Schema-1.0` minor 2 honors the same field on a partial load (Schema present,
 Options absent). A write-through row runs no `onChange`, so both `/bl enable` and `/bl disable` re-run
 the latch themselves (`NS.ReevaluateEnabled`; see [slash-dispatch.md](slash-dispatch.md)).
-`settings.locked` is not listed because no verb writes it; test mode and the debug console are
-session state switched through `LT:SetTestMode` and `NS.DebugLog`, never through the seam.
+`Sl:CliLocked` re-applies the master chrome (`NS.Util.ApplyMasterChrome`) for the same reason. Test
+mode and the debug console are session state switched through `LT:SetTestMode` and `NS.DebugLog`,
+never through the seam.
 
 ## Registry, recorded data and named-state writers
 

@@ -590,7 +590,9 @@ end)
 
 -- `skin` (LibKa0s v1.82.0, ruling D-16) is a reserved verb but a feature one: it is not in
 -- lib.LIVE_VERBS, so a disabled addon refuses it.
-local FEATURE_VERBS = { "show", "hide", "toggle", "skin", "session", "test", "purge", "sim" }
+-- `lock` and `unlock` (AF-HDR-BL, slash-commands-§8) are feature verbs too: locking a window that is
+-- not drawn is not a coherent request, so a disabled addon refuses them and names `/bl enable`.
+local FEATURE_VERBS = { "show", "hide", "toggle", "skin", "lock", "unlock", "session", "test", "purge", "sim" }
 local LIVE_VERBS = { "help", "config", "version", "enable", "disable", "debug", "diagnostics",
                      "get", "set", "list", "reset", "resetall", "profile" }
 
@@ -698,6 +700,53 @@ test("Slash: /bl test while disabled does not start test mode", function()
     assertFalse(NS.LedgerTable:IsTestMode(), "`/bl test` started a sample ledger while disabled")
     assertEqual(#out, 1, "one line and no more: " .. joined(out))
   end)
+end)
+
+-- ── `/bl lock` and `/bl unlock` (AF-HDR-BL; slash-commands-§8) ──────────────────────────────────
+--
+-- The pair writes the Lock frame row's own stored path, settings.locked, through Sl:CliLocked, the
+-- one seam the ledger window's lock mark and the launcher's Locked entry also call, so the checkbox,
+-- the verbs, the mark and the menu can never show the player two answers. The echo is the shared
+-- `path = value` line `/bl set` prints.
+
+test("Slash: /bl lock and /bl unlock write settings.locked through Sl:CliLocked and echo it", function()
+  local saved = NS.Schema:Get("settings.locked")
+  NS.Schema:Set("settings.locked", false)
+  local ok, err = pcall(function()
+    local calls = {}
+    local real = Sl.CliLocked
+    Sl.CliLocked = function(self, on) calls[#calls + 1] = on; return real(self, on) end
+    local out
+    local ok2, err2 = pcall(function()
+      out = captureChat(function() Sl:OnSlash("lock") end)
+      assertEqual(NS.Schema:Get("settings.locked"), true, "/bl lock did not lock")
+      assertTrue(joined(out):find("settings.locked", 1, true) ~= nil, "no echo: " .. joined(out))
+      out = captureChat(function() Sl:OnSlash("unlock") end)
+      assertEqual(NS.Schema:Get("settings.locked"), false, "/bl unlock did not unlock")
+      captureChat(function() Sl:OnSlash("unlock") end)
+      assertEqual(NS.Schema:Get("settings.locked"), false, "a second /bl unlock is not a toggle")
+    end)
+    Sl.CliLocked = real
+    if not ok2 then error(err2, 0) end
+    assertEqual(#calls, 3, "each verb reaches Sl:CliLocked once")
+    assertEqual(calls[1], true)
+    assertEqual(calls[2], false)
+  end)
+  NS.Schema:Set("settings.locked", saved)
+  if not ok then error(err, 0) end
+end)
+
+test("Slash: Sl:ToggleLock flips settings.locked through Sl:CliLocked", function()
+  local saved = NS.Schema:Get("settings.locked")
+  NS.Schema:Set("settings.locked", false)
+  local ok, err = pcall(function()
+    captureChat(function() Sl:ToggleLock() end)
+    assertEqual(NS.Schema:Get("settings.locked"), true, "the toggle did not lock an unlocked addon")
+    captureChat(function() Sl:ToggleLock() end)
+    assertEqual(NS.Schema:Get("settings.locked"), false, "the toggle did not unlock a locked addon")
+  end)
+  NS.Schema:Set("settings.locked", saved)
+  if not ok then error(err, 0) end
 end)
 
 test("Slash: an unknown verb is never REFUSED while disabled -- it is still unknown", function()

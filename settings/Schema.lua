@@ -338,10 +338,11 @@ end
 -- with no validate and no onChange, so the degraded verbs re-run the latch themselves
 -- (settings/Slash.lua). A path WITH a row always takes the row, so the full load is unaffected.
 --
--- It is the ONE composed row a host verb writes. `settings.locked` has no verb. Test mode and the
--- debug console are session state, switched through LT:SetTestMode and NS.DebugLog, never through
--- this seam, so neither belongs here.
-S.WRITE_THROUGH = { "settings.enabled" }
+-- `settings.locked` is the second (AF-HDR-BL): `/bl lock`, `/bl unlock` and the ledger window's lock
+-- mark write it through Sl:CliLocked, which re-applies the master chrome itself on a partial load.
+-- Test mode and the debug console are session state, switched through LT:SetTestMode and
+-- NS.DebugLog, never through this seam, so neither belongs here.
+S.WRITE_THROUGH = { "settings.enabled", "settings.locked" }
 
 S.MASTER_SPEC = {
   prefix    = "settings.",
@@ -956,6 +957,14 @@ NS.COMMANDS = {
   -- prints the library-absent line itself). A feature verb, not one of lib.LIVE_VERBS, so the
   -- dispatcher refuses it while the addon is disabled; the help words are the library's VERB_HELP.
   { "skin",     NS.L["Choose a skin: open the skin picker"], function() NS.RunSkinVerb() end },
+  -- THE LOCK PAIR (slash-commands-§8, AF-HDR-BL). Aliases of one `set` of the Master-controls "Lock
+  -- frame" row, settings.locked, through Sl:CliLocked: the seam the ledger window's lock mark and
+  -- the launcher's Locked entry also reach, so all five surfaces show one answer. Feature verbs, so
+  -- a disabled addon refuses them and names `/bl enable`.
+  { "lock",     NS.L["Lock the ledger, session and export windows in place"],
+    function() NS.Slash:CliLocked(true) end },
+  { "unlock",   NS.L["Unlock the windows so they can be dragged"],
+    function() NS.Slash:CliLocked(false) end },
   -- RESERVED VERBS, AND ALIASES RATHER THAN A SECOND SWITCH (slash-commands-§2). Both write the
   -- same stored path the Master-controls "Enable Bank Ledger" checkbox writes, through the same
   -- single write seam, so the checkbox and the verbs can never show the player two answers and one

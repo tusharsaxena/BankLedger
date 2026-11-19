@@ -498,9 +498,12 @@ test("Schema stub: a writeThrough path with no row is stored raw and announced; 
   assertEqual(R.SetMany({ { path = "settings.enabled", value = true } }), true,
     "SetMany refused the writeThrough path")
   assertEqual(degraded.db.profile.settings.enabled, true, "SetMany did not store the writeThrough path")
-  local ok, err = R.Set("settings.locked", true)
+  -- settings.locked joined the list with `/bl lock` and `/bl unlock` (AF-HDR-BL).
+  assertEqual(R.Set("settings.locked", true), true, "the lock's writeThrough path was refused")
+  assertEqual(degraded.db.profile.settings.locked, true, "the lock's writeThrough path was not stored")
+  local ok, err = R.Set("settings.alpha", 0.5)
   assertEqual(ok, false, "a row-less path outside the list was stored")
-  assertEqual(err, "unknown path: settings.locked")
+  assertEqual(err, "unknown path: settings.alpha")
   degraded.db = nil
   ok, err = R.Set("settings.enabled", false)
   assertEqual(ok, false, "a writeThrough write with no root was stored")
