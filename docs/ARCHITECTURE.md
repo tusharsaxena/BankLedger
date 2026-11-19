@@ -628,8 +628,8 @@ for member.
   the library's, in an 18 px slot with the 12 px `settings` art: `icon.tint` at rest, `text.link`
   under the pointer and "Open settings" above it. Its click goes through LibKa0s-Core-1.0's
   `OpenSettings("BankLedger")`, which reaches the launcher's `openSettings` (`NS.Panel:Open`). No
-  window opts out. The ledger window's lock mark is a `HeaderButtons` extra (`B:LockMark`), 18 px
-  inward of settings: the `lock` art while `settings.locked` is true and `unlock` while it is false,
+  window opts out. The ledger window's lock mark is a `HeaderButtons` extra (`B:LockMark`), in an 18 px
+  slot one `HEADER.GAP` (6 px) inward of settings: the `lock` art while `settings.locked` is true and `unlock` while it is false,
   "Unlock the windows" or "Lock the windows" above it, and its click `Sl:ToggleLock`, which runs
   `Sl:CliLocked`, the seam `/bl lock`, `/bl unlock` and the launcher's *Locked* entry reach.
   `HeaderButtons` reads a mark's art and words once, so `NS.Util.ApplyMasterFrame` repaints this one
