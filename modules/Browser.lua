@@ -1029,9 +1029,11 @@ local function EnsureFrame()
   divider:SetHeight(1)
   frame.dividerBar = divider
 
-  -- Settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
-  -- No hideOnSettings: the window and the settings panel are HIGH peers, and the panel raises over it.
-  local close, marks = B:HeaderMarks(frame, titleBar, function() B:Hide() end)
+  -- Lock · settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua;
+  -- LibKa0s#86). The lock because this is the primary window (AF-HDR-BL; standalone-windows, *Which
+  -- marks a window owes*, v2.115.0). No hideOnSettings: the window and the settings panel are HIGH
+  -- peers, and the panel raises over it.
+  local close, marks = B:HeaderMarks(frame, titleBar, function() B:Hide() end, { lock = true })
   frame.closeButton = close
   -- The header on the window's band (S.Band, R5-WIN of the smoke round 5): the bar takes the band's
   -- rect, Shell's own inset and title.height in every skin, so no body color shows between the edge

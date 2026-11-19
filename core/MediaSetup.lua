@@ -95,9 +95,11 @@ end
 ---   export         modules/Export.lua   the modal's "Export to CSV" button
 ---   search         modules/Browser.lua  the item-name search box
 ---   info           modules/Browser.lua  the test-mode strip's mark
+---   lock           modules/Browser_Chrome.lua  the ledger window's lock mark, while locked (AF-HDR-BL)
+---   unlock         modules/Browser_Chrome.lua  the same mark, while unlocked
 NS.ICON_NAMES = {
   "close", "chevron-down", "chevron-right", "sort-up", "sort-down", "export", "search", "confirm",
-  "info",
+  "info", "lock", "unlock",
 }
 
 -- REGISTERED AT FILE LOAD, not at PLAYER_LOGIN, and not from core/BankLedger.lua's OnInitialize the

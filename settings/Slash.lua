@@ -155,6 +155,35 @@ function Sl:CliEnabled(on)
   return r
 end
 
+-- THE ONE STORED PATH the Lock frame checkbox, `/bl lock`, `/bl unlock`, the launcher's Locked entry
+-- and the ledger window's lock mark all write (slash-commands-§8, AF-HDR-BL). One value, one seam:
+-- no second key, no session flag, no NS.locked local.
+local LOCKED_PATH = "settings.locked"
+
+--- `/bl lock` and `/bl unlock`: the same aliases-of-one-`set` shape as Sl:CliEnabled, for the same
+--- reason (the echo is CliSet's `path = value` line). The ledger window's lock mark and the
+--- launcher's Locked entry come through here too, through Sl:ToggleLock and the verbs.
+---
+--- THEN THE MASTER CHROME IS RE-APPLIED. On a full load the composed row's onChange already ran
+--- NS.Util.ApplyMasterChrome, which is idempotent; on a partial load the path is stored through
+--- S.WRITE_THROUGH, which runs no onChange, so this call is what moves the windows and the mark.
+function Sl:CliLocked(on)
+  local r = Sl:CliSet(LOCKED_PATH .. " " .. (on and "true" or "false"))
+  if NS.Util and NS.Util.ApplyMasterChrome then NS.Util.ApplyMasterChrome() end
+  return r
+end
+
+--- Is the Lock frame row's stored value true? Read fresh on every call, never cached.
+function Sl:IsLocked()
+  local s = NS.db and NS.db.profile and NS.db.profile.settings
+  return type(s) == "table" and s.locked == true
+end
+
+--- Flip the lock through Sl:CliLocked: what the ledger window's lock mark clicks.
+function Sl:ToggleLock()
+  return Sl:CliLocked(not Sl:IsLocked())
+end
+
 -- ── A DISABLED ADDON REFUSES ITS FEATURE VERBS (slash-commands-§2, §7) ────────────────────────
 --
 -- Acting is the wrong answer twice over: the player asked for something the addon is currently
@@ -282,6 +311,15 @@ if not lib then
     if not ok then return print(err) end
     NS.ReevaluateEnabled()
     print(ENABLED_PATH, "=", tostring(on))   -- the same bytes, as printer arguments
+  end
+
+  -- `/bl lock` and `/bl unlock` (and the ledger window's lock mark) keep working on this arm by the
+  -- same route: the seam stores `settings.locked` (on S.WRITE_THROUGH), the chrome is re-applied.
+  function Sl:CliLocked(on)
+    local ok, err = NS.Schema:Set(LOCKED_PATH, on)
+    if not ok then return print(err) end
+    if NS.Util and NS.Util.ApplyMasterChrome then NS.Util.ApplyMasterChrome() end
+    print(LOCKED_PATH, "=", tostring(on))
   end
 
   -- The refusal line with no library to build it. The FORMAT is the collection's, copied from

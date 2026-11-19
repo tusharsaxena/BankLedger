@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1681%2F1681_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1700%2F1700_passing-green)
 
 Retail only for now; WoW Forever support is planned. Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -38,6 +38,7 @@ reads from it.
 On a fresh install nothing opens but the minimap button. Left-click it for the settings, or
 right-click it for a small menu. Both of the addon's windows drag by their title bar and resize from
 the bottom-right corner, and **Lock frame** on the settings' Master controls tab pins them in place.
+So does the padlock in the ledger window's title bar, or `/bl lock` (`/bl unlock` frees them again).
 The gear beside each window's close button opens the settings.
 Want to see the ledger before you have any history? `/bl test`, or the **Test mode** box on that same
 tab, fills it with a sample, and an amber strip under the window's title bar says so. It turns itself off

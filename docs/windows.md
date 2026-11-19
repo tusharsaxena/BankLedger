@@ -49,6 +49,10 @@ frame this addon builds — the ledger window, the session window and the export
 *is* `SetMovable(false)`, which the client makes `StartMoving` a no-op against, so there is no second
 guard in any drag handler to keep in step. Master opacity is clamped up to `NS.Constants.MASTER_ALPHA_MIN`
 on the way in — a stored `0` would be an invisible window with no way back to the panel that set it.
+The ledger window's title bar carries a lock mark onto the same stored value (`lock` art while
+locked, `unlock` while not; its click is `Sl:ToggleLock`), which `ApplyMasterFrame` repaints whenever
+it re-applies the chrome; `/bl lock` and `/bl unlock` write it too (AF-HDR-BL, see
+[ARCHITECTURE.md](ARCHITECTURE.md) ▸ *The title-bar marks*).
 See [settings-panel.md](settings-panel.md) → *Master controls*.
 
 **When geometry is written matters as much as what is written**, and the obvious answer is wrong. The

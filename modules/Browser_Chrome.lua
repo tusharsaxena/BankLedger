@@ -84,6 +84,54 @@ function B:MakeCloseButton(parent, onClick)
   return close
 end
 
+-- ── The lock mark (AF-HDR-BL; standalone-windows, *Which marks a window owes*, v2.115.0) ─────────
+--
+-- A primary window carries close, settings and lock in its header. HeaderButtons has no lock of its
+-- own, so the lock is one of the ledger window's `extras`: the catalog's `lock` art while
+-- settings.locked is true and `unlock` while it is false (both on the CLAUDE.md `LibKa0s icons:`
+-- line), its tooltip saying what a click does, and its click Sl:ToggleLock, which runs Sl:CliLocked,
+-- the seam `/bl lock`, `/bl unlock` and the launcher's Locked entry reach. HeaderButtons evaluates a
+-- mark's `icon` and `tip` once, at build, so NS.Util.ApplyMasterFrame repaints this one through the
+-- window's `paintLockMark` whenever the master chrome is applied: at build, on the row's onChange,
+-- after the verbs, on a profile switch.
+
+--- The mark's face for a lock state: the art name, the tooltip that says what a click does, and the
+--- glyph a client without the art draws. Each name reaches NS.Icon as a literal (tests/test_marks.lua).
+local function lockFace(locked)
+  if locked then return "lock", NS.L["Unlock the windows"], "L" end
+  return "unlock", NS.L["Lock the windows"], "U"
+end
+
+--- The art path for a lock state, or nil with no Media library.
+local function lockArt(locked)
+  if not NS.Icon then return nil end
+  if locked then return NS.Icon("lock") end
+  return NS.Icon("unlock")
+end
+
+--- The ledger window's lock extra, for HeaderButtons' `extras`, drawn for the lock as it stands now.
+function B:LockMark()
+  local icon, tip, glyph = lockFace(NS.Slash and NS.Slash.IsLocked and NS.Slash:IsLocked())
+  return { key = "lock", icon = icon, glyph = glyph, tip = tip,
+    onClick = function() if NS.Slash and NS.Slash.ToggleLock then NS.Slash:ToggleLock() end end }
+end
+
+--- Repaint the lock mark for `locked`: its art (or its glyph, where the art is absent) and its
+--- tooltip, which the library reads on each hover. A tooltip already up on the mark is redrawn.
+function B:PaintLockMark(btn, locked)
+  if not btn then return end
+  local _, tip, glyph = lockFace(locked)
+  btn.__tip = tip
+  local path = lockArt(locked)
+  if btn.icon and path then btn.icon:SetTexture(path) end
+  if btn.label then btn.label:SetText(glyph) end
+  local gt = GameTooltip
+  if gt and type(gt.IsOwned) == "function" and gt:IsOwned(btn) and btn.GetScript then
+    local enter = btn:GetScript("OnEnter")
+    if enter then enter(btn) end
+  end
+end
+
 -- The title-bar marks every window this addon draws wears (AD-86-BL, LibKa0s#86; standalone-windows,
 -- *Title-bar controls*, v2.113.0): LibKa0s-Widgets-1.0's HeaderButtons, left to right settings ·
 -- close, right-aligned from the bar's corner, the library's PAD (6) in and GAP (6) apart. The close is
@@ -96,18 +144,29 @@ end
 -- OpenSettings(addonName), core/LauncherSetup.lua's `openSettings`). `opts.hideOnSettings` hides the
 -- window first, for one whose strata would cover the settings panel (the export modal's DIALOG).
 --
+-- `opts.lock` adds the lock mark (B:LockMark below) inward of settings: the ledger window's, the
+-- primary window (standalone-windows, *Which marks a window owes*, v2.115.0, AF-HDR-BL).
+--
 -- Answers the close and what S.Header's `right` takes (the strip's own offsets, outermost first);
--- records `frame.settingsButton` beside the `frame.headerButtons` HeaderButtons records. Degraded,
--- with no HeaderButtons, the window keeps the close alone, where it always stood, 6 px in.
+-- records `frame.settingsButton` (and `frame.lockButton`) beside the `frame.headerButtons`
+-- HeaderButtons records. Degraded, with no HeaderButtons, the window keeps the close alone, where it
+-- always stood, 6 px in; the lock is then the checkbox's, the verbs' and the launcher's.
 function B:HeaderMarks(frame, bar, onClose, opts)
   local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+  opts = type(opts) == "table" and opts or {}
   if W and type(W.HeaderButtons) == "function" then
     local hb = W.HeaderButtons(bar, {
       owner = addonName, frame = frame, close = onClose,
       makeClose = function(parent, onClick) return B:MakeCloseButton(parent, onClick) end,
-      hideOnSettings = (type(opts) == "table" and opts.hideOnSettings) and frame or nil,
+      hideOnSettings = opts.hideOnSettings and frame or nil,
+      extras = opts.lock and { B:LockMark() } or nil,
     })
     frame.settingsButton = hb.settings
+    if opts.lock then
+      local lock = hb.extras.lock
+      frame.lockButton = lock
+      frame.paintLockMark = function(locked) B:PaintLockMark(lock, locked) end
+    end
     return hb.close, hb.right
   end
   local close = B:MakeCloseButton(bar, onClose)

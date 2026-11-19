@@ -448,7 +448,8 @@ end)
 -- inert; it says the command surface still answers, which is the other half of the ruling.
 
 -- `skin` (LibKa0s v1.82.0's O.SkinVerb, ruling D-16) is reserved but not live: it opens a window.
-local FEATURE_VERBS = { "show", "hide", "toggle", "skin", "session", "test", "purge", "sim" }
+-- `lock` / `unlock` (AF-HDR-BL, slash-commands-§8) move a window, so they are feature verbs too.
+local FEATURE_VERBS = { "show", "hide", "toggle", "skin", "lock", "unlock", "session", "test", "purge", "sim" }
 
 -- The live set is the library's reserved verbs (lib.LIVE_VERBS) plus the one host verb this addon
 -- widens it with, `profile` (Slash minor 17: the library leaves `profile` out of its own set and a

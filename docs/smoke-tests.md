@@ -16,7 +16,7 @@ leaves its number unused.
 | SLASH-1 – 11 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding, its own Keybindings section and the General > Keybindings tab, `/bl skin` |
 | PANEL-1 – 32 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset, the item 020 layout |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
-| STATE-1 – 9 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility |
+| STATE-1 – 11 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility, the ledger window's lock mark, `/bl lock` and `/bl unlock` |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
 | LEDG-1 – 70 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters |
@@ -378,6 +378,27 @@ leaves its number unused.
 - **STATE-9. General visibility: Never.** Set General visibility to Never → every window closes and
   `/bl show` does nothing (it refuses, it does not defer). Move something into your bank, set it back
   to Always → the movement is in the ledger. Result: pass (owner-marked 2026-10-10)
+- **STATE-10. The ledger window's lock mark (AF-HDR-BL; standalone-windows, *Which marks a window
+  owes*, v2.115.0).** Untick Lock frame, `/bl show` → the title bar reads, right to left, close, the
+  gear, then an open padlock, all three in the same tint and pitch. Hover the padlock → *Lock the
+  windows* above it, and the padlock lights in the hover color the gear lights in. Click it → the
+  padlock closes, one chat line reads `settings.locked = true`, the tooltip now reads *Unlock the
+  windows*, and the ledger, the session window and the export modal no longer drag by their title
+  bars; `/bl config` → Master controls → Lock frame is ticked. Click it again → open padlock, all three
+  drag, the box unticked. Tick and untick Lock frame on the panel with the window open → the padlock
+  follows each click. The session window and the export modal carry no padlock. Switch to the
+  Obsidian skin → the padlock rests and lights like the gear beside it. **Fail:** the padlock not
+  following a change, a second state (the box and the padlock disagreeing), or a padlock on another
+  window. Result:
+- **STATE-11. `/bl lock` and `/bl unlock` (AF-HDR-BL; slash-commands-§8).** With the ledger window open
+  and unlocked, `/bl lock` → one line, `settings.locked = true`, the padlock closes and no window drags;
+  `/bl lock` again → the same line, still locked (not a toggle). `/bl unlock` → `settings.locked =
+  false`, the padlock opens, the windows drag. `/bl help` lists `lock` and `unlock` right after `skin`.
+  Right-click the minimap button ▸ Locked → the padlock closes and the entry reads ticked on the next
+  open; again → it opens. `/bl disable`, then `/bl lock` and `/bl unlock` → each prints exactly one
+  line, `Ka0s Bank Ledger is disabled — enable it with /bl enable`, and nothing changes; `/bl enable`.
+  `/reload` while locked → the padlock is still closed and the windows still do not drag. **Fail:** a
+  verb that answers unknown, toggles, or acts while disabled. Result:
 
 ## COMBAT
 
@@ -1799,3 +1820,9 @@ Owed by the LibKa0s v1.105.0 adoption, wave D (the same bundle, item AD-79-BL, L
 DIAG-33 and DEGRADED-17, the two report verbs on `D:Report`; DIAG-12, re-opened, so its pass mark came
 off. Item AD-87-BL (LibKa0s#87): new check LEDG-70, the sample ledger's characters; SIM-3 and SIM-4,
 amended for the simulator's sample alt and guild, so their pass marks came off.
+
+Owed by the adoption feedback run (Ka0sAddonsCommonTasks `docs/2026-11-19-ADOPTION_FEEDBACK/`, item
+AF-HDR-BL): new checks STATE-10 (the ledger window's lock mark) and STATE-11 (`/bl lock`, `/bl unlock`
+and the launcher's *Locked* entry on the same seam). No pass mark came off: the Lock frame row's
+behavior (STATE-8) and the Locked entry's (STATE-4) are unchanged. Item AF-RV-BL (LibKa0s v1.107.0)
+moves nothing this addon draws: it builds no drag strip.

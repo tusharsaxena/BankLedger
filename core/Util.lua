@@ -241,6 +241,10 @@ function Util.ApplyMasterFrame(frame)
   -- The drag handlers all call StartMoving, which the client makes a no-op on an unmovable frame —
   -- so this is the whole of "Lock frame" and there is no second guard to keep in step.
   if frame.SetMovable then frame:SetMovable(not locked) end
+  -- A window whose header carries a lock mark (the ledger window, AF-HDR-BL) repaints it here, so the
+  -- mark follows the lock by every route: the mark itself, the verbs, the checkbox, a profile switch.
+  local paintLock = type(frame) == "table" and rawget(frame, "paintLockMark") or nil
+  if type(paintLock) == "function" then paintLock(locked) end
 end
 
 -- The NS keys of the window owners each pass walks. Module-level NAME lists, resolved against NS at

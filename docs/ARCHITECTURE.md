@@ -193,7 +193,7 @@ re-enters it.
 | Broker label | `Ka0s Bank Ledger` — the **brand name in plain text** (`launcher-§1`), which is what a broker display prints in its row beside the collection's other ten. Deliberately **not** the TOC's `## Title` (a Title may carry color escapes) and **not** the folder name (that is the registration name above). It read `Bank Ledger` until the v2.54.0 amendment. |
 | Icon | `Interface\AddOns\BankLedger\media\logos\bankledger.logo.128.tga`, the same file `## IconTexture` names (`launcher-§4`, `layout-§4`): 128×128, uncompressed 32-bit |
 | Left-click | Opens the settings panel (`openSettings`, `NS.Panel:Open`), always and in either state (`launcher-§2` as of standard v2.67.0; Launcher minor 4, LibKa0s v1.58.0). Until v1.58.0 this addon was **rung (a)** and its left click toggled the ledger; the rungs are retired and that toggle is the menu's *Show window*. |
-| Right-click | Opens the **options menu**, the client's own context menu (`MenuUtil.CreateContextMenu`), built by the library and titled `Ka0s Bank Ledger`: **Enabled** (`isEnabled` / `setEnabled` → `/bl enable` or `/bl disable`, `Sl:CliEnabled`), **Locked** (`isLocked` / `toggleLock` → `/bl set settings.locked <bool>`, `Sl:CliSet`, since this addon has no `lock` verb), **Test mode** (`isTestMode` / `toggleTestMode` → `/bl test`, `LT:ToggleTestMode`) and **Show window** (`isWindowShown` / `toggleWindow` → `/bl toggle`, `B:Toggle`). Each toggle is looked up in `NS.COMMANDS` at click time and runs that verb's own handler, messages and refusals included. While disabled the library grays Locked, Test mode and Show window with `(enable the addon first)`; Enabled stays live. The entries match the row the standard's `ADDONS.md` records for this addon. On a client without `MenuUtil` the right click opens the settings panel. |
+| Right-click | Opens the **options menu**, the client's own context menu (`MenuUtil.CreateContextMenu`), built by the library and titled `Ka0s Bank Ledger`: **Enabled** (`isEnabled` / `setEnabled` → `/bl enable` or `/bl disable`, `Sl:CliEnabled`), **Locked** (`isLocked` / `toggleLock` → `/bl lock` or `/bl unlock`, `Sl:CliLocked`, the seam the ledger window's lock mark calls too; AF-HDR-BL), **Test mode** (`isTestMode` / `toggleTestMode` → `/bl test`, `LT:ToggleTestMode`) and **Show window** (`isWindowShown` / `toggleWindow` → `/bl toggle`, `B:Toggle`). Each toggle is looked up in `NS.COMMANDS` at click time and runs that verb's own handler, messages and refusals included. While disabled the library grays Locked, Test mode and Show window with `(enable the addon first)`; Enabled stays live. The entries match the row the standard's `ADDONS.md` records for this addon. On a client without `MenuUtil` the right click opens the settings panel. |
 | Tooltip | **Drawn by the library** (Launcher minor 3, LibKa0s v1.57.0; `launcher-§1` as of standard v2.66.0), on every hover and **while disabled**: `Ka0s Bank Ledger  v<version>` (the TOC's, through `NS.Version`), `Enabled: Yes\|No` (from `isEnabled`), `Locked: Yes\|No` (from `isLocked`, the stored `settings.locked` the *Lock frame* row writes), `Test mode: On\|Off` (from `isTestMode`, `LT:IsTestMode`, the *Test mode* row's own `get`), then this addon's one extra line — the live movement count, the only thing its `onTooltipShow` draws — then `Left-click: Open settings` and `Right-click: Options menu`, fixed in both states since Launcher minor 4 (v1.57.0's `Left-click: Toggle ledger window` and its disabled hint are gone with the rungs). Every value is read on each show, never cached. Until v1.57.0 the host hook drew the whole tooltip, title and click hints included. |
 | Visibility | The **Minimap button** row on General ▸ Master controls: CLI path `minimap.shown` (`/bl get minimap.shown`), stored at LibDBIcon's `db.global.minimap.hide` |
 | Resets | **Neither reset reaches the row** (`launcher-§3`). Both did before the v2.54.0 amendment. |
@@ -301,8 +301,9 @@ gets no close event either.
 ## Slash Commands
 
 `/bl`, aliased `/bankledger`, generated from `NS.COMMANDS` so `/bl help` and the settings landing
-page read one table. Twenty-one verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
-seam. `/bl skin` is the reserved skin verb (LibKa0s v1.82.0's `O.SkinVerb`): the first-run skin
+page read one table. Twenty-three verbs; `settings/Slash.lua` is the LibKa0s-Slash-1.0
+seam. `/bl lock` and `/bl unlock` write the *Lock frame* row through `Sl:CliLocked`, the seam the
+ledger window's lock mark and the launcher's *Locked* entry reach (`slash-commands-§8`, AF-HDR-BL). `/bl skin` is the reserved skin verb (LibKa0s v1.82.0's `O.SkinVerb`): the first-run skin
 picker on demand, refused while the addon is disabled. `/bl sim` is the simulator's one feature verb, handing its words to `NS.Sim:RunVerb`
 (LibKa0s-Sim-1.0's grammar); the launcher menu's *Sim mode* entry and the Master controls *Sim mode* checkbox run this same verb (R6-SIM), and there is no key binding. A bare `/bl` runs `config`, which opens the settings panel on its landing page, and `/bl help`
 prints the list (`slash-commands-§4`). `/bl profile` lists the profiles, and `/bl profile <name>`
@@ -619,17 +620,27 @@ for member.
 - **The title-bar marks (AD-86-BL, LibKa0s#86; standalone-windows, *Title-bar controls*).** All three
   host windows build their marks with `LibKa0s-Widgets-1.0`'s `W.HeaderButtons`, through one helper,
   `B:HeaderMarks` (`modules/Browser_Chrome.lua`). Left to right they read **settings · close**,
-  right-aligned from the bar's corner, `HEADER.PAD` (6) in and `HEADER.GAP` (6) apart, and
+  and on the ledger window, the primary window, **lock · settings · close** (AF-HDR-BL;
+  standalone-windows, *Which marks a window owes*, v2.115.0), right-aligned from the bar's corner, `HEADER.PAD` (6) in and `HEADER.GAP` (6) apart, and
   `S.Header` places them on the band at the strip's own offsets (`hb.right`). The close is
   `B:MakeCloseButton`, handed to the strip as its `makeClose`. It stays 24 px under the decline in
   *Documented deviations*, so the settings mark sits 36 px in from the corner. The settings mark is
   the library's, in an 18 px slot with the 12 px `settings` art: `icon.tint` at rest, `text.link`
   under the pointer and "Open settings" above it. Its click goes through LibKa0s-Core-1.0's
   `OpenSettings("BankLedger")`, which reaches the launcher's `openSettings` (`NS.Panel:Open`). No
-  window opts out. The addon builds no `DragHandle`, so the drag strip's settings mark does not
-  apply. Degraded, with no `HeaderButtons`, each window keeps its close alone, 6 px in.
-  `tests/test_title_bar.lua` pins the order, the offsets, the click and the colors, and the degraded
-  rung too: the close alone, `RIGHT` 6 px in, and no settings mark recorded.
+  window opts out. The ledger window's lock mark is a `HeaderButtons` extra (`B:LockMark`), in an 18 px
+  slot one `HEADER.GAP` (6 px) inward of settings: the `lock` art while `settings.locked` is true and `unlock` while it is false,
+  "Unlock the windows" or "Lock the windows" above it, and its click `Sl:ToggleLock`, which runs
+  `Sl:CliLocked`, the seam `/bl lock`, `/bl unlock` and the launcher's *Locked* entry reach.
+  `HeaderButtons` reads a mark's art and words once, so `NS.Util.ApplyMasterFrame` repaints this one
+  through the window's `paintLockMark` (`B:PaintLockMark`) every time the master chrome is applied:
+  at build, on the *Lock frame* row's `onChange`, after either verb, on a profile switch. The session
+  window and the export modal are secondary windows and carry no lock (the lock still covers them).
+  The addon builds no `DragHandle`, so the drag strip's marks do not apply. Degraded, with no
+  `HeaderButtons`, each window keeps its close alone, 6 px in, and the lock is the checkbox's, the
+  verbs' and the launcher's. `tests/test_title_bar.lua` pins the order, the offsets, the click, the
+  lock mark's art, words and repaint, and the colors, and the degraded rung too: the close alone,
+  `RIGHT` 6 px in, and no settings mark recorded.
 - **The EllesmereUI provider.** The library's (`SkinEUI.lua`). With source `eui` and its gate holding
   (EllesmereUI's `RegisterSkin` and `EllesmereUIBlizzardSkin` loaded, third-party skins on, this
   addon not switched off in its list), EllesmereUI's facade paints the vocabulary it has; otherwise
@@ -676,7 +687,7 @@ Outside the gate's reach, also on purpose:
   under Ka0s Default, byte for byte since LibKa0s v1.81.0), class colors on the Character column
   and the Insights per-character labels, and the coin and class art in text.
 - **The store identity palette** `C.StoreRGB` (bank gold, warband cyan, guild magenta, bags gray):
-  which store a row is, the same under every skin, the way DPS Race keeps its per-player colors. No
+  which store a row is, the same under every skin, the way Combat Trail's race window keeps its per-player colors. No
   token holds three of the four values (DECISIONS BankLedger D3, for the owner to overrule).
 - **Alpha literals** over token components (`NS.SkinBar(fill, r, g, b, 0.95)` in the Insights bars):
   the surface's opacity, the same under every skin. The legend chips stay flat colors, not bars.
@@ -746,7 +757,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 21 verbs in `NS.COMMANDS` as measured on 2026-11-06 (threshold is 8) |
+| `slash-dispatch.md` | Present | 23 verbs in `NS.COMMANDS` as measured on 2026-11-19 (threshold is 8) |
 | `midnight-quirks.md` | Present | Always (documentation-§3): the vendored `client-quirks` catalog block, then the addon's own client-version workarounds |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 15 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
