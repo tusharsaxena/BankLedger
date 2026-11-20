@@ -663,15 +663,25 @@ for member.
 - **The value gate.** The kit's `tests/_kit/test_skin_values.lua` (kit revision 50) fails on a typed
   color or client texture in every tracked file under `core/`, `modules/` and `settings/` that no kit
   category takes and no host row names (anti-pattern #107). `core/SkinSetup.lua` is out of scope, and
-  a row that matches nothing fails. `tests/skin_facts.lua` holds this addon's facts: no rows today,
+  a row that matches nothing fails. `tests/skin_facts.lua` holds this addon's facts: six rows (below),
   and `NS.SkinBar` as its one paint call of its own.
 - **The switch test.** The kit's `tests/_kit/test_skin_switch.lua` flips each surface
   `tests/skin_facts.lua` declares between Ka0s Default and a probe skin that gives every token its
-  own value, and fails a surface that draws the same. Coverage is that list.
+  own value, and fails a surface that draws the same. From kit revision 58 (LibKa0s v1.108.0) each
+  setter family a surface draws (texture, color, font, shadow) has to move on its own, and a face
+  that moves while no color is set on it fails. Every Insights data fill (the ranked bar's fill, a
+  stacked segment, a back-to-back side, a split side, a strip column) is a plain Texture in the
+  skin's bar texture and declares `expect = "texture"`, so a fill whose texture stops following
+  fails even while its tint moves. The Insights bars and list rows are drawn through the pane's own
+  renderers (`modules/Insights_Render.lua`), which set every label's color. Coverage is that list.
 
 ### Intentional exceptions
 
-The gate has no host rows: the kit's own categories take every typed value this addon keeps.
+The gate's host rows (`tests/skin_facts.lua`): the four `C.StoreRGB` entries (`core/Constants.lua`,
+cause `MC`, a meaning table under skinning-§9), the palette's guard for a skin with no
+`chart.series` (`modules/InsightsWidgets.lua`, kit category `unreachable default`) and the panel
+dump's vertex-color placeholder (`settings/Panel.lua`, kit category `not a color`). The kit's own
+categories take every other typed value this addon keeps.
 
 | File | What | Kit category |
 |---|---|---|
@@ -688,9 +698,11 @@ Outside the gate's reach, also on purpose:
   and the Insights per-character labels, and the coin and class art in text.
 - **The store identity palette** `C.StoreRGB` (bank gold, warband cyan, guild magenta, bags gray):
   which store a row is, the same under every skin, the way Combat Trail's race window keeps its per-player colors. No
-  token holds three of the four values (DECISIONS BankLedger D3, for the owner to overrule).
+  token holds three of the four values (DECISIONS BankLedger D3; skinning-§9's meaning colors, the
+  skin-defaults audit of 2026-11-20 recording it as an override).
 - **Alpha literals** over token components (`NS.SkinBar(fill, r, g, b, 0.95)` in the Insights bars):
-  the surface's opacity, the same under every skin. The legend chips stay flat colors, not bars.
+  the surface's opacity, the same under every skin, a fades-and-dims Leave (the owner's U-13 of
+  2026-11-20). The legend chips stay flat colors, not bars.
 - **Fonts.** The skin's face reaches every text the addon shows: the primitives draw their own and
   the addon's `GameFont*` FontStrings take it through `S.Font`, face only, at sizes relative to Ka0s
   Default's. Ka0s Default's face is Prototype (Oxanium until LibKa0s v1.82.0), so the addon's strings

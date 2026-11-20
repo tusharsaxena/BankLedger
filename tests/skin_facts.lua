@@ -84,7 +84,7 @@ return function(T)
     return m.CreateFrame("Frame", nil, m.UIParent)
   end
 
-  local strip, placed
+  local strip, placed, split, caption
   local function hud(make)
     return function()
       addon()
@@ -133,6 +133,21 @@ return function(T)
   -- One ranked bar (I:RenderBars), in the neutral bucket's color, its label self-legending in it.
   local function rankedBar(p, key)
     p:RenderBars(key, key, { { label = "Reagent", frac = 1, value = "3" } }, 0, 400)
+    return p.pools[key].active[1]
+  end
+
+  -- One stacked bar (I:RenderStacked), its one segment in the palette's first color.
+  local function stackedBar(p, key)
+    local color = ns.InsightsWidgets.PaletteColor(1)
+    p:RenderStacked(key, key, { { label = "Reagent", value = "3",
+      segments = { { frac = 0.6, color = color, tip = "t" } } } }, 0, 400)
+    return p.pools[key].active[1]
+  end
+
+  -- One back-to-back row (I:RenderBackToBack), its sides in the direction colors.
+  local function backToBackBar(p, key)
+    p:RenderBackToBack(key, key, { { label = "Reagent", value = "3", leftFrac = 0.5, rightFrac = 0.5,
+      leftTip = "l", rightTip = "r" } }, 0, 400)
     return p.pools[key].active[1]
   end
 
@@ -259,20 +274,43 @@ return function(T)
       end),
       paint = function() placed() end,
     }),
+    -- The data fills (SD-SK-BL.3 of Ka0sAddonsCommonTasks docs/2026-11-20-SKIN_DEFAULTS_AUDIT): each
+    -- is a plain Texture NS.SkinBar paints in the skin's bar texture and a data color, so each asks
+    -- `expect = "texture"`; without it a fill whose texture stopped following would pass on its tint.
+    surface("a ranked bar's fill", rendered({ expect = "texture" },
+      function(p, key) return rankedBar(p, key).fill end)),
+    surface("a stacked bar's segment", rendered({ expect = "texture" },
+      function(p, key) return stackedBar(p, key).segs[1].tex end)),
+    surface("a back-to-back bar's side", rendered({ expect = "texture" },
+      function(p, key) return backToBackBar(p, key).leftSide.tex end)),
+    surface("a back-to-back bar's face", rendered({}, function(p, key) return backToBackBar(p, key).label end)),
     surface("a split bar's side", {
+      expect = "texture",
       build = hud(function(W, p)
         local bar = W.MakeSplitBar(p)
         local left = { label = "In", value = "1", frac = 0.5, color = W.MUTED, text = "t" }
         local right = { label = "Out", value = "1", frac = 0.5, color = W.MUTED, text = "t" }
-        placed = function() W.PlaceSplitBar(bar, p, 0, 0, 100, left, right) end
-        placed()
-        return bar
+        split = function() W.PlaceSplitBar(bar, p, 0, 0, 100, left, right) end
+        split()
+        return bar.left.tex
       end),
-      paint = function() placed() end,
+      paint = function() split() end,
+    }),
+    surface("a split bar's caption", {
+      build = hud(function(W, p)
+        local bar = W.MakeSplitBar(p)
+        local left = { label = "In", value = "1", frac = 0.5, color = W.POSITIVE, text = "t" }
+        local right = { label = "Out", value = "1", frac = 0.5, color = W.NEGATIVE, text = "t" }
+        caption = function() W.PlaceSplitBar(bar, p, 0, 0, 100, left, right) end
+        caption()
+        return bar.leftText
+      end),
+      paint = function() caption() end,
     }),
     surface("a legend swatch", { build = hud(function(W, p) return W.MakeSwatch(p) end) }),
     surface("a list row's face", rendered({}, function(p) return listRow(p).name end)),
     surface("a strip bar's fill", {
+      expect = "texture",
       build = hud(function(W, p)
         local f = { fill = p:CreateTexture(nil, "ARTWORK") }
         strip = f

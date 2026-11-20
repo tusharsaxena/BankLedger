@@ -1856,7 +1856,7 @@ Total.
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (81)
+### test_skin_switch.lua (91)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
 - skin switch: the check is falsifiable, a bar whose texture never moves is reported
@@ -1928,8 +1928,18 @@ Total.
 - skin switch: a bar's face changes with the Scope ignored
 - skin switch: a bar's track changes
 - skin switch: a bar's track changes with the Scope ignored
+- skin switch: a ranked bar's fill changes
+- skin switch: a ranked bar's fill changes with the Scope ignored
+- skin switch: a stacked bar's segment changes
+- skin switch: a stacked bar's segment changes with the Scope ignored
+- skin switch: a back-to-back bar's side changes
+- skin switch: a back-to-back bar's side changes with the Scope ignored
+- skin switch: a back-to-back bar's face changes
+- skin switch: a back-to-back bar's face changes with the Scope ignored
 - skin switch: a split bar's side changes
 - skin switch: a split bar's side changes with the Scope ignored
+- skin switch: a split bar's caption changes
+- skin switch: a split bar's caption changes with the Scope ignored
 - skin switch: a legend swatch changes
 - skin switch: a legend swatch changes with the Scope ignored
 - skin switch: a list row's face changes
@@ -2026,7 +2036,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 81 |
+| test_skin_switch.lua | 91 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1703** |
+| **Total** | **1713** |
