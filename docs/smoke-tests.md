@@ -1863,3 +1863,8 @@ moves nothing this addon draws: it builds no drag strip.
 Owed by the run for LibKa0s#94, #97, #99 and #100 (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_94_97_99_100/`,
 item SD-RV-BL, LibKa0s v1.108.0 and test kit revision 58): no new check. The release moves nothing this
 addon draws: its footer carries no marks, and it builds no `W.Bar`, Charts context, drag strip or call-out.
+Owed by the same run, item SD-SK-BL (the skin-defaults audit's SD-SK-BL.1 to .3, the owner's R-2):
+new checks PANEL-33 (the row tint opacities follow the skin), PANEL-34 (an upgrade keeps a moved
+row slider, schema v7) and SKIN-49 (the Minimum quality labels on a skinned settings page). PANEL-7,
+PANEL-21, PANEL-22, PANEL-23, PANEL-28 and SKIN-5 were rewritten for the companions, so their pass
+marks came off. SD-SK-BL.3 and the guard declarations are headless only: no check.

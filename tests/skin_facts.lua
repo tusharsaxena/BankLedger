@@ -18,9 +18,10 @@
 --
 -- `paint` is the redraw the mock cannot fire: a pooled row's bind, a menu's open. A recorded
 -- primitive needs none. The two row tint surfaces carry a companion, the row stripe and hover
--- opacities' FromSkin keys (SD-SK-BL.1); this addon has no HUD and no other FromSkin key. `scope = "panel"` is the one settings-page surface. The Insights
--- faces are drawn through the pane's renderers, which set their colors on every pass, so no surface
--- needs `scope = "fonts"` any more.
+-- opacities' FromSkin keys (SD-SK-BL.1); this addon has no HUD and no other FromSkin key.
+-- `scope = "panel"` marks the settings-page surfaces. The Insights faces are drawn through the
+-- pane's renderers, which set their colors on every pass. `scope = "fonts"` marks the store cell,
+-- whose meaning color is held (`hold`), so it draws a face and no color that follows.
 
 return function(T)
   local OWNER = "BankLedger"
@@ -68,6 +69,9 @@ return function(T)
   -- A row of the History table, off the pool, as LT:Bind hands one to LT:BindRow.
   local ENTRY = { kind = "item", direction = "in", count = 2, itemID = 1, ts = 1770000000, char = "A-B" }
   local HEADER = { kind = "header", label = "Character Bank", count = 3 }
+  -- A row at the character bank, with a quality, for the item and store cells.
+  local STORED = { kind = "item", direction = "in", count = 2, itemID = 1, ts = 1770000000, char = "A-B",
+    store = "BANK", quality = 4 }
   local row
   local function bind(index, item)
     ns.LedgerTable:BindRow(row, item or { entry = ENTRY }, index)
@@ -186,7 +190,9 @@ return function(T)
   -- No surface for the line under a title band: no window draws one (R4-SEP); each window's
   -- 1px dividerBar is an anchor with nothing on it (tests/test_skin_chrome.lua holds that).
   local surfaces = {
-    surface("the window's shell", { build = function()
+    -- The shell draws the skin's edge and window art (S.Shell), so its textures are asked too; a
+    -- title band is a flat fill on a white base, asked for its color alone.
+    surface("the window's shell", { expect = "texture", build = function()
       addon()
       local f = m.CreateFrame("Frame", nil, m.UIParent, "BackdropTemplate")
       ns.Browser:ApplySkin(f)
@@ -226,6 +232,20 @@ return function(T)
     surface("a History row's cell", {
       build = function() return bound(1).cells.direction end,
       paint = function() bind(1) end,
+    }),
+    -- An item's name takes the skin's q.* (NS.QualityColor), so it follows like any other cell.
+    surface("a History row's item cell", {
+      build = function() return bound(1, { entry = STORED }).cells.item end,
+      paint = function() bind(1, { entry = STORED }) end,
+    }),
+    -- The store cell's hue is the store, from the meaning table C.StoreRGB: skinning-§9's meaning
+    -- colors keep it under every skin (the skin-defaults audit's OVERRIDE row, LibKa0s#97), so its
+    -- color is held and only its face follows, so with fonts ignored nothing of it moves (`scope`).
+    surface("a History row's store cell", {
+      hold = { "color" },
+      scope = "fonts",
+      build = function() return bound(1, { entry = STORED }).cells.store end,
+      paint = function() bind(1, { entry = STORED }) end,
     }),
     -- The row tints follow the skin's alpha while their companions are on (SD-SK-BL.1), so each
     -- surface carries its companion: the kit turns it on in the clear pass and leaves the surface

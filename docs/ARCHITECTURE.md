@@ -674,8 +674,11 @@ for member.
   that moves while no color is set on it fails. Every Insights data fill (the ranked bar's fill, a
   stacked segment, a back-to-back side, a split side, a strip column) is a plain Texture in the
   skin's bar texture and declares `expect = "texture"`, so a fill whose texture stops following
-  fails even while its tint moves. The Insights bars and list rows are drawn through the pane's own
-  renderers (`modules/Insights_Render.lua`), which set every label's color. Coverage is that list.
+  fails even while its tint moves, and so does the window shell, which draws the skin's edge and art.
+  The Insights bars and list rows are drawn through the pane's own renderers
+  (`modules/Insights_Render.lua`), which set every label's color. The History store cell holds its
+  color (`hold`): its hue is `C.StoreRGB`'s meaning, kept under every skin (skinning-§9), so only its
+  face follows. The two row tint surfaces carry their `FromSkin` companions. Coverage is that list.
 
 ### Intentional exceptions
 

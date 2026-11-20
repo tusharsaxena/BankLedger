@@ -1863,7 +1863,7 @@ Total.
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (92)
+### test_skin_switch.lua (95)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
 - skin switch: the check is falsifiable, a bar whose texture never moves is reported
@@ -1901,6 +1901,9 @@ Total.
 - skin switch: the History empty text changes with the Scope ignored
 - skin switch: a History row's cell changes
 - skin switch: a History row's cell changes with the Scope ignored
+- skin switch: a History row's item cell changes
+- skin switch: a History row's item cell changes with the Scope ignored
+- skin switch: a History row's store cell changes
 - skin switch: a History row's stripe changes
 - skin switch: a History row's hover wash changes
 - skin switch: a History group header changes
@@ -2044,7 +2047,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 92 |
+| test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1721** |
+| **Total** | **1724** |
