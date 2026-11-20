@@ -1852,13 +1852,14 @@ Total.
 
 ### test_skin_values.lua (3)
 
-- skin values: every host row carries its file, substring, why and cause id
+- skin values: every host row carries its file, substring, why and a cause id or kit row category
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (78)
+### test_skin_switch.lua (81)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
+- skin switch: the check is falsifiable, a bar whose texture never moves is reported
 - skin switch: the window's shell changes
 - skin switch: the window's shell changes with the Scope ignored
 - skin switch: the ledger's title band changes
@@ -1924,6 +1925,7 @@ Total.
 - skin switch: a section divider's title changes
 - skin switch: a section divider's title changes with the Scope ignored
 - skin switch: a bar's face changes
+- skin switch: a bar's face changes with the Scope ignored
 - skin switch: a bar's track changes
 - skin switch: a bar's track changes with the Scope ignored
 - skin switch: a split bar's side changes
@@ -1931,6 +1933,7 @@ Total.
 - skin switch: a legend swatch changes
 - skin switch: a legend swatch changes with the Scope ignored
 - skin switch: a list row's face changes
+- skin switch: a list row's face changes with the Scope ignored
 - skin switch: a strip bar's fill changes
 - skin switch: a strip bar's fill changes with the Scope ignored
 - skin switch: a tooltip's lines changes
@@ -2023,7 +2026,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 78 |
+| test_skin_switch.lua | 81 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1700** |
+| **Total** | **1703** |

@@ -1826,3 +1826,7 @@ AF-HDR-BL): new checks STATE-10 (the ledger window's lock mark) and STATE-11 (`/
 and the launcher's *Locked* entry on the same seam). No pass mark came off: the Lock frame row's
 behavior (STATE-8) and the Locked entry's (STATE-4) are unchanged. Item AF-RV-BL (LibKa0s v1.107.0)
 moves nothing this addon draws: it builds no drag strip.
+
+Owed by the run for LibKa0s#94, #97, #99 and #100 (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_94_97_99_100/`,
+item SD-RV-BL, LibKa0s v1.108.0 and test kit revision 58): no new check. The release moves nothing this
+addon draws: its footer carries no marks, and it builds no `W.Bar`, Charts context, drag strip or call-out.

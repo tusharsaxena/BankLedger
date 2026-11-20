@@ -2,14 +2,15 @@
 -- 50): Kit.skinValues for tests/_kit/test_skin_values.lua and Kit.skinSwitch for
 -- tests/_kit/test_skin_switch.lua. Both are set from tests/run.lua.
 --
--- THE TYPED-VALUE GATE. Every typed color and texture in this addon is a kit category today, so
--- `rows` is empty, and a new hit is a value to read through a token, or a row naming its cause id.
+-- THE TYPED-VALUE GATE. Every typed color and texture in this addon is a kit category or one of
+-- `rows` (the store palette's meaning hues, and two kit row categories, kit revision 58), and a new
+-- hit is a value to read through a token, or a row naming its cause id or category.
 -- `calls` adds the one paint call of this addon's own: NS.SkinBar(tex, r, g, b, a).
 --
--- THE SWITCH TEST. One entry per painted surface, each narrow on purpose: the kit passes a surface
--- when anything it answers changes, and it walks an answered frame's regions and children, so a
--- whole window would pass on its title alone and prove nothing about the rest. A surface answers
--- the smallest object that draws it.
+-- THE SWITCH TEST. One entry per painted surface, each narrow on purpose: the kit walks an answered
+-- frame's regions and children, so a whole window would pass on its title alone and prove nothing
+-- about the rest. A surface answers the smallest object that draws it. From kit revision 58 each
+-- setter family (texture, color, font, shadow) a surface draws has to move on its own.
 --
 -- The surfaces stand on a private addon over the kit's paint recorder, built on the first read, as
 -- tests/test_skin_chrome.lua's are: the kit flips the owner's skin, and the shared addon's windows,
@@ -17,8 +18,9 @@
 --
 -- `paint` is the redraw the mock cannot fire: a pooled row's bind, a menu's open. A recorded
 -- primitive needs none. No surface has a companion, because this addon has no HUD and none of its
--- rows follows a FromSkin key. `scope = "panel"` is the one settings-page surface, and
--- `scope = "fonts"` marks the two surfaces that draw a face and no color.
+-- rows follows a FromSkin key. `scope = "panel"` is the one settings-page surface. The Insights
+-- faces are drawn through the pane's renderers, which set their colors on every pass, so no surface
+-- needs `scope = "fonts"` any more.
 
 return function(T)
   local OWNER = "BankLedger"
@@ -88,6 +90,56 @@ return function(T)
       addon()
       return make(ns.InsightsWidgets, parent())
     end
+  end
+
+  -- The Insights pane's own renderers (modules/Insights_Render.lua), over a stand-in pane. A refresh
+  -- after a switch (I:Reskin) re-runs them, and they set every label's color and paint every fill
+  -- on each pass, so a surface drawn through them is drawn as the pane draws it, colors included
+  -- (kit revision 58 reports a face that moves while no color is set on it). Each surface gets its
+  -- own section header and pool; the repaint releases the pool and renders again, and the pool hands
+  -- the first position the object it had (LibKa0s-Pool's backward park).
+  local pane, sections = nil, 0
+  local function insights()
+    addon()
+    if not pane then
+      local content = parent()
+      pane = setmetatable({ content = content, headers = {}, pools = {}, panelPool = ns.InsightsWidgets.NewPool() },
+        { __index = ns.Insights })
+    end
+    return pane
+  end
+
+  -- A surface over one renderer: `render(p, key)` draws one section and answers the object to watch.
+  local function rendered(spec, render)
+    local key
+    local function draw()
+      local p = insights()
+      local W = ns.InsightsWidgets
+      if not key then
+        sections = sections + 1
+        key = "skinSurface" .. sections
+        p.headers[key] = W.MakeSectionHeader(p.content, "T")
+        p.pools[key] = W.NewPool()
+      end
+      W.ReleaseAll(p.pools[key])
+      W.ReleasePanels(p.panelPool)
+      return render(p, key)
+    end
+    spec.build = draw
+    spec.paint = function() draw() end
+    return spec
+  end
+
+  -- One ranked bar (I:RenderBars), in the neutral bucket's color, its label self-legending in it.
+  local function rankedBar(p, key)
+    p:RenderBars(key, key, { { label = "Reagent", frac = 1, value = "3" } }, 0, 400)
+    return p.pools[key].active[1]
+  end
+
+  -- One Top-of-the-list row (I:RenderList), its name in text.value.
+  local function listRow(p)
+    p:RenderList("Title", { { name = "Linen Cloth", right = "20" } }, 0, 0, 200)
+    return p.panelPool.active[1]._rows.active[1]
   end
 
   -- A band is the frame's own backdrop or texture, and the kit walks whatever a frame answers, so the
@@ -197,7 +249,7 @@ return function(T)
     surface("a KPI card", { build = hud(function(W, p) return W.MakeCard(p) end) }),
     surface("a list panel", { build = hud(function(W, p) return W.MakeListPanel(p, "Title") end) }),
     surface("a section divider's title", { build = hud(function(W, p) return W.MakeSectionDivider(p, "T").fs end) }),
-    surface("a bar's face", { scope = "fonts", build = hud(function(W, p) return W.MakeBar(p).label end) }),
+    surface("a bar's face", rendered({}, function(p, key) return rankedBar(p, key).label end)),
     surface("a bar's track", {
       build = hud(function(W, p)
         local bar = W.MakeBar(p)
@@ -219,7 +271,7 @@ return function(T)
       paint = function() placed() end,
     }),
     surface("a legend swatch", { build = hud(function(W, p) return W.MakeSwatch(p) end) }),
-    surface("a list row's face", { scope = "fonts", build = hud(function(W, p) return W.MakeListRow(p).name end) }),
+    surface("a list row's face", rendered({}, function(p) return listRow(p).name end)),
     surface("a strip bar's fill", {
       build = hud(function(W, p)
         local f = { fill = p:CreateTexture(nil, "ARTWORK") }
@@ -251,7 +303,28 @@ return function(T)
     }),
   }
 
+  -- Kit revision 58's scanner reads three-number tables and multi-assigned triples, which revision
+  -- 57 did not, so these three lines are new hits with no change to the code under them.
+  local STORE = "a store's identity hue in the named meaning table C.StoreRGB: the store is what the "
+    .. "color tells, and skinning-§9 keeps a meaning table's hue under every skin (the skin-defaults "
+    .. "audit's OVERRIDE row, LibKa0s#97)"
+  local rows = {
+    { file = "core/Constants.lua", substring = "BANK         = {", why = STORE, cause = "MC" },
+    { file = "core/Constants.lua", substring = "WARBAND_BANK = {", why = STORE, cause = "MC" },
+    { file = "core/Constants.lua", substring = "GUILD_BANK   = {", why = STORE, cause = "MC" },
+    { file = "core/Constants.lua", substring = "BAGS         = {", why = STORE, cause = "MC" },
+    { file = "modules/InsightsWidgets.lua", substring = "series = { { 1, 1, 1 } }",
+      why = "the palette's guard for a skin with no chart.series: every skin states one, and Ka0s "
+        .. "Default's fills any gap, so no player sees it",
+      category = "unreachable default" },
+    { file = "settings/Panel.lua", substring = "local r, g, b, a = 1, 1, 1, 1",
+      why = "a texture's vertex color as the panel's diagnostic dump prints it, as numbers in a "
+        .. "report; it starts at white for a texture that cannot answer and draws nothing",
+      category = "not a color" },
+  }
+
   return {
+    rows = rows,
     calls = { SkinBar = { 2, 3, 4 } },
   }, {
     owner = OWNER,
