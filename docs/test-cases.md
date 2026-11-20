@@ -320,7 +320,7 @@ Total.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
-- RunMigrations announces the v1->v6 pass in one [Migrate] line
+- RunMigrations announces the v1->v7 pass in one [Migrate] line
 - RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
 - RunMigrations stamps a stamp-less store whose ledger is nil, without raising
 - RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
@@ -800,7 +800,7 @@ Total.
 - DebugLog: the header toggle flips the same flag as the slash verb
 - DebugLog:UpdateScrollBar is a clean no-op under a stub frame
 
-### test_schema.lua (57)
+### test_schema.lua (60)
 
 - Schema: every row's path resolves against the defaults table
 - Schema: every row declares a label, a widget and a group
@@ -838,7 +838,10 @@ Total.
 - Schema: the Interface tab heads each KIND of control it mixes
 - Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s
 - Schema: Keep history for says it is account-wide in its opening, and carries no suffix
-- Schema: each promoted tint default IS the literal it replaced
+- Schema: each tint slider defaults to Ka0s Default's own alpha, never fainter
+- Schema: each tint opacity follows the skin through a companion defaulting on (SD-SK-BL.1)
+- Util.ApplyRowTint draws the skin's alpha while a companion is on, the slider's while it is off
+- Util.ReskinRowTint takes each skin's own stripe and hover alpha
 - Util.RowTintAlpha clamps what SavedVariables hands it
 - Util.ApplyRowTint paints both textures and drives the banding
 - Schema: every row carries a tooltip
@@ -1383,7 +1386,7 @@ Total.
 - report verbs: /bl debug panel with no settings panel refuses in chat and writes nothing
 - report verbs: without LibKa0s the stub streams /bl debug scan to chat with no pointer
 
-### test_profiles.lua (48)
+### test_profiles.lua (49)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1405,6 +1408,7 @@ Total.
 - Migrate v5: a profile with no saved view gains nothing
 - Migrate v5: idempotent, and a slot a later build already wrote is never overwritten
 - Migrate v6: a stored Ka0s Friz Quadrata TT moves to Ka0s Ubuntu in every profile, Blizzard's Friz kept
+- Migrate v7: a stored row tint pick keeps its slider, every other profile follows the skin
 - Profiles: a switch re-reads every setting from the new profile
 - Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
 - Profiles: a switch to a disabled profile stands the addon down, and back stands it up
@@ -1653,7 +1657,7 @@ Total.
 - skin windows: Ka0s Default's table colors are the values the table drew before the skin
 - skin windows: a switch re-resolves the table's cached colors and its tinted marks
 - skin windows: a group header's count reads the cached escape, never a token per bind
-- skin windows: the row tints take the skin's RGB and keep the player's slider alpha
+- skin windows: the row tints take the skin's RGB and alpha, and a companion off keeps the slider
 - skin windows: the row menu's destructive entry is the skin's danger escape
 - skin windows: Ka0s Default's Insights colors are the values Insights drew before the skin
 - skin windows: a switch moves the Insights triples in place, the palette and the escapes
@@ -1898,7 +1902,7 @@ Total.
 - skin switch: a History row's cell changes
 - skin switch: a History row's cell changes with the Scope ignored
 - skin switch: a History row's stripe changes
-- skin switch: a History row's stripe changes with the Scope ignored
+- skin switch: a History row's hover wash changes
 - skin switch: a History group header changes
 - skin switch: a History group header changes with the Scope ignored
 - skin switch: the session window's title changes
@@ -1984,7 +1988,7 @@ Total.
 | test_insights.lua | 79 |
 | test_export.lua | 45 |
 | test_debuglog.lua | 18 |
-| test_schema.lua | 57 |
+| test_schema.lua | 60 |
 | test_schema_runtime.lua | 18 |
 | test_slash.lua | 59 |
 | test_bus.lua | 10 |
@@ -2010,7 +2014,7 @@ Total.
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
 | test_report_verbs.lua | 6 |
-| test_profiles.lua | 48 |
+| test_profiles.lua | 49 |
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
@@ -2043,4 +2047,4 @@ Total.
 | test_skin_switch.lua | 92 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1717** |
+| **Total** | **1721** |

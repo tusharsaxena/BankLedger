@@ -54,8 +54,11 @@ local STORED_SURFACE = {
   { "settings.qualityThreshold",  0,        "number" },
   { "settings.excludedStores",    "{}",     "table" },
   { "settings.showSessionWindow", true,     "bool" },
-  { "settings.rowStripeAlpha",    0.03,     "number", 0,   0.3, 0.01 },
-  { "settings.rowHoverAlpha",     0.10,     "number", 0,   0.4, 0.01 },
+  { "settings.rowStripeAlpha",    0.08,     "number", 0,   0.3, 0.01 },
+  { "settings.rowHoverAlpha",     0.16,     "number", 0,   0.4, 0.01 },
+  -- SD-SK-BL.1 (the owner's R-2 of 2026-11-20): each opacity follows the skin through a companion.
+  { "settings.rowStripeAlphaFromSkin", true, "bool" },
+  { "settings.rowHoverAlphaFromSkin",  true, "bool" },
   { "settings.sim.stepDelay",     1,        "number", 0.5, 10,  0.5 },
   { "settings.retentionDays",     30,       "number" },
   -- The skin choice (skinning-§2, the skinning rollout's BL-01): seven new paths under
@@ -310,7 +313,7 @@ local PARTITION = {
     { tab = "Master controls", rows = 9 },
     { tab = "Capture",         rows = 4 },
     { tab = "Filters",         rows = 1 },
-    { tab = "Interface",       rows = 4 },
+    { tab = "Interface",       rows = 6 },
     { tab = "History",         rows = 1 },
     { tab = "Appearance",      rows = 8 },
   },
@@ -356,10 +359,10 @@ test("schema: the live and library-absent row counts, and the composed delta", f
   local DS = Env.loadDegraded().Schema
   local live = { schema = #S.Schema, page = #S:PageRows() }
   local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
-  assertEqual(live.schema, 26, "live #S.Schema")
-  assertEqual(degraded.schema, 17, "library-absent #S.Schema")
-  assertEqual(live.page, 27, "live #S:PageRows()")
-  assertEqual(degraded.page, 18, "library-absent #S:PageRows()")
+  assertEqual(live.schema, 28, "live #S.Schema")
+  assertEqual(degraded.schema, 19, "library-absent #S.Schema")
+  assertEqual(live.page, 29, "live #S:PageRows()")
+  assertEqual(degraded.page, 20, "library-absent #S:PageRows()")
   local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
     .. "O.MasterControls, which composes nothing without the library"
   assertEqual(live.schema - degraded.schema, 9, "S.Schema live minus degraded" .. why)
@@ -604,13 +607,92 @@ end)
 
 -- ── The promoted chrome literals (Step 4) ─────────────────────────────────────
 
-test("Schema: each promoted tint default IS the literal it replaced", function()
-  -- If a promoted default is not the number it replaced, every existing install is redrawn by an
-  -- upgrade that promised to change nothing.
-  assertEqual(S:Default("settings.rowStripeAlpha"), 0.03, "the zebra band's old hardcoded alpha")
-  assertEqual(S:Default("settings.rowHoverAlpha"), 0.10, "the hover wash's old hardcoded alpha")
-  assertEqual(NS.defaults.profile.settings.rowStripeAlpha, 0.03, "the defaults mirror disagrees")
-  assertEqual(NS.defaults.profile.settings.rowHoverAlpha, 0.10, "the defaults mirror disagrees")
+test("Schema: each tint slider defaults to Ka0s Default's own alpha, never fainter", function()
+  -- SD-SK-BL.1: skinning-§6 forbids a stripe fainter than the library's list.* values, so the
+  -- stored fallback a player gets by unticking the companion is Ka0s Default's (D-5), not the
+  -- 0.03 and 0.10 literals the sliders were promoted from.
+  assertEqual(S:Default("settings.rowStripeAlpha"), 0.08, "Ka0s Default's list.stripe alpha")
+  assertEqual(S:Default("settings.rowHoverAlpha"), 0.16, "Ka0s Default's list.hover alpha")
+  assertEqual(NS.defaults.profile.settings.rowStripeAlpha, 0.08, "the defaults mirror disagrees")
+  assertEqual(NS.defaults.profile.settings.rowHoverAlpha, 0.16, "the defaults mirror disagrees")
+end)
+
+test("Schema: each tint opacity follows the skin through a companion defaulting on (SD-SK-BL.1)", function()
+  -- R-2 of 2026-11-20 and skinning-§9 *Every option default follows the skin*: the companion is a
+  -- bool defaulting true, the slider is disabled while it is on and shows the skin's alpha.
+  -- red under: no companion, one defaulting false, or a slider left live under it.
+  for _, key in ipairs({ "rowStripeAlpha", "rowHoverAlpha" }) do
+    local companion = S:FindRow("settings." .. key .. "FromSkin")
+    assertTrue(companion ~= nil, key .. " has no companion")
+    assertEqual(companion.type, "bool")
+    assertEqual(companion.default, true, key .. "'s companion does not start on the skin")
+    assertEqual(NS.defaults.profile.settings[key .. "FromSkin"], true, "the defaults mirror disagrees")
+    local slider = S:FindRow("settings." .. key)
+    assertEqual(slider.disabledIf, "settings." .. key .. "FromSkin", key .. " stays live under its companion")
+    assertTrue(type(slider.skinValue) == "function", key .. " does not show the skin's alpha")
+  end
+  local order = pageRowsOf("Interface")
+  local at
+  for i, row in ipairs(order) do
+    if row.path == "settings.rowHoverAlpha" then at = i end
+  end
+  assertEqual(order[at + 1].path, "settings.rowStripeAlphaFromSkin", "the companions follow the slider pair")
+  assertEqual(order[at + 2].path, "settings.rowHoverAlphaFromSkin", "the two companions share a line")
+end)
+
+-- The skin's alpha for a token, read as Util.ReskinRowTint reads it.
+local function skinAlpha(name) return select(4, NS.Skin.Color(name)) end
+
+test("Util.ApplyRowTint draws the skin's alpha while a companion is on, the slider's while it is off", function()
+  local g = NS.db.profile.settings
+  local savedS, savedH = g.rowStripeAlpha, g.rowHoverAlpha
+  local savedSF, savedHF = g.rowStripeAlphaFromSkin, g.rowHoverAlphaFromSkin
+  local painted = {}
+  local row = {
+    stripe   = { SetColorTexture = function(_, _, _, _, a) painted.stripe = a end, SetShown = function() end },
+    rowHover = { SetColorTexture = function(_, _, _, _, a) painted.hover = a end },
+  }
+  local ok, err = pcall(function()
+    g.rowStripeAlpha, g.rowHoverAlpha = 0.2, 0.3
+    NS.Util.ApplyRowTint(row, true)
+    assertEqual(painted.stripe, skinAlpha("list.stripe"), "a stored slider value outranked the skin")
+    assertEqual(painted.hover, skinAlpha("list.hover"), "a stored slider value outranked the skin")
+    assertEqual(S:FindRow("settings.rowStripeAlpha").skinValue(), skinAlpha("list.stripe"),
+      "the disabled slider does not show the skin's alpha")
+    g.rowStripeAlphaFromSkin, g.rowHoverAlphaFromSkin = false, false
+    NS.Util.ApplyRowTint(row, true)
+    assertEqual(painted.stripe, 0.2, "the player's stripe pick was not drawn")
+    assertEqual(painted.hover, 0.3, "the player's hover pick was not drawn")
+    assertEqual(S:FindRow("settings.rowStripeAlpha").skinValue(), nil,
+      "a live slider shows the skin's alpha over the player's")
+  end)
+  g.rowStripeAlpha, g.rowHoverAlpha = savedS, savedH
+  g.rowStripeAlphaFromSkin, g.rowHoverAlphaFromSkin = savedSF, savedHF
+  if not ok then error(err, 0) end
+end)
+
+test("Util.ReskinRowTint takes each skin's own stripe and hover alpha", function()
+  -- The kit's switch test passes the stripe surface on its RGB alone; this holds the alpha.
+  local real = NS.Skin.Color
+  local painted = {}
+  local row = {
+    stripe   = { SetColorTexture = function(_, _, _, _, a) painted.stripe = a end, SetShown = function() end },
+    rowHover = { SetColorTexture = function(_, _, _, _, a) painted.hover = a end },
+  }
+  NS.Skin.Color = function(name)
+    if name == "list.stripe" then return 1, 1, 1, 0.21 end
+    if name == "list.hover" then return 1, 1, 0, 0.27 end
+    return real(name)
+  end
+  local ok, err = pcall(function()
+    NS.Util.ReskinRowTint()
+    NS.Util.ApplyRowTint(row, true)
+  end)
+  NS.Skin.Color = real
+  NS.Util.ReskinRowTint()
+  if not ok then error(err, 0) end
+  assertEqual(painted.stripe, 0.21, "the stripe kept another skin's alpha")
+  assertEqual(painted.hover, 0.27, "the hover kept another skin's alpha")
 end)
 
 test("Util.RowTintAlpha clamps what SavedVariables hands it", function()
@@ -635,8 +717,8 @@ test("Util.ApplyRowTint paints both textures and drives the banding", function()
     rowHover = { SetColorTexture = function(_, _, _, _, a) painted.hover = a end },
   }
   NS.Util.ApplyRowTint(row, true)
-  assertEqual(painted.stripe, NS.Schema:Get("settings.rowStripeAlpha"))
-  assertEqual(painted.hover,  NS.Schema:Get("settings.rowHoverAlpha"))
+  assertEqual(painted.stripe, skinAlpha("list.stripe"))
+  assertEqual(painted.hover,  skinAlpha("list.hover"))
   assertEqual(painted.shown, true)
   NS.Util.ApplyRowTint(row, false)
   assertEqual(painted.shown, false, "an odd row must not wear the band")
@@ -685,8 +767,10 @@ test("Schema: a color row is followed by its companion, and never carries disabl
       assertTrue(row.startsLine == true,
         tostring(row.path) .. " can be split from its companion by an odd row count above it")
     end
-    assertTrue(row.disabledIf == nil,
-      tostring(row.path) .. " carries disabledIf; forbidden on a color row and unused here")
+    -- The row tint sliders are the one use of disabledIf here, under their skin companions
+    -- (SD-SK-BL.1); a color row still never carries it.
+    assertTrue(row.type ~= "color" or row.disabledIf == nil,
+      tostring(row.path) .. " carries disabledIf; forbidden on a color row")
   end
 end)
 

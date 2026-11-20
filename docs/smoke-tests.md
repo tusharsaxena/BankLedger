@@ -14,7 +14,7 @@ leaves its number unused.
 |---|---|---|
 | INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
 | SLASH-1 – 11 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding, its own Keybindings section and the General > Keybindings tab, `/bl skin` |
-| PANEL-1 – 32 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset, the item 020 layout |
+| PANEL-1 – 34 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset, the item 020 layout, the row tint opacities on the skin and a moved slider kept |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 11 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility, the ledger window's lock mark, `/bl lock` and `/bl unlock` |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
@@ -181,8 +181,10 @@ leaves its number unused.
   an uncolored row is the Item seam failing. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-7. Interface tab.** Interface → a **Windows** heading over *Show session window* alone on
   its line, then *Row stripe opacity · Row hover opacity*, the two sliders side by side on the next
-  line, then a **Simulator** heading over *Simulation step delay (seconds)*. Neither heading reads
-  "Interface" (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
+  line, *Use the skin's stripe opacity · Use the skin's hover opacity* under them, then a
+  **Simulator** heading over *Simulation step delay (seconds)*. Neither heading reads "Interface"
+  (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020); the
+  companions' line added 2026-11-20 (SD-SK-BL.1). Result:
 - **PANEL-8. History tab.** History → *Keep history for*, the storage read-out ("N movements recorded
   over N days." then "Database size: ~X", with no "(estimated)"), then **Purge history…** alone.
   Hover it → *Delete every recorded movement on this account. Your settings are left alone. Asks
@@ -231,12 +233,14 @@ leaves its number unused.
 - **PANEL-20. Reset position.** Move the ledger and the session window well off center, then Reset
   position → both return to center at their default size; settings, filter lists and history are
   untouched. Result: pass (owner-marked 2026-10-10)
-- **PANEL-21. Row tints at their defaults.** `/bl show` with rows → every second row carries a faint
-  lighter band (0.03) and a hovered row a faint gold wash (0.10). Result: pass (owner-marked 2026-10-10)
-- **PANEL-22. Row stripe slider.** With the ledger on screen, drag Row stripe opacity to its maximum →
-  the banding darkens while you drag. Drag it to 0 → no banding at all. Result: pass (owner-marked 2026-10-10)
-- **PANEL-23. Row hover slider.** Row hover opacity at maximum, hover a row → a strong gold wash. At 0
-  → no highlight. Result: pass (owner-marked 2026-10-10)
+- **PANEL-21. Row tints at their defaults.** `/bl show` with rows under Ka0s Default → every second
+  row carries a light band (the skin's 0.08) and a hovered row a gold wash (0.16), both a little
+  stronger than before 2026-11-20 (SD-SK-BL.1). Rewritten 2026-11-20. Result:
+- **PANEL-22. Row stripe slider.** Untick *Use the skin's stripe opacity* → the slider comes alive.
+  With the ledger on screen, drag Row stripe opacity to its maximum → the banding darkens while you
+  drag. Drag it to 0 → no banding at all. Rewritten 2026-11-20 (SD-SK-BL.1). Result:
+- **PANEL-23. Row hover slider.** Untick *Use the skin's hover opacity*. Row hover opacity at maximum,
+  hover a row → a strong gold wash. At 0 → no highlight. Rewritten 2026-11-20 (SD-SK-BL.1). Result:
 - **PANEL-24. One tint, both tables.** Open a bank and move something → the session window's rows wear
   the same band and hover at the same strengths. Result: pass (owner-marked 2026-10-10)
 - **PANEL-25. Tint values clamp.** `/bl set settings.rowStripeAlpha 5` → clamped to the slider's
@@ -253,9 +257,10 @@ leaves its number unused.
 - **PANEL-28. What Yes resets.** Save a view on History AND a different one on Insights, blacklist
   and whitelist an item, change a few settings (row tints included), tick Test mode, open the
   console, hide the minimap button, move both windows. Reset all settings ▸ Yes → every setting at
-  stock (tints back to 0.03 and 0.10), both lists empty, both saved views discarded (Clear on History
+  stock (tints back on the skin, both companions ticked, sliders at 0.08 and 0.16), both lists empty, both saved views discarded (Clear on History
   and Clear on Insights each land on stock), test mode off, the console closed, both windows
-  recentered, the minimap button still hidden. History keeps every row. Result: pass (owner-marked 2026-10-10)
+  recentered, the minimap button still hidden. History keeps every row. Its tint line rewritten
+  2026-11-20 (SD-SK-BL.1). Result:
 - **PANEL-29. The open views keep the history.** `/bl show`, press Reset on the filter bar (the view
   back to stock) and note the footer's `Showing n of N`, then switch to Insights and leave it on
   screen. Open Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ General ▸ History beside it and note the
@@ -296,6 +301,22 @@ leaves its number unused.
     one value on each tab, `/reload`, reopen → each kept its value. Put them back.
   **Fail:** a setting missing, renamed in `/bl list`, holding a different value or default, a row on
   another tab than above, or a value lost on `/reload`. Added 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
+- **PANEL-33. The row tint opacities follow the skin (SD-SK-BL.1).** On a profile that never moved a
+  row slider, General → Interface → *Use the skin's stripe opacity* and *Use the skin's hover opacity*
+  are ticked and both sliders are grayed, reading the skin's alpha (0.08 and 0.16 under Ka0s Default).
+  Switch the Skin tab to a skin with its own row alphas (EllesmereUI, or any other) → the band and
+  the wash in both tables change strength with the skin, live, and the grayed sliders read the new
+  values. Untick one box → its slider comes alive at its own value and the table draws that. Tick it
+  again → back on the skin. **Fail:** a ticked box whose band keeps one strength under every skin, a
+  live slider under a ticked box, or an unticked box that still draws the skin's alpha.
+  Result:
+- **PANEL-34. An upgrade keeps a moved row slider (SD-SK-BL.1, schema v7).** Before you update, on a
+  build before 2026-11-20 set Row stripe opacity to 0.20 and leave Row hover opacity alone; log out.
+  Install this build and log in → General → Interface: *Use the skin's stripe opacity* is unticked
+  and Row stripe opacity still reads 0.20 (the band draws it); *Use the skin's hover opacity* is
+  ticked and the hover wash takes the skin's 0.16. With debug on, the login's `[Migrate]` line reads
+  `v6 -> v7, 1 rows touched`. **Fail:** a moved slider snapped onto the skin, or an untouched one
+  left off it. Result:
 
 ## PROFILE
 
@@ -1284,11 +1305,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   three windows, and back to gray-and-red on Ka0s Default with no reload and no hover needed. **Fail:**
   your class color on hover in any skin, a 0.85 near-white rest, or a window whose close control keeps
   the previous skin's tint after a switch. Result: pass (owner-marked 2026-10-30)
-- **SKIN-5. Row bands keep their sliders (BL-02; DECISIONS BankLedger D2).** Under a non-default skin
-  (Azeroth reads clearest), look at History's even rows and hover a row → the band and the hover wash
-  are the skin's colors. General → Interface: drag both row sliders to their maximum, then to 0 → the
-  band and the wash strengthen and vanish in that skin's colors, live, in both tables. Put them back.
-  **Fail:** a white band or gold wash under a skin that has its own, or a slider with no effect. Result: pass (owner-marked 2026-10-30)
+- **SKIN-5. Row bands follow the skin, and keep their sliders when unticked (BL-02; SD-SK-BL.1).**
+  Under a non-default skin (Azeroth reads clearest), look at History's even rows and hover a row →
+  the band and the hover wash are the skin's colors at the skin's strength. General → Interface:
+  untick both *Use the skin's …* boxes, drag both row sliders to their maximum, then to 0 → the band
+  and the wash strengthen and vanish in that skin's colors, live, in both tables. Tick both boxes
+  again. **Fail:** a white band or gold wash under a skin that has its own, or a slider with no effect
+  while its box is unticked. Rewritten 2026-11-20 (SD-SK-BL.1, which retired the slider-only alpha of
+  D2). Result:
 - **SKIN-6. Game colors stay (BL-02; the rollout's exceptions).** Under **Azeroth** and **High
   Contrast** → item names keep their quality colors, the Character column and Insights' per-character
   labels their class colors, and the Store column, the Store filter's options and Insights' store bars

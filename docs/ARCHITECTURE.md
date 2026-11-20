@@ -601,7 +601,7 @@ for member.
   overrides with the stored skin, and from each Skin tab row with only its own half. It calls
   `Skin:SetChoice`, which resolves the skin, repaints every frame recorded for this owner and then
   fires `NS.Skin.OnLooksChanged`. What no primitive records subscribes there: the History table's
-  cached cell, header and direction colors, its four tinted marks and the row tints' RGB, then a
+  cached cell, header and direction colors, its four tinted marks and the row tints' RGB and alpha, then a
   rebind of both pooled tables (`LT:Reskin`, which calls `SW:Reskin`); the filter bar's colored
   Direction and Quality option lists; Insights' palette and colors (`I:Reskin`). Nothing keys off `SETTINGS_CHANGED`. No reload, no OnUpdate, no events;
   `settings.alpha` stays whole-window opacity.
@@ -611,8 +611,10 @@ for member.
   (no fill, the `divider` hairline, both lines `text.muted`; LibKa0s#89),
   `ScrollBar` on every scroll bar, `SortHeaderBar` on both tables' headers, `MenuFrame` (alt edge) on the
   row menu, and `Card` / `Panel` / `Divider` (`section.rule`) / `NS.SkinBar` in Insights. The row
-  tints take `list.stripe` / `list.hover` RGB with the player's two slider alphas, so the sliders
-  stay. Every tooltip line the addon writes takes a `gtip.*` token. The close control is the host's
+  tints take `list.stripe` / `list.hover` RGB, and their alpha too while *Use the skin's stripe
+  opacity* and *Use the skin's hover opacity* are on (the default, SD-SK-BL.1, the owner's R-2 of
+  2026-11-20); unticked, the player's slider gives the alpha, and schema v7 kept every stored pick on
+  its slider. Every tooltip line the addon writes takes a `gtip.*` token. The close control is the host's
   own button (`B:MakeCloseButton`, 24×24) handed to `S.CloseButton` the way every other Ka0s close
   control is, with no opts and no host hover scripts (BL-A1, the owner's ruling): in every
   skin, Ka0s Default included, it takes `close.rest` at rest and `close.hot` under the pointer (Ka0s

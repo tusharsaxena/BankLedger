@@ -159,18 +159,23 @@ function Util.RowTintAlpha(key, fallback)
   return v
 end
 
--- The two tints' RGB: the skin's list.stripe and list.hover (core/SkinSetup.lua's NS.Skin), resolved
--- into these reused triples once per skin rather than per bind -- ApplyRowTint runs on every row of
--- every repaint. The ALPHA stays the player's slider (Settings > Interface), the rollout's D2: the
--- sliders' defaults are Ka0s Default's own alphas, so Ka0s Default draws exactly what it drew.
--- Filled lazily on the first tint (this file loads before the skin seam) and again by
--- Util.ReskinRowTint on every skin switch (modules/LedgerTable.lua's OnLooksChanged listener).
+-- The two tints: the skin's list.stripe and list.hover (core/SkinSetup.lua's NS.Skin), resolved
+-- into these reused tables once per skin rather than per bind -- ApplyRowTint runs on every row of
+-- every repaint. The RGB is always the skin's. The ALPHA is the skin's too while the setting's
+-- companion is on, the default (SD-SK-BL.1, the owner's R-2 of 2026-11-20, which superseded the
+-- rollout's D2 slider-only alpha), and the player's slider while it is off. Filled lazily on the
+-- first tint (this file loads before the skin seam) and again by Util.ReskinRowTint on every skin
+-- switch (modules/LedgerTable.lua's OnLooksChanged listener).
 local STRIPE_RGB, HOVER_RGB = {}, {}
 local tintResolved = false
 
+-- Each slider's key -> the tint it sets the alpha of.
+local TINT = { rowStripeAlpha = STRIPE_RGB, rowHoverAlpha = HOVER_RGB }
+
 local function resolveTint(t, name)
-  local r, g, b = NS.Skin.Color(name)
+  local r, g, b, a = NS.Skin.Color(name)
   t[1], t[2], t[3] = r or 1, g or 1, b or 1
+  t[4] = type(a) == "number" and a or nil
 end
 
 --- Re-read the two tints' RGB from the live skin. Safe before the seam exists (no-op).
@@ -181,6 +186,31 @@ function Util.ReskinRowTint()
   tintResolved = true
 end
 
+--- The skin's alpha for one tint slider's key ("rowStripeAlpha", "rowHoverAlpha"), or nil before the
+--- seam exists or for a skin that states none. What the slider shows while its companion is on.
+function Util.SkinRowTintAlpha(key)
+  local t = TINT[key]
+  if not t then return nil end
+  if not tintResolved then Util.ReskinRowTint() end
+  return t[4]
+end
+
+--- The skin's alpha while `<key>FromSkin` is on (absent reads as on, the default), nil while it is
+--- off. The slider's `skinValue`: what it shows, disabled, while it follows the skin.
+function Util.FollowedRowTintAlpha(key)
+  local g = NS.db and NS.db.profile and NS.db.profile.settings
+  if g and g[key .. "FromSkin"] == false then return nil end
+  return Util.SkinRowTintAlpha(key)
+end
+
+--- The alpha one tint draws: the skin's while it follows, else the clamped slider. A skin that
+--- states no alpha falls back to the slider.
+function Util.RowAlpha(key, fallback)
+  local a = Util.FollowedRowTintAlpha(key)
+  if a ~= nil then return a end
+  return Util.RowTintAlpha(key, fallback)
+end
+
 --- Paint one pooled row's stripe and hover textures from the current settings, and show or hide
 --- the stripe. Called from BuildRow (so a row is correct the moment it exists) and from BindRow
 --- (so a row recycled onto a different index, or drawn after the slider moved, re-reads).
@@ -189,12 +219,12 @@ function Util.ApplyRowTint(row, striped)
   if not tintResolved then Util.ReskinRowTint() end
   if row.stripe then
     row.stripe:SetColorTexture(STRIPE_RGB[1], STRIPE_RGB[2], STRIPE_RGB[3],
-      Util.RowTintAlpha("rowStripeAlpha", 0.03))
+      Util.RowAlpha("rowStripeAlpha", 0.08))
     if striped ~= nil then row.stripe:SetShown(striped and true or false) end
   end
   if row.rowHover then
     row.rowHover:SetColorTexture(HOVER_RGB[1], HOVER_RGB[2], HOVER_RGB[3],
-      Util.RowTintAlpha("rowHoverAlpha", 0.10))
+      Util.RowAlpha("rowHoverAlpha", 0.16))
   end
 end
 

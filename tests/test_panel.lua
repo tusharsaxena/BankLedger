@@ -778,7 +778,7 @@ test("Panel: Defaults logs ONE [Set] line, and no per-row [Set]", function()
   assertEqual(#set, 1, "one line for the one act, got:\n" .. table.concat(set, "\n"))
   assertTrue(set[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "got: " .. tostring(set[1]))
-  assertEqual(NS.Schema:Get("settings.rowHoverAlpha"), 0.10, "the reset still happened")
+  assertEqual(NS.Schema:Get("settings.rowHoverAlpha"), 0.16, "the reset still happened")
 end)
 
 test("Panel: Defaults on a page already at its defaults logs 0 rows, and nothing per row", function()

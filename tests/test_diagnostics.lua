@@ -122,7 +122,7 @@ test("diagnostics: a changed setting prints as path = value (default)", function
   local saved = S:Get("settings.rowStripeAlpha")
   S:Set("settings.rowStripeAlpha", 0.2)
   local ok, err = pcall(function()
-    assertTrue(has(build(), "[Set] settings.rowStripeAlpha = 0.2 (0.03)"),
+    assertTrue(has(build(), "[Set] settings.rowStripeAlpha = 0.2 (0.08)"),
       "the changed row with its default")
   end)
   S:Set("settings.rowStripeAlpha", saved)

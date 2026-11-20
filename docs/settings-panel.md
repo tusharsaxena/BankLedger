@@ -389,8 +389,10 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `settings.qualityThreshold` | number | `0` | Capture | — | *Minimum quality*; drawn beside `trackItems` (`S.CAPTURE_PAGE_ORDER`); its `values` is `C.QualityOptions`, read when the row draws, so the labels follow the skin on a skinned page |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture | Banks to record | `wide`, `skipRender` — drawn by `renderStoreGrid` |
 | `settings.showSessionWindow` | bool | `true` | Interface | Windows | *Show session window*; `solo`, a line of its own above the tint pair |
-| `settings.rowStripeAlpha` | number | `0.03` | Interface | Windows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
-| `settings.rowHoverAlpha` | number | `0.10` | Interface | Windows | |
+| `settings.rowStripeAlpha` | number | `0.08` | Interface | Windows | pairs with `rowHoverAlpha` — rest beside hover, read across the line; disabled, showing the skin's alpha, while its companion is on |
+| `settings.rowHoverAlpha` | number | `0.16` | Interface | Windows | disabled, showing the skin's alpha, while its companion is on |
+| `settings.rowStripeAlphaFromSkin` | bool | `true` | Interface | Windows | *Use the skin's stripe opacity*; pairs with the hover companion on the line under the sliders (SD-SK-BL.1) |
+| `settings.rowHoverAlphaFromSkin` | bool | `true` | Interface | Windows | *Use the skin's hover opacity* |
 | `settings.sim.stepDelay` | number | `1` | Interface | Simulator | *Simulation step delay (seconds)*, its tooltip opening "Paces /bl sim: "; alone under its heading; slider 0.5–10 s in 0.5 s steps, with a `validate` (`NS.SimHost.ValidStepDelay`) |
 | `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
 | `settings.appearance.source` | string | `"ka0s"` | Skin (key `Appearance`) | — | `skipRender`: the library's Skin tab draws it. `ka0s` or `eui` (`NS.SKIN_SOURCE_OPTIONS`); `onChange` applies only the source half |
@@ -461,8 +463,16 @@ to compose here.
 `1,1,1,0.03` behind the even rows and `1,0.82,0,0.10` under the cursor. They are two answers to two
 questions (rest and hover), so they are two sliders and not one "row emphasis".
 
-- **Each default IS the literal it replaced**, so an install that touches neither slider is drawn
-  exactly as it was.
+- **Each opacity follows the skin by default** (SD-SK-BL.1 of Ka0sAddonsCommonTasks
+  `docs/2026-11-20-SKIN_DEFAULTS_AUDIT/`, the owner's R-2 of 2026-11-20, skinning-§9 *Every option
+  default follows the skin*). A companion each, *Use the skin's stripe opacity* and *Use the skin's
+  hover opacity* (`settings.rowStripeAlphaFromSkin`, `settings.rowHoverAlphaFromSkin`, `true` by
+  default, on the line under the sliders), draws the skin's own `list.stripe` and `list.hover` alpha;
+  the slider is disabled meanwhile and shows that alpha (`skinValue`). Unticked, the slider's value
+  draws. The sliders default to Ka0s Default's alphas, `0.08` and `0.16` (the library's floor,
+  skinning-§6), where they were the `0.03` and `0.10` literals they replaced. A profile that never
+  moved a slider follows the skin with no step; schema v7 keeps a stored pick on its slider
+  (`docs/schema.md`).
 - **Both are clamped at the read**, in `NS.Util.RowTintAlpha`. These arrive from SavedVariables,
   where a hand-edited `5` is not an error — it is a table drawn opaque white, which reads as the
   slider not working. A non-number falls back to the shipped default, not to zero. **Master opacity**
@@ -475,10 +485,11 @@ questions (rest and hover), so they are two sliders and not one "row emphasis".
   SavedVariables is hand-editable and the slider is not the only way a value gets in. Contrast the
   two tint sliders, whose clamps stay *inside* their declared `0`–`0.3` range and so need no such
   narrowing.
-- The **alpha** is the player's, the **color** the skin's: the stripe takes `list.stripe`'s RGB and
-  the hover `list.hover`'s (white and gold under Ka0s Default, the values these rows always drew), so
-  each skin bands its rows in its own colors while the two sliders keep their meaning and defaults
-  (DECISIONS BankLedger D2). `NS.Util.ReskinRowTint` re-reads the RGB on a skin switch.
+- The **color** is always the skin's: the stripe takes `list.stripe`'s RGB and the hover
+  `list.hover`'s (white and gold under Ka0s Default). The **alpha** is the skin's too while the
+  companion is on, and the player's slider while it is off; R-2 superseded the rollout's slider-only
+  alpha (DECISIONS BankLedger D2). `NS.Util.ReskinRowTint` re-reads the RGB and the alpha on a skin
+  switch; `NS.Util.RowAlpha` picks the one a row draws.
 - `NS.Util.ApplyRowTint` is the single read, called from `BuildRow` (so a row is right the moment it
   exists) and from `BindRow` (so a recycled row re-reads after the slider moved).
   `NS.Util.RefreshRowTint` is the `onChange`: it rebinds both tables directly and broadcasts
@@ -532,8 +543,8 @@ spliced at the head of the array; `keys = { scale = "windowScale" }` is what kee
 stored paths. Three of its rows are new — `settings.visibility`, `settings.alpha` and
 `settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
 chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
-`settings.rowHoverAlpha`, each defaulting to the number it replaced, under the Interface tab's
-**Windows** subsection beside the session window's switch. Its second subsection, **Simulator**,
+`settings.rowHoverAlpha`, each following the skin's alpha through its companion (SD-SK-BL.1), under
+the Interface tab's **Windows** subsection beside the session window's switch. Its second subsection, **Simulator**,
 holds the simulator's step delay (`settings.sim.stepDelay`).
 
 ## Bulk writes and the reset routes

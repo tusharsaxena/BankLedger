@@ -17,8 +17,8 @@
 -- on a mock whose regions store nothing, have no regions or children to walk.
 --
 -- `paint` is the redraw the mock cannot fire: a pooled row's bind, a menu's open. A recorded
--- primitive needs none. No surface has a companion, because this addon has no HUD and none of its
--- rows follows a FromSkin key. `scope = "panel"` is the one settings-page surface. The Insights
+-- primitive needs none. The two row tint surfaces carry a companion, the row stripe and hover
+-- opacities' FromSkin keys (SD-SK-BL.1); this addon has no HUD and no other FromSkin key. `scope = "panel"` is the one settings-page surface. The Insights
 -- faces are drawn through the pane's renderers, which set their colors on every pass, so no surface
 -- needs `scope = "fonts"` any more.
 
@@ -227,9 +227,18 @@ return function(T)
       build = function() return bound(1).cells.direction end,
       paint = function() bind(1) end,
     }),
+    -- The row tints follow the skin's alpha while their companions are on (SD-SK-BL.1), so each
+    -- surface carries its companion: the kit turns it on in the clear pass and leaves the surface
+    -- out of the ignored one, where the slider's alpha is the player's.
     surface("a History row's stripe", {
       build = function() return bound(2).stripe end,
       paint = function() bind(2) end,
+      companion = function(on) ns.db.profile.settings.rowStripeAlphaFromSkin = on end,
+    }),
+    surface("a History row's hover wash", {
+      build = function() return bound(2).rowHover end,
+      paint = function() bind(2) end,
+      companion = function(on) ns.db.profile.settings.rowHoverAlphaFromSkin = on end,
     }),
     surface("a History group header", {
       build = function() return bound(1, HEADER).header end,
