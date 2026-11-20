@@ -58,7 +58,7 @@ S.Schema = {
     end },
 
   { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
+    group = "Capture", label = "Minimum quality", values = C.QualityOptions,
     tooltip = "Only record items at or above this quality. Gold is not affected. Items on "
       .. "General > Filters > Whitelist are always recorded.",
     onChange = function()

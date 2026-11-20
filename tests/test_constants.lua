@@ -119,11 +119,52 @@ test("Constants: the store mute options exclude BAGS", function()
 end)
 
 test("Constants: every quality option carries a numeric value and a label", function()
-  assertTrue(#C.QUALITY_OPTIONS > 0)
-  for _, opt in ipairs(C.QUALITY_OPTIONS) do
+  local options = C.QualityOptions()
+  assertEqual(#options, 6)
+  for _, opt in ipairs(options) do
     assertEqual(type(opt.value), "number")
     assertTrue(opt.text ~= nil and opt.text ~= "")
   end
+end)
+
+-- SD-SK-BL.2 (Ka0sAddonsCommonTasks docs/2026-11-20-SKIN_DEFAULTS_AUDIT): the Minimum quality labels
+-- are built at each read, and each quality name takes the skin's q.* while the settings page wears
+-- the skin (Scope "Ignore settings panel" off), the client's color while it is stock. The skin's
+-- colors are stood in by NS.QualityColor, the one seam every other quality surface reads.
+local Skin = T.mocks.LibStub("LibKa0s-Skin-1.0")
+local function withQuality(panelIgnored, color, fn)
+  local was = NS.QualityColor
+  local panel, fonts = Skin:GetIgnore("BankLedger")
+  NS.QualityColor = function(q) if q == 4 then return color[1], color[2], color[3] end return was(q) end
+  Skin:SetIgnore("BankLedger", panelIgnored, fonts)
+  local ok, err = pcall(fn)
+  NS.QualityColor = was
+  Skin:SetIgnore("BankLedger", panel, fonts)
+  if T.mocks.__fireTimers then T.mocks.__fireTimers() end
+  if not ok then error(err, 0) end
+end
+
+local function epicText() return C.QualityOptions()[5].text end
+
+test("Constants: a skinned settings page draws each quality name in the skin's q.* color", function()
+  withQuality(false, { 0, 0, 1 }, function()
+    assertTrue(epicText():find("^|cff0000ff") ~= nil, "the Epic label kept another color: " .. epicText())
+  end)
+end)
+
+test("Constants: a stock settings page draws each quality name in the client's color", function()
+  withQuality(true, { 0, 0, 1 }, function()
+    local c = T.mocks.ITEM_QUALITY_COLORS and T.mocks.ITEM_QUALITY_COLORS[4]
+    local hex = c and c.hex and c.hex:sub(-6) or "a335ee"
+    assertTrue(epicText():find("^|cff" .. hex) ~= nil, "the Epic label left the client's color: " .. epicText())
+  end)
+end)
+
+test("Constants: the quality labels are read fresh, so a skin switch reaches them", function()
+  withQuality(false, { 0, 0, 1 }, function() assertTrue(epicText():find("^|cff0000ff") ~= nil) end)
+  withQuality(false, { 1, 0, 0 }, function() assertTrue(epicText():find("^|cffff0000") ~= nil) end)
+  assertEqual(NS.Schema:FindRow("settings.qualityThreshold").values, C.QualityOptions,
+    "the Minimum quality row reads a list built at file load")
 end)
 
 test("Constants: the retention presets offer an 'Always' (0) option", function()

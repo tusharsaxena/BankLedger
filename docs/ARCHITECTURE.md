@@ -685,7 +685,7 @@ categories take every other typed value this addon keeps.
 
 | File | What | Kit category |
 |---|---|---|
-| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels | Hyperlink or quality color |
+| `core/Constants.lua` | `qualityHex(q)` in the Minimum quality option labels, the client's color on a stock settings page (on a skinned one `NS.SkinPanelQualityHex` answers the skin's `q.*`) | Hyperlink or quality color |
 | `core/Namespace.lua` | `NS.PREFIX`, the cyan `[BL]` | Chat line (L13) |
 | `settings/Slash.lua` | `\|cFFFFFF00` in the disabled-line fallback | Chat line (L13) |
 | `core/CoreSetup.lua` | The fallback resize grip's art | A6 Blizzard art |

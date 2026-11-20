@@ -69,7 +69,7 @@ Total.
 - Compat.PlayerClass answers the classFile, read at call time
 - compat boundary: no player identity read outside core/Compat.lua
 
-### test_constants.lua (21)
+### test_constants.lua (24)
 
 - Constants: every Store enum member appears in the display order
 - Constants: every Store enum member has a display label
@@ -87,6 +87,9 @@ Total.
 - Constants: the guild bank is NOT container-id scanned
 - Constants: the store mute options exclude BAGS
 - Constants: every quality option carries a numeric value and a label
+- Constants: a skinned settings page draws each quality name in the skin's q.* color
+- Constants: a stock settings page draws each quality name in the client's color
+- Constants: the quality labels are read fresh, so a skin switch reaches them
 - Constants: the retention presets offer an 'Always' (0) option
 - Constants: every store has a display color
 - Constants: every direction has a color and a glyph
@@ -1856,7 +1859,7 @@ Total.
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (91)
+### test_skin_switch.lua (92)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
 - skin switch: the check is falsifiable, a bar whose texture never moves is reported
@@ -1949,6 +1952,7 @@ Total.
 - skin switch: a tooltip's lines changes
 - skin switch: a tooltip's lines changes with the Scope ignored
 - skin switch: the settings page's empty line changes
+- skin switch: a Minimum quality label changes
 
 ### test_client_globals.lua (3)
 
@@ -1962,7 +1966,7 @@ Total.
 |-------|------:|
 | test_util.lua | 38 |
 | test_compat.lua | 17 |
-| test_constants.lua | 21 |
+| test_constants.lua | 24 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
@@ -2036,7 +2040,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 91 |
+| test_skin_switch.lua | 92 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1713** |
+| **Total** | **1717** |

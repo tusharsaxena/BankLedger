@@ -339,6 +339,17 @@ return function(T)
       end,
       paint = function(fs) fs:SetText(ns.SkinPanelEscape("text.disabled") .. "(none)|r") end,
     }),
+    -- SD-SK-BL.2: a Minimum quality label as the dropdown draws it, read fresh on each render.
+    surface("a Minimum quality label", {
+      scope = "panel",
+      build = function()
+        addon()
+        local fs = parent():CreateFontString(nil, "OVERLAY")
+        fs:SetText(ns.Constants.QualityOptions()[5].text)
+        return fs
+      end,
+      paint = function(fs) fs:SetText(ns.Constants.QualityOptions()[5].text) end,
+    }),
   }
 
   -- Kit revision 58's scanner reads three-number tables and multi-assigned triples, which revision

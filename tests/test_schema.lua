@@ -88,7 +88,7 @@ test("Schema: the stored paths, defaults, types, ranges and CLI order are unchan
     assertEqual(row.step, want[6], path .. " step drifted")
   end
   -- The value lists the dropdowns and the grid offer are data, not layout.
-  assertEqual(#S:FindRow("settings.qualityThreshold").values, #NS.Constants.QUALITY_OPTIONS)
+  assertEqual(#S:FindRow("settings.qualityThreshold").values(), #NS.Constants.QualityOptions())
   assertEqual(#S:FindRow("settings.retentionDays").values, #NS.Constants.RETENTION_OPTIONS)
   assertEqual(#S:FindRow("settings.excludedStores").values, #NS.Constants.STORE_OPTIONS)
   assertTrue(S:FindRow("settings.excludedStores").invert == true, "the store grid's inversion moved")
@@ -128,11 +128,14 @@ test("Schema: dropdown rows carry their option list", function()
   -- arrays; the Master controls composer emits `visibility` as a key map, which is why the check is
   -- no longer "#values > 0". A key map with no `sorting` is still a failure — the library falls back
   -- to sorted keys, so the four visibility answers would be offered alphabetically by accident.
+  -- A `values` FUNCTION is read when the row draws (the library's enumList, which the CLI shares):
+  -- Minimum quality's labels follow the skin that way (SD-SK-BL.2), so the list is what it answers.
   for _, row in ipairs(S.Schema) do
     if row.widget == "Dropdown" or row.widget == "MultiCheck" then
-      assertTrue(type(row.values) == "table", row.path .. " has no options")
-      if #row.values == 0 then
-        assertTrue(next(row.values) ~= nil, row.path .. " has no options")
+      local values = type(row.values) == "function" and row.values() or row.values
+      assertTrue(type(values) == "table", row.path .. " has no options")
+      if #values == 0 then
+        assertTrue(next(values) ~= nil, row.path .. " has no options")
         assertTrue(type(row.sorting) == "table" and #row.sorting > 0,
           row.path .. " is a key map with no `sorting`, so its order is alphabetical by accident")
       end
@@ -755,7 +758,8 @@ test("Schema: a numeric row carrying values is an enum the panel must draw as a 
   for _, path in ipairs({ "settings.qualityThreshold", "settings.retentionDays" }) do
     local row = NS.Schema:FindRow(path)
     assertEqual(row.type, "number", path)
-    assertTrue(type(row.values) == "table" and #row.values > 0, path .. " has no values list")
+    local values = type(row.values) == "function" and row.values() or row.values
+    assertTrue(type(values) == "table" and #values > 0, path .. " has no values list")
     assertTrue(row.min == nil and row.max == nil,
       path .. " is an enum; declaring min/max would make it look like a range")
   end

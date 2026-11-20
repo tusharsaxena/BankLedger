@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
 | DIAG-1 – 33 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges), the identity header, a report's one chat pointer |
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
-| SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
+| SKIN-1 – 49 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview, the Minimum quality labels on a skinned page |
 | DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -1586,6 +1586,15 @@ describes what you see, apart from the changes SKIN-1 lists.
   leaves test mode off, an eye that only turns test mode on, a close that leaves test mode on or the
   sample window open, a window you opened that the picker closes, or the ledger window covering the
   picker.
+  Result:
+- **SKIN-49. The Minimum quality labels follow a skinned settings page (SD-SK-BL.2).** On the Skin
+  tab untick *Ignore settings panel*, pick the EllesmereUI source (or any skin whose quality colors
+  differ from the client's), then General → Capture → open *Minimum quality* → Uncommon, Rare and Epic
+  read in the skin's quality colors, the same ones the History table's item names draw. Tick *Ignore
+  settings panel* again and reopen the list → the six names are back in the client's own colors
+  (PANEL-6). Switch skins with the list's page open → the labels follow without a `/reload`. **Fail:**
+  a skinned page whose labels keep the client's colors, a stock page whose labels take the skin's, or
+  labels that only change after a `/reload`.
   Result:
 
 ## DEGRADED

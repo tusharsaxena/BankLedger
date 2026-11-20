@@ -386,7 +386,7 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `state.sim` | bool (session-only) | `false` | Master controls | — | `startsLine`, alone on the fifth line (compose minor 19) |
 | `settings.trackItems` | bool | `true` | Capture | — | *Record items*; on the page pairs with `qualityThreshold` |
 | `settings.trackMoney` | bool | `true` | Capture | — | *Record gold*; on the page alone on the second line |
-| `settings.qualityThreshold` | number | `0` | Capture | — | *Minimum quality*; drawn beside `trackItems` (`S.CAPTURE_PAGE_ORDER`) |
+| `settings.qualityThreshold` | number | `0` | Capture | — | *Minimum quality*; drawn beside `trackItems` (`S.CAPTURE_PAGE_ORDER`); its `values` is `C.QualityOptions`, read when the row draws, so the labels follow the skin on a skinned page |
 | `settings.excludedStores` | table (muted set) | `{}` | Capture | Banks to record | `wide`, `skipRender` — drawn by `renderStoreGrid` |
 | `settings.showSessionWindow` | bool | `true` | Interface | Windows | *Show session window*; `solo`, a line of its own above the tint pair |
 | `settings.rowStripeAlpha` | number | `0.03` | Interface | Windows | pairs with `rowHoverAlpha` — rest beside hover, read across the line |
