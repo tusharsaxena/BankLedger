@@ -58,7 +58,7 @@ S.Schema = {
     end },
 
   { path = "settings.qualityThreshold", default = 0, type = "number", widget = "Dropdown",
-    group = "Capture", label = "Minimum quality", values = C.QUALITY_OPTIONS,
+    group = "Capture", label = "Minimum quality", values = C.QualityOptions,
     tooltip = "Only record items at or above this quality. Gold is not affected. Items on "
       .. "General > Filters > Whitelist are always recorded.",
     onChange = function()
@@ -109,21 +109,42 @@ S.Schema = {
   -- window edge, fill, border and title, and says so byte for byte in modules/Browser_Chrome.lua's
   -- B:ApplySkin note. The table interior is this addon's own.
   --
-  -- Both defaults ARE the literals they replaced, so an install that touches neither is drawn
-  -- exactly as it was. Both are clamped at the read (NS.Util.RowTintAlpha): these come out of
-  -- SavedVariables, where a hand-edited 5 is not an error, it is a table drawn opaque white.
-  { path = "settings.rowStripeAlpha", default = 0.03, type = "number", min = 0, max = 0.3,
-    step = 0.01, widget = "Slider", fmt = "%.2f",
+  -- Each opacity follows the skin while its companion (the pair below the sliders) is on, the
+  -- default (SD-SK-BL.1, the owner's R-2 of 2026-11-20): the slider is disabled then and shows the
+  -- skin's alpha (`skinValue`, the seam OptionsWidgets honors), and a player who unticks the
+  -- companion gets the slider, which defaults to Ka0s Default's own alpha. Both are clamped at the
+  -- read (NS.Util.RowTintAlpha): these come out of SavedVariables, where a hand-edited 5 is not an
+  -- error, it is a table drawn opaque white.
+  { path = "settings.rowStripeAlpha", default = PD.settings.rowStripeAlpha, type = "number", min = 0,
+    max = 0.3, step = 0.01, widget = "Slider", fmt = "%.2f",
     group = "Interface", subgroup = "Windows", label = "Row stripe opacity",
     tooltip = "How strongly every second row in the ledger and session tables is tinted. "
       .. "0 turns the banding off.",
+    disabledIf = "settings.rowStripeAlphaFromSkin",
+    skinValue = function() return NS.Util.FollowedRowTintAlpha("rowStripeAlpha") end,
     onChange = function() NS.Util.RefreshRowTint() end },
 
-  { path = "settings.rowHoverAlpha", default = 0.10, type = "number", min = 0, max = 0.4,
-    step = 0.01, widget = "Slider", fmt = "%.2f",
+  { path = "settings.rowHoverAlpha", default = PD.settings.rowHoverAlpha, type = "number", min = 0,
+    max = 0.4, step = 0.01, widget = "Slider", fmt = "%.2f",
     group = "Interface", subgroup = "Windows", label = "Row hover opacity",
     tooltip = "How strongly the row under your cursor is highlighted in the ledger and session "
       .. "tables. 0 turns the highlight off.",
+    disabledIf = "settings.rowHoverAlphaFromSkin",
+    skinValue = function() return NS.Util.FollowedRowTintAlpha("rowHoverAlpha") end,
+    onChange = function() NS.Util.RefreshRowTint() end },
+
+  { path = "settings.rowStripeAlphaFromSkin", default = PD.settings.rowStripeAlphaFromSkin,
+    type = "bool", widget = "CheckBox",
+    group = "Interface", subgroup = "Windows", label = "Use the skin's stripe opacity",
+    tooltip = "Band every second row as strongly as the skin does. Untick it to set Row stripe "
+      .. "opacity yourself.",
+    onChange = function() NS.Util.RefreshRowTint() end },
+
+  { path = "settings.rowHoverAlphaFromSkin", default = PD.settings.rowHoverAlphaFromSkin,
+    type = "bool", widget = "CheckBox",
+    group = "Interface", subgroup = "Windows", label = "Use the skin's hover opacity",
+    tooltip = "Highlight the row under your cursor as strongly as the skin does. Untick it to set "
+      .. "Row hover opacity yourself.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
   -- The simulator's pace (BankLedger#24; the owner's 2026-10-23 ask): the seconds a playing

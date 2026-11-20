@@ -52,14 +52,18 @@ NS.defaults.profile = {
     locked           = false,  -- "Lock frame"   — NS.Util.ApplyMasterChrome
     window           = {},     -- persisted position/size (standalone-windows carve-out)
 
-    -- The pooled-row tint, shared by the History table and the session window. Each value IS the
-    -- literal it was promoted from (modules/LedgerTable.lua and modules/SessionWindow.lua both
-    -- built every row with these two numbers), so an install that touches neither slider is drawn
-    -- exactly as it was before they existed. Read through NS.Util.RowTintAlpha, which clamps:
-    -- these arrive from SavedVariables, where a hand-edited 5 is not an error, it is a table
-    -- drawn opaque white.
-    rowStripeAlpha    = 0.03,  -- every second row's zebra band
-    rowHoverAlpha     = 0.10,  -- the gold wash under the cursor
+    -- The pooled-row tint, shared by the History table and the session window. Each opacity
+    -- follows the skin (list.stripe's and list.hover's own alpha) while its companion is on, the
+    -- default (SD-SK-BL.1, the owner's R-2 of 2026-11-20, skinning-§9 *Every option default follows
+    -- the skin*); the slider is what a player unticks the companion to get. The sliders default to
+    -- Ka0s Default's own alphas (0.08 and 0.16, the library's floor, skinning-§6), no longer the
+    -- 0.03 and 0.10 they were promoted from; schema v7 (core/Database.lua) keeps a stored pick on
+    -- its slider. Read through NS.Util.RowTintAlpha, which clamps: these arrive from
+    -- SavedVariables, where a hand-edited 5 is not an error, it is a table drawn opaque white.
+    rowStripeAlpha    = 0.08,  -- every second row's zebra band
+    rowHoverAlpha     = 0.16,  -- the gold wash under the cursor
+    rowStripeAlphaFromSkin = true,
+    rowHoverAlphaFromSkin  = true,
 
     -- The live "Current Banking Session" window: shown automatically whenever a bank frame is open.
     showSessionWindow = true,

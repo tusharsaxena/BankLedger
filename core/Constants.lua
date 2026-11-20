@@ -239,21 +239,34 @@ C.RETENTION_OPTIONS = {
 
 -- Minimum-quality options for the item capture gate (WoW item-quality ids). Monotonic
 -- "quality >= threshold". Only the quality name is quality-colored; " and above" stays default.
--- rrggbb fallback for headless builds where ITEM_QUALITY_COLORS is absent (color is cosmetic there).
+--
+-- BUILT AT EACH READ, never at file load (SD-SK-BL.2 of Ka0sAddonsCommonTasks
+-- docs/2026-11-20-SKIN_DEFAULTS_AUDIT). C.QualityOptions is the Minimum quality row's `values`, which
+-- the dropdown and the CLI call when they draw, so a skin switch or a Scope change, each of which
+-- re-renders the page, reaches the labels. While the settings page wears the skin each name takes
+-- the skin's q.* (NS.SkinPanelQualityHex, core/SkinSetup.lua, which loads after this file and is
+-- read at call time); while it is stock (Ignore settings panel, the default) the client's color, as
+-- every stock page draws it. rrggbb fallback for headless builds where ITEM_QUALITY_COLORS is absent.
 local QUALITY_HEX_FALLBACK = {
   [0] = "9d9d9d", [1] = "ffffff", [2] = "1eff00", [3] = "0070dd", [4] = "a335ee", [5] = "ff8000",
 }
 local function qualityHex(q)
+  local skinned = NS.SkinPanelQualityHex and NS.SkinPanelQualityHex(q)
+  if skinned then return skinned end
   local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
   if c and c.hex then return c.hex:sub(-6) end
   return QUALITY_HEX_FALLBACK[q]
 end
-C.QUALITY_OPTIONS = {}
-for _, q in ipairs({ 0, 1, 2, 3, 4, 5 }) do
-  C.QUALITY_OPTIONS[#C.QUALITY_OPTIONS + 1] = {
-    value = q,
-    text  = ("|cff%s%s|r and above"):format(qualityHex(q), NS.Item.QualityLabel(q)),
-  }
+C.QUALITY_LEVELS = { 0, 1, 2, 3, 4, 5 }
+function C.QualityOptions()
+  local out = {}
+  for _, q in ipairs(C.QUALITY_LEVELS) do
+    out[#out + 1] = {
+      value = q,
+      text  = ("|cff%s%s|r and above"):format(qualityHex(q), NS.Item.QualityLabel(q)),
+    }
+  end
+  return out
 end
 
 -- Per-store mute options for the settings panel, derived from the display order.

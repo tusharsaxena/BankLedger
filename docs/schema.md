@@ -173,6 +173,18 @@ depth (the skin's Font override is the one this addon stores), to `Ka0s Ubuntu`.
 `Friz Quadrata TT` is another key and stays. The ledger in `db.global` holds no face and is not walked.
 Counts one row per value moved; idempotent, since a second run finds no retired face.
 
+#### Schema v7 — a stored row tint pick keeps its slider (SD-SK-BL.1)
+
+`db.global.schemaVersion` is now **7**. The row stripe and hover opacities follow the skin through two
+companions defaulting on (`settings.rowStripeAlphaFromSkin`, `settings.rowHoverAlphaFromSkin`; the
+owner's R-2 of 2026-11-20), so a profile that never moved a slider follows the skin with no step. The
+v6 → v7 step, `NS.MIGRATIONS[7]`, walks every stored profile raw, as v4 does, and `NS.KeepRowTintPicks`
+keeps a pick: AceDB stores no value equal to its default, so a slider value stored away from its old
+default (`0.03`, `0.10`) is the player's, and its companion is stored `false`. A value stored at the
+old default the addon wrote itself, and it follows the skin through LibKa0s-Skin's `ResetToSkin`
+(skinning-§9, *Who moves, and the one step*). A companion already stored is never touched, so a second
+run finds nothing. Counts one row per companion written.
+
 #### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
 
 `defaults/Global.lua` declares `schemaVersion = 0`, and **0 is never a real version**. That is the

@@ -229,7 +229,54 @@ NS.MIGRATIONS = {
     end
     return n
   end,
+
+  -- v6 -> v7 (SD-SK-BL.1, the owner's R-2 of 2026-11-20): the row stripe and hover opacities follow
+  -- the skin through `<key>FromSkin` companions defaulting on, so a profile that never set a slider
+  -- moves with no step. This step keeps a PICK: AceDB stores no value equal to its default, so a
+  -- slider value stored away from its old default (0.03, 0.10) is the player's, and its companion
+  -- goes off. A value stored AT the old default the addon wrote itself, and it follows the skin,
+  -- through LibKa0s-Skin's ResetToSkin (skinning-§9, *Who moves, and the one step*); not
+  -- Skin.FollowOnce, whose record a profile may already hold. Every STORED profile is walked raw,
+  -- as v4 does; the account-wide stamp is this addon's record (ONE ACCOUNT-WIDE STAMP, below).
+  --
+  -- IDEMPOTENT: a companion already stored is never touched, so a second run finds nothing. Counts
+  -- one row per companion written.
+  [7] = function(_, db)
+    local sv = db and db.sv
+    local profiles = type(sv) == "table" and sv.profiles
+    if type(profiles) ~= "table" then return 0 end
+    local n = 0
+    for _, p in pairs(profiles) do
+      local s = type(p) == "table" and rawget(p, "settings") or nil
+      if type(s) == "table" then n = n + NS.KeepRowTintPicks(s) end
+    end
+    return n
+  end,
 }
+
+-- The two tint sliders and the defaults they had before they followed the skin (SD-SK-BL.1).
+local ROW_TINT_OLD_DEFAULTS = { rowStripeAlpha = 0.03, rowHoverAlpha = 0.10 }
+
+--- v7's per-profile move over one stored settings table: a pick keeps its slider (companion off), a
+--- stored old default follows the skin. Answers how many companions it wrote.
+function NS.KeepRowTintPicks(s)
+  local SkinLib = LibStub and LibStub("LibKa0s-Skin-1.0", true)
+  local n = 0
+  for key, old in pairs(ROW_TINT_OLD_DEFAULTS) do
+    local v, companion = rawget(s, key), key .. "FromSkin"
+    if type(v) == "number" and rawget(s, companion) == nil then
+      if math.abs(v - old) > 1e-9 then
+        s[companion] = false
+      elseif SkinLib and type(SkinLib.ResetToSkin) == "function" then
+        SkinLib.ResetToSkin(s, { companion })
+      else
+        s[companion] = true
+      end
+      n = n + 1
+    end
+  end
+  return n
+end
 
 -- The shipped faces LibKa0s retired, each to its successor (R3-FRIZ; LibKa0s R3-L7).
 local RETIRED_FONTS = { ["Ka0s Friz Quadrata TT"] = "Ka0s Ubuntu" }

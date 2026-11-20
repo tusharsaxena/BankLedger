@@ -14,7 +14,7 @@ leaves its number unused.
 |---|---|---|
 | INSTALL-1 – 10 | Install and load | Clean login, version, the minimap launcher and its menu, the migration ladder on a real store |
 | SLASH-1 – 11 | Slash commands | Bare `/bl`, help, the panel/CLI round trip, verbs while disabled, the Show window key binding, its own Keybindings section and the General > Keybindings tab, `/bl skin` |
-| PANEL-1 – 32 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset, the item 020 layout |
+| PANEL-1 – 34 | Settings panel | Landing page, General's tabs, Master controls, row tints, slash repaint, the full reset, the item 020 layout, the row tint opacities on the skin and a moved slider kept |
 | PROFILE-1 – 14 | Profiles | The Profiles page, the schema v3 lift, retention staying account-wide, the `/bl profile` verb |
 | STATE-1 – 11 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility, the ledger window's lock mark, `/bl lock` and `/bl unlock` |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
@@ -25,7 +25,7 @@ leaves its number unused.
 | SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
 | DIAG-1 – 33 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges), the identity header, a report's one chat pointer |
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
-| SKIN-1 – 48 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview |
+| SKIN-1 – 49 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview, the Minimum quality labels on a skinned page |
 | DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
@@ -181,8 +181,10 @@ leaves its number unused.
   an uncolored row is the Item seam failing. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
 - **PANEL-7. Interface tab.** Interface → a **Windows** heading over *Show session window* alone on
   its line, then *Row stripe opacity · Row hover opacity*, the two sliders side by side on the next
-  line, then a **Simulator** heading over *Simulation step delay (seconds)*. Neither heading reads
-  "Interface" (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
+  line, *Use the skin's stripe opacity · Use the skin's hover opacity* under them, then a
+  **Simulator** heading over *Simulation step delay (seconds)*. Neither heading reads "Interface"
+  (`options-ui-§7`), and there is no Table rows heading. Rewritten 2026-10-24 (item 020); the
+  companions' line added 2026-11-20 (SD-SK-BL.1). Result:
 - **PANEL-8. History tab.** History → *Keep history for*, the storage read-out ("N movements recorded
   over N days." then "Database size: ~X", with no "(estimated)"), then **Purge history…** alone.
   Hover it → *Delete every recorded movement on this account. Your settings are left alone. Asks
@@ -231,12 +233,14 @@ leaves its number unused.
 - **PANEL-20. Reset position.** Move the ledger and the session window well off center, then Reset
   position → both return to center at their default size; settings, filter lists and history are
   untouched. Result: pass (owner-marked 2026-10-10)
-- **PANEL-21. Row tints at their defaults.** `/bl show` with rows → every second row carries a faint
-  lighter band (0.03) and a hovered row a faint gold wash (0.10). Result: pass (owner-marked 2026-10-10)
-- **PANEL-22. Row stripe slider.** With the ledger on screen, drag Row stripe opacity to its maximum →
-  the banding darkens while you drag. Drag it to 0 → no banding at all. Result: pass (owner-marked 2026-10-10)
-- **PANEL-23. Row hover slider.** Row hover opacity at maximum, hover a row → a strong gold wash. At 0
-  → no highlight. Result: pass (owner-marked 2026-10-10)
+- **PANEL-21. Row tints at their defaults.** `/bl show` with rows under Ka0s Default → every second
+  row carries a light band (the skin's 0.08) and a hovered row a gold wash (0.16), both a little
+  stronger than before 2026-11-20 (SD-SK-BL.1). Rewritten 2026-11-20. Result:
+- **PANEL-22. Row stripe slider.** Untick *Use the skin's stripe opacity* → the slider comes alive.
+  With the ledger on screen, drag Row stripe opacity to its maximum → the banding darkens while you
+  drag. Drag it to 0 → no banding at all. Rewritten 2026-11-20 (SD-SK-BL.1). Result:
+- **PANEL-23. Row hover slider.** Untick *Use the skin's hover opacity*. Row hover opacity at maximum,
+  hover a row → a strong gold wash. At 0 → no highlight. Rewritten 2026-11-20 (SD-SK-BL.1). Result:
 - **PANEL-24. One tint, both tables.** Open a bank and move something → the session window's rows wear
   the same band and hover at the same strengths. Result: pass (owner-marked 2026-10-10)
 - **PANEL-25. Tint values clamp.** `/bl set settings.rowStripeAlpha 5` → clamped to the slider's
@@ -253,9 +257,10 @@ leaves its number unused.
 - **PANEL-28. What Yes resets.** Save a view on History AND a different one on Insights, blacklist
   and whitelist an item, change a few settings (row tints included), tick Test mode, open the
   console, hide the minimap button, move both windows. Reset all settings ▸ Yes → every setting at
-  stock (tints back to 0.03 and 0.10), both lists empty, both saved views discarded (Clear on History
+  stock (tints back on the skin, both companions ticked, sliders at 0.08 and 0.16), both lists empty, both saved views discarded (Clear on History
   and Clear on Insights each land on stock), test mode off, the console closed, both windows
-  recentered, the minimap button still hidden. History keeps every row. Result: pass (owner-marked 2026-10-10)
+  recentered, the minimap button still hidden. History keeps every row. Its tint line rewritten
+  2026-11-20 (SD-SK-BL.1). Result:
 - **PANEL-29. The open views keep the history.** `/bl show`, press Reset on the filter bar (the view
   back to stock) and note the footer's `Showing n of N`, then switch to Insights and leave it on
   screen. Open Settings ▸ AddOns ▸ Ka0s Bank Ledger ▸ General ▸ History beside it and note the
@@ -296,6 +301,22 @@ leaves its number unused.
     one value on each tab, `/reload`, reopen → each kept its value. Put them back.
   **Fail:** a setting missing, renamed in `/bl list`, holding a different value or default, a row on
   another tab than above, or a value lost on `/reload`. Added 2026-10-24 (item 020). Result: pass (owner, 2026-10-24)
+- **PANEL-33. The row tint opacities follow the skin (SD-SK-BL.1).** On a profile that never moved a
+  row slider, General → Interface → *Use the skin's stripe opacity* and *Use the skin's hover opacity*
+  are ticked and both sliders are grayed, reading the skin's alpha (0.08 and 0.16 under Ka0s Default).
+  Switch the Skin tab to a skin with its own row alphas (EllesmereUI, or any other) → the band and
+  the wash in both tables change strength with the skin, live, and the grayed sliders read the new
+  values. Untick one box → its slider comes alive at its own value and the table draws that. Tick it
+  again → back on the skin. **Fail:** a ticked box whose band keeps one strength under every skin, a
+  live slider under a ticked box, or an unticked box that still draws the skin's alpha.
+  Result:
+- **PANEL-34. An upgrade keeps a moved row slider (SD-SK-BL.1, schema v7).** Before you update, on a
+  build before 2026-11-20 set Row stripe opacity to 0.20 and leave Row hover opacity alone; log out.
+  Install this build and log in → General → Interface: *Use the skin's stripe opacity* is unticked
+  and Row stripe opacity still reads 0.20 (the band draws it); *Use the skin's hover opacity* is
+  ticked and the hover wash takes the skin's 0.16. With debug on, the login's `[Migrate]` line reads
+  `v6 -> v7, 1 rows touched`. **Fail:** a moved slider snapped onto the skin, or an untouched one
+  left off it. Result:
 
 ## PROFILE
 
@@ -1284,11 +1305,14 @@ describes what you see, apart from the changes SKIN-1 lists.
   three windows, and back to gray-and-red on Ka0s Default with no reload and no hover needed. **Fail:**
   your class color on hover in any skin, a 0.85 near-white rest, or a window whose close control keeps
   the previous skin's tint after a switch. Result: pass (owner-marked 2026-10-30)
-- **SKIN-5. Row bands keep their sliders (BL-02; DECISIONS BankLedger D2).** Under a non-default skin
-  (Azeroth reads clearest), look at History's even rows and hover a row → the band and the hover wash
-  are the skin's colors. General → Interface: drag both row sliders to their maximum, then to 0 → the
-  band and the wash strengthen and vanish in that skin's colors, live, in both tables. Put them back.
-  **Fail:** a white band or gold wash under a skin that has its own, or a slider with no effect. Result: pass (owner-marked 2026-10-30)
+- **SKIN-5. Row bands follow the skin, and keep their sliders when unticked (BL-02; SD-SK-BL.1).**
+  Under a non-default skin (Azeroth reads clearest), look at History's even rows and hover a row →
+  the band and the hover wash are the skin's colors at the skin's strength. General → Interface:
+  untick both *Use the skin's …* boxes, drag both row sliders to their maximum, then to 0 → the band
+  and the wash strengthen and vanish in that skin's colors, live, in both tables. Tick both boxes
+  again. **Fail:** a white band or gold wash under a skin that has its own, or a slider with no effect
+  while its box is unticked. Rewritten 2026-11-20 (SD-SK-BL.1, which retired the slider-only alpha of
+  D2). Result:
 - **SKIN-6. Game colors stay (BL-02; the rollout's exceptions).** Under **Azeroth** and **High
   Contrast** → item names keep their quality colors, the Character column and Insights' per-character
   labels their class colors, and the Store column, the Store filter's options and Insights' store bars
@@ -1587,6 +1611,15 @@ describes what you see, apart from the changes SKIN-1 lists.
   sample window open, a window you opened that the picker closes, or the ledger window covering the
   picker.
   Result:
+- **SKIN-49. The Minimum quality labels follow a skinned settings page (SD-SK-BL.2).** On the Skin
+  tab untick *Ignore settings panel*, pick the EllesmereUI source (or any skin whose quality colors
+  differ from the client's), then General → Capture → open *Minimum quality* → Uncommon, Rare and Epic
+  read in the skin's quality colors, the same ones the History table's item names draw. Tick *Ignore
+  settings panel* again and reopen the list → the six names are back in the client's own colors
+  (PANEL-6). Switch skins with the list's page open → the labels follow without a `/reload`. **Fail:**
+  a skinned page whose labels keep the client's colors, a stock page whose labels take the skin's, or
+  labels that only change after a `/reload`.
+  Result:
 
 ## DEGRADED
 
@@ -1826,3 +1859,12 @@ AF-HDR-BL): new checks STATE-10 (the ledger window's lock mark) and STATE-11 (`/
 and the launcher's *Locked* entry on the same seam). No pass mark came off: the Lock frame row's
 behavior (STATE-8) and the Locked entry's (STATE-4) are unchanged. Item AF-RV-BL (LibKa0s v1.107.0)
 moves nothing this addon draws: it builds no drag strip.
+
+Owed by the run for LibKa0s#94, #97, #99 and #100 (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_94_97_99_100/`,
+item SD-RV-BL, LibKa0s v1.108.0 and test kit revision 58): no new check. The release moves nothing this
+addon draws: its footer carries no marks, and it builds no `W.Bar`, Charts context, drag strip or call-out.
+Owed by the same run, item SD-SK-BL (the skin-defaults audit's SD-SK-BL.1 to .3, the owner's R-2):
+new checks PANEL-33 (the row tint opacities follow the skin), PANEL-34 (an upgrade keeps a moved
+row slider, schema v7) and SKIN-49 (the Minimum quality labels on a skinned settings page). PANEL-7,
+PANEL-21, PANEL-22, PANEL-23, PANEL-28 and SKIN-5 were rewritten for the companions, so their pass
+marks came off. SD-SK-BL.3 and the guard declarations are headless only: no check.

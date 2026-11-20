@@ -2,7 +2,7 @@
 
 This file has two parts: the collection's client-quirks catalog, vendored whole from the Ka0s WoW Addon Standard between the markers below and never edited here, and then this addon's own quirks under `## BankLedger-specific quirks`.
 
-<!-- BEGIN VENDORED: quirks catalog v2.115.0 (source: WowAddonStandards) -->
+<!-- BEGIN VENDORED: quirks catalog v2.116.0 (source: WowAddonStandards) -->
 > Part of the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards/blob/master/standards/STANDARDS.md)** — the split standard. This section is vendored whole into every addon's `docs/midnight-quirks.md` (§1), so its links are absolute. Cross-references use the `filename-§N` form (see the index's section map).
 
 ## Client quirks

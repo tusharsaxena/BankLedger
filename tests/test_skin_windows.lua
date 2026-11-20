@@ -159,24 +159,34 @@ test("skin windows: a group header's count reads the cached escape, never a toke
     .. "text.disabled: " .. row.header.text)
 end))
 
-test("skin windows: the row tints take the skin's RGB and keep the player's slider alpha", clean(function()
-  -- The rollout's D2: list.stripe / list.hover give the color, the Interface sliders the alpha.
+test("skin windows: the row tints take the skin's RGB and alpha, and a companion off keeps the slider", clean(function()
+  -- list.stripe / list.hover give the color, and the alpha too while each opacity's companion is on,
+  -- the default (SD-SK-BL.1, the owner's R-2 of 2026-11-20, superseding the rollout's D2); with a
+  -- companion off the Interface slider gives the alpha.
   local g = NS.db.profile.settings
-  local saved = { g.rowStripeAlpha, g.rowHoverAlpha }
+  local saved = { g.rowStripeAlpha, g.rowHoverAlpha, g.rowStripeAlphaFromSkin, g.rowHoverAlphaFromSkin }
   g.rowStripeAlpha, g.rowHoverAlpha = 0.2, 0.4
   local ok, err = pcall(function()
     local row = { stripe = recTex(), rowHover = recTex() }
     NS.Util.ApplyRowTint(row, true)
     assertEqual(rgb(row.stripe.c), "1.0000,1.0000,1.0000", "Ka0s Default's stripe white")
     assertEqual(rgb(row.rowHover.c), "1.0000,0.8200,0.0000", "Ka0s Default's hover gold")
-    assertEqual(row.stripe.c[4], 0.2, "the stripe slider's alpha")
+    assertEqual(row.stripe.c[4], 0.08, "Ka0s Default's stripe alpha")
+    assertEqual(row.rowHover.c[4], 0.16, "Ka0s Default's hover alpha")
     switch()
     NS.Util.ApplyRowTint(row, true)
     assertEqual(rgb(row.stripe.c), tok("list.stripe"), "the switched skin's stripe")
     assertEqual(rgb(row.rowHover.c), tok("list.hover"), "the switched skin's hover")
-    assertEqual(row.rowHover.c[4], 0.4, "the hover slider's alpha still wins")
+    assertEqual(row.stripe.c[4], select(4, NS.Skin.Color("list.stripe")), "the switched skin's stripe alpha")
+    assertEqual(row.rowHover.c[4], select(4, NS.Skin.Color("list.hover")), "the switched skin's hover alpha")
+    g.rowStripeAlphaFromSkin, g.rowHoverAlphaFromSkin = false, false
+    NS.Util.ApplyRowTint(row, true)
+    assertEqual(rgb(row.stripe.c), tok("list.stripe"), "a companion off moved the stripe's color")
+    assertEqual(row.stripe.c[4], 0.2, "the stripe slider's alpha, its companion off")
+    assertEqual(row.rowHover.c[4], 0.4, "the hover slider's alpha, its companion off")
   end)
-  g.rowStripeAlpha, g.rowHoverAlpha = saved[1], saved[2]
+  g.rowStripeAlpha, g.rowHoverAlpha, g.rowStripeAlphaFromSkin, g.rowHoverAlphaFromSkin =
+    saved[1], saved[2], saved[3], saved[4]
   if not ok then error(err, 0) end
 end))
 

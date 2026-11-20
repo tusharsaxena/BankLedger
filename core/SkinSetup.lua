@@ -259,6 +259,17 @@ function NS.SkinPanelEscape(name)
   return NS.SkinEscape(name)
 end
 
+--- An item quality as "rrggbb" for markup on this addon's settings page (the Minimum quality labels,
+--- core/Constants.lua C.QualityOptions; SD-SK-BL.2), gated on the Scope as NS.SkinPanelEscape is: the
+--- skin's q.* through NS.QualityColor while the page wears the skin, nil while the owner ignores its
+--- settings panel or the quality has no color, so the caller draws the client's own.
+function NS.SkinPanelQualityHex(q)
+  if Skin and type(Skin.GetIgnore) == "function" and Skin:GetIgnore(addonName) then return nil end
+  local r, g, b = NS.QualityColor(q)
+  if r == nil then return nil end
+  return escape(r, g, b):sub(-6)
+end
+
 --- A bar of data in the owner's bar texture, tinted r, g, b, a. Never a track, a rule, an axis, a
 --- swatch chip, a stripe or a highlight: those stay flat colors. Read through NS.Skin at call time.
 --- A facade without BarTexture, or a target that is neither a Texture nor a StatusBar (which the

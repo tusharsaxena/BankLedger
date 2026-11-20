@@ -69,9 +69,10 @@ each one. Several more files carry a position note that deliberately says the op
 - **`core/EnvSetup.lua` follows it**, before every file that reads a version, a zone or a map id.
   Nothing there resolves at load beyond the LibStub lookup, so unlike the Media seam below this
   position is conventional rather than load-bearing.
-- **`core/ItemSetup.lua` sits before `core/Constants.lua`**, and that position is load-bearing:
-  `C.QUALITY_OPTIONS` builds its threshold labels through `NS.Item.QualityLabel` at file load,
-  so a `Constants` that ran first would index a nil `NS.Item` and raise on login.
+- **`core/ItemSetup.lua` sits before `core/Constants.lua`** by convention. `C.QualityOptions`
+  builds the Minimum quality labels through `NS.Item.QualityLabel` and `NS.SkinPanelQualityHex`
+  (core/SkinSetup.lua) when the row draws, not at file load (SD-SK-BL.2), so neither seam has to
+  exist when `Constants` runs.
 - **`core/MediaSetup.lua` sits before `core/Constants.lua`**, and that position is load-bearing
   rather than conventional: `C.FONT_MONO` is *resolved* from `NS.MediaFont` at load, so a
   `Constants` that ran first would resolve the mono face to the client default in a perfectly

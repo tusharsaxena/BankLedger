@@ -233,7 +233,7 @@ test("Migrate v3: the [Migrate] line counts each value it moved", function()
     lines = withTag(debugLines(function() NS:RunMigrations() end), "[Migrate]")
   end)
   assertEqual(#lines, 1, "one migration line")
-  assertTrue(lines[1]:find("v2 -> v6, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
+  assertTrue(lines[1]:find("v2 -> v7, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
 end)
 
 -- ── the v4 step: the retention window back to db.global (owner decision D6) ─────────────────────
@@ -428,11 +428,46 @@ test("Migrate v6: a stored Ka0s Friz Quadrata TT moves to Ka0s Ubuntu in every p
   }
   withDb(sv, function(db)
     NS:RunMigrations()
-    assertEqual(db.global.schemaVersion, 6, "stamped v6")
+    assertEqual(db.global.schemaVersion, NS.SCHEMA_VERSION, "stamped current")
     assertEqual(sv.profiles.Default.skin.font, "Ka0s Ubuntu", "the Default profile's override")
     assertEqual(sv.profiles.Alt.skin.font, "Ka0s Ubuntu", "another profile's override")
     assertEqual(sv.profiles.Plain.skin.font, "Friz Quadrata TT", "Blizzard's own Friz stays")
     assertEqual(NS.MIGRATIONS[6](db.global, db), 0, "the second pass moved something")
+  end)
+end)
+
+-- SD-SK-BL.1 (Ka0sAddonsCommonTasks docs/2026-11-20-SKIN_DEFAULTS_AUDIT, the owner's R-2 of 2026-11-20):
+-- the row stripe and hover opacities follow the skin through two companions defaulting on, so a
+-- profile that never set a slider moves with no step. v7 keeps a player's pick: a slider value
+-- stored away from its old default (0.03, 0.10; AceDB stores no value equal to its default, so a
+-- stored one is a pick) turns its companion off, in every stored profile; a value the addon itself
+-- wrote at the old default follows the skin, through Skin.ResetToSkin. red under: no v7 step, one
+-- that reaches only the active profile, one that moves a pick onto the skin, or one that writes a
+-- profile that set nothing.
+test("Migrate v7: a stored row tint pick keeps its slider, every other profile follows the skin", function()
+  local sv = {
+    global = { schemaVersion = 6 },
+    profiles = {
+      Default = { settings = { rowStripeAlpha = 0.2 } },
+      Alt = { settings = { rowHoverAlpha = 0.3 } },
+      Written = { settings = { rowStripeAlpha = 0.03, rowHoverAlpha = 0.10 } },
+      Plain = { settings = { visibility = "always" } },
+      Bare = {},
+    },
+  }
+  withDb(sv, function(db)
+    NS:RunMigrations()
+    assertEqual(db.global.schemaVersion, 7, "stamped v7")
+    local P = sv.profiles
+    assertEqual(P.Default.settings.rowStripeAlphaFromSkin, false, "the Default profile's stripe pick moved")
+    assertEqual(P.Default.settings.rowHoverAlphaFromSkin, nil, "an unpicked hover was written")
+    assertEqual(P.Alt.settings.rowHoverAlphaFromSkin, false, "another profile's hover pick moved")
+    assertEqual(P.Alt.settings.rowStripeAlphaFromSkin, nil, "an unpicked stripe was written")
+    assertEqual(P.Written.settings.rowStripeAlphaFromSkin, true, "a written old default did not follow")
+    assertEqual(P.Written.settings.rowHoverAlphaFromSkin, true, "a written old default did not follow")
+    assertEqual(P.Plain.settings.rowStripeAlphaFromSkin, nil, "a profile that set nothing was written")
+    assertEqual(rawget(P.Bare, "settings"), nil, "a bare profile gained a settings table")
+    assertEqual(NS.MIGRATIONS[7](db.global, db), 0, "the second pass moved something")
   end)
 end)
 

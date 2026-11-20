@@ -2,23 +2,26 @@
 -- 50): Kit.skinValues for tests/_kit/test_skin_values.lua and Kit.skinSwitch for
 -- tests/_kit/test_skin_switch.lua. Both are set from tests/run.lua.
 --
--- THE TYPED-VALUE GATE. Every typed color and texture in this addon is a kit category today, so
--- `rows` is empty, and a new hit is a value to read through a token, or a row naming its cause id.
+-- THE TYPED-VALUE GATE. Every typed color and texture in this addon is a kit category or one of
+-- `rows` (the store palette's meaning hues, and two kit row categories, kit revision 58), and a new
+-- hit is a value to read through a token, or a row naming its cause id or category.
 -- `calls` adds the one paint call of this addon's own: NS.SkinBar(tex, r, g, b, a).
 --
--- THE SWITCH TEST. One entry per painted surface, each narrow on purpose: the kit passes a surface
--- when anything it answers changes, and it walks an answered frame's regions and children, so a
--- whole window would pass on its title alone and prove nothing about the rest. A surface answers
--- the smallest object that draws it.
+-- THE SWITCH TEST. One entry per painted surface, each narrow on purpose: the kit walks an answered
+-- frame's regions and children, so a whole window would pass on its title alone and prove nothing
+-- about the rest. A surface answers the smallest object that draws it. From kit revision 58 each
+-- setter family (texture, color, font, shadow) a surface draws has to move on its own.
 --
 -- The surfaces stand on a private addon over the kit's paint recorder, built on the first read, as
 -- tests/test_skin_chrome.lua's are: the kit flips the owner's skin, and the shared addon's windows,
 -- on a mock whose regions store nothing, have no regions or children to walk.
 --
 -- `paint` is the redraw the mock cannot fire: a pooled row's bind, a menu's open. A recorded
--- primitive needs none. No surface has a companion, because this addon has no HUD and none of its
--- rows follows a FromSkin key. `scope = "panel"` is the one settings-page surface, and
--- `scope = "fonts"` marks the two surfaces that draw a face and no color.
+-- primitive needs none. The two row tint surfaces carry a companion, the row stripe and hover
+-- opacities' FromSkin keys (SD-SK-BL.1); this addon has no HUD and no other FromSkin key.
+-- `scope = "panel"` marks the settings-page surfaces. The Insights faces are drawn through the
+-- pane's renderers, which set their colors on every pass. `scope = "fonts"` marks the store cell,
+-- whose meaning color is held (`hold`), so it draws a face and no color that follows.
 
 return function(T)
   local OWNER = "BankLedger"
@@ -66,6 +69,9 @@ return function(T)
   -- A row of the History table, off the pool, as LT:Bind hands one to LT:BindRow.
   local ENTRY = { kind = "item", direction = "in", count = 2, itemID = 1, ts = 1770000000, char = "A-B" }
   local HEADER = { kind = "header", label = "Character Bank", count = 3 }
+  -- A row at the character bank, with a quality, for the item and store cells.
+  local STORED = { kind = "item", direction = "in", count = 2, itemID = 1, ts = 1770000000, char = "A-B",
+    store = "BANK", quality = 4 }
   local row
   local function bind(index, item)
     ns.LedgerTable:BindRow(row, item or { entry = ENTRY }, index)
@@ -82,12 +88,77 @@ return function(T)
     return m.CreateFrame("Frame", nil, m.UIParent)
   end
 
-  local strip, placed
+  local strip, placed, split, caption
   local function hud(make)
     return function()
       addon()
       return make(ns.InsightsWidgets, parent())
     end
+  end
+
+  -- The Insights pane's own renderers (modules/Insights_Render.lua), over a stand-in pane. A refresh
+  -- after a switch (I:Reskin) re-runs them, and they set every label's color and paint every fill
+  -- on each pass, so a surface drawn through them is drawn as the pane draws it, colors included
+  -- (kit revision 58 reports a face that moves while no color is set on it). Each surface gets its
+  -- own section header and pool; the repaint releases the pool and renders again, and the pool hands
+  -- the first position the object it had (LibKa0s-Pool's backward park).
+  local pane, sections = nil, 0
+  local function insights()
+    addon()
+    if not pane then
+      local content = parent()
+      pane = setmetatable({ content = content, headers = {}, pools = {}, panelPool = ns.InsightsWidgets.NewPool() },
+        { __index = ns.Insights })
+    end
+    return pane
+  end
+
+  -- A surface over one renderer: `render(p, key)` draws one section and answers the object to watch.
+  local function rendered(spec, render)
+    local key
+    local function draw()
+      local p = insights()
+      local W = ns.InsightsWidgets
+      if not key then
+        sections = sections + 1
+        key = "skinSurface" .. sections
+        p.headers[key] = W.MakeSectionHeader(p.content, "T")
+        p.pools[key] = W.NewPool()
+      end
+      W.ReleaseAll(p.pools[key])
+      W.ReleasePanels(p.panelPool)
+      return render(p, key)
+    end
+    spec.build = draw
+    spec.paint = function() draw() end
+    return spec
+  end
+
+  -- One ranked bar (I:RenderBars), in the neutral bucket's color, its label self-legending in it.
+  local function rankedBar(p, key)
+    p:RenderBars(key, key, { { label = "Reagent", frac = 1, value = "3" } }, 0, 400)
+    return p.pools[key].active[1]
+  end
+
+  -- One stacked bar (I:RenderStacked), its one segment in the palette's first color.
+  local function stackedBar(p, key)
+    local color = ns.InsightsWidgets.PaletteColor(1)
+    p:RenderStacked(key, key, { { label = "Reagent", value = "3",
+      segments = { { frac = 0.6, color = color, tip = "t" } } } }, 0, 400)
+    return p.pools[key].active[1]
+  end
+
+  -- One back-to-back row (I:RenderBackToBack), its sides in the direction colors.
+  local function backToBackBar(p, key)
+    p:RenderBackToBack(key, key, { { label = "Reagent", value = "3", leftFrac = 0.5, rightFrac = 0.5,
+      leftTip = "l", rightTip = "r" } }, 0, 400)
+    return p.pools[key].active[1]
+  end
+
+  -- One Top-of-the-list row (I:RenderList), its name in text.value.
+  local function listRow(p)
+    p:RenderList("Title", { { name = "Linen Cloth", right = "20" } }, 0, 0, 200)
+    return p.panelPool.active[1]._rows.active[1]
   end
 
   -- A band is the frame's own backdrop or texture, and the kit walks whatever a frame answers, so the
@@ -119,7 +190,9 @@ return function(T)
   -- No surface for the line under a title band: no window draws one (R4-SEP); each window's
   -- 1px dividerBar is an anchor with nothing on it (tests/test_skin_chrome.lua holds that).
   local surfaces = {
-    surface("the window's shell", { build = function()
+    -- The shell draws the skin's edge and window art (S.Shell), so its textures are asked too; a
+    -- title band is a flat fill on a white base, asked for its color alone.
+    surface("the window's shell", { expect = "texture", build = function()
       addon()
       local f = m.CreateFrame("Frame", nil, m.UIParent, "BackdropTemplate")
       ns.Browser:ApplySkin(f)
@@ -160,9 +233,32 @@ return function(T)
       build = function() return bound(1).cells.direction end,
       paint = function() bind(1) end,
     }),
+    -- An item's name takes the skin's q.* (NS.QualityColor), so it follows like any other cell.
+    surface("a History row's item cell", {
+      build = function() return bound(1, { entry = STORED }).cells.item end,
+      paint = function() bind(1, { entry = STORED }) end,
+    }),
+    -- The store cell's hue is the store, from the meaning table C.StoreRGB: skinning-§9's meaning
+    -- colors keep it under every skin (the skin-defaults audit's OVERRIDE row, LibKa0s#97), so its
+    -- color is held and only its face follows, so with fonts ignored nothing of it moves (`scope`).
+    surface("a History row's store cell", {
+      hold = { "color" },
+      scope = "fonts",
+      build = function() return bound(1, { entry = STORED }).cells.store end,
+      paint = function() bind(1, { entry = STORED }) end,
+    }),
+    -- The row tints follow the skin's alpha while their companions are on (SD-SK-BL.1), so each
+    -- surface carries its companion: the kit turns it on in the clear pass and leaves the surface
+    -- out of the ignored one, where the slider's alpha is the player's.
     surface("a History row's stripe", {
       build = function() return bound(2).stripe end,
       paint = function() bind(2) end,
+      companion = function(on) ns.db.profile.settings.rowStripeAlphaFromSkin = on end,
+    }),
+    surface("a History row's hover wash", {
+      build = function() return bound(2).rowHover end,
+      paint = function() bind(2) end,
+      companion = function(on) ns.db.profile.settings.rowHoverAlphaFromSkin = on end,
     }),
     surface("a History group header", {
       build = function() return bound(1, HEADER).header end,
@@ -197,7 +293,7 @@ return function(T)
     surface("a KPI card", { build = hud(function(W, p) return W.MakeCard(p) end) }),
     surface("a list panel", { build = hud(function(W, p) return W.MakeListPanel(p, "Title") end) }),
     surface("a section divider's title", { build = hud(function(W, p) return W.MakeSectionDivider(p, "T").fs end) }),
-    surface("a bar's face", { scope = "fonts", build = hud(function(W, p) return W.MakeBar(p).label end) }),
+    surface("a bar's face", rendered({}, function(p, key) return rankedBar(p, key).label end)),
     surface("a bar's track", {
       build = hud(function(W, p)
         local bar = W.MakeBar(p)
@@ -207,20 +303,43 @@ return function(T)
       end),
       paint = function() placed() end,
     }),
+    -- The data fills (SD-SK-BL.3 of Ka0sAddonsCommonTasks docs/2026-11-20-SKIN_DEFAULTS_AUDIT): each
+    -- is a plain Texture NS.SkinBar paints in the skin's bar texture and a data color, so each asks
+    -- `expect = "texture"`; without it a fill whose texture stopped following would pass on its tint.
+    surface("a ranked bar's fill", rendered({ expect = "texture" },
+      function(p, key) return rankedBar(p, key).fill end)),
+    surface("a stacked bar's segment", rendered({ expect = "texture" },
+      function(p, key) return stackedBar(p, key).segs[1].tex end)),
+    surface("a back-to-back bar's side", rendered({ expect = "texture" },
+      function(p, key) return backToBackBar(p, key).leftSide.tex end)),
+    surface("a back-to-back bar's face", rendered({}, function(p, key) return backToBackBar(p, key).label end)),
     surface("a split bar's side", {
+      expect = "texture",
       build = hud(function(W, p)
         local bar = W.MakeSplitBar(p)
         local left = { label = "In", value = "1", frac = 0.5, color = W.MUTED, text = "t" }
         local right = { label = "Out", value = "1", frac = 0.5, color = W.MUTED, text = "t" }
-        placed = function() W.PlaceSplitBar(bar, p, 0, 0, 100, left, right) end
-        placed()
-        return bar
+        split = function() W.PlaceSplitBar(bar, p, 0, 0, 100, left, right) end
+        split()
+        return bar.left.tex
       end),
-      paint = function() placed() end,
+      paint = function() split() end,
+    }),
+    surface("a split bar's caption", {
+      build = hud(function(W, p)
+        local bar = W.MakeSplitBar(p)
+        local left = { label = "In", value = "1", frac = 0.5, color = W.POSITIVE, text = "t" }
+        local right = { label = "Out", value = "1", frac = 0.5, color = W.NEGATIVE, text = "t" }
+        caption = function() W.PlaceSplitBar(bar, p, 0, 0, 100, left, right) end
+        caption()
+        return bar.leftText
+      end),
+      paint = function() caption() end,
     }),
     surface("a legend swatch", { build = hud(function(W, p) return W.MakeSwatch(p) end) }),
-    surface("a list row's face", { scope = "fonts", build = hud(function(W, p) return W.MakeListRow(p).name end) }),
+    surface("a list row's face", rendered({}, function(p) return listRow(p).name end)),
     surface("a strip bar's fill", {
+      expect = "texture",
       build = hud(function(W, p)
         local f = { fill = p:CreateTexture(nil, "ARTWORK") }
         strip = f
@@ -249,9 +368,41 @@ return function(T)
       end,
       paint = function(fs) fs:SetText(ns.SkinPanelEscape("text.disabled") .. "(none)|r") end,
     }),
+    -- SD-SK-BL.2: a Minimum quality label as the dropdown draws it, read fresh on each render.
+    surface("a Minimum quality label", {
+      scope = "panel",
+      build = function()
+        addon()
+        local fs = parent():CreateFontString(nil, "OVERLAY")
+        fs:SetText(ns.Constants.QualityOptions()[5].text)
+        return fs
+      end,
+      paint = function(fs) fs:SetText(ns.Constants.QualityOptions()[5].text) end,
+    }),
+  }
+
+  -- Kit revision 58's scanner reads three-number tables and multi-assigned triples, which revision
+  -- 57 did not, so these three lines are new hits with no change to the code under them.
+  local STORE = "a store's identity hue in the named meaning table C.StoreRGB: the store is what the "
+    .. "color tells, and skinning-§9 keeps a meaning table's hue under every skin (the skin-defaults "
+    .. "audit's OVERRIDE row, LibKa0s#97)"
+  local rows = {
+    { file = "core/Constants.lua", substring = "BANK         = {", why = STORE, cause = "MC" },
+    { file = "core/Constants.lua", substring = "WARBAND_BANK = {", why = STORE, cause = "MC" },
+    { file = "core/Constants.lua", substring = "GUILD_BANK   = {", why = STORE, cause = "MC" },
+    { file = "core/Constants.lua", substring = "BAGS         = {", why = STORE, cause = "MC" },
+    { file = "modules/InsightsWidgets.lua", substring = "series = { { 1, 1, 1 } }",
+      why = "the palette's guard for a skin with no chart.series: every skin states one, and Ka0s "
+        .. "Default's fills any gap, so no player sees it",
+      category = "unreachable default" },
+    { file = "settings/Panel.lua", substring = "local r, g, b, a = 1, 1, 1, 1",
+      why = "a texture's vertex color as the panel's diagnostic dump prints it, as numbers in a "
+        .. "report; it starts at white for a texture that cannot answer and draws nothing",
+      category = "not a color" },
   }
 
   return {
+    rows = rows,
     calls = { SkinBar = { 2, 3, 4 } },
   }, {
     owner = OWNER,
