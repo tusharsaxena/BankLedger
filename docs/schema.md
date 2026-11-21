@@ -27,7 +27,7 @@ Each default value is hardcoded in exactly one of the two files (`savedvariables
 [settings-panel.md](settings-panel.md#rows)):
 
 ```lua
-appearance = { source = "ka0s", skin = "ka0s",          -- the skin this addon wears (Ka0s Default)
+appearance = { source = "ka0s", skin = NS.DEFAULT_SKIN, -- the client's default skin (Skin:DefaultSkin): Ka0s Default on Retail, WoW Forever on Forever
                ignorePanel = true, ignoreFonts = false, -- the Scope: settings pages stay the client's
                font = "", texture = "",                 -- the Font and texture overrides: "" = the skin's own
                outline = "hud",                         -- the Font outline: "all", "hud" or "off"

@@ -1659,13 +1659,14 @@ Total.
 - Layers: the degraded resize grip sits at window + LEVEL.GRIP, as the library's
 - Layers: no strata string and no bare level number at any call site
 
-### test_skinsetup.lua (14)
+### test_skinsetup.lua (15)
 
 - Skin seam: the owner is the folder name, and NS.Skin is its facade
-- Skin seam: the read answers Ka0s Default before the profile store exists
+- Skin seam: the read answers the client's default before the profile store exists
+- Skin seam: the profile default is the client's default skin
 - Skin seam: each owner token draws its Ka0s Default pixel and follows its role elsewhere
 - Skin seam: the gold movement token is today's pale gold, not sem.gold
-- Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows
+- Skin seam: the appearance keys default to the client's look, as eight skipRender Appearance rows
 - Skin seam: the skin row's values are every registered skin, in the library's order
 - Skin seam: /bl set refuses a skin that is not registered and applies one that is
 - Skin seam: /bl set reaches an exception, and only its own half
@@ -2055,7 +2056,7 @@ Total.
 | test_sim_panel.lua | 19 |
 | test_sim_checkbox.lua | 10 |
 | test_layers.lua | 11 |
-| test_skinsetup.lua | 14 |
+| test_skinsetup.lua | 15 |
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
 | test_title_bar.lua | 9 |
@@ -2075,4 +2076,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1745** |
+| **Total** | **1746** |

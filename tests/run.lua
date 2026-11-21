@@ -142,6 +142,19 @@ do
     NS.MaybeShowSkinPicker = real
     if not ok then error(err, 0) end
   end
+  -- `fn` with this addon wearing Ka0s Default by name, the applied choice put back after. A new
+  -- profile wears the client's default skin (NS.DEFAULT_SKIN, Skin:DefaultSkin): WoW Forever under
+  -- KA0S_KIT_CLIENT=forever. A case that pins a Ka0s Default VALUE (a tint, a hex) chooses it here,
+  -- the same on both kit profiles (DropWatcher's `skin = "ka0s"`, DW-FP03, skinning-§2).
+  T.onKa0sDefault = function(fn)
+    local Skin = mocks.LibStub("LibKa0s-Skin-1.0", true)
+    if not Skin then return fn() end
+    local source, skin = Skin:GetChoice("BankLedger")
+    Skin:SetChoice("BankLedger", "ka0s", "ka0s")
+    local ok, err = pcall(fn)
+    Skin:SetChoice("BankLedger", source, skin)
+    if not ok then error(err, 0) end
+  end
 end
 
 NS:InitDB()
