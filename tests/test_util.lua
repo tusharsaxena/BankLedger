@@ -4,8 +4,41 @@ local mocks = T.mocks
 local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
-test("Util.PlayerKey joins name and realm with spaces stripped", function()
-  assertEqual(NS.Util.PlayerKey(), "Mock-Realm")
+-- The player's record key per client (WoW Forever port, "Identity", BL-03): `Name-Realm` on Retail,
+-- the key every stored Retail row already carries; the character key "First Surname" on WoW
+-- Forever (regional names), where the mock's player is "Mock" with the surname "Mockvault".
+local FOREVER = NS.Compat.ClientKey() == "forever"
+
+test("Util.PlayerKey is the player's record key on this client", function()
+  assertEqual(NS.Util.PlayerKey(), FOREVER and "Mock Mockvault" or "Mock-Realm")
+end)
+
+test("Util.PlayerKey on regional names is the character key, so two Traxexes do not collide", function()
+  local saved = { mocks.RegionalUniqueNamesEnabled, mocks.UnitName, mocks.UnitNameUnmodified }
+  mocks.RegionalUniqueNamesEnabled = function() return true end
+  local keys = {}
+  for i, surname in ipairs({ "Mockstride", "Mockvale" }) do
+    mocks.UnitName = function() return "Samplehunter", surname end
+    mocks.UnitNameUnmodified = mocks.UnitName
+    keys[i] = NS.Util.PlayerKey()
+  end
+  mocks.RegionalUniqueNamesEnabled, mocks.UnitName, mocks.UnitNameUnmodified = saved[1], saved[2], saved[3]
+  assertEqual(keys[1], "Samplehunter Mockstride")
+  assertEqual(keys[2], "Samplehunter Mockvale")
+end)
+
+test("Util.PlayerKey without regional names joins name and realm, realm spaces stripped", function()
+  local saved = { mocks.RegionalUniqueNamesEnabled, mocks.GetNormalizedRealmName }
+  mocks.RegionalUniqueNamesEnabled = function() return false end
+  mocks.GetNormalizedRealmName = function() return "Sample realm" end
+  local key = NS.Util.PlayerKey()
+  mocks.RegionalUniqueNamesEnabled, mocks.GetNormalizedRealmName = saved[1], saved[2]
+  assertEqual(key, "Mock-Samplerealm")
+end)
+
+test("Util.RecordKey is the one join: Name-Realm with a realm, the whole name without one", function()
+  assertEqual(NS.Util.RecordKey("Sampleblade", "Samplerealm"), "Sampleblade-Samplerealm")
+  assertEqual(NS.Util.RecordKey("Sampleblade Mockvale", nil), "Sampleblade Mockvale")
 end)
 
 test("Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form", function()

@@ -161,9 +161,10 @@ local function identities()
   local main = { key = NS.Util.PlayerKey(), class = NS.Compat.PlayerClass() }
   -- The alt is the shared sample character of the other class (Sim.Sample, AD-87-BL).
   local alt = { class = main.class == "PALADIN" and "WARRIOR" or "PALADIN" }
-  -- Keyed as the host records it (BL-02): the join of the name and realm PlayerName answers.
+  -- Keyed as the host records it (BL-03): the set's own fullName, "Name-Realm" on Retail and
+  -- "First Surname" on WoW Forever, which is the record key the one builder makes on each client.
   for _, row in ipairs(NS.SampleCharacters()) do
-    if row.classFile == alt.class then alt.key = row.name .. "-" .. row.realm end
+    if row.classFile == alt.class then alt.key = row.fullName end
   end
   return main, alt, name
 end

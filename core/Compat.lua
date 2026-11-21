@@ -31,11 +31,20 @@ function Compat.GetGuildName()
   return name
 end
 
--- The player's name and realm, the realm normalized and whitespace stripped; each is "Unknown" when
--- the client cannot answer. Read at call time, never cached: a row's `char` is identity, and the
--- in-game simulator answers identity (its alt character) only through a Compat member it can stand
--- in for. Util.PlayerKey joins the two.
+-- The player's name and realm, the two parts of the record key Util.RecordKey joins (WoW Forever
+-- port, "Identity"). Without regional names (Retail): UnitName's name and the realm, normalized and
+-- whitespace stripped, each "Unknown" when the client cannot answer, so the key stays the
+-- `Name-Realm` every stored Retail row carries. With regional names (WoW Forever, forever-quirks-§4):
+-- the whole character key, "First Surname" (core/CompatClient.lua's CharacterKey, else the name
+-- UnitCharacterName reads, else "Unknown"), and a nil realm, so two characters who share a first
+-- name never share a key and no realm is ever read or joined. Always exactly two values. Read at
+-- call time, never cached: a row's `char` is identity, and the in-game simulator answers identity
+-- (its alt character) only through a Compat member it can stand in for, this one; the
+-- CompatClient readers it calls are pure and never answer for the alt.
 function Compat.PlayerName()
+  if Compat.RegionalNames() then
+    return Compat.CharacterKey() or Compat.UnitCharacterName("player") or "Unknown", nil
+  end
   local name = UnitName("player") or "Unknown"
   local realm = (GetNormalizedRealmName and GetNormalizedRealmName())
     or (GetRealmName and GetRealmName()) or "Unknown"

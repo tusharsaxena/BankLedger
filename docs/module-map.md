@@ -126,7 +126,7 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 
 | Group | Exports |
 |---|---|
-| Player | `GetGuildName`, `PlayerName` (name and normalized realm), `PlayerClass` (the classFile) |
+| Player | `GetGuildName`, `PlayerName` (name and normalized realm on Retail; the whole "First Surname" and no realm on WoW Forever, joined by `Util.RecordKey` into the record key), `PlayerClass` (the classFile) |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
 | Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `GetItemDetails`, `ItemNameQuality` — the **resolver** only; the primitives are `NS.Item.X` (see `core/ItemSetup.lua`) |

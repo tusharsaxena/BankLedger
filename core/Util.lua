@@ -2,11 +2,20 @@ local _, NS = ...
 NS.Util = NS.Util or {}
 local Util = NS.Util
 
--- "Name-Realm" of the current player (realm normalized, spaces stripped).
--- The reads live in Compat.PlayerName, so a simulator can answer them.
-function Util.PlayerKey()
-  local name, realm = NS.Compat.PlayerName()
+-- The one record-key builder (WoW Forever port, "Identity"; BL-03): the key a row's `char` stores
+-- for a character whose name and realm are the two parts Compat.PlayerName answers. `Name-Realm`
+-- when there is a realm (Retail, unchanged); the name alone when there is none, which is the whole
+-- "First Surname" on WoW Forever (regional names). modules/SimWorld.lua keys its characters with
+-- it too, so the simulator's world and the rows it records always agree.
+function Util.RecordKey(name, realm)
+  if realm == nil then return name end
   return name .. "-" .. realm
+end
+
+-- The current player's record key: "Name-Realm" on Retail (realm normalized, spaces stripped),
+-- "First Surname" on WoW Forever. The reads live in Compat.PlayerName, so a simulator can answer them.
+function Util.PlayerKey()
+  return Util.RecordKey(NS.Compat.PlayerName())
 end
 
 -- Clock-only (HH:MM) for the Time column.

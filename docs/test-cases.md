@@ -8,9 +8,12 @@ Total.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (38)
+### test_util.lua (41)
 
-- Util.PlayerKey joins name and realm with spaces stripped
+- Util.PlayerKey is the player's record key on this client
+- Util.PlayerKey on regional names is the character key, so two Traxexes do not collide
+- Util.PlayerKey without regional names joins name and realm, realm spaces stripped
+- Util.RecordKey is the one join: Name-Realm with a realm, the whole name without one
 - Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
 - Util.FormatClock renders HH:MM
 - Util.PlainMoney always renders gold, silver and copper parts
@@ -49,7 +52,7 @@ Total.
 - ApplyVisibility hides only open windows and re-shows exactly those on the way back
 - ApplyVisibility and ApplyMasterChrome build no table literal per call
 
-### test_compat.lua (17)
+### test_compat.lua (20)
 
 - Compat.GetItemDetails returns name, quality, type, subtype and vendor price
 - Compat.GetItemDetails returns nil for an item the client has not cached
@@ -66,6 +69,9 @@ Total.
 - Compat.GetStoreMoney returns nil when the build exposes no reader
 - Compat.PlayerName answers the name and the normalized realm, whitespace stripped
 - Compat.PlayerName falls back to GetRealmName, then to 'Unknown'
+- Compat.PlayerName on regional names answers the whole 'First Surname' and no realm
+- Compat.PlayerName on regional names never reads the realm
+- Compat.PlayerName on regional names: no surname answers the name alone, no name 'Unknown'
 - Compat.PlayerClass answers the classFile, read at call time
 - compat boundary: no player identity read outside core/Compat.lua
 
@@ -1503,7 +1509,7 @@ Total.
 - TOC: core/SimSetup.lua loads immediately after the compat family, annotated LOAD-BEARING
 - Sim seam: no file caches a Compat member or the Compat table outside the compat family
 
-### test_sim_world.lua (17)
+### test_sim_world.lua (18)
 
 - SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
 - SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
@@ -1514,6 +1520,7 @@ Total.
 - SimWorld: the purse follows `current` across Switch
 - SimWorld: main is the real player; after Switch the identity members answer the alt
 - SimWorld: a paladin's alt is the shared sample warrior
+- SimWorld: each character's key is the set's fullName and what Util.RecordKey builds
 - SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept
 - SimWorld: an empty bag falls back to the fixed ids, warmed, and reports it once
 - SimWorld: an unguilded player's world invents the guild name
@@ -1988,8 +1995,8 @@ Total.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 38 |
-| test_compat.lua | 17 |
+| test_util.lua | 41 |
+| test_compat.lua | 20 |
 | test_compat_client.lua | 10 |
 | test_constants.lua | 24 |
 | test_filters.lua | 13 |
@@ -2039,7 +2046,7 @@ Total.
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
-| test_sim_world.lua | 17 |
+| test_sim_world.lua | 18 |
 | test_sample_characters.lua | 8 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
@@ -2068,4 +2075,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1738** |
+| **Total** | **1745** |

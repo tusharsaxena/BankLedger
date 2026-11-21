@@ -142,31 +142,46 @@ test("SimWorld: the purse follows `current` across Switch", function()
   assertFalse(SW.Switch("nobody"), "an unknown character was switched to")
 end)
 
+-- The identity per client (BL-03): on Retail PlayerName answers the name and realm and the key is
+-- their `Name-Realm`; on WoW Forever (regional names) it answers the whole "First Surname" and no
+-- realm, and the key is that name, the sample set's fullName for the alt. Either way a character's
+-- key is the one the host records it under.
+local FOREVER = T.NS.Compat.ClientKey() == "forever"
+
 test("SimWorld: main is the real player; after Switch the identity members answer the alt", function()
   local ns, _, w, P = built()
   local name, realm = P.PlayerName(live)
-  assertEqual(name, "Mock")
-  assertEqual(realm, "Realm")
+  assertEqual(name, FOREVER and "Mock Mockvault" or "Mock")
+  assertEqual(realm, (not FOREVER) and "Realm" or nil)
   assertEqual(P.PlayerClass(live), "MAGE")
-  assertEqual(w.chars.main.key, "Mock-Realm")
+  assertEqual(w.chars.main.key, FOREVER and "Mock Mockvault" or "Mock-Realm")
   ns.SimWorld.Switch("alt")
   name, realm = P.PlayerName(live)
   -- Re-pinned by AD-87-BL (LibKa0s#87): the alt is the shared sample character of its class
   -- (Sim.Sample), on its own fictional realm, where it was NS.L["Simbanker"] on the real realm.
-  assertEqual(name, "Sampleblade")
-  assertEqual(realm, "Samplerealm", "the alt is not the shared sample paladin's realm")
+  assertEqual(name, FOREVER and "Sampleblade Mockvale" or "Sampleblade")
+  assertEqual(realm, (not FOREVER) and "Samplerealm" or nil, "the alt is not the shared sample paladin's realm")
   assertEqual(P.PlayerClass(live), "PALADIN", "a mage's alt is the sample paladin")
-  assertEqual(w.chars.alt.key, "Sampleblade-Samplerealm")
+  assertEqual(w.chars.alt.key, FOREVER and "Sampleblade Mockvale" or "Sampleblade-Samplerealm")
 end)
 
 test("SimWorld: a paladin's alt is the shared sample warrior", function()
   local ns, _, w, P = built(function(m) m.UnitClass = function() return "Paladin", "PALADIN", 2 end end)
   ns.SimWorld.Switch("alt")
   local name, realm = P.PlayerName(live)
-  assertEqual(name, "Mockshield")
-  assertEqual(realm, "Mockrealm")
+  assertEqual(name, FOREVER and "Mockshield Sampleforge" or "Mockshield")
+  assertEqual(realm, (not FOREVER) and "Mockrealm" or nil)
   assertEqual(P.PlayerClass(live), "WARRIOR")
-  assertEqual(w.chars.alt.key, "Mockshield-Mockrealm")
+  assertEqual(w.chars.alt.key, FOREVER and "Mockshield Sampleforge" or "Mockshield-Mockrealm")
+end)
+
+test("SimWorld: each character's key is the set's fullName and what Util.RecordKey builds", function()
+  local ns, _, w = built()
+  for _, who in ipairs({ "main", "alt" }) do
+    local c = w.chars[who]
+    assertEqual(c.key, ns.Util.RecordKey(c.name, c.realm), who .. ": the key is not the one builder's")
+  end
+  assertEqual(w.chars.alt.key, ns.SampleCharacterOf("PALADIN").fullName, "the alt's key is not its fullName")
 end)
 
 test("SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept", function()
@@ -256,7 +271,7 @@ test("SimWorld: Build reads the real world only inside the seam's Live", functio
   local w = ns.SimWorld.Build()
   seam.Live = realLive
   assertEqual(#outside, 0, "the build read the client outside Live: " .. table.concat(outside, ", "))
-  assertEqual(w.chars.main.name, "Mock")
+  assertEqual(w.chars.main.name, FOREVER and "Mock Mockvault" or "Mock")
   assertFalse(w.poolFallback)
 end)
 
@@ -310,7 +325,7 @@ test("SimWorld: during a session the wrapped Compat answers from the world, not 
   assertEqual(ns.Compat.GetMoney(), 5000 * 10000)
   assertEqual(ns.Compat.IsGuildBankVisible(), false)
   assertEqual(ns.Compat.GetContainerNumSlots(BACKPACK), 20)
-  assertEqual(ns.Compat.PlayerName(), "Mock")
+  assertEqual(ns.Compat.PlayerName(), FOREVER and "Mock Mockvault" or "Mock")
   sim:Stop()
   assertEqual(ns.Compat.GetMoney(), m.__money, "the stopped seam still answered from the world")
 end)

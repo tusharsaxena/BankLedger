@@ -702,7 +702,8 @@ test("Browser: the window still opens and the ledger table still populates with 
     local ns, m = loadWithoutWidgets()
     assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded arm still has the library")
     ns.Database:Add({
-      ts = 1770000000, char = "Mock-Realm", classFile = "MAGE",
+      -- The player's own row (the record key per client, BL-03), so the "me" default keeps it.
+      ts = 1770000000, char = ns.Util.PlayerKey(), classFile = "MAGE",
       kind = "ITEM", direction = "DEPOSIT", store = "BANK",
       itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth",

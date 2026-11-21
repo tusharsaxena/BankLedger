@@ -144,21 +144,30 @@ end
 -- NS.SampleCharacterOf, LibKa0s-Sim-1.0's Sim.SAMPLE, LibKa0s#87) of a class that is not main's:
 -- Sampleblade-Samplerealm, the sample paladin, or Mockshield-Mockrealm, the sample warrior, for a
 -- paladin. Its name and realm are the set's data, never localized and never the real realm.
--- Each character's `key` is the one the host records it under: Util.PlayerKey's join of the name
--- and realm P.PlayerName answers, for main and alt alike (BL-02). On Retail the alt's equals the
--- set's fullName; on WoW Forever the set's fullName is "First Surname" while the host still keys by
--- "Name-Realm" until the one record-key builder lands (BL-03), and the key follows the host.
-local function recordKey(name, realm) return name .. "-" .. realm end
+-- A character's `name` and `realm` are the two parts P.PlayerName answers for it, the same two
+-- Compat.PlayerName answers for the real player, and its `key` is Util.RecordKey's join of them, the
+-- one record-key builder the host keys rows with (BL-03), for main and alt alike. The alt's parts
+-- come from the sample row as Compat.PlayerName would read them: its name and realm without regional
+-- names (Retail), its whole "First Surname" and no realm with them (WoW Forever). Either way the
+-- alt's key is the set's fullName.
+local function samplePlayerName(row)
+  if NS.Compat.RegionalNames() then return row.fullName, nil end
+  return row.name, row.realm
+end
+
+local function character(name, realm, classFile)
+  return { key = NS.Util.RecordKey(name, realm), name = name, realm = realm, classFile = classFile }
+end
 
 local function buildChars()
   local seam = NS.SimSeam
   local name, realm = seam:Live(NS.Compat.PlayerName)
   local classFile = seam:Live(NS.Compat.PlayerClass)
   local altClass = ALT_CLASSES[1] == classFile and ALT_CLASSES[2] or ALT_CLASSES[1]
-  local alt = NS.SampleCharacterOf(altClass)
+  local altName, altRealm = samplePlayerName(NS.SampleCharacterOf(altClass))
   return {
-    main = { key = recordKey(name, realm), name = name, realm = realm, classFile = classFile },
-    alt = { key = recordKey(alt.name, alt.realm), name = alt.name, realm = alt.realm, classFile = altClass },
+    main = character(name, realm, classFile),
+    alt = character(altName, altRealm, altClass),
   }
 end
 

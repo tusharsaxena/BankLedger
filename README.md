@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1738%2F1738_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1745%2F1745_passing-green)
 
 Retail only for now; WoW Forever support is planned. Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and

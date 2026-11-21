@@ -521,7 +521,8 @@ test("Ledger:BuildEntry stamps who, where and when onto an item movement", funct
   assertEqual(e.store, "BANK")
   assertEqual(e.itemID, 171276)
   assertEqual(e.quantity, 4)
-  assertEqual(e.char, "Mock-Realm")
+  -- The record key per client (BL-03): Name-Realm on Retail, "First Surname" on WoW Forever.
+  assertEqual(e.char, NS.Compat.ClientKey() == "forever" and "Mock Mockvault" or "Mock-Realm")
   assertEqual(e.classFile, "MAGE")
   assertEqual(e.zone, "Testville")
   assertEqual(e.subzone, "The Vault")
