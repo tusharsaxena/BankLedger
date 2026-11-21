@@ -53,7 +53,7 @@ read_globals = {
   "FauxScrollFrame_Update", "FauxScrollFrame_GetOffset", "FauxScrollFrame_OnVerticalScroll",
   "ChatEdit_InsertLink", "IsShiftKeyDown", "BreakUpLargeNumbers", "GetCursorPosition",
   "StaticPopup_Show", "YES", "NO",
-  "GetCoinTextureString",
+  "C_CurrencyInfo", "GetMoneyString",
   "strtrim",
 }
 -- The client stub (clients-§3) and the regional-names stub (forever-quirks-§4): core/CompatClient.lua

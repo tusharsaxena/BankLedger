@@ -8,7 +8,7 @@ Total.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (41)
+### test_util.lua (44)
 
 - Util.PlayerKey is the player's record key on this client
 - Util.PlayerKey on regional names is the character key, so two Traxexes do not collide
@@ -20,6 +20,9 @@ Total.
 - Util.PlainMoney renders zero rather than an empty string
 - Util.PlainMoney renders nil as empty
 - Util.FormatMoney is blank for nothing and compact for a real amount
+- Util.FormatMoney prefers C_CurrencyInfo.GetCoinTextureString and passes the glyph height
+- Util.FormatMoney falls back to GetMoneyString when C_CurrencyInfo has no coin string
+- Util.FormatMoney never reads the bare GetCoinTextureString global
 - Util.EntryType is the stored item type for an item movement
 - Util.EntryType is Gold for a gold movement, which stores no type
 - Util.EntryType is blank for an uncached item and for nothing at all
@@ -2039,7 +2042,7 @@ Total.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 41 |
+| test_util.lua | 44 |
 | test_compat.lua | 20 |
 | test_compat_client.lua | 10 |
 | test_constants.lua | 24 |
@@ -2122,4 +2125,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1780** |
+| **Total** | **1783** |

@@ -68,6 +68,54 @@ test("Util.FormatMoney is blank for nothing and compact for a real amount", func
   assertEqual(NS.Util.FormatMoney(10203), "1g 2s 3c")
 end)
 
+-- Money text (R8, both clients): C_CurrencyInfo.GetCoinTextureString first, then GetMoneyString,
+-- then the plain text. The bare GetCoinTextureString global is never read (Forever has none).
+local function withMoneyApis(apis, fn)
+  local saved = { mocks.C_CurrencyInfo, mocks.GetMoneyString, mocks.GetCoinTextureString }
+  mocks.C_CurrencyInfo, mocks.GetMoneyString, mocks.GetCoinTextureString =
+    apis.currency, apis.moneyString, apis.bare
+  local ok, err = pcall(fn)
+  mocks.C_CurrencyInfo, mocks.GetMoneyString, mocks.GetCoinTextureString = saved[1], saved[2], saved[3]
+  if not ok then error(err, 0) end
+end
+
+test("Util.FormatMoney prefers C_CurrencyInfo.GetCoinTextureString and passes the glyph height", function()
+  local calls = {}
+  withMoneyApis({
+    currency = { GetCoinTextureString = function(...) calls[#calls + 1] = { n = select("#", ...), ... }
+      return "coins" end },
+    moneyString = function() return "money" end,
+    bare = function() return "bare" end,
+  }, function()
+    assertEqual(NS.Util.FormatMoney(10203, 12), "coins")
+    assertEqual(NS.Util.FormatMoney(10203), "coins")
+    assertEqual(NS.Util.FormatMoney(0, 12), "")
+  end)
+  assertEqual(#calls, 2)
+  assertEqual(calls[1][1], 10203)
+  assertEqual(calls[1][2], 12)
+  -- No height: the API's own default (14) applies, so the argument is left out, not passed as nil.
+  assertEqual(calls[2].n, 1)
+end)
+
+test("Util.FormatMoney falls back to GetMoneyString when C_CurrencyInfo has no coin string", function()
+  local got
+  withMoneyApis({
+    currency = {},
+    moneyString = function(copper) got = copper; return "money" end,
+    bare = function() return "bare" end,
+  }, function()
+    assertEqual(NS.Util.FormatMoney(10203, 12), "money")
+  end)
+  assertEqual(got, 10203)
+end)
+
+test("Util.FormatMoney never reads the bare GetCoinTextureString global", function()
+  withMoneyApis({ bare = function() return "bare" end }, function()
+    assertEqual(NS.Util.FormatMoney(10203), "1g 2s 3c")
+  end)
+end)
+
 test("Util.EntryType is the stored item type for an item movement", function()
   assertEqual(NS.Util.EntryType({ kind = "ITEM", itemType = "Consumable" }), "Consumable")
   assertEqual(NS.Util.EntrySubType({ kind = "ITEM", itemSubType = "Flask" }), "Flask")

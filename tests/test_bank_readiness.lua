@@ -12,7 +12,7 @@
 --     not ready past L.READY_TIMEOUT_SECONDS is accepted as the bank's new shape (re-anchored, never
 --     diffed), so a bag taken out of a bank tab cannot silence the ledger.
 --
--- Both clients, one behaviour: every case runs on both kit profiles.
+-- Both clients, one behavior: every case runs on both kit profiles.
 
 local T = _G.BL_TEST
 local NS = T.NS

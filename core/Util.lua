@@ -44,13 +44,21 @@ function Util.RangeFrom(range)
   return nil
 end
 
--- Format a copper amount for display. In-game uses the gold/silver/copper coin glyphs
--- (GetCoinTextureString); headless falls back to "Ng Ns Nc" (only non-zero parts). "" for nil/0.
+-- Format a copper amount for display, with the gold/silver/copper coin glyphs in game. "" for nil/0.
+-- The order is the same on Retail and WoW Forever (R8): C_CurrencyInfo.GetCoinTextureString, the
+-- documented API on both clients (it takes the glyph height); then GetMoneyString, the SharedXML
+-- helper both clients ship (Forever has no bare GetCoinTextureString global); then "Ng Ns Nc" text
+-- with only the non-zero parts, which is also what the headless suite sees.
 function Util.FormatMoney(copper, coinHeight)
   copper = copper or 0
   if copper <= 0 then return "" end
-  if GetCoinTextureString then
-    return GetCoinTextureString(copper, coinHeight)
+  local currency = C_CurrencyInfo
+  if currency and currency.GetCoinTextureString then
+    if coinHeight then return currency.GetCoinTextureString(copper, coinHeight) end
+    return currency.GetCoinTextureString(copper)
+  end
+  if GetMoneyString then
+    return GetMoneyString(copper)
   end
   local g = math.floor(copper / 10000)
   local s = math.floor((copper % 10000) / 100)
