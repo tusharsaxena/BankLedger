@@ -3,7 +3,7 @@
 `core/Compat.lua` — the single file in the addon allowed to call a deprecated or patch-varying API.
 Everything else calls `NS.Compat.X` and never the raw global.
 
-`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 15 exports
+`core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 16 exports
 in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
 `WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
 
@@ -23,7 +23,7 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 |---|---|
 | Player | `GetGuildName`, `PlayerName` (name and normalized realm on Retail; the whole "First Surname" and no realm on WoW Forever, joined by `Util.RecordKey` into the record key), `PlayerClass` (the classFile) |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
-| Containers | `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
+| Containers | `CanViewCharacterBank` (`C_Bank.CanViewBank(Character)`; false at a warband-only banker, nil when the build cannot tell), `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `GetItemDetails`, `ItemNameQuality` — the **resolver** only; the primitives are `NS.Item.X` (see `core/ItemSetup.lua`) |
 
 `PlayerName` and `PlayerClass` are not cross-patch shims; they are here for the in-game simulator
@@ -48,8 +48,8 @@ test per call:
 - **Guarded:** `QueryGuildBankTab`, the addon's one outward request. While a session runs its live
   body never runs, inside `Live` included; the guarded answer marks the tab queried in the simulated
   world and fires the asynchronous `GUILDBANKBAGSLOTS_CHANGED` reply on the session timer.
-- **Wrapped:** the other eleven, `PlayerName` and `PlayerClass` included. With the guarded member
-  that makes the twelve of fifteen `docs/module-map.md` counts.
+- **Wrapped:** the other twelve, `PlayerName` and `PlayerClass` included. With the guarded member
+  that makes the thirteen of sixteen `docs/module-map.md` counts.
 
 A member added after the seam is built, or one replaced by assignment, would escape it, and so would
 a member captured as `local x = NS.Compat.X`. `tests/test_sim_seam.lua` asserts the seam's

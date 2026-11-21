@@ -69,7 +69,7 @@ while logging is off.
 | `[Backfill]` | `modules/Backfill.lua` | The login backfill, only when the ledger holds rows to fill: `N rows over M ids filled now, K requested` as it starts, then `done: N rows filled, K unresolved` when every id has answered or the 10s window closes. A ledger with nothing to fill writes nothing |
 | `[Data]` | `Database:Delete`, `DeleteAt`, `Purge` | Each user delete or purge, with the count |
 | `[Filters]` | `NS.Filters` | Each blacklist or whitelist change, with both sizes |
-| `[Store]` | `modules/Ledger.lua` | A store opened (with its baseline counts), closed (`, held change dropped` when a hold was thrown away), dropped by a stand-down, the guild bank's hooks installed, its tabs queried, its self-disarm, and the guild frame showing while another store is armed (`context kept`) |
+| `[Store]` | `modules/Ledger.lua` | A store opened (with its baseline counts), closed (`, held change dropped` when a hold was thrown away), dropped by a stand-down, the guild bank's hooks installed, its tabs queried, its self-disarm, the guild frame showing while another store is armed (`context kept`), and the bank readiness guard (R8): `bank not ready` with the containers that read 0 slots, `bank ready after Ns`, `bank still not ready after Ns; its shape is accepted and re-anchored`, the open's `baseline deferred` line, and `BANK not viewable at this banker` |
 | `[Diff]` | `modules/Ledger.lua` | One line per store per reconcile pass, **change-gated**: the first pass after an open, every pass that found a movement, and any pass whose summary differs from the last one written for that store. The settle hold's two edges (`one-sided change: baseline held`, `held change settled after Ns`) and its timeout (`never settled; baseline re-anchored`) |
 | `[Skip]` | `modules/Ledger.lua` | One line per store per pass that the capture gate refused movements in, listing each as `<item id or gold> <direction> (<reason>)`: `disabled`, `kind`, `store`, `blacklist`, `quality` or `uncached` |
 | `[Move]` | `modules/Ledger.lua` | One line per store per pass that found movements: recorded and skipped counts |
@@ -82,8 +82,8 @@ while logging is off.
 | `[Cfg]` | the library (LibKa0s-Options-1.0), through `settings/OptionsSetup.lua` | The settings panel's combat lock: `<what> refused (in combat)` for a write, a Defaults or reset button, a toggle or a tab switch, once per text per combat; `register parked (in combat)` and its `register flushed (combat ended)` |
 
 **Quiet steady state (`debug-logging-§9`).** An open bank is a repeating path: every
-`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED`
-drives a reconcile pass, and so does the settle deadline. A pass that changes nothing it reports
+`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED`,
+`PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED` drives a reconcile pass, and so does the settle deadline. A pass that changes nothing it reports
 writes nothing: the `[Diff]` line goes through the console's change gate (`D.DebugChanged`, keyed
 per store), so a match with no movement is dropped. The comparison is behind the gate too. The gate
 starts fresh on every open, so a visit always says what it first saw, and the console re-arms it on

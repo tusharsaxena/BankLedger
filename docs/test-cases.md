@@ -314,6 +314,25 @@ Total.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
+### test_bank_readiness.lua (16)
+
+- readiness: Compat.CanViewCharacterBank answers C_Bank.CanViewBank(Enum.BankType.Character)
+- readiness: BAG_CONTAINER_UPDATE and BANK_TABS_CHANGED are capture cues on both clients
+- readiness: a cue event with the bank open schedules one debounced re-read
+- readiness: a first visit takes its baseline even with tabs at 0 slots (no memory yet)
+- readiness: visit 2 with a partly loaded bank takes no baseline
+- readiness: a tab loading while the bags lose the same item writes no phantom deposit
+- readiness: a tab dropping to 0 mid-visit holds the baseline and writes no phantom withdrawal
+- readiness: once the loading bank is ready, a real deposit is recorded
+- readiness: a movement made while the bank was loading mid-visit is recorded once it is ready
+- readiness: a tab that stays at 0 past the deadline is re-anchored, never diffed
+- readiness: a tab that never had slots (an unbought tab) never blocks the baseline
+- readiness: the bags have no guard (only bank containers are judged)
+- readiness: the shape memory is the live world's, never a running simulation's
+- readiness: at a warband-only banker the character bank is not read
+- readiness: at a warband-only banker the Warband Bank is still recorded
+- readiness: a nil CanViewBank answer (cannot tell) still reads the character bank
+
 ### test_database.lua (56)
 
 - Database:Add appends and returns the new index
@@ -1520,7 +1539,7 @@ Total.
 ### test_sim_seam.lua (12)
 
 - Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its seam
-- Sim seam: Keys() is the 12 wrapped Compat members, sorted
+- Sim seam: Keys() is the 13 wrapped Compat members, sorted
 - Sim seam: the eleven pure members are not wrapped
 - Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract H2)
 - Sim seam: with no session, every wrapped member answers what the bare Compat answers
@@ -2031,6 +2050,7 @@ Total.
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 27 |
+| test_bank_readiness.lua | 16 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 65 |
@@ -2102,4 +2122,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1764** |
+| **Total** | **1780** |

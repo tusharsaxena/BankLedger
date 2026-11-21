@@ -19,11 +19,11 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 local Env = dofile("tests/degraded_env.lua")
 local loadUpTo = Env.loadUpTo
 
--- The 15 function members of core/Compat.lua minus its 3 pure ones; every one of the 8 in
+-- The 16 function members of core/Compat.lua minus its 3 pure ones; every one of the 8 in
 -- core/CompatClient.lua (the client and how it spells a name) is pure.
 local WRAPPED = {
-  "GetContainerNumSlots", "GetContainerSlot", "GetCurrentGuildBankTab", "GetGuildBankSlot",
-  "GetGuildName", "GetMoney", "GetNumGuildBankTabs", "GetStoreMoney", "IsGuildBankVisible",
+  "CanViewCharacterBank", "GetContainerNumSlots", "GetContainerSlot", "GetCurrentGuildBankTab",
+  "GetGuildBankSlot", "GetGuildName", "GetMoney", "GetNumGuildBankTabs", "GetStoreMoney", "IsGuildBankVisible",
   "PlayerClass", "PlayerName", "QueryGuildBankTab",
 }
 -- The last file of the compat family; core/SimSetup.lua loads straight after it.
@@ -64,7 +64,7 @@ test("Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its se
   assertTrue(type(NS.SimHost) == "table", "NS.SimHost, the host's own table, is missing")
 end)
 
-test("Sim seam: Keys() is the 12 wrapped Compat members, sorted", function()
+test("Sim seam: Keys() is the 13 wrapped Compat members, sorted", function()
   assertEqual(table.concat(NS.SimSeam:Keys(), ","), table.concat(WRAPPED, ","))
 end)
 

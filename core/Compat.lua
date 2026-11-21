@@ -99,6 +99,19 @@ end
 
 -- ── Container (bag / bank) inventory ────────────────────────────────────────────
 
+-- Can the character bank be viewed at the banker the player is talking to? A warband-only banker
+-- (Enum.PlayerInteractionType.AccountBanker) opens the bank frame on the Warband Bank alone, and the
+-- character bank's containers are not the player's to read there (BagSync v20.41 stops saving it
+-- for this reason). Three-valued, like IsGuildBankVisible: true or false from
+-- C_Bank.CanViewBank(Enum.BankType.Character), present on both clients, and nil when this build
+-- cannot tell, which the caller must read as "readable". The bank type is read BY NAME.
+function Compat.CanViewCharacterBank()
+  local fn = C_Bank and C_Bank.CanViewBank
+  local bankType = Enum and Enum.BankType and Enum.BankType.Character
+  if type(fn) ~= "function" or bankType == nil then return nil end
+  return fn(bankType) and true or false
+end
+
 -- Number of slots in a container id, 0 when the id isn't accessible right now.
 function Compat.GetContainerNumSlots(bagID)
   local fn = C_Container and C_Container.GetContainerNumSlots

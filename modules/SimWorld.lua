@@ -397,6 +397,9 @@ function P.GetStoreMoney(_, store)
   return nil
 end
 
+-- The simulated banker is a full banker: its character bank can always be viewed.
+function P.CanViewCharacterBank() return true end
+
 function P.GetMoney()
   local w = world()
   return w and w.purse[w.current] or 0

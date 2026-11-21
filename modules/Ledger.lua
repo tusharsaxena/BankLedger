@@ -215,11 +215,15 @@ L.CountKinds = countKinds
 -- all read that shape and must not learn about links — but the live link is the ONLY place an
 -- item's bonus IDs exist. Re-deriving one later from the id (GetItemInfo) yields the base item, so
 -- if the scan drops it, the variant that actually moved is gone for good.
-function L:ScanStore(store, links)
+--
+-- `shape` is a second optional accumulator: each container's slot count, { [bagID] = slots }, which
+-- the readiness guard (L:CheckReady) judges. The slot count is read here anyway, so it costs nothing.
+function L:ScanStore(store, links, shape)
   local counts = {}
   if store == C.Store.GUILD_BANK then return self:ScanGuildBank(links) end
   for _, bagID in ipairs(C.STORE_CONTAINERS[store] or {}) do
     local slots = NS.Compat.GetContainerNumSlots(bagID)
+    if shape then shape[bagID] = slots end
     for slot = 1, slots do
       local info = NS.Compat.GetContainerSlot(bagID, slot)
       if info then
@@ -256,16 +260,32 @@ function L:ScanGuildBank(links)
   return counts
 end
 
--- Full snapshot: the bags, every store the open frame can reach, and the money balance, as one
--- comparable value. Scanning all of a frame's stores together is what makes tab switching a
--- non-event — there is nothing to detect, because every tab was already measured.
+-- The stores of `context` this banker lets the player READ: StoresFor, less the character bank when
+-- C_Bank.CanViewBank(Character) answers false (a warband-only banker; ruling R8, both clients). Only
+-- an explicit false drops it: nil means this build cannot tell, and the bank is read as before.
+function L:ReadableStores(context)
+  local stores = self:StoresFor(context)
+  if NS.Compat.CanViewCharacterBank() ~= false then return stores end
+  local out = {}
+  for _, store in ipairs(stores) do
+    if store ~= C.Store.BANK then out[#out + 1] = store end
+  end
+  return out
+end
+
+-- Full snapshot: the bags, every store the open frame can reach and the banker lets the player
+-- read, and the money balance, as one comparable value. Scanning all of a frame's stores together
+-- is what makes tab switching a non-event — there is nothing to detect, because every tab was
+-- already measured. `readable` is the store list the snapshot was taken over, and `shape` the bank
+-- containers' slot counts the readiness guard judges (the bags have no guard, so none of theirs).
 function L:Snapshot(context)
-  local stores, storeMoney = {}, {}
+  local stores, storeMoney, shape = {}, {}, {}
   -- One link table for the whole snapshot, not one per store: an id is the same item wherever it
   -- sits, and a withdrawal must still find a link after the item has left the store it came from.
   local links = {}
-  for _, store in ipairs(self:StoresFor(context)) do
-    stores[store] = self:ScanStore(store, links)
+  local readable = self:ReadableStores(context)
+  for _, store in ipairs(readable) do
+    stores[store] = self:ScanStore(store, links, shape)
     -- The store's own coin balance, where it has one and this build can read it. nil is a real and
     -- expected answer — Diff treats it as "no money movement provable here" (see C-001).
     if L.MONEY_STORES[store] then
@@ -278,6 +298,8 @@ function L:Snapshot(context)
     money = NS.Compat.GetMoney(),
     storeMoney = storeMoney,
     links = links,
+    readable = readable,
+    shape = shape,
   }
 end
 
@@ -580,30 +602,150 @@ end
 -- explicit false counts: nil means this build cannot tell, and a false negative must not disarm.
 local function disarmGuildBankIfGone(context)
   if not (context == C.Context.GUILD_BANK and NS.Compat.IsGuildBankVisible() == false) then return end
-  NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
+  NS.State.openContext, NS.State.lastSnapshot, L._settleSince, L._unreadySince = nil, nil, nil, nil
   if NS.State.debug and NS.Debug then NS.Debug("Store", "GUILD_BANK disarmed (window gone)") end
   -- Disarming here ends the session as surely as CloseContext does; the guild bank never gets a
   -- close event, so without this the session window would sit open after the frame vanished.
   fireSessionChanged(false, context)
 end
 
+-- ── Bank readiness (ruling R8, both clients) ────────────────────────────────────
+--
+-- A bank that is still loading must never be diffed. The client fills bank containers lazily: on
+-- WoW Forever the character bank's tabs 2..9 are real bags socketed into the bank, and BagSync saw
+-- tab slot counts read 0 at the moment of the open (forever-bank.md §5). A baseline taken then, or
+-- a pass read then, turns the tab's arrival or its momentary absence into a one-sided change, and a
+-- one-sided change that happens to meet a bag change of the same item reads as a deposit or a
+-- withdrawal nobody made. Rows are append-only history, so the guard errs toward recording nothing.
+--
+-- PER CONTAINER. A bank container that reported slots on the last ready read and now reports 0 is
+-- not ready. "Every bank id reads 0" is too weak: a partly loaded bank (tab 1 ready, the socketed
+-- tabs still 0) passes it. The memory is runtime-only, kept per world (the live client, or one
+-- simulated world: the seam answers a simulation's slot counts, and the two must never be judged
+-- against each other). A first visit has no memory, so it takes its baseline as it finds it.
+--
+-- NOT READY. At the open, no baseline is taken; mid-visit, the held baseline stays. A re-read comes
+-- from the cue events (BAG_UPDATE_DELAYED, BAG_CONTAINER_UPDATE, BANK_TABS_CHANGED,
+-- PLAYERBANKSLOTS_CHANGED), and a deadline pass is armed for L.READY_TIMEOUT_SECONDS. A read still
+-- not ready at the deadline is the bank's new shape (on WoW Forever a player can take an empty bag
+-- out of a tab), so it is accepted as a fresh baseline and never diffed.
+L.READY_TIMEOUT_SECONDS = 6
+
+local LIVE = {}
+local shapes = setmetatable({}, { __mode = "k" })
+
+-- The world the slot counts come from: a running simulation's world table, else the live client.
+local function shapeKey()
+  local sim, world = NS.Sim, NS.SimHost and NS.SimHost.world
+  if world and sim and sim.IsActive and sim:IsActive() then return world end
+  return LIVE
+end
+
+--- The remembered bank shape of the current world, { [bagID] = slots } from the last ready read.
+function L:ShapeMemory()
+  local key = shapeKey()
+  local memory = shapes[key]
+  if not memory then
+    memory = {}
+    shapes[key] = memory
+  end
+  return memory
+end
+
+--- Forgets the current world's remembered bank shape and any wait in progress (the test fixture's
+--- reset; a new world has no history).
+function L:ForgetBankShape()
+  shapes[shapeKey()] = nil
+  L._unreadySince = nil
+end
+
+--- The bank containers of `snap` that read 0 slots after reporting slots on the last ready read,
+--- sorted, or nil when the snapshot is ready. Pure: the snapshot and the memory in, ids out.
+function L.UnreadyContainers(snap, memory)
+  local out
+  for bagID, slots in pairs(snap.shape or {}) do
+    if slots == 0 and (memory[bagID] or 0) > 0 then
+      out = out or {}
+      out[#out + 1] = bagID
+    end
+  end
+  if out then table.sort(out) end
+  return out
+end
+
+local function rememberShape(snap)
+  local memory = L:ShapeMemory()
+  for bagID, slots in pairs(snap.shape or {}) do memory[bagID] = slots end
+end
+
+local function traceUnready(missing)
+  if not (NS.State.debug and NS.Debug) then return end
+  local ids = {}
+  for i, id in ipairs(missing) do ids[i] = tostring(id) end
+  NS.Debug("Store", "bank not ready: containers %s read 0 slots; waiting up to %ss",
+    table.concat(ids, ", "), tostring(L.READY_TIMEOUT_SECONDS))
+end
+
+local function traceReadyEnd(line, waited)
+  if NS.State.debug and NS.Debug then NS.Debug("Store", line, ("%.1f"):format(waited)) end
+end
+
+-- Arm the deadline pass for what is left of the wait. Only with a timer library: a headless
+-- ScheduleReconcile reconciles inline, which here would only re-read the same unready bank.
+local function armReadyDeadline(self, waited)
+  local addon = NS.addon
+  if not (addon and addon.ScheduleTimer) then return end
+  self:ScheduleReconcile(math.max(L.SETTLE_MIN_RECHECK_SECONDS, L.READY_TIMEOUT_SECONDS - waited))
+end
+
+--- Judges a fresh snapshot. Answers "ready" (remembered as the bank's shape), "wait" (not ready:
+--- take no baseline, keep the held one) or "reanchor" (not ready past the deadline: accept it as
+--- the bank's new shape and the new baseline, with no diff).
+function L:CheckReady(snap, now)
+  local missing = L.UnreadyContainers(snap, self:ShapeMemory())
+  local since = L._unreadySince
+  if not missing then
+    if since then traceReadyEnd("bank ready after %ss", now - since) end
+    L._unreadySince = nil
+    rememberShape(snap)
+    return "ready"
+  end
+  if not since then
+    traceUnready(missing)
+    since = now
+    L._unreadySince = now
+  end
+  if now - since >= L.READY_TIMEOUT_SECONDS then
+    traceReadyEnd("bank still not ready after %ss; its shape is accepted and re-anchored", now - since)
+    L._unreadySince = nil
+    rememberShape(snap)
+    return "reanchor"
+  end
+  armReadyDeadline(self, now - since)
+  return "wait"
+end
+
+local function clock() return (GetTime and GetTime()) or 0 end
+
 function L:Reconcile()
   local context = NS.State.openContext
   if not context then return 0 end
   local before = NS.State.lastSnapshot
   local after = self:Snapshot(context)
-  if not before then
-    NS.State.lastSnapshot = after
+  local verdict = self:CheckReady(after, clock())
+  if verdict == "wait" then return 0 end
+  if not before or verdict == "reanchor" then
+    NS.State.lastSnapshot, L._settleSince = after, nil
     return 0
   end
 
   local totalRecorded, found = 0, 0
-  for _, store in ipairs(self:StoresFor(context)) do
+  for _, store in ipairs(after.readable) do
     local recorded, moves = reconcileStore(self, before, after, store)
     totalRecorded, found = totalRecorded + recorded, found + moves
   end
 
-  settleBaseline(self, before, after, found, totalRecorded, (GetTime and GetTime()) or 0)
+  settleBaseline(self, before, after, found, totalRecorded, clock())
   -- After the settle logic: the disarm clears the baseline the settle just wrote.
   disarmGuildBankIfGone(context)
   return totalRecorded
@@ -705,9 +847,26 @@ function L:OnAddonLoaded(name)
   return self:HookGuildBankFrame()
 end
 
+-- The open line. The baseline counts go in it, per store: a store that scans as empty here can never
+-- produce a movement, so that shows up immediately rather than as unexplained silence later. A
+-- character bank this banker does not let the player view, and a baseline deferred because the bank
+-- is still loading, each say so on their own line.
+local function traceOpen(self, context, snap, ready)
+  local parts = {}
+  for _, store in ipairs(snap.readable) do
+    parts[#parts + 1] = ("%s %s"):format(store, countKinds(snap.stores[store]))
+  end
+  NS.Debug("Store", "%s opened (baseline: bags %s kinds; stores %s)",
+    tostring(context), countKinds(snap.bags), table.concat(parts, ", "))
+  if #snap.readable < #self:StoresFor(context) then
+    NS.Debug("Store", "BANK not viewable at this banker (CanViewBank(Character) false): not read")
+  end
+  if not ready then NS.Debug("Store", "%s baseline deferred until the bank is ready", tostring(context)) end
+end
+
 function L:OpenContext(context)
   NS.State.openContext = context
-  L._settleSince = nil
+  L._settleSince, L._unreadySince = nil, nil
   -- Each visit's first pass writes its [Diff] line: the gate starts fresh for this context's stores.
   for _, store in ipairs(self:StoresFor(context)) do NS.DebugLog.DebugForget(L.DiffGateKey(store)) end
   -- The guild bank only holds data for tabs that have been queried, so ask for all of them up
@@ -717,17 +876,10 @@ function L:OpenContext(context)
     self:HookGuildBankFrame()
   end
   local snap = self:Snapshot(context)
-  NS.State.lastSnapshot = snap
-  -- The baseline counts go in the open line, per store: a store that scans as empty here can never
-  -- produce a movement, so that shows up immediately rather than as unexplained silence later.
-  if NS.State.debug and NS.Debug then
-    local parts = {}
-    for _, store in ipairs(self:StoresFor(context)) do
-      parts[#parts + 1] = ("%s %s"):format(store, countKinds(snap.stores[store]))
-    end
-    NS.Debug("Store", "%s opened (baseline: bags %s kinds; stores %s)",
-      tostring(context), countKinds(snap.bags), table.concat(parts, ", "))
-  end
+  -- A bank still loading gives no baseline (L:CheckReady): the first ready pass takes it instead.
+  local ready = self:CheckReady(snap, clock()) ~= "wait"
+  NS.State.lastSnapshot = ready and snap or nil
+  if NS.State.debug and NS.Debug then traceOpen(self, context, snap, ready) end
   fireSessionChanged(true, context)
 end
 
@@ -767,12 +919,15 @@ function L:CloseContext()
   -- last action's second half may still be in flight.
   self:CancelPendingReconcile()
   self:Reconcile()
+  -- A final pass that found the bank not ready, or a hold, armed a deadline for a context that is
+  -- ending here: drop it rather than leave a pass that would only find nothing open.
+  self:CancelPendingReconcile()
   -- Read after the final pass: a hold still open here is a one-sided change the close throws away,
   -- and the hold line before it would otherwise have no end in the log.
   local held = L._settleSince ~= nil
   NS.State.openContext = nil
   NS.State.lastSnapshot = nil
-  L._settleSince = nil
+  L._settleSince, L._unreadySince = nil, nil
   if NS.State.debug and NS.Debug then
     NS.Debug("Store", "%s closed%s", tostring(context), held and ", held change dropped" or "")
   end
@@ -793,7 +948,7 @@ function L:DropContext()
   local context = NS.State.openContext
   local held = L._settleSince ~= nil
   self:CancelPendingReconcile()
-  NS.State.openContext, NS.State.lastSnapshot, L._settleSince = nil, nil, nil
+  NS.State.openContext, NS.State.lastSnapshot, L._settleSince, L._unreadySince = nil, nil, nil, nil
   if context then
     if NS.State.debug and NS.Debug then
       NS.Debug("Store", "%s dropped (stand-down)%s", tostring(context),
@@ -835,6 +990,11 @@ local CAPTURE = {
   -- movement in itself.
   { "BAG_UPDATE_DELAYED", reconcileSoon },
   { "PLAYERBANKSLOTS_CHANGED", reconcileSoon },
+  -- The bank's containers themselves changing: a tab loading, a bag socketed into a WoW Forever bank
+  -- tab, a tab bought. Neither need come with a BAG_UPDATE for the container (BagSync re-reads on
+  -- both, forever-bank.md §5), and both are what lets a bank that was not ready be read again (R8).
+  { "BAG_CONTAINER_UPDATE", reconcileSoon },
+  { "BANK_TABS_CHANGED", reconcileSoon },
   { "PLAYER_MONEY", reconcileSoon },
   -- Guild bank data. Handled separately because it may still arm the guild-bank context as well as
   -- reconciling it — see L:OnGuildBankData.
