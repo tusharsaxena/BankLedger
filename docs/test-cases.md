@@ -1464,9 +1464,10 @@ Total.
 
 - every deviation id the register cites is assigned by a bundle in docs/audits/
 
-### test_docs.lua (1)
+### test_docs.lua (2)
 
 - docs/smoke-tests.md carries a non-English-client section
+- docs/smoke-tests.md carries a WoW Forever section with its absence and R8 checks
 
 ### test_lintconfig.lua (4)
 
@@ -2159,7 +2160,7 @@ Total.
 | test_disabled.lua | 20 |
 | test_surface_parity.lua | 27 |
 | test_register.lua | 1 |
-| test_docs.lua | 1 |
+| test_docs.lua | 2 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
 | test_report_verbs.lua | 6 |
@@ -2196,4 +2197,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1832** |
+| **Total** | **1833** |
