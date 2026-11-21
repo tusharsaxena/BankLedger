@@ -745,20 +745,48 @@ local function diagnoseWith(over, fn)
   return fn(out)
 end
 
-local DIAG_GOLDEN = {
-  "openContext=nil snapshot=no",
-  "Enum.BagIndex has 20 members",
-  "  BagIndex.Accountbanktab = -3", "  BagIndex.Characterbanktab = -2", "  BagIndex.Keyring = -1",
-  "  BagIndex.Backpack = 0", "  BagIndex.Bag_1 = 1", "  BagIndex.Bag_2 = 2", "  BagIndex.Bag_3 = 3",
-  "  BagIndex.Bag_4 = 4", "  BagIndex.ReagentBag = 5",
-  "  BagIndex.CharacterBankTab_1 = 6", "  BagIndex.CharacterBankTab_2 = 7",
-  "  BagIndex.CharacterBankTab_3 = 8", "  BagIndex.CharacterBankTab_4 = 9",
-  "  BagIndex.CharacterBankTab_5 = 10", "  BagIndex.CharacterBankTab_6 = 11",
-  "  BagIndex.AccountBankTab_1 = 12", "  BagIndex.AccountBankTab_2 = 13",
-  "  BagIndex.AccountBankTab_3 = 14", "  BagIndex.AccountBankTab_4 = 15",
-  "  BagIndex.AccountBankTab_5 = 16",
-  "group BAGS = [0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11]",
-  "group WARBAND_BANK = [12, 13, 14, 15, 16]",
+-- The enum block and the groups by client (BL-02): the mock's 12.0.7 Retail enum, or WoW Forever's
+-- 27 members with nine character-bank tabs at 6..14 and nine account tabs at 15..23.
+local DIAG_ENUM = {
+  retail = {
+    "Enum.BagIndex has 20 members",
+    "  BagIndex.Accountbanktab = -3", "  BagIndex.Characterbanktab = -2", "  BagIndex.Keyring = -1",
+    "  BagIndex.Backpack = 0", "  BagIndex.Bag_1 = 1", "  BagIndex.Bag_2 = 2", "  BagIndex.Bag_3 = 3",
+    "  BagIndex.Bag_4 = 4", "  BagIndex.ReagentBag = 5",
+    "  BagIndex.CharacterBankTab_1 = 6", "  BagIndex.CharacterBankTab_2 = 7",
+    "  BagIndex.CharacterBankTab_3 = 8", "  BagIndex.CharacterBankTab_4 = 9",
+    "  BagIndex.CharacterBankTab_5 = 10", "  BagIndex.CharacterBankTab_6 = 11",
+    "  BagIndex.AccountBankTab_1 = 12", "  BagIndex.AccountBankTab_2 = 13",
+    "  BagIndex.AccountBankTab_3 = 14", "  BagIndex.AccountBankTab_4 = 15",
+    "  BagIndex.AccountBankTab_5 = 16",
+    "group BAGS = [0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11]",
+    "group WARBAND_BANK = [12, 13, 14, 15, 16]",
+  },
+  forever = {
+    "Enum.BagIndex has 27 members",
+    "  BagIndex.Accountbanktab = -3", "  BagIndex.Characterbanktab = -2", "  BagIndex.Keyring = -1",
+    "  BagIndex.Backpack = 0", "  BagIndex.Bag_1 = 1", "  BagIndex.Bag_2 = 2", "  BagIndex.Bag_3 = 3",
+    "  BagIndex.Bag_4 = 4", "  BagIndex.ReagentBag = 5",
+    "  BagIndex.CharacterBankTab_1 = 6", "  BagIndex.CharacterBankTab_2 = 7",
+    "  BagIndex.CharacterBankTab_3 = 8", "  BagIndex.CharacterBankTab_4 = 9",
+    "  BagIndex.CharacterBankTab_5 = 10", "  BagIndex.CharacterBankTab_6 = 11",
+    "  BagIndex.CharacterBankTab_7 = 12", "  BagIndex.CharacterBankTab_8 = 13",
+    "  BagIndex.CharacterBankTab_9 = 14",
+    "  BagIndex.AccountBankTab_1 = 15", "  BagIndex.AccountBankTab_2 = 16",
+    "  BagIndex.AccountBankTab_3 = 17", "  BagIndex.AccountBankTab_4 = 18",
+    "  BagIndex.AccountBankTab_5 = 19", "  BagIndex.AccountBankTab_6 = 20",
+    "  BagIndex.AccountBankTab_7 = 21", "  BagIndex.AccountBankTab_8 = 22",
+    "  BagIndex.AccountBankTab_9 = 23",
+    "group BAGS = [0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11, 12, 13, 14]",
+    "group WARBAND_BANK = [15, 16, 17, 18, 19, 20, 21, 22, 23]",
+  },
+}
+
+local DIAG_GOLDEN = { "openContext=nil snapshot=no" }
+for _, line in ipairs(DIAG_ENUM[NS.Compat.ClientKey() == "forever" and "forever" or "retail"]) do
+  DIAG_GOLDEN[#DIAG_GOLDEN + 1] = line
+end
+for _, line in ipairs({
   "container probe (id: slots / filled / distinct ids)",
   "  0: 2 / 1 / 1",
   "money=1000000",
@@ -774,7 +802,7 @@ local DIAG_GOLDEN = {
   "  tab 5: 0 / 0", "  tab 6: 0 / 0", "  tab 7: 0 / 0", "  tab 8: 0 / 0",
   "events registered (2): A_EVENT, B_EVENT",
   "events UNAVAILABLE (1): GONE",
-}
+}) do DIAG_GOLDEN[#DIAG_GOLDEN + 1] = line end
 
 local function indexOf(lines, text)
   for i, l in ipairs(lines) do if l == text then return i end end

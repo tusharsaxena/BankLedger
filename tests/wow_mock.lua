@@ -88,6 +88,20 @@
 
 local base = dofile("tests/_kit/mock_base.lua")
 
+-- ── The client profile's shapes (WoW Forever port, BL-02; clients-§6, forever-quirks-§4) ─────────
+-- The kit's profile (tests/_kit/mock_client.lua) stamps only the WOW_PROJECT_* constants, the build
+-- and a few absent globals, AFTER this file builds the set. What this addon reads differently on
+-- WoW Forever is modeled here, so a green forever run means the capture paths saw Forever's shapes:
+--   Enum.BagIndex   Forever's 27 members (CharacterBankTab_1..9 = 6..14, AccountBankTab_1..9 =
+--                   15..23), picked once at build from the profile the run uses (KA0S_KIT_CLIENT),
+--                   since the client's enum never changes under an addon;
+--   names           RegionalUniqueNamesEnabled() is true on Forever, read at call time against the
+--                   stamped constants (DropWatcher's shape), and UnitName / UnitNameUnmodified then
+--                   answer the two-word name, the surname as the second value (M.__surname);
+--   C_Bank          CanViewBank(Account) is false on Forever, where the account bank is locked
+--                   (forever-bank.md §2); M.__canViewBank holds the answer per bank type.
+local FOREVER_BUILD = dofile("tests/_kit/mock_client.lua").current() == "forever"
+
 -- ── Override 1: the frame stub ────────────────────────────────────────────────────────────────
 -- A universal frame stub: any method call is a no-op that returns the frame itself. WoW frame API
 -- methods are always PascalCase (SetPoint, CreateTexture, HookScript, …), so only those keys get a
@@ -445,7 +459,18 @@ return function()
   M.GetTime = function() return M.__now end
 
   -- player / world
-  M.UnitName = function() return "Mock" end
+  -- On Forever (regional names) the player is "Mock Mockvault": UnitName's second value is the
+  -- surname there, and the realm is never part of a name (forever-quirks-§4). On Retail the second
+  -- value is the realm, nil for the player's own.
+  M.__surname = "Mockvault"
+  M.RegionalUniqueNamesEnabled = function()
+    return M.WOW_PROJECT_CAMELOT ~= nil and M.WOW_PROJECT_ID == M.WOW_PROJECT_CAMELOT
+  end
+  M.UnitName = function()
+    if M.RegionalUniqueNamesEnabled() then return "Mock", M.__surname end
+    return "Mock"
+  end
+  M.UnitNameUnmodified = function(unit) return M.UnitName(unit) end
   M.UnitClass = function() return "Mage", "MAGE", 8 end
   M.GetRealmName = function() return "Realm" end
   M.GetNormalizedRealmName = function() return "Realm" end
@@ -479,6 +504,21 @@ return function()
     -- with any other enum here, so they must be read by name, never assumed.
     BankType = { Character = 0, Guild = 1, Account = 2 },
   }
+  -- WoW Forever's enum, verbatim from its API documentation (1.60.1 71037,
+  -- BagIndexConstantsDocumentation.lua): nine character-bank tabs at 6..14 and nine account-bank
+  -- tabs at 15..23, so a numeric guess from Retail's ids would put account tabs 1..3 (12..14) in the
+  -- character bank. The type constants and the keyring keep their ids.
+  if FOREVER_BUILD then
+    local idx = {
+      Accountbanktab = -3, Characterbanktab = -2, Keyring = -1,
+      Backpack = 0, Bag_1 = 1, Bag_2 = 2, Bag_3 = 3, Bag_4 = 4, ReagentBag = 5,
+    }
+    for t = 1, 9 do
+      idx["CharacterBankTab_" .. t] = 5 + t
+      idx["AccountBankTab_" .. t] = 14 + t
+    end
+    M.Enum.BagIndex = idx
+  end
 
   -- Fake container inventory: M.__containers[bagID] = { [slot] = { itemID, link, count } }.
   -- Tests write straight into it and call the scanner. An absent bag has 0 slots.
@@ -564,12 +604,18 @@ return function()
   end
   M.__warbandMoney = 16348260386
   M.__characterBankMoney = 0
+  -- CanViewBank per bank type: the account bank is locked on Forever (BL-02, the header's shapes).
+  M.__canViewBank = {
+    [M.Enum.BankType.Character] = true,
+    [M.Enum.BankType.Account] = not FOREVER_BUILD,
+  }
   M.C_Bank = {
     FetchDepositedMoney = function(bankType)
       if bankType == M.Enum.BankType.Account then return M.__warbandMoney end
       if bankType == M.Enum.BankType.Character then return M.__characterBankMoney end
       return nil
     end,
+    CanViewBank = function(bankType) return M.__canViewBank[bankType] == true end,
   }
 
   -- Item database: M.__items[itemID] = { name, quality, itemType, itemSubType, vendorPrice }.

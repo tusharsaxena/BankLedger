@@ -144,6 +144,12 @@ end
 -- NS.SampleCharacterOf, LibKa0s-Sim-1.0's Sim.SAMPLE, LibKa0s#87) of a class that is not main's:
 -- Sampleblade-Samplerealm, the sample paladin, or Mockshield-Mockrealm, the sample warrior, for a
 -- paladin. Its name and realm are the set's data, never localized and never the real realm.
+-- Each character's `key` is the one the host records it under: Util.PlayerKey's join of the name
+-- and realm P.PlayerName answers, for main and alt alike (BL-02). On Retail the alt's equals the
+-- set's fullName; on WoW Forever the set's fullName is "First Surname" while the host still keys by
+-- "Name-Realm" until the one record-key builder lands (BL-03), and the key follows the host.
+local function recordKey(name, realm) return name .. "-" .. realm end
+
 local function buildChars()
   local seam = NS.SimSeam
   local name, realm = seam:Live(NS.Compat.PlayerName)
@@ -151,8 +157,8 @@ local function buildChars()
   local altClass = ALT_CLASSES[1] == classFile and ALT_CLASSES[2] or ALT_CLASSES[1]
   local alt = NS.SampleCharacterOf(altClass)
   return {
-    main = { key = name .. "-" .. realm, name = name, realm = realm, classFile = classFile },
-    alt = { key = alt.fullName, name = alt.name, realm = alt.realm, classFile = altClass },
+    main = { key = recordKey(name, realm), name = name, realm = realm, classFile = classFile },
+    alt = { key = recordKey(alt.name, alt.realm), name = alt.name, realm = alt.realm, classFile = altClass },
   }
 end
 

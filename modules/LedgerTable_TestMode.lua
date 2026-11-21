@@ -109,13 +109,24 @@ end
 -- NS.SampleCharacterOf: Mockflame-Mockrealm the mage, Sampleblade-Samplerealm the paladin,
 -- Samplemender-Samplerealm the priest, Mockshield-Mockrealm the warrior), and this ledger's own
 -- name for the four classes it has none of. Every name starts Sample or Mock, every realm is
--- Samplerealm or Mockrealm, never a real one; names are data and never localized.
-local TEST_OWN_CHARS = {
-  ROGUE  = "Mockshade-Samplerealm",
-  DRUID  = "Samplegrove-Mockrealm",
-  SHAMAN = "Mocktotem-Samplerealm",
-  EVOKER = "Samplescale-Mockrealm",
-}
+-- Samplerealm or Mockrealm, never a real one; names are data and never localized. The own names are
+-- per client like the shared set (BL-02; clients-§5), picked once at load by the key core/SimSetup.lua
+-- seeded: "Name-Realm" on Retail, "First Surname" on WoW Forever (forever-quirks-§4). The class list
+-- itself is still Retail's on both (its Forever twin is BL-09's).
+local TEST_OWN_CHARS = ({
+  retail = {
+    ROGUE  = "Mockshade-Samplerealm",
+    DRUID  = "Samplegrove-Mockrealm",
+    SHAMAN = "Mocktotem-Samplerealm",
+    EVOKER = "Samplescale-Mockrealm",
+  },
+  forever = {
+    ROGUE  = "Mockshade Samplestep",
+    DRUID  = "Samplegrove Mockbark",
+    SHAMAN = "Mocktotem Sampletide",
+    EVOKER = "Samplescale Mockwing",
+  },
+})[NS.SAMPLE_CLIENT == "forever" and "forever" or "retail"]
 local TEST_GUILD = "Sample Company"
 
 -- "MAGE" -> "Mockflame-Mockrealm". Draws nothing.

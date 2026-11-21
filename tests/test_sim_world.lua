@@ -13,7 +13,11 @@ local test, assertEqual, assertTrue, assertFalse = T.test, T.assertEqual, T.asse
 
 local Env = dofile("tests/degraded_env.lua")
 
-local BACKPACK, BANK_TAB_1, WARBAND_TAB_1 = 0, 6, 12   -- the mock's verbatim Enum.BagIndex ids
+-- The first container of each group, by member name from the mock's enum: 0, 6, 12 on Retail and
+-- 0, 6, 15 under the forever profile (BL-02).
+local BAG_INDEX = T.mocks.Enum.BagIndex
+local BACKPACK, BANK_TAB_1, WARBAND_TAB_1 = BAG_INDEX.Backpack, BAG_INDEX.CharacterBankTab_1,
+  BAG_INDEX.AccountBankTab_1
 
 local function live() error("a provider called its live fallback", 2) end
 

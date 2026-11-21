@@ -299,10 +299,12 @@ tests/
                            --   tooltip, no host gate on it, restore-from-current-state, the
                            --   two-hold latch, and the `disabled` hold re-taken at load
   test_sample_characters.lua -- the made-up people on LibKa0s-Sim-1.0's shared set (LibKa0s#87):
-                           --   NS.SampleCharacters is Sim.Sample, the library-absent copy matches
-                           --   the library's Retail rows, test mode's eight characters follow the
-                           --   convention with the shared four by class, the sample guild, and the
-                           --   same characters without the library
+                           --   NS.SampleCharacters is Sim.Sample(NS.SAMPLE_CLIENT), each
+                           --   library-absent twin matches its client's rows, the rows are in the
+                           --   client's shape (Name-Realm Retail, First Surname Forever), test
+                           --   mode's eight characters follow the convention with the shared four
+                           --   by class, the sample guild, and the same characters without the
+                           --   library
   test_report_verbs.lua    -- the two report verbs on D:Report (debug-logging-15, LibKa0s#79):
                            --   `/bl debug scan` and `/bl debug panel` land with logging off and
                            --   leave it off, reveal the console, print exactly one chat pointer;

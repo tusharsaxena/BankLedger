@@ -12,7 +12,10 @@ local NS = T.NS
 local mocks = T.mocks
 
 -- Drive a real capture: open the frame, move stock between two container ids, reconcile.
-local BAG_ID, BANK_ID, WARBAND_ID = 0, 6, 12   -- the real 12.0.7 ids the mock reproduces
+-- The first container of each group, by member name from the mock's enum: Retail's 12.0.7 ids
+-- (0, 6, 12) or WoW Forever's (0, 6, 15) under the forever profile (BL-02).
+local BAG_ID, BANK_ID, WARBAND_ID = mocks.Enum.BagIndex.Backpack, mocks.Enum.BagIndex.CharacterBankTab_1,
+  mocks.Enum.BagIndex.AccountBankTab_1
 
 local function withContainers(setup, fn)
   local saved = {}

@@ -49,16 +49,22 @@ test("Constants: the bag id group covers the backpack, four bags and the reagent
   assertTrue(contains(C.BAG_IDS, 5), "the reagent bag")
 end)
 
-test("Constants: the bank group is exactly the six character-bank tabs", function()
-  assertEqual(#C.BANK_IDS, 6)
-  for _, id in ipairs({ 6, 7, 8, 9, 10, 11 }) do
+-- The groups by client (BL-02, the mock's Forever enum): Retail's six character-bank tabs at 6..11
+-- and five account tabs at 12..16; WoW Forever's nine and nine at 6..14 and 15..23.
+local FOREVER = NS.Compat.ClientKey() == "forever"
+local BANK_TABS = FOREVER and { 6, 7, 8, 9, 10, 11, 12, 13, 14 } or { 6, 7, 8, 9, 10, 11 }
+local ACCOUNT_TABS = FOREVER and { 15, 16, 17, 18, 19, 20, 21, 22, 23 } or { 12, 13, 14, 15, 16 }
+
+test("Constants: the bank group is exactly the client's character-bank tabs (6 Retail, 9 Forever)", function()
+  assertEqual(#C.BANK_IDS, #BANK_TABS)
+  for _, id in ipairs(BANK_TABS) do
     assertTrue(contains(C.BANK_IDS, id), "CharacterBankTab id " .. id)
   end
 end)
 
-test("Constants: the warband bank spans its five account tabs", function()
-  assertEqual(#C.WARBAND_BANK_IDS, 5)
-  for _, id in ipairs({ 12, 13, 14, 15, 16 }) do
+test("Constants: the warband bank spans the client's account tabs (5 Retail, 9 Forever)", function()
+  assertEqual(#C.WARBAND_BANK_IDS, #ACCOUNT_TABS)
+  for _, id in ipairs(ACCOUNT_TABS) do
     assertTrue(contains(C.WARBAND_BANK_IDS, id), "AccountBankTab id " .. id)
   end
 end)

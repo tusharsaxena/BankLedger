@@ -91,8 +91,8 @@ Total.
 - Constants: a deposit signs positive and a withdrawal negative
 - Constants: every Kind has a label
 - Constants: the bag id group covers the backpack, four bags and the reagent bag
-- Constants: the bank group is exactly the six character-bank tabs
-- Constants: the warband bank spans its five account tabs
+- Constants: the bank group is exactly the client's character-bank tabs (6 Retail, 9 Forever)
+- Constants: the warband bank spans the client's account tabs (5 Retail, 9 Forever)
 - Constants: no container id belongs to two stores
 - Constants: no group lists the same id twice
 - Constants: the enum's type constants are never mistaken for containers
@@ -1085,7 +1085,7 @@ Total.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_mock.lua (28)
+### test_mock.lua (31)
 
 - Mock frame: a stub starts SHOWN, as a real frame does
 - Mock frame: Show, Hide and SetShown flip the one piece of state the stub models
@@ -1115,6 +1115,9 @@ Total.
 - Mock frame: lowercase and non-string keys miss through to nil
 - Mock AceDB: a scalar default reads through; clearing the key does not unset it
 - Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed
+- Mock client: Enum.BagIndex is the profile's (Retail 6+5 account tabs at 6..16, Forever 9+9 at 6..23)
+- Mock client: regional names and the two-word UnitName follow the profile
+- Mock client: CanViewBank answers the character bank on both and the account bank on Retail only
 
 ### test_mediasetup.lua (14)
 
@@ -1520,10 +1523,11 @@ Total.
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
 
-### test_sample_characters.lua (7)
+### test_sample_characters.lua (8)
 
 - sample characters: NS.SampleCharacters answers the library's rows for this client
-- sample characters: the library-absent copy matches the library's Retail rows field for field
+- sample characters: each library-absent twin matches the library's rows for its client
+- sample characters: the rows are in this client's shape, Name-Realm on Retail, First Surname on Forever
 - sample characters: without the library NS.SampleCharacters answers a copy of the host rows
 - sample characters: every test-mode character follows the convention, none on a real realm
 - sample characters: test mode's protagonists are the shared rows, by class
@@ -2014,7 +2018,7 @@ Total.
 | test_keybinds.lua | 8 |
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
-| test_mock.lua | 28 |
+| test_mock.lua | 31 |
 | test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
 | test_marks.lua | 22 |
@@ -2036,7 +2040,7 @@ Total.
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
 | test_sim_world.lua | 17 |
-| test_sample_characters.lua | 7 |
+| test_sample_characters.lua | 8 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 8 |
@@ -2064,4 +2068,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1734** |
+| **Total** | **1738** |

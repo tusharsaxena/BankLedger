@@ -28,6 +28,10 @@ end
 
 local function bag(w, key) return w.bags[key][BACKPACK] end
 local function bank(w, key) return w.bank[key][BANK_TAB_1] end
+-- A warband move's events: the bag half, then the store half on the account tab's id (12 on Retail,
+-- 15 under the forever profile, BL-02).
+local WARBAND_EVENTS = ("BAG_UPDATE(%d), BAG_UPDATE_DELAYED, BAG_UPDATE(%d), BAG_UPDATE_DELAYED")
+  :format(BACKPACK, WARBAND_TAB_1)
 
 test("SimDrivers: every event list is data, each row an event name and an optional payload token", function()
   local TOKENS = { touched = true, bag = true, store = true, slot = true }
@@ -84,7 +88,7 @@ test("SimDrivers: a WARBAND deposit with no lag fires the bag half, then the sto
     assertEqual(S.count(bag(w, key), id), 20)
     assertEqual(S.count(w.warband[WARBAND_TAB_1], id), 20)
     assertEqual(S.sequence(seen),
-      "BAG_UPDATE(0), BAG_UPDATE_DELAYED, BAG_UPDATE(12), BAG_UPDATE_DELAYED")
+      WARBAND_EVENTS)
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
 end)
@@ -102,7 +106,7 @@ test("SimDrivers: a lagged WARBAND deposit lands its store half on the session t
     S.drain()
     assertEqual(S.count(w.warband[WARBAND_TAB_1], id), 20, "the store half never landed")
     assertEqual(S.sequence(seen),
-      "BAG_UPDATE(0), BAG_UPDATE_DELAYED, BAG_UPDATE(12), BAG_UPDATE_DELAYED")
+      WARBAND_EVENTS)
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
 end)
@@ -130,7 +134,7 @@ test("SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not", func
     S.drain()
     assertEqual(S.count(w.warband[WARBAND_TAB_1], id), 10)
     assertEqual(S.sequence(seen),
-      "BAG_UPDATE(0), BAG_UPDATE_DELAYED, BAG_UPDATE(12), BAG_UPDATE_DELAYED")
+      WARBAND_EVENTS)
   end)
 end)
 
@@ -205,6 +209,8 @@ test("SimDrivers: Switch closes an open frame first and fires no PLAYER_ENTERING
     assertEqual(w.current, "alt")
     assertEqual(S.sequence(seen), "BANKFRAME_CLOSED, GUILDBANK_FRAME_HIDDEN")
     assertEqual(NS.Compat.PlayerName(), w.chars.alt.name, "the seam does not answer the alt")
+    -- The world's key is the one the host records the alt under, on both clients (BL-02).
+    assertEqual(NS.Util.PlayerKey(), w.chars.alt.key, "the alt's world key is not the host's row key")
     D.Switch{ to = "main" }
     assertEqual(S.sequence(seen), "BANKFRAME_CLOSED, GUILDBANK_FRAME_HIDDEN", "a closed frame was closed again")
   end)

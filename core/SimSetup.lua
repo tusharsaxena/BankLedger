@@ -136,21 +136,35 @@ end
 -- and the simulator's alt (modules/SimWorld.lua). They are the collection's one set,
 -- LibKa0s-Sim-1.0's Sim.SAMPLE, under preview-mode's convention: a name starts Sample or Mock, the
 -- realm is Samplerealm or Mockrealm and never a real one, and a name is data, never localized.
--- NS.SampleCharacters() answers Sim.Sample() (the client asked at call time), a fresh copy the
--- caller owns. Without the library it answers a copy of NS.SAMPLE_FALLBACK, the library's Retail
--- rows limited to the four fields this addon reads; tests/test_sample_characters.lua holds that copy
--- to the library's rows field for field, so it cannot drift. Retail rows, because this addon ships
--- Retail alone (WowAddonStandards ADDONS.md).
-NS.SAMPLE_FALLBACK = {
-  { name = "Samplehunter", realm = "Samplerealm", fullName = "Samplehunter-Samplerealm", classFile = "HUNTER" },
-  { name = "Sampleblade",  realm = "Samplerealm", fullName = "Sampleblade-Samplerealm",  classFile = "PALADIN" },
-  { name = "Mockflame",    realm = "Mockrealm",   fullName = "Mockflame-Mockrealm",      classFile = "MAGE" },
-  { name = "Samplemender", realm = "Samplerealm", fullName = "Samplemender-Samplerealm", classFile = "PRIEST" },
-  { name = "Mockshield",   realm = "Mockrealm",   fullName = "Mockshield-Mockrealm",     classFile = "WARRIOR" },
+-- The set is per client (WoW Forever port, BL-02; clients-§5): Retail's rows are "Name-Realm",
+-- WoW Forever's "First Surname" with no realm in the name (forever-quirks-§4). NS.SAMPLE_CLIENT is
+-- the client's key, seeded ONCE at load from NS.Compat.ClientKey() (core/CompatClient.lua, which
+-- loads first), "retail" for a client that is neither. NS.SampleCharacters() answers
+-- Sim.Sample(NS.SAMPLE_CLIENT), a fresh copy the caller owns. Without the library it answers a copy
+-- of NS.SAMPLE_FALLBACK, that client's twin in NS.SAMPLE_FALLBACKS: the library's rows limited to
+-- the four fields this addon reads. tests/test_sample_characters.lua holds both twins to the
+-- library's rows field for field, so neither can drift.
+NS.SAMPLE_FALLBACKS = {
+  retail = {
+    { name = "Samplehunter", realm = "Samplerealm", fullName = "Samplehunter-Samplerealm", classFile = "HUNTER" },
+    { name = "Sampleblade",  realm = "Samplerealm", fullName = "Sampleblade-Samplerealm",  classFile = "PALADIN" },
+    { name = "Mockflame",    realm = "Mockrealm",   fullName = "Mockflame-Mockrealm",      classFile = "MAGE" },
+    { name = "Samplemender", realm = "Samplerealm", fullName = "Samplemender-Samplerealm", classFile = "PRIEST" },
+    { name = "Mockshield",   realm = "Mockrealm",   fullName = "Mockshield-Mockrealm",     classFile = "WARRIOR" },
+  },
+  forever = {
+    { name = "Samplehunter", realm = "Samplerealm", fullName = "Samplehunter Mockstride", classFile = "HUNTER" },
+    { name = "Sampleblade",  realm = "Samplerealm", fullName = "Sampleblade Mockvale",    classFile = "PALADIN" },
+    { name = "Mockflame",    realm = "Mockrealm",   fullName = "Mockflame Samplewick",    classFile = "MAGE" },
+    { name = "Samplemender", realm = "Samplerealm", fullName = "Samplemender Mockbrook",  classFile = "PRIEST" },
+    { name = "Mockshield",   realm = "Mockrealm",   fullName = "Mockshield Sampleforge",  classFile = "WARRIOR" },
+  },
 }
+NS.SAMPLE_CLIENT = NS.Compat.ClientKey() == "forever" and "forever" or "retail"
+NS.SAMPLE_FALLBACK = NS.SAMPLE_FALLBACKS[NS.SAMPLE_CLIENT]
 
 function NS.SampleCharacters()
-  if Sim and type(Sim.Sample) == "function" then return Sim.Sample() end
+  if Sim and type(Sim.Sample) == "function" then return Sim.Sample(NS.SAMPLE_CLIENT) end
   local rows = {}
   for i, row in ipairs(NS.SAMPLE_FALLBACK) do
     rows[i] = { name = row.name, realm = row.realm, fullName = row.fullName, classFile = row.classFile }
