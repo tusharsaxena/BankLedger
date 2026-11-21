@@ -137,10 +137,23 @@ C.StoreRGB = {
 -- constants that look deceptively similar to container ids — on 12.0.7, `Characterbanktab = -2` and
 -- `Accountbanktab = -3` sit alongside the real `CharacterBankTab_1..6` and `AccountBankTab_1..5`.
 -- A loose match would scoop those up and scan a container that does not exist.
+--
+-- The bags group is per client (WoW Forever port design, ruling R5; clients-§5), its row picked ONCE
+-- at load by ClientKey(). `ReagentBag` is the reagent BAG worn in the inventory's fifth slot — a live
+-- container on both clients, and not to be confused with the reagent BANK, which Midnight removed. Do
+-- not strip it. WoW Forever's row adds the keyring (`Keyring`, -1: Blizzard's KEYRING_CONTAINER), a
+-- live container there, so a key the player owns counts as carried and a key taken from the keyring
+-- into the bank is a deposit rather than a one-sided change. Retail's enum names Keyring = -1 too,
+-- but -1 was the legacy bank container before 11.2 and nothing has shown what it answers today, so
+-- Retail's row stays the pre-port list and never scans it. tests/test_keyring_client.lua.
+C.BAG_PATTERNS_BY_CLIENT = {
+  retail  = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
+  forever = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$", "^Keyring$" },
+}
+C.BAG_PATTERNS = C.BAG_PATTERNS_BY_CLIENT[NS.Compat.ClientKey()] or C.BAG_PATTERNS_BY_CLIENT.retail
+
 local GROUP_PATTERNS = {
-  -- `ReagentBag` is the reagent BAG worn in the inventory's fifth slot — a live container, and not
-  -- to be confused with the reagent BANK, which Midnight removed. Do not strip it.
-  BAGS         = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
+  BAGS         = C.BAG_PATTERNS,
   -- `Bank` / `BankBag_N` are the pre-tab character bank; `CharacterBankTab_N` is the modern form.
   BANK         = { "^Bank$", "^BankBag_%d+$", "^CharacterBankTab_%d+$" },
   WARBAND_BANK = { "^AccountBankTab_%d+$" },

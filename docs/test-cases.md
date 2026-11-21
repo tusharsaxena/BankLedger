@@ -128,6 +128,14 @@ Total.
 - warband: the session preview shows the Warband Bank on Retail only
 - warband: the simulator registers the warband scenario and step on Retail only
 
+### test_keyring_client.lua (5)
+
+- keyring: the mock's enum names Keyring = -1 on both clients
+- keyring: the bags patterns are a per-client table picked once by ClientKey()
+- keyring: the bags group holds -1 on WoW Forever and not on Retail
+- keyring: a key carried from the keyring into the bank is a deposit on WoW Forever only
+- keyring: a key moved between the keyring and the backpack writes nothing
+
 ### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
@@ -2017,6 +2025,7 @@ Total.
 | test_compat_client.lua | 10 |
 | test_constants.lua | 24 |
 | test_warband_client.lua | 10 |
+| test_keyring_client.lua | 5 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
@@ -2093,4 +2102,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1759** |
+| **Total** | **1764** |

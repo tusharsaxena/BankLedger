@@ -47,8 +47,9 @@ test("Constants: every Kind has a label", function()
   end
 end)
 
+-- WoW Forever's bags group also holds the keyring, -1 (BL-06, ruling R5; tests/test_keyring_client.lua).
 test("Constants: the bag id group covers the backpack, four bags and the reagent bag", function()
-  assertEqual(#C.BAG_IDS, 6)
+  assertEqual(#C.BAG_IDS, NS.Compat.ClientKey() == "forever" and 7 or 6)
   assertTrue(contains(C.BAG_IDS, 0), "the backpack")
   assertTrue(contains(C.BAG_IDS, 5), "the reagent bag")
 end)

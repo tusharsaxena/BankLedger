@@ -757,7 +757,8 @@ end
 
 -- The enum block and the groups by client (BL-02): the mock's 12.0.7 Retail enum, or WoW Forever's
 -- 27 members with nine character-bank tabs at 6..14 and nine account tabs at 15..23. WoW Forever's
--- groups have no WARBAND_BANK line: the store is absent there (BL-05, C.FEATURE.warbandBank).
+-- groups have no WARBAND_BANK line: the store is absent there (BL-05, C.FEATURE.warbandBank), and
+-- their BAGS group leads with the keyring, -1 (BL-06, ruling R5).
 local DIAG_ENUM = {
   retail = {
     "Enum.BagIndex has 20 members",
@@ -788,7 +789,7 @@ local DIAG_ENUM = {
     "  BagIndex.AccountBankTab_5 = 19", "  BagIndex.AccountBankTab_6 = 20",
     "  BagIndex.AccountBankTab_7 = 21", "  BagIndex.AccountBankTab_8 = 22",
     "  BagIndex.AccountBankTab_9 = 23",
-    "group BAGS = [0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11, 12, 13, 14]",
+    "group BAGS = [-1, 0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11, 12, 13, 14]",
   },
 }
 
