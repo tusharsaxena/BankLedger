@@ -150,6 +150,18 @@ Total.
 - test mode: Retail's dataset is the pre-port one, row for row
 - test mode: WoW Forever's dataset is deterministic across runs
 
+### test_names_client.lua (9)
+
+- names: the Character dropdown width is a per-client table picked once by ClientKey()
+- names: the toolbar floor counts the client's Character dropdown width
+- names: the built Character dropdown has the client's width
+- names: a sample character's closed label fits the Character dropdown on WoW Forever
+- names: ShortChar keeps the client's distinguishing part of the key
+- names: a per-character bar truncates a long name and its tooltip keeps it whole
+- names: a stacked or split character row's tooltip carries the whole WoW Forever name
+- names: Truncate never cuts inside a multibyte character
+- names: the Character column describes the client's key shape
+
 ### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
@@ -2063,6 +2075,7 @@ Total.
 | test_warband_client.lua | 10 |
 | test_keyring_client.lua | 5 |
 | test_testmode_client.lua | 8 |
+| test_names_client.lua | 9 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
@@ -2140,4 +2153,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1792** |
+| **Total** | **1801** |

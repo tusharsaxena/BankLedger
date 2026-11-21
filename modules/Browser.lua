@@ -35,9 +35,15 @@ B.SKIN = SKIN
 -- MIN WIDTH and is static — it does not grow when the window widens. EnsureFrame (the window floor)
 -- and BuildFilterBar (Export sizing) both read the helpers below, so the two can never drift.
 --   Row-2 dropdowns: Date 110 · Direction 110 · Store 130 · Quality 100 · Type 110 ·
---                    Sub-type 110 · Character 140
+--                    Sub-type 110 · Character 140 (Retail) / 180 (WoW Forever)
+-- The Character width is per client, picked ONCE at load by ClientKey() (WoW Forever port, design
+-- D12; clients-§5): a WoW Forever key is the whole "First Surname" (forever-quirks-§4), which with
+-- its class icon outgrows Retail's 140 px closed label. Retail keeps 140, so its toolbar is unchanged.
+local CHAR_DD_W_BY_CLIENT = { retail = 140, forever = 180 }
+local CHAR_DD_W = CHAR_DD_W_BY_CLIENT[(NS.Compat and NS.Compat.ClientKey and NS.Compat.ClientKey())
+                                      or "retail"] or CHAR_DD_W_BY_CLIENT.retail
 local DD_W = { date = 110, direction = 110, store = 130, quality = 100, type = 110,
-               subtype = 110, char = 140 }
+               subtype = 110, char = CHAR_DD_W }
 local DD_GAP = 8
 -- Row 1's Group dropdown. The library's collapsed label sits 6 px in from the left and 16 px in from
 -- the right (the arrow) and never wraps, so the longest label, "Group: Type & SubType" (21 chars),
@@ -600,6 +606,7 @@ end
 
 B._SUGGEST_MAX = SUGGEST_MAX
 B._GROUP_W, B._SEARCH_MIN, B._DROPDOWNS_W, B._DD_GAP = GROUP_W, SEARCH_MIN, DROPDOWNS_W, DD_GAP
+B._CHAR_DD_W, B._CHAR_DD_W_BY_CLIENT = CHAR_DD_W, CHAR_DD_W_BY_CLIENT
 
 function B:UpdateFooter()
   if not self._foot then return end

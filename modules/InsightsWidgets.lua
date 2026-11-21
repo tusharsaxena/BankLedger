@@ -107,12 +107,19 @@ end
 -- safe. Returns the text and whether it was cut (the caller keeps the full string for the tooltip).
 -- Never pass a string with markup (e.g. a |T...|t texture escape) concatenated in: the cut is
 -- byte-based and can land inside the escape. Keep markup out of band and prepend it after
--- truncating.
+-- truncating. A cut that would split a multibyte UTF-8 character (an accented name, "Trâxex")
+-- backs off to that character's first byte, so it comes out a byte or two shorter, never broken;
+-- an ASCII cut is unchanged. WoW Forever's "First Surname" keys reach this cut far more often.
 function W.Truncate(text, maxChars)
   text = tostring(text or "")
   maxChars = maxChars or W.LABEL_MAXCHARS
   if #text <= maxChars then return text, false end
-  return text:sub(1, maxChars - 1) .. "\226\128\166", true
+  local cut = maxChars - 1
+  -- 0x80..0xBF is a continuation byte: the byte after the cut must not be one.
+  while cut > 0 and (text:byte(cut + 1) or 0) >= 0x80 and (text:byte(cut + 1) or 0) < 0xC0 do
+    cut = cut - 1
+  end
+  return text:sub(1, cut) .. "\226\128\166", true
 end
 
 -- Shrink a headline only when its rendered string would overflow its card, so ordinary numbers keep
@@ -141,6 +148,9 @@ end
 
 -- "Name-Realm" → "Name". A per-character bar is 118px wide; the realm is the same for almost every
 -- row and is what gets cut, so drop it up front and keep the part that distinguishes the rows.
+-- A WoW Forever key is "First Surname" with no hyphen (forever-quirks-§4), so it is kept whole: the
+-- surname is part of what distinguishes the rows there. The bar truncates it (W.Truncate) and the
+-- bar's tooltip carries the whole name (design D12).
 function W.ShortChar(key)
   return (type(key) == "string" and key:match("^[^-]+")) or tostring(key or "?")
 end
