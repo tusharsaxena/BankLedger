@@ -233,6 +233,9 @@ end)
 
 -- ── The wowhead column ─────────────────────────────────────────────────────────
 
+-- The base is per client (R7; tests/test_wowhead_client.lua): these cases pin the path after it.
+local WH_BASE = NS.Util.WOWHEAD_ITEM_URL_BY_CLIENT[NS.Compat.ClientKey()]
+
 test("Export:CSV ends with the wowhead column", function()
   -- Appended last on purpose: a sheet keyed on column position keeps working.
   assertEqual(NS.Export.HEADER[#NS.Export.HEADER], "wowhead")
@@ -243,12 +246,12 @@ test("Export:CSV writes a wowhead URL carrying the item's bonus ids", function()
     itemLink = "|cffa335ee|Hitem:151300::::::::80:250::5:3:12801:13440:6652:1:28:2437"
       .. "|h[Sample Helm]|h|r" }) }))[2])
   assertEqual(row[columnIndex("wowhead")],
-    "https://www.wowhead.com/item=151300?bonus=12801:13440:6652")
+    WH_BASE .. "151300?bonus=12801:13440:6652")
 end)
 
 test("Export:CSV writes a bare item URL when the row has no link", function()
   local row = cells(lines(NS.Export:CSV({ e() }))[2])
-  assertEqual(row[columnIndex("wowhead")], "https://www.wowhead.com/item=2589")
+  assertEqual(row[columnIndex("wowhead")], WH_BASE .. "2589")
 end)
 
 test("Export:CSV leaves the wowhead cell empty for a gold row", function()

@@ -21,7 +21,7 @@ local NS = {}
 -- because the kit's inventory keys on that pair and reads a bare name as a claim on tests/. One list
 -- carries both shapes, so the list the harness walks is the list that runs.
 local SUITES = {
-  "test_util", "test_compat", "test_compat_client", "test_constants", "test_warband_client", "test_keyring_client", "test_testmode_client", "test_names_client", "test_filters",
+  "test_util", "test_compat", "test_compat_client", "test_constants", "test_warband_client", "test_keyring_client", "test_testmode_client", "test_names_client", "test_wowhead_client", "test_filters",
   "test_ledger", "test_backfill", "test_ledger_guildbank", "test_ledger_settling", "test_bank_readiness", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_browser_views", "test_autocomplete", "test_launcher", "test_launcher_skin_entry", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",

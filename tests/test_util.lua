@@ -219,12 +219,15 @@ end)
 -- The CSV export's trailing column. A real link's bonus IDs are what make the URL resolve to the
 -- variant that moved rather than to the base item, so they are the thing worth pinning down.
 
+-- The base is per client (R7; tests/test_wowhead_client.lua): these cases pin the path after it.
+local WH_BASE = NS.Util.WOWHEAD_ITEM_URL_BY_CLIENT[NS.Compat.ClientKey()]
+
 local GEAR_LINK = "|cffa335ee|Hitem:151300::::::::80:250::5:5:12801:13440:6652:13577:12699"
   .. ":1:28:2437|h[Sample Helm]|h|r"
 
 test("Util.WowheadURL carries every bonus id from the item link", function()
   assertEqual(NS.Util.WowheadURL({ itemID = 151300, itemLink = GEAR_LINK }),
-    "https://www.wowhead.com/item=151300?bonus=12801:13440:6652:13577:12699")
+    WH_BASE .. "151300?bonus=12801:13440:6652:13577:12699")
 end)
 
 test("Util.WowheadURL stops at the declared bonus count", function()
@@ -236,16 +239,16 @@ end)
 
 test("Util.WowheadURL omits the bonus query for an item that has none", function()
   assertEqual(NS.Util.WowheadURL({ itemID = 2589, itemLink = "|cff9d9d9d|Hitem:2589::::::::80:250"
-    .. "::::::|h[Linen Cloth]|h|r" }), "https://www.wowhead.com/item=2589")
+    .. "::::::|h[Linen Cloth]|h|r" }), WH_BASE .. "2589")
 end)
 
 test("Util.WowheadURL falls back to the stored item id when there is no link", function()
-  assertEqual(NS.Util.WowheadURL({ itemID = 2589 }), "https://www.wowhead.com/item=2589")
+  assertEqual(NS.Util.WowheadURL({ itemID = 2589 }), WH_BASE .. "2589")
 end)
 
 test("Util.WowheadURL accepts a bare item string as well as a full hyperlink", function()
   assertEqual(NS.Util.WowheadURL({ itemLink = "item:151300::::::::80:250::5:2:12801:13440" }),
-    "https://www.wowhead.com/item=151300?bonus=12801:13440")
+    WH_BASE .. "151300?bonus=12801:13440")
 end)
 
 test("Util.WowheadURL returns nothing for a row with no item at all", function()

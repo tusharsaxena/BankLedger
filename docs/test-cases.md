@@ -162,6 +162,15 @@ Total.
 - names: Truncate never cuts inside a multibyte character
 - names: the Character column describes the client's key shape
 
+### test_wowhead_client.lua (6)
+
+- wowhead: the item URL base is a per-client table picked once by ClientKey()
+- wowhead: Util.WowheadURL builds on the client's base
+- wowhead: the bonus query rides on the client's base
+- wowhead: a link with no bonuses gives a plain item URL on the client's base
+- wowhead: the CSV export's wowhead column carries the client's base
+- wowhead: no gold row gets a URL on either client
+
 ### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
@@ -2076,6 +2085,7 @@ Total.
 | test_keyring_client.lua | 5 |
 | test_testmode_client.lua | 8 |
 | test_names_client.lua | 9 |
+| test_wowhead_client.lua | 6 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
@@ -2153,4 +2163,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1801** |
+| **Total** | **1807** |

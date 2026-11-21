@@ -99,7 +99,7 @@ end
 -- ── Wowhead link ────────────────────────────────────────────────────────────────
 -- A wowhead URL for the exact item variant a row moved rather than for its base item: everything
 -- that makes a modern drop what it is (item level, tertiaries, sockets) lives in its bonus IDs, so
--- the URL carries them — https://www.wowhead.com/item=151300?bonus=12801:13440:6652.
+-- the URL carries them — https://www.wowhead.com/item=151300?bonus=12801:13440:6652 on Retail.
 --
 -- The bonuses come out of the stored hyperlink's item string through LibKa0s-Item's
 -- BonusIDsFromLink (Item minor 3, LibKa0s#51), which owns the positional walk: field 13 declares
@@ -109,7 +109,17 @@ end
 -- Returns "" for a row with no item at all (a gold movement, or an entry whose link never
 -- resolved), and a plain item= URL when the link carries no bonuses — which is the honest answer
 -- for a stackable trade good, since those have none.
-local WOWHEAD_ITEM_URL = "https://www.wowhead.com/item="
+--
+-- The base is per client, picked ONCE at load by ClientKey() (WoW Forever port, owner ruling R7;
+-- clients-§5): WoW Forever item ids are Forever's own, so its links go to Wowhead's forever path.
+-- Retail is unchanged. Both rows are exposed read-only for tests/test_wowhead_client.lua.
+Util.WOWHEAD_ITEM_URL_BY_CLIENT = {
+  retail  = "https://www.wowhead.com/item=",
+  forever = "https://www.wowhead.com/forever/item=",
+}
+local WOWHEAD_ITEM_URL = Util.WOWHEAD_ITEM_URL_BY_CLIENT[(NS.Compat and NS.Compat.ClientKey
+  and NS.Compat.ClientKey()) or "retail"] or Util.WOWHEAD_ITEM_URL_BY_CLIENT.retail
+Util.WOWHEAD_ITEM_URL = WOWHEAD_ITEM_URL
 
 function Util.WowheadURL(entry)
   if type(entry) ~= "table" then return "" end
