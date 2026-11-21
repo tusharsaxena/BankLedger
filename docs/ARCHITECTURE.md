@@ -800,6 +800,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 |---|---|
 | `windows.md` | The two standalone windows, how they wear the skin, and the geometry-save contract |
 | `insights.md` | The Insights tab: `Database:Stats` keys, section order, and the three drawing rules |
+| `forever-probes.md` | The WoW Forever port's open in-game facts: the `/bl debug probe` verbs, what a probe entry holds, and each probe with the default it settles and a `/run` fallback |
 | `media.md` | Where the mono face and the shared marks come from, which surfaces draw which mark and what each falls back to, and the logo art set with its regeneration recipe |
 
 ## Documented deviations

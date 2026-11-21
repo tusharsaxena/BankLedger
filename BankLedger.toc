@@ -101,6 +101,9 @@ modules\Ledger.lua
 # Ledger's /bl debug scan dump (L:Diagnose), peeled out of it (GI-BL-02). Conventional: reached at
 # run time through NS.Ledger.
 modules\Ledger_Diagnose.lua
+# The probe verbs, /bl debug probe (WoW Forever port, ruling R4). Conventional: the debug verb, NS.StandUp
+# and NS.StandDown reach NS.Probe at run time, and it reads NS.Constants and NS.Ledger at call time.
+modules\Probe.lua
 # The simulator's world model and its Compat answers (BankLedger#24). Conventional: it registers its
 # providers on NS.SimSeam (core/SimSetup.lua) at load and reads everything else at call time.
 modules\SimWorld.lua

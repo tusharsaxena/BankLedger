@@ -144,6 +144,9 @@ function NS.StandUp(atLogin)
   -- Enabled independently of the Browser: the session window appears on a bank open whether or not
   -- the main ledger window has ever been built.
   if NS.SessionWindow and NS.SessionWindow.Enable then NS.SessionWindow:Enable() end
+  -- A probe left active (`/bl debug probe start`, modules/Probe.lua) listens again: it records
+  -- across logins and reloads until it is stopped.
+  if NS.Probe and NS.Probe.Resume then NS.Probe:Resume() end
   traceEvents(atLogin)
 end
 
@@ -270,6 +273,10 @@ function NS.StandDown()
   local prunePostponed = NS.State and NS.State.cleanupPending ~= nil
   cancelTimers(ad)
   dropEvents(ad)
+  -- The probe's own AceEvent target (modules/Probe.lua), which the addon object's
+  -- UnregisterAllEvents above cannot reach. Its stored record keeps its active flag, so the next
+  -- stand-up re-arms it.
+  if NS.Probe and NS.Probe.Disarm then NS.Probe:Disarm() end
   dropCaptureState()
   for _, name in ipairs(BUS_MODULES) do
     if NS[name] then dropBusTarget(NS[name]) end

@@ -12,7 +12,7 @@ One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.de
 
 | Scope | Defaults file | Holds |
 |---|---|---|
-| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp |
+| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp, and the probe record (`probe`, no default: present only once `/bl debug probe start` has run) |
 | `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`, the skin choice `settings.appearance` included), both filter lists, the saved views (one per tab) |
 
 The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
@@ -392,6 +392,14 @@ in it are per-installation display preferences rather than settings (`launcher-�
 this until the launcher was adopted (`launcher-§1`). [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers)
 names every writer of all four and the act that reaches each. That naming is what makes them
 compliant, so none has a `Documented deviations` row. A new writer of any of them joins that list.
+
+**The probe record is diagnostic recorded data, not a setting** (`architecture-§5` named non-setting
+state). `db.global.probe` is `{ active, client, build, startedAt, stoppedAt, dropped, entries }`, the
+entries capped at 200 (`P.CAP`), oldest first. Its one writer is `NS.Probe` (`modules/Probe.lua`),
+reached only from `/bl debug probe start|stop|clear` and from the events a started probe listens to.
+It has no default in `defaults/Global.lua`, so it is created by the first `start` and no migration is
+owed; it is account-wide and in no profile, so no profile event or reset reaches it, and only
+`/bl debug probe clear` empties it. [forever-probes.md](forever-probes.md) lists the entry fields.
 
 **The filter id-sets are a structural registry, not a carve-out** (`architecture-§5`).
 `db.profile.blacklist` and `db.profile.whitelist` are item-id sets the player adds to and removes

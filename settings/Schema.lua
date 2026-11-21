@@ -1071,6 +1071,11 @@ NS.COMMANDS = {
         NS.DebugLog:Report("Panel", "debug panel", function(out)
           for _, line in ipairs(P:Diagnose()) do out(line) end
         end)
+      elseif arg == "probe" then
+        -- The probe verbs (WoW Forever port, ruling R4; modules/Probe.lua): start, stop, status and
+        -- clear a capped record of what the client answers, kept in db.global.probe. Short acks in
+        -- chat; the record itself is read back from SavedVariables.
+        if NS.Probe then NS.Probe:RunVerb(tostring(rest):match("^%s*%S+%s*(.-)%s*$")) end
       elseif arg == "scan" then
         -- A REPORT (debug-logging-§15): the client's real container model, NS.Ledger:Diagnose line
         -- for line, under [Scan], through the same seam as `panel` above.

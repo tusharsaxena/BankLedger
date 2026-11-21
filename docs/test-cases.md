@@ -368,6 +368,26 @@ Total.
 - readiness: at a warband-only banker the Warband Bank is still recorded
 - readiness: a nil CanViewBank answer (cannot tell) still reads the character bank
 
+### test_probe.lua (17)
+
+- probe: the four verbs are the debug verb's, and a bare or unknown word prints the usage
+- probe: status with no record says the probe is off
+- probe: start stamps the client and the build into db.global.probe and arms
+- probe: the start facts carry the money-text readers, the identity and the instance
+- probe: the start facts record the keyring's slots and contents
+- probe: a bank open records the bank facts at the open, +1 s and +3 s
+- probe: a bank read records the -2 socket reads through ItemLocation and GetContainerItemInfo
+- probe: a bank read without ItemLocation still records the GetContainerItemInfo read
+- probe: the bank cue events are recorded with the seconds since the open
+- probe: the banker's interaction type is recorded by number and name
+- probe: a guild banker records the guild-vault reads at the open, +1 s and +3 s
+- probe: GUILDBANKFRAME_OPENED alone takes the guild-vault reads
+- probe: the record is capped; the oldest entries go and the drop is counted
+- probe: stop unarms, stamps the stop and keeps the record
+- probe: clear empties the entries and keeps the probe's state
+- probe: start is refused while the addon is disabled, and a disable disarms a running probe
+- probe: the record is db.global's, and the TOC declares no new SavedVariables global
+
 ### test_database.lua (56)
 
 - Database:Add appends and returns the new index
@@ -2092,6 +2112,7 @@ Total.
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 27 |
 | test_bank_readiness.lua | 16 |
+| test_probe.lua | 17 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 65 |
@@ -2163,4 +2184,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1807** |
+| **Total** | **1824** |

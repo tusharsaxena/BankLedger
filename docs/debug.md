@@ -14,6 +14,7 @@ writes, and the two **addon-owned** reports that also write into that console.
 | `/bl diagnostics` or `/bl debug diagnostics` | `NS.DebugLog:RunDiagnostics()` over `NS.Diagnostics.Sections()` (`modules/Diagnostics.lua`) | `[Diag]` markers, one tag per section | Everything a maintainer asks first: build, state, settings, filters, the ledger, the capture engine, the session, the container model, windows, the launcher and other bank addons |
 | `/bl debug scan` | `NS.Ledger:Diagnose()` (`modules/Ledger_Diagnose.lua`) | `[Scan]` | What the client's container, money and guild-bank model actually is, and which events registered |
 | `/bl debug panel` | `NS.Panel:Diagnose()` (`settings/Panel.lua`) | `[Panel]` | What the settings header's **Defaults** button actually is at runtime |
+| `/bl debug probe start\|stop\|status\|clear` | `NS.Probe:RunVerb()` (`modules/Probe.lua`) | none: one chat line each | Not a report. A probe records what the client answers at each bank and guild-vault visit into `db.global.probe` (capped at 200 entries) until it is stopped; the record is read back from SavedVariables after logout. [forever-probes.md](forever-probes.md) lists what each entry holds and which default each fact settles |
 
 All three are wired in `NS.COMMANDS` (`settings/Schema.lua`): the report as its own `diagnostics`
 row and as the first word the `debug` row tests, the two dumps as words of the `debug` row.
@@ -31,6 +32,15 @@ diagnostics report keeps its own helper and pointer line (`debug-logging-§14`).
 answer is one or two lines and stays in chat: `/bl session` toggles the session window's sample and
 says which way it went, and `/bl list` is the reserved settings list (`slash-commands-§5`).
 `tests/test_report_verbs.lua` holds both report verbs to this.
+
+**The probe verbs** (WoW Forever port, ruling R4) are words of the same `debug` row, and none is a
+report: `start`, `stop`, `status` and `clear` each answer one chat line, and an unknown word prints the
+usage. A probe listens on its own AceEvent target (`PLAYER_INTERACTION_MANAGER_FRAME_SHOW`,
+`BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED`), registered
+through `NS.RegisterEventSafely`, so while one runs `/bl debug scan`'s `events registered` line names
+them too. `start` is refused while the addon is disabled; `NS.StandDown` disarms a running probe and
+`NS.StandUp` re-arms one whose record is still active. `tests/test_probe.lua` holds the verbs, the
+record's shape, the cap and the lifecycle.
 
 ## Coverage
 
