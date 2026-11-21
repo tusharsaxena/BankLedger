@@ -55,11 +55,11 @@ libraries under `libs/` are not listed — they are consumed, not maintained her
 
 #### Load order is load-bearing
 
-The TOC's file order is not cosmetic in twelve places, and the comments in `BankLedger.toc` say so at
-each one. Several more files carry a position note that deliberately says the opposite — `core/EnvSetup.lua`
+The TOC's file order is not cosmetic in eleven places, and the comments in `BankLedger.toc` say so at
+each one. Several more files carry a position note that deliberately says the opposite — `core/EnvSetup.lua` and `core/ItemSetup.lua`
 (listed below for that reason), `core/LifecycleSetup.lua`, `core/PoolSetup.lua`, `core/LauncherSetup.lua`,
 `modules/Ledger_Diagnose.lua`, `modules/SimWorld.lua`, `modules/SimDrivers.lua`, `modules/Sim.lua`, `modules/SimScenario.lua`, `modules/Backfill.lua`, `modules/LedgerTable_TestMode.lua` and
-`modules/Diagnostics.lua` — and none is one of the twelve:
+`modules/Diagnostics.lua` — and none is one of the eleven:
 
 - **`core/Compat.lua` loads first**, so every later file can shim through it.
 - **`core/SimSetup.lua` follows it immediately** (`# LOAD-BEARING`, Sim-1.0 host contract H2): it

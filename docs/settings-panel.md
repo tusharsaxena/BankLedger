@@ -506,9 +506,9 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 ## The General page's tabs and the Filters tab
 
-The twenty-six schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+The twenty-eight schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (9) ·
-**Capture** (4) · **Filters** · **Interface** (4) · **History** (1) · **Skin** (8, the Appearance group,
+**Capture** (4) · **Filters** · **Interface** (6) · **History** (1) · **Skin** (8, the Appearance group,
 drawn by the library's entry), then the library's host tab **Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why

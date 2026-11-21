@@ -46,7 +46,7 @@ simulated world and the seam's providers), `modules/SimDrivers.lua` (one event d
 action), `modules/Sim.lua` (the session host, `NS.Sim`, and its presentation fields) and
 `modules/SimScenario.lua` (the four scenarios). Each has its row in module-map.md.
 
-Load order is load-bearing in twelve places (the newest: `modules/Insights_Render.lua` reads
+Load order is load-bearing in eleven places (the newest: `modules/Insights_Render.lua` reads
 `I._renderSeam` at file load, so it follows `modules/Insights.lua`, which publishes it; before that,
 `core/SkinSetup.lua` registers the skin
 owner at file load and sits above every module and `settings/Schema.lua`, which read `NS.Skin` and
@@ -65,7 +65,7 @@ The runtime is `LibKa0s-Schema-1.0` (adopted at LibKa0s v1.55.0); without the li
 (`options-ui-§1`). A bulk reset logs one line (`debug-logging-§10`), and every reset control reaches
 the one confirm-gated global reset, `Sl:ResetEverything` (`options-ui-§12`). The rows live on the
 tabbed **General** page (`options-ui-§13`): **Master controls** · **Capture** · **Filters** ·
-**Interface** · **History** · **Skin**, then the library's **Keybindings** host tab. The seven Skin
+**Interface** · **History** · **Skin**, then the library's **Keybindings** host tab. The eight Skin
 rows (`settings.appearance.*`, group `Appearance`) are `skipRender`: the library's Skin tab draws
 them through `core/SkinSetup.lua`'s read and write seams, which write through `NS.Schema:Set` like
 every other row (see **Skins** below). The bulk bracket, the reset routes and the tab strip are in
@@ -766,7 +766,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `scope.md` | What the ledger records, and the movements it deliberately does not |
 | `module-map.md` | Every non-vendored file, its responsibility, and the TOC's load order |
 | `schema.md` | `BankLedgerDB`'s two scopes (account-wide and per profile), the entry fields, the Schema runtime and its stub, every registry, recorded-data and carve-out writer, migrations |
-| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-six rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
+| `settings-panel.md` | The three pages, the seven-tab strip (the Skin tab and the first-run skin picker included), the twenty-eight rows, the single `Schema:Set` write seam, the bulk bracket and the reset routes |
 | `data-flow.md` | Snapshot → diff → corroborate → record, and the event choreography around it |
 | `common-tasks.md` | Add a setting, a command, a store, a migration, a chart, an event |
 
