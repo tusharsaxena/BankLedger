@@ -56,6 +56,12 @@ read_globals = {
   "GetCoinTextureString",
   "strtrim",
 }
+-- The client stub (clients-§3) and the regional-names stub (forever-quirks-§4): core/CompatClient.lua
+-- alone names the project constants and the switch, so the grant is that file's and nobody else's.
+files["core/CompatClient.lua"] = {
+  read_globals = { "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CAMELOT",
+    "RegionalUniqueNamesEnabled", "issecretvalue" },
+}
 globals = {
   "BankLedgerDB",      -- the SavedVariables write target, declared in the TOC
   -- Registering a confirm dialog means writing a new key into Blizzard's table; that is the only

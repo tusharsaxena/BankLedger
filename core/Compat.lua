@@ -2,9 +2,11 @@ local _, NS = ...
 NS.Compat = NS.Compat or {}
 local Compat = NS.Compat
 
--- Retail-only addon: no game-flavor branching (compat). Every varying / deprecated API is gated by
--- a direct C_*/global presence check here, so a shim degrades to nil/false when its API is absent —
--- never by reading a game-flavor project id. Feature modules call NS.Compat.X, never the raw API.
+-- Ships on Retail and WoW Forever from one codebase (clients-§1). Which client this is, and the
+-- character-name readers whose answers differ between the two, are core/CompatClient.lua's: it is the
+-- one file that reads a WOW_PROJECT_* constant (clients-§3). Here every varying / deprecated API is
+-- gated by a direct C_*/global presence check, so a shim degrades to nil/false when its API is
+-- absent. Feature modules call NS.Compat.X, never the raw API.
 --
 -- What is here is what is genuinely THIS addon's: the container, guild-bank and item readers, and
 -- the player-identity reads the in-game simulator must be able to answer (docs/compat-layer.md).

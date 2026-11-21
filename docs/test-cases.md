@@ -69,6 +69,19 @@ Total.
 - Compat.PlayerClass answers the classFile, read at call time
 - compat boundary: no player identity read outside core/Compat.lua
 
+### test_compat_client.lua (10)
+
+- compat client: ClientKey, IsForever and IsRetail answer the kit profile on both arms
+- compat client: ForClient(nil) is true, a declared client only on that client, an unknown token raises
+- compat client: a client that is neither answers nil and serves undeclared features only
+- compat client: RegionalNames follows RegionalUniqueNamesEnabled, false where it is absent
+- compat client: UnitCharacterName is the whole name with regional names, name and realm without
+- compat client: UnitCharacterName never answers a secret name
+- compat client: CharacterKey is this client's AceDB character key; nil without the library
+- compat client: RealmKey is the realm without regional names, the ruleset with them; nil without the library
+- compat client: no shipped file but core/CompatClient.lua reads a project id or the regional-names switch
+- compat client: core/CompatClient.lua loads straight after core/Compat.lua and before core/SimSetup.lua
+
 ### test_constants.lua (24)
 
 - Constants: every Store enum member appears in the display order
@@ -1476,7 +1489,7 @@ Total.
 
 - Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its seam
 - Sim seam: Keys() is the 12 wrapped Compat members, sorted
-- Sim seam: the three pure members are not wrapped
+- Sim seam: the eleven pure members are not wrapped
 - Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract H2)
 - Sim seam: with no session, every wrapped member answers what the bare Compat answers
 - Sim seam: SetProvider on a pure key raises
@@ -1484,8 +1497,8 @@ Total.
 - Sim seam: Live(fn) restores bypass when fn raises, and re-raises the same value
 - Sim seam: a guarded QueryGuildBankTab never reaches the client during a session
 - Sim seam: the guarded query is inert with no sim world and no session
-- TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
-- Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
+- TOC: core/SimSetup.lua loads immediately after the compat family, annotated LOAD-BEARING
+- Sim seam: no file caches a Compat member or the Compat table outside the compat family
 
 ### test_sim_world.lua (17)
 
@@ -1973,6 +1986,7 @@ Total.
 |-------|------:|
 | test_util.lua | 38 |
 | test_compat.lua | 17 |
+| test_compat_client.lua | 10 |
 | test_constants.lua | 24 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
@@ -2050,4 +2064,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1724** |
+| **Total** | **1734** |

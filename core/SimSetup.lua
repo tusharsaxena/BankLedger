@@ -2,18 +2,22 @@ local addonName, NS = ...
 -- core/SimSetup.lua — the simulator's answer seam, on LibKa0s-Sim-1.0 (library-stack-§7; BankLedger#24,
 -- LibKa0s#54; the host contract H1-H10 is in libs/LibKa0s's docs/api/Sim/).
 --
--- THE SEAM. At load, straight after core/Compat.lua and before any other file can read a member
--- (the LOAD-BEARING TOC slot, host contract H2), Sim:NewSeam wraps every NS.Compat function member in
+-- THE SEAM. At load, straight after core/Compat.lua and core/CompatClient.lua and before any other
+-- file can read a member (the LOAD-BEARING TOC slot, host contract H2), Sim:NewSeam wraps every NS.Compat function member in
 -- place, once, except the three PURE ones below. While a simulation session runs, a wrapped member
 -- asks the simulator's provider first; idle, it calls straight through to the live member, so the
--- whole cost of the seam is one field test per call. This file names no client API: core/Compat.lua
--- stays the only caller (compat). A member added to NS.Compat after this file loads, or one
+-- whole cost of the seam is one field test per call. This file names no client API: the compat
+-- family (core/Compat.lua, core/CompatClient.lua) stays the only caller (compat). A member added to NS.Compat after this file loads, or one
 -- replaced by assignment, escapes the wrap; the seam's Unwrapped() lists it, and
 -- tests/test_sim_seam.lua asserts that list is empty after the whole addon loads.
 --
 -- PURE. GuildBankTabSize is a constant; GetItemDetails and ItemNameQuality are real item facts
 -- about real cached items (the simulator's pool is drawn from the player's real bags), so the
--- simulator answers them exactly as the client does and they are never wrapped.
+-- simulator answers them exactly as the client does and they are never wrapped. So are
+-- core/CompatClient.lua's eight: which client this is (IsForever, IsRetail, ClientKey, ForClient)
+-- and how this client spells a name (RegionalNames, UnitCharacterName, CharacterKey, RealmKey) are
+-- facts of the install, not of the simulated world. The simulator's alt is answered one level up,
+-- by PlayerName and PlayerClass, so a module reaches the player's identity through those.
 --
 -- GUARDED. QueryGuildBankTab is the addon's one outward request to the server. While a session runs
 -- its live body never runs, whatever a provider or a caller does (inside Live included): the guarded
@@ -34,7 +38,11 @@ local Sim = LibStub and LibStub("LibKa0s-Sim-1.0", true)
 NS.SimHost = NS.SimHost or {}
 
 -- The members that answer for nobody. Never wrapped.
-local PURE = { GuildBankTabSize = true, GetItemDetails = true, ItemNameQuality = true }
+local PURE = {
+  GuildBankTabSize = true, GetItemDetails = true, ItemNameQuality = true,
+  IsForever = true, IsRetail = true, ClientKey = true, ForClient = true,
+  RegionalNames = true, UnitCharacterName = true, CharacterKey = true, RealmKey = true,
+}
 
 -- The guarded tab query. Reads NS.SimHost.world and NS.Sim at call time: both are a no-op until the
 -- simulator's world and session exist. Never calls the client.

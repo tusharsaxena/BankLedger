@@ -36,7 +36,11 @@ locales\PostLoad.lua
 
 # Core (Compat loads first)
 core\Compat.lua
-# LOAD-BEARING: wraps every NS.Compat member at load, before any file could read one (Sim-1.0 host contract H2).
+# LOAD-BEARING: adds the client questions and the character-name readers (LibKa0s-Compat-1.0's, with
+# their stubs) to NS.Compat; it loads before core\SimSetup.lua (below), which wraps every member at
+# load. The one file that reads a WOW_PROJECT_* constant (clients-§3). Read inside functions only.
+core\CompatClient.lua
+# LOAD-BEARING: wraps every NS.Compat member at load, straight after the compat family above, before any file could read one (Sim-1.0 host contract H2).
 core\SimSetup.lua
 # The LibKa0s-Env seam. After Compat, whose three world/metadata shims it replaced, and before
 # every file that reads a version, a zone or a map id. Nothing here resolves at load beyond the

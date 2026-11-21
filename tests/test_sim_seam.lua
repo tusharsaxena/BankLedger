@@ -1,11 +1,11 @@
 -- tests/test_sim_seam.lua — the simulator's answer seam (core/SimSetup.lua) on LibKa0s-Sim-1.0.
 --
 -- BL-08 (BankLedger#24, LibKa0s#54). core/SimSetup.lua wraps NS.Compat with Sim:NewSeam straight
--- after core/Compat.lua: the three pure members are left alone, QueryGuildBankTab is guarded, and
--- every other function member is wrapped. These cases pin the host contract the library cannot
--- enforce for us (H2: nothing escapes the wrap, the TOC slot, no captured member) and the four seam
--- members the host leans on (one owner per answer, a pure key refused, Live restoring bypass and
--- re-raising the original value).
+-- after the compat family (core/Compat.lua, core/CompatClient.lua): the eleven pure members are
+-- left alone, QueryGuildBankTab is guarded, and every other function member is wrapped. These
+-- cases pin the host contract the library cannot enforce for us (H2: nothing escapes the wrap,
+-- the TOC slot, no captured member) and the four seam members the host leans on (one owner per
+-- answer, a pure key refused, Live restoring bypass and re-raising the original value).
 --
 -- Anything that mutates a seam -- a provider, a session -- runs in an ISOLATED environment from
 -- tests/degraded_env.lua's loadUpTo, never on the shared NS.SimSeam: a provider left on the shared
@@ -19,13 +19,20 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 local Env = dofile("tests/degraded_env.lua")
 local loadUpTo = Env.loadUpTo
 
--- The 15 function members of core/Compat.lua, minus the 3 pure ones.
+-- The 15 function members of core/Compat.lua minus its 3 pure ones; every one of the 8 in
+-- core/CompatClient.lua (the client and how it spells a name) is pure.
 local WRAPPED = {
   "GetContainerNumSlots", "GetContainerSlot", "GetCurrentGuildBankTab", "GetGuildBankSlot",
   "GetGuildName", "GetMoney", "GetNumGuildBankTabs", "GetStoreMoney", "IsGuildBankVisible",
   "PlayerClass", "PlayerName", "QueryGuildBankTab",
 }
-local PURE = { "GetItemDetails", "GuildBankTabSize", "ItemNameQuality" }
+-- The last file of the compat family; core/SimSetup.lua loads straight after it.
+local COMPAT_LAST = "core/CompatClient.lua"
+local PURE = {
+  "GetItemDetails", "GuildBankTabSize", "ItemNameQuality",
+  "CharacterKey", "ClientKey", "ForClient", "IsForever", "IsRetail", "RealmKey", "RegionalNames",
+  "UnitCharacterName",
+}
 
 --- An isolated environment loaded through core/SimSetup.lua, with the library, and its Sim major.
 local function isolated()
@@ -61,7 +68,7 @@ test("Sim seam: Keys() is the 12 wrapped Compat members, sorted", function()
   assertEqual(table.concat(NS.SimSeam:Keys(), ","), table.concat(WRAPPED, ","))
 end)
 
-test("Sim seam: the three pure members are not wrapped", function()
+test("Sim seam: the eleven pure members are not wrapped", function()
   local keys = {}
   for _, k in ipairs(NS.SimSeam:Keys()) do keys[k] = true end
   for _, k in ipairs(PURE) do
@@ -76,9 +83,9 @@ test("Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract 
 end)
 
 test("Sim seam: with no session, every wrapped member answers what the bare Compat answers", function()
-  -- Two fresh environments over identical mocks: one stops at core/Compat.lua (unwrapped), the other
-  -- at core/SimSetup.lua (wrapped). Each member gets the same arguments in both.
-  local bare = loadUpTo("core/Compat.lua", true)
+  -- Two fresh environments over identical mocks: one stops at the last compat file (unwrapped), the
+  -- other at core/SimSetup.lua (wrapped). Each member gets the same arguments in both.
+  local bare = loadUpTo(COMPAT_LAST, true)
   local wrapped, wm = isolated()
   local ARGS = {
     GetContainerNumSlots = { 0 }, GetContainerSlot = { 0, 1 }, GetGuildBankSlot = { 1, 1 },
@@ -172,11 +179,12 @@ test("Sim seam: the guarded query is inert with no sim world and no session", fu
   assertEqual(m.__guildQueryCount, before, "the guarded answer called the client")
 end)
 
-test("TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING", function()
+test("TOC: core/SimSetup.lua loads immediately after the compat family, annotated LOAD-BEARING", function()
   local toc = Loader.tocFiles("BankLedger.toc")
   local at
-  for i, p in ipairs(toc) do if p == "core/Compat.lua" then at = i end end
-  assertTrue(at ~= nil, "core/Compat.lua is not in BankLedger.toc")
+  for i, p in ipairs(toc) do if p == COMPAT_LAST then at = i end end
+  assertTrue(at ~= nil, COMPAT_LAST .. " is not in BankLedger.toc")
+  assertEqual(toc[at - 1], "core/Compat.lua")
   assertEqual(toc[at + 1], "core/SimSetup.lua")
   local lines = {}
   for line in (Loader.readFile("BankLedger.toc") .. "\n"):gmatch("([^\n]*)\n") do
@@ -190,11 +198,12 @@ test("TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated 
   end
 end)
 
-test("Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua", function()
-  -- A captured member is the live one and escapes the seam (host contract H1).
+test("Sim seam: no file caches a Compat member or the Compat table outside the compat family", function()
+  -- A captured member is the live one and escapes the seam (host contract H1). The family's files
+  -- open `local Compat = NS.Compat` to define members on it, before core/SimSetup.lua wraps them.
   local offenders = {}
   for _, path in ipairs(Loader.tocFiles("BankLedger.toc")) do
-    if path ~= "core/Compat.lua" then
+    if path ~= "core/Compat.lua" and path ~= COMPAT_LAST then
       local src = Loader.readFile(path)
       for line in (src .. "\n"):gmatch("([^\n]*)\n") do
         if not line:find("^%s*%-%-") and (line:find("=%s*NS%.Compat%.[%a_]+%s*[\r]?$")
