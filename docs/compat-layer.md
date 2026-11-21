@@ -4,8 +4,10 @@
 Everything else calls `NS.Compat.X` and never the raw global.
 
 `core/Compat.lua` is the single file allowed to call a deprecated or patch-varying API — 16 exports
-in four groups. It shims **cross-patch** differences, never game flavors (Retail only; no
-`WOW_PROJECT_ID` branching), and every reader returns **`nil` rather than a wrong answer**.
+in four groups. It shims **cross-patch** differences, and every reader returns **`nil` rather than a
+wrong answer**. The addon ships on Retail and WoW Forever; which client this is, and who a character
+is, are the eight members `core/CompatClient.lua` routes onto the same `NS.Compat` table (below), and
+that file is the only one that reads a `WOW_PROJECT_*` constant (clients-§3).
 
 The TOC-metadata, map-id and zone reads are **not** here: they were identical in every addon in the
 collection, so they live in `LibKa0s-Env-1.0` and are reached through `core/EnvSetup.lua` as
@@ -26,10 +28,30 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 | Containers | `CanViewCharacterBank` (`C_Bank.CanViewBank(Character)`; false at a warband-only banker, nil when the build cannot tell), `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `GetItemDetails`, `ItemNameQuality` — the **resolver** only; the primitives are `NS.Item.X` (see `core/ItemSetup.lua`) |
 
+## The client and the character's name (`core/CompatClient.lua`)
+
+`core/CompatClient.lua` loads straight after `core/Compat.lua` and routes eight members of the
+vendored `LibKa0s-Compat-1.0`, each with a library-absent stub: `IsForever`, `IsRetail`,
+`ClientKey` and `ForClient` (the client, clients-§3, §4), and `RegionalNames`, `UnitCharacterName`,
+`CharacterKey` and `RealmKey` (the character's name, forever-quirks-§4). Every per-client table in
+the addon is picked once at load by `ClientKey()`, and every declared feature (`C.FEATURE_CLIENTS`,
+`core/Constants.lua`) by `ForClient`; the list is ARCHITECTURE.md's *Per-client features* table.
+The eight are pure facts about the client, so the simulator's seam does not wrap them (`PURE` in
+`core/SimSetup.lua`). Without the library, `CharacterKey` and `RealmKey` answer nil.
+
+**The record key, per client.** On Retail (no regional names) `PlayerName` answers `UnitName`'s
+name and the normalized realm, and `Util.RecordKey` joins them as `Name-Realm`, the key every stored
+Retail row carries. On WoW Forever (`RegionalNames()` true) it answers the whole "First Surname"
+(`CharacterKey()`, else `UnitCharacterName("player")`) and no realm, never
+`GetNormalizedRealmName`, and `Util.RecordKey` keeps the name alone. No stored row moves: the WTF
+folder is per client install.
+
 `PlayerName` and `PlayerClass` are not cross-patch shims; they are here for the in-game simulator
 (OWNER_SCOPE C.13, BankLedger#24). Its seam must answer identity — every row's `char` and
 `classFile`, and its alt character — and it can only stand in for a read that goes through a
-`Compat` member **read at call time**. A raw `UnitName("player")` in `Util.PlayerKey`, or a raw
+`Compat` member **read at call time**. That is why identity goes through `PlayerName` and never
+through `CharacterKey` or `UnitCharacterName` directly: those are pure, so the simulator's alt is
+answered only through `PlayerName`. A raw `UnitName("player")` in `Util.PlayerKey`, or a raw
 `UnitClass("player")` in `Ledger:BuildEntry` and the session preview, would be unanswerable. Both are
 plain `function Compat.X` members, never cached at load. No direct read is left: the Browser
 close control's class-colored hover was one until BL-A1 made its hover the skin's `close.hot`. A
@@ -68,8 +90,12 @@ movement at all.
 build cannot tell*. `disarmGuildBankIfGone` treats `nil` as "do not disarm", because disarming on an
 unknown is how a live guild session ends itself halfway through.
 
-## Cross-patch, never cross-flavor
+## Cross-patch here, the client in `CompatClient`
 
-The shims cover **patch-to-patch** differences. This is a Retail-only addon — a single
-`## Interface:` line — and there is no `WOW_PROJECT_ID` branching anywhere. A capability is probed by
-presence (`if C_Bank and C_Bank.FetchDepositedMoney then …`), never by asking which game this is.
+The shims in this file cover **patch-to-patch** differences. The addon ships on Retail and WoW
+Forever (`## Interface: 120105, 16001`), and the client is asked through `NS.Compat.ClientKey()` and
+`ForClient` alone, which `core/CompatClient.lua` routes; no other file reads `WOW_PROJECT_ID`
+(`tests/test_compat_client.lua` scans for it). Inside a feature both clients have, a single API gap is
+probed by presence (`if C_Bank and C_Bank.FetchDepositedMoney then …`); whether a whole feature exists
+is a declaration, never a presence probe (clients-§3, §4). The WoW Forever client behaviors behind the
+per-client tables are [forever-quirks.md](forever-quirks.md).

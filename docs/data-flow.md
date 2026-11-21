@@ -19,8 +19,9 @@ a change it takes a fresh snapshot and diffs the two, **per store**:
 3. A change on only one side (loot landing in the bags, a stack destroyed) is deliberately **not** a
    movement, so ordinary play never pollutes the ledger.
 4. Gold is diffed the same way, and under the **same corroboration rule**, at the two stores that
-   hold gold — the guild bank and the warband bank. A character-bank money change came from
-   somewhere else entirely.
+   hold gold — the guild bank and the warband bank (Retail only: WoW Forever has no warband bank,
+   so there the guild bank is the one gold store, `L.MONEY_STORES`). A character-bank money change
+   came from somewhere else entirely.
 
 The corroboration in rule 4 is the whole of it: a gold row requires the player's purse **and the
 store's own coin balance** to move by the same amount in opposite directions. The purse alone proves
@@ -47,7 +48,8 @@ diff and the settle check are untouched; and one id resolves to one link per sna
 exact for gear (it does not stack) and irrelevant for stackables (they carry no bonuses).
 
 This is what lets the ledger CSV's `wowhead` column point at the variant that actually moved rather
-than at the base item.
+than at the base item, on the client's own Wowhead base (`https://www.wowhead.com/item=` on Retail,
+`https://www.wowhead.com/forever/item=` on WoW Forever, `Util.WOWHEAD_ITEM_URL_BY_CLIENT`).
 
 Capture is completely inert outside an open storage frame. That single gate is what keeps a vendor
 sale or a quest turn-in out of the ledger.
@@ -67,6 +69,13 @@ tab was already measured.
 
 An earlier model picked one store from the open *event* and diffed only that. It could never see a
 warband movement, because no event announces one.
+
+On WoW Forever the bank frame reaches the character bank alone (`L.CONTEXT_STORES[BANK_FRAME]` is
+`{ BANK }`): the warband bank is Retail's (`C.FEATURE.warbandBank`), and nothing scans the account
+tabs 15..23 the enum still names. Its character bank is `CharacterBankTab_1..9` (6..14), tab 1 the
+base bank and tabs 2..9 bags socketed into the bank, and its bags group adds the keyring (-1), so a
+key moved into the bank is a deposit. Both are matched by member name, per client
+([forever-quirks.md](forever-quirks.md)).
 
 | Event | Handler |
 |---|---|

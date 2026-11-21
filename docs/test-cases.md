@@ -171,6 +171,17 @@ Total.
 - wowhead: the CSV export's wowhead column carries the client's base
 - wowhead: no gold row gets a URL on either client
 
+### test_clients_shape.lua (8)
+
+- clients: the TOC carries the Retail and the WoW Forever number, and no load-gating line
+- clients: the Forever number arms the kit's missing-globals scan for both clients
+- clients: the README's badge and first sentence name both clients
+- clients: CLAUDE.md, testing.md and DEPENDENCIES.md name both kit profiles in the gate
+- clients: docs/forever-quirks.md carries the vendored Forever catalog and the addon's own section
+- clients: ARCHITECTURE.md's doc map and at-a-glance row read Retail · Forever
+- clients: every declared feature is present where declared and absent where not
+- clients: ARCHITECTURE.md's per-client table has a row for every declared feature
+
 ### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
@@ -2106,6 +2117,7 @@ Total.
 | test_testmode_client.lua | 8 |
 | test_names_client.lua | 9 |
 | test_wowhead_client.lua | 6 |
+| test_clients_shape.lua | 8 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
@@ -2184,4 +2196,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1824** |
+| **Total** | **1832** |

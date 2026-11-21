@@ -12,10 +12,12 @@ install*; [`docs/testing.md`](docs/testing.md) answers *how to verify* — neith
 
 ## 1. Runtime (in-game) — what a player needs
 
-**World of Warcraft (Retail). Nothing else.**
+**World of Warcraft: Retail or WoW Forever. Nothing else.**
 
-- The TOC targets `## Interface: 120105` (`BankLedger.toc`) — Midnight 12.1.5. Retail only; there
-  is no Classic build.
+- One unsuffixed `BankLedger.toc` carries both numbers, `## Interface: 120105, 16001` (Retail
+  Midnight 12.1.5, WoW Forever 1.60.1), and no load-gating line (toc-file-§3, the roster's
+  `Retail · Forever`). What one client lacks is gated per feature, in `docs/ARCHITECTURE.md`'s
+  per-client feature table (clients-§4). There is no Classic build.
 - There is **no** `## Dependencies` line. The `## OptionalDeps` line (`BankLedger.toc`) names
   Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1 and LibDBIcon-1.0, and
   every one of them is **vendored** under `libs/` and committed (the TOC's library block in `BankLedger.toc`, and the
@@ -220,11 +222,12 @@ Nothing to install.
 
 ## 4. Am I set up correctly?
 
-Run these from the repo root. The first two are the green gate and must both be clean; the third is
+Run these from the repo root. The first three are the green gate and must all be clean; the fourth is
 the release-time report.
 
 ```sh
 lua tests/run.lua                                    # every suite green; non-zero exit on failure
+KA0S_KIT_CLIENT=forever lua tests/run.lua            # the same suite as WoW Forever, must be green too
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .    # 0 errors, 0 warnings
 bash tests/_kit/run-automated-tests.sh --suite complexity --no-bundle   # sighted complexity (automated-tests-§3)
 ```

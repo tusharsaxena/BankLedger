@@ -66,8 +66,8 @@ enums freely, never rename a member.
 members, and the removal deliberately sits outside the rule above.
 
 The rule protects rows that already exist: renaming a member orphans stored data that still carries
-the old string. Neither of these could ever have produced one. The addon is Retail-only at Interface
-120105, where Midnight has already removed both — void storage exposes no container or events at
+the old string. Neither of these could ever have produced one. The addon was Retail-only at Interface
+120105 when they went, and Midnight had already removed both — void storage exposes no container or events at
 all, and `REAGENT_BANK`'s container group resolved empty, so `StoresFor` dropped it from every scan
 before a movement could be attributed to it. There is no installed base either: both were removed
 before v1.0.0, the first published release, so no shipped build ever wrote a row against them. Zero
@@ -228,7 +228,9 @@ violation.
 
 The later `wowhead` column is **not** part of that break: it is appended after `zone`, so every
 existing column keeps its index and a sheet keyed on position is unaffected. Growth at the end is
-what the stable-column-set promise allows.
+what the stable-column-set promise allows. Its base is per client (`Util.WOWHEAD_ITEM_URL_BY_CLIENT`,
+`wowhead.com/item=` on Retail and `wowhead.com/forever/item=` on WoW Forever); the column itself is
+the same on both.
 
 
 ## The runtime: `LibKa0s-Schema-1.0`

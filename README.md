@@ -1,14 +1,14 @@
 # Bank Ledger
 
-![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5-purple)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5_and_Forever_1.60.1-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1824%2F1824_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1832%2F1832_passing-green)
 
-Retail only for now; WoW Forever support is planned. Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
-bank, the warband bank or the guild bank, and it writes a line: what moved, which way, how much, and
-when. Gold is tracked the same way at the two banks that hold gold.
+Supports Retail and WoW Forever. Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
+bank, the warband bank (Retail only) or the guild bank, and it writes a line: what moved, which way, how much, and
+when. Gold is tracked the same way at the banks that hold gold: the guild bank and, on Retail, the warband bank.
 
 It records movements, not contents. The game already shows you what is sitting in your bank right
 now. What the client forgets the moment the bank window closes is how it got that way, and that is
@@ -46,7 +46,7 @@ when you enter combat.
 
 You don't have to do anything to start recording. A first visit to the bank goes like this.
 
-- Go to a bank. Open your character bank, the warband bank or your guild bank and move something
+- Go to a bank. Open your character bank, the warband bank (Retail only) or your guild bank and move something
   in or out. **Current Banking Session** opens alongside and lists each movement as you make it,
   then closes when the bank does. It's only a view, and everything in it lands in your history
   too. To place it without a bank in the way, `/bl session` opens it filled with sample rows.
@@ -85,8 +85,8 @@ resetting a profile never deletes history.
 
 Want to watch the ledger record a bank visit without touching your real history? `/bl sim start
 bank` plays one through the addon's real recording engine, in a made-up world stocked from the items
-in your own bags. There are four scenarios: `bank` (two deposits and a withdrawal at your character
-bank), `warband` (items and gold put in the warband bank, then taken out by an invented alt),
+in your own bags. There are four scenarios on Retail and three on WoW Forever: `bank` (two deposits and a withdrawal at your character
+bank), `warband` (Retail only: items and gold put in the warband bank, then taken out by an invented alt),
 `guild` (a guild-bank visit, including guild data that arrives while you are away and must not be
 recorded) and `onesided` (a visit where nothing should be recorded, because nothing crossed both
 ways). The ledger window opens on the simulated rows with an amber strip saying nothing here is
@@ -123,9 +123,9 @@ changes. The whole ledger is built from those two.
   other way round is a withdrawal.
 - If something changed on only one side (say you looted an item into your bags while the bank
   happened to be open), nothing is recorded, because nothing crossed between the two.
-- Gold works the same way, but only at the guild bank and the warband bank. Those are the only two
-  with a gold slot, so a change in your money anywhere else came from something that was not a
-  deposit.
+- Gold works the same way, but only at the guild bank and, on Retail, the warband bank. Those are
+  the only banks with a gold slot, so a change in your money anywhere else came from something that
+  was not a deposit.
 
 While every bank window is closed, the addon watches nothing. Ordinary play, looting and vendoring
 and questing, never ends up in the book.
@@ -134,6 +134,7 @@ and questing, never ends up in the book.
 
 | Question | Answer |
 | -------- | ------ |
+| Does it work on WoW Forever? | Yes, from the same download. WoW Forever has no warband bank, so there it records your character bank and your guild bank, and gold at the guild bank. Keys count as carried: a key moved from your keyring into the bank is a deposit. Characters are listed by their whole name, first name and surname. |
 | Does it track what's in my bank right now? | No, and that is what a bag addon is for. This one keeps the record of what crossed in and out. |
 | Is my history shared between characters? | Yes. One account-wide ledger, so an alt's deposits and your withdrawals sit in the same list. |
 | Can one character use different settings? | Yes. Settings, the two filter lists and the saved views belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. `/bl profile <name>` switches from chat. The history stays shared whatever profile you are on. |
@@ -151,7 +152,7 @@ and questing, never ends up in the book.
 | ------- | --- |
 | Nothing is recorded | Check `Enable Bank Ledger` is on in Settings > General > Master controls, and that the bank you are using is ticked under **Banks to record** on Settings > General > Capture. |
 | An item is missing from the list | It may be below your minimum quality, or on the blacklist. Check Settings > General > Filters > Blacklist. |
-| Gold deposits are not showing | Gold is only tracked at the guild bank and the warband bank. The character bank has no gold slot. |
+| Gold deposits are not showing | Gold is only tracked at the guild bank and, on Retail, the warband bank. The character bank has no gold slot. |
 | Settings won't open in combat | That is deliberate. Blizzard protects the settings panel in combat, so the addon refuses rather than risk breaking it. Run `/bl config` again after the fight. |
 | The window vanished off-screen | The **Reset position** button on Settings > General > Master controls recenters both windows and changes nothing else. Every reset control (**Defaults**, **Reset all settings** and `/bl resetall`) recenters them too, but it asks first and then resets the current profile's settings, filter lists and saved views (one per tab) as well. Your recorded history is kept; `/bl purge` is what deletes it. |
 | The session window is in the way at the bank | Drag it by its title bar and resize it from the bottom-right corner; it remembers where you put it. `/bl session` opens it away from a bank so you can place it in peace, and **Show session window** on Settings > General > Interface turns it off for good. |
