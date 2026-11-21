@@ -861,6 +861,21 @@ test("Panel: the store grid renders as an inverted checkbox set, host-drawn", fu
   NS.Schema:Set("settings.excludedStores", saved or {})
 end)
 
+test("Panel: the store grid has a Warband Bank box on Retail and none on WoW Forever (BL-05)", function()
+  -- Absent, not hidden (clients-§4): on WoW Forever the grid is built without the box at all.
+  local labels = {}
+  for _, w in ipairs(renderTab("General", "Capture")) do
+    if w.type == "SimpleGroup" and w.children and w.children[1] and w.children[1].type == "CheckBox" then
+      for _, cb in ipairs(w.children) do labels[#labels + 1] = cb.labelText end
+    end
+  end
+  local text = table.concat(labels, ", ")
+  assertTrue(text:find("Character Bank", 1, true) ~= nil, "no Character Bank box: " .. text)
+  assertTrue(text:find("Guild Bank", 1, true) ~= nil, "no Guild Bank box: " .. text)
+  assertEqual(text:find("Warband Bank", 1, true) ~= nil, NS.Constants.FEATURE.warbandBank,
+    "the Warband Bank box: " .. text)
+end)
+
 test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", function()
   -- RenderTabbedSchema renders the active group with `noHeadings`, because a tab labeled Capture
   -- over a section headed Capture says the same word twice. A SUBSECTION heading is the exception

@@ -36,10 +36,17 @@ local TEST_ZONES = {
   { name = "Boralus",          mapID = 1161 },
 }
 local TEST_ZONE_W = { { 1, 26 }, { 2, 20 }, { 4, 16 }, { 3, 14 }, { 5, 12 }, { 6, 8 } }
--- The character bank takes the bulk; the guild bank is the lightest.
-local TEST_STORE_W = {
+-- The character bank takes the bulk; the guild bank is the lightest. Per client: the Warband Bank is
+-- Retail's alone (C.FEATURE.warbandBank, ruling R1), so on WoW Forever the dataset has no row there,
+-- its coverage seed walks the two stores that exist and every gold movement is the guild bank's.
+local WARBAND = C.FEATURE.warbandBank
+local TEST_STORE_W = WARBAND and {
   { "BANK", 38 }, { "WARBAND_BANK", 30 }, { "GUILD_BANK", 24 },
+} or {
+  { "BANK", 38 }, { "GUILD_BANK", 24 },
 }
+local TEST_COVER_STORES = WARBAND and { "BANK", "WARBAND_BANK", "GUILD_BANK" } or { "BANK", "GUILD_BANK" }
+local TEST_GOLD_ALT = WARBAND and "WARBAND_BANK" or "GUILD_BANK"
 local TEST_TYPE_W = {
   { "Tradegoods", 30 }, { "Consumable", 22 }, { "Armor", 16 }, { "Weapon", 12 },
   { "Recipe", 8 }, { "Gem", 7 }, { "Miscellaneous", 5 },
@@ -180,7 +187,7 @@ end
 --    once, and the timestamps walk the full window. seedN is what guarantees all four invariants
 --    regardless of how the dice fall.
 local function seedCoverage(out, rng, now)
-  local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
+  local stores = TEST_COVER_STORES
   local seedN = math.max(#stores, #TEST_CLASSES, 6, TEST_SPAN_DAYS)
   for i = 1, seedN do
     makeTestEntry(out, rng, now,
@@ -205,12 +212,12 @@ local function bulkMovements(out, rng, now)
   end
 end
 
--- 3) Gold movements, at the two stores that hold coin.
+-- 3) Gold movements, at the stores that hold coin (the guild bank alone on WoW Forever).
 -- Draw order: class -> zone -> ts day -> ts seconds -> direction -> amount. The store comes from
 -- the loop index, not the dice.
 local function goldMovements(out, rng, now)
   for i = 1, 30 do
-    local store = (i % 2 == 0) and "WARBAND_BANK" or "GUILD_BANK"
+    local store = (i % 2 == 0) and TEST_GOLD_ALT or "GUILD_BANK"
     local cls = testPick(rng, TEST_CLASS_W)
     local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
     out[#out + 1] = {

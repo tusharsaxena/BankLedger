@@ -72,8 +72,12 @@ end)
 
 test("LedgerTable:CellText renders the store as a human label", function()
   assertEqual(LT:CellText("store", e()), "Character Bank")
-  assertEqual(LT:CellText("store", e({ store = "WARBAND_BANK" })), "Warband Bank")
+  assertEqual(LT:CellText("store", e({ store = "GUILD_BANK" })), "Guild Bank")
 end)
+
+test("LedgerTable:CellText labels a Warband Bank row (Retail)", function()
+  assertEqual(LT:CellText("store", e({ store = "WARBAND_BANK" })), "Warband Bank")
+end, T.WARBAND_ONLY)
 
 test("LedgerTable:CellText falls back to 'Item <id>' for an uncached item", function()
   assertEqual(LT:CellText("item", e({ itemName = NIL, itemID = 12345 })), "Item 12345")
@@ -474,12 +478,22 @@ test("LedgerTable:BuildTestData is deterministic across runs", function()
   assertEqual(a[#a].quantity, b[#b].quantity)
 end)
 
-test("LedgerTable:BuildTestData covers every store", function()
+-- The client's stores a movement can target: the display order without BAGS (the Warband Bank is
+-- Retail's alone, C.FEATURE.warbandBank).
+local function clientStores()
+  local out = {}
+  for _, s in ipairs(NS.Constants.StoreOrder) do if s ~= "BAGS" then out[#out + 1] = s end end
+  return out
+end
+
+test("LedgerTable:BuildTestData covers every store the client has", function()
   local seen = {}
   for _, x in ipairs(LT:BuildTestData()) do seen[x.store] = true end
-  for _, store in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
+  for _, store in ipairs(clientStores()) do
     assertTrue(seen[store], store .. " is missing from the test data")
   end
+  assertEqual(seen.WARBAND_BANK == true, NS.Constants.FEATURE.warbandBank,
+    "Warband Bank rows on Retail, none on WoW Forever")
 end)
 
 test("LedgerTable:BuildTestData covers both directions and both kinds", function()
@@ -538,7 +552,7 @@ test("BuildTestData covers every store and both directions", function()
     stores[entry.store] = true
     dirs[entry.direction] = true
   end
-  for _, s in ipairs({ "BANK", "WARBAND_BANK", "GUILD_BANK" }) do
+  for _, s in ipairs(clientStores()) do
     assertTrue(stores[s], "store " .. s .. " must appear")
   end
   assertTrue(dirs.DEPOSIT and dirs.WITHDRAW, "both directions must appear")

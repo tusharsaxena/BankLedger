@@ -70,7 +70,8 @@ test("SimWorld: slot counts are 20 backpack, 98 for the first bank and warband t
   local _, _, _, P = built()
   assertEqual(P.GetContainerNumSlots(live, BACKPACK), 20)
   assertEqual(P.GetContainerNumSlots(live, BANK_TAB_1), 98)
-  assertEqual(P.GetContainerNumSlots(live, WARBAND_TAB_1), 98)
+  -- The warband tab is Retail's alone (BL-05): WoW Forever's world holds no warband container.
+  assertEqual(P.GetContainerNumSlots(live, WARBAND_TAB_1), T.NS.Constants.FEATURE.warbandBank and 98 or 0)
   for _, id in ipairs({ 1, 4, 5, 7, 11, 13, 16, -2, -3, 99 }) do
     assertEqual(P.GetContainerNumSlots(live, id), 0, "container " .. id)
     assertEqual(P.GetContainerSlot(live, id, 1), nil, "container " .. id .. " slot 1")
@@ -300,7 +301,7 @@ test("SimWorld: Move edits the world only, with the touched ids; a short move ch
   SW.Switch("alt")
   assertTriple(P.GetContainerSlot(live, BACKPACK, 1), A, 40, "the alt's backpack")
   assertTriple(P.GetContainerSlot(live, WARBAND_TAB_1, 1), A, 15, "the warband is account-wide")
-end)
+end, T.WARBAND_ONLY)
 
 test("SimWorld: an empty-built world still draws its pool, and no file names NS.db", function()
   local _, _, w, P = built(realBags, { empty = true })

@@ -207,7 +207,7 @@ test("Sim e2e: warband records main's 2 deposits and the alt's 2 withdrawals thr
   assertTrue(hasLine(r.lines, "[Diff] held change settled after"), table.concat(r.lines, " | "))
   assertEqual(r.recorded[2], 1, "the lagged deposit's step recorded")
   assertClean(r, before, count, "warband")
-end)
+end, T.WARBAND_ONLY)
 
 test("Sim e2e: guild records 3 GUILD_BANK rows stamped with the guild", function()
   local before, count = S.copy(NS.db.global.ledger), NS.Database:Count()

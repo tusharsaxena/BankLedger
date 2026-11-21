@@ -25,6 +25,9 @@ local _, NS = ...
 local Host = NS.SimHost
 local L = NS.L
 local Store = NS.Constants.Store
+-- The Warband Bank is Retail's alone (C.FEATURE.warbandBank, ruling R1): on WoW Forever the warband
+-- scenario is not registered and the onesided scenario has no warband step.
+local WARBAND = NS.Constants.FEATURE.warbandBank
 
 local GOLD = 10000   -- copper per gold
 
@@ -81,28 +84,36 @@ end
 -- onesided: a session closed mid-change. Expect 0 rows. A loot into the bags is one-sided and is
 -- re-anchored after the settle window (settle 6.5); a repair moves the purse alone, which is no money
 -- row (F-001); a warband deposit whose store half never lands is still held when the bank closes,
--- and CloseContext's final pass drops it ([Store] "closed, held change dropped").
+-- and CloseContext's final pass drops it ([Store] "closed, held change dropped"). The warband step is
+-- Retail's alone; on WoW Forever the scenario is the loot and the repair.
 local function onesidedTimeline()
-  return {
+  local steps = {
     { kind = "OpenBank", label = L["Open the bank"] },
     { kind = "Loot", item = 4, n = 2, settle = 6.5, label = L["Loot 2 of item E into the bags"] },
     { kind = "Spend", copper = 25 * GOLD, label = L["Repair for 25 gold"] },
-    { kind = "Deposit", store = Store.WARBAND_BANK, item = 1, n = 5, lag = "never",
-      label = L["Deposit 5 of item A to the warband bank (its half never lands)"] },
-    { kind = "CloseBank", holdOK = true, label = L["Close the bank"] },
   }
+  if WARBAND then
+    steps[#steps + 1] = { kind = "Deposit", store = Store.WARBAND_BANK, item = 1, n = 5, lag = "never",
+      label = L["Deposit 5 of item A to the warband bank (its half never lands)"] }
+  end
+  steps[#steps + 1] = { kind = "CloseBank", holdOK = true, label = L["Close the bank"] }
+  return steps
 end
 
 local DEFS = {
   { "bank", { label = L["Personal bank"], timeline = bankTimeline } },
-  { "warband", { label = L["Warband transfer"], timeline = warbandTimeline } },
+  { "warband", { label = L["Warband transfer"], timeline = warbandTimeline },
+    clients = NS.Constants.FEATURE_CLIENTS.warbandBank },
   { "guild", { label = L["Guild bank"], timeline = guildTimeline } },
   { "onesided", { label = L["One-sided change"], timeline = onesidedTimeline } },
 }
 
+-- A row with `clients` is registered only on those clients (clients-§4): absent, not hidden.
 local scenarios = Host.SCENARIOS
 for _, row in ipairs(DEFS) do
   local name, def = row[1], row[2]
-  if not scenarios.defs[name] then scenarios.names[#scenarios.names + 1] = name end
-  scenarios.defs[name] = def
+  if NS.Compat.ForClient(row.clients) then
+    if not scenarios.defs[name] then scenarios.names[#scenarios.names + 1] = name end
+    scenarios.defs[name] = def
+  end
 end

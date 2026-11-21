@@ -1064,13 +1064,16 @@ do
   test("Browser: a simulation shows the sim strip with its scenario line, and never the badge",
   function()
     local inH, inI
-    SS.withSession("warband", function()
+    -- Any scenario: the warband one on Retail, the personal bank on WoW Forever (no warband there).
+    local scenario, label = "warband", NS.L["Warband transfer"]
+    if not NS.Constants.FEATURE.warbandBank then scenario, label = "bank", NS.L["Personal bank"] end
+    SS.withSession(scenario, function()
       local f = NS.Browser:GetWindow()
       assertTrue(f.simStrip:IsShown(), "no marker while a simulation runs")
       assertEqual(f.simStrip.kind, "sim", "the simulation's strip is not the simulation flavor")
       assertEqual(f.simStrip.text:GetText(), NS.SimHost.MarkerText())
       assertEqual(f.simStrip.text:GetText(),
-        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(NS.L["Warband transfer"]))
+        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(label))
       assertFalse(f.testStrip:IsShown(), "the test strip shows for a simulation")
       assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
       inH, inI = paneY(NS, "History"), paneY(NS, "Insights")

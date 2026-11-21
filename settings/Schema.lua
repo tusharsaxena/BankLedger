@@ -51,7 +51,7 @@ S.Schema = {
 
   { path = "settings.trackMoney", default = true, type = "bool", widget = "CheckBox",
     group = "Capture", label = "Record gold",
-    tooltip = "Record gold deposited to or withdrawn from the guild and warband banks. "
+    tooltip = "Record gold deposited to or withdrawn from " .. C.COIN_BANKS_TEXT .. ". "
       .. "The character bank has no gold slot, so it is never counted.",
     onChange = function()
       if NS.bus then NS.bus:SendMessage(NS.MSG.SETTINGS_CHANGED, "trackMoney") end

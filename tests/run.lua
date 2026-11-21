@@ -21,7 +21,7 @@ local NS = {}
 -- because the kit's inventory keys on that pair and reads a bare name as a claim on tests/. One list
 -- carries both shapes, so the list the harness walks is the list that runs.
 local SUITES = {
-  "test_util", "test_compat", "test_compat_client", "test_constants", "test_filters",
+  "test_util", "test_compat", "test_compat_client", "test_constants", "test_warband_client", "test_filters",
   "test_ledger", "test_backfill", "test_ledger_guildbank", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_browser_views", "test_autocomplete", "test_launcher", "test_launcher_skin_entry", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
@@ -155,6 +155,11 @@ do
     Skin:SetChoice("BankLedger", source, skin)
     if not ok then error(err, 0) end
   end
+  -- The skip reason a case about the Warband Bank passes as `test`'s third argument. The store is
+  -- Retail's alone (C.FEATURE.warbandBank, ruling R1): nil on Retail, so the case runs; a declared
+  -- skip on WoW Forever, where tests/test_warband_client.lua checks that the store is absent.
+  T.WARBAND_ONLY = (not NS.Constants.FEATURE.warbandBank)
+    and "Retail-only: the Warband Bank is absent on WoW Forever (C.FEATURE.warbandBank, R1)" or nil
 end
 
 NS:InitDB()

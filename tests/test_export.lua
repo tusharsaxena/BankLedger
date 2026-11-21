@@ -411,7 +411,8 @@ local CHAR_STATS = {
     busiestDay = { day = "2026-01-02", count = 3 },
   },
   byStore = { BANK = 3, GUILD_BANK = 2 },
-  netByStore = { WARBAND_BANK = -1, BANK = 2 },
+  -- Stores both clients have (the Warband Bank is Retail's alone, BL-05).
+  netByStore = { GUILD_BANK = -1, BANK = 2 },
   moneyByStore = { GUILD_BANK = 12345 },
   byDirection = { DEPOSIT = 3, WITHDRAW = 2 },
   byKind = { ITEM = 4, MONEY = 1 },
@@ -450,7 +451,7 @@ test("Export:InsightsCSV characterization: the full document, byte for byte", fu
     "Summary,Date range," .. NS.Util.FormatDate(NOW - 86400) .. " to " .. NS.Util.FormatDate(NOW) .. ",",
     "Summary,Busiest day,2026-01-02 (3),",
     "By Store,Character Bank,3,", "By Store,Guild Bank,2,",
-    "Net by Store,Character Bank,2,", "Net by Store,Warband Bank,-1,",
+    "Net by Store,Character Bank,2,", "Net by Store,Guild Bank,-1,",
     "Money By Store,Guild Bank,,1g 23s 45c",
     "By Direction,Deposit,3,", "By Direction,Withdraw,2,",
     "By Kind,Item,4,", "By Kind,Gold,1,",

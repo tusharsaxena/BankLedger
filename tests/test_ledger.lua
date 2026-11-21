@@ -21,6 +21,13 @@ local function moveFor(moves, itemID)
   return nil
 end
 
+-- The Warband Bank is Retail's alone (C.FEATURE.warbandBank): a case about it passes WARBAND_ONLY.
+local WARBAND = NS.Constants.FEATURE.warbandBank
+local WARBAND_ONLY = T.WARBAND_ONLY
+-- A coin-holding store other than the guild bank's frame-gated reader: the warband bank on Retail.
+-- WoW Forever has the guild bank alone (Ledger.Diff is pure, so its balance needs no frame there).
+local COIN_STORE = WARBAND and "WARBAND_BANK" or "GUILD_BANK"
+
 local function moneyMove(moves)
   for _, m in ipairs(moves) do
     if m.kind == "MONEY" then return m end
@@ -133,7 +140,7 @@ end)
 
 test("Ledger.Diff: money leaving the store and arriving at the player is a WITHDRAW", function()
   local moves = NS.Ledger.Diff(
-    snap({}, {}, 300000, 1200000), snap({}, {}, 500000, 1000000), "WARBAND_BANK")
+    snap({}, {}, 300000, 1200000), snap({}, {}, 500000, 1000000), COIN_STORE)
   local m = moneyMove(moves)
   assertTrue(m ~= nil)
   assertEqual(m.direction, "WITHDRAW")
@@ -236,7 +243,8 @@ test("Ledger:Snapshot captures bags, every reachable store and the money balance
   assertEqual(s.bags[2589], 7)
   assertEqual(s.money, 4242)
   assertTrue(s.stores.BANK ~= nil, "the character bank was scanned")
-  assertTrue(s.stores.WARBAND_BANK ~= nil, "the warband tab was scanned in the same pass")
+  assertEqual(s.stores.WARBAND_BANK ~= nil, WARBAND,
+    "the warband tab is scanned in the same pass on Retail, and never on WoW Forever")
   assertEqual(s.stores.GUILD_BANK, nil, "a store this frame cannot reach is not scanned")
   mocks.__containers[0] = nil
 end)
@@ -245,7 +253,7 @@ test("Ledger:Snapshot carries each money-holding store's own balance", function(
   local s = NS.Ledger:Snapshot("BANK_FRAME")
   assertEqual(s.storeMoney.WARBAND_BANK, 16348260386, "read via C_Bank, not from the purse")
   assertEqual(s.storeMoney.BANK, nil, "the character bank holds no coin of its own")
-end)
+end, WARBAND_ONLY)
 
 test("Ledger:Snapshot omits a store balance this build cannot read", function()
   local saved = mocks.C_Bank
@@ -265,7 +273,7 @@ test("Ledger:StoresFor: the bank frame reaches the character bank and the warban
   for _, s in ipairs(NS.Ledger:StoresFor("BANK_FRAME")) do stores[s] = true end
   assertTrue(stores.BANK, "character bank")
   assertTrue(stores.WARBAND_BANK, "warband tab \226\128\148 no event ever announces it")
-end)
+end, WARBAND_ONLY)
 
 test("Ledger:StoresFor drops a store this build has no container for", function()
   -- Every declared store resolves on the current client, so drive the guard directly: a store whose
@@ -288,7 +296,7 @@ test("Ledger:StoresFor drops a store this build has no container for", function(
     if s == "WARBAND_BANK" then back = true end
   end
   assertTrue(back, "restored containers make the store reachable again")
-end)
+end, WARBAND_ONLY)
 
 test("Ledger:StoresFor: the guild bank frame reaches only itself", function()
   assertEqual(#NS.Ledger:StoresFor("GUILD_BANK"), 1)
@@ -341,7 +349,7 @@ test("Ledger:Reconcile records a warband move with no warband open event at all"
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 test("Ledger:Reconcile writes ONE row, not one per store the frame reaches", function()
   -- Three stores are diffed every pass; only the one whose side actually changed may produce a row.
@@ -602,7 +610,8 @@ test("Ledger:Diagnose reports the open store and the resolved id groups", functi
   local text = table.concat(lines, "\n")
   assertTrue(text:find("openContext=", 1, true) ~= nil)
   assertTrue(text:find("group BANK = [", 1, true) ~= nil, "shows what BANK resolved to")
-  assertTrue(text:find("group WARBAND_BANK = [", 1, true) ~= nil)
+  assertEqual(text:find("group WARBAND_BANK = [", 1, true) ~= nil, WARBAND,
+    "the warband group is listed on Retail and absent on WoW Forever")
 end)
 
 test("Ledger:Diagnose lists the BagIndex members the client exposes", function()
@@ -747,7 +756,8 @@ local function diagnoseWith(over, fn)
 end
 
 -- The enum block and the groups by client (BL-02): the mock's 12.0.7 Retail enum, or WoW Forever's
--- 27 members with nine character-bank tabs at 6..14 and nine account tabs at 15..23.
+-- 27 members with nine character-bank tabs at 6..14 and nine account tabs at 15..23. WoW Forever's
+-- groups have no WARBAND_BANK line: the store is absent there (BL-05, C.FEATURE.warbandBank).
 local DIAG_ENUM = {
   retail = {
     "Enum.BagIndex has 20 members",
@@ -779,7 +789,6 @@ local DIAG_ENUM = {
     "  BagIndex.AccountBankTab_7 = 21", "  BagIndex.AccountBankTab_8 = 22",
     "  BagIndex.AccountBankTab_9 = 23",
     "group BAGS = [0, 1, 2, 3, 4, 5]", "group BANK = [6, 7, 8, 9, 10, 11, 12, 13, 14]",
-    "group WARBAND_BANK = [15, 16, 17, 18, 19, 20, 21, 22, 23]",
   },
 }
 

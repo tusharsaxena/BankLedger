@@ -18,8 +18,11 @@ local L = NS.L
 local Host = NS.SimHost
 local SCEN = Host.SCENARIOS
 local WAIT = L["Waiting for the ledger to settle."]
+-- The Warband Bank is Retail's alone (C.FEATURE.warbandBank, BL-05): WoW Forever registers no
+-- warband scenario and its onesided scenario has no warband step.
+local WARBAND = C.FEATURE.warbandBank
 
--- The four scenarios, in picker order, with each step's kind and label.
+-- The four scenarios (three on WoW Forever), in picker order, with each step's kind and label.
 local WANT = {
   bank = {
     { "OpenBank", "Open the bank" },
@@ -55,6 +58,7 @@ local WANT = {
     { "CloseBank", "Close the bank" },
   },
 }
+if not WARBAND then table.remove(WANT.onesided, 4) end
 
 -- A world, a session log and a guild that raise on any read, so a timeline that reached for one
 -- fails the case instead of quietly reading it.
@@ -64,10 +68,14 @@ end
 
 -- ── the timelines ────────────────────────────────────────────────────────────────────────────
 
-test("Sim scenarios: bank, warband, guild and onesided, in that order, each with a label", function()
-  assertEqual(table.concat(SCEN.names, ","), "bank,warband,guild,onesided")
+test("Sim scenarios: bank, warband (Retail), guild and onesided, in that order, each with a label", function()
+  assertEqual(table.concat(SCEN.names, ","), WARBAND and "bank,warband,guild,onesided" or "bank,guild,onesided")
   assertEqual(SCEN.defs.bank.label, L["Personal bank"])
-  assertEqual(SCEN.defs.warband.label, L["Warband transfer"])
+  if WARBAND then
+    assertEqual(SCEN.defs.warband.label, L["Warband transfer"])
+  else
+    assertEqual(SCEN.defs.warband, nil, "a warband scenario is registered on WoW Forever")
+  end
   assertEqual(SCEN.defs.guild.label, L["Guild bank"])
   assertEqual(SCEN.defs.onesided.label, L["One-sided change"])
 end)
@@ -105,27 +113,35 @@ test("Sim scenarios: each scenario's step count, kinds and labels", function()
   end
 end)
 
-test("Sim scenarios: the driver arguments the expected rows rest on", function()
-  local function steps(name) return SCEN.defs[name].timeline(SCEN.defs[name], {}) end
-  local w = steps("warband")
+local function stepsOf(name) return SCEN.defs[name].timeline(SCEN.defs[name], {}) end
+
+test("Sim scenarios: the warband driver arguments the expected rows rest on (Retail)", function()
+  local w = stepsOf("warband")
   assertEqual(w[2].store, C.Store.WARBAND_BANK)
   assertEqual(w[2].lag, 1.5)
   assertEqual(w[2].settle, 3)
   assertEqual(w[3].copper, 1000 * 10000)
   assertEqual(w[5].to, "alt")
   assertEqual(w[8].copper, 500 * 10000)
-  local g = steps("guild")
+  assertEqual(stepsOf("onesided")[4].lag, "never")
+end, T.WARBAND_ONLY)
+
+test("Sim scenarios: the driver arguments the expected rows rest on", function()
+  local g = stepsOf("guild")
   assertEqual(g[3].store, C.Store.GUILD_BANK)
   assertEqual(g[5].copper, 200 * 10000)
-  local o = steps("onesided")
+  local o = stepsOf("onesided")
   assertEqual(o[2].settle, 6.5)
   assertEqual(o[3].copper, 25 * 10000)
-  assertEqual(o[4].lag, "never")
-  assertTrue(o[5].holdOK == true, "the onesided close does not carry holdOK")
+  local close = #o
+  assertTrue(o[close].holdOK == true, "the onesided close does not carry holdOK")
+  for _, step in ipairs(o) do
+    assertTrue(step.store ~= C.Store.WARBAND_BANK or WARBAND, "a warband step on WoW Forever")
+  end
   -- holdOK is the onesided close's alone.
   for _, name in ipairs(SCEN.names) do
-    for i, step in ipairs(steps(name)) do
-      if not (name == "onesided" and i == 5) then
+    for i, step in ipairs(stepsOf(name)) do
+      if not (name == "onesided" and i == close) then
         assertTrue(step.holdOK == nil, name .. " step " .. i .. " carries holdOK")
       end
     end
@@ -180,7 +196,7 @@ test("Sim gate: holdOK on the next step opens it over a live hold, never over a 
     assertFalse(Host.Gate(), "holdOK opened the gate over a lagged half")
     Host.pendingLag = 0
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("Sim gate: a typed step answers 'settling' while it is closed, and plays once it opens", function()
   S.withSession("bank", function(sim)

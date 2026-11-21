@@ -16,8 +16,10 @@ local C = NS.Constants
 
 -- Stores that actually hold gold. A character-bank money delta came from something else entirely
 -- (a vendor sale, a quest turn-in that happened to land while the window was open), so logging it
--- as a deposit would be a lie. Guild and Warband banks are the only stores with a money slot.
-L.MONEY_STORES = { GUILD_BANK = true, WARBAND_BANK = true }
+-- as a deposit would be a lie. Guild and Warband banks are the only stores with a money slot, and the
+-- Warband Bank is Retail's alone (C.FEATURE.warbandBank; absent on WoW Forever, ruling R1).
+local WARBAND = C.FEATURE.warbandBank
+L.MONEY_STORES = { GUILD_BANK = true, WARBAND_BANK = WARBAND or nil }
 
 -- Which stores a given open FRAME can reach.
 --
@@ -26,9 +28,10 @@ L.MONEY_STORES = { GUILD_BANK = true, WARBAND_BANK = true }
 -- is therefore no event that says "the warband bank is now open", so an addon cannot track which
 -- tab you are looking at. It doesn't need to: on every pass it diffs the bags against EVERY store
 -- the open frame can reach, and the "both sides must change" rule sorts out which one you actually
--- used. A store you didn't touch shows no change on its side and produces no row.
+-- used. A store you didn't touch shows no change on its side and produces no row. On WoW Forever the
+-- bank frame reaches the character bank alone: the Warband Bank is absent there (C.FEATURE).
 L.CONTEXT_STORES = {
-  [C.Context.BANK_FRAME] = { C.Store.BANK, C.Store.WARBAND_BANK },
+  [C.Context.BANK_FRAME] = WARBAND and { C.Store.BANK, C.Store.WARBAND_BANK } or { C.Store.BANK },
   [C.Context.GUILD_BANK] = { C.Store.GUILD_BANK },
 }
 

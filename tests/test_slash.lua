@@ -880,7 +880,9 @@ test("Slash: /bl sim alone prints the status and the usage, and opens the step p
   NS.Sim:HidePanel()
   local out = captureChat(function() Sl:OnSlash("sim") end)
   local text = joined(out)
-  assertTrue(text:find("Simulation: idle. Scenarios: bank, warband, guild, onesided.", 1, true) ~= nil,
+  -- The warband scenario is Retail's alone (BL-05): WoW Forever lists the other three.
+  local names = NS.Constants.FEATURE.warbandBank and "bank, warband, guild, onesided" or "bank, guild, onesided"
+  assertTrue(text:find("Simulation: idle. Scenarios: " .. names .. ".", 1, true) ~= nil,
     "no idle status line:\n" .. text)
   assertTrue(text:find("/bl sim start <scenario> [size]: start a simulation.", 1, true) ~= nil,
     "no usage:\n" .. text)

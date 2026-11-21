@@ -9,15 +9,19 @@ local function contains(list, value)
   return false
 end
 
-test("Constants: every Store enum member appears in the display order", function()
+-- A store this client has: every C.Store member but the Warband Bank on a client without it
+-- (C.FEATURE.warbandBank, R1). The member stays in the enum on both clients: it is the stored key.
+local function onClient(key) return key ~= "WARBAND_BANK" or C.FEATURE.warbandBank end
+
+test("Constants: every Store enum member the client has appears in the display order", function()
   for key in pairs(C.Store) do
-    assertTrue(contains(C.StoreOrder, key), key .. " is missing from StoreOrder")
+    assertEqual(contains(C.StoreOrder, key), onClient(key), key .. " in StoreOrder")
   end
 end)
 
-test("Constants: every Store enum member has a display label", function()
+test("Constants: every Store enum member the client has has a display label", function()
   for key in pairs(C.Store) do
-    assertTrue(C.StoreLabel[key] ~= nil, key .. " has no label")
+    assertEqual(C.StoreLabel[key] ~= nil, onClient(key), key .. " label")
   end
 end)
 
@@ -50,10 +54,12 @@ test("Constants: the bag id group covers the backpack, four bags and the reagent
 end)
 
 -- The groups by client (BL-02, the mock's Forever enum): Retail's six character-bank tabs at 6..11
--- and five account tabs at 12..16; WoW Forever's nine and nine at 6..14 and 15..23.
+-- and five account tabs at 12..16; WoW Forever's nine character-bank tabs at 6..14. Forever's nine
+-- account tabs (15..23) are in its enum but in no group: the Warband Bank is Retail's alone (BL-05,
+-- tests/test_warband_client.lua).
 local FOREVER = NS.Compat.ClientKey() == "forever"
 local BANK_TABS = FOREVER and { 6, 7, 8, 9, 10, 11, 12, 13, 14 } or { 6, 7, 8, 9, 10, 11 }
-local ACCOUNT_TABS = FOREVER and { 15, 16, 17, 18, 19, 20, 21, 22, 23 } or { 12, 13, 14, 15, 16 }
+local ACCOUNT_TABS = { 12, 13, 14, 15, 16 }
 
 test("Constants: the bank group is exactly the client's character-bank tabs (6 Retail, 9 Forever)", function()
   assertEqual(#C.BANK_IDS, #BANK_TABS)
@@ -62,12 +68,12 @@ test("Constants: the bank group is exactly the client's character-bank tabs (6 R
   end
 end)
 
-test("Constants: the warband bank spans the client's account tabs (5 Retail, 9 Forever)", function()
+test("Constants: the warband bank spans Retail's five account tabs", function()
   assertEqual(#C.WARBAND_BANK_IDS, #ACCOUNT_TABS)
   for _, id in ipairs(ACCOUNT_TABS) do
     assertTrue(contains(C.WARBAND_BANK_IDS, id), "AccountBankTab id " .. id)
   end
-end)
+end, T.WARBAND_ONLY)
 
 test("Constants: no container id belongs to two stores", function()
   -- The defect this guards: a numeric guess put AccountBankTab_1 (12) inside the character-bank

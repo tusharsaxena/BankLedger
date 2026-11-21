@@ -15,6 +15,8 @@ local test, assertEqual, assertTrue, assertFalse =
 local S = dofile("tests/ledger_support.lua")
 local withContainers = S.withContainers
 local BAG_ID, BANK_ID, WARBAND_ID = S.BAG_ID, S.BANK_ID, S.WARBAND_ID
+-- The warband-lag repros below are Retail's alone: the Warband Bank is absent on WoW Forever.
+local WARBAND_ONLY = T.WARBAND_ONLY
 
 -- ── Event registration resilience ──────────────────────────────────────────────
 -- The second fault behind "nothing is tracked": on modern retail RegisterEvent RAISES on a retired
@@ -223,7 +225,7 @@ test("Ledger: a movement whose halves arrive in separate events is still recorde
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 test("Ledger: a withdrawal whose halves arrive separately is also recorded", function()
   local before = NS.Database:Count()
@@ -242,7 +244,7 @@ test("Ledger: a withdrawal whose halves arrive separately is also recorded", fun
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 test("Ledger: two separate actions stay two separate rows", function()
   -- Debouncing must group by user action, not merge everything: a second deposit after the first
@@ -341,7 +343,7 @@ test("Ledger: a movement whose halves are SECONDS apart is still recorded", func
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 -- Money end-to-end, through the real reconcile path. The Diff tests prove the rule; these two prove
 -- the rule survives the settle machinery, which is where a corroborated movement could still be
@@ -392,7 +394,7 @@ test("Ledger: a real gold deposit still records when the store balance lands a p
   mocks.__money, mocks.__warbandMoney = savedMoney, savedWarband
   NS.Database:Delete(function(e) return e.kind == "MONEY" and e.quantity == 500000 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 test("Ledger: a one-sided change that never completes re-anchors after the timeout", function()
   -- Loot landing in the bags while the bank is open never balances. The baseline must not stay

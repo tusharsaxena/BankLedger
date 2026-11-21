@@ -91,7 +91,7 @@ test("SimDrivers: a WARBAND deposit with no lag fires the bag half, then the sto
       WARBAND_EVENTS)
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a lagged WARBAND deposit lands its store half on the session timer", function()
   driving(function(w, seen, key)
@@ -109,7 +109,7 @@ test("SimDrivers: a lagged WARBAND deposit lands its store half on the session t
       WARBAND_EVENTS)
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a WARBAND deposit with lag \"never\" withholds the store half for good", function()
   driving(function(w, seen, key)
@@ -121,7 +121,7 @@ test("SimDrivers: a WARBAND deposit with lag \"never\" withholds the store half 
     assertEqual(S.sequence(seen), "BAG_UPDATE(0), BAG_UPDATE_DELAYED")
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not", function()
   driving(function(w, seen, key)
@@ -136,7 +136,7 @@ test("SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not", func
     assertEqual(S.sequence(seen),
       WARBAND_EVENTS)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a GUILD deposit and withdrawal move against tab 1 and end on the guild data event", function()
   driving(function(w, seen, key)
