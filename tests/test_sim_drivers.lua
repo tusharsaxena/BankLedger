@@ -152,18 +152,24 @@ test("SimDrivers: a GUILD deposit and withdrawal move against tab 1 and end on t
   end)
 end)
 
+-- The coin store is per client (BL-09): Retail's warband bank, WoW Forever's guild bank (its world
+-- seeds no warband coin, C.FEATURE.warbandBank, R1).
 test("SimDrivers: Money moves coin between the purse and a store; Spend takes it from the purse alone", function()
   driving(function(w, seen, key)
     local SW = NS.SimWorld
-    D.Money{ store = Store.WARBAND_BANK, dir = "deposit", copper = 10000000 }
+    local warband = NS.Constants.FEATURE.warbandBank
+    local store = warband and Store.WARBAND_BANK or Store.GUILD_BANK
+    local start = warband and SW.WARBAND_MONEY or SW.GUILD_MONEY
+    local function balance() return warband and w.warbandMoney or w.guild.money end
+    D.Money{ store = store, dir = "deposit", copper = 10000000 }
     assertEqual(w.purse[key], SW.PURSE - 10000000)
-    assertEqual(w.warbandMoney, SW.WARBAND_MONEY + 10000000)
-    D.Money{ store = Store.WARBAND_BANK, dir = "withdraw", copper = 5000000 }
+    assertEqual(balance(), start + 10000000)
+    D.Money{ store = store, dir = "withdraw", copper = 5000000 }
     assertEqual(w.purse[key], SW.PURSE - 5000000)
-    assertEqual(w.warbandMoney, SW.WARBAND_MONEY + 5000000)
+    assertEqual(balance(), start + 5000000)
     D.Spend{ copper = 250000 }
     assertEqual(w.purse[key], SW.PURSE - 5250000)
-    assertEqual(w.warbandMoney, SW.WARBAND_MONEY + 5000000, "a spend touched a store")
+    assertEqual(balance(), start + 5000000, "a spend touched a store")
     assertEqual(S.sequence(seen), "PLAYER_MONEY, PLAYER_MONEY, PLAYER_MONEY")
   end)
 end)

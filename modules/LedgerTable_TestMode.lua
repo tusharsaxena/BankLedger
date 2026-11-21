@@ -19,22 +19,65 @@ local C = NS.Constants
 -- coverage seed pass first guarantees every store, both directions, every quality and every
 -- character appear and that the range spans >14 days regardless of how the dice fall.
 
-local TEST_CLASSES = {
-  "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "EVOKER",
+-- THE SEEDS ARE PER CLIENT (BL-09; clients-§5): one row per client, picked ONCE at load by the
+-- sample key core/SimSetup.lua seeded from ClientKey() (NS.SAMPLE_CLIENT). Retail's row is the
+-- pre-port data, unchanged, so its dataset is byte-identical (tests/test_testmode_client.lua pins
+-- it). WoW Forever has the nine classic classes, so its row has no Evoker: a Warlock takes the slot
+-- and the weight, keeping eight characters and the same draw shape. Its zones are the classic
+-- capitals with the uiMapIDs the Forever client answers (1453-1458, SkillMaster's
+-- defaults/Trainers_Forever.lua precedent), weighted as Retail's are. `ownChars` is this ledger's
+-- own name for each class the shared sample set has none of (see THE SAMPLE CHARACTERS below).
+local TEST_SEEDS_BY_CLIENT = {
+  retail = {
+    classes = { "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "EVOKER" },
+    -- A few "mains" do most of the banking.
+    classWeights = {
+      { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
+      { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "EVOKER", 5 },
+    },
+    zones = {
+      { name = "Valdrakken",       mapID = 2112 },
+      { name = "Dornogal",         mapID = 2339 },
+      { name = "Orgrimmar",        mapID = 85 },
+      { name = "Stormwind City",   mapID = 84 },
+      { name = "Silvermoon City",  mapID = 110 },
+      { name = "Boralus",          mapID = 1161 },
+    },
+    ownChars = {
+      ROGUE  = "Mockshade-Samplerealm",
+      DRUID  = "Samplegrove-Mockrealm",
+      SHAMAN = "Mocktotem-Samplerealm",
+      EVOKER = "Samplescale-Mockrealm",
+    },
+  },
+  forever = {
+    classes = { "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "WARLOCK" },
+    classWeights = {
+      { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
+      { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "WARLOCK", 5 },
+    },
+    zones = {
+      { name = "Ironforge",        mapID = 1455 },
+      { name = "Orgrimmar",        mapID = 1454 },
+      { name = "Undercity",        mapID = 1458 },
+      { name = "Stormwind City",   mapID = 1453 },
+      { name = "Thunder Bluff",    mapID = 1456 },
+      { name = "Darnassus",        mapID = 1457 },
+    },
+    ownChars = {
+      ROGUE   = "Mockshade Samplestep",
+      DRUID   = "Samplegrove Mockbark",
+      SHAMAN  = "Mocktotem Sampletide",
+      WARLOCK = "Samplehex Mockember",
+    },
+  },
 }
--- A few "mains" do most of the banking.
-local TEST_CLASS_W = {
-  { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
-  { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "EVOKER", 5 },
-}
-local TEST_ZONES = {
-  { name = "Valdrakken",       mapID = 2112 },
-  { name = "Dornogal",         mapID = 2339 },
-  { name = "Orgrimmar",        mapID = 85 },
-  { name = "Stormwind City",   mapID = 84 },
-  { name = "Silvermoon City",  mapID = 110 },
-  { name = "Boralus",          mapID = 1161 },
-}
+local TEST_SEEDS = TEST_SEEDS_BY_CLIENT[NS.SAMPLE_CLIENT == "forever" and "forever" or "retail"]
+LT.TEST_SEEDS_BY_CLIENT, LT.TEST_SEEDS = TEST_SEEDS_BY_CLIENT, TEST_SEEDS   -- read-only, for the tests
+
+local TEST_CLASSES = TEST_SEEDS.classes
+local TEST_CLASS_W = TEST_SEEDS.classWeights
+local TEST_ZONES = TEST_SEEDS.zones
 local TEST_ZONE_W = { { 1, 26 }, { 2, 20 }, { 4, 16 }, { 3, 14 }, { 5, 12 }, { 6, 8 } }
 -- The character bank takes the bulk; the guild bank is the lightest. Per client: the Warband Bank is
 -- Retail's alone (C.FEATURE.warbandBank, ruling R1), so on WoW Forever the dataset has no row there,
@@ -118,22 +161,9 @@ end
 -- name for the four classes it has none of. Every name starts Sample or Mock, every realm is
 -- Samplerealm or Mockrealm, never a real one; names are data and never localized. The own names are
 -- per client like the shared set (BL-02; clients-§5), picked once at load by the key core/SimSetup.lua
--- seeded: "Name-Realm" on Retail, "First Surname" on WoW Forever (forever-quirks-§4). The class list
--- itself is still Retail's on both (its Forever twin is BL-09's).
-local TEST_OWN_CHARS = ({
-  retail = {
-    ROGUE  = "Mockshade-Samplerealm",
-    DRUID  = "Samplegrove-Mockrealm",
-    SHAMAN = "Mocktotem-Samplerealm",
-    EVOKER = "Samplescale-Mockrealm",
-  },
-  forever = {
-    ROGUE  = "Mockshade Samplestep",
-    DRUID  = "Samplegrove Mockbark",
-    SHAMAN = "Mocktotem Sampletide",
-    EVOKER = "Samplescale Mockwing",
-  },
-})[NS.SAMPLE_CLIENT == "forever" and "forever" or "retail"]
+-- seeded: "Name-Realm" on Retail, "First Surname" on WoW Forever (forever-quirks-§4). They live in
+-- the client's seed row above (BL-09), with the class list they name.
+local TEST_OWN_CHARS = TEST_SEEDS.ownChars
 local TEST_GUILD = "Sample Company"
 
 -- "MAGE" -> "Mockflame-Mockrealm". Draws nothing.

@@ -66,17 +66,55 @@ test("SimWorld: a slot answers Compat's { itemID, link, count } triple, and an e
   m.__containers = {}
 end)
 
-test("SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere", function()
-  local _, _, _, P = built()
+-- The bank tabs are per client (BL-09): Retail's first character-bank tab is a 98-slot tab; WoW
+-- Forever's tabs are bags (forever-bank research §1), so its world has the base bank tab and one
+-- socketed bag-sized tab, never 98.
+local BANK_TAB_2 = BAG_INDEX.CharacterBankTab_2
+
+test("SimWorld: slot counts are 20 backpack, the client's bank tabs and warband tab, 0 elsewhere", function()
+  local ns, _, _, P = built()
+  local forever = ns.SAMPLE_CLIENT == "forever"
   assertEqual(P.GetContainerNumSlots(live, BACKPACK), 20)
-  assertEqual(P.GetContainerNumSlots(live, BANK_TAB_1), 98)
+  assertEqual(P.GetContainerNumSlots(live, BANK_TAB_1), forever and 24 or 98)
+  assertEqual(P.GetContainerNumSlots(live, BANK_TAB_2), forever and 16 or 0)
   -- The warband tab is Retail's alone (BL-05): WoW Forever's world holds no warband container.
   assertEqual(P.GetContainerNumSlots(live, WARBAND_TAB_1), T.NS.Constants.FEATURE.warbandBank and 98 or 0)
-  for _, id in ipairs({ 1, 4, 5, 7, 11, 13, 16, -2, -3, 99 }) do
-    assertEqual(P.GetContainerNumSlots(live, id), 0, "container " .. id)
-    assertEqual(P.GetContainerSlot(live, id, 1), nil, "container " .. id .. " slot 1")
+  for _, id in ipairs({ 1, 4, 5, 11, 13, 16, -2, -3, 99 }) do
+    if id ~= BANK_TAB_2 and id ~= WARBAND_TAB_1 then
+      assertEqual(P.GetContainerNumSlots(live, id), 0, "container " .. id)
+      assertEqual(P.GetContainerSlot(live, id, 1), nil, "container " .. id .. " slot 1")
+    end
   end
 end)
+
+test("SimWorld: the bank tab sizes are a per-client table picked once by the sample key", function()
+  local ns = built()
+  local SW = ns.SimWorld
+  local rows = SW.BANK_TAB_SLOTS_BY_CLIENT
+  assertTrue(type(rows) == "table" and type(rows.retail) == "table" and type(rows.forever) == "table",
+    "a row per client")
+  assertTrue(SW.BANK_TAB_SLOTS == rows[ns.SAMPLE_CLIENT], "the sizes in force are not this client's row")
+  assertEqual(table.concat(rows.retail, ","), "98", "Retail's row is the pre-port 98-slot first tab")
+  assertTrue(#rows.forever >= 2, "WoW Forever's bank is more than one tab")
+  for i, n in ipairs(rows.forever) do
+    assertTrue(n > 0 and n <= 36 and n ~= 98, ("WoW Forever's tab %d is not bag-sized: %d"):format(i, n))
+  end
+end)
+
+test("SimWorld: a deposit that fills WoW Forever's base tab lands in the next bag-sized tab", function()
+  local ns, _, w = built(realBags, { empty = true })
+  local SW, Store = ns.SimWorld, ns.Constants.Store
+  local item = w.pool[1]
+  local key = "main"
+  -- Fill every slot of the first tab with filler, then deposit: the stack goes to tab 2.
+  local tab1 = w.bank[key][BANK_TAB_1]
+  for slot = 1, tab1.size do tab1[slot] = { itemID = 1, link = nil, count = 1 } end
+  w.bags[key][BACKPACK][1] = { itemID = item.itemID, link = item.link, count = 5 }
+  local ok, fromID, toID = SW.Move(key, Store.BAGS, Store.BANK, item.itemID, 5)
+  assertTrue(ok, "the deposit was refused: " .. tostring(fromID))
+  assertEqual(fromID, BACKPACK)
+  assertEqual(toID, BANK_TAB_2)
+end, (T.NS.SAMPLE_CLIENT ~= "forever") and "WoW Forever-only: Retail's world has one bank tab" or nil)
 
 test("SimWorld: a guild tab answers nil until it is queried this visit, then its data", function()
   local ns, _, w, P = built()
@@ -128,7 +166,16 @@ test("SimWorld: warband money answers the world's balance, and Money moves it", 
   assertFalse(SW.Money(Store.WARBAND_BANK, 1000000 * 10000), "an overdraft was accepted")
   assertFalse(SW.Money(Store.BANK, 1), "a coinless store took coin")
   assertEqual(P.GetMoney(live), 4475 * 10000, "a refused move changed the purse")
-end)
+end, T.WARBAND_ONLY)
+
+test("SimWorld: WoW Forever's world seeds no warband coin, and Money refuses the warband store", function()
+  local ns, _, w, P = built()
+  local Store, SW = ns.Constants.Store, ns.SimWorld
+  assertEqual(w.warbandMoney, nil, "a warband balance in a world without the store")
+  assertEqual(P.GetStoreMoney(live, Store.WARBAND_BANK), nil)
+  assertFalse(SW.Money(Store.WARBAND_BANK, 1000 * 10000), "the warband store took coin")
+  assertEqual(P.GetMoney(live), 5000 * 10000, "a refused move changed the purse")
+end, (T.NS.Constants.FEATURE.warbandBank) and "WoW Forever-only: Retail seeds the warband's 20,000g" or nil)
 
 test("SimWorld: the purse follows `current` across Switch", function()
   local ns, _, w, P = built()

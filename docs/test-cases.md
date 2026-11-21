@@ -139,6 +139,17 @@ Total.
 - keyring: a key carried from the keyring into the bank is a deposit on WoW Forever only
 - keyring: a key moved between the keyring and the backpack writes nothing
 
+### test_testmode_client.lua (8)
+
+- test mode: the seeds are a per-client table picked once by the sample key
+- test mode: Retail's seed row is the pre-port data, Evoker and the modern capitals included
+- test mode: WoW Forever's seed row has only the classic classes, no Evoker
+- test mode: WoW Forever's zones are the classic capitals, none of Retail's
+- test mode: every class in each row has a character, shared or the ledger's own
+- test mode: the dataset's classes and zones are this client's own
+- test mode: Retail's dataset is the pre-port one, row for row
+- test mode: WoW Forever's dataset is deterministic across runs
+
 ### test_filters.lua (13)
 
 - Filters: an added id reads back as blacklisted
@@ -1554,14 +1565,17 @@ Total.
 - TOC: core/SimSetup.lua loads immediately after the compat family, annotated LOAD-BEARING
 - Sim seam: no file caches a Compat member or the Compat table outside the compat family
 
-### test_sim_world.lua (18)
+### test_sim_world.lua (21)
 
 - SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
-- SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
+- SimWorld: slot counts are 20 backpack, the client's bank tabs and warband tab, 0 elsewhere
+- SimWorld: the bank tab sizes are a per-client table picked once by the sample key
+- SimWorld: a deposit that fills WoW Forever's base tab lands in the next bag-sized tab (skipped: WoW Forever-only: Retail's world has one bank tab)
 - SimWorld: a guild tab answers nil until it is queried this visit, then its data
 - SimWorld: IsGuildBankVisible is strictly true or false, never nil
 - SimWorld: guild money is nil while the guild frame is hidden, set while visible
 - SimWorld: warband money answers the world's balance, and Money moves it
+- SimWorld: WoW Forever's world seeds no warband coin, and Money refuses the warband store (skipped: WoW Forever-only: Retail seeds the warband's 20,000g)
 - SimWorld: the purse follows `current` across Switch
 - SimWorld: main is the real player; after Switch the identity members answer the alt
 - SimWorld: a paladin's alt is the shared sample warrior
@@ -2048,6 +2062,7 @@ Total.
 | test_constants.lua | 24 |
 | test_warband_client.lua | 10 |
 | test_keyring_client.lua | 5 |
+| test_testmode_client.lua | 8 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
@@ -2096,7 +2111,7 @@ Total.
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
-| test_sim_world.lua | 18 |
+| test_sim_world.lua | 19 |
 | test_sample_characters.lua | 8 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
@@ -2124,5 +2139,5 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
-| Skipped | 1 |
-| **Total** | **1783** |
+| Skipped | 3 |
+| **Total** | **1792** |
