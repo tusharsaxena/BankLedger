@@ -775,7 +775,8 @@ generated directories are named once each and never enumerated per run: `docs/au
 | Doc | Status | Trigger |
 |---|---|---|
 | `slash-dispatch.md` | Present | 23 verbs in `NS.COMMANDS` as measured on 2026-11-19 (threshold is 8) |
-| `midnight-quirks.md` | Present | Always (documentation-§3): the vendored `client-quirks` catalog block, then the addon's own client-version workarounds |
+| `midnight-quirks.md` | Present | Clients includes Retail (documentation-§3, client-quirks-§1): the vendored `client-quirks` catalog block, then the addon's own client-version workarounds |
+| `forever-quirks.md` | Not applicable | Clients is `Retail (port pending)`; the Forever catalog is carried only where Clients includes Forever (documentation-§3, forever-quirks-§1) |
 | `compat-layer.md` | Present | `core/Compat.lua` carries 15 addon-specific shims beyond LibKa0s |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
 | `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift, the v4 return of the window and the v5 per-tab saved views, the profile events, the reset and the `/bl profile` verb |
