@@ -613,7 +613,7 @@ end
 --
 -- A bank that is still loading must never be diffed. The client fills bank containers lazily: on
 -- WoW Forever the character bank's tabs 2..9 are real bags socketed into the bank, and BagSync saw
--- tab slot counts read 0 at the moment of the open (forever-bank.md §5). A baseline taken then, or
+-- tab slot counts read 0 at the moment of the open (docs/forever-quirks.md). A baseline taken then, or
 -- a pass read then, turns the tab's arrival or its momentary absence into a one-sided change, and a
 -- one-sided change that happens to meet a bag change of the same item reads as a deposit or a
 -- withdrawal nobody made. Rows are append-only history, so the guard errs toward recording nothing.
@@ -1025,7 +1025,7 @@ local CAPTURE = {
   { "PLAYERBANKSLOTS_CHANGED", reconcileSoon },
   -- The bank's containers themselves changing: a tab loading, a bag socketed into a WoW Forever bank
   -- tab, a tab bought. Neither need come with a BAG_UPDATE for the container (BagSync re-reads on
-  -- both, forever-bank.md §5), and both are what lets a bank that was not ready be read again (R8).
+  -- both, docs/forever-quirks.md), and both are what lets a bank that was not ready be read again (R8).
   { "BAG_CONTAINER_UPDATE", reconcileSoon },
   { "BANK_TABS_CHANGED", reconcileSoon },
   { "PLAYER_MONEY", reconcileSoon },

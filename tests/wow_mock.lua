@@ -99,7 +99,7 @@ local base = dofile("tests/_kit/mock_base.lua")
 --                   stamped constants (DropWatcher's shape), and UnitName / UnitNameUnmodified then
 --                   answer the two-word name, the surname as the second value (M.__surname);
 --   C_Bank          CanViewBank(Account) is false on Forever, where the account bank is locked
---                   (forever-bank.md §2); M.__canViewBank holds the answer per bank type.
+--                   (docs/forever-quirks.md); M.__canViewBank holds the answer per bank type.
 local FOREVER_BUILD = dofile("tests/_kit/mock_client.lua").current() == "forever"
 
 -- ── Override 1: the frame stub ────────────────────────────────────────────────────────────────
