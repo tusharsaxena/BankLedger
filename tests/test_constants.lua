@@ -76,6 +76,73 @@ test("Constants: the warband bank spans Retail's five account tabs", function()
   end
 end, T.WARBAND_ONLY)
 
+-- ── The groups, pinned exactly (K101-BL-02 characterization) ─────────────────────
+-- The id lists per group per kit profile, in order: the answers the addon gave before it read its
+-- groups from LibKa0s-Compat-1.0's ContainerGroups (LibKa0s#101), pinned so the swap moves none.
+local function sameList(got, want, label)
+  assertEqual(table.concat(got or {}, ","), table.concat(want, ","), label)
+end
+
+local EXACT = {
+  retail  = { bags = { 0, 1, 2, 3, 4, 5 }, bank = { 6, 7, 8, 9, 10, 11 }, warband = { 12, 13, 14, 15, 16 } },
+  forever = { bags = { -1, 0, 1, 2, 3, 4, 5 }, bank = { 6, 7, 8, 9, 10, 11, 12, 13, 14 }, warband = {} },
+}
+
+test("Constants: each container group is exactly the client's ids, sorted", function()
+  local want = EXACT[NS.Compat.ClientKey()]
+  sameList(C.BAG_IDS, want.bags, "BAG_IDS")
+  sameList(C.BANK_IDS, want.bank, "BANK_IDS")
+  sameList(C.WARBAND_BANK_IDS, want.warband, "WARBAND_BANK_IDS")
+  sameList(C.STORE_CONTAINERS.BAGS, want.bags, "STORE_CONTAINERS.BAGS")
+  sameList(C.STORE_CONTAINERS.BANK, want.bank, "STORE_CONTAINERS.BANK")
+  if FOREVER then
+    assertEqual(C.STORE_CONTAINERS.WARBAND_BANK, nil, "no warband row on WoW Forever")
+  else
+    sameList(C.STORE_CONTAINERS.WARBAND_BANK, want.warband, "STORE_CONTAINERS.WARBAND_BANK")
+  end
+end)
+
+--- core/Constants.lua loaded afresh (the library in front, the TOC up to it) over mocks whose
+--- Enum.BagIndex is `bagIndex`; nil removes the enum.
+local function constantsOver(bagIndex)
+  local m = T.makeMocks()
+  m.Enum.BagIndex = bagIndex
+  local ns = {}
+  T.Loader.loadAll(T.libka0sFiles, ns, m)
+  for _, path in ipairs(T.Loader.tocFiles("BankLedger.toc")) do
+    T.Loader.load(path, ns, m)
+    if path == "core/Constants.lua" then break end
+  end
+  return ns.Constants
+end
+
+test("Constants: with no Enum.BagIndex the bags fall back to 0..5 and the banks are empty", function()
+  local c = constantsOver(nil)
+  sameList(c.BAG_IDS, { 0, 1, 2, 3, 4, 5 }, "BAG_IDS")
+  sameList(c.BANK_IDS, {}, "BANK_IDS")
+  sameList(c.WARBAND_BANK_IDS, {}, "WARBAND_BANK_IDS")
+end)
+
+test("Constants: an Enum.BagIndex naming no bag falls back to 0..5 and keeps the banks it names", function()
+  local c = constantsOver({
+    Characterbanktab = -2, CharacterBankTab_2 = 7, CharacterBankTab_1 = 6, AccountBankTab_1 = 12,
+  })
+  sameList(c.BAG_IDS, { 0, 1, 2, 3, 4, 5 }, "BAG_IDS")
+  sameList(c.BANK_IDS, { 6, 7 }, "BANK_IDS")
+  sameList(c.WARBAND_BANK_IDS, FOREVER and {} or { 12 }, "WARBAND_BANK_IDS")
+end)
+
+test("Constants: the patterns are anchored and case-sensitive (look-alike names match nothing)", function()
+  local c = constantsOver({
+    Backpack = 0, xBackpack = 30, Bag_1x = 31, bag_2 = 32, Bank = 40, BankBag_1 = 41, MyBank = 42,
+    CharacterBankTab_1 = 6, characterBankTab_2 = 43, AccountBankTab_1 = 12, AccountBankTab_ = 44,
+    Keyring = -1, Keyrings = 45,
+  })
+  sameList(c.BAG_IDS, FOREVER and { -1, 0 } or { 0 }, "BAG_IDS")
+  sameList(c.BANK_IDS, { 6, 40, 41 }, "BANK_IDS")
+  sameList(c.WARBAND_BANK_IDS, FOREVER and {} or { 12 }, "WARBAND_BANK_IDS")
+end)
+
 test("Constants: no container id belongs to two stores", function()
   -- The defect this guards: a numeric guess put AccountBankTab_1 (12) inside the character-bank
   -- range, so two-thirds of the "character bank" scan was actually the warband bank.

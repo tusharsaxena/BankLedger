@@ -1,7 +1,8 @@
 -- tests/test_keyring_client.lua — the keyring (Enum.BagIndex.Keyring, -1) is in the bags group on
--- WoW Forever only (WoW Forever port design, ruling R5; clients-§5). core/Constants.lua picks the
--- bags group's member patterns from a per-client table ONCE at load, by ClientKey(): WoW Forever's
--- row adds `^Keyring$`, Retail's row is the old list unchanged. Forever's keyring is a live
+-- WoW Forever only (WoW Forever port design, ruling R5; clients-§5). The groups are
+-- LibKa0s-Compat-1.0's ContainerGroups (LibKa0s#101, routed as NS.Compat.ContainerGroups), which
+-- core/Constants.lua reads ONCE at load; its per-client pattern table adds `^Keyring$` to WoW
+-- Forever's bags row, and Retail's row is the addon's pre-port list unchanged. Forever's keyring is a live
 -- container (KEYRING_CONTAINER = Enum.BagIndex.Keyring), so a key the player owns counts as
 -- carried. Retail's enum also names Keyring = -1, but before 11.2 -1 was the legacy bank container,
 -- and nothing has shown what it answers today, so Retail never scans it. Every case runs on both kit
@@ -29,19 +30,26 @@ test("keyring: the mock's enum names Keyring = -1 on both clients", function()
   assertEqual(KEYRING, -1)
 end)
 
-test("keyring: the bags patterns are a per-client table picked once by ClientKey()", function()
-  local rows = C.BAG_PATTERNS_BY_CLIENT
-  assertTrue(type(rows) == "table", "C.BAG_PATTERNS_BY_CLIENT")
-  assertTrue(type(rows.retail) == "table" and type(rows.forever) == "table", "a row per client")
+test("keyring: the library's bags patterns are a row per client, the keyring on Forever's only", function()
+  local all = NS.Compat.CONTAINER_PATTERNS_BY_CLIENT
+  assertTrue(type(all) == "table", "NS.Compat.CONTAINER_PATTERNS_BY_CLIENT")
+  assertTrue(type(all.retail) == "table" and type(all.forever) == "table", "a row per client")
+  local rows = { retail = all.retail.bags, forever = all.forever.bags }
   assertTrue(contains(rows.forever, "^Keyring$"), "Forever's row names the keyring")
   assertTrue(not contains(rows.retail, "^Keyring$"), "Retail's row does not")
-  assertEqual(C.BAG_PATTERNS, rows[NS.Compat.ClientKey()])
-  -- Retail's row is the pre-port list, unchanged; Forever's is it plus the keyring.
+  -- Retail's row is the addon's pre-port list, unchanged; Forever's is it plus the keyring.
   local retail = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" }
   assertEqual(#rows.retail, #retail)
   for i, p in ipairs(retail) do assertEqual(rows.retail[i], p) end
   assertEqual(#rows.forever, #retail + 1)
   for _, p in ipairs(retail) do assertTrue(contains(rows.forever, p), "Forever keeps " .. p) end
+  -- The bank row is the addon's pre-swap list; the account bank is Retail's alone (R1).
+  local bank = { "^Bank$", "^BankBag_%d+$", "^CharacterBankTab_%d+$" }
+  for _, client in ipairs({ "retail", "forever" }) do
+    assertEqual(table.concat(all[client].bank, " "), table.concat(bank, " "), client .. " bank row")
+  end
+  assertEqual(table.concat(all.retail.accountBank, " "), "^AccountBankTab_%d+$", "Retail's account row")
+  assertEqual(#all.forever.accountBank, 0, "Forever declares no account bank")
 end)
 
 test("keyring: the bags group holds -1 on WoW Forever and not on Retail", function()

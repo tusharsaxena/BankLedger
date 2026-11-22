@@ -1,7 +1,7 @@
 -- tests/test_sim_seam.lua — the simulator's answer seam (core/SimSetup.lua) on LibKa0s-Sim-1.0.
 --
 -- BL-08 (BankLedger#24, LibKa0s#54). core/SimSetup.lua wraps NS.Compat with Sim:NewSeam straight
--- after the compat family (core/Compat.lua, core/CompatClient.lua): the eleven pure members are
+-- after the compat family (core/Compat.lua, core/CompatClient.lua): the thirteen pure members are
 -- left alone, QueryGuildBankTab is guarded, and every other function member is wrapped. These
 -- cases pin the host contract the library cannot enforce for us (H2: nothing escapes the wrap,
 -- the TOC slot, no captured member) and the four seam members the host leans on (one owner per
@@ -19,7 +19,7 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 local Env = dofile("tests/degraded_env.lua")
 local loadUpTo = Env.loadUpTo
 
--- The 16 function members of core/Compat.lua minus its 3 pure ones; every one of the 8 in
+-- The 18 function members of core/Compat.lua minus its 5 pure ones; every one of the 8 in
 -- core/CompatClient.lua (the client and how it spells a name) is pure.
 local WRAPPED = {
   "CanViewCharacterBank", "GetContainerNumSlots", "GetContainerSlot", "GetCurrentGuildBankTab",
@@ -29,7 +29,7 @@ local WRAPPED = {
 -- The last file of the compat family; core/SimSetup.lua loads straight after it.
 local COMPAT_LAST = "core/CompatClient.lua"
 local PURE = {
-  "GetItemDetails", "GuildBankTabSize", "ItemNameQuality",
+  "ContainerGroups", "GetItemDetails", "GuildBankTabSize", "ItemNameQuality", "UnreadyBankContainers",
   "CharacterKey", "ClientKey", "ForClient", "IsForever", "IsRetail", "RealmKey", "RegionalNames",
   "UnitCharacterName",
 }
@@ -68,7 +68,7 @@ test("Sim seam: Keys() is the 13 wrapped Compat members, sorted", function()
   assertEqual(table.concat(NS.SimSeam:Keys(), ","), table.concat(WRAPPED, ","))
 end)
 
-test("Sim seam: the eleven pure members are not wrapped", function()
+test("Sim seam: the thirteen pure members are not wrapped", function()
   local keys = {}
   for _, k in ipairs(NS.SimSeam:Keys()) do keys[k] = true end
   for _, k in ipairs(PURE) do

@@ -692,20 +692,6 @@ function L:ForgetBankShape()
   L._unreadySince = nil
 end
 
---- The bank containers of `snap` that read 0 slots after reporting slots on the last ready read,
---- sorted, or nil when the snapshot is ready. Pure: the snapshot and the memory in, ids out.
-function L.UnreadyContainers(snap, memory)
-  local out
-  for bagID, slots in pairs(snap.shape or {}) do
-    if slots == 0 and (memory[bagID] or 0) > 0 then
-      out = out or {}
-      out[#out + 1] = bagID
-    end
-  end
-  if out then table.sort(out) end
-  return out
-end
-
 local function rememberShape(snap)
   local memory = L:ShapeMemory()
   for bagID, slots in pairs(snap.shape or {}) do memory[bagID] = slots end
@@ -735,7 +721,10 @@ end
 --- take no baseline, keep the held one) or "reanchor" (not ready past the deadline: accept it as
 --- the bank's new shape and the new baseline, with no diff).
 function L:CheckReady(snap, now)
-  local missing = L.UnreadyContainers(snap, self:ShapeMemory())
+  -- The judgment is LibKa0s-Compat-1.0's UnreadyBankContainers (LibKa0s#101): the sorted ids of the
+  -- snapshot that read 0 after reporting slots in the memory. No purchased-tab count is passed, so a
+  -- first visit (no memory) takes its read as it finds it.
+  local missing = NS.Compat.UnreadyBankContainers(snap.shape or {}, self:ShapeMemory())
   local since = L._unreadySince
   if not missing then
     if since then traceReadyEnd("bank ready after %ss", now - since) end

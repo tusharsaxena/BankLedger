@@ -91,7 +91,7 @@ Total.
 - compat client: no shipped file but core/CompatClient.lua reads a project id or the regional-names switch
 - compat client: core/CompatClient.lua loads straight after core/Compat.lua and before core/SimSetup.lua
 
-### test_constants.lua (24)
+### test_constants.lua (28)
 
 - Constants: every Store enum member the client has appears in the display order
 - Constants: every Store enum member the client has has a display label
@@ -102,6 +102,10 @@ Total.
 - Constants: the bag id group covers the backpack, four bags and the reagent bag
 - Constants: the bank group is exactly the client's character-bank tabs (6 Retail, 9 Forever)
 - Constants: the warband bank spans Retail's five account tabs
+- Constants: each container group is exactly the client's ids, sorted
+- Constants: with no Enum.BagIndex the bags fall back to 0..5 and the banks are empty
+- Constants: an Enum.BagIndex naming no bag falls back to 0..5 and keeps the banks it names
+- Constants: the patterns are anchored and case-sensitive (look-alike names match nothing)
 - Constants: no container id belongs to two stores
 - Constants: no group lists the same id twice
 - Constants: the enum's type constants are never mistaken for containers
@@ -134,7 +138,7 @@ Total.
 ### test_keyring_client.lua (5)
 
 - keyring: the mock's enum names Keyring = -1 on both clients
-- keyring: the bags patterns are a per-client table picked once by ClientKey()
+- keyring: the library's bags patterns are a row per client, the keyring on Forever's only
 - keyring: the bags group holds -1 on WoW Forever and not on Retail
 - keyring: a key carried from the keyring into the bank is a deposit on WoW Forever only
 - keyring: a key moved between the keyring and the backpack writes nothing
@@ -364,9 +368,20 @@ Total.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
-### test_bank_readiness.lua (18)
+### test_bank_readiness.lua (29)
 
 - readiness: Compat.CanViewCharacterBank answers C_Bank.CanViewBank(Enum.BankType.Character)
+- readiness: Compat.CanViewCharacterBank is nil without Enum.BankType, false for a nil answer
+- readiness: ReadableStores drops the character bank only on an explicit false
+- readiness: the judgment of visit 2 with a partly loaded bank is 7,8
+- readiness: the judgment of visit 2 with every tab ready is nil
+- readiness: the judgment of a first visit (no memory) is nil
+- readiness: the judgment of an unbought tab (remembered at 0) is nil
+- readiness: the judgment of a tab the memory never saw is nil
+- readiness: the judgment of a remembered tab the shape does not carry is nil
+- readiness: the judgment of a tab that grew is nil
+- readiness: the judgment of every tab still loading is 6,9,14
+- readiness: without LibKa0s the container reads degrade (bags 0..5, no bank, nothing unready)
 - readiness: BAG_CONTAINER_UPDATE and BANK_TABS_CHANGED are capture cues on both clients
 - readiness: a cue event with the bank open schedules one debounced re-read
 - readiness: a first visit takes its baseline even with tabs at 0 slots (no memory yet)
@@ -1615,7 +1630,7 @@ Total.
 
 - Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its seam
 - Sim seam: Keys() is the 13 wrapped Compat members, sorted
-- Sim seam: the eleven pure members are not wrapped
+- Sim seam: the thirteen pure members are not wrapped
 - Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract H2)
 - Sim seam: with no session, every wrapped member answers what the bare Compat answers
 - Sim seam: SetProvider on a pure key raises
@@ -2120,7 +2135,7 @@ Total.
 | test_util.lua | 44 |
 | test_compat.lua | 20 |
 | test_compat_client.lua | 10 |
-| test_constants.lua | 24 |
+| test_constants.lua | 28 |
 | test_warband_client.lua | 10 |
 | test_keyring_client.lua | 5 |
 | test_testmode_client.lua | 8 |
@@ -2132,7 +2147,7 @@ Total.
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
 | test_ledger_settling.lua | 31 |
-| test_bank_readiness.lua | 18 |
+| test_bank_readiness.lua | 29 |
 | test_probe.lua | 19 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
@@ -2205,4 +2220,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1841** |
+| **Total** | **1856** |

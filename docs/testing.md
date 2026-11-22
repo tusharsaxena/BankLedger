@@ -32,7 +32,8 @@ it checks the TOC's two numbers, the README's badge and first sentence, the gate
 `CLAUDE.md` and `DEPENDENCIES.md`, and the vendored block in `docs/forever-quirks.md`. Each
 per-client table has its own suite, run on both profiles: `test_compat_client` (the client
 readers), `test_warband_client` (the Warband Bank, R1), `test_keyring_client` (R5),
-`test_bank_readiness` (R8), `test_testmode_client` (test-mode seeds), `test_names_client` (two-word
+`test_bank_readiness` (R8; with `test_constants`, it also pins the container groups and the
+readiness judgment the addon reads from `LibKa0s-Compat-1.0`, LibKa0s#101), `test_testmode_client` (test-mode seeds), `test_names_client` (two-word
 name surfaces), `test_wowhead_client` (R7) and `test_probe` (R4). A case about the Warband Bank's own
 behavior passes `T.WARBAND_ONLY` as its skip reason, a declared skip on WoW Forever, and a case
 that pins a Ka0s Default value runs inside `T.onKa0sDefault`, because a new Forever profile wears

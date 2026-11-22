@@ -78,6 +78,74 @@ test("readiness: Compat.CanViewCharacterBank answers C_Bank.CanViewBank(Enum.Ban
   assertNil(answer, "nil when this build cannot tell")
 end)
 
+test("readiness: Compat.CanViewCharacterBank is nil without Enum.BankType, false for a nil answer", function()
+  local savedType = mocks.Enum.BankType
+  mocks.Enum.BankType = nil
+  local ok, answer = pcall(NS.Compat.CanViewCharacterBank)
+  mocks.Enum.BankType = savedType
+  assertTrue(ok, answer)
+  assertNil(answer, "nil when the bank type cannot be named")
+  local savedFn = mocks.C_Bank.CanViewBank
+  mocks.C_Bank.CanViewBank = function() return nil end
+  ok, answer = pcall(NS.Compat.CanViewCharacterBank)
+  mocks.C_Bank.CanViewBank = savedFn
+  assertTrue(ok, answer)
+  assertEqual(answer, false, "a present API's nil answer reads false")
+end)
+
+test("readiness: ReadableStores drops the character bank only on an explicit false", function()
+  local function hasBank()
+    return contains(L:ReadableStores("BANK_FRAME"), "BANK")
+  end
+  assertTrue(hasBank(), "a character banker")
+  withCharacterView(false, function() assertFalse(hasBank(), "a warband-only banker") end)
+  local saved = mocks.C_Bank.CanViewBank
+  mocks.C_Bank.CanViewBank = nil
+  local ok, has = pcall(hasBank)
+  mocks.C_Bank.CanViewBank = saved
+  assertTrue(ok, has)
+  assertTrue(has, "a build that cannot tell")
+end)
+
+-- ── The pure judgment, pinned (K101-BL-02 characterization) ────────────────────
+-- The ids the readiness judgment answers for a shape against a memory, pinned before the ledger
+-- read it from LibKa0s-Compat-1.0's UnreadyBankContainers (LibKa0s#101) and kept green after.
+-- `unready` is the one call L:CheckReady makes: no purchased-tab count.
+local function unready(shape, memory)
+  return NS.Compat.UnreadyBankContainers(shape, memory)
+end
+
+local function idList(list) return list and table.concat(list, ",") or "nil" end
+
+local JUDGED = {
+  { "visit 2 with a partly loaded bank", { [6] = 2, [7] = 0, [8] = 0 }, { [6] = 2, [7] = 2, [8] = 3 }, "7,8" },
+  { "visit 2 with every tab ready", { [6] = 2, [7] = 2 }, { [6] = 2, [7] = 2 }, "nil" },
+  { "a first visit (no memory)", { [6] = 0, [7] = 0 }, {}, "nil" },
+  { "an unbought tab (remembered at 0)", { [6] = 2, [7] = 0 }, { [6] = 2, [7] = 0 }, "nil" },
+  { "a tab the memory never saw", { [6] = 2, [9] = 0 }, { [6] = 2 }, "nil" },
+  { "a remembered tab the shape does not carry", { [6] = 2 }, { [6] = 2, [7] = 2 }, "nil" },
+  { "a tab that grew", { [6] = 4 }, { [6] = 2 }, "nil" },
+  { "every tab still loading", { [14] = 0, [6] = 0, [9] = 0 }, { [6] = 1, [9] = 1, [14] = 1 }, "6,9,14" },
+}
+
+for _, case in ipairs(JUDGED) do
+  test("readiness: the judgment of " .. case[1] .. " is " .. case[4], function()
+    assertEqual(idList(unready(case[2], case[3])), case[4])
+  end)
+end
+
+test("readiness: without LibKa0s the container reads degrade (bags 0..5, no bank, nothing unready)", function()
+  -- A partial install: core/Compat.lua's degraded stubs, never a second copy of the library's bodies.
+  local ns = dofile("tests/degraded_env.lua").loadUpTo("core/Compat.lua", false)
+  local groups = ns.Compat.ContainerGroups()
+  assertEqual(table.concat(groups.bags, ","), "0,1,2,3,4,5")
+  assertEqual(#groups.bank, 0)
+  assertEqual(#groups.accountBank, 0)
+  assertNil(ns.Compat.CanViewCharacterBank(), "cannot tell, so readable")
+  assertNil(ns.Compat.UnreadyBankContainers({ [6] = 0 }, { [6] = 2 }), "no bank group to judge")
+  assertEqual(next(ns.Compat.CONTAINER_PATTERNS_BY_CLIENT), nil)
+end)
+
 -- ── The cue events ──────────────────────────────────────────────────────────────
 
 test("readiness: BAG_CONTAINER_UPDATE and BANK_TABS_CHANGED are capture cues on both clients", function()
