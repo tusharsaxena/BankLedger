@@ -200,14 +200,20 @@ end
 -- The window is positionable, so it must be placeable without waiting to actually stand at a bank
 -- (preview-mode). `/bl session` opens it on a synthetic visit fed through the REAL render path. The
 -- rows are never recorded, and a real session opening replaces them.
-
+--
+-- Per client (C.FEATURE.warbandBank, ruling R1): the Warband Bank is absent on WoW Forever, so there
+-- its two rows sit in the character bank and the one gold movement at the guild bank, the only store
+-- there that holds coin.
+local WARBAND = C.FEATURE.warbandBank
+local PREVIEW_ITEM_STORE = WARBAND and "WARBAND_BANK" or "BANK"
 local PREVIEW_ROWS = {
   { "WITHDRAW", "BANK",         2589,   "Linen Cloth",     1, "Tradegoods",    "Cloth",  40 },
   { "DEPOSIT",  "BANK",         194863, "Serevite Ore",    1, "Tradegoods",    "Metal",  200 },
-  { "DEPOSIT",  "WARBAND_BANK", 171276, "Spectral Flask",  3, "Consumable",    "Flask",  4 },
-  { "WITHDRAW", "WARBAND_BANK", 19019,  "Thunderfury",     5, "Weapon",        "Swords", 1 },
+  { "DEPOSIT",  PREVIEW_ITEM_STORE, 171276, "Spectral Flask",  3, "Consumable",    "Flask",  4 },
+  { "WITHDRAW", PREVIEW_ITEM_STORE, 19019,  "Thunderfury",     5, "Weapon",        "Swords", 1 },
   { "DEPOSIT",  "GUILD_BANK",   6948,   "Hearthstone",     1, "Miscellaneous", "Junk",   1 },
 }
+local PREVIEW_GOLD_STORE = WARBAND and "WARBAND_BANK" or "GUILD_BANK"
 
 function SW:BuildPreviewSession()
   local classFile = NS.Compat.PlayerClass()
@@ -226,7 +232,8 @@ function SW:BuildPreviewSession()
   -- One gold movement, at a store that actually holds gold.
   out[#out + 1] = {
     ts = now, char = NS.Util.PlayerKey(), classFile = classFile,
-    kind = C.Kind.MONEY, direction = C.Direction.DEPOSIT, store = "WARBAND_BANK",
+    kind = C.Kind.MONEY, direction = C.Direction.DEPOSIT, store = PREVIEW_GOLD_STORE,
+    guild = (PREVIEW_GOLD_STORE == "GUILD_BANK") and NS.Compat.GetGuildName() or nil,
     itemName = "Gold", quantity = 1234567,
   }
   return out

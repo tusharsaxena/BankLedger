@@ -12,15 +12,23 @@ local NS = T.NS
 local mocks = T.mocks
 
 -- Drive a real capture: open the frame, move stock between two container ids, reconcile.
-local BAG_ID, BANK_ID, WARBAND_ID = 0, 6, 12   -- the real 12.0.7 ids the mock reproduces
+-- The first container of each group, by member name from the mock's enum: Retail's 12.0.7 ids
+-- (0, 6, 12) or WoW Forever's (0, 6, 15) under the forever profile (BL-02).
+local BAG_ID, BANK_ID, WARBAND_ID = mocks.Enum.BagIndex.Backpack, mocks.Enum.BagIndex.CharacterBankTab_1,
+  mocks.Enum.BagIndex.AccountBankTab_1
 
+-- The fixture builds a new world, so the bank's remembered shape (the readiness guard's memory,
+-- modules/Ledger.lua) is forgotten on the way in and out: a tab an earlier case gave slots must not
+-- read as a bank still loading in this one.
 local function withContainers(setup, fn)
   local saved = {}
   for id in pairs(setup) do saved[id] = mocks.__containers[id] end
   for id, contents in pairs(setup) do mocks.__containers[id] = contents end
+  NS.Ledger:ForgetBankShape()
   local ok, err = pcall(fn)
   for id in pairs(setup) do mocks.__containers[id] = saved[id] end
   NS.State.openContext, NS.State.lastSnapshot = nil, nil
+  NS.Ledger:ForgetBankShape()
   if not ok then error(err, 0) end
 end
 

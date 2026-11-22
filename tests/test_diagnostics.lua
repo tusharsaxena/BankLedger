@@ -368,13 +368,17 @@ do
 
   test("diagnostics: running, the sim section reports the scenario, the step, the character and the seam",
   function()
-    SS.withSession("warband", function(sim)
+    -- The warband scenario (9 steps) on Retail; the personal bank (5) on WoW Forever, which has none.
+    local scenario, total = "warband", 9
+    if not NS.Constants.FEATURE.warbandBank then scenario, total = "bank", 5 end
+    SS.withSession(scenario, function(sim)
       SS.chat(function() sim:Step() end)
       SS.drain()
       local lines = build()
       assertTrue(has(lines, "[State] simulation=yes dataset=sim"), "the State simulation line")
       local st = sim:Status()
-      assertTrue(has(lines, ("[Sim] active=yes scenario=warband seed=%s step=1/9 ready=yes"):format(st.seed)),
+      assertTrue(has(lines, ("[Sim] active=yes scenario=%s seed=%s step=1/%d ready=yes")
+        :format(scenario, st.seed, total)),
         table.concat(lines, "\n"))
       local main = NS.SimHost.world.chars.main.key
       assertTrue(has(lines, ("[Sim] character=%s simLog rows=0 events=%d guarded queries=0 seam keys=%d")

@@ -14,6 +14,7 @@ writes, and the two **addon-owned** reports that also write into that console.
 | `/bl diagnostics` or `/bl debug diagnostics` | `NS.DebugLog:RunDiagnostics()` over `NS.Diagnostics.Sections()` (`modules/Diagnostics.lua`) | `[Diag]` markers, one tag per section | Everything a maintainer asks first: build, state, settings, filters, the ledger, the capture engine, the session, the container model, windows, the launcher and other bank addons |
 | `/bl debug scan` | `NS.Ledger:Diagnose()` (`modules/Ledger_Diagnose.lua`) | `[Scan]` | What the client's container, money and guild-bank model actually is, and which events registered |
 | `/bl debug panel` | `NS.Panel:Diagnose()` (`settings/Panel.lua`) | `[Panel]` | What the settings header's **Defaults** button actually is at runtime |
+| `/bl debug probe start\|stop\|status\|clear` | `NS.Probe:RunVerb()` (`modules/Probe.lua`) | none: one chat line each | Not a report. A probe records what the client answers at each bank and guild-vault visit into `db.global.probe` (capped at 200 entries) until it is stopped; the record is read back from SavedVariables after logout. [forever-probes.md](forever-probes.md) lists what each entry holds and which default each fact settles |
 
 All three are wired in `NS.COMMANDS` (`settings/Schema.lua`): the report as its own `diagnostics`
 row and as the first word the `debug` row tests, the two dumps as words of the `debug` row.
@@ -31,6 +32,15 @@ diagnostics report keeps its own helper and pointer line (`debug-logging-§14`).
 answer is one or two lines and stays in chat: `/bl session` toggles the session window's sample and
 says which way it went, and `/bl list` is the reserved settings list (`slash-commands-§5`).
 `tests/test_report_verbs.lua` holds both report verbs to this.
+
+**The probe verbs** (WoW Forever port, ruling R4) are words of the same `debug` row, and none is a
+report: `start`, `stop`, `status` and `clear` each answer one chat line, and an unknown word prints the
+usage. A probe listens on its own AceEvent target (`PLAYER_INTERACTION_MANAGER_FRAME_SHOW`,
+`BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED`), registered
+through `NS.RegisterEventSafely`, so while one runs `/bl debug scan`'s `events registered` line names
+them too. `start` is refused while the addon is disabled; `NS.StandDown` disarms a running probe and
+`NS.StandUp` re-arms one whose record is still active. `tests/test_probe.lua` holds the verbs, the
+record's shape, the cap and the lifecycle.
 
 ## Coverage
 
@@ -69,7 +79,7 @@ while logging is off.
 | `[Backfill]` | `modules/Backfill.lua` | The login backfill, only when the ledger holds rows to fill: `N rows over M ids filled now, K requested` as it starts, then `done: N rows filled, K unresolved` when every id has answered or the 10s window closes. A ledger with nothing to fill writes nothing |
 | `[Data]` | `Database:Delete`, `DeleteAt`, `Purge` | Each user delete or purge, with the count |
 | `[Filters]` | `NS.Filters` | Each blacklist or whitelist change, with both sizes |
-| `[Store]` | `modules/Ledger.lua` | A store opened (with its baseline counts), closed (`, held change dropped` when a hold was thrown away), dropped by a stand-down, the guild bank's hooks installed, its tabs queried, its self-disarm, and the guild frame showing while another store is armed (`context kept`) |
+| `[Store]` | `modules/Ledger.lua` | A store opened (with its baseline counts), closed (`, held change dropped` when a hold was thrown away), dropped by a stand-down, the guild bank's hooks installed, its tabs queried, its self-disarm, the guild frame showing while another store is armed (`context kept`), and the bank readiness guard (R8): `bank not ready` with the containers that read 0 slots, `bank ready after Ns`, `bank still not ready after Ns; its shape is accepted and re-anchored`, the open's `baseline deferred` line, and `BANK not viewable at this banker` |
 | `[Diff]` | `modules/Ledger.lua` | One line per store per reconcile pass, **change-gated**: the first pass after an open, every pass that found a movement, and any pass whose summary differs from the last one written for that store. The settle hold's two edges (`one-sided change: baseline held`, `held change settled after Ns`) and its timeout (`never settled; baseline re-anchored`) |
 | `[Skip]` | `modules/Ledger.lua` | One line per store per pass that the capture gate refused movements in, listing each as `<item id or gold> <direction> (<reason>)`: `disabled`, `kind`, `store`, `blacklist`, `quality` or `uncached` |
 | `[Move]` | `modules/Ledger.lua` | One line per store per pass that found movements: recorded and skipped counts |
@@ -82,8 +92,8 @@ while logging is off.
 | `[Cfg]` | the library (LibKa0s-Options-1.0), through `settings/OptionsSetup.lua` | The settings panel's combat lock: `<what> refused (in combat)` for a write, a Defaults or reset button, a toggle or a tab switch, once per text per combat; `register parked (in combat)` and its `register flushed (combat ended)` |
 
 **Quiet steady state (`debug-logging-§9`).** An open bank is a repeating path: every
-`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED`
-drives a reconcile pass, and so does the settle deadline. A pass that changes nothing it reports
+`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED`,
+`PLAYER_MONEY` and `GUILDBANKBAGSLOTS_CHANGED` drives a reconcile pass, and so does the settle deadline. A pass that changes nothing it reports
 writes nothing: the `[Diff]` line goes through the console's change gate (`D.DebugChanged`, keyed
 per store), so a match with no movement is dropped. The comparison is behind the gate too. The gate
 starts fresh on every open, so a visit always says what it first saw, and the console re-arms it on

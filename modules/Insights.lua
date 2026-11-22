@@ -68,9 +68,9 @@ local CARD_DEFS = {
     tooltip = "Every stack unit that crossed the line, in either direction: "
       .. "items deposited plus items withdrawn." },
   { key = "goldIn", caption = "gold deposited",
-    tooltip = "Coin deposited into the guild and warband banks. The character bank has no coin slot." },
+    tooltip = "Coin deposited into " .. C.COIN_BANKS_TEXT .. ". The character bank has no coin slot." },
   { key = "goldOut", caption = "gold withdrawn",
-    tooltip = "Coin withdrawn from the guild and warband banks." },
+    tooltip = "Coin withdrawn from " .. C.COIN_BANKS_TEXT .. "." },
   { key = "netGold", caption = "net gold",
     tooltip = "Gold deposited minus gold withdrawn. Green means the banks gained; "
       .. "red means you drew down." },

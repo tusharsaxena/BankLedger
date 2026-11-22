@@ -5,13 +5,39 @@ deliberately carries none of it, only the `[tests]` badge.
 
 ## The green gate
 
-Both of these must pass **before every commit**. A commit with red tests or lint errors is
-forbidden, and a logic change without a covering test is not done.
+All three must pass **before every commit**. A commit with red tests or lint errors is
+forbidden, and a logic change without a covering test is not done. Bank Ledger is `Retail · Forever`
+(the roster's Clients column, clients-§2), so the headless suite runs under both kit profiles, and a
+suite green on one and red on the other is a failing suite (clients-§6):
 
 ```sh
-lua tests/run.lua                                   # all suites green; exits non-zero on any failure
+lua tests/run.lua                                   # all suites green, the Retail profile (the default)
+KA0S_KIT_CLIENT=forever lua tests/run.lua           # the same suite as WoW Forever (1.60.1, interface 16001)
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .   # 0 errors, 0 warnings
 ```
+
+### Both kit profiles
+
+The profile is the kit's `KA0S_KIT_CLIENT` (retail by default); `tests/wow_mock.lua` shapes the
+mock per profile: Forever's 27-member `Enum.BagIndex` (character-bank tabs 6..14, account tabs
+15..23, the keyring at -1), `RegionalUniqueNamesEnabled`, the two-word `UnitName` (`Mock` and the
+surname `Mockvault`) and `C_Bank.CanViewBank(Account)` false. A case takes its expectation from
+`NS.Compat.ClientKey()`; a fixture reads a container id from the mock's enum by member name, never by
+number, and a "current character" row is keyed `Util.PlayerKey()`, never a literal `Name-Realm`.
+
+A per-client feature has a case on each profile, present where `docs/ARCHITECTURE.md`'s per-client
+feature table declares it and absent where not. `tests/test_clients_shape.lua` holds the rule
+itself: every name in `C.FEATURE_CLIENTS` needs an expectation there and a row in that table, and
+it checks the TOC's two numbers, the README's badge and first sentence, the gate in this page,
+`CLAUDE.md` and `DEPENDENCIES.md`, and the vendored block in `docs/forever-quirks.md`. Each
+per-client table has its own suite, run on both profiles: `test_compat_client` (the client
+readers), `test_warband_client` (the Warband Bank, R1), `test_keyring_client` (R5),
+`test_bank_readiness` (R8), `test_testmode_client` (test-mode seeds), `test_names_client` (two-word
+name surfaces), `test_wowhead_client` (R7) and `test_probe` (R4). A case about the Warband Bank's own
+behavior passes `T.WARBAND_ONLY` as its skip reason, a declared skip on WoW Forever, and a case
+that pins a Ka0s Default value runs inside `T.onKa0sDefault`, because a new Forever profile wears
+the WoW Forever skin. The TOC's Forever number arms the kit's missing-globals gate
+(`test_client_globals`) for the `forever` name set as well as `live`.
 
 ### What that 0/0 is worth — the suppression gate
 
@@ -41,7 +67,7 @@ receiver. The receiver is still load-bearing, because every call site is a colon
 namespace (`NS.Browser:Show()`, `NS.Schema:Set(path, v)`) -- roughly 900 of them across the addon
 and the suites -- so deleting it would shift every argument one place to the left at all of them.
 Each of those 12 files therefore carries a `files[...]` stanza (16 stanzas today: later files of the
-same shape, most recently `modules/Browser_Chrome.lua`, took one each) naming that one file and that one
+same shape, most recently `modules/Probe.lua`, took one each) naming that one file and that one
 variable, with a comment saying which convention forces it. Re-measured 2026-09-14 with those
 stanzas stripped: still 119 `212/self` findings across the same 12 of the 61 linted files, and
 nothing else.
@@ -149,7 +175,8 @@ reverts it silently.
 
 Run through this before a version bump, on top of the green gate:
 
-- [ ] `lua tests/run.lua` green and `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` at 0/0.
+- [ ] `lua tests/run.lua` and `KA0S_KIT_CLIENT=forever lua tests/run.lua` green and
+      `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` at 0/0.
 - [ ] `docs/test-cases.md` regenerated (`lua tests/run.lua --list > docs/test-cases.md`) and the
       README `[tests]` badge updated in the **same** change.
 - [ ] **A full automated-test bundle produced and its diff read** — see below.
@@ -299,10 +326,12 @@ tests/
                            --   tooltip, no host gate on it, restore-from-current-state, the
                            --   two-hold latch, and the `disabled` hold re-taken at load
   test_sample_characters.lua -- the made-up people on LibKa0s-Sim-1.0's shared set (LibKa0s#87):
-                           --   NS.SampleCharacters is Sim.Sample, the library-absent copy matches
-                           --   the library's Retail rows, test mode's eight characters follow the
-                           --   convention with the shared four by class, the sample guild, and the
-                           --   same characters without the library
+                           --   NS.SampleCharacters is Sim.Sample(NS.SAMPLE_CLIENT), each
+                           --   library-absent twin matches its client's rows, the rows are in the
+                           --   client's shape (Name-Realm Retail, First Surname Forever), test
+                           --   mode's eight characters follow the convention with the shared four
+                           --   by class, the sample guild, and the same characters without the
+                           --   library
   test_report_verbs.lua    -- the two report verbs on D:Report (debug-logging-15, LibKa0s#79):
                            --   `/bl debug scan` and `/bl debug panel` land with logging off and
                            --   leave it off, reveal the console, print exactly one chat pointer;

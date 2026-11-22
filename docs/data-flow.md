@@ -19,8 +19,9 @@ a change it takes a fresh snapshot and diffs the two, **per store**:
 3. A change on only one side (loot landing in the bags, a stack destroyed) is deliberately **not** a
    movement, so ordinary play never pollutes the ledger.
 4. Gold is diffed the same way, and under the **same corroboration rule**, at the two stores that
-   hold gold — the guild bank and the warband bank. A character-bank money change came from
-   somewhere else entirely.
+   hold gold — the guild bank and the warband bank (Retail only: WoW Forever has no warband bank,
+   so there the guild bank is the one gold store, `L.MONEY_STORES`). A character-bank money change
+   came from somewhere else entirely.
 
 The corroboration in rule 4 is the whole of it: a gold row requires the player's purse **and the
 store's own coin balance** to move by the same amount in opposite directions. The purse alone proves
@@ -47,7 +48,8 @@ diff and the settle check are untouched; and one id resolves to one link per sna
 exact for gear (it does not stack) and irrelevant for stackables (they carry no bonuses).
 
 This is what lets the ledger CSV's `wowhead` column point at the variant that actually moved rather
-than at the base item.
+than at the base item, on the client's own Wowhead base (`https://www.wowhead.com/item=` on Retail,
+`https://www.wowhead.com/forever/item=` on WoW Forever, `Util.WOWHEAD_ITEM_URL_BY_CLIENT`).
 
 Capture is completely inert outside an open storage frame. That single gate is what keeps a vendor
 sale or a quest turn-in out of the ledger.
@@ -68,6 +70,13 @@ tab was already measured.
 An earlier model picked one store from the open *event* and diffed only that. It could never see a
 warband movement, because no event announces one.
 
+On WoW Forever the bank frame reaches the character bank alone (`L.CONTEXT_STORES[BANK_FRAME]` is
+`{ BANK }`): the warband bank is Retail's (`C.FEATURE.warbandBank`), and nothing scans the account
+tabs 15..23 the enum still names. Its character bank is `CharacterBankTab_1..9` (6..14), tab 1 the
+base bank and tabs 2..9 bags socketed into the bank, and its bags group adds the keyring (-1), so a
+key moved into the bank is a deposit. Both are matched by member name, per client
+([forever-quirks.md](forever-quirks.md)).
+
 | Event | Handler |
 |---|---|
 | `PLAYER_ENTERING_WORLD` | Deferred one-shot retention prune, then the login backfill (`modules/Backfill.lua`) |
@@ -75,7 +84,7 @@ warband movement, because no event announces one.
 | `PLAYER_REGEN_DISABLED`, `PLAYER_REGEN_ENABLED` | Re-evaluate **General visibility** at each combat edge (`addon:OnCombatChanged` → `NS.Util.ApplyVisibility`). `PLAYER_REGEN_DISABLED` first ends test mode (`LT:SetTestMode(false)`, no window opened, one chat line). Outside the capture pipeline entirely — no snapshot, no diff, no row |
 | `BANKFRAME_OPENED` | Arm the differ with a baseline snapshot of every store that frame reaches. The guild bank has no open event — see below |
 | `BANKFRAME_CLOSED` | Final reconcile, then disarm. The guild bank has no close event — see below |
-| `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved |
+| `BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED`, `PLAYER_MONEY` | Schedule a debounced re-snapshot, then record what moved. A bank that is still loading (a bank container that had slots on the last ready read now reads 0) is never diffed: no baseline at the open, the held baseline mid-visit, and a re-read on these cues; past `L.READY_TIMEOUT_SECONDS` its shape is accepted with no diff (R8). At a warband-only banker (`CanViewBank(Character)` false) the character bank is not read |
 | `GUILDBANKBAGSLOTS_CHANGED` | Schedules the same debounced pass. It also **arms** the guild-bank context, but only when the guild-bank window reports itself explicitly visible — data alone is not proof of a visit, see below |
 | `ADDON_LOADED` | Installs `GuildBankFrame`'s `OnShow`/`OnHide` hooks when the load-on-demand `Blizzard_GuildBankUI` arrives. Those hooks are the guild bank's open and close — see below |
 | `GUILDBANK_FRAME_SHOWN` *(pseudo-event)* | Never registered with the client: `GuildBankFrame`'s `OnShow` hook dispatches it. Arms the guild-bank context unless another frame's context is open |

@@ -10,7 +10,7 @@ verify it is `docs/testing.md`. The Ka0s WoW Addon Standard itself is the upstre
 | | |
 |---|---|
 | Folder / TOC `Title` | `BankLedger` / `Ka0s Bank Ledger` |
-| Scope | Retail (Mainline) only — a single `## Interface:` line, currently `120105` |
+| Scope | Retail and WoW Forever (`Retail · Forever`) — one unsuffixed TOC, `## Interface:` currently `120105, 16001`; what one client lacks is in **Per-client features** below |
 | SavedVariables | `BankLedgerDB`: the recorded ledger, its retention window (owner decision D6) and the Minimap button **account-wide** (`global`), every other setting **per AceDB profile** (`profile`, shared `Default` by default); see [profiles.md](profiles.md) |
 | Slash | `/bl`, aliased `/bankledger` |
 | Chat tag | `NS.PREFIX` — the cyan bracketed `[BL]` tag (`\|cff00ffff[BL]\|r`) |
@@ -24,8 +24,8 @@ Bank Ledger records **movements**, not inventory. It never stores "what is in yo
 
 WoW fires no "you deposited this" event, so a movement has to be derived: the addon snapshots the bags
 plus every store the open frame can reach, diffs consecutive snapshots per store, and records only
-what changed on **both** sides. Gold follows the same corroboration rule at the two stores that hold
-it. Capture is completely inert outside an open storage frame, which is what keeps a vendor sale or a
+what changed on **both** sides. Gold follows the same corroboration rule at the stores that hold
+it (the guild bank, and on Retail the warband bank). Capture is completely inert outside an open storage frame, which is what keeps a vendor sale or a
 quest turn-in out of the book.
 
 Full pipeline — the corroboration rule, bonus-ID survival, frames-not-stores, and the event
@@ -53,6 +53,40 @@ owner at file load and sits above every module and `settings/Schema.lua`, which 
 the Skin tab's option lists; see **Skins** below), and `tests/test_harness.lua`
 guards the order the harness derives from the TOC. File-by-file table, load-order notes and the locale seam in
 **[module-map.md](module-map.md)**; the API firewall in **[compat-layer.md](compat-layer.md)**.
+
+### Per-client features (clients-§4)
+
+Bank Ledger serves Retail and WoW Forever from one codebase (the roster's `Retail · Forever`). The
+table names each feature that serves one client, or that both clients have in a shape of their own;
+every feature it does not name serves both. The Client column takes the standard's tokens alone:
+`retail`, `forever` or `both`. A feature both clients have in their own shape is two rows, one
+`retail` and one `forever`, its two rows of one table picked once by `ClientKey()` (clients-§5), never
+a filtered Retail list. A `both` row is a change the WoW Forever port made that serves both clients
+in one shape (owner ruling R8), listed so the port's surface is in one place. A declared feature is
+named in `C.FEATURE_CLIENTS` (`core/Constants.lua`), and `C.FEATURE` holds each one's `ForClient`
+answer, read once at load. `tests/test_clients_shape.lua` checks that every declared feature has a
+row here and an expectation on each kit profile. The client behaviors behind these rows are
+[forever-quirks.md](forever-quirks.md)'s own section, and the facts still to be measured in game are
+[forever-probes.md](forever-probes.md).
+
+| Feature | Client | Gated in |
+|---|---|---|
+| The Warband Bank store (`C.FEATURE_CLIENTS.warbandBank`, ruling R1): its place in the store order, label and Banks to record box, its container group (ids by `AccountBankTab_N`), the bank frame's reach, its coin store and the coin copy, test mode's and the session preview's warband rows, the simulated world's warband coin and the `warband` sim scenario. On WoW Forever all of it is absent, and the `C.Store.WARBAND_BANK` member stays as a stored key | `retail` | `core/Constants.lua` (`C.StoreOrder`, `C.StoreLabel`, `C.STORE_OPTIONS`, `C.WARBAND_BANK_IDS`, `C.STORE_CONTAINERS`, `C.COIN_BANKS_TEXT`), `modules/Ledger.lua` (`L.MONEY_STORES`, `L.CONTEXT_STORES`), `modules/LedgerTable_TestMode.lua`, `modules/SessionWindow.lua`, `modules/SimWorld.lua`, `modules/SimScenario.lua` (the scenario row's `clients`) |
+| The bags group: the backpack, the bags and the reagent bag | `retail` | `core/Constants.lua` (`C.BAG_PATTERNS_BY_CLIENT.retail`) |
+| The bags group with the keyring (`Keyring`, -1, ruling R5) | `forever` | `core/Constants.lua` (`C.BAG_PATTERNS_BY_CLIENT.forever`) |
+| Character keys: `Name-Realm`, realm normalized | `retail` | `core/Compat.lua` (`PlayerName`), `core/Util.lua` (`RecordKey`, `PlayerKey`), `modules/SimWorld.lua` (`buildChars`) |
+| Character keys: the whole "First Surname", no realm (`CharacterKey()`, forever-quirks-§4, D6) | `forever` | `core/CompatClient.lua`, `core/Compat.lua` (`PlayerName`), `core/Util.lua`, `modules/SimWorld.lua` |
+| The name surfaces: the Character dropdown at 140 px and the column's `Name-Realm` copy | `retail` | `modules/Browser.lua` (`CHAR_DD_W_BY_CLIENT`), `modules/LedgerTable.lua` (`CHAR_COLUMN_DESC_BY_CLIENT`) |
+| The name surfaces: the Character dropdown at 180 px and the column's "full name and surname" copy (D12) | `forever` | `modules/Browser.lua`, `modules/LedgerTable.lua` |
+| The default skin: Ka0s Default (`NS.DEFAULT_SKIN = Skin:DefaultSkin()`, skinning-§2) | `retail` | `core/SkinSetup.lua`, `defaults/Profile.lua` (`appearance.skin`) |
+| The default skin: WoW Forever (the same read) | `forever` | `core/SkinSetup.lua`, `defaults/Profile.lua` |
+| The Wowhead item base, `https://www.wowhead.com/item=` | `retail` | `core/Util.lua` (`WOWHEAD_ITEM_URL_BY_CLIENT`) |
+| The Wowhead item base, `https://www.wowhead.com/forever/item=` (ruling R7) | `forever` | `core/Util.lua` |
+| Test mode's and the simulator's seeds: Retail's classes, zones and `Name-Realm` sample characters, and the 98-slot first bank tab | `retail` | `modules/LedgerTable_TestMode.lua` (`LT.TEST_SEEDS_BY_CLIENT`), `core/SimSetup.lua` (`NS.SAMPLE_FALLBACKS`), `modules/SimWorld.lua` (`SW.BANK_TAB_SLOTS_BY_CLIENT`) |
+| Test mode's and the simulator's seeds: the classic classes (no Evoker), the classic capitals, "First Surname" sample characters, and a 24-slot base tab plus a 16-slot bag tab | `forever` | `modules/LedgerTable_TestMode.lua`, `core/SimSetup.lua`, `modules/SimWorld.lua` |
+| The per-container bank readiness guard, `C_Bank.CanViewBank(Character)` and the `BAG_CONTAINER_UPDATE` / `BANK_TABS_CHANGED` cues (ruling R8) | `both` | `modules/Ledger.lua` (`L:CheckReady`, `L.UnreadyContainers`, `L:ReadableStores`, the `CAPTURE` list), `core/Compat.lua` (`CanViewCharacterBank`) |
+| Money text through `C_CurrencyInfo.GetCoinTextureString`, then `GetMoneyString`, then text (ruling R8) | `both` | `core/Util.lua` (`FormatMoney`) |
+| The probe verbs `/bl debug probe start\|stop\|status\|clear` (ruling R4) | `both` | `modules/Probe.lua`, `settings/Schema.lua` (the debug verb) |
 
 ## Settings Schema
 
@@ -388,8 +422,9 @@ draw gate does.
 
 ## Event Subscriptions
 
-Twelve registrations **while the addon is enabled**, plus two transient ones: one for the few
-seconds the login backfill waits, one while the first-run skin picker waits out combat (below); **none** while it is disabled (see *The stand-down* above). **All of
+Fourteen registrations **while the addon is enabled**, plus three transient ones: one for the few
+seconds the login backfill waits, one while the first-run skin picker waits out combat, and the
+probe's while a probe runs (below); **none** while it is disabled (see *The stand-down* above). **All of
 them** go through one helper, `NS.RegisterEventSafely(target, event,
 handler)` in `core/CoreSetup.lua`, over `LibKa0s-Core-1.0`'s `SafeRegisterEvent`
 (`events-frames-taint-§1`, standard v2.65.0). Modern retail **raises** on an unknown event name, so a
@@ -401,7 +436,9 @@ Every outcome lands in one record, `NS.EventRecord` (`registered` / `unavailable
 `/bl debug scan` prints as `events registered` / `events UNAVAILABLE` and `NS.StandDown` empties
 (see **[debug.md](debug.md)**).
 
-**Seven** are the capture engine's (`modules/Ledger.lua`, `L:Enable`). The other five sit outside the
+**Nine** are the capture engine's (`modules/Ledger.lua`, `L:Enable`), the same on both clients: the
+bank cues `BAG_CONTAINER_UPDATE` and `BANK_TABS_CHANGED` (the readiness guard's re-read, R8) are
+documented on Retail and WoW Forever alike. The other five sit outside the
 engine: `PLAYER_ENTERING_WORLD` on the AceEvent addon object (`NS.StandUp` in `core/BankLedger.lua`,
 the one-shot retention prune), the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` on the
 same object (also `NS.StandUp`)
@@ -427,7 +464,13 @@ shows the picker. `NS.HideSkinPicker` drops it too, and the stand-down calls tha
 addon still keeps no registration. The login delay before it is an AceTimer handle on the addon
 object, which `NS.StandDown`'s `CancelAllTimers` cancels.
 
-**One dispatch table.** The seven capture registrations share one handler shape: `L:Enable`
+**So are the probe's.** A started probe (`/bl debug probe start`, `modules/Probe.lua`, ruling R4)
+registers `BANKFRAME_OPENED`, `GUILDBANKFRAME_OPENED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED` and
+`PLAYER_INTERACTION_MANAGER_FRAME_SHOW` on its own AceEvent target, never the addon object, so it can
+never take an event from the capture engine. `/bl debug probe stop` and the stand-down drop them,
+and `NS.StandUp` re-arms a probe whose stored record is still active.
+
+**One dispatch table.** The nine capture registrations share one handler shape: `L:Enable`
 registers each name in `L.CLIENT_EVENTS` as `function(e, ...) L:Dispatch(e, ...) end`, and
 `L:Dispatch(event, ...)` runs that event's one entry in `L.HANDLERS` (BankLedger#24). It answers `0`
 while the module is not enabled or for an event with no handler, and `1` after running the handler.
@@ -446,7 +489,8 @@ The guild bank is the one store with no usable open **or** close event, so it re
 `GUILDBANKFRAME_OPENED` / `_CLOSED` never fire on 12.0.7 and were dropped, and `GuildBankFrame`'s
 `OnShow`/`OnHide` hooks are its open and close. Full event table, the
 debounce/settle contract and the guild-bank arrangement in **[data-flow.md](data-flow.md)**; the
-client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks.md)**.
+client behavior behind each workaround in **[midnight-quirks.md](midnight-quirks.md)** (Retail) and
+**[forever-quirks.md](forever-quirks.md)** (WoW Forever).
 
 ## Taint notes
 
@@ -745,7 +789,13 @@ Outside the gate's reach, also on purpose:
   upgraded copy from a base one when both are present.
 - **The simulator covers bank visits only.** There is no simulation of mail, currencies, the login
   backfill or the retention prune; the four scenarios are a personal-bank visit, a warband
-  transfer, a guild-bank visit and a one-sided change.
+  transfer (Retail only), a guild-bank visit and a one-sided change.
+- **The WoW Forever port's client facts are not yet measured in game.** The bank's load timing, the
+  keyring, the socketed bank bags, the guild vault's events, the money text and the character key
+  were read from the client's interface files. Each default names the probe that settles it in
+  [forever-probes.md](forever-probes.md), and a result that contradicts one becomes a follow-up.
+- **A bag socketed into a WoW Forever bank tab is not recorded** (ruling R6): it leaves the bags for
+  the pseudo-container -2, which is not scanned, so only one side changes.
 - **The simulated warband deposit's event list is unverified on 12.1.5.** `D.EVENTS` in
   `modules/SimDrivers.lua` is built from the best documented knowledge; the real sequence is an
   owner in-client check (`docs/smoke-tests.md` SIM-10), and a difference is a one-line data fix.
@@ -776,8 +826,8 @@ generated directories are named once each and never enumerated per run: `docs/au
 |---|---|---|
 | `slash-dispatch.md` | Present | 23 verbs in `NS.COMMANDS` as measured on 2026-11-19 (threshold is 8) |
 | `midnight-quirks.md` | Present | Clients includes Retail (documentation-§3, client-quirks-§1): the vendored `client-quirks` catalog block, then the addon's own client-version workarounds |
-| `forever-quirks.md` | Not applicable | Clients is `Retail (port pending)`; the Forever catalog is carried only where Clients includes Forever (documentation-§3, forever-quirks-§1) |
-| `compat-layer.md` | Present | `core/Compat.lua` carries 15 addon-specific shims beyond LibKa0s |
+| `forever-quirks.md` | Present | Clients includes Forever (`Retail · Forever`, forever-quirks-§1): the vendored Forever catalog block, then the addon's own WoW Forever workarounds (the bank model, the readiness guard, the warband bank, the keyring, the sockets, the names, the money text, the skin, Wowhead and the seeds) |
+| `compat-layer.md` | Present | `core/Compat.lua` carries 16 addon-specific shims beyond LibKa0s, and `core/CompatClient.lua` routes the eight client and character-name readers |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message bus` |
 | `profiles.md` | Present | AceDB profiles are user-visible: the Profiles page (`settings/Profiles.lua`) ships a profile control. What a profile holds, what stays account-wide (the ledger and its retention window), the v3 lift, the v4 return of the window and the v5 per-tab saved views, the profile events, the reset and the `/bl profile` verb |
 | `debug.md` | Present | The trace's **Coverage** (every tag, what emits it and when, and the reconcile pass's quiet steady state, `debug-logging-§8`/`§9`); the diagnostics report, `/bl diagnostics` / `/bl debug diagnostics` (`debug-logging-§14`: its sections, caps and what it never reads or calls), and the two addon-owned reports, `/bl debug scan` and `/bl debug panel`, written through `D:Report` with one chat pointer (`debug-logging-§15`); which to paste with a bug report |
@@ -800,6 +850,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 |---|---|
 | `windows.md` | The two standalone windows, how they wear the skin, and the geometry-save contract |
 | `insights.md` | The Insights tab: `Database:Stats` keys, section order, and the three drawing rules |
+| `forever-probes.md` | The WoW Forever port's open in-game facts: the `/bl debug probe` verbs, what a probe entry holds, and each probe with the default it settles and a `/run` fallback |
 | `media.md` | Where the mono face and the shared marks come from, which surfaces draw which mark and what each falls back to, and the logo art set with its regeneration recipe |
 
 ## Documented deviations
@@ -814,7 +865,7 @@ with no re-check trigger is a permanent exemption granted by accident.
 
 | Rule | What differs | Why | Decided | Re-check trigger |
 |---|---|---|---|---|
-| `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and every event that *can* fire in combat is a row of that page's table with its work named: the three change events (`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `PLAYER_MONEY`) and `GUILDBANKBAGSLOTS_CHANGED` reach a single `NS.State.openContext` nil check and return, and the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` also runs `NS.Util.ApplyVisibility` — bounded, allocation-free, once per combat edge. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. Re-checked 2026-09-23 (audit): trigger not fired. |
+| `performance-§12` | No performance harness is wired: no `core/PerfSetup.lua`, no `BankLedgerPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-analysis/`. | **The no-combat-path exemption, criterion (a) plus (b).** (a) — the whole-repo sweep of `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` is committed at [`docs/performance.md`](./performance.md) with the per-event work named for every hit: no `OnUpdate` handler anywhere, no repeating ticker (every timer is a one-shot), and every event that *can* fire in combat is a row of that page's table with its work named: the five change events (`BAG_UPDATE_DELAYED`, `PLAYERBANKSLOTS_CHANGED`, `BAG_CONTAINER_UPDATE`, `BANK_TABS_CHANGED`, `PLAYER_MONEY`) and `GUILDBANKBAGSLOTS_CHANGED` reach a single `NS.State.openContext` nil check and return, and the combat pair `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` also runs `NS.Util.ApplyVisibility` — bounded, allocation-free, once per combat edge. (b) — the capture protocol opens its windows on the player's combat state (`performance-§7`), and this addon's entire engine is gated on a bank frame being open, which is an out-of-combat NPC interaction; every declared bucket would read `0.000` by construction. Reasoned at length in closed issue [`LIBKA0S-17`](https://github.com/tusharsaxena/BankLedger/issues/9); ratified here. | 2026-08-05 | **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms the full `performance` wiring MUST.** Concretely: an event handler that stops checking `NS.State.openContext` first, or a scan moved off the bank-open gate onto a bag event. Re-checked 2026-09-23 (audit): trigger not fired. |
 | `localization-§1` | This addon ships **English only**: the `NS.L` seam is exported and `locales/enUS.lua` ships, and every label, tooltip and message but seventy-seven is a hardcoded English literal. The seventy-seven route through `NS.L` and resolve to their English key through its fallback, with no override in `enUS.lua`: the `profile`, `debug` and `diagnostics` help lines in `NS.COMMANDS` (`settings/Schema.lua`), the library-absent `%s is unavailable: the LibKa0s library did not load.` line (`core/DebugLogSetup.lua`, `settings/Slash.lua`), the ledger window's red `TEST MODE` title badge, and the test-mode strip's line (`TEST MODE: a sample ledger, not your bank. Combat ends it.`) and its three tooltip lines (`modules/Browser.lua`, BankLedger#23), the Show window key binding's action label `Toggle ledger window` and its Keybindings-tab tooltip `Shows or hides the ledger window.` (`core/LauncherSetup.lua`, `launcher-§6`), the simulator-absent line `The simulator needs LibKa0s-Sim-1.0.` (`core/SimSetup.lua`), the simulator's start line, its four start refusals (test mode, combat, a real bank visit, General visibility) and its three stop lines (`modules/Sim.lua`), the four scenarios' labels and their nineteen distinct step labels (`modules/SimScenario.lua`), the simulator gate's `Waiting for the ledger to settle.` (`modules/Sim.lua`), test mode's refusal while a simulation runs (`modules/LedgerTable_TestMode.lua`), the purge refusal `Stop the simulation first.` (`core/Database.lua`), the `sim` help line in `NS.COMMANDS` (`settings/Schema.lua`), the simulation step panel's twenty-five presentation strings (its step labels and tooltips and the Start and Stop tooltips, `modules/Sim.lua`), and the simulation marker's strip line `SIM: %s. Nothing here is saved. /bl sim stop ends it.` (`modules/Sim.lua`) with its three tooltip lines (`modules/Browser.lua`), and the skin seam's `Reload your interface (/reload) to finish changing the skin.` (`core/SkinSetup.lua`). The launcher's `leftClickLabel` (`Toggle ledger window`) routed through it from M5 (2026-09-24) until Launcher minor 4 retired the field (M6, 2026-09-25); the menu's entry labels are the library's own `lib.STRINGS`. The one entry that briefly sat there was the disabled-verb refusal, added 2026-09-16 and **removed 2026-09-17**: `slash-commands-§7` makes that line the collection's wording, `LibKa0s-Slash-1.0` builds it from `lib.DISABLED_LINE_FORMAT`, and the standard says in as many words that the `L` override does not reach it. | `localization-§3` names this one of the routing SHOULD's **two terminal compliant states** — English-only, *recorded* — so the row is not a deferral, it is the compliant end state, and an audit reads it as accepted rather than re-filing the SHOULD. Both `localization` MUSTs are met unconditionally: the seam is exported with the key-returning metatable fallback (`locales/enUS.lua`, the `NS.L` `setmetatable`) and `enUS.lua` ships carrying no dead keys. The wrapped string that briefly existed never narrowed the row, and its removal does not widen it: the row has always been about the SEAM being exported and ready, which it is. The argument was written at the head of `locales/enUS.lua` and tracked at [issue #3](https://github.com/tusharsaxena/BankLedger/issues/3), and a comment is exactly what `documentation-§3` says does not ratify a thing — which is why four consecutive audits re-filed it, most recently as `BL-04` in `docs/audits/2026-09-07/`. This row is the ratification the comment was standing in for. The simulated world's two invented names, the alt `Simbanker` and the unguilded player's `Simulated Guild`, left the seam on 2026-11-18 (AD-87-BL, LibKa0s#87): sample names are data and never localized (preview-mode's sample-character convention), so the alt is now the shared sample character and the guild `Sample Company`. | 2026-07-31 | **The first non-English locale file added to `locales/`.** That change routes the strings and retires this row. Re-checked 2026-09-23 (audit): trigger not fired. |
 | `standalone-windows` | The close control on this addon's **own** windows is the host's own factory — `B:MakeCloseButton` in `modules/Browser_Chrome.lua`, 24×24 — rather than a one-line wrapper over `lib.MakeCloseButton`; since the owner's close-control ruling of 2026-10-29 it is painted through the skin's `CloseButton` exactly as the library's own control is (no opts, no host hover scripts), so every skin, Ka0s Default included, draws `close.rest` / `close.hot` on it, which `core/CoreSetup.lua` deliberately does not republish (its "`lib.MakeCloseButton` IS DELIBERATELY NOT REPUBLISHED" paragraph). | **A reasoned decline is a terminal compliant state, and this row is the fourth of the four conditions it costs.** (1) *Host windows only*: the ledger (`EnsureFrame` in `modules/Browser.lua`), the session window (`ensureFrame` in `modules/SessionWindow.lua`) and the export modal (`EnsureFrame` in `modules/Export.lua`) are this addon's, and those are the factory's three callers. Since AD-86-BL (2026-11-17, LibKa0s#86) they reach it through `B:HeaderMarks`, which hands it to `W.HeaderButtons` as the strip's `makeClose`. That is the route standalone-windows names for a ratified decline, so `modules/Browser_Chrome.lua` holds the factory and its only call sites; the export **copy** window is `LibKa0s-Widgets-1.0`'s `CopyWindow` and wears the library's mark, as do the debug console and its copy box. (2) *The same shared mark*: `B:MakeCloseButton` resolves the catalog's `close` through `NS.Icon("close")`, inside `B:MakeCloseButton` itself, with the documented fallback ladder beneath it, so the two implementations agree on the art and the skin's rest and hover tints, and differ only in size. (3) *Exactly one host factory*: `grep -rn 'MakeCloseButton(' --include='*.lua' | grep -v '/libs/'` returns that factory, its call sites (since AD-86-BL, `B:HeaderMarks`'s `makeClose` and its degraded rung) and no two-argument call to `lib.MakeCloseButton` anywhere — anti-pattern #65 does not apply. (4) This row. Adoption would change three visible controls a player already knows for no player benefit. Filed as `BL-28` in `docs/audits/2026-09-07/`; declined in closed issue [#5](https://github.com/tusharsaxena/BankLedger/issues/5) on 2026-08-06, unratified until now. | 2026-08-06 | **Any one of the four conditions ceasing to hold**: a second host close factory, a call to `lib.MakeCloseButton` from anywhere but a window the library owns, a private glyph replacing the catalog's `close`, or the host drawing its own control onto a library window. Re-check also if `standalone-windows` withdraws the decline. Re-checked 2026-09-23 (audit): trigger not fired. Re-checked 2026-11-17 (AD-86-BL, the `W.HeaderButtons` adoption): not fired. The strip takes the host factory as its `makeClose`, and it is still the one factory. |
 

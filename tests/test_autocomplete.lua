@@ -13,6 +13,9 @@ local test, assertEqual, assertTrue, assertFalse =
 
 local mocks = T.mocks
 local B = NS.Browser
+-- The rows are the logged-in player's, so the Character filter's default ("me") keeps them: the
+-- record key per client (BL-03), Name-Realm on Retail and "First Surname" on WoW Forever.
+local ME = NS.Util.PlayerKey()
 
 -- Two Linen rows (one name, offered once), a Silk row in another store, a gold movement, an item
 -- whose name holds "li" past its start, one that holds no "li" at all, and a name the test-mode
@@ -30,14 +33,14 @@ local function seed()
   NS.db.global.ledger = {}
   for i, r in ipairs(ROWS) do
     NS.Database:Add({
-      ts = 1770000000 + i, char = "Mock-Realm", classFile = "MAGE",
+      ts = 1770000000 + i, char = ME, classFile = "MAGE",
       kind = "ITEM", direction = "DEPOSIT", store = r.store,
       itemID = r.itemID, itemName = r.itemName, quality = r.quality,
       itemType = r.itemType, quantity = 1, zone = "Testville", mapID = 2657,
     })
   end
   NS.Database:Add({
-    ts = 1770000100, char = "Mock-Realm", classFile = "MAGE",
+    ts = 1770000100, char = ME, classFile = "MAGE",
     kind = "MONEY", direction = "DEPOSIT", store = "GUILD_BANK",
     itemName = "Gold", quantity = 50000, zone = "Testville", mapID = 2657,
   })
@@ -175,7 +178,7 @@ end)
 
 case("Autocomplete: no more than eight suggestions", function()
   for i = 1, 12 do
-    NS.Database:Add({ ts = 1770001000 + i, char = "Mock-Realm", kind = "ITEM",
+    NS.Database:Add({ ts = 1770001000 + i, char = ME, kind = "ITEM",
       direction = "DEPOSIT", store = "BANK", itemID = 9000 + i,
       itemName = ("Linen Bolt %02d"):format(i), quality = 1, quantity = 1 })
   end

@@ -49,9 +49,10 @@ local function addBagIndex(add)
   for _, m in ipairs(members) do add("  BagIndex.%s = %s", m.name, m.value) end
 end
 
--- What this addon's own groups resolved to, so a wrong group is visible beside the truth above.
+-- What this addon's own groups resolved to, so a wrong group is visible beside the truth above. The
+-- client's container-backed stores only: no Warband Bank line on WoW Forever (C.FEATURE).
 local function addGroups(add)
-  for _, store in ipairs({ "BAGS", "BANK", "WARBAND_BANK" }) do
+  for _, store in ipairs(C.CONTAINER_STORES) do
     local ids = C.STORE_CONTAINERS[store] or {}
     local parts = {}
     for i, id in ipairs(ids) do parts[i] = tostring(id) end

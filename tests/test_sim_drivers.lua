@@ -28,6 +28,10 @@ end
 
 local function bag(w, key) return w.bags[key][BACKPACK] end
 local function bank(w, key) return w.bank[key][BANK_TAB_1] end
+-- A warband move's events: the bag half, then the store half on the account tab's id (12 on Retail,
+-- 15 under the forever profile, BL-02).
+local WARBAND_EVENTS = ("BAG_UPDATE(%d), BAG_UPDATE_DELAYED, BAG_UPDATE(%d), BAG_UPDATE_DELAYED")
+  :format(BACKPACK, WARBAND_TAB_1)
 
 test("SimDrivers: every event list is data, each row an event name and an optional payload token", function()
   local TOKENS = { touched = true, bag = true, store = true, slot = true }
@@ -84,10 +88,10 @@ test("SimDrivers: a WARBAND deposit with no lag fires the bag half, then the sto
     assertEqual(S.count(bag(w, key), id), 20)
     assertEqual(S.count(w.warband[WARBAND_TAB_1], id), 20)
     assertEqual(S.sequence(seen),
-      "BAG_UPDATE(0), BAG_UPDATE_DELAYED, BAG_UPDATE(12), BAG_UPDATE_DELAYED")
+      WARBAND_EVENTS)
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a lagged WARBAND deposit lands its store half on the session timer", function()
   driving(function(w, seen, key)
@@ -102,10 +106,10 @@ test("SimDrivers: a lagged WARBAND deposit lands its store half on the session t
     S.drain()
     assertEqual(S.count(w.warband[WARBAND_TAB_1], id), 20, "the store half never landed")
     assertEqual(S.sequence(seen),
-      "BAG_UPDATE(0), BAG_UPDATE_DELAYED, BAG_UPDATE(12), BAG_UPDATE_DELAYED")
+      WARBAND_EVENTS)
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a WARBAND deposit with lag \"never\" withholds the store half for good", function()
   driving(function(w, seen, key)
@@ -117,7 +121,7 @@ test("SimDrivers: a WARBAND deposit with lag \"never\" withholds the store half 
     assertEqual(S.sequence(seen), "BAG_UPDATE(0), BAG_UPDATE_DELAYED")
     assertEqual(NS.SimHost.pendingLag, 0)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not", function()
   driving(function(w, seen, key)
@@ -130,9 +134,9 @@ test("SimDrivers: a WARBAND withdrawal mirrors the deposit, lagged or not", func
     S.drain()
     assertEqual(S.count(w.warband[WARBAND_TAB_1], id), 10)
     assertEqual(S.sequence(seen),
-      "BAG_UPDATE(0), BAG_UPDATE_DELAYED, BAG_UPDATE(12), BAG_UPDATE_DELAYED")
+      WARBAND_EVENTS)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("SimDrivers: a GUILD deposit and withdrawal move against tab 1 and end on the guild data event", function()
   driving(function(w, seen, key)
@@ -148,18 +152,24 @@ test("SimDrivers: a GUILD deposit and withdrawal move against tab 1 and end on t
   end)
 end)
 
+-- The coin store is per client (BL-09): Retail's warband bank, WoW Forever's guild bank (its world
+-- seeds no warband coin, C.FEATURE.warbandBank, R1).
 test("SimDrivers: Money moves coin between the purse and a store; Spend takes it from the purse alone", function()
   driving(function(w, seen, key)
     local SW = NS.SimWorld
-    D.Money{ store = Store.WARBAND_BANK, dir = "deposit", copper = 10000000 }
+    local warband = NS.Constants.FEATURE.warbandBank
+    local store = warband and Store.WARBAND_BANK or Store.GUILD_BANK
+    local start = warband and SW.WARBAND_MONEY or SW.GUILD_MONEY
+    local function balance() return warband and w.warbandMoney or w.guild.money end
+    D.Money{ store = store, dir = "deposit", copper = 10000000 }
     assertEqual(w.purse[key], SW.PURSE - 10000000)
-    assertEqual(w.warbandMoney, SW.WARBAND_MONEY + 10000000)
-    D.Money{ store = Store.WARBAND_BANK, dir = "withdraw", copper = 5000000 }
+    assertEqual(balance(), start + 10000000)
+    D.Money{ store = store, dir = "withdraw", copper = 5000000 }
     assertEqual(w.purse[key], SW.PURSE - 5000000)
-    assertEqual(w.warbandMoney, SW.WARBAND_MONEY + 5000000)
+    assertEqual(balance(), start + 5000000)
     D.Spend{ copper = 250000 }
     assertEqual(w.purse[key], SW.PURSE - 5250000)
-    assertEqual(w.warbandMoney, SW.WARBAND_MONEY + 5000000, "a spend touched a store")
+    assertEqual(balance(), start + 5000000, "a spend touched a store")
     assertEqual(S.sequence(seen), "PLAYER_MONEY, PLAYER_MONEY, PLAYER_MONEY")
   end)
 end)
@@ -205,6 +215,8 @@ test("SimDrivers: Switch closes an open frame first and fires no PLAYER_ENTERING
     assertEqual(w.current, "alt")
     assertEqual(S.sequence(seen), "BANKFRAME_CLOSED, GUILDBANK_FRAME_HIDDEN")
     assertEqual(NS.Compat.PlayerName(), w.chars.alt.name, "the seam does not answer the alt")
+    -- The world's key is the one the host records the alt under, on both clients (BL-02).
+    assertEqual(NS.Util.PlayerKey(), w.chars.alt.key, "the alt's world key is not the host's row key")
     D.Switch{ to = "main" }
     assertEqual(S.sequence(seen), "BANKFRAME_CLOSED, GUILDBANK_FRAME_HIDDEN", "a closed frame was closed again")
   end)

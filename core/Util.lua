@@ -2,11 +2,20 @@ local _, NS = ...
 NS.Util = NS.Util or {}
 local Util = NS.Util
 
--- "Name-Realm" of the current player (realm normalized, spaces stripped).
--- The reads live in Compat.PlayerName, so a simulator can answer them.
-function Util.PlayerKey()
-  local name, realm = NS.Compat.PlayerName()
+-- The one record-key builder (WoW Forever port, "Identity"; BL-03): the key a row's `char` stores
+-- for a character whose name and realm are the two parts Compat.PlayerName answers. `Name-Realm`
+-- when there is a realm (Retail, unchanged); the name alone when there is none, which is the whole
+-- "First Surname" on WoW Forever (regional names). modules/SimWorld.lua keys its characters with
+-- it too, so the simulator's world and the rows it records always agree.
+function Util.RecordKey(name, realm)
+  if realm == nil then return name end
   return name .. "-" .. realm
+end
+
+-- The current player's record key: "Name-Realm" on Retail (realm normalized, spaces stripped),
+-- "First Surname" on WoW Forever. The reads live in Compat.PlayerName, so a simulator can answer them.
+function Util.PlayerKey()
+  return Util.RecordKey(NS.Compat.PlayerName())
 end
 
 -- Clock-only (HH:MM) for the Time column.
@@ -35,13 +44,21 @@ function Util.RangeFrom(range)
   return nil
 end
 
--- Format a copper amount for display. In-game uses the gold/silver/copper coin glyphs
--- (GetCoinTextureString); headless falls back to "Ng Ns Nc" (only non-zero parts). "" for nil/0.
+-- Format a copper amount for display, with the gold/silver/copper coin glyphs in game. "" for nil/0.
+-- The order is the same on Retail and WoW Forever (R8): C_CurrencyInfo.GetCoinTextureString, the
+-- documented API on both clients (it takes the glyph height); then GetMoneyString, the SharedXML
+-- helper both clients ship (Forever has no bare GetCoinTextureString global); then "Ng Ns Nc" text
+-- with only the non-zero parts, which is also what the headless suite sees.
 function Util.FormatMoney(copper, coinHeight)
   copper = copper or 0
   if copper <= 0 then return "" end
-  if GetCoinTextureString then
-    return GetCoinTextureString(copper, coinHeight)
+  local currency = C_CurrencyInfo
+  if currency and currency.GetCoinTextureString then
+    if coinHeight then return currency.GetCoinTextureString(copper, coinHeight) end
+    return currency.GetCoinTextureString(copper)
+  end
+  if GetMoneyString then
+    return GetMoneyString(copper)
   end
   local g = math.floor(copper / 10000)
   local s = math.floor((copper % 10000) / 100)
@@ -82,7 +99,7 @@ end
 -- ── Wowhead link ────────────────────────────────────────────────────────────────
 -- A wowhead URL for the exact item variant a row moved rather than for its base item: everything
 -- that makes a modern drop what it is (item level, tertiaries, sockets) lives in its bonus IDs, so
--- the URL carries them — https://www.wowhead.com/item=151300?bonus=12801:13440:6652.
+-- the URL carries them — https://www.wowhead.com/item=151300?bonus=12801:13440:6652 on Retail.
 --
 -- The bonuses come out of the stored hyperlink's item string through LibKa0s-Item's
 -- BonusIDsFromLink (Item minor 3, LibKa0s#51), which owns the positional walk: field 13 declares
@@ -92,7 +109,17 @@ end
 -- Returns "" for a row with no item at all (a gold movement, or an entry whose link never
 -- resolved), and a plain item= URL when the link carries no bonuses — which is the honest answer
 -- for a stackable trade good, since those have none.
-local WOWHEAD_ITEM_URL = "https://www.wowhead.com/item="
+--
+-- The base is per client, picked ONCE at load by ClientKey() (WoW Forever port, owner ruling R7;
+-- clients-§5): WoW Forever item ids are Forever's own, so its links go to Wowhead's forever path.
+-- Retail is unchanged. Both rows are exposed read-only for tests/test_wowhead_client.lua.
+Util.WOWHEAD_ITEM_URL_BY_CLIENT = {
+  retail  = "https://www.wowhead.com/item=",
+  forever = "https://www.wowhead.com/forever/item=",
+}
+local WOWHEAD_ITEM_URL = Util.WOWHEAD_ITEM_URL_BY_CLIENT[(NS.Compat and NS.Compat.ClientKey
+  and NS.Compat.ClientKey()) or "retail"] or Util.WOWHEAD_ITEM_URL_BY_CLIENT.retail
+Util.WOWHEAD_ITEM_URL = WOWHEAD_ITEM_URL
 
 function Util.WowheadURL(entry)
   if type(entry) ~= "table" then return "" end

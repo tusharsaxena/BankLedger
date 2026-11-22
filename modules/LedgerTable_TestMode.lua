@@ -19,27 +19,77 @@ local C = NS.Constants
 -- coverage seed pass first guarantees every store, both directions, every quality and every
 -- character appear and that the range spans >14 days regardless of how the dice fall.
 
-local TEST_CLASSES = {
-  "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "EVOKER",
+-- THE SEEDS ARE PER CLIENT (BL-09; clients-§5): one row per client, picked ONCE at load by the
+-- sample key core/SimSetup.lua seeded from ClientKey() (NS.SAMPLE_CLIENT). Retail's row is the
+-- pre-port data, unchanged, so its dataset is byte-identical (tests/test_testmode_client.lua pins
+-- it). WoW Forever has the nine classic classes, so its row has no Evoker: a Warlock takes the slot
+-- and the weight, keeping eight characters and the same draw shape. Its zones are the classic
+-- capitals with the uiMapIDs the Forever client answers (1453-1458, SkillMaster's
+-- defaults/Trainers_Forever.lua precedent), weighted as Retail's are. `ownChars` is this ledger's
+-- own name for each class the shared sample set has none of (see THE SAMPLE CHARACTERS below).
+local TEST_SEEDS_BY_CLIENT = {
+  retail = {
+    classes = { "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "EVOKER" },
+    -- A few "mains" do most of the banking.
+    classWeights = {
+      { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
+      { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "EVOKER", 5 },
+    },
+    zones = {
+      { name = "Valdrakken",       mapID = 2112 },
+      { name = "Dornogal",         mapID = 2339 },
+      { name = "Orgrimmar",        mapID = 85 },
+      { name = "Stormwind City",   mapID = 84 },
+      { name = "Silvermoon City",  mapID = 110 },
+      { name = "Boralus",          mapID = 1161 },
+    },
+    ownChars = {
+      ROGUE  = "Mockshade-Samplerealm",
+      DRUID  = "Samplegrove-Mockrealm",
+      SHAMAN = "Mocktotem-Samplerealm",
+      EVOKER = "Samplescale-Mockrealm",
+    },
+  },
+  forever = {
+    classes = { "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "WARLOCK" },
+    classWeights = {
+      { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
+      { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "WARLOCK", 5 },
+    },
+    zones = {
+      { name = "Ironforge",        mapID = 1455 },
+      { name = "Orgrimmar",        mapID = 1454 },
+      { name = "Undercity",        mapID = 1458 },
+      { name = "Stormwind City",   mapID = 1453 },
+      { name = "Thunder Bluff",    mapID = 1456 },
+      { name = "Darnassus",        mapID = 1457 },
+    },
+    ownChars = {
+      ROGUE   = "Mockshade Samplestep",
+      DRUID   = "Samplegrove Mockbark",
+      SHAMAN  = "Mocktotem Sampletide",
+      WARLOCK = "Samplehex Mockember",
+    },
+  },
 }
--- A few "mains" do most of the banking.
-local TEST_CLASS_W = {
-  { "MAGE", 16 }, { "PALADIN", 13 }, { "ROGUE", 11 }, { "PRIEST", 9 },
-  { "DRUID", 8 }, { "WARRIOR", 8 }, { "SHAMAN", 6 }, { "EVOKER", 5 },
-}
-local TEST_ZONES = {
-  { name = "Valdrakken",       mapID = 2112 },
-  { name = "Dornogal",         mapID = 2339 },
-  { name = "Orgrimmar",        mapID = 85 },
-  { name = "Stormwind City",   mapID = 84 },
-  { name = "Silvermoon City",  mapID = 110 },
-  { name = "Boralus",          mapID = 1161 },
-}
+local TEST_SEEDS = TEST_SEEDS_BY_CLIENT[NS.SAMPLE_CLIENT == "forever" and "forever" or "retail"]
+LT.TEST_SEEDS_BY_CLIENT, LT.TEST_SEEDS = TEST_SEEDS_BY_CLIENT, TEST_SEEDS   -- read-only, for the tests
+
+local TEST_CLASSES = TEST_SEEDS.classes
+local TEST_CLASS_W = TEST_SEEDS.classWeights
+local TEST_ZONES = TEST_SEEDS.zones
 local TEST_ZONE_W = { { 1, 26 }, { 2, 20 }, { 4, 16 }, { 3, 14 }, { 5, 12 }, { 6, 8 } }
--- The character bank takes the bulk; the guild bank is the lightest.
-local TEST_STORE_W = {
+-- The character bank takes the bulk; the guild bank is the lightest. Per client: the Warband Bank is
+-- Retail's alone (C.FEATURE.warbandBank, ruling R1), so on WoW Forever the dataset has no row there,
+-- its coverage seed walks the two stores that exist and every gold movement is the guild bank's.
+local WARBAND = C.FEATURE.warbandBank
+local TEST_STORE_W = WARBAND and {
   { "BANK", 38 }, { "WARBAND_BANK", 30 }, { "GUILD_BANK", 24 },
+} or {
+  { "BANK", 38 }, { "GUILD_BANK", 24 },
 }
+local TEST_COVER_STORES = WARBAND and { "BANK", "WARBAND_BANK", "GUILD_BANK" } or { "BANK", "GUILD_BANK" }
+local TEST_GOLD_ALT = WARBAND and "WARBAND_BANK" or "GUILD_BANK"
 local TEST_TYPE_W = {
   { "Tradegoods", 30 }, { "Consumable", 22 }, { "Armor", 16 }, { "Weapon", 12 },
   { "Recipe", 8 }, { "Gem", 7 }, { "Miscellaneous", 5 },
@@ -109,13 +159,11 @@ end
 -- NS.SampleCharacterOf: Mockflame-Mockrealm the mage, Sampleblade-Samplerealm the paladin,
 -- Samplemender-Samplerealm the priest, Mockshield-Mockrealm the warrior), and this ledger's own
 -- name for the four classes it has none of. Every name starts Sample or Mock, every realm is
--- Samplerealm or Mockrealm, never a real one; names are data and never localized.
-local TEST_OWN_CHARS = {
-  ROGUE  = "Mockshade-Samplerealm",
-  DRUID  = "Samplegrove-Mockrealm",
-  SHAMAN = "Mocktotem-Samplerealm",
-  EVOKER = "Samplescale-Mockrealm",
-}
+-- Samplerealm or Mockrealm, never a real one; names are data and never localized. The own names are
+-- per client like the shared set (BL-02; clients-§5), picked once at load by the key core/SimSetup.lua
+-- seeded: "Name-Realm" on Retail, "First Surname" on WoW Forever (forever-quirks-§4). They live in
+-- the client's seed row above (BL-09), with the class list they name.
+local TEST_OWN_CHARS = TEST_SEEDS.ownChars
 local TEST_GUILD = "Sample Company"
 
 -- "MAGE" -> "Mockflame-Mockrealm". Draws nothing.
@@ -169,7 +217,7 @@ end
 --    once, and the timestamps walk the full window. seedN is what guarantees all four invariants
 --    regardless of how the dice fall.
 local function seedCoverage(out, rng, now)
-  local stores = { "BANK", "WARBAND_BANK", "GUILD_BANK" }
+  local stores = TEST_COVER_STORES
   local seedN = math.max(#stores, #TEST_CLASSES, 6, TEST_SPAN_DAYS)
   for i = 1, seedN do
     makeTestEntry(out, rng, now,
@@ -194,12 +242,12 @@ local function bulkMovements(out, rng, now)
   end
 end
 
--- 3) Gold movements, at the two stores that hold coin.
+-- 3) Gold movements, at the stores that hold coin (the guild bank alone on WoW Forever).
 -- Draw order: class -> zone -> ts day -> ts seconds -> direction -> amount. The store comes from
 -- the loop index, not the dice.
 local function goldMovements(out, rng, now)
   for i = 1, 30 do
-    local store = (i % 2 == 0) and "WARBAND_BANK" or "GUILD_BANK"
+    local store = (i % 2 == 0) and TEST_GOLD_ALT or "GUILD_BANK"
     local cls = testPick(rng, TEST_CLASS_W)
     local zone = TEST_ZONES[testPick(rng, TEST_ZONE_W)]
     out[#out + 1] = {

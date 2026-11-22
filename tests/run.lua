@@ -21,8 +21,8 @@ local NS = {}
 -- because the kit's inventory keys on that pair and reads a bare name as a claim on tests/. One list
 -- carries both shapes, so the list the harness walks is the list that runs.
 local SUITES = {
-  "test_util", "test_compat", "test_constants", "test_filters",
-  "test_ledger", "test_backfill", "test_ledger_guildbank", "test_ledger_settling", "test_database", "test_stats", "test_ledgertable",
+  "test_util", "test_compat", "test_compat_client", "test_constants", "test_warband_client", "test_keyring_client", "test_testmode_client", "test_names_client", "test_wowhead_client", "test_clients_shape", "test_filters",
+  "test_ledger", "test_backfill", "test_ledger_guildbank", "test_ledger_settling", "test_bank_readiness", "test_probe", "test_database", "test_stats", "test_ledgertable",
   "test_browser", "test_browser_views", "test_autocomplete", "test_launcher", "test_launcher_skin_entry", "test_sessionwindow", "test_insights",
   "test_export", "test_debuglog", "test_schema", "test_schema_runtime", "test_slash", "test_bus",
   "test_panel", "test_panel_filters", "test_keybinds", "test_reset_routes", "test_harness", "test_mock", "test_mediasetup", "test_envsetup",
@@ -142,6 +142,24 @@ do
     NS.MaybeShowSkinPicker = real
     if not ok then error(err, 0) end
   end
+  -- `fn` with this addon wearing Ka0s Default by name, the applied choice put back after. A new
+  -- profile wears the client's default skin (NS.DEFAULT_SKIN, Skin:DefaultSkin): WoW Forever under
+  -- KA0S_KIT_CLIENT=forever. A case that pins a Ka0s Default VALUE (a tint, a hex) chooses it here,
+  -- the same on both kit profiles (DropWatcher's `skin = "ka0s"`, DW-FP03, skinning-§2).
+  T.onKa0sDefault = function(fn)
+    local Skin = mocks.LibStub("LibKa0s-Skin-1.0", true)
+    if not Skin then return fn() end
+    local source, skin = Skin:GetChoice("BankLedger")
+    Skin:SetChoice("BankLedger", "ka0s", "ka0s")
+    local ok, err = pcall(fn)
+    Skin:SetChoice("BankLedger", source, skin)
+    if not ok then error(err, 0) end
+  end
+  -- The skip reason a case about the Warband Bank passes as `test`'s third argument. The store is
+  -- Retail's alone (C.FEATURE.warbandBank, ruling R1): nil on Retail, so the case runs; a declared
+  -- skip on WoW Forever, where tests/test_warband_client.lua checks that the store is absent.
+  T.WARBAND_ONLY = (not NS.Constants.FEATURE.warbandBank)
+    and "Retail-only: the Warband Bank is absent on WoW Forever (C.FEATURE.warbandBank, R1)" or nil
 end
 
 NS:InitDB()

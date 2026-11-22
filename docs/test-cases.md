@@ -8,15 +8,21 @@ Total.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_util.lua (38)
+### test_util.lua (44)
 
-- Util.PlayerKey joins name and realm with spaces stripped
+- Util.PlayerKey is the player's record key on this client
+- Util.PlayerKey on regional names is the character key, so two Traxexes do not collide
+- Util.PlayerKey without regional names joins name and realm, realm spaces stripped
+- Util.RecordKey is the one join: Name-Realm with a realm, the whole name without one
 - Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form
 - Util.FormatClock renders HH:MM
 - Util.PlainMoney always renders gold, silver and copper parts
 - Util.PlainMoney renders zero rather than an empty string
 - Util.PlainMoney renders nil as empty
 - Util.FormatMoney is blank for nothing and compact for a real amount
+- Util.FormatMoney prefers C_CurrencyInfo.GetCoinTextureString and passes the glyph height
+- Util.FormatMoney falls back to GetMoneyString when C_CurrencyInfo has no coin string
+- Util.FormatMoney never reads the bare GetCoinTextureString global
 - Util.EntryType is the stored item type for an item movement
 - Util.EntryType is Gold for a gold movement, which stores no type
 - Util.EntryType is blank for an uncached item and for nothing at all
@@ -49,7 +55,7 @@ Total.
 - ApplyVisibility hides only open windows and re-shows exactly those on the way back
 - ApplyVisibility and ApplyMasterChrome build no table literal per call
 
-### test_compat.lua (17)
+### test_compat.lua (20)
 
 - Compat.GetItemDetails returns name, quality, type, subtype and vendor price
 - Compat.GetItemDetails returns nil for an item the client has not cached
@@ -66,20 +72,36 @@ Total.
 - Compat.GetStoreMoney returns nil when the build exposes no reader
 - Compat.PlayerName answers the name and the normalized realm, whitespace stripped
 - Compat.PlayerName falls back to GetRealmName, then to 'Unknown'
+- Compat.PlayerName on regional names answers the whole 'First Surname' and no realm
+- Compat.PlayerName on regional names never reads the realm
+- Compat.PlayerName on regional names: no surname answers the name alone, no name 'Unknown'
 - Compat.PlayerClass answers the classFile, read at call time
 - compat boundary: no player identity read outside core/Compat.lua
 
+### test_compat_client.lua (10)
+
+- compat client: ClientKey, IsForever and IsRetail answer the kit profile on both arms
+- compat client: ForClient(nil) is true, a declared client only on that client, an unknown token raises
+- compat client: a client that is neither answers nil and serves undeclared features only
+- compat client: RegionalNames follows RegionalUniqueNamesEnabled, false where it is absent
+- compat client: UnitCharacterName is the whole name with regional names, name and realm without
+- compat client: UnitCharacterName never answers a secret name
+- compat client: CharacterKey is this client's AceDB character key; nil without the library
+- compat client: RealmKey is the realm without regional names, the ruleset with them; nil without the library
+- compat client: no shipped file but core/CompatClient.lua reads a project id or the regional-names switch
+- compat client: core/CompatClient.lua loads straight after core/Compat.lua and before core/SimSetup.lua
+
 ### test_constants.lua (24)
 
-- Constants: every Store enum member appears in the display order
-- Constants: every Store enum member has a display label
+- Constants: every Store enum member the client has appears in the display order
+- Constants: every Store enum member the client has has a display label
 - Constants: every Store enum value equals its key (the stable stored form)
 - Constants: every Direction enum member has a label and a sign
 - Constants: a deposit signs positive and a withdrawal negative
 - Constants: every Kind has a label
 - Constants: the bag id group covers the backpack, four bags and the reagent bag
-- Constants: the bank group is exactly the six character-bank tabs
-- Constants: the warband bank spans its five account tabs
+- Constants: the bank group is exactly the client's character-bank tabs (6 Retail, 9 Forever)
+- Constants: the warband bank spans Retail's five account tabs
 - Constants: no container id belongs to two stores
 - Constants: no group lists the same id twice
 - Constants: the enum's type constants are never mistaken for containers
@@ -95,6 +117,70 @@ Total.
 - Constants: every direction has a color and a glyph
 - Constants: every open-frame context has a Ledger store list
 - Constants: C.Context is its own axis, not a subset of C.Store
+
+### test_warband_client.lua (10)
+
+- warband: declared Retail-only, its ForClient answer the running client's
+- warband: the store is in the order, labels and container groups on Retail only
+- warband: no container group holds an account-bank tab on WoW Forever
+- warband: the Banks to record options and the schema row offer it on Retail only
+- warband: the bank frame reaches it, and it holds coin, on Retail only
+- warband: the capture copy names the warband bank on Retail only
+- warband: the Insights gold cards' tooltips name it on Retail only
+- warband: the test-mode dataset has Warband Bank rows on Retail only
+- warband: the session preview shows the Warband Bank on Retail only
+- warband: the simulator registers the warband scenario and step on Retail only
+
+### test_keyring_client.lua (5)
+
+- keyring: the mock's enum names Keyring = -1 on both clients
+- keyring: the bags patterns are a per-client table picked once by ClientKey()
+- keyring: the bags group holds -1 on WoW Forever and not on Retail
+- keyring: a key carried from the keyring into the bank is a deposit on WoW Forever only
+- keyring: a key moved between the keyring and the backpack writes nothing
+
+### test_testmode_client.lua (8)
+
+- test mode: the seeds are a per-client table picked once by the sample key
+- test mode: Retail's seed row is the pre-port data, Evoker and the modern capitals included
+- test mode: WoW Forever's seed row has only the classic classes, no Evoker
+- test mode: WoW Forever's zones are the classic capitals, none of Retail's
+- test mode: every class in each row has a character, shared or the ledger's own
+- test mode: the dataset's classes and zones are this client's own
+- test mode: Retail's dataset is the pre-port one, row for row
+- test mode: WoW Forever's dataset is deterministic across runs
+
+### test_names_client.lua (9)
+
+- names: the Character dropdown width is a per-client table picked once by ClientKey()
+- names: the toolbar floor counts the client's Character dropdown width
+- names: the built Character dropdown has the client's width
+- names: a sample character's closed label fits the Character dropdown on WoW Forever
+- names: ShortChar keeps the client's distinguishing part of the key
+- names: a per-character bar truncates a long name and its tooltip keeps it whole
+- names: a stacked or split character row's tooltip carries the whole WoW Forever name
+- names: Truncate never cuts inside a multibyte character
+- names: the Character column describes the client's key shape
+
+### test_wowhead_client.lua (6)
+
+- wowhead: the item URL base is a per-client table picked once by ClientKey()
+- wowhead: Util.WowheadURL builds on the client's base
+- wowhead: the bonus query rides on the client's base
+- wowhead: a link with no bonuses gives a plain item URL on the client's base
+- wowhead: the CSV export's wowhead column carries the client's base
+- wowhead: no gold row gets a URL on either client
+
+### test_clients_shape.lua (8)
+
+- clients: the TOC carries the Retail and the WoW Forever number, and no load-gating line
+- clients: the Forever number arms the kit's missing-globals scan for both clients
+- clients: the README's badge and first sentence name both clients
+- clients: CLAUDE.md, testing.md and DEPENDENCIES.md name both kit profiles in the gate
+- clients: docs/forever-quirks.md carries the vendored Forever catalog and the addon's own section
+- clients: ARCHITECTURE.md's doc map and at-a-glance row read Retail · Forever
+- clients: every declared feature is present where declared and absent where not
+- clients: ARCHITECTURE.md's per-client table has a row for every declared feature
 
 ### test_filters.lua (13)
 
@@ -244,7 +330,7 @@ Total.
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_ledger_settling.lua (27)
+### test_ledger_settling.lua (31)
 
 - reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
@@ -264,6 +350,10 @@ Total.
 - Ledger: a movement whose halves are SECONDS apart is still recorded
 - Ledger: gold spent at the bank window is not recorded as a warband deposit
 - Ledger: a real gold deposit still records when the store balance lands a pass later
+- Ledger: a character-bank deposit whose halves arrive in separate events is recorded
+- Ledger: a character-bank withdrawal whose halves arrive separately is recorded
+- Ledger: a character-bank deposit whose halves are SECONDS apart is recorded
+- Ledger: a guild-bank gold deposit records when the vault's balance lands a pass later
 - Ledger: a one-sided change that never completes re-anchors after the timeout
 - Ledger: a re-anchored loot does not pair with a later unrelated deposit
 - Ledger: an unchanged world advances the baseline without waiting
@@ -273,6 +363,49 @@ Total.
 - Ledger: the deadline is armed for the REMAINING window, not a fixed retry
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
+
+### test_bank_readiness.lua (18)
+
+- readiness: Compat.CanViewCharacterBank answers C_Bank.CanViewBank(Enum.BankType.Character)
+- readiness: BAG_CONTAINER_UPDATE and BANK_TABS_CHANGED are capture cues on both clients
+- readiness: a cue event with the bank open schedules one debounced re-read
+- readiness: a first visit takes its baseline even with tabs at 0 slots (no memory yet)
+- readiness: a visit writes the live bank's shape to SavedVariables under the record key
+- readiness: the first visit after a reload is guarded by the shape the last session stored
+- readiness: visit 2 with a partly loaded bank takes no baseline
+- readiness: a tab loading while the bags lose the same item writes no phantom deposit
+- readiness: a tab dropping to 0 mid-visit holds the baseline and writes no phantom withdrawal
+- readiness: once the loading bank is ready, a real deposit is recorded
+- readiness: a movement made while the bank was loading mid-visit is recorded once it is ready
+- readiness: a tab that stays at 0 past the deadline is re-anchored, never diffed
+- readiness: a tab that never had slots (an unbought tab) never blocks the baseline
+- readiness: the bags have no guard (only bank containers are judged)
+- readiness: the shape memory is the live world's, never a running simulation's
+- readiness: at a warband-only banker the character bank is not read
+- readiness: at a warband-only banker the Warband Bank is still recorded
+- readiness: a nil CanViewBank answer (cannot tell) still reads the character bank
+
+### test_probe.lua (19)
+
+- probe: the four verbs are the debug verb's, and a bare or unknown word prints the usage
+- probe: status with no record says the probe is off
+- probe: start stamps the client and the build into db.global.probe and arms
+- probe: the start facts carry the money-text readers, the identity and the instance
+- probe: the start facts record the keyring's slots and contents
+- probe: a bank open records the bank facts at the open, +1 s and +3 s
+- probe: a bank read records the -2 socket reads through ItemLocation and GetContainerItemInfo
+- probe: a bank read without ItemLocation still records the GetContainerItemInfo read
+- probe: the bank cue events are recorded with the seconds since the open
+- probe: the banker's interaction type is recorded by number and name
+- probe: a guild banker records the guild-vault reads at the open, +1 s and +3 s
+- probe: GUILDBANKFRAME_OPENED alone takes the guild-vault reads
+- probe: the record is capped; the oldest entries go and the drop is counted
+- probe: the newest start entry is never evicted by the cap
+- probe: a resumed probe records fresh start facts, and only the newest start is pinned
+- probe: stop unarms, stamps the stop and keeps the record
+- probe: clear empties the entries and keeps the probe's state
+- probe: start is refused while the addon is disabled, and a disable disarms a running probe
+- probe: the record is db.global's, and the TOC declares no new SavedVariables global
 
 ### test_database.lua (56)
 
@@ -388,7 +521,7 @@ Total.
 - Stats: the per-store In and Out lists rank independently
 - Stats: a store with no withdrawals has an empty per-store Out list
 
-### test_ledgertable.lua (64)
+### test_ledgertable.lua (65)
 
 - LedgerTable:CellText renders the direction as a human label
 - LedgerTable:Column exposes the spec behind a key, and nil for an unknown one
@@ -396,6 +529,7 @@ Total.
 - LedgerTable:PaintCell drives the direction glyph only for the Direction column
 - LedgerTable:PaintCell is a safe no-op for a missing cell or column
 - LedgerTable:CellText renders the store as a human label
+- LedgerTable:CellText labels a Warband Bank row (Retail)
 - LedgerTable:CellText falls back to 'Item <id>' for an uncached item
 - LedgerTable:CellText shows a gold row's amount as money in the Qty column
 - LedgerTable:CellText shows the stack size for an item row
@@ -432,7 +566,7 @@ Total.
 - LedgerTable:GroupEntries defaults a missing group value rather than dropping the entry
 - LedgerTable:BuildTestData produces a non-trivial sample ledger
 - LedgerTable:BuildTestData is deterministic across runs
-- LedgerTable:BuildTestData covers every store
+- LedgerTable:BuildTestData covers every store the client has
 - LedgerTable:BuildTestData covers both directions and both kinds
 - LedgerTable:BuildTestData only puts gold where gold can live
 - LedgerTable:BuildTestData stamps the guild name only on guild-bank rows
@@ -997,7 +1131,7 @@ Total.
 - Slash: ResetEverything logs its profile reset as ONE [Set] line, and no [Data] line
 - Slash: every reset route has the SAME blast radius — the ledger survives all of them
 
-### test_panel_filters.lua (41)
+### test_panel_filters.lua (42)
 
 - Panel: the Filters tab draws a SECONDARY strip and renders only the selected list
 - Filters tab: an item id typed into the box goes through Filters:AddBlacklist
@@ -1036,6 +1170,7 @@ Total.
 - Panel: a checkbox write goes through the single write seam
 - Panel: History draws Purge alone — Reset all left with the Master controls tab
 - Panel: the store grid renders as an inverted checkbox set, host-drawn
+- Panel: the store grid has a Warband Bank box on Retail and none on WoW Forever (BL-05)
 - Panel: a tab's only headings are the SUBSECTION ones its rows declare
 - Panel: the storage read-out lands on the History tab and nowhere else
 - Panel: re-rendering a page releases the previous widgets and their refreshers
@@ -1072,7 +1207,7 @@ Total.
 - Harness: Filters loads before Ledger — the capture gate reads the lists
 - Harness: the settings files load last, and in order
 
-### test_mock.lua (28)
+### test_mock.lua (31)
 
 - Mock frame: a stub starts SHOWN, as a real frame does
 - Mock frame: Show, Hide and SetShown flip the one piece of state the stub models
@@ -1102,6 +1237,9 @@ Total.
 - Mock frame: lowercase and non-string keys miss through to nil
 - Mock AceDB: a scalar default reads through; clearing the key does not unset it
 - Mock bus: UnregisterAllMessages drops one target and leaves the rest subscribed
+- Mock client: Enum.BagIndex is the profile's (Retail 6+5 account tabs at 6..16, Forever 9+9 at 6..23)
+- Mock client: regional names and the two-word UnitName follow the profile
+- Mock client: CanViewBank answers the character bank on both and the account bank on Retail only
 
 ### test_mediasetup.lua (14)
 
@@ -1334,9 +1472,10 @@ Total.
 
 - every deviation id the register cites is assigned by a bundle in docs/audits/
 
-### test_docs.lua (1)
+### test_docs.lua (2)
 
 - docs/smoke-tests.md carries a non-English-client section
+- docs/smoke-tests.md carries a WoW Forever section with its absence and R8 checks
 
 ### test_lintconfig.lua (4)
 
@@ -1475,8 +1614,8 @@ Total.
 ### test_sim_seam.lua (12)
 
 - Sim seam: the vendored LibKa0s-Sim-1.0 registered and NS.SimSeam is its seam
-- Sim seam: Keys() is the 12 wrapped Compat members, sorted
-- Sim seam: the three pure members are not wrapped
+- Sim seam: Keys() is the 13 wrapped Compat members, sorted
+- Sim seam: the eleven pure members are not wrapped
 - Sim seam: Unwrapped() is EMPTY after the whole addon loads (host contract H2)
 - Sim seam: with no session, every wrapped member answers what the bare Compat answers
 - Sim seam: SetProvider on a pure key raises
@@ -1484,20 +1623,24 @@ Total.
 - Sim seam: Live(fn) restores bypass when fn raises, and re-raises the same value
 - Sim seam: a guarded QueryGuildBankTab never reaches the client during a session
 - Sim seam: the guarded query is inert with no sim world and no session
-- TOC: core/SimSetup.lua loads immediately after core/Compat.lua, annotated LOAD-BEARING
-- Sim seam: no file caches a Compat member or the Compat table outside core/Compat.lua
+- TOC: core/SimSetup.lua loads immediately after the compat family, annotated LOAD-BEARING
+- Sim seam: no file caches a Compat member or the Compat table outside the compat family
 
-### test_sim_world.lua (17)
+### test_sim_world.lua (21)
 
 - SimWorld: a slot answers Compat's { itemID, link, count } triple, and an empty one nil
-- SimWorld: slot counts are 20 backpack, 98 for the first bank and warband tab, 0 elsewhere
+- SimWorld: slot counts are 20 backpack, the client's bank tabs and warband tab, 0 elsewhere
+- SimWorld: the bank tab sizes are a per-client table picked once by the sample key
+- SimWorld: a deposit that fills WoW Forever's base tab lands in the next bag-sized tab (skipped: WoW Forever-only: Retail's world has one bank tab)
 - SimWorld: a guild tab answers nil until it is queried this visit, then its data
 - SimWorld: IsGuildBankVisible is strictly true or false, never nil
 - SimWorld: guild money is nil while the guild frame is hidden, set while visible
 - SimWorld: warband money answers the world's balance, and Money moves it
+- SimWorld: WoW Forever's world seeds no warband coin, and Money refuses the warband store (skipped: WoW Forever-only: Retail seeds the warband's 20,000g)
 - SimWorld: the purse follows `current` across Switch
 - SimWorld: main is the real player; after Switch the identity members answer the alt
 - SimWorld: a paladin's alt is the shared sample warrior
+- SimWorld: each character's key is the set's fullName and what Util.RecordKey builds
 - SimWorld: the pool is drawn from the player's REAL bags, distinct, links kept
 - SimWorld: an empty bag falls back to the fixed ids, warmed, and reports it once
 - SimWorld: an unguilded player's world invents the guild name
@@ -1507,10 +1650,11 @@ Total.
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
 
-### test_sample_characters.lua (7)
+### test_sample_characters.lua (8)
 
 - sample characters: NS.SampleCharacters answers the library's rows for this client
-- sample characters: the library-absent copy matches the library's Retail rows field for field
+- sample characters: each library-absent twin matches the library's rows for its client
+- sample characters: the rows are in this client's shape, Name-Realm on Retail, First Surname on Forever
 - sample characters: without the library NS.SampleCharacters answers a copy of the host rows
 - sample characters: every test-mode character follows the convention, none on a real realm
 - sample characters: test mode's protagonists are the shared rows, by class
@@ -1563,11 +1707,12 @@ Total.
 - Sim session: purge refuses through Database:Purge, the verb and the panel button
 - Sim session: a purge confirm accepted after a simulation started refuses and never says purged
 
-### test_sim_scenario.lua (8)
+### test_sim_scenario.lua (9)
 
-- Sim scenarios: bank, warband, guild and onesided, in that order, each with a label
+- Sim scenarios: bank, warband (Retail), guild and onesided, in that order, each with a label
 - Sim scenarios: every timeline is pure: two builds are equal and fresh, and touch nothing
 - Sim scenarios: each scenario's step count, kinds and labels
+- Sim scenarios: the warband driver arguments the expected rows rest on (Retail)
 - Sim scenarios: the driver arguments the expected rows rest on
 - Sim gate: open when settled; closed on a lagged half, a held baseline or a pending pass
 - Sim gate: holdOK on the next step opens it over a live hold, never over a lagged half
@@ -1635,13 +1780,14 @@ Total.
 - Layers: the degraded resize grip sits at window + LEVEL.GRIP, as the library's
 - Layers: no strata string and no bare level number at any call site
 
-### test_skinsetup.lua (14)
+### test_skinsetup.lua (15)
 
 - Skin seam: the owner is the folder name, and NS.Skin is its facade
-- Skin seam: the read answers Ka0s Default before the profile store exists
+- Skin seam: the read answers the client's default before the profile store exists
+- Skin seam: the profile default is the client's default skin
 - Skin seam: each owner token draws its Ka0s Default pixel and follows its role elsewhere
 - Skin seam: the gold movement token is today's pale gold, not sem.gold
-- Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows
+- Skin seam: the appearance keys default to the client's look, as eight skipRender Appearance rows
 - Skin seam: the skin row's values are every registered skin, in the library's order
 - Skin seam: /bl set refuses a skin that is not registered and applies one that is
 - Skin seam: /bl set reaches an exception, and only its own half
@@ -1971,17 +2117,26 @@ Total.
 
 | Suite | Cases |
 |-------|------:|
-| test_util.lua | 38 |
-| test_compat.lua | 17 |
+| test_util.lua | 44 |
+| test_compat.lua | 20 |
+| test_compat_client.lua | 10 |
 | test_constants.lua | 24 |
+| test_warband_client.lua | 10 |
+| test_keyring_client.lua | 5 |
+| test_testmode_client.lua | 8 |
+| test_names_client.lua | 9 |
+| test_wowhead_client.lua | 6 |
+| test_clients_shape.lua | 8 |
 | test_filters.lua | 13 |
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
-| test_ledger_settling.lua | 27 |
+| test_ledger_settling.lua | 31 |
+| test_bank_readiness.lua | 18 |
+| test_probe.lua | 19 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
-| test_ledgertable.lua | 64 |
+| test_ledgertable.lua | 65 |
 | test_browser.lua | 53 |
 | test_browser_views.lua | 21 |
 | test_autocomplete.lua | 17 |
@@ -1996,11 +2151,11 @@ Total.
 | test_slash.lua | 59 |
 | test_bus.lua | 10 |
 | test_panel.lua | 35 |
-| test_panel_filters.lua | 41 |
+| test_panel_filters.lua | 42 |
 | test_keybinds.lua | 8 |
 | test_reset_routes.lua | 6 |
 | test_harness.lua | 8 |
-| test_mock.lua | 28 |
+| test_mock.lua | 31 |
 | test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
 | test_marks.lua | 22 |
@@ -2013,7 +2168,7 @@ Total.
 | test_disabled.lua | 20 |
 | test_surface_parity.lua | 27 |
 | test_register.lua | 1 |
-| test_docs.lua | 1 |
+| test_docs.lua | 2 |
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
 | test_report_verbs.lua | 6 |
@@ -2021,16 +2176,16 @@ Total.
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
-| test_sim_world.lua | 17 |
-| test_sample_characters.lua | 7 |
+| test_sim_world.lua | 19 |
+| test_sample_characters.lua | 8 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
-| test_sim_scenario.lua | 8 |
+| test_sim_scenario.lua | 9 |
 | test_sim_e2e.lua | 9 |
 | test_sim_panel.lua | 19 |
 | test_sim_checkbox.lua | 10 |
 | test_layers.lua | 11 |
-| test_skinsetup.lua | 14 |
+| test_skinsetup.lua | 15 |
 | test_skin_windows.lua | 12 |
 | test_skin_chrome.lua | 16 |
 | test_title_bar.lua | 9 |
@@ -2049,5 +2204,5 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
-| Skipped | 1 |
-| **Total** | **1724** |
+| Skipped | 3 |
+| **Total** | **1841** |

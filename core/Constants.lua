@@ -12,18 +12,40 @@ C.Store = {
   GUILD_BANK   = "GUILD_BANK",
 }
 
+-- ── Per-client features (clients-§4; WoW Forever port design, ruling R1) ─────────────────────
+-- The Retail-only features, each declared with the clients it serves and its ForClient answer read
+-- once at load (core/CompatClient.lua loads first). `warbandBank`: the Warband Bank store. WoW
+-- Forever ships the account-bank API with the feature locked, and the standard names the warband
+-- bank as one a Forever player never sees (clients.md), so there it is ABSENT, never hidden: no
+-- store in the order, label, mute grid, container groups, bank-frame reach or coin stores, no
+-- capture copy naming it, no test-mode or preview row and no simulator scenario or step. The C.Store
+-- member and its C.StoreRGB swatch stay on both clients: the member is the stored key, and neither
+-- is a surface. tests/test_warband_client.lua checks each gate on both kit profiles.
+C.FEATURE_CLIENTS = {
+  warbandBank = { "retail" },
+}
+C.FEATURE = {}
+for name, clients in pairs(C.FEATURE_CLIENTS) do C.FEATURE[name] = NS.Compat.ForClient(clients) end
+local WARBAND = C.FEATURE.warbandBank
+
 -- Display order for grouping, filters and the Insights breakdown (bags first, then the stores a
--- movement can target).
-C.StoreOrder = {
+-- movement can target). Per client: the Warband Bank is Retail's alone (C.FEATURE above).
+C.StoreOrder = WARBAND and {
   "BANK", "WARBAND_BANK", "GUILD_BANK", "BAGS",
+} or {
+  "BANK", "GUILD_BANK", "BAGS",
 }
 
 C.StoreLabel = {
   BAGS         = "Bags",
   BANK         = "Character Bank",
-  WARBAND_BANK = "Warband Bank",
+  WARBAND_BANK = WARBAND and "Warband Bank" or nil,
   GUILD_BANK   = "Guild Bank",
 }
+
+-- The banks that hold coin, as the capture copy names them (the Record gold tooltip, the Insights
+-- gold cards): the character bank has no coin slot on either client.
+C.COIN_BANKS_TEXT = WARBAND and "the guild and warband banks" or "the guild bank"
 
 -- ── Open-frame context enum ─────────────────────────────────────────────────────
 -- Which storage FRAME is open. Deliberately NOT a C.Store value: the retail bank frame reaches the
@@ -115,10 +137,23 @@ C.StoreRGB = {
 -- constants that look deceptively similar to container ids — on 12.0.7, `Characterbanktab = -2` and
 -- `Accountbanktab = -3` sit alongside the real `CharacterBankTab_1..6` and `AccountBankTab_1..5`.
 -- A loose match would scoop those up and scan a container that does not exist.
+--
+-- The bags group is per client (WoW Forever port design, ruling R5; clients-§5), its row picked ONCE
+-- at load by ClientKey(). `ReagentBag` is the reagent BAG worn in the inventory's fifth slot — a live
+-- container on both clients, and not to be confused with the reagent BANK, which Midnight removed. Do
+-- not strip it. WoW Forever's row adds the keyring (`Keyring`, -1: Blizzard's KEYRING_CONTAINER), a
+-- live container there, so a key the player owns counts as carried and a key taken from the keyring
+-- into the bank is a deposit rather than a one-sided change. Retail's enum names Keyring = -1 too,
+-- but -1 was the legacy bank container before 11.2 and nothing has shown what it answers today, so
+-- Retail's row stays the pre-port list and never scans it. tests/test_keyring_client.lua.
+C.BAG_PATTERNS_BY_CLIENT = {
+  retail  = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
+  forever = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$", "^Keyring$" },
+}
+C.BAG_PATTERNS = C.BAG_PATTERNS_BY_CLIENT[NS.Compat.ClientKey()] or C.BAG_PATTERNS_BY_CLIENT.retail
+
 local GROUP_PATTERNS = {
-  -- `ReagentBag` is the reagent BAG worn in the inventory's fifth slot — a live container, and not
-  -- to be confused with the reagent BANK, which Midnight removed. Do not strip it.
-  BAGS         = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
+  BAGS         = C.BAG_PATTERNS,
   -- `Bank` / `BankBag_N` are the pre-tab character bank; `CharacterBankTab_N` is the modern form.
   BANK         = { "^Bank$", "^BankBag_%d+$", "^CharacterBankTab_%d+$" },
   WARBAND_BANK = { "^AccountBankTab_%d+$" },
@@ -147,7 +182,9 @@ end
 
 C.BAG_IDS          = idsMatching(GROUP_PATTERNS.BAGS)
 C.BANK_IDS         = idsMatching(GROUP_PATTERNS.BANK)
-C.WARBAND_BANK_IDS = idsMatching(GROUP_PATTERNS.WARBAND_BANK)
+-- Empty on a client without the Warband Bank (C.FEATURE): WoW Forever's AccountBankTab_1..9 (15..23)
+-- exist in the enum, but nothing there scans them.
+C.WARBAND_BANK_IDS = WARBAND and idsMatching(GROUP_PATTERNS.WARBAND_BANK) or {}
 
 -- The backpack is id 0 on every build and predates the enum, so guarantee it rather than depend on
 -- `Backpack` being present. Without the bags side there is no movement to detect at all.
@@ -155,11 +192,14 @@ if #C.BAG_IDS == 0 then C.BAG_IDS = { 0, 1, 2, 3, 4, 5 } end
 
 -- Store → the container ids scanned for it. The guild bank has its own API family and is scanned
 -- through Compat rather than a container-id list, so it is absent here.
+-- The Warband Bank has no row on a client without it (C.FEATURE). C.CONTAINER_STORES is the
+-- container-backed stores in the order the diagnostics report lists them.
 C.STORE_CONTAINERS = {
   BAGS         = C.BAG_IDS,
   BANK         = C.BANK_IDS,
-  WARBAND_BANK = C.WARBAND_BANK_IDS,
+  WARBAND_BANK = WARBAND and C.WARBAND_BANK_IDS or nil,
 }
+C.CONTAINER_STORES = WARBAND and { "BAGS", "BANK", "WARBAND_BANK" } or { "BAGS", "BANK" }
 
 -- ── Frame layering (frame-layering-§5) ──────────────────────────────────────────
 -- The addon's one layers table: every SetFrameStrata and SetFrameLevel in core/, modules/ and

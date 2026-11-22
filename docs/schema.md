@@ -12,7 +12,7 @@ One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.de
 
 | Scope | Defaults file | Holds |
 |---|---|---|
-| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp |
+| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp, the probe record (`probe`, no default: present only once `/bl debug probe start` has run), and the bank readiness guard's remembered shapes (`bankShape`, no default) |
 | `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`, the skin choice `settings.appearance` included), both filter lists, the saved views (one per tab) |
 
 The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
@@ -27,7 +27,7 @@ Each default value is hardcoded in exactly one of the two files (`savedvariables
 [settings-panel.md](settings-panel.md#rows)):
 
 ```lua
-appearance = { source = "ka0s", skin = "ka0s",          -- the skin this addon wears (Ka0s Default)
+appearance = { source = "ka0s", skin = NS.DEFAULT_SKIN, -- the client's default skin (Skin:DefaultSkin): Ka0s Default on Retail, WoW Forever on Forever
                ignorePanel = true, ignoreFonts = false, -- the Scope: settings pages stay the client's
                font = "", texture = "",                 -- the Font and texture overrides: "" = the skin's own
                outline = "hud",                         -- the Font outline: "all", "hud" or "off"
@@ -66,8 +66,8 @@ enums freely, never rename a member.
 members, and the removal deliberately sits outside the rule above.
 
 The rule protects rows that already exist: renaming a member orphans stored data that still carries
-the old string. Neither of these could ever have produced one. The addon is Retail-only at Interface
-120105, where Midnight has already removed both — void storage exposes no container or events at
+the old string. Neither of these could ever have produced one. The addon was Retail-only at Interface
+120105 when they went, and Midnight had already removed both — void storage exposes no container or events at
 all, and `REAGENT_BANK`'s container group resolved empty, so `StoresFor` dropped it from every scan
 before a movement could be attributed to it. There is no installed base either: both were removed
 before v1.0.0, the first published release, so no shipped build ever wrote a row against them. Zero
@@ -228,7 +228,9 @@ violation.
 
 The later `wowhead` column is **not** part of that break: it is appended after `zone`, so every
 existing column keeps its index and a sheet keyed on position is unaffected. Growth at the end is
-what the stable-column-set promise allows.
+what the stable-column-set promise allows. Its base is per client (`Util.WOWHEAD_ITEM_URL_BY_CLIENT`,
+`wowhead.com/item=` on Retail and `wowhead.com/forever/item=` on WoW Forever); the column itself is
+the same on both.
 
 
 ## The runtime: `LibKa0s-Schema-1.0`
@@ -392,6 +394,22 @@ in it are per-installation display preferences rather than settings (`launcher-�
 this until the launcher was adopted (`launcher-§1`). [Registry, recorded data and named-state writers](#registry-recorded-data-and-named-state-writers)
 names every writer of all four and the act that reaches each. That naming is what makes them
 compliant, so none has a `Documented deviations` row. A new writer of any of them joins that list.
+
+**The probe record is diagnostic recorded data, not a setting** (`architecture-§5` named non-setting
+state). `db.global.probe` is `{ active, client, build, startedAt, stoppedAt, dropped, entries }`, the
+entries capped at 200 (`P.CAP`), oldest first. Its one writer is `NS.Probe` (`modules/Probe.lua`),
+reached only from `/bl debug probe start|stop|clear` and from the events a started probe listens to.
+It has no default in `defaults/Global.lua`, so it is created by the first `start` and no migration is
+owed; it is account-wide and in no profile, so no profile event or reset reaches it, and only
+`/bl debug probe clear` empties it. [forever-probes.md](forever-probes.md) lists the entry fields.
+
+**The bank shapes are the readiness guard's memory, not a setting** (`architecture-§5` named
+non-setting state). `db.global.bankShape` is `{ [<record key>] = { [bagID] = slots } }`, the slot
+count of every bank container on that character's last ready read. Its one writer is
+`NS.Ledger` (`L:ShapeMemory` and `L:ForgetBankShape`, `modules/Ledger.lua`), on every bank read
+the guard judges ready or re-anchors. It survives a reload so the first bank open of a session is
+guarded too (BL-REV); a simulated world's shape is never stored. It has no default, so no
+migration is owed, and no profile event or reset reaches it.
 
 **The filter id-sets are a structural registry, not a carve-out** (`architecture-§5`).
 `db.profile.blacklist` and `db.profile.whitelist` are item-id sets the player adds to and removes

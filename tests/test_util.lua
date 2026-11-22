@@ -4,8 +4,41 @@ local mocks = T.mocks
 local test, assertEqual, assertTrue, assertFalse =
   T.test, T.assertEqual, T.assertTrue, T.assertFalse
 
-test("Util.PlayerKey joins name and realm with spaces stripped", function()
-  assertEqual(NS.Util.PlayerKey(), "Mock-Realm")
+-- The player's record key per client (WoW Forever port, "Identity", BL-03): `Name-Realm` on Retail,
+-- the key every stored Retail row already carries; the character key "First Surname" on WoW
+-- Forever (regional names), where the mock's player is "Mock" with the surname "Mockvault".
+local FOREVER = NS.Compat.ClientKey() == "forever"
+
+test("Util.PlayerKey is the player's record key on this client", function()
+  assertEqual(NS.Util.PlayerKey(), FOREVER and "Mock Mockvault" or "Mock-Realm")
+end)
+
+test("Util.PlayerKey on regional names is the character key, so two Traxexes do not collide", function()
+  local saved = { mocks.RegionalUniqueNamesEnabled, mocks.UnitName, mocks.UnitNameUnmodified }
+  mocks.RegionalUniqueNamesEnabled = function() return true end
+  local keys = {}
+  for i, surname in ipairs({ "Mockstride", "Mockvale" }) do
+    mocks.UnitName = function() return "Samplehunter", surname end
+    mocks.UnitNameUnmodified = mocks.UnitName
+    keys[i] = NS.Util.PlayerKey()
+  end
+  mocks.RegionalUniqueNamesEnabled, mocks.UnitName, mocks.UnitNameUnmodified = saved[1], saved[2], saved[3]
+  assertEqual(keys[1], "Samplehunter Mockstride")
+  assertEqual(keys[2], "Samplehunter Mockvale")
+end)
+
+test("Util.PlayerKey without regional names joins name and realm, realm spaces stripped", function()
+  local saved = { mocks.RegionalUniqueNamesEnabled, mocks.GetNormalizedRealmName }
+  mocks.RegionalUniqueNamesEnabled = function() return false end
+  mocks.GetNormalizedRealmName = function() return "Sample realm" end
+  local key = NS.Util.PlayerKey()
+  mocks.RegionalUniqueNamesEnabled, mocks.GetNormalizedRealmName = saved[1], saved[2]
+  assertEqual(key, "Mock-Samplerealm")
+end)
+
+test("Util.RecordKey is the one join: Name-Realm with a realm, the whole name without one", function()
+  assertEqual(NS.Util.RecordKey("Sampleblade", "Samplerealm"), "Sampleblade-Samplerealm")
+  assertEqual(NS.Util.RecordKey("Sampleblade Mockvale", nil), "Sampleblade Mockvale")
 end)
 
 test("Util.FormatDate uses the locale-unambiguous DD-MMM-YYYY form", function()
@@ -33,6 +66,54 @@ test("Util.FormatMoney is blank for nothing and compact for a real amount", func
   assertEqual(NS.Util.FormatMoney(0), "")
   assertEqual(NS.Util.FormatMoney(nil), "")
   assertEqual(NS.Util.FormatMoney(10203), "1g 2s 3c")
+end)
+
+-- Money text (R8, both clients): C_CurrencyInfo.GetCoinTextureString first, then GetMoneyString,
+-- then the plain text. The bare GetCoinTextureString global is never read (Forever has none).
+local function withMoneyApis(apis, fn)
+  local saved = { mocks.C_CurrencyInfo, mocks.GetMoneyString, mocks.GetCoinTextureString }
+  mocks.C_CurrencyInfo, mocks.GetMoneyString, mocks.GetCoinTextureString =
+    apis.currency, apis.moneyString, apis.bare
+  local ok, err = pcall(fn)
+  mocks.C_CurrencyInfo, mocks.GetMoneyString, mocks.GetCoinTextureString = saved[1], saved[2], saved[3]
+  if not ok then error(err, 0) end
+end
+
+test("Util.FormatMoney prefers C_CurrencyInfo.GetCoinTextureString and passes the glyph height", function()
+  local calls = {}
+  withMoneyApis({
+    currency = { GetCoinTextureString = function(...) calls[#calls + 1] = { n = select("#", ...), ... }
+      return "coins" end },
+    moneyString = function() return "money" end,
+    bare = function() return "bare" end,
+  }, function()
+    assertEqual(NS.Util.FormatMoney(10203, 12), "coins")
+    assertEqual(NS.Util.FormatMoney(10203), "coins")
+    assertEqual(NS.Util.FormatMoney(0, 12), "")
+  end)
+  assertEqual(#calls, 2)
+  assertEqual(calls[1][1], 10203)
+  assertEqual(calls[1][2], 12)
+  -- No height: the API's own default (14) applies, so the argument is left out, not passed as nil.
+  assertEqual(calls[2].n, 1)
+end)
+
+test("Util.FormatMoney falls back to GetMoneyString when C_CurrencyInfo has no coin string", function()
+  local got
+  withMoneyApis({
+    currency = {},
+    moneyString = function(copper) got = copper; return "money" end,
+    bare = function() return "bare" end,
+  }, function()
+    assertEqual(NS.Util.FormatMoney(10203, 12), "money")
+  end)
+  assertEqual(got, 10203)
+end)
+
+test("Util.FormatMoney never reads the bare GetCoinTextureString global", function()
+  withMoneyApis({ bare = function() return "bare" end }, function()
+    assertEqual(NS.Util.FormatMoney(10203), "1g 2s 3c")
+  end)
 end)
 
 test("Util.EntryType is the stored item type for an item movement", function()
@@ -138,12 +219,15 @@ end)
 -- The CSV export's trailing column. A real link's bonus IDs are what make the URL resolve to the
 -- variant that moved rather than to the base item, so they are the thing worth pinning down.
 
+-- The base is per client (R7; tests/test_wowhead_client.lua): these cases pin the path after it.
+local WH_BASE = NS.Util.WOWHEAD_ITEM_URL_BY_CLIENT[NS.Compat.ClientKey()]
+
 local GEAR_LINK = "|cffa335ee|Hitem:151300::::::::80:250::5:5:12801:13440:6652:13577:12699"
   .. ":1:28:2437|h[Sample Helm]|h|r"
 
 test("Util.WowheadURL carries every bonus id from the item link", function()
   assertEqual(NS.Util.WowheadURL({ itemID = 151300, itemLink = GEAR_LINK }),
-    "https://www.wowhead.com/item=151300?bonus=12801:13440:6652:13577:12699")
+    WH_BASE .. "151300?bonus=12801:13440:6652:13577:12699")
 end)
 
 test("Util.WowheadURL stops at the declared bonus count", function()
@@ -155,16 +239,16 @@ end)
 
 test("Util.WowheadURL omits the bonus query for an item that has none", function()
   assertEqual(NS.Util.WowheadURL({ itemID = 2589, itemLink = "|cff9d9d9d|Hitem:2589::::::::80:250"
-    .. "::::::|h[Linen Cloth]|h|r" }), "https://www.wowhead.com/item=2589")
+    .. "::::::|h[Linen Cloth]|h|r" }), WH_BASE .. "2589")
 end)
 
 test("Util.WowheadURL falls back to the stored item id when there is no link", function()
-  assertEqual(NS.Util.WowheadURL({ itemID = 2589 }), "https://www.wowhead.com/item=2589")
+  assertEqual(NS.Util.WowheadURL({ itemID = 2589 }), WH_BASE .. "2589")
 end)
 
 test("Util.WowheadURL accepts a bare item string as well as a full hyperlink", function()
   assertEqual(NS.Util.WowheadURL({ itemLink = "item:151300::::::::80:250::5:2:12801:13440" }),
-    "https://www.wowhead.com/item=151300?bonus=12801:13440")
+    WH_BASE .. "151300?bonus=12801:13440")
 end)
 
 test("Util.WowheadURL returns nothing for a row with no item at all", function()

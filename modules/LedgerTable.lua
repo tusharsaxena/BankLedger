@@ -54,6 +54,16 @@ end
 
 local EM_DASH = "\226\128\148"
 
+-- The Character column's header description, per client and picked ONCE at load by ClientKey()
+-- (WoW Forever port, design D12; clients-§5): the key is "Name-Realm" on Retail and the whole
+-- "First Surname" on WoW Forever (forever-quirks-§4), which has no realm to name.
+local CHAR_COLUMN_DESC_BY_CLIENT = {
+  retail  = "Who moved it \226\128\148 full Name-Realm, class-colored, behind its class icon.",
+  forever = "Who moved it \226\128\148 full name and surname, class-colored, behind its class icon.",
+}
+local CHAR_COLUMN_DESC = CHAR_COLUMN_DESC_BY_CLIENT[(NS.Compat and NS.Compat.ClientKey
+  and NS.Compat.ClientKey()) or "retail"] or CHAR_COLUMN_DESC_BY_CLIENT.retail
+
 -- ── Column model ────────────────────────────────────────────────────────────────
 -- width 0 + flex = true means "absorb the remaining width" (the Item column). Character is
 -- deliberately LAST; insert any new column BEFORE it so that stays true.
@@ -107,7 +117,7 @@ LT.COLUMNS = {
     sortFn = function(e) return NS.Util.EntrySubType(e):lower() end },
   -- Character is always the last column (see the order note above).
   { key = "char", label = "Character", width = 144, align = "LEFT",
-    desc = "Who moved it — full Name-Realm, class-colored, behind its class icon.",
+    desc = CHAR_COLUMN_DESC,
     valueFn = function(e) return NS.Util.ClassIconMarkup(e.classFile) .. (e.char or "") end,
     sortFn = function(e) return (e.char or ""):lower() end },
 }

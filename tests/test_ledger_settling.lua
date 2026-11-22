@@ -15,6 +15,8 @@ local test, assertEqual, assertTrue, assertFalse =
 local S = dofile("tests/ledger_support.lua")
 local withContainers = S.withContainers
 local BAG_ID, BANK_ID, WARBAND_ID = S.BAG_ID, S.BANK_ID, S.WARBAND_ID
+-- The warband-lag repros below are Retail's alone: the Warband Bank is absent on WoW Forever.
+local WARBAND_ONLY = T.WARBAND_ONLY
 
 -- ── Event registration resilience ──────────────────────────────────────────────
 -- The second fault behind "nothing is tracked": on modern retail RegisterEvent RAISES on a retired
@@ -223,7 +225,7 @@ test("Ledger: a movement whose halves arrive in separate events is still recorde
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 test("Ledger: a withdrawal whose halves arrive separately is also recorded", function()
   local before = NS.Database:Count()
@@ -242,7 +244,7 @@ test("Ledger: a withdrawal whose halves arrive separately is also recorded", fun
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 test("Ledger: two separate actions stay two separate rows", function()
   -- Debouncing must group by user action, not merge everything: a second deposit after the first
@@ -341,7 +343,7 @@ test("Ledger: a movement whose halves are SECONDS apart is still recorded", func
   end)
   NS.Database:Delete(function(e) return e.itemID == 171276 end)
   assertEqual(NS.Database:Count(), before)
-end)
+end, WARBAND_ONLY)
 
 -- Money end-to-end, through the real reconcile path. The Diff tests prove the rule; these two prove
 -- the rule survives the settle machinery, which is where a corroborated movement could still be
@@ -392,6 +394,102 @@ test("Ledger: a real gold deposit still records when the store balance lands a p
   mocks.__money, mocks.__warbandMoney = savedMoney, savedWarband
   NS.Database:Delete(function(e) return e.kind == "MONEY" and e.quantity == 500000 end)
   assertEqual(NS.Database:Count(), before)
+end, WARBAND_ONLY)
+
+-- ── The settle wait through the stores both clients have (BL-REV; clients-§6) ─────
+-- The warband repros above skip on WoW Forever, so the held baseline is driven here through the
+-- character bank and the guild bank, the stores WoW Forever actually has. Every case runs on both
+-- kit profiles.
+
+-- The newest row, asserted field by field.
+local function assertLastRow(store, direction, quantity, kind)
+  local e = NS.Database:Ledger()[NS.Database:Count()]
+  assertEqual(e.store, store)
+  assertEqual(e.direction, direction)
+  assertEqual(e.quantity, quantity)
+  if kind then assertEqual(e.kind, kind) end
+end
+
+test("Ledger: a character-bank deposit whose halves arrive in separate events is recorded", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 6 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:ScheduleReconcile()
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 6 }
+    NS.Ledger:ScheduleReconcile()
+    mocks.__fireTimers()
+    assertEqual(NS.Database:Count(), before + 1, "one character-bank row")
+    assertLastRow("BANK", "DEPOSIT", 6)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+end)
+
+test("Ledger: a character-bank withdrawal whose halves arrive separately is recorded", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1 },
+    [BANK_ID] = { slots = 1, [1] = { itemID = 171276, count = 2 } },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__timers = {}
+    mocks.__containers[BANK_ID][1] = nil
+    NS.Ledger:ScheduleReconcile()
+    mocks.__containers[BAG_ID][1] = { itemID = 171276, count = 2 }
+    NS.Ledger:ScheduleReconcile()
+    mocks.__fireTimers()
+    assertEqual(NS.Database:Count(), before + 1)
+    assertLastRow("BANK", "WITHDRAW", 2)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+end)
+
+test("Ledger: a character-bank deposit whose halves are SECONDS apart is recorded", function()
+  local before = NS.Database:Count()
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = 171276, count = 9 } },
+    [BANK_ID] = { slots = 1 },
+  }, function()
+    NS.Ledger:OpenContext("BANK_FRAME")
+    mocks.__containers[BAG_ID][1] = nil
+    NS.Ledger:Reconcile()
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "only one side has moved")
+    mocks.__now = mocks.__now + 1
+    mocks.__containers[BANK_ID][1] = { itemID = 171276, count = 9 }
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before + 1, "the held baseline still saw the bags half")
+    assertLastRow("BANK", "DEPOSIT", 9)
+  end)
+  NS.Database:Delete(function(e) return e.itemID == 171276 end)
+end)
+
+test("Ledger: a guild-bank gold deposit records when the vault's balance lands a pass later", function()
+  -- WoW Forever's only coin store. The purse falls on PLAYER_MONEY; GetGuildBankMoney catches up a
+  -- pass later, and the held baseline carries the purse half across to it.
+  local before = NS.Database:Count()
+  local savedMoney, savedVault, savedTabs = mocks.__money, mocks.__guildBankMoney, mocks.__guildTabs
+  local savedVisible = mocks.__guildVisible
+  mocks.__guildTabs, mocks.__guildQueried, mocks.__guildVisible = { [1] = {} }, {}, true
+  local ok, err = pcall(withContainers, { [BAG_ID] = { slots = 1 } }, function()
+    NS.Ledger:OpenContext("GUILD_BANK")
+    mocks.__money = mocks.__money - 500000
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before, "the vault's balance has not landed")
+    mocks.__now = mocks.__now + 1
+    mocks.__guildBankMoney = mocks.__guildBankMoney + 500000
+    NS.Ledger:Reconcile()
+    assertEqual(NS.Database:Count(), before + 1, "the held baseline still saw the purse half")
+    assertLastRow("GUILD_BANK", "DEPOSIT", 500000, "MONEY")
+  end)
+  mocks.__money, mocks.__guildBankMoney, mocks.__guildTabs = savedMoney, savedVault, savedTabs
+  mocks.__guildVisible = savedVisible
+  NS.Database:Delete(function(e) return e.kind == "MONEY" and e.quantity == 500000 end)
+  if not ok then error(err, 0) end
 end)
 
 test("Ledger: a one-sided change that never completes re-anchors after the timeout", function()

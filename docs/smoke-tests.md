@@ -8,6 +8,10 @@ tolerance. Record the outcome on the check's `Result:` line (pass, or what you s
 `<THEME>-<n>` and stay stable: a new check takes the next free number in its theme, and a retired one
 leaves its number unused.
 
+Bank Ledger ships on Retail and WoW Forever. The checks outside the [WoW Forever](#wow-forever)
+section were written and run on Retail; FOREVER-15 says how they run on Forever, and FOREVER-16 to
+FOREVER-19 are the Retail regression checks for the port's two Retail changes (ruling R8).
+
 ## Index
 
 | ID range | Theme | What it covers |
@@ -27,6 +31,7 @@ leaves its number unused.
 | SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
 | SKIN-1 – 49 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview, the Minimum quality labels on a skinned page |
 | DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
+| FOREVER-1 – 19 | WoW Forever | The WoW Forever port on the Forever client: the clean install, no Warband Bank in the settings, copy, simulator, test mode or session preview, the character bank, the keyring, no phantom rows while the bank loads, socketed bags ignored, two-word names, the default skin, the Forever Wowhead links, the simulator's bank, the guild bank, the probe verbs, running the rest of the file there; the R8 Retail regression checks: a normal visit, a warband-only banker, a second visit, gold in coins |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -607,6 +612,7 @@ leaves its number unused.
 - **LEDG-33. Wowhead URLs carry bonuses.** In the CSV, the last column is `wowhead`. Open the URL from a
   gear row recorded by this build → the item at its item level with its sockets and tertiaries (the
   `?bonus=…` list). A stackable trade good is a plain `item=<id>` URL; a gold row's cell is empty.
+  This is the Retail base; WoW Forever's `wowhead.com/forever/item=` base is FOREVER-11.
   Result: pass (owner-marked 2026-10-10)
 - **LEDG-34. The Insights export.** Export from the Insights tab → the sectioned summary, not raw rows.
   Result: pass (owner-marked 2026-10-10)
@@ -1703,6 +1709,168 @@ on the library; the thirteen seams (`core/CoreSetup.lua`, `core/DebugLogSetup.lu
   the debug console" pointer after them. **Fail:** nothing printed, only the "debug console window is
   unavailable" line, or a Lua error. Result:
 
+## WoW Forever
+
+The WoW Forever port (Ka0sAddonsCommonTasks `docs/2026-11-22-LOOTHISTORY_BANKLEDGER_FOREVER_PORT/`,
+items BL-01 to BL-13). Each check names its client after its title: `Client: WoW Forever.`,
+`Client: Retail.` or `Client: both.` (run it on each and record each client's result on its own
+`Result:` line). FOREVER-1 to FOREVER-14 run on the Forever client; FOREVER-15 says how the rest of
+this file runs there. FOREVER-16 to FOREVER-19 are the Retail regression checks for ruling R8, the
+two port changes that alter Retail on purpose (the bank readiness guard with
+`C_Bank.CanViewBank(Enum.BankType.Character)`, and the money text): run them on Retail before a
+release even when the Forever client is not to hand. The in-game probes a check leans on are in
+[`forever-probes.md`](forever-probes.md); run the probe first when a check names one. A result that
+contradicts what a check expects is a finding to file, not a tolerance. The Forever install is the
+repo folder linked as `<WoW>\_forever_\Interface\AddOns\BankLedger`, and its SavedVariables are under
+`_forever_\WTF\`. A Forever character needs a character bank with at least one bag tab bought, a
+guild bank it can deposit to, some gold, and a key on its keyring for FOREVER-6.
+
+- **FOREVER-1. The install loads clean (BL-13, probe P12).** Client: WoW Forever. Start the Forever
+  client and open the AddOns list → Ka0s Bank Ledger is listed and not out of date (the TOC's
+  `## Interface: 120105, 16001`). Log in, then `/reload` → no Lua error; `/bl version` answers one
+  line; the minimap button shows; `/bl show` opens the ledger window. `/bl diagnostics` → the report
+  opens with no error line. At a banker, `/bl debug scan` → the report prints; copy any event it
+  lists as UNAVAILABLE onto the Result line (P12 reads them). **Fail:** a Lua error, an out-of-date
+  listing, or a verb that answers nothing. Result:
+- **FOREVER-2. No Warband Bank in the settings or the copy (R1, BL-05).** Client: WoW Forever.
+  Settings → General → Capture → the *Banks to record* grid has two boxes, Character Bank and Guild
+  Bank, and no Warband Bank box. Hover *Record gold* → its tooltip reads `Record gold deposited to or
+  withdrawn from the guild bank. The character bank has no gold slot, so it is never counted.` Open
+  Insights and hover the *gold deposited* and *gold withdrawn* cards → their tooltips name the guild
+  bank alone. The filter bar's Store dropdown and Insights' Movements By Store list no Warband Bank.
+  At a banker, `/bl debug scan` → the group lines are `group BANK` and `group BAGS`, with no
+  `group WARBAND_BANK`. **Fail:** the word Warband anywhere on these surfaces, an empty box where
+  Warband Bank was, or a tooltip that names the warband bank. Result:
+- **FOREVER-3. No warband scenario in the simulator (R1, BL-05).** Client: WoW Forever.
+  `/bl sim start warband` → one line, `Unknown scenario 'warband'. Scenarios: bank, guild, onesided.`,
+  and nothing opens. Open the idle step panel (Master controls → *Sim mode*) → its scenario list is
+  Personal bank, Guild bank and One-sided change, with no Warband transfer. `/bl debug on`,
+  `/bl sim start onesided` and run it → no step names the warband bank, and SIM-5's outcome holds (no
+  row, one `closed, held change dropped` line). `/bl sim stop`, `/bl debug off`. **Fail:** a warband
+  scenario or step anywhere, or a Lua error. Result:
+- **FOREVER-4. Test mode and the session preview are Forever's (BL-05, BL-09).** Client: WoW Forever.
+  `/bl test` → the sample has Character Bank, Guild Bank and Bags rows and no Warband Bank row; the
+  characters read "First Surname" with no realm; the classes are the classic ones (a Warlock where
+  Retail has an Evoker, never an Evoker); the zones are the classic capitals (Ironforge, Orgrimmar,
+  Undercity, Stormwind City, Thunder Bluff, Darnassus). Leave test mode. Away from a bank,
+  `/bl session` → the preview's item rows sit on Character Bank and Guild Bank, and its gold row is
+  on Guild Bank with your guild's name. **Fail:** a Warband Bank row, an Evoker, a Retail zone such
+  as Valdrakken or Dornogal, a `Name-Realm` character, or a Lua error. Result:
+- **FOREVER-5. The character bank records (probes P1, P2).** Client: WoW Forever. CAPT-1 and CAPT-2
+  at a Forever banker: deposit a stack into the first bank tab, then withdraw part of it → a Deposit
+  and a Withdraw to Character Bank with the right counts. Repeat in a bought bag tab → the same rows.
+  With the bank open, sell something to a vendor → no gold row (CAPT-6: the character bank holds no
+  coin). The session window opens with the bank, lists the rows, and closes with it. **Fail:** a
+  missing or doubled row, a row against the wrong store, or a gold row at the character bank.
+  Result:
+- **FOREVER-6. The keyring is in the bags (R5, BL-06, probe P3).** Client: WoW Forever. Probe P3
+  first. At a banker, `/bl debug scan` → `group BAGS = [-1, 0, 1, 2, 3, 4, 5]`. If the client lets a
+  key go from the Keyring into a bank tab, move one → a Deposit to Character Bank naming the key;
+  move it back to the Keyring → a Withdraw from Character Bank. Move a key between the Keyring and
+  your backpack → no row. If the client refuses the bank move, record that on the Result line (a
+  probe fact, not a failure). **Fail:** a keyring-to-bank move that records nothing or records
+  against Bags, or any row for a keyring-to-backpack move. Result:
+- **FOREVER-7. No phantom rows while the bank loads (R8, BL-07, probe P1).** Client: WoW Forever.
+  `/bl debug on`, `/bl debug` to open the console. `/reload` (then `/bl debug on` again), walk to a
+  banker and open the bank, and at once move an item in and out of a bag tab before every tab has
+  drawn → exactly one Deposit and one Withdraw row, and no row for an item you did not touch. If a
+  tab read 0 slots at the open, the console shows `[Store] bank not ready: containers … read 0
+  slots`, then `bank ready after Ns` (or, after 6 s, `bank still not ready after Ns; its shape is
+  accepted and re-anchored`). Close the bank and open it a second time in the same session → the
+  same. **Fail:** a Deposit or Withdraw of a whole tab's contents you never moved, a missing row, or
+  a Lua error. Result:
+- **FOREVER-8. A socketed bank bag records nothing (R6, probe P10).** Client: WoW Forever. With the
+  bank open, socket an empty bag into a bank tab's bag slot, then take it out → no row either way
+  (sockets are not scanned). Then deposit an item into the bag-backed tab → one Deposit to Character
+  Bank. **Fail:** a row for the bag itself, or a Lua error. Result:
+- **FOREVER-9. Two-word names (D6, D12, BL-03, BL-10, probe P-NAME).** Client: WoW Forever. Probe
+  P-NAME first. A row this character records reads its whole "First Surname" in the Character column,
+  with no realm, and the column header's tooltip reads `Who moved it — full name and surname,
+  class-colored, behind its class icon.` The filter bar's Character dropdown, closed on this
+  character, shows the whole name behind its class icon. In Insights, Movements By Character,
+  Movements By Character × Store and Movements By Character × Deposits/Withdrawals → a name too long
+  for its bar label ends in `…`, and hovering the bar shows the whole name. **Fail:** a name cut to
+  its first word, a `Name-Realm` key, a label clipped with no `…`, or a tooltip without the full
+  name. Result:
+- **FOREVER-10. The WoW Forever skin is the default (BL-04, probe P-SKIN).** Client: WoW Forever. On
+  a fresh profile (Settings → Profiles → create one), `/reload` → the first-run skin picker opens with
+  WoW Forever preselected; Apply it → every window wears the WoW Forever skin, and General → Skin
+  reads WoW Forever. A profile created before this build keeps the skin it stored. On Retail a fresh
+  profile still preselects Ka0s Default (SKIN-20). **Fail:** a fresh Forever profile on Ka0s Default,
+  or a stored skin changed. Result:
+- **FOREVER-11. The Wowhead links are Forever's (R7, BL-11, probe P-WOWHEAD).** Client: WoW Forever.
+  History ▸ Export ▸ Current View ▸ Export to CSV → an item row's `wowhead` cell reads
+  `https://www.wowhead.com/forever/item=<id>`, and opening it shows the right item on Wowhead's
+  Forever pages; a gold row's cell is empty. LEDG-33 is this check's Retail half. **Fail:** a Retail
+  `wowhead.com/item=` URL on Forever, a URL that opens the wrong item, or a cell on a gold row.
+  Result:
+- **FOREVER-12. The simulator's Forever bank (BL-09).** Client: WoW Forever. `/bl sim start bank`,
+  `/bl sim pause` at once, then `/bl debug scan` → the report says `simulation running: Compat
+  answers are simulated`, and its container probe lists two bank tabs, `6: 24` and `7: 16` slots (on
+  Retail, one 98-slot tab). `/bl sim step` through the rest → SIM-1's three Character Bank rows.
+  `/bl sim stop` → the real history is back. **Fail:** a single 98-slot tab on Forever, a warband
+  container, a simulated row left behind, or a Lua error. Result:
+- **FOREVER-13. The guild bank (D7, probe P6).** Client: WoW Forever. Probe P6 first. CAPT-9,
+  CAPT-10 and CAPT-12 at a Forever guild vault: an item and gold deposited each make a Guild Bank row,
+  the CSV's `guild` column carries the guild name, and `/bl debug scan` with the vault open reads
+  `openContext=GUILD_BANK`. Click through the vault's tabs → no row for a tab merely loading. The
+  session window opens and closes with the vault. **Fail:** a missing or doubled row, a gold row on
+  the vault's first open (CAPT-11), or a session window that stays up. Result:
+- **FOREVER-14. The probe verbs (R4, BL-12).** Client: both. `/bl debug probe status` → one line,
+  `probe off: no record. /bl debug probe start begins one.` (or the record's line). `/bl debug probe
+  start` → one line, `probe on: N of 200 entries kept, 0 dropped; <client> <build>`, naming
+  `forever` on Forever and `retail` on Retail. Open the bank, wait five seconds, close it, then `/bl debug probe
+  stop` → one line reading `probe off: …`. `/bl debug probe clear` → `probe record cleared.`, then
+  start again and visit the bank once more, stop, and log out → the SavedVariables file
+  (`BankLedgerDB` → `global` → `probe`) holds three `bank` entries for that visit, `phase` 0, 1 and
+  3. `/bl disable`, then `/bl debug probe start` → one line, `probe refused: the addon is disabled.
+  /bl enable first.`; `/bl enable` after. `/bl debug probe` alone → one line, `usage: /bl debug probe start | stop |
+  status | clear`. **Fail:** a verb
+  that prints more than one line or none, a start that runs while disabled, or a visit with fewer than
+  three `bank` entries. Record the Forever and the Retail results on two lines. Result:
+- **FOREVER-15. Running the rest of this file on Forever.** Client: WoW Forever. Every other check
+  in this file runs on Forever too, apart from the ones that need the warband bank, which Forever
+  locks (R1): CAPT-4, CAPT-5, CAPT-8, SIM-3, SIM-10 and SESS-5 are Retail's alone (on Forever, move
+  gold at the guild bank for SESS-5's coin row), and the warband steps of CAPT-20, LEDG-22, SESS-8 and
+  SIM-14 are skipped. Where a check quotes Retail's test-mode zones, classes or a `Name-Realm`, read
+  FOREVER-4 and FOREVER-9 instead. Record a Forever result on its own `Result:` line in that check,
+  not here. A skipped step is no fail. Run the SKIN checks under the WoW Forever skin as well as the
+  others. **Fail:** a check outside that list that cannot run on Forever: record it here and file
+  it. Result:
+
+### Retail regression checks (R8)
+
+The R8 changes alter Retail on purpose: the bank readiness guard and the
+`C_Bank.CanViewBank(Enum.BankType.Character)` read (BL-07), and the money text, which now tries
+`C_CurrencyInfo.GetCoinTextureString`, then `GetMoneyString`, then plain text (BL-08). Nothing else
+in the port moves a Retail result.
+
+- **FOREVER-16. A normal bank visit records as before (R8, BL-07).** Client: Retail. `/bl debug on`.
+  Run CAPT-1, CAPT-2, CAPT-4 and CAPT-5 at an ordinary banker → the same rows they describe, no more
+  and no fewer. The console shows the open's `[Store]` baseline line; a `bank not ready` line, if
+  one appears right after a `/reload`, is followed by `bank ready after Ns` and the rows still
+  arrive. **Fail:** a missing, doubled or late row (more than the second or two CAPT-4 allows), or a
+  `bank still not ready` line on a bank that had loaded. Result:
+- **FOREVER-17. A warband-only banker records Warband rows only (R8, BL-07, probe P2).**
+  Client: Retail. `/bl debug on`, `/bl debug`. Open the warband bank where the character bank is not shown
+  (a warband-only access point) and move an item in and out → a Warband Bank Deposit and Withdraw, and
+  no Character Bank row at all. The console shows `[Store] BANK not viewable at this banker
+  (CanViewBank(Character) false): not read`. Then open an ordinary banker → the character bank
+  records again (CAPT-1), with no row for its whole contents. **Fail:** a Character Bank Withdraw of
+  everything in the bank at the warband-only banker, or a Deposit of it all at the next ordinary
+  visit. Result:
+- **FOREVER-18. No phantom rows on a second visit (R8, BL-07, probe P1).** Client: Retail.
+  `/reload`, open the bank, close it, open it again and at once move one item in and out → exactly
+  one Deposit and one Withdraw row, and nothing for items you did not touch. **Fail:** any row for an
+  item you did not move, or a missing row. Result:
+- **FOREVER-19. Gold reads in coins (R8, BL-08, probe P9).** Client: both. Move gold at a coin bank
+  (the warband or guild bank on Retail, the guild bank on Forever) → in History the row's Qty shows
+  the amount with gold, silver and copper coin icons; hover it → the tooltip's Amount line shows the
+  same coins; the session window's gold row does too; Insights' *gold deposited*, *gold withdrawn*
+  and *net gold* cards show coins. Probe P9 records which reader answered. Record the Forever and the
+  Retail results on two lines. **Fail:** a `12g 34s 56c` text amount, a blank amount, or a Lua error
+  naming `FormatMoney` or `GetCoinTextureString`. Result:
+
 ## Non-English client
 
 Run on a client set to **deDE or frFR**, the two the collection's other locale checks use
@@ -1868,3 +2036,10 @@ new checks PANEL-33 (the row tint opacities follow the skin), PANEL-34 (an upgra
 row slider, schema v7) and SKIN-49 (the Minimum quality labels on a skinned settings page). PANEL-7,
 PANEL-21, PANEL-22, PANEL-23, PANEL-28 and SKIN-5 were rewritten for the companions, so their pass
 marks came off. SD-SK-BL.3 and the guard declarations are headless only: no check.
+
+Owed by the WoW Forever port (Ka0sAddonsCommonTasks `docs/2026-11-22-LOOTHISTORY_BANKLEDGER_FOREVER_PORT/`,
+items BL-01 to BL-14): new checks FOREVER-1 to FOREVER-15 on the Forever client, and FOREVER-16 to
+FOREVER-19, the Retail regression checks for ruling R8 (the bank readiness guard and the money
+text). LEDG-33 gained one sentence pointing at FOREVER-11 and keeps its pass mark: its Retail result
+is unchanged. No other pass mark came off; the warband checks (CAPT-4, CAPT-5, CAPT-8, SIM-3, SIM-10,
+SESS-5) stay Retail's, as FOREVER-15 lists.

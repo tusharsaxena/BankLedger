@@ -89,21 +89,45 @@ end)
 -- Every client read a simulator must be able to answer goes through a Compat member read at call
 -- time (Sim host contract H1): a row's `char` and `classFile` are identity, so they come from here.
 
+-- The Retail arm (no regional names) and the WoW Forever arm (regional names, forever-quirks-§4)
+-- each run on both kit profiles: a case pins RegionalUniqueNamesEnabled for its own arm and puts
+-- the profile's answer back after, so the arm, not the profile, picks the expectation.
+local function withRegional(on, fn)
+  local saved = mocks.RegionalUniqueNamesEnabled
+  mocks.RegionalUniqueNamesEnabled = function() return on end
+  local ok, err = pcall(fn)
+  mocks.RegionalUniqueNamesEnabled = saved
+  if not ok then error(err, 0) end
+end
+
+-- A player named `name` with `surname` as UnitName's second value (both name readers), for the
+-- Forever arm; restored after `fn`.
+local function withPlayer(name, surname, fn)
+  local savedName, savedUnmod = mocks.UnitName, mocks.UnitNameUnmodified
+  mocks.UnitName = function() return name, surname end
+  mocks.UnitNameUnmodified = mocks.UnitName
+  local ok, err = pcall(fn)
+  mocks.UnitName, mocks.UnitNameUnmodified = savedName, savedUnmod
+  if not ok then error(err, 0) end
+end
+
 test("Compat.PlayerName answers the name and the normalized realm, whitespace stripped", function()
   local savedName, savedNorm = mocks.UnitName, mocks.GetNormalizedRealmName
   -- Sample names (preview-mode's convention, AD-87-BL): a realm with a space proves the strip
   -- without naming a real realm.
   mocks.UnitName = function() return "Samplehunter" end
   mocks.GetNormalizedRealmName = function() return "Sample realm" end
-  local name, realm = NS.Compat.PlayerName()
+  local name, realm
+  withRegional(false, function() name, realm = NS.Compat.PlayerName() end)
   mocks.UnitName, mocks.GetNormalizedRealmName = savedName, savedNorm
   assertEqual(name, "Samplehunter")
   assertEqual(realm, "Samplerealm")
 end)
 
 test("Compat.PlayerName falls back to GetRealmName, then to 'Unknown'", function()
-  local savedName, savedNorm, savedRealm =
-    mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName
+  local savedName, savedNorm, savedRealm, savedRegional =
+    mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName, mocks.RegionalUniqueNamesEnabled
+  mocks.RegionalUniqueNamesEnabled = function() return false end
   mocks.GetNormalizedRealmName = nil
   mocks.GetRealmName = function() return "Mock realm" end
   local _, realm = NS.Compat.PlayerName()
@@ -111,10 +135,46 @@ test("Compat.PlayerName falls back to GetRealmName, then to 'Unknown'", function
   mocks.GetRealmName = nil
   mocks.UnitName = function() return nil end
   local name, realm2 = NS.Compat.PlayerName()
-  mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName =
-    savedName, savedNorm, savedRealm
+  mocks.UnitName, mocks.GetNormalizedRealmName, mocks.GetRealmName, mocks.RegionalUniqueNamesEnabled =
+    savedName, savedNorm, savedRealm, savedRegional
   assertEqual(name, "Unknown")
   assertEqual(realm2, "Unknown")
+end)
+
+test("Compat.PlayerName on regional names answers the whole 'First Surname' and no realm", function()
+  local name, realm, n
+  withRegional(true, function()
+    withPlayer("Samplehunter", "Mockstride", function()
+      n = select("#", NS.Compat.PlayerName())
+      name, realm = NS.Compat.PlayerName()
+    end)
+  end)
+  assertEqual(name, "Samplehunter Mockstride", "the character key, surname included")
+  assertEqual(realm, nil, "a realm was joined onto a regional name")
+  assertEqual(n, 2, "PlayerName answers exactly two values on every client")
+end)
+
+test("Compat.PlayerName on regional names never reads the realm", function()
+  local savedNorm = mocks.GetNormalizedRealmName
+  mocks.GetNormalizedRealmName = function() error("the realm was read on regional names", 0) end
+  local name
+  local ok, err = pcall(withRegional, true, function()
+    withPlayer("Sampleblade", "Mockvale", function() name = NS.Compat.PlayerName() end)
+  end)
+  mocks.GetNormalizedRealmName = savedNorm
+  if not ok then error(err, 0) end
+  assertEqual(name, "Sampleblade Mockvale")
+end)
+
+test("Compat.PlayerName on regional names: no surname answers the name alone, no name 'Unknown'", function()
+  local alone, unknown, realm
+  withRegional(true, function()
+    withPlayer("Samplemender", nil, function() alone = NS.Compat.PlayerName() end)
+    withPlayer(nil, nil, function() unknown, realm = NS.Compat.PlayerName() end)
+  end)
+  assertEqual(alone, "Samplemender")
+  assertEqual(unknown, "Unknown")
+  assertEqual(realm, nil)
 end)
 
 test("Compat.PlayerClass answers the classFile, read at call time", function()

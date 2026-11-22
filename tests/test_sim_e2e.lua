@@ -161,6 +161,8 @@ local function identities()
   local main = { key = NS.Util.PlayerKey(), class = NS.Compat.PlayerClass() }
   -- The alt is the shared sample character of the other class (Sim.Sample, AD-87-BL).
   local alt = { class = main.class == "PALADIN" and "WARRIOR" or "PALADIN" }
+  -- Keyed as the host records it (BL-03): the set's own fullName, "Name-Realm" on Retail and
+  -- "First Surname" on WoW Forever, which is the record key the one builder makes on each client.
   for _, row in ipairs(NS.SampleCharacters()) do
     if row.classFile == alt.class then alt.key = row.fullName end
   end
@@ -205,7 +207,7 @@ test("Sim e2e: warband records main's 2 deposits and the alt's 2 withdrawals thr
   assertTrue(hasLine(r.lines, "[Diff] held change settled after"), table.concat(r.lines, " | "))
   assertEqual(r.recorded[2], 1, "the lagged deposit's step recorded")
   assertClean(r, before, count, "warband")
-end)
+end, T.WARBAND_ONLY)
 
 test("Sim e2e: guild records 3 GUILD_BANK rows stamped with the guild", function()
   local before, count = S.copy(NS.db.global.ledger), NS.Database:Count()

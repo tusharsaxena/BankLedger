@@ -98,15 +98,21 @@ test("InsightsWidgets.SignedMoney colors a gain green and a loss red", function(
   assertTrue(W.SignedMoney(-100):find("ff4040", 1, true) ~= nil, "red for a loss")
 end)
 
+-- 808080 is Ka0s Default's neutral gray, so both cases wear it by name (T.onKa0sDefault): the
+-- Forever client's default skin draws its own.
 test("InsightsWidgets.SignedMoney renders zero as a neutral dash", function()
-  assertTrue(W.SignedMoney(0):find("808080", 1, true) ~= nil)
-  assertTrue(W.SignedMoney(nil):find("808080", 1, true) ~= nil)
+  T.onKa0sDefault(function()
+    assertTrue(W.SignedMoney(0):find("808080", 1, true) ~= nil)
+    assertTrue(W.SignedMoney(nil):find("808080", 1, true) ~= nil)
+  end)
 end)
 
 test("InsightsWidgets.SignedCount signs a count the same way", function()
-  assertTrue(W.SignedCount(7):find("+7", 1, true) ~= nil)
-  assertTrue(W.SignedCount(-7):find("-7", 1, true) ~= nil)
-  assertTrue(W.SignedCount(0):find("808080", 1, true) ~= nil)
+  T.onKa0sDefault(function()
+    assertTrue(W.SignedCount(7):find("+7", 1, true) ~= nil)
+    assertTrue(W.SignedCount(-7):find("-7", 1, true) ~= nil)
+    assertTrue(W.SignedCount(0):find("808080", 1, true) ~= nil)
+  end)
 end)
 
 test("InsightsWidgets.Money renders nothing as a plain zero, not an empty cell", function()

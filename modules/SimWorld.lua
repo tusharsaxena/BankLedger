@@ -28,10 +28,26 @@ local Store = C.Store
 
 local GOLD = 10000                       -- copper per gold
 SW.PURSE = 5000 * GOLD                   -- each character's carried money
-SW.WARBAND_MONEY = 20000 * GOLD
+SW.WARBAND_MONEY = 20000 * GOLD          -- Retail's alone: the warband bank holds the coin
 SW.GUILD_MONEY = 100000 * GOLD
 SW.BACKPACK_SLOTS = 20
-SW.TAB_SLOTS = 98                        -- the first character-bank tab and the first warband tab
+SW.TAB_SLOTS = 98                        -- the first warband tab (Retail's alone)
+
+-- The character bank's tab sizes, per client (BL-09; clients-§5), picked ONCE at load by the sample
+-- key core/SimSetup.lua seeded from ClientKey(): the first id of the bank group gets the first size,
+-- the next id the next, the rest none. Retail's row is the pre-port 98-slot first tab. WoW Forever's
+-- tabs are bags (forever-bank research §1): tab 1 is the base bank, given the classic bank's 24
+-- slots, and tab 2 a socketed 16-slot bag. The real base-bank size is a probe's to confirm; the
+-- world shape is cosmetic, since every read and diff goes by container id.
+SW.BANK_TAB_SLOTS_BY_CLIENT = {
+  retail  = { 98 },
+  forever = { 24, 16 },
+}
+SW.BANK_TAB_SLOTS = SW.BANK_TAB_SLOTS_BY_CLIENT[NS.SAMPLE_CLIENT == "forever" and "forever" or "retail"]
+
+-- The warband bank is Retail's alone (C.FEATURE.warbandBank, ruling R1): WoW Forever's world seeds
+-- no warband coin, and the warband store takes none.
+local WARBAND = C.FEATURE.warbandBank
 SW.GUILD_TABS = 2
 SW.POOL_MIN = 4                          -- fewer distinct real items than this: the fallback pool
 SW.POOL_MAX = 8                          -- at most this many pool items are placed
@@ -92,10 +108,12 @@ end
 
 local function newContainer(size) return { size = size } end
 
--- The group's containers for one character: the first id of the group gets `size`, the rest none.
-local function newGroup(ids, size)
+-- The group's containers for one character: the group's i-th id gets `sizes[i]`, the rest none.
+local function newGroup(ids, sizes)
   local t = {}
-  if ids[1] ~= nil then t[ids[1]] = newContainer(size) end
+  for i, size in ipairs(sizes) do
+    if ids[i] ~= nil then t[ids[i]] = newContainer(size) end
+  end
   return t
 end
 
@@ -144,15 +162,30 @@ end
 -- NS.SampleCharacterOf, LibKa0s-Sim-1.0's Sim.SAMPLE, LibKa0s#87) of a class that is not main's:
 -- Sampleblade-Samplerealm, the sample paladin, or Mockshield-Mockrealm, the sample warrior, for a
 -- paladin. Its name and realm are the set's data, never localized and never the real realm.
+-- A character's `name` and `realm` are the two parts P.PlayerName answers for it, the same two
+-- Compat.PlayerName answers for the real player, and its `key` is Util.RecordKey's join of them, the
+-- one record-key builder the host keys rows with (BL-03), for main and alt alike. The alt's parts
+-- come from the sample row as Compat.PlayerName would read them: its name and realm without regional
+-- names (Retail), its whole "First Surname" and no realm with them (WoW Forever). Either way the
+-- alt's key is the set's fullName.
+local function samplePlayerName(row)
+  if NS.Compat.RegionalNames() then return row.fullName, nil end
+  return row.name, row.realm
+end
+
+local function character(name, realm, classFile)
+  return { key = NS.Util.RecordKey(name, realm), name = name, realm = realm, classFile = classFile }
+end
+
 local function buildChars()
   local seam = NS.SimSeam
   local name, realm = seam:Live(NS.Compat.PlayerName)
   local classFile = seam:Live(NS.Compat.PlayerClass)
   local altClass = ALT_CLASSES[1] == classFile and ALT_CLASSES[2] or ALT_CLASSES[1]
-  local alt = NS.SampleCharacterOf(altClass)
+  local altName, altRealm = samplePlayerName(NS.SampleCharacterOf(altClass))
   return {
-    main = { key = name .. "-" .. realm, name = name, realm = realm, classFile = classFile },
-    alt = { key = alt.fullName, name = alt.name, realm = alt.realm, classFile = altClass },
+    main = character(name, realm, classFile),
+    alt = character(altName, altRealm, altClass),
   }
 end
 
@@ -191,14 +224,14 @@ function SW.Build(opts)
   local w = {
     chars = chars, current = "main",
     bags = {}, bank = {}, purse = {},
-    warband = newGroup(C.WARBAND_BANK_IDS, SW.TAB_SLOTS),
-    warbandMoney = SW.WARBAND_MONEY,
+    warband = newGroup(C.WARBAND_BANK_IDS, { SW.TAB_SLOTS }),
+    warbandMoney = WARBAND and SW.WARBAND_MONEY or nil,
     guild = buildGuild(),
     pool = pool, poolFallback = fallback, links = {},
   }
   for charKey in pairs(chars) do
     w.bags[charKey] = newBags()
-    w.bank[charKey] = newGroup(C.BANK_IDS, SW.TAB_SLOTS)
+    w.bank[charKey] = newGroup(C.BANK_IDS, SW.BANK_TAB_SLOTS)
     w.purse[charKey] = SW.PURSE
   end
   for _, item in ipairs(pool) do w.links[item.itemID] = item.link end
@@ -298,7 +331,8 @@ function SW.Has(charKey, group, itemID, n)
   return w ~= nil and countOf(containersOf(w, charKey, group), itemID) >= n
 end
 
-local MONEY_FIELD = { [Store.WARBAND_BANK] = "warband", [Store.GUILD_BANK] = "guild" }
+local MONEY_FIELD = { [Store.GUILD_BANK] = "guild" }
+if WARBAND then MONEY_FIELD[Store.WARBAND_BANK] = "warband" end
 
 --- Moves `copper` from the current character's purse into `store` (negative: out of the store into
 --- the purse). `store` nil is a spend: the purse alone loses `copper` (a repair, a vendor buy).
@@ -381,6 +415,9 @@ function P.GetStoreMoney(_, store)
   if store == Store.GUILD_BANK and w.guild.visible == true then return w.guild.money end
   return nil
 end
+
+-- The simulated banker is a full banker: its character bank can always be viewed.
+function P.CanViewCharacterBank() return true end
 
 function P.GetMoney()
   local w = world()

@@ -702,7 +702,8 @@ test("Browser: the window still opens and the ledger table still populates with 
     local ns, m = loadWithoutWidgets()
     assertTrue(m.LibStub("LibKa0s-Widgets-1.0", true) == nil, "the degraded arm still has the library")
     ns.Database:Add({
-      ts = 1770000000, char = "Mock-Realm", classFile = "MAGE",
+      -- The player's own row (the record key per client, BL-03), so the "me" default keeps it.
+      ts = 1770000000, char = ns.Util.PlayerKey(), classFile = "MAGE",
       kind = "ITEM", direction = "DEPOSIT", store = "BANK",
       itemID = 2589, itemName = "Linen Cloth", quality = 1,
       itemType = "Tradegoods", itemSubType = "Cloth",
@@ -1063,13 +1064,16 @@ do
   test("Browser: a simulation shows the sim strip with its scenario line, and never the badge",
   function()
     local inH, inI
-    SS.withSession("warband", function()
+    -- Any scenario: the warband one on Retail, the personal bank on WoW Forever (no warband there).
+    local scenario, label = "warband", NS.L["Warband transfer"]
+    if not NS.Constants.FEATURE.warbandBank then scenario, label = "bank", NS.L["Personal bank"] end
+    SS.withSession(scenario, function()
       local f = NS.Browser:GetWindow()
       assertTrue(f.simStrip:IsShown(), "no marker while a simulation runs")
       assertEqual(f.simStrip.kind, "sim", "the simulation's strip is not the simulation flavor")
       assertEqual(f.simStrip.text:GetText(), NS.SimHost.MarkerText())
       assertEqual(f.simStrip.text:GetText(),
-        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(NS.L["Warband transfer"]))
+        NS.L["SIM: %s. Nothing here is saved. /bl sim stop ends it."]:format(label))
       assertFalse(f.testStrip:IsShown(), "the test strip shows for a simulation")
       assertFalse(f.testBadge:IsShown(), "the TEST MODE badge shows for a simulation")
       inH, inI = paneY(NS, "History"), paneY(NS, "Insights")

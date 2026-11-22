@@ -217,62 +217,69 @@ end
 -- expanders: the header gold (1/0.82/0) in the 0-255 the escape sequence takes, behind the eleven
 -- positional arguments that have to be spelled to reach it. Written out in full HERE rather than
 -- composed from the same helper the source uses, because a mirror built by the code under test
--- agrees with itself no matter what it says.
+-- agrees with itself no matter what it says. It is Ka0s Default's gold, so every case that pins it
+-- wears Ka0s Default by name (T.onKa0sDefault): the Forever client's default skin draws its own.
 local HEADER_TINT = ":0:0:0:0:64:64:0:64:0:64:255:209:0|t"
 
 test("marks: the column-header sort arrow is the collection's, at the site that draws it", function()
-  -- Read back off the header button's own FontString after UpdateHeaderArrows composed it, so a
-  -- draw site that went back to Blizzard's Arrow-Up-Up is red here rather than green against a
-  -- mirror of the right answer. Extensionless inside |T…|t for the same reason as SetTexture.
-  assertEqual(headerLabel(NS.LedgerTable, "date", true), "Date |T" .. ICONS .. "sort-up" .. HEADER_TINT)
-  assertEqual(headerLabel(NS.LedgerTable, "date", false),
-    "Date |T" .. ICONS .. "sort-down" .. HEADER_TINT)
+  T.onKa0sDefault(function()
+    -- Read back off the header button's own FontString after UpdateHeaderArrows composed it, so a
+    -- draw site that went back to Blizzard's Arrow-Up-Up is red here rather than green against a
+    -- mirror of the right answer. Extensionless inside |T…|t for the same reason as SetTexture.
+    assertEqual(headerLabel(NS.LedgerTable, "date", true), "Date |T" .. ICONS .. "sort-up" .. HEADER_TINT)
+    assertEqual(headerLabel(NS.LedgerTable, "date", false),
+      "Date |T" .. ICONS .. "sort-down" .. HEADER_TINT)
+  end)
 end)
 
 test("marks: every inline header mark is TINTED to the gold of the word it sits beside", function()
-  -- The arrow art is near-white, and drawn untinted beside a gold column label it read as a second
-  -- color inside one string. The tail is the whole fix and it is invisible to every other case
-  -- here: an arrow that lost it still resolves the right path, still sizes to the line, and still
-  -- draws — just in the wrong color, which is the failure mode no headless instrument catches
-  -- unless it is spelled out.
-  --
-  -- 255/209/0 is 1/0.82/0 rounded, and 1/0.82/0 is what LT:MakeHeaderButton sets on the label and
-  -- BindRow sets on the group header: the skin's list.header.text under Ka0s Default, whose
-  -- icon.arrow is the same gold, so the marks match the words there; this asserts the NUMBER that
-  -- reaches the escape.
-  local src = readSource("modules/LedgerTable.lua")
-  assertTrue(src:find('resolve(RGB.header, "list.header.text")', 1, true) ~= nil,
-    "the one place the header gold is resolved is gone")
-  assertTrue(src:find('NS.Skin.MarkText(path or blizzard, 0, token or "icon.arrow")', 1, true) ~= nil,
-    "the marks stopped taking the skin's icon.arrow")
-  assertTrue(src:find('markup("sort-up", "Interface\\\\Buttons\\\\Arrow-Up-Up", " ", "list.header.arrow")', 1, true) ~= nil,
-    "the sort arrow stopped taking list.header.arrow")
-  assertTrue(src:find("fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true) ~= nil,
-    "the column header stopped taking its color from HEADER_RGB, so the arrow can drift off it")
-  assertTrue(src:find("header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true)
-    ~= nil, "the group header stopped taking its color from HEADER_RGB")
-  for _, dir in ipairs({ "up", "down" }) do
-    assertTrue(headerLabel(NS.LedgerTable, "date", dir == "up"):find(HEADER_TINT, 1, true) ~= nil,
-      "the sort-" .. dir .. " arrow lost its tint and draws near-white beside gold text")
-  end
-  -- The group expander is the other half and it is the half that gets forgotten: it lives in
-  -- BindRow rather than UpdateHeaderArrows, and its row is drawn in the same 1/0.82/0.
-  for _, collapsed in ipairs({ true, false }) do
-    assertTrue(groupHeaderText(NS.LedgerTable, collapsed):find(HEADER_TINT, 1, true) ~= nil,
-      "the " .. (collapsed and "collapsed" or "expanded")
-      .. " group expander lost its tint and draws near-white beside gold text")
-  end
+  T.onKa0sDefault(function()
+    -- The arrow art is near-white, and drawn untinted beside a gold column label it read as a second
+    -- color inside one string. The tail is the whole fix and it is invisible to every other case
+    -- here: an arrow that lost it still resolves the right path, still sizes to the line, and still
+    -- draws — just in the wrong color, which is the failure mode no headless instrument catches
+    -- unless it is spelled out.
+    --
+    -- 255/209/0 is 1/0.82/0 rounded, and 1/0.82/0 is what LT:MakeHeaderButton sets on the label and
+    -- BindRow sets on the group header: the skin's list.header.text under Ka0s Default, whose
+    -- icon.arrow is the same gold, so the marks match the words there; this asserts the NUMBER that
+    -- reaches the escape.
+    local src = readSource("modules/LedgerTable.lua")
+    assertTrue(src:find('resolve(RGB.header, "list.header.text")', 1, true) ~= nil,
+      "the one place the header gold is resolved is gone")
+    assertTrue(src:find('NS.Skin.MarkText(path or blizzard, 0, token or "icon.arrow")', 1, true) ~= nil,
+      "the marks stopped taking the skin's icon.arrow")
+    assertTrue(src:find('markup("sort-up", "Interface\\\\Buttons\\\\Arrow-Up-Up", " ", "list.header.arrow")', 1, true) ~= nil,
+      "the sort arrow stopped taking list.header.arrow")
+    assertTrue(src:find("fs:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true) ~= nil,
+      "the column header stopped taking its color from HEADER_RGB, so the arrow can drift off it")
+    assertTrue(src:find("header:SetTextColor(HEADER_RGB[1], HEADER_RGB[2], HEADER_RGB[3])", 1, true)
+      ~= nil, "the group header stopped taking its color from HEADER_RGB")
+    for _, dir in ipairs({ "up", "down" }) do
+      assertTrue(headerLabel(NS.LedgerTable, "date", dir == "up"):find(HEADER_TINT, 1, true) ~= nil,
+        "the sort-" .. dir .. " arrow lost its tint and draws near-white beside gold text")
+    end
+    -- The group expander is the other half and it is the half that gets forgotten: it lives in
+    -- BindRow rather than UpdateHeaderArrows, and its row is drawn in the same 1/0.82/0.
+    for _, collapsed in ipairs({ true, false }) do
+      assertTrue(groupHeaderText(NS.LedgerTable, collapsed):find(HEADER_TINT, 1, true) ~= nil,
+        "the " .. (collapsed and "collapsed" or "expanded")
+        .. " group expander lost its tint and draws near-white beside gold text")
+    end
+  end)
 end)
 
 test("marks: the group header's expander is a chevron, at the site that draws it", function()
-  -- Collapsed points right, expanded points down, and the two-space gap and the gray `(count)` the
-  -- header has always carried are untouched: the mark changed and the layout did not. The tint is
-  -- the header's own gold, the same as the sort arrows' — this row is drawn in 1/0.82/0 too, and a
-  -- near-white chevron in front of a gold label reads as two colors in one string.
-  assertEqual(groupHeaderText(NS.LedgerTable, true),
-    "|T" .. ICONS .. "chevron-right" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
-  assertEqual(groupHeaderText(NS.LedgerTable, false),
-    "|T" .. ICONS .. "chevron-down" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
+  T.onKa0sDefault(function()
+    -- Collapsed points right, expanded points down, and the two-space gap and the gray `(count)` the
+    -- header has always carried are untouched: the mark changed and the layout did not. The tint is
+    -- the header's own gold, the same as the sort arrows' — this row is drawn in 1/0.82/0 too, and a
+    -- near-white chevron in front of a gold label reads as two colors in one string.
+    assertEqual(groupHeaderText(NS.LedgerTable, true),
+      "|T" .. ICONS .. "chevron-right" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
+    assertEqual(groupHeaderText(NS.LedgerTable, false),
+      "|T" .. ICONS .. "chevron-down" .. HEADER_TINT .. "  Character Bank  |cff808080(3)|r")
+  end)
 end)
 
 test("marks degraded: every inline mark falls back to the exact art it used to be", function()

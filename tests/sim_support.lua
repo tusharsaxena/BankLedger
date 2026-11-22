@@ -14,7 +14,10 @@ local mocks = T.mocks
 
 local M = {}
 
-M.BACKPACK, M.BANK_TAB_1, M.WARBAND_TAB_1 = 0, 6, 12   -- the mock's verbatim Enum.BagIndex ids
+-- The first container of each group, by member name from the mock's enum: 0, 6, 12 on Retail and
+-- 0, 6, 15 under the forever profile (BL-02).
+M.BACKPACK, M.BANK_TAB_1, M.WARBAND_TAB_1 = mocks.Enum.BagIndex.Backpack,
+  mocks.Enum.BagIndex.CharacterBankTab_1, mocks.Enum.BagIndex.AccountBankTab_1
 
 -- The REAL backpack the pool is drawn from: four distinct cached items, one with a bonus-id link.
 -- Sorted by id, the pool is 2589, 4306, 19019 (the bonus link), 171276.

@@ -233,6 +233,9 @@ end)
 
 -- ── The wowhead column ─────────────────────────────────────────────────────────
 
+-- The base is per client (R7; tests/test_wowhead_client.lua): these cases pin the path after it.
+local WH_BASE = NS.Util.WOWHEAD_ITEM_URL_BY_CLIENT[NS.Compat.ClientKey()]
+
 test("Export:CSV ends with the wowhead column", function()
   -- Appended last on purpose: a sheet keyed on column position keeps working.
   assertEqual(NS.Export.HEADER[#NS.Export.HEADER], "wowhead")
@@ -243,12 +246,12 @@ test("Export:CSV writes a wowhead URL carrying the item's bonus ids", function()
     itemLink = "|cffa335ee|Hitem:151300::::::::80:250::5:3:12801:13440:6652:1:28:2437"
       .. "|h[Sample Helm]|h|r" }) }))[2])
   assertEqual(row[columnIndex("wowhead")],
-    "https://www.wowhead.com/item=151300?bonus=12801:13440:6652")
+    WH_BASE .. "151300?bonus=12801:13440:6652")
 end)
 
 test("Export:CSV writes a bare item URL when the row has no link", function()
   local row = cells(lines(NS.Export:CSV({ e() }))[2])
-  assertEqual(row[columnIndex("wowhead")], "https://www.wowhead.com/item=2589")
+  assertEqual(row[columnIndex("wowhead")], WH_BASE .. "2589")
 end)
 
 test("Export:CSV leaves the wowhead cell empty for a gold row", function()
@@ -411,7 +414,8 @@ local CHAR_STATS = {
     busiestDay = { day = "2026-01-02", count = 3 },
   },
   byStore = { BANK = 3, GUILD_BANK = 2 },
-  netByStore = { WARBAND_BANK = -1, BANK = 2 },
+  -- Stores both clients have (the Warband Bank is Retail's alone, BL-05).
+  netByStore = { GUILD_BANK = -1, BANK = 2 },
   moneyByStore = { GUILD_BANK = 12345 },
   byDirection = { DEPOSIT = 3, WITHDRAW = 2 },
   byKind = { ITEM = 4, MONEY = 1 },
@@ -450,7 +454,7 @@ test("Export:InsightsCSV characterization: the full document, byte for byte", fu
     "Summary,Date range," .. NS.Util.FormatDate(NOW - 86400) .. " to " .. NS.Util.FormatDate(NOW) .. ",",
     "Summary,Busiest day,2026-01-02 (3),",
     "By Store,Character Bank,3,", "By Store,Guild Bank,2,",
-    "Net by Store,Character Bank,2,", "Net by Store,Warband Bank,-1,",
+    "Net by Store,Character Bank,2,", "Net by Store,Guild Bank,-1,",
     "Money By Store,Guild Bank,,1g 23s 45c",
     "By Direction,Deposit,3,", "By Direction,Withdraw,2,",
     "By Kind,Item,4,", "By Kind,Gold,1,",

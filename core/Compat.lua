@@ -2,9 +2,11 @@ local _, NS = ...
 NS.Compat = NS.Compat or {}
 local Compat = NS.Compat
 
--- Retail-only addon: no game-flavor branching (compat). Every varying / deprecated API is gated by
--- a direct C_*/global presence check here, so a shim degrades to nil/false when its API is absent —
--- never by reading a game-flavor project id. Feature modules call NS.Compat.X, never the raw API.
+-- Ships on Retail and WoW Forever from one codebase (clients-§1). Which client this is, and the
+-- character-name readers whose answers differ between the two, are core/CompatClient.lua's: it is the
+-- one file that reads a WOW_PROJECT_* constant (clients-§3). Here every varying / deprecated API is
+-- gated by a direct C_*/global presence check, so a shim degrades to nil/false when its API is
+-- absent. Feature modules call NS.Compat.X, never the raw API.
 --
 -- What is here is what is genuinely THIS addon's: the container, guild-bank and item readers, and
 -- the player-identity reads the in-game simulator must be able to answer (docs/compat-layer.md).
@@ -29,11 +31,20 @@ function Compat.GetGuildName()
   return name
 end
 
--- The player's name and realm, the realm normalized and whitespace stripped; each is "Unknown" when
--- the client cannot answer. Read at call time, never cached: a row's `char` is identity, and the
--- in-game simulator answers identity (its alt character) only through a Compat member it can stand
--- in for. Util.PlayerKey joins the two.
+-- The player's name and realm, the two parts of the record key Util.RecordKey joins (WoW Forever
+-- port, "Identity"). Without regional names (Retail): UnitName's name and the realm, normalized and
+-- whitespace stripped, each "Unknown" when the client cannot answer, so the key stays the
+-- `Name-Realm` every stored Retail row carries. With regional names (WoW Forever, forever-quirks-§4):
+-- the whole character key, "First Surname" (core/CompatClient.lua's CharacterKey, else the name
+-- UnitCharacterName reads, else "Unknown"), and a nil realm, so two characters who share a first
+-- name never share a key and no realm is ever read or joined. Always exactly two values. Read at
+-- call time, never cached: a row's `char` is identity, and the in-game simulator answers identity
+-- (its alt character) only through a Compat member it can stand in for, this one; the
+-- CompatClient readers it calls are pure and never answer for the alt.
 function Compat.PlayerName()
+  if Compat.RegionalNames() then
+    return Compat.CharacterKey() or Compat.UnitCharacterName("player") or "Unknown", nil
+  end
   local name = UnitName("player") or "Unknown"
   local realm = (GetNormalizedRealmName and GetNormalizedRealmName())
     or (GetRealmName and GetRealmName()) or "Unknown"
@@ -87,6 +98,19 @@ function Compat.GetStoreMoney(store)
 end
 
 -- ── Container (bag / bank) inventory ────────────────────────────────────────────
+
+-- Can the character bank be viewed at the banker the player is talking to? A warband-only banker
+-- (Enum.PlayerInteractionType.AccountBanker) opens the bank frame on the Warband Bank alone, and the
+-- character bank's containers are not the player's to read there (BagSync v20.41 stops saving it
+-- for this reason). Three-valued, like IsGuildBankVisible: true or false from
+-- C_Bank.CanViewBank(Enum.BankType.Character), present on both clients, and nil when this build
+-- cannot tell, which the caller must read as "readable". The bank type is read BY NAME.
+function Compat.CanViewCharacterBank()
+  local fn = C_Bank and C_Bank.CanViewBank
+  local bankType = Enum and Enum.BankType and Enum.BankType.Character
+  if type(fn) ~= "function" or bankType == nil then return nil end
+  return fn(bankType) and true or false
+end
 
 -- Number of slots in a container id, 0 when the id isn't accessible right now.
 function Compat.GetContainerNumSlots(bagID)

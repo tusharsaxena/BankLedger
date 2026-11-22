@@ -65,7 +65,8 @@ local STORED_SURFACE = {
   -- settings.appearance, declared last so `/bl list` keeps every earlier row where it was; the
   -- eighth, the Font outline (LibKa0s v1.82.0, BL-01 of the skin fonts run), after the overrides.
   { "settings.appearance.source",      "ka0s", "string" },
-  { "settings.appearance.skin",        "ka0s", "string" },
+  -- The client's default skin (Skin:DefaultSkin, skinning-§2): WoW Forever on the Forever client.
+  { "settings.appearance.skin",        NS.Compat.ClientKey() == "forever" and "forever" or "ka0s", "string" },
   { "settings.appearance.ignorePanel", true,   "bool" },
   { "settings.appearance.ignoreFonts", false,  "bool" },
   { "settings.appearance.font",        "",     "string" },

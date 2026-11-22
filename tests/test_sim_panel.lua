@@ -76,7 +76,7 @@ local function stepTexts(rows)
 end
 
 test("sim panel: idle, the rows name the same real items the running session then shows (BL-12)", function()
-  for _, scenario in ipairs({ "bank", "warband", "guild", "onesided" }) do
+  for _, scenario in ipairs(Host.SCENARIOS.names) do
     local runLabels, runTips
     S.withSession(scenario, function(sim) runLabels, runTips = stepTexts(sim:PanelRows()) end)
     -- Stopped again, the picker sits on `scenario`: the same real backpack, and no world.
@@ -129,7 +129,7 @@ test("sim panel: running, a move names the REAL item, and the rows take the runn
     assertEqual(rows[2].state, "done")
     assertEqual(rows[3].state, "ready")
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("sim panel: a step's tooltip says what it moves, the lagged half, and the events it fires", function()
   S.withSession("warband", function(sim)
@@ -143,7 +143,7 @@ test("sim panel: a step's tooltip says what it moves, the lagged half, and the e
       text)
     assertTrue(text:find("Through: " .. L["the real capture engine"], 1, true) ~= nil, text)
   end)
-end)
+end, T.WARBAND_ONLY)
 
 test("sim panel: a played move's label and tooltip count the rows the engine recorded", function()
   S.withSession("bank", function(sim)

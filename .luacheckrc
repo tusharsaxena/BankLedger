@@ -53,8 +53,24 @@ read_globals = {
   "FauxScrollFrame_Update", "FauxScrollFrame_GetOffset", "FauxScrollFrame_OnVerticalScroll",
   "ChatEdit_InsertLink", "IsShiftKeyDown", "BreakUpLargeNumbers", "GetCursorPosition",
   "StaticPopup_Show", "YES", "NO",
-  "GetCoinTextureString",
+  "C_CurrencyInfo", "GetMoneyString",
   "strtrim",
+}
+-- The client stub (clients-§3) and the regional-names stub (forever-quirks-§4): core/CompatClient.lua
+-- alone names the project constants and the switch, so the grant is that file's and nobody else's.
+files["core/CompatClient.lua"] = {
+  read_globals = { "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CAMELOT",
+    "RegionalUniqueNamesEnabled", "issecretvalue" },
+}
+-- The probe verbs (modules/Probe.lua, WoW Forever port ruling R4) record what the client answers,
+-- including readers no other file needs: the build, the instance, the guild tab, ItemLocation for
+-- the -2 socket reads, and the bare GetCoinTextureString, whose PRESENCE is recorded and which is
+-- never called (WoW Forever has none). The grant is that file's alone. `212/self`: the P:Record,
+-- P:Clear and P:RunVerb receivers are the colon surface the debug verb and the suites call.
+files["modules/Probe.lua"] = {
+  read_globals = { "ItemLocation", "GetBuildInfo", "GetInstanceInfo", "GetGuildBankTabInfo",
+    "GetCoinTextureString" },
+  ignore = { "212/self" },
 }
 globals = {
   "BankLedgerDB",      -- the SavedVariables write target, declared in the TOC

@@ -22,6 +22,10 @@ local renderTab, ctxFor, GENERAL_TABS = PS.renderTab, PS.ctxFor, PS.GENERAL_TABS
 
 local Skin = mocks.LibStub("LibKa0s-Skin-1.0")
 local OWNER = "BankLedger"
+-- The skin a new profile wears on each client (skinning-§2, LibKa0s-Skin-1.0 minor 18's
+-- CLIENT_DEFAULTS, the owner's ruling of 2026-11-08): Ka0s Default on Retail, WoW Forever on the
+-- Forever client. Held as literals so a library that moved its table goes red here.
+local CLIENT_SKIN = { retail = "ka0s", forever = "forever" }
 
 -- ONE listener of each kind for the whole file: the library keeps a listener for the session and
 -- the same function twice is one entry, so each case resets the counters instead of registering.
@@ -98,7 +102,7 @@ test("Skin seam: the owner is the folder name, and NS.Skin is its facade", funct
   assertEqual(Skin:OwnerLabel(OWNER), NS.BRAND_NAME, "the copy confirmation names the addon by its brand")
 end)
 
-test("Skin seam: the read answers Ka0s Default before the profile store exists", function()
+test("Skin seam: the read answers the client's default before the profile store exists", function()
   -- RegisterOwner calls `get` at FILE LOAD, before NS:InitDB; a getter that raised there would be a
   -- visible Lua error on every login.
   local db = NS.db
@@ -108,9 +112,21 @@ test("Skin seam: the read answers Ka0s Default before the profile store exists",
   NS.db = db
   assertTrue(ok, "NS.SkinChoice raised without a store: " .. tostring(source))
   assertEqual(source, "ka0s")
-  assertEqual(skin, "ka0s")
+  assertEqual(skin, CLIENT_SKIN[NS.Compat.ClientKey()], "the client's default skin")
   assertTrue(ok2, "NS.SkinOverride raised without a store: " .. tostring(font))
   assertTrue(font == false and texture == false, "no store, no override")
+end)
+
+test("Skin seam: the profile default is the client's default skin", function()
+  -- red under: a hard-coded "ka0s" default (a Forever player opening on Ka0s Default, not the WoW
+  -- Forever skin the library chose for that client), or a default read from somewhere other than
+  -- Skin:DefaultSkin(). The source stays the Ka0s skins on both clients.
+  local want = CLIENT_SKIN[NS.Compat.ClientKey()]
+  assertEqual(NS.DEFAULT_SKIN, want, "NS.DEFAULT_SKIN")
+  assertEqual(NS.DEFAULT_SKIN, Skin:DefaultSkin(), "NS.DEFAULT_SKIN is Skin:DefaultSkin()")
+  assertEqual(NS.defaults.profile.settings.appearance.skin, want, "the profile default")
+  assertEqual(NS.defaults.profile.settings.appearance.source, "ka0s", "the source on both clients")
+  assertEqual(NS.Schema:FindRow("settings.appearance.skin").default, want, "the schema row's default")
 end)
 
 -- ── the owner tokens (skinning-§1; the rollout's X1, X2, X12) ─────────────────────────────────
@@ -143,13 +159,13 @@ end)
 -- ── the keys and the rows ────────────────────────────────────────────────────────────────────
 
 local KEYS = {
-  { "source", "ka0s", "string" }, { "skin", "ka0s", "string" },
+  { "source", "ka0s", "string" }, { "skin", CLIENT_SKIN[NS.Compat.ClientKey()], "string" },
   { "ignorePanel", true, "bool" }, { "ignoreFonts", false, "bool" },
   { "font", "", "string" }, { "texture", "", "string" },
   { "outline", "hud", "string" }, { "pickerSeen", false, "bool" },
 }
 
-test("Skin seam: the appearance keys default to today's look, as eight skipRender Appearance rows", function()
+test("Skin seam: the appearance keys default to the client's look, as eight skipRender Appearance rows", function()
   -- red under: a default other than today's look (ignorePanel on: the owner's call of 2026-10-27;
   -- pickerSeen false on every profile: the rollout's O3), the keys moved out of `settings`, or a row
   -- that renders itself on top of the library's choice grids.

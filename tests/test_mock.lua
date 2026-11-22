@@ -324,3 +324,39 @@ test("Mock bus: UnregisterAllMessages drops one target and leaves the rest subsc
   assertEqual(seenA, 1, "the torn-down target hears nothing further")
   assertEqual(seenB, 2, "and the other target is untouched by its neighbor's teardown")
 end)
+
+-- ── The client profile's shapes (BL-02) ─────────────────────────────────────────────────────────
+-- tests/wow_mock.lua models what this addon reads differently on WoW Forever, on top of the kit's
+-- profile constants: present where the profile is Forever, Retail's shape where it is not (clients-§6).
+
+local FOREVER = T.NS.Compat.ClientKey() == "forever"
+
+test("Mock client: Enum.BagIndex is the profile's (Retail 6+5 account tabs at 6..16, Forever 9+9 at 6..23)", function()
+  local idx, n = mocks.Enum.BagIndex, 0
+  for _ in pairs(idx) do n = n + 1 end
+  assertEqual(n, FOREVER and 27 or 20, "member count")
+  assertEqual(idx.Keyring, -1)
+  assertEqual(idx.ReagentBag, 5)
+  assertEqual(idx.CharacterBankTab_1, 6)
+  assertEqual(idx.CharacterBankTab_9, FOREVER and 14 or nil)
+  assertEqual(idx.AccountBankTab_1, FOREVER and 15 or 12)
+  assertEqual(idx.AccountBankTab_9, FOREVER and 23 or nil)
+end)
+
+test("Mock client: regional names and the two-word UnitName follow the profile", function()
+  assertEqual(mocks.RegionalUniqueNamesEnabled(), FOREVER)
+  local name, second = mocks.UnitName("player")
+  assertEqual(name, "Mock")
+  assertEqual(second, FOREVER and "Mockvault" or nil, "UnitName's second value")
+  local uname, usecond = mocks.UnitNameUnmodified("player")
+  assertEqual(uname, name)
+  assertEqual(usecond, second)
+  assertEqual(T.NS.Compat.CharacterKey(), FOREVER and "Mock Mockvault" or "Mock - Realm", "AceDB's character key")
+end)
+
+test("Mock client: CanViewBank answers the character bank on both and the account bank on Retail only", function()
+  local BT = mocks.Enum.BankType
+  assertTrue(mocks.C_Bank.CanViewBank(BT.Character))
+  assertEqual(mocks.C_Bank.CanViewBank(BT.Account), not FOREVER, "the locked account bank")
+  assertFalse(mocks.C_Bank.CanViewBank(BT.Guild))
+end)
