@@ -75,7 +75,7 @@ test("SimWorld: slot counts are 20 backpack, the client's bank tabs and warband 
   local ns, _, _, P = built()
   local forever = ns.SAMPLE_CLIENT == "forever"
   assertEqual(P.GetContainerNumSlots(live, BACKPACK), 20)
-  assertEqual(P.GetContainerNumSlots(live, BANK_TAB_1), forever and 24 or 98)
+  assertEqual(P.GetContainerNumSlots(live, BANK_TAB_1), forever and 48 or 98)
   assertEqual(P.GetContainerNumSlots(live, BANK_TAB_2), forever and 16 or 0)
   -- The warband tab is Retail's alone (BL-05): WoW Forever's world holds no warband container.
   assertEqual(P.GetContainerNumSlots(live, WARBAND_TAB_1), T.NS.Constants.FEATURE.warbandBank and 98 or 0)
@@ -96,8 +96,10 @@ test("SimWorld: the bank tab sizes are a per-client table picked once by the sam
   assertTrue(SW.BANK_TAB_SLOTS == rows[ns.SAMPLE_CLIENT], "the sizes in force are not this client's row")
   assertEqual(table.concat(rows.retail, ","), "98", "Retail's row is the pre-port 98-slot first tab")
   assertTrue(#rows.forever >= 2, "WoW Forever's bank is more than one tab")
+  -- red under: the pre-probe guess of 24 (probe P2, build 71037: the base tab reads 48 slots)
+  assertEqual(rows.forever[1], 48, "WoW Forever's base tab")
   for i, n in ipairs(rows.forever) do
-    assertTrue(n > 0 and n <= 36 and n ~= 98, ("WoW Forever's tab %d is not bag-sized: %d"):format(i, n))
+    assertTrue(n > 0 and (i == 1 or n <= 36) and n ~= 98, ("WoW Forever's tab %d is not bag-sized: %d"):format(i, n))
   end
 end)
 
