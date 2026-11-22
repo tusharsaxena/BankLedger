@@ -17,9 +17,9 @@ Most probes need no typing beyond these four. The record goes into the addon's o
 
 | Verb | What it does |
 |---|---|
-| `/bl debug probe start` | Stamps the client and build, records the **start facts** and listens. Refused while the addon is disabled. A started probe keeps recording across logins and reloads until it is stopped |
+| `/bl debug probe start` | Stamps the client and build, records the **start facts** and listens. Refused while the addon is disabled. A started probe keeps recording across logins and reloads until it is stopped, and records the start facts again at each login or reload |
 | `/bl debug probe stop` | Stops listening and stamps the stop. The record stays |
-| `/bl debug probe status` | One chat line: on or off, entries kept of the cap (200), entries dropped, client and build |
+| `/bl debug probe status` | One chat line: on or off, entries kept of the cap (200, the oldest dropped first, except the newest `start` entry, which is never dropped), entries dropped, client and build |
 | `/bl debug probe clear` | Empties the entries; a running probe keeps running |
 
 **The session.** `/bl debug probe start`; visit a banker (open the bank, wait five seconds, move one

@@ -26,8 +26,9 @@ local print = NS.Print   -- secret-safe, [BL]-prefixed shared printer (events-fr
 --     the seconds since the bank opened, so the readiness guard's 6 s deadline can be tuned.
 --
 -- WHERE IT LIVES. The addon's existing SavedVariables, `db.global.probe` (never a new SV global),
--- capped at P.CAP entries: the oldest go first and `dropped` counts them. Account-wide like the
--- ledger, and outside every profile, so no profile reset reaches it; `/bl debug probe clear` does.
+-- capped at P.CAP entries: the oldest go first (except the newest `start` entry, which is pinned)
+-- and `dropped` counts them. Account-wide like the ledger, and outside every profile, so no profile
+-- reset reaches it; `/bl debug probe clear` does.
 --
 -- A DIAGNOSTIC, NOT A FEATURE. It reads the client RAW (C_Container, C_Bank and the guild globals,
 -- never NS.Compat's wrapped members), so a running simulation never answers for the client. It
@@ -259,6 +260,17 @@ end
 
 --- Appends one entry of `kind` (its fields from `data`) with a time stamp, dropping the oldest past
 --- P.CAP. Answers false when there is no record to write into.
+-- The entry the cap drops: the oldest, unless that is the NEWEST `start` entry (BL-REV). The start
+-- facts (P9, P3, P-NAME, P-SKIN) are read only at a start or a resume, so an evening of merchants,
+-- gossip and bag swaps must never push the last copy out; it is pinned and the next oldest goes.
+local function evictIndex(list)
+  if list[1].kind ~= "start" then return 1 end
+  for i = 2, #list do
+    if list[i].kind == "start" then return 1 end
+  end
+  return 2
+end
+
 function P:Record(kind, data)
   local p = stored()
   if not p then return false end
@@ -267,7 +279,7 @@ function P:Record(kind, data)
   local list = p.entries
   list[#list + 1] = e
   while #list > P.CAP do
-    table.remove(list, 1)
+    table.remove(list, evictIndex(list))
     p.dropped = p.dropped + 1
   end
   return true
@@ -349,10 +361,13 @@ end
 
 function P:IsArmed() return self._armed == true end
 
---- NS.StandUp's call: re-arms a probe whose stored record is still active.
+--- NS.StandUp's call: re-arms a probe whose stored record is still active, and records this
+--- session's start facts again (a login or reload can change the keyring and the money readers).
 function P:Resume()
   local p = stored()
-  if p and p.active then self:Arm() end
+  if not (p and p.active) then return end
+  self:Arm()
+  self:Record("start", startFacts())
 end
 
 -- ── The verbs ───────────────────────────────────────────────────────────────────

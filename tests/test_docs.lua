@@ -81,49 +81,62 @@ local FOREVER_NEEDLES = {
   "CanViewBank",                -- the warband-only banker (R8)
 }
 
-test("docs/smoke-tests.md carries a WoW Forever section with its absence and R8 checks", function()
-  local body = readFile("docs/smoke-tests.md")
-
+-- The `## WoW Forever` section of `body`, as text, or nil when there is none.
+local function foreverSection(body)
   local capture, section = false, {}
   for line in (body .. "\n"):gmatch("([^\n]*)\n") do
     if capture and line:match("^## ") then break end
     if not capture and line:match("^## WoW Forever%s*$") then capture = true end
     if capture then section[#section + 1] = line end
   end
-  assertTrue(capture, "docs/smoke-tests.md has no `## WoW Forever` section")
-  local text = table.concat(section, "\n")
+  return capture and table.concat(section, "\n") or nil
+end
 
-  for _, needle in ipairs(FOREVER_NEEDLES) do
-    assertTrue(text:find(needle, 1, true) ~= nil, "the WoW Forever section never says `" .. needle .. "`")
-  end
-
-  -- Every check: numbered in order, tagged with its client, falsifiable, and with a Result line.
-  local starts = {}
-  local from = 1
+-- The section's FOREVER checks in order, { id, body } each, asserting they are numbered 1..n.
+local function foreverChecks(text)
+  local starts, from = {}, 1
   while true do
     local s, e, id = text:find("\n%- %*%*FOREVER%-(%d+)%.", from)
     if not s then break end
     starts[#starts + 1] = { s = s, e = e, id = tonumber(id) }
     from = e + 1
   end
-  local checks, n = {}, #starts
+  local checks = {}
   for i, st in ipairs(starts) do
-    assertTrue(st.id == i, "FOREVER checks are numbered 1.." .. n .. " in order; found FOREVER-"
+    assertTrue(st.id == i, "FOREVER checks are numbered 1.." .. #starts .. " in order; found FOREVER-"
       .. st.id .. " at position " .. i)
     local stop = starts[i + 1] and starts[i + 1].s - 1 or #text
     checks[i] = { id = st.id, body = text:sub(st.e + 1, stop) }
   end
+  return checks
+end
+
+-- One check's client tag, asserting it has one and carries a Fail clause and a Result line.
+local function foreverCheckClient(c)
+  local client = c.body:match("Client:%s+(%a[%a%s]-)%.")
+  client = client and client:gsub("%s+", " ")
+  assertTrue(client == "WoW Forever" or client == "Retail" or client == "both",
+    "FOREVER-" .. c.id .. " names no client (Client: WoW Forever., Client: Retail. or Client: both.)")
+  assertTrue(c.body:find("Fail", 1, true) ~= nil, "FOREVER-" .. c.id .. " says no Fail")
+  assertTrue(c.body:find("Result:", 1, true) ~= nil, "FOREVER-" .. c.id .. " has no Result line")
+  return client
+end
+
+test("docs/smoke-tests.md carries a WoW Forever section with its absence and R8 checks", function()
+  local body = readFile("docs/smoke-tests.md")
+  local text = foreverSection(body)
+  assertTrue(text ~= nil, "docs/smoke-tests.md has no `## WoW Forever` section")
+
+  for _, needle in ipairs(FOREVER_NEEDLES) do
+    assertTrue(text:find(needle, 1, true) ~= nil, "the WoW Forever section never says `" .. needle .. "`")
+  end
+
+  -- Every check: numbered in order, tagged with its client, falsifiable, and with a Result line.
+  local checks = foreverChecks(text)
+  local n = #checks
   assertTrue(n >= 10, "the WoW Forever section has " .. n .. " checks")
   local clients = {}
-  for _, c in ipairs(checks) do
-    local client = c.body:match("Client:%s+(%a[%a%s]-)%.")
-    client = client and client:gsub("%s+", " ")
-    assertTrue(client == "WoW Forever" or client == "Retail" or client == "both",
-      "FOREVER-" .. c.id .. " names no client (Client: WoW Forever., Client: Retail. or Client: both.)")
-    clients[client] = true
-    assertTrue(c.body:find("Fail", 1, true) ~= nil, "FOREVER-" .. c.id .. " says no Fail")
-    assertTrue(c.body:find("Result:", 1, true) ~= nil, "FOREVER-" .. c.id .. " has no Result line")
-  end
+  for _, c in ipairs(checks) do clients[foreverCheckClient(c)] = true end
   assertTrue(clients["WoW Forever"] and clients.Retail and clients.both,
     "the section has checks for WoW Forever, for Retail (the R8 regressions) and for both")
 

@@ -620,9 +620,15 @@ end
 --
 -- PER CONTAINER. A bank container that reported slots on the last ready read and now reports 0 is
 -- not ready. "Every bank id reads 0" is too weak: a partly loaded bank (tab 1 ready, the socketed
--- tabs still 0) passes it. The memory is runtime-only, kept per world (the live client, or one
--- simulated world: the seam answers a simulation's slot counts, and the two must never be judged
--- against each other). A first visit has no memory, so it takes its baseline as it finds it.
+-- tabs still 0) passes it. The memory is kept per world (the live client, or one simulated world:
+-- the seam answers a simulation's slot counts, and the two must never be judged against each other).
+--
+-- THE LIVE MEMORY OUTLIVES THE SESSION (BL-REV). The documented WoW Forever case is the FIRST open
+-- after a login or a /reload, so a memory that died with the Lua state guarded every visit but that
+-- one. The live world's shape is kept in SavedVariables, db.global.bankShape[<record key>] (per
+-- character: the character bank is the character's), written on every ready read. A simulated
+-- world's stays runtime-only. Only a character's first visit ever, with no stored shape, takes its
+-- baseline as it finds it.
 --
 -- NOT READY. At the open, no baseline is taken; mid-visit, the held baseline stays. A re-read comes
 -- from the cue events (BAG_UPDATE_DELAYED, BAG_CONTAINER_UPDATE, BANK_TABS_CHANGED,
@@ -641,9 +647,34 @@ local function shapeKey()
   return LIVE
 end
 
+-- The live world's stored shape, db.global.bankShape[<record key>], created on first use. Nil
+-- before the database exists or without a record key; the live memory is then runtime-only.
+local function storedShape(create)
+  local g = NS.db and NS.db.global
+  local key = type(g) == "table" and NS.Util and NS.Util.PlayerKey and NS.Util.PlayerKey()
+  if not key then return nil end
+  local all = g.bankShape
+  if type(all) ~= "table" then
+    if not create then return nil end
+    all = {}
+    g.bankShape = all
+  end
+  local memory = all[key]
+  if type(memory) ~= "table" and create then
+    memory = {}
+    all[key] = memory
+  end
+  return memory
+end
+
 --- The remembered bank shape of the current world, { [bagID] = slots } from the last ready read.
+--- The live world's is the stored one (it survives a reload); a simulated world's is runtime-only.
 function L:ShapeMemory()
   local key = shapeKey()
+  if key == LIVE then
+    local stored = storedShape(true)
+    if stored then return stored end
+  end
   local memory = shapes[key]
   if not memory then
     memory = {}
@@ -655,7 +686,9 @@ end
 --- Forgets the current world's remembered bank shape and any wait in progress (the test fixture's
 --- reset; a new world has no history).
 function L:ForgetBankShape()
-  shapes[shapeKey()] = nil
+  local key = shapeKey()
+  shapes[key] = nil
+  if key == LIVE and storedShape(false) then NS.db.global.bankShape[NS.Util.PlayerKey()] = nil end
   L._unreadySince = nil
 end
 

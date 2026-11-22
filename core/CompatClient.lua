@@ -91,9 +91,10 @@ end
 
 --- A unit's whole character name and its realm: "Traxex Silentshot" and a nil realm with regional
 --- names (WoW Forever); UnitName's name and realm otherwise (the realm nil on the player's own).
---- With the library absent, UnitName's first value, and its second as the realm only without
---- regional names: a surname is never read as a realm. The name is nil for no unit, a secret or "";
---- the realm nil for a secret or "".
+--- With the library absent, the library's own answer from UnitName: with regional names its second
+--- value is the SURNAME, joined into the name and never read as a realm (BL-REV: dropping it gave
+--- two Forever characters who share a first name one record key). The name is nil for no unit, a
+--- secret or ""; the realm nil for a secret or "".
 --- @param unit string
 --- @return string|nil name, string|nil realm
 function Compat.UnitCharacterName(unit)
@@ -103,7 +104,11 @@ function Compat.UnitCharacterName(unit)
   name = plainString(name)
   if not name or name == "" then return nil end
   realm = plainString(realm)
-  if realm == "" or (not CompatLib and Compat.RegionalNames()) then realm = nil end
+  if realm == "" then realm = nil end
+  if not CompatLib and Compat.RegionalNames() then
+    if realm then name = name .. " " .. realm end
+    realm = nil
+  end
   return name, realm
 end
 

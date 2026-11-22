@@ -12,7 +12,7 @@ One SavedVariable, `BankLedgerDB`, created with `AceDB:New("BankLedgerDB", NS.de
 
 | Scope | Defaults file | Holds |
 |---|---|---|
-| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp, and the probe record (`probe`, no default: present only once `/bl debug probe start` has run) |
+| `global` (account-wide) | `defaults/Global.lua` | The recorded ledger, the retention window that governs it (`settings.retentionDays`), LibDBIcon's `minimap` table, the `schemaVersion` stamp, the probe record (`probe`, no default: present only once `/bl debug probe start` has run), and the bank readiness guard's remembered shapes (`bankShape`, no default) |
 | `profile` (the active AceDB profile) | `defaults/Profile.lua` | Every other schema row (`settings.*`, the skin choice `settings.appearance` included), both filter lists, the saved views (one per tab) |
 
 The ledger stays account-wide on purpose: you deposit on one character and withdraw on another, so a
@@ -402,6 +402,14 @@ reached only from `/bl debug probe start|stop|clear` and from the events a start
 It has no default in `defaults/Global.lua`, so it is created by the first `start` and no migration is
 owed; it is account-wide and in no profile, so no profile event or reset reaches it, and only
 `/bl debug probe clear` empties it. [forever-probes.md](forever-probes.md) lists the entry fields.
+
+**The bank shapes are the readiness guard's memory, not a setting** (`architecture-§5` named
+non-setting state). `db.global.bankShape` is `{ [<record key>] = { [bagID] = slots } }`, the slot
+count of every bank container on that character's last ready read. Its one writer is
+`NS.Ledger` (`L:ShapeMemory` and `L:ForgetBankShape`, `modules/Ledger.lua`), on every bank read
+the guard judges ready or re-anchors. It survives a reload so the first bank open of a session is
+guarded too (BL-REV); a simulated world's shape is never stored. It has no default, so no
+migration is owed, and no profile event or reset reaches it.
 
 **The filter id-sets are a structural registry, not a carve-out** (`architecture-§5`).
 `db.profile.blacklist` and `db.profile.whitelist` are item-id sets the player adds to and removes

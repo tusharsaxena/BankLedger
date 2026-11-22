@@ -4,7 +4,8 @@
 --
 --   * PER CONTAINER. A bank container that reported slots on the last ready read and now reports 0
 --     is not ready. "Every bank id reads 0" is too weak: a partly loaded bank (tab 1 ready, the
---     socketed tabs still 0 on WoW Forever) slips through it.
+--     socketed tabs still 0 on WoW Forever) slips through it. The live memory is stored
+--     (db.global.bankShape), so the first open after a login or /reload is guarded too.
 --   * CanViewBank(Character). At a warband-only banker the character bank cannot be viewed, so it
 --     is not read at all (BagSync v20.41's fix; a latent Retail bug).
 --   * Not ready: no baseline at the open, the old baseline held mid-visit, and a re-read on the cue
@@ -113,6 +114,51 @@ test("readiness: a first visit takes its baseline even with tabs at 0 slots (no 
     assertTrue(NS.State.lastSnapshot ~= nil, "genesis: the baseline is taken")
     L:CloseContext()
   end)
+end)
+
+-- The memory outlives the session (BL-REV). The documented WoW Forever case is the FIRST open after
+-- a login or a /reload (BagSync: the bank is not always loaded when it first opens), so a memory
+-- that died with the Lua state left exactly that visit unguarded. The live world's shape is kept in
+-- db.global.bankShape under the record key; a simulated world's stays runtime-only.
+local function storedShape()
+  local all = NS.db.global.bankShape
+  return all and all[NS.Util.PlayerKey()]
+end
+
+test("readiness: a visit writes the live bank's shape to SavedVariables under the record key", function()
+  withContainers({
+    [BAG_ID]     = { slots = 1 },
+    [BANK_ID]    = { slots = 2 },
+    [BANK_TAB_2] = { slots = 3 },
+  }, function()
+    visit()
+    local shape = storedShape()
+    assertTrue(type(shape) == "table", "db.global.bankShape holds this character's shape")
+    assertEqual(shape[BANK_ID], 2)
+    assertEqual(shape[BANK_TAB_2], 3)
+  end)
+  assertNil(storedShape(), "ForgetBankShape forgets the stored shape too")
+end)
+
+test("readiness: the first visit after a reload is guarded by the shape the last session stored", function()
+  local before = rowsOf(FLASK)
+  withContainers({
+    [BAG_ID]  = { slots = 1, [1] = { itemID = FLASK, count = 3 } },
+    [BANK_ID] = { slots = 2 },
+  }, function()
+    -- What the last session left: tab 2 had slots. This session has no runtime memory at all.
+    NS.db.global.bankShape = { [NS.Util.PlayerKey()] = { [BANK_ID] = 2, [BANK_TAB_2] = 2 } }
+    L:OpenContext("BANK_FRAME")                    -- tab 2 still loading (0 slots)
+    assertNil(NS.State.lastSnapshot, "no baseline from a bank still loading on the first open")
+    mocks.__containers[BAG_ID][1] = nil            -- the flasks are sold
+    mocks.__containers[BANK_TAB_2] = { slots = 2, [1] = { itemID = FLASK, count = 3 } }   -- loaded
+    L:Reconcile()
+    assertTrue(NS.State.lastSnapshot ~= nil, "the first ready read is the baseline")
+    L:CloseContext()
+    mocks.__containers[BANK_TAB_2] = nil
+  end)
+  assertEqual(rowsOf(FLASK), before, "no phantom deposit on the first visit of a session")
+  dropRows()
 end)
 
 test("readiness: visit 2 with a partly loaded bank takes no baseline", function()

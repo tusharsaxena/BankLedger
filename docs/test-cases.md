@@ -330,7 +330,7 @@ Total.
 - Ledger: an unknown window state does NOT disarm the guild bank
 - Compat.IsGuildBankVisible is three-valued
 
-### test_ledger_settling.lua (27)
+### test_ledger_settling.lua (31)
 
 - reEnable leaves the addon's own event registrations standing
 - Ledger:Enable registers every event on a build that has them all
@@ -350,6 +350,10 @@ Total.
 - Ledger: a movement whose halves are SECONDS apart is still recorded
 - Ledger: gold spent at the bank window is not recorded as a warband deposit
 - Ledger: a real gold deposit still records when the store balance lands a pass later
+- Ledger: a character-bank deposit whose halves arrive in separate events is recorded
+- Ledger: a character-bank withdrawal whose halves arrive separately is recorded
+- Ledger: a character-bank deposit whose halves are SECONDS apart is recorded
+- Ledger: a guild-bank gold deposit records when the vault's balance lands a pass later
 - Ledger: a one-sided change that never completes re-anchors after the timeout
 - Ledger: a re-anchored loot does not pair with a later unrelated deposit
 - Ledger: an unchanged world advances the baseline without waiting
@@ -360,12 +364,14 @@ Total.
 - Ledger: the deadline never schedules a near-zero timer
 - Ledger: firing the deadline re-anchors and stops waiting
 
-### test_bank_readiness.lua (16)
+### test_bank_readiness.lua (18)
 
 - readiness: Compat.CanViewCharacterBank answers C_Bank.CanViewBank(Enum.BankType.Character)
 - readiness: BAG_CONTAINER_UPDATE and BANK_TABS_CHANGED are capture cues on both clients
 - readiness: a cue event with the bank open schedules one debounced re-read
 - readiness: a first visit takes its baseline even with tabs at 0 slots (no memory yet)
+- readiness: a visit writes the live bank's shape to SavedVariables under the record key
+- readiness: the first visit after a reload is guarded by the shape the last session stored
 - readiness: visit 2 with a partly loaded bank takes no baseline
 - readiness: a tab loading while the bags lose the same item writes no phantom deposit
 - readiness: a tab dropping to 0 mid-visit holds the baseline and writes no phantom withdrawal
@@ -379,7 +385,7 @@ Total.
 - readiness: at a warband-only banker the Warband Bank is still recorded
 - readiness: a nil CanViewBank answer (cannot tell) still reads the character bank
 
-### test_probe.lua (17)
+### test_probe.lua (19)
 
 - probe: the four verbs are the debug verb's, and a bare or unknown word prints the usage
 - probe: status with no record says the probe is off
@@ -394,6 +400,8 @@ Total.
 - probe: a guild banker records the guild-vault reads at the open, +1 s and +3 s
 - probe: GUILDBANKFRAME_OPENED alone takes the guild-vault reads
 - probe: the record is capped; the oldest entries go and the drop is counted
+- probe: the newest start entry is never evicted by the cap
+- probe: a resumed probe records fresh start facts, and only the newest start is pinned
 - probe: stop unarms, stamps the stop and keeps the record
 - probe: clear empties the entries and keeps the probe's state
 - probe: start is refused while the addon is disabled, and a disable disarms a running probe
@@ -2123,9 +2131,9 @@ Total.
 | test_ledger.lua | 82 |
 | test_backfill.lua | 15 |
 | test_ledger_guildbank.lua | 26 |
-| test_ledger_settling.lua | 27 |
-| test_bank_readiness.lua | 16 |
-| test_probe.lua | 17 |
+| test_ledger_settling.lua | 31 |
+| test_bank_readiness.lua | 18 |
+| test_probe.lua | 19 |
 | test_database.lua | 56 |
 | test_stats.lua | 52 |
 | test_ledgertable.lua | 65 |
@@ -2197,4 +2205,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1833** |
+| **Total** | **1841** |

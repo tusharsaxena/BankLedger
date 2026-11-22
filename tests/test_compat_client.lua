@@ -105,7 +105,9 @@ test("compat client: UnitCharacterName is the whole name with regional names, na
     m.UnitName = function() return nil end
     assertNil((Compat.UnitCharacterName("party4")), label .. ": no answer")
   end
-  -- With regional names the second value is a SURNAME: the library joins it, the stub drops it.
+  -- With regional names the second value is a SURNAME: the library joins it, and so does the stub
+  -- (BL-REV), or two Forever characters who share a first name would share a record key on a
+  -- degraded load.
   local live, lm = fresh(true)
   lm.RegionalUniqueNamesEnabled = function() return true end
   lm.UnitName = function() return "Traxex", "Silentshot" end
@@ -116,8 +118,10 @@ test("compat client: UnitCharacterName is the whole name with regional names, na
   sm.RegionalUniqueNamesEnabled = function() return true end
   sm.UnitName = function() return "Traxex", "Silentshot" end
   name, realm = stub.UnitCharacterName("player")
-  assertEqual(name, "Traxex", "library absent: the first name alone")
+  assertEqual(name, "Traxex Silentshot", "library absent: the whole name, as the library answers")
   assertNil(realm, "library absent: a surname is never read as a realm")
+  sm.UnitName = function() return "Traxex", "" end
+  assertEqual((stub.UnitCharacterName("player")), "Traxex", "library absent: no surname, the first name")
 end)
 
 test("compat client: UnitCharacterName never answers a secret name", function()

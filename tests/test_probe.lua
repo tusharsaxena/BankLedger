@@ -254,6 +254,27 @@ test("probe: the record is capped; the oldest entries go and the drop is counted
   assertEqual(p.entries[#p.entries].n, P.CAP + 7, "the newest is kept")
 end))
 
+-- BL-REV: the start entry holds the P9, P3, P-NAME and P-SKIN facts, and nothing re-reads them
+-- mid-session. An evening of ordinary interactions must not evict the newest one.
+test("probe: the newest start entry is never evicted by the cap", fresh(function()
+  slash("start")
+  for i = 1, P.CAP * 2 do P:Record("interaction", { n = i }) end
+  local starts = entriesOf("start")
+  assertEqual(#starts, 1, "the start facts survive a full record")
+  assertEqual(#record().entries, P.CAP, "still capped at P.CAP")
+  assertEqual(record().entries[#record().entries].n, P.CAP * 2, "the newest is kept")
+end))
+
+test("probe: a resumed probe records fresh start facts, and only the newest start is pinned", fresh(function()
+  slash("start")
+  P:Disarm()
+  P:Resume()                                       -- a login or reload with the probe still active
+  assertTrue(P:IsArmed(), "re-armed")
+  assertEqual(#entriesOf("start"), 2, "a resume records the start facts again")
+  for i = 1, P.CAP * 2 do P:Record("interaction", { n = i }) end
+  assertEqual(#entriesOf("start"), 1, "older start entries age out like any other")
+end))
+
 test("probe: stop unarms, stamps the stop and keeps the record", fresh(function()
   slash("start")
   local chat = slash("stop")
