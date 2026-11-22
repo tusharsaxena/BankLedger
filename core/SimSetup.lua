@@ -4,7 +4,7 @@ local addonName, NS = ...
 --
 -- THE SEAM. At load, straight after core/Compat.lua and core/CompatClient.lua and before any other
 -- file can read a member (the LOAD-BEARING TOC slot, host contract H2), Sim:NewSeam wraps every NS.Compat function member in
--- place, once, except the three PURE ones below. While a simulation session runs, a wrapped member
+-- place, once, except the five PURE ones below. While a simulation session runs, a wrapped member
 -- asks the simulator's provider first; idle, it calls straight through to the live member, so the
 -- whole cost of the seam is one field test per call. This file names no client API: the compat
 -- family (core/Compat.lua, core/CompatClient.lua) stays the only caller (compat). A member added to NS.Compat after this file loads, or one
@@ -13,7 +13,9 @@ local addonName, NS = ...
 --
 -- PURE. GuildBankTabSize is a constant; GetItemDetails and ItemNameQuality are real item facts
 -- about real cached items (the simulator's pool is drawn from the player's real bags), so the
--- simulator answers them exactly as the client does and they are never wrapped. So are
+-- simulator answers them exactly as the client does and they are never wrapped. So are the
+-- container groups (ContainerGroups, read once at load from the enum: a fact of the install) and
+-- the readiness judgment (UnreadyBankContainers, a pure function of its arguments). So are
 -- core/CompatClient.lua's eight: which client this is (IsForever, IsRetail, ClientKey, ForClient)
 -- and how this client spells a name (RegionalNames, UnitCharacterName, CharacterKey, RealmKey) are
 -- facts of the install, not of the simulated world. The simulator's alt is answered one level up,
@@ -40,6 +42,7 @@ NS.SimHost = NS.SimHost or {}
 -- The members that answer for nobody. Never wrapped.
 local PURE = {
   GuildBankTabSize = true, GetItemDetails = true, ItemNameQuality = true,
+  ContainerGroups = true, UnreadyBankContainers = true,
   IsForever = true, IsRetail = true, ClientKey = true, ForClient = true,
   RegionalNames = true, UnitCharacterName = true, CharacterKey = true, RealmKey = true,
 }

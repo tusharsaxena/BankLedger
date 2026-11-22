@@ -168,16 +168,17 @@ local function socketsInto(e)
   e.socketSlots, e.sockets = slots(id), out
 end
 
--- The ledger's own state beside the facts. UnreadyContainers is pure; the shape memory is read
--- only off a simulation, which keeps a memory of its own world.
+-- The ledger's own state beside the facts. The readiness judgment (NS.Compat.UnreadyBankContainers,
+-- LibKa0s-Compat-1.0's) is pure; the shape memory is read only off a simulation, which keeps a
+-- memory of its own world.
 local function ledgerInto(e, shape)
   local L = NS.Ledger
   e.context = NS.State and NS.State.openContext or nil
   e.waiting = L and L._unreadySince ~= nil or false
   local sim = NS.Sim and NS.Sim:IsActive()
   e.sim = sim and true or false
-  if L and L.UnreadyContainers and L.ShapeMemory and not sim then
-    local missing = L.UnreadyContainers({ shape = shape }, L:ShapeMemory())
+  if L and L.ShapeMemory and not sim then
+    local missing = NS.Compat.UnreadyBankContainers(shape or {}, L:ShapeMemory())
     e.unready = missing and table.concat(missing, ",") or ""
   end
 end

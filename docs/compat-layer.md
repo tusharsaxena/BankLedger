@@ -25,7 +25,7 @@ the link, equally on purpose; a shared resolver would have had to overturn one o
 |---|---|
 | Player | `GetGuildName`, `PlayerName` (name and normalized realm on Retail; the whole "First Surname" and no realm on WoW Forever, joined by `Util.RecordKey` into the record key), `PlayerClass` (the classFile) |
 | Money | `GetMoney` (the purse), `GetStoreMoney` (a store's **own** balance) |
-| Containers | `CanViewCharacterBank` (`C_Bank.CanViewBank(Character)`; false at a warband-only banker, nil when the build cannot tell), `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
+| Containers | Routed from `LibKa0s-Compat-1.0` (minor 6, LibKa0s#101) with degraded stubs: `ContainerGroups` (the `bags` / `bank` / `accountBank` ids by `Enum.BagIndex` member name, read once by `core/Constants.lua`), `CONTAINER_PATTERNS_BY_CLIENT` (its pattern table), `CanViewCharacterBank` (`C_Bank.CanViewBank(Character)`; false at a warband-only banker, nil when the build cannot tell) and `UnreadyBankContainers` (the readiness judgment `L:CheckReady` asks). The addon's own: `GetContainerNumSlots`, `GetContainerSlot`, `GetGuildBankSlot`, `GetNumGuildBankTabs`, `QueryGuildBankTab`, `GetCurrentGuildBankTab`, `IsGuildBankVisible`, `GuildBankTabSize` |
 | Items | `GetItemDetails`, `ItemNameQuality` — the **resolver** only; the primitives are `NS.Item.X` (see `core/ItemSetup.lua`) |
 
 ## The client and the character's name (`core/CompatClient.lua`)
@@ -38,6 +38,26 @@ the addon is picked once at load by `ClientKey()`, and every declared feature (`
 `core/Constants.lua`) by `ForClient`; the list is ARCHITECTURE.md's *Per-client features* table.
 The eight are pure facts about the client, so the simulator's seam does not wrap them (`PURE` in
 `core/SimSetup.lua`). Without the library, `CharacterKey` and `RealmKey` answer nil.
+
+## The container groups and bank readiness (`core/Compat.lua`, LibKa0s#101)
+
+The container groups and the bank-readiness reads are `LibKa0s-Compat-1.0` members (minor 6),
+routed by `core/Compat.lua`. BankLedger, LootHistory and OutfitterReborn each carried a copy and the
+copies drifted, so the library holds the one copy, and this addon's old one (the bag-pattern table,
+`idsMatching` and the 0..5 fallback in `core/Constants.lua`, `CanViewCharacterBank`'s body here, and
+`L.UnreadyContainers` in `modules/Ledger.lua`) is gone. The library's answers are the ones the addon
+gave: ids by anchored, case-sensitive member name, the keyring (-1) in the bags on WoW Forever only
+(R5), the account bank declared on Retail only (R1), the bags 0..5 when `Enum.BagIndex` names none,
+and `CanViewCharacterBank` three-valued. What stays the addon's is the policy: `core/Constants.lua`
+still gates the Warband Bank on `C.FEATURE`, and `modules/Ledger.lua` keeps the 6 s deadline
+(`L.READY_TIMEOUT_SECONDS`) and the shape memory (`L:ShapeMemory`, `db.global.bankShape`), and asks
+the judgment with no purchased-tab count, so a first visit takes its read as it finds it.
+
+`ContainerGroups` and `UnreadyBankContainers` are pure (`PURE` in `core/SimSetup.lua`);
+`CanViewCharacterBank` is wrapped, and the simulated world answers it. Without the library the stubs
+degrade rather than copy: the groups are the library's no-enum answer (the bags 0..5, no bank),
+`CanViewCharacterBank` answers nil and `UnreadyBankContainers` answers ready, so no bank container
+is scanned and no bank row is written.
 
 **The record key, per client.** On Retail (no regional names) `PlayerName` answers `UnitName`'s
 name and the normalized realm, and `Util.RecordKey` joins them as `Name-Realm`, the key every stored

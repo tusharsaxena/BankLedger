@@ -13,6 +13,8 @@ local Compat = NS.Compat
 -- The TOC-metadata, map-id and zone reads left for LibKa0s-Env-1.0 and are reached through
 -- core/EnvSetup.lua as NS.Meta / NS.Version / NS.PlayerMapID / NS.Zone. They went because every
 -- addon in the collection had written the same ladders; these stayed because nobody else has them.
+-- The container groups, CanViewCharacterBank and the bank-readiness judgment went the same way, to
+-- LibKa0s-Compat-1.0 (LibKa0s#101): three addons carried them. They are routed below, by name.
 --
 -- The four item PRIMITIVES went the same way, to LibKa0s-Item-1.0 via core/ItemSetup.lua, and are
 -- reached as NS.Item.ItemIDFromLink / QualityFromLink / QualityLabel / LoadItem. What stayed is
@@ -97,20 +99,55 @@ function Compat.GetStoreMoney(store)
   return nil
 end
 
--- ── Container (bag / bank) inventory ────────────────────────────────────────────
+-- ── Container groups and bank readiness: LibKa0s-Compat-1.0's (LibKa0s#101) ──────
+--
+-- Which container ids make up the bags, the character bank and the warband bank, whether the
+-- character bank can be viewed at this banker, and which bank containers are still loading are
+-- LibKa0s-Compat-1.0 members (minor 6, vendored in libs/LibKa0s/Compat.lua). BankLedger, LootHistory
+-- and OutfitterReborn each carried a copy and the copies drifted, so this addon routes the one copy
+-- rather than keeping its own. The library's bodies are the ones this file used to carry: ids by
+-- anchored, case-sensitive Enum.BagIndex member NAME, the keyring (-1) in the bags on WoW Forever
+-- only (R5), the account bank declared on Retail only (R1), the bags falling back to 0..5 when the
+-- enum names none, and CanViewBank(Character) three-valued.
+--
+-- What stays here is the addon's policy around them: core/Constants.lua gates the Warband Bank on
+-- C.FEATURE as before, and modules/Ledger.lua keeps the readiness deadline and the shape memory.
+--
+-- LIBRARY ABSENT (a partial install). Degraded stubs, never a second copy of the bodies: the groups
+-- are the library's no-enum answer (the bags 0..5 and no bank at all), so with no bank group there is
+-- no bank container to judge, the readiness stub answers ready, and CanViewCharacterBank answers nil
+-- (cannot tell). With no bank container scanned, no bank row is written: the addon errs toward
+-- recording nothing, as the readiness guard does.
+local CompatLib = LibStub and LibStub("LibKa0s-Compat-1.0", true)
+
+local function containerGroupsStub()
+  return { bags = { 0, 1, 2, 3, 4, 5 }, bank = {}, accountBank = {} }
+end
+
+--- The container ids of each group on this client: `{ bags = {...}, bank = {...}, accountBank = {...} }`,
+--- sorted and de-duplicated, fresh tables on every call. Pure (a fact of the install).
+Compat.ContainerGroups = CompatLib and CompatLib.ContainerGroups or containerGroupsStub
+
+--- The library's pattern table, one row per client (`bags`, `bank`, `accountBank`), for the suite to
+--- pin. Empty with the library absent.
+Compat.CONTAINER_PATTERNS_BY_CLIENT = CompatLib and CompatLib.CONTAINER_PATTERNS_BY_CLIENT or {}
 
 -- Can the character bank be viewed at the banker the player is talking to? A warband-only banker
 -- (Enum.PlayerInteractionType.AccountBanker) opens the bank frame on the Warband Bank alone, and the
 -- character bank's containers are not the player's to read there (BagSync v20.41 stops saving it
 -- for this reason). Three-valued, like IsGuildBankVisible: true or false from
 -- C_Bank.CanViewBank(Enum.BankType.Character), present on both clients, and nil when this build
--- cannot tell, which the caller must read as "readable". The bank type is read BY NAME.
-function Compat.CanViewCharacterBank()
-  local fn = C_Bank and C_Bank.CanViewBank
-  local bankType = Enum and Enum.BankType and Enum.BankType.Character
-  if type(fn) ~= "function" or bankType == nil then return nil end
-  return fn(bankType) and true or false
-end
+-- cannot tell (or answers a secret), which the caller must read as "readable". The bank type is read
+-- BY NAME. Wrapped by the simulator's seam: the simulated world answers it.
+Compat.CanViewCharacterBank = CompatLib and CompatLib.CanViewCharacterBank or function() return nil end
+
+--- The bank containers not ready yet, or nil when the bank is ready: the sorted ids of `shape`
+--- ({ [id] = slots now }) that read 0 after reporting slots in `memory` ({ [id] = slots at the last
+--- ready read }). Pure. With no memory and no `purchased` it answers nil, so a first visit takes its
+--- read as it finds it. The caller keeps the memory and the deadline.
+Compat.UnreadyBankContainers = CompatLib and CompatLib.UnreadyBankContainers or function() return nil end
+
+-- ── Container (bag / bank) inventory ────────────────────────────────────────────
 
 -- Number of slots in a container id, 0 when the id isn't accessible right now.
 function Compat.GetContainerNumSlots(bagID)

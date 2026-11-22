@@ -122,73 +122,35 @@ C.StoreRGB = {
 -- color, text.body, at the site that draws it.
 
 -- ── Container id groups ─────────────────────────────────────────────────────────
--- Which numeric container ids belong to which store, derived **by member name** from
--- Enum.BagIndex — never by hardcoded number.
+-- Which numeric container ids belong to which store. LibKa0s-Compat-1.0's ContainerGroups answers
+-- them (LibKa0s#101, routed by core/Compat.lua); this addon carried its own copy until the library
+-- took the one copy three addons shared. Read ONCE here, at load.
 --
--- This is not fussiness. Blizzard renumbers these between expansions, and a numeric guess for a
--- member the build doesn't expose lands on a completely unrelated container: an earlier version of
--- this file assumed `AccountBankTab_1 = 13` and `CharacterBankTab_1 = 18`, and on a live 12.0.7
+-- The ids come **by member name** from Enum.BagIndex, never by hardcoded number. Blizzard renumbers
+-- them between expansions, and a numeric guess lands on an unrelated container: an earlier version
+-- of this file assumed `AccountBankTab_1 = 13` and `CharacterBankTab_1 = 18`, and on a live 12.0.7
 -- client (where they are 12 and 6) that put warband tab 1 inside the *character bank* group and
--- listed ids 6–11 twice, double-counting every character-bank stack. Matching on the name means a
--- member that moves is followed automatically, and a member that does not exist contributes
--- nothing instead of colliding with its neighbor.
+-- listed ids 6-11 twice, double-counting every character-bank stack. The library's patterns are
+-- anchored and case-sensitive, because the enum also carries the *type* constants
+-- `Characterbanktab = -2` and `Accountbanktab = -3` beside the real tabs.
 --
--- The patterns are anchored and case-sensitive on purpose. `Enum.BagIndex` also carries *type*
--- constants that look deceptively similar to container ids — on 12.0.7, `Characterbanktab = -2` and
--- `Accountbanktab = -3` sit alongside the real `CharacterBankTab_1..6` and `AccountBankTab_1..5`.
--- A loose match would scoop those up and scan a container that does not exist.
---
--- The bags group is per client (WoW Forever port design, ruling R5; clients-§5), its row picked ONCE
--- at load by ClientKey(). `ReagentBag` is the reagent BAG worn in the inventory's fifth slot — a live
--- container on both clients, and not to be confused with the reagent BANK, which Midnight removed. Do
--- not strip it. WoW Forever's row adds the keyring (`Keyring`, -1: Blizzard's KEYRING_CONTAINER), a
--- live container there, so a key the player owns counts as carried and a key taken from the keyring
--- into the bank is a deposit rather than a one-sided change. Retail's enum names Keyring = -1 too,
--- but -1 was the legacy bank container before 11.2 and nothing has shown what it answers today, so
--- Retail's row stays the pre-port list and never scans it. tests/test_keyring_client.lua.
-C.BAG_PATTERNS_BY_CLIENT = {
-  retail  = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$" },
-  forever = { "^Backpack$", "^Bag_%d+$", "^ReagentBag$", "^Keyring$" },
-}
-C.BAG_PATTERNS = C.BAG_PATTERNS_BY_CLIENT[NS.Compat.ClientKey()] or C.BAG_PATTERNS_BY_CLIENT.retail
+-- Per client, by the library's declaration (clients-§5): `ReagentBag` is the reagent BAG worn in the
+-- inventory's fifth slot, a live container on both clients (the reagent BANK is what Midnight
+-- removed). WoW Forever's bags add the keyring (`Keyring`, -1: Blizzard's KEYRING_CONTAINER, ruling
+-- R5), so a key the player owns counts as carried and a key taken from the keyring into the bank is
+-- a deposit rather than a one-sided change. Retail's enum names -1 too, but it was the legacy bank
+-- container before 11.2 and nothing has shown what it answers today, so Retail never scans it. The
+-- account bank is declared on Retail only (R1). With no Enum.BagIndex, or one that names no bag, the
+-- bags are 0..5 (the backpack is id 0 on every build and predates the enum): without the bags side
+-- there is no movement to detect at all. tests/test_constants.lua and tests/test_keyring_client.lua.
+local GROUPS = NS.Compat.ContainerGroups()
 
-local GROUP_PATTERNS = {
-  BAGS         = C.BAG_PATTERNS,
-  -- `Bank` / `BankBag_N` are the pre-tab character bank; `CharacterBankTab_N` is the modern form.
-  BANK         = { "^Bank$", "^BankBag_%d+$", "^CharacterBankTab_%d+$" },
-  WARBAND_BANK = { "^AccountBankTab_%d+$" },
-}
-
--- Every id whose Enum.BagIndex member name matches one of `patterns`, sorted and de-duplicated.
-local function idsMatching(patterns)
-  local seen, ids = {}, {}
-  local members = Enum and Enum.BagIndex
-  if type(members) == "table" then
-    for name, value in pairs(members) do
-      if type(value) == "number" then
-        for _, pattern in ipairs(patterns) do
-          if name:match(pattern) and not seen[value] then
-            seen[value] = true
-            ids[#ids + 1] = value
-            break
-          end
-        end
-      end
-    end
-  end
-  table.sort(ids)
-  return ids
-end
-
-C.BAG_IDS          = idsMatching(GROUP_PATTERNS.BAGS)
-C.BANK_IDS         = idsMatching(GROUP_PATTERNS.BANK)
+C.BAG_IDS          = GROUPS.bags
+C.BANK_IDS         = GROUPS.bank
 -- Empty on a client without the Warband Bank (C.FEATURE): WoW Forever's AccountBankTab_1..9 (15..23)
--- exist in the enum, but nothing there scans them.
-C.WARBAND_BANK_IDS = WARBAND and idsMatching(GROUP_PATTERNS.WARBAND_BANK) or {}
-
--- The backpack is id 0 on every build and predates the enum, so guarantee it rather than depend on
--- `Backpack` being present. Without the bags side there is no movement to detect at all.
-if #C.BAG_IDS == 0 then C.BAG_IDS = { 0, 1, 2, 3, 4, 5 } end
+-- exist in the enum, but nothing there scans them. The library declares the same; the gate stays so
+-- the store and its ids answer one declaration.
+C.WARBAND_BANK_IDS = WARBAND and GROUPS.accountBank or {}
 
 -- Store → the container ids scanned for it. The guild bank has its own API family and is scanned
 -- through Compat rather than a container-id list, so it is absent here.

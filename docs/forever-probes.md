@@ -72,7 +72,7 @@ then try to drag a key from the keyring into the bank and read the ledger. Fallb
 print(C_ActionBar.ShouldShowKeyring(), HasKey and HasKey(), C_Container.GetContainerNumSlots(-1)) for
 i=1,C_Container.GetContainerNumSlots(-1) do local x=C_Container.GetContainerItemInfo(-1,i) if x then
 print(i,x.hyperlink,x.stackCount) end end`. **Assumes:** the keyring (-1) is in the bags group on
-Forever only (R5, `C.BAG_PATTERNS_BY_CLIENT`), so a key moved into the bank, if the client allows it,
+Forever only (R5, LibKa0s-Compat-1.0's `CONTAINER_PATTERNS_BY_CLIENT`), so a key moved into the bank, if the client allows it,
 records a Character Bank deposit, and a key moved to the bags records nothing. Read whether the
 keyring reads 0 slots right after login (the first snapshot would miss keys). On Retail, read what -1
 answers at a banker: Retail never scans it. Both clients. Result:
