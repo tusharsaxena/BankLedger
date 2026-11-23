@@ -1806,7 +1806,7 @@ guild bank it can deposit to, some gold, and a key on its keyring for FOREVER-6.
   Result:
 - **FOREVER-12. The simulator's Forever bank (BL-09).** Client: WoW Forever. `/bl sim start bank`,
   `/bl sim pause` at once, then `/bl debug scan` → the report says `simulation running: Compat
-  answers are simulated`, and its container probe lists two bank tabs, `6: 24` and `7: 16` slots (on
+  answers are simulated`, and its container probe lists two bank tabs, `6: 48` and `7: 16` slots (on
   Retail, one 98-slot tab). `/bl sim step` through the rest → SIM-1's three Character Bank rows.
   `/bl sim stop` → the real history is back. **Fail:** a single 98-slot tab on Forever, a warband
   container, a simulated row left behind, or a Lua error. Result:

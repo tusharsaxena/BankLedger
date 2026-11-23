@@ -41,7 +41,7 @@ SW.TAB_SLOTS = 98                        -- the first warband tab (Retail's alon
 -- world shape is cosmetic, since every read and diff goes by container id.
 SW.BANK_TAB_SLOTS_BY_CLIENT = {
   retail  = { 98 },
-  forever = { 24, 16 },
+  forever = { 48, 16 },   -- probe P2, build 71037: the base tab reads 48 slots
 }
 SW.BANK_TAB_SLOTS = SW.BANK_TAB_SLOTS_BY_CLIENT[NS.SAMPLE_CLIENT == "forever" and "forever" or "retail"]
 
