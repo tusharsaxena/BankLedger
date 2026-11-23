@@ -23,7 +23,7 @@ FOREVER-19 are the Retail regression checks for the port's two Retail changes (r
 | STATE-1 – 11 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility, the ledger window's lock mark, `/bl lock` and `/bl unlock` |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 70 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters |
+| LEDG-1 – 70 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog's close alone, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters |
 | INS-1 – 20 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates, every tip beside the window |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
@@ -772,13 +772,15 @@ FOREVER-19 are the Retail regression checks for the port's two Retail changes (r
   Switch to Obsidian with the window open, no reload → the gear repaints in that skin's gray, and its
   hover is that skin's link color. **Fail:** no gear, a gear right of the ×, a gear that opens nothing
   or another addon's settings, the panel under the window, or a Lua error. Added 2026-11-17. Result:
-- **LEDG-67. The export dialog's settings mark (AD-86-BL, LibKa0s#86).** `/bl show`, then Export on
-  the filter bar → the dialog's title bar carries a gear left of its ×, like the ledger window's.
-  Hover the gear → orange and "Open settings" above it. Click it → the export dialog closes and the
-  Settings panel opens on Ka0s Bank Ledger, with nothing over it. The ledger window stays open. Open
-  the dialog again → it still works, and Export to CSV still opens the copy window. **Fail:** the
-  dialog left over the Settings panel, a gear that opens nothing, or a Lua error. Added 2026-11-17.
-  Result:
+- **LEDG-67. The export dialog is a companion: the close alone (FB-BL-01, S-T5; LibKa0s v1.112.0,
+  WidgetsHeader minor 2; standalone-windows, *Settings is on every window but a companion*, v2.119.0).**
+  `/bl show`, then Export on the filter bar → the dialog's title bar carries the close × alone at its
+  right end, 6 px in, with no gear; the title stays centered. Hover the × → it turns red and says
+  "Close"; click it → the dialog closes and the ledger window stays open. Open the dialog again and
+  click Export to CSV → the copy window opens with its close × alone, no gear. The ledger window and
+  the session window still carry their gear (LEDG-66, SESS). **Fail:** a gear on the export dialog or
+  on the copy window, a gear missing from the ledger or session window, or a Lua error. Rewritten
+  2026-11-24 (it checked the dialog's gear, added 2026-11-17). Result:
 - **LEDG-68. History tooltips open beside the window (AD-92-BL, LibKa0s#92).** `/bl show` with the
   window in the middle of the screen. Hover an item row → the item's tooltip, with its *Shift-click
   to link · right-click for options* line, opens just right of the window, its top level with the
@@ -2043,3 +2045,5 @@ FOREVER-19, the Retail regression checks for ruling R8 (the bank readiness guard
 text). LEDG-33 gained one sentence pointing at FOREVER-11 and keeps its pass mark: its Retail result
 is unchanged. No other pass mark came off; the warband checks (CAPT-4, CAPT-5, CAPT-8, SIM-3, SIM-10,
 SESS-5) stay Retail's, as FOREVER-15 lists.
+
+The feedback batch of 2026-11-24 (Ka0sAddonsCommonTasks `docs/2026-11-24-FEEDBACK_BATCH/`, FB-BL-01, LibKa0s v1.112.0, standard v2.119.0) rewrites LEDG-67: the export dialog is a companion of the ledger window, so it carries its close alone, and so does the library's copy window. The ledger and session windows keep their gear. Owed: LEDG-67.

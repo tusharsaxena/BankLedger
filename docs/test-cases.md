@@ -1855,7 +1855,7 @@ Total.
 - title bar: the ledger window's lock mark draws lock or unlock and says what a click does
 - title bar: clicking the lock mark toggles settings.locked through Sl:CliLocked and repaints it
 - title bar: the lock mark repaints when the lock moves by a verb or by the Lock frame row
-- title bar: each window's settings mark opens this addon's settings; the export modal hides first
+- title bar: each window's settings mark opens this addon's settings, and the window stays up
 - title bar: every window's settings mark rests in icon.tint and lights text.link, under Ka0s Default and Obsidian
 - title bar degraded: with no HeaderButtons each window keeps its close alone, 6 px in, no settings mark
 

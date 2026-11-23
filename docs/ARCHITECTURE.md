@@ -587,10 +587,13 @@ short:
   ledger window.
 - **Levels** are relative to the window; the resize grip sits at window + `LEVEL.GRIP` (10) on both
   the library and the degraded path.
-- **The settings mark and the tiers (AD-86-BL, LibKa0s#86).** Each window's settings mark opens the
-  Settings panel. The ledger and session windows stay open, because the panel is their HIGH peer and
-  raises over them. The export dialog is a strata above the panel, so it hides itself first
-  (`hideOnSettings`).
+- **The settings mark and the tiers (AD-86-BL, LibKa0s#86).** The ledger and session windows' settings
+  mark opens the Settings panel. Both stay open, because the panel is their HIGH peer and raises over
+  them. The export dialog is a **companion** of the ledger window (FB-BL-01; standalone-windows,
+  *Settings is on every window but a companion*, v2.119.0): it opens only from the ledger's Export
+  button, shows only its rows and keeps no position, so `B:HeaderMarks(..., { companion = true })`
+  draws its close alone (WidgetsHeader minor 2), as the library's copy window does (WidgetsCopyWindow
+  minor 7).
 
 ## Skins
 
