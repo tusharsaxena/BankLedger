@@ -150,15 +150,15 @@ local function datasetChanged()
 end
 
 --- The descriptor's prepare: the world, the session log, the dataset swap and the ledger window,
---- then ready() once. The seam is already on; the world's own real reads go through Live.
+--- then ready() once (the library's Start then shows the step panel). The seam is already on; the world's own real reads go through Live.
 function Host.Prepare(_, _, _, ready)
   Host.world = NS.SimWorld.Build()
   Host.pendingLag = 0
   NS.State.simLog = {}
   datasetChanged()
   if NS.Browser and NS.Browser.Show then NS.Browser:Show() end
-  -- The step panel opens beside the ledger window it just opened (Sim-1.0 docks it to anchorTo).
-  if NS.Sim and NS.Sim.ShowPanel then NS.Sim:ShowPanel() end
+  -- The step panel is the library's to show: Sim-1.0's Start shows it once prepare returns, on
+  -- every start path (LibKa0s v1.113.0, Sim minor 5), docked beside the ledger window opened here.
   debug("world built: %d pool items%s", #Host.world.pool,
     Host.world.poolFallback and " (the fixed fallback ids)" or "")
   ready()

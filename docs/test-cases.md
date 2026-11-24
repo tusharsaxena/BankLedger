@@ -1746,7 +1746,7 @@ Total.
 - Sim pacing: a step moving a blacklisted item does not stall the run
 - Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
-### test_sim_panel.lua (19)
+### test_sim_panel.lua (26)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
@@ -1763,6 +1763,13 @@ Total.
 - sim: a typed /bl sim start bank plays on its own
 - sim panel: the controls are Pause, Restart and Stop
 - sim panel: clicking the ready row while it plays pauses and plays one step
+- sim panel: the host's prepare leaves showing the panel to the library's start (FB2-BL-01)
+- sim panel: a host's own Start shows the panel (FB2-BL-01)
+- sim panel: a typed /bl sim start <scenario> shows the panel (FB2-BL-01)
+- sim panel: a bare /bl sim shows the panel (FB2-BL-01)
+- sim panel: the Master controls Sim box and the launcher's Sim mode show the panel (FB2-BL-01)
+- sim panel: the panel's own Start row starts a session with the panel up (FB2-BL-01)
+- sim panel: a Restart, member or typed, shows the panel again (FB2-BL-01)
 - sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
@@ -2197,7 +2204,7 @@ Total.
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 9 |
 | test_sim_e2e.lua | 9 |
-| test_sim_panel.lua | 19 |
+| test_sim_panel.lua | 26 |
 | test_sim_checkbox.lua | 10 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 15 |
@@ -2220,4 +2227,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1856** |
+| **Total** | **1863** |
