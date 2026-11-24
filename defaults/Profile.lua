@@ -67,6 +67,11 @@ NS.defaults.profile = {
 
     -- The live "Current Banking Session" window: shown automatically whenever a bank frame is open.
     showSessionWindow = true,
+
+    -- WoW Forever only (C.FEATURE.vendorBuyPrice): a ledger row's item tooltip adds the lowest price
+    -- a vendor was seen asking, read from the optional ForeverDB addon (core/ForeverDBSetup.lua).
+    -- Shown at hover, never stored. Inert on Retail and without ForeverDB.
+    showVendorBuyPrice = true,
     sessionWindow     = {},    -- its own persisted position/size (same carve-out as `window`)
 
     -- The simulator's pace: the seconds a playing simulation waits between steps. The one hardcoded copy of the default: modules/Sim.lua's Host.STEP_DELAY and the

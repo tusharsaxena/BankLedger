@@ -719,7 +719,10 @@ test("Panel: every renderable schema row reaches the page on ITS OWN tab", funct
   for _, tab in ipairs(GENERAL_TABS) do
     local made = renderTab("General", tab)
     for _, row in ipairs(NS.Schema.Schema) do
-      if not row.skipRender then
+      -- A row declared for the other client is no row here (clients-§4): it must draw on no tab.
+      if not row.skipRender and not NS.Compat.ForClient(row.clients) then
+        assertFalse(widgetLabeled(made, row.label) ~= nil, row.path .. " drew on a client it is not declared for")
+      elseif not row.skipRender then
         local drawn = widgetLabeled(made, row.label) ~= nil
         if row.group == tab then
           assertTrue(drawn, row.path .. " (" .. tostring(row.label) .. ") never reached its tab")
@@ -896,7 +899,9 @@ test("Panel: a tab's only headings are the SUBSECTION ones its rows declare", fu
   local function check(tab)
     local declared = {}
     for _, row in ipairs(NS.Schema:PageRows()) do
-      if row.group == tab and row.subgroup then declared[row.subgroup] = true end
+      if row.group == tab and row.subgroup and NS.Compat.ForClient(row.clients) then
+        declared[row.subgroup] = true
+      end
     end
     local drawn = {}
     for _, w in ipairs(renderTab("General", tab)) do

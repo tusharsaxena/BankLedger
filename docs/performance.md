@@ -83,6 +83,19 @@ no `OnUpdate`, so the exemption stands. A running simulation adds none either: i
 combat and stopped on `PLAYER_REGEN_DISABLED`, and its step pauses and lagged warband halves are
 one-shot timers on the session (`LibKa0s-Sim-1.0`), canceled by the stop.
 
+## ForeverDB, on WoW Forever (SF-BL-01)
+
+The vendor buy price on a ledger row's item tooltip reads the optional ForeverDB data addon through
+`LibKa0s-ForeverDB-1.0` (`core/ForeverDBSetup.lua`, `modules/LedgerTable.lua` `LT.AddVendorBuyPrice`).
+ForeverDB is about **12 MB on disk** and is LoadOnDemand. **The load happens on first use**: the
+adapter's first lookup loads it, and this addon's first lookup is the first hover of an item row on
+WoW Forever with *Show vendor buy price* on. Nothing loads it at file load or login (pinned by
+`tests/test_vendor_buy_price.lua`, the fake's load count), and a hover **in combat** before the load
+adds nothing and loads nothing, so the one-time hitch never lands in a fight and the combat sweep
+above gains no row. Once loaded, the memory is ForeverDB's, shared by every addon on the client that
+reads it, and it stays for the session. On Retail, or without ForeverDB, nothing loads. There is no
+in-game capture of the load yet; the owner's smoke checks FOREVER-20 to FOREVER-23 cover it.
+
 ## What ends this
 
 **The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work re-arms

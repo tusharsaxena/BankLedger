@@ -95,6 +95,8 @@ Kit.setSurfaceSource{
   -- core/ItemSetup.lua's stub mirrors the Item LIBRARY TABLE (its primitives are lib-level
   -- functions), so the live half is the mock LibStub's answer, as for Bus.
   ["LibKa0s-Item-1.0"]     = mocks.LibStub("LibKa0s-Item-1.0", true),
+  -- core/ForeverDBSetup.lua's stand-in mirrors the ForeverDB LIBRARY TABLE too (lib-level functions).
+  ["LibKa0s-ForeverDB-1.0"] = mocks.LibStub("LibKa0s-ForeverDB-1.0", true),
   -- core/SimSetup.lua's degraded NS.Sim mirrors an INSTANCE of LibKa0s-Sim-1.0, which Sim:New builds
   -- per host, so no manifest lists its members. The live half is a real instance, bound to a
   -- throwaway seam over an empty table: NS.SimSeam is not touched, because one seam binds one

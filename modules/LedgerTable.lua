@@ -540,6 +540,29 @@ function LT.AddMoneyTooltip(e)
   GameTooltip:AddDoubleLine("Amount", NS.Util.FormatMoney(e.quantity), lr, lg, lb, vr, vg, vb)
 end
 
+--- The vendor buy price under an item row's tooltip (SF-BL-01, LibKa0s#105; clients-§11): the lowest
+--- price a vendor was seen asking, from the optional ForeverDB, beside the sell price the client's own
+--- item tooltip shows. WoW Forever only (C.FEATURE.vendorBuyPrice), behind `showVendorBuyPrice`. The
+--- adapter's first lookup is what loads ForeverDB, so the first hover of an item row is where the
+--- 12 MB load happens, never login, and never in combat: a hover in combat before ForeverDB is
+--- loaded adds nothing and loads nothing, so the hitch cannot land in a fight (docs/performance.md,
+--- *ForeverDB*). Shown, never stored. Adds nothing and answers false when the feature is off,
+--- ForeverDB is absent or reshaped, or no vendor sells the item.
+function LT.AddVendorBuyPrice(e)
+  if not C.FEATURE.vendorBuyPrice then return false end
+  local s = NS.db and NS.db.profile and NS.db.profile.settings
+  if not (s and s.showVendorBuyPrice) then return false end
+  local id = type(e) == "table" and e.itemID
+  if type(id) ~= "number" then return false end
+  if InCombatLockdown and InCombatLockdown() and not NS.ForeverDB.IsLoaded() then return false end
+  local price = NS.ForeverDB.VendorPrice(id)
+  if type(price) ~= "number" or price <= 0 then return false end
+  local lr, lg, lb = NS.SkinColor("gtip.body")
+  local vr, vg, vb = NS.SkinColor("gtip.value")
+  GameTooltip:AddDoubleLine("Vendor buy price", NS.Util.FormatMoney(price), lr, lg, lb, vr, vg, vb)
+  return true
+end
+
 --- A column header's tooltip: the label in gtip.title, the description (wrapped) in gtip.body.
 function LT.AddColumnTooltip(col)
   local tr, tg, tb = NS.SkinColor("gtip.title")
@@ -612,6 +635,7 @@ function LT:BuildRow()
     if e.itemLink then
       local tip = NS.Util.TipOwn(self2)
       tip:SetHyperlink(e.itemLink)
+      LT.AddVendorBuyPrice(e)
       local mr, mg, mb = NS.SkinColor("gtip.muted")
       tip:AddLine("Shift-click to link \194\183 right-click for options", mr, mg, mb)
       tip:Show()
