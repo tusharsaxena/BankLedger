@@ -1887,6 +1887,11 @@ Total.
 - tooltips: the source guard reads the whole repo, XML includes and Bindings.xml too
 - tooltips: the addon's own code anchors no tooltip at the cursor or a corner, and reads no cursor
 
+### test_vendor_buy_price.lua (2)
+
+- vendor price: a History item row's tooltip is the item link, then the hint line
+- vendor price: a session item row's tooltip is the item link alone
+
 ### test_skin_picker.lua (15)
 
 - Skin picker: pickerSeen defaults to false, a skip-render row on the Skin tab
@@ -2218,6 +2223,7 @@ Total.
 | test_skin_chrome.lua | 18 |
 | test_title_bar.lua | 9 |
 | test_tooltip_place.lua | 12 |
+| test_vendor_buy_price.lua | 2 |
 | test_skin_picker.lua | 15 |
 | test_skin_picker_preview.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -2233,4 +2239,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1869** |
+| **Total** | **1871** |
