@@ -592,11 +592,14 @@ FOREVER-19 are the Retail regression checks for the port's two Retail changes (r
   `/bl show` and open the Character dropdown → *Character: Current* (selected by default) is gold on Ka0s
   Default, plainly different from *Character: All* and from every class-colored character row. Switch
   to Azeroth (`/bl skin`, no reload) and open it again → *Character: Current* is gold, not the parchment
-  color of *Character: All*. Switch to Obsidian → it wears Obsidian's accent, again unlike the plain and
-  the class-colored rows. Untick *Character: Current* and tick one character → that row trades its
-  class color for the same selected color, and *Character: Current* goes plain. Back on Ka0s Default.
-  **Fail:** a selected row in a plain row's color, a selected character row still in its class color,
-  or a Lua error. Added 2026-11-24. Result:
+  color of *Character: All*. Switch to Obsidian, then to WoW Forever → it is the same gold on each,
+  never the skin's accent (not WoW Forever's tan), again unlike the plain and the class-colored rows.
+  On the WoW Forever client, under its default WoW Forever skin, it is gold too. Untick *Character:
+  Current* and tick one character → that row trades its class color for the same gold, and
+  *Character: Current* goes plain. Back on Ka0s Default. **Fail:** a selected row in a plain row's
+  color or in the skin's accent (tan on WoW Forever), a selected character row still in its class
+  color, or a Lua error. Added 2026-11-24; amended 2026-11-24 (FB2-BL-02: the owner's ruling, the
+  selected row is gold in every skin). Result:
 - **LEDG-23. Sample rows cannot touch real data.** Right-click a sample row → Link to chat available;
   Blacklist item, Whitelist item and Delete grayed out and click-inert. Then both filter lists on
   Filters are unchanged. Result: pass (owner-marked 2026-10-10)
@@ -2071,4 +2074,4 @@ SESS-5) stay Retail's, as FOREVER-15 lists.
 
 The feedback batch of 2026-11-24 (Ka0sAddonsCommonTasks `docs/2026-11-24-FEEDBACK_BATCH/`, FB-BL-01, LibKa0s v1.112.0, standard v2.119.0) rewrites LEDG-67: the export dialog is a companion of the ledger window, so it carries its close alone, and so does the library's copy window. The ledger and session windows keep their gear. Owed: LEDG-67.
 
-Round 2 of the feedback batch (the same bundle's `R2_SMOKE_FEEDBACK.md`, FB2-BL-01, LibKa0s v1.113.0, standard v2.120.0): new checks SIM-17 (every start shows the step panel, decision D2) and LEDG-71 (the Character dropdown's selected color, D3); LEDG-70, rewritten because test mode's four non-protagonist characters are now the library's seeded crowd (D1, LibKa0s#104), and it carried no pass mark. Owed: SIM-17, LEDG-70, LEDG-71.
+Round 2 of the feedback batch (the same bundle's `R2_SMOKE_FEEDBACK.md`, FB2-BL-01, LibKa0s v1.113.0, standard v2.120.0): new checks SIM-17 (every start shows the step panel, decision D2) and LEDG-71 (the Character dropdown's selected color, D3); LEDG-70, rewritten because test mode's four non-protagonist characters are now the library's seeded crowd (D1, LibKa0s#104), and it carried no pass mark. Owed: SIM-17, LEDG-70, LEDG-71. LEDG-71 amended by FB2-BL-02 (LibKa0s v1.113.0 re-cut): the selected row is Ka0s Default's gold in every skin, the WoW Forever skin included.

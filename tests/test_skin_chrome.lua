@@ -25,6 +25,7 @@ end
 
 local function rgb(c) return ("%.3f,%.3f,%.3f"):format(c[1], c[2], c[3]) end
 local function tok(ns, name) return rgb({ ns.Skin.Color(name) }) end
+local GOLD = rgb({ 1, 0.82, 0 })   -- Ka0s Default's gold: every skin's selected dropdown row
 
 local function switch(m, Skin, key)
   Skin:SetChoice(OWNER, "ka0s", key)
@@ -453,8 +454,10 @@ local function find(colors, needle)
 end
 
 test("skin dropdown: Character: Current paints the selected color, off plain and class rows, on every skin", function()
-  -- red under: the library's selected row painting the raw menu.textSel where a skin's accent sits
-  -- near its text (Azeroth), or a class color winning over the selection.
+  -- red under: the library's selected row painting the skin's menu.textSel (its accent: the WoW
+  -- Forever skin's tan) instead of Ka0s Default's gold, or a class color winning over the selection.
+  -- The owner's 2026-11-24 ruling: the selected row is gold in every skin; only where gold sits
+  -- under 20 CIEDE2000 from a skin's menu.text does its menu.textSel stand in (none of the nine does).
   local ns, m, Skin, dd = charDropdown()
   local W = m.LibStub("LibKa0s-Widgets-1.0")
   assertTrue(type(W.SelectedColor) == "function", "LibKa0s v1.113.0's W.SelectedColor is missing")
@@ -467,6 +470,7 @@ test("skin dropdown: Character: Current paints the selected color, off plain and
       find(colors, "Samplemage")
     assertTrue(current and all and mageRow, def.key .. ": the menu lacks a row")
     assertEqual(current, rgb({ W.SelectedColor(OWNER) }), def.key .. ": Current is not the selected color")
+    assertEqual(current, GOLD, def.key .. ": Current is not Ka0s Default's gold")
     assertEqual(all, tok(ns, "menu.text"), def.key .. ": a plain row is not menu.text")
     assertTrue(current ~= all, def.key .. ": the selected row reads like a plain one")
     assertTrue(current ~= mage, def.key .. ": the selected row reads like a class-colored one")
@@ -478,12 +482,13 @@ end)
 test("skin dropdown: a selected character row trades its class color for the selected color", function()
   local ns, m, Skin, dd = charDropdown()
   local W = m.LibStub("LibKa0s-Widgets-1.0")
-  for _, key in ipairs({ "ka0s", "azeroth" }) do
+  for _, key in ipairs({ "ka0s", "azeroth", "forever" }) do
     switch(m, Skin, key)
     ns.Browser:ApplyView(nil, { ["Samplehunter-Samplerealm"] = true })
     local colors = openColors(m, dd)
     local hunter = find(colors, "Samplehunter")
     assertEqual(hunter, rgb({ W.SelectedColor(OWNER) }), key .. ": the selected hunter row")
+    assertEqual(hunter, GOLD, key .. ": the selected hunter row is not gold")
     assertTrue(hunter ~= rgb({ CLASS.HUNTER.r, CLASS.HUNTER.g, CLASS.HUNTER.b }), key .. ": still its class color")
     assertEqual(find(colors, "Character: Current"), tok(ns, "menu.text"), key .. ": Current is not selected now")
   end
