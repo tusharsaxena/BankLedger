@@ -134,7 +134,7 @@ end
 
 local function restore(saved)
   if NS.Sim:IsActive() then NS.Sim:Stop("stop") end
-  -- A start opens the sim window (Host.Prepare), and since R7-SIM an open window reads as Sim mode
+  -- A start opens the sim window (the library's Start), and since R7-SIM an open window reads as Sim mode
   -- on, so a window left open would tick the box for every later suite.
   NS.Sim:HidePanel()
   M.drain()

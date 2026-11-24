@@ -82,7 +82,7 @@ row here and an expectation on each kit profile. The client behaviors behind the
 | The default skin: WoW Forever (the same read) | `forever` | `core/SkinSetup.lua`, `defaults/Profile.lua` |
 | The Wowhead item base, `https://www.wowhead.com/item=` | `retail` | `core/Util.lua` (`WOWHEAD_ITEM_URL_BY_CLIENT`) |
 | The Wowhead item base, `https://www.wowhead.com/forever/item=` (ruling R7) | `forever` | `core/Util.lua` |
-| Test mode's and the simulator's seeds: Retail's classes, zones and `Name-Realm` sample characters, and the 98-slot first bank tab | `retail` | `modules/LedgerTable_TestMode.lua` (`LT.TEST_SEEDS_BY_CLIENT`), `core/SimSetup.lua` (`NS.SAMPLE_FALLBACKS`), `modules/SimWorld.lua` (`SW.BANK_TAB_SLOTS_BY_CLIENT`) |
+| Test mode's and the simulator's seeds: Retail's classes, zones and `Name-Realm` sample characters, and the 98-slot first bank tab | `retail` | `modules/LedgerTable_TestMode.lua` (`LT.TEST_SEEDS_BY_CLIENT`), `core/SimSetup.lua` (`NS.SampleCharacters`, `NS.SampleCrowdCharacterOf`: the library's rows for the client), `modules/SimWorld.lua` (`SW.BANK_TAB_SLOTS_BY_CLIENT`) |
 | Test mode's and the simulator's seeds: the classic classes (no Evoker), the classic capitals, "First Surname" sample characters, and a 24-slot base tab plus a 16-slot bag tab | `forever` | `modules/LedgerTable_TestMode.lua`, `core/SimSetup.lua`, `modules/SimWorld.lua` |
 | The per-container bank readiness guard, `C_Bank.CanViewBank(Character)` and the `BAG_CONTAINER_UPDATE` / `BANK_TABS_CHANGED` cues (ruling R8) | `both` | `modules/Ledger.lua` (`L:CheckReady`, `L:ShapeMemory`, `L:ReadableStores`, the `CAPTURE` list), `core/Compat.lua` (`CanViewCharacterBank` and `UnreadyBankContainers`, routed from `LibKa0s-Compat-1.0`) |
 | Money text through `C_CurrencyInfo.GetCoinTextureString`, then `GetMoneyString`, then text (ruling R8) | `both` | `core/Util.lua` (`FormatMoney`) |
@@ -587,10 +587,13 @@ short:
   ledger window.
 - **Levels** are relative to the window; the resize grip sits at window + `LEVEL.GRIP` (10) on both
   the library and the degraded path.
-- **The settings mark and the tiers (AD-86-BL, LibKa0s#86).** Each window's settings mark opens the
-  Settings panel. The ledger and session windows stay open, because the panel is their HIGH peer and
-  raises over them. The export dialog is a strata above the panel, so it hides itself first
-  (`hideOnSettings`).
+- **The settings mark and the tiers (AD-86-BL, LibKa0s#86).** The ledger and session windows' settings
+  mark opens the Settings panel. Both stay open, because the panel is their HIGH peer and raises over
+  them. The export dialog is a **companion** of the ledger window (FB-BL-01; standalone-windows,
+  *Settings is on every window but a companion*, v2.119.0): it opens only from the ledger's Export
+  button, shows only its rows and keeps no position, so `B:HeaderMarks(..., { companion = true })`
+  draws its close alone (WidgetsHeader minor 2), as the library's copy window does (WidgetsCopyWindow
+  minor 7).
 
 ## Skins
 

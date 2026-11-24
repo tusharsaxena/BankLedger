@@ -1,11 +1,12 @@
 -- tests/test_testmode_client.lua — test mode's seeds are per client (WoW Forever port design, the
 -- per-client tables; clients-§5): modules/LedgerTable_TestMode.lua picks its class list, class
--- weights, zones and own character names ONCE at load, by the sample key core/SimSetup.lua seeded
--- (NS.SAMPLE_CLIENT, from ClientKey()). WoW Forever has the nine classic classes, so its row has no
--- Evoker (a Warlock takes the slot), and its zones are the classic capitals with the uiMapIDs the
--- Forever client answers (SkillMaster/defaults/Trainers_Forever.lua's precedent). Retail's row is
--- the pre-port data unchanged, and its dataset is pinned row for row below, so the port moved no
--- Retail byte. Every case runs on both kit profiles (`KA0S_KIT_CLIENT=forever lua tests/run.lua`).
+-- weights and zones ONCE at load, by the sample key core/SimSetup.lua seeded (NS.SAMPLE_CLIENT, from
+-- ClientKey()). WoW Forever has the nine classic classes, so its row has no Evoker (a Warlock takes
+-- the slot), and its zones are the classic capitals with the uiMapIDs the Forever client answers
+-- (SkillMaster/defaults/Trainers_Forever.lua's precedent). Retail's dataset is pinned row for row
+-- below: the port moved no Retail byte, and FB2-BL-01 (LibKa0s#104) moved only the four crowd
+-- characters' names, now the library's seeded crowd rather than the ledger's own list. Every case
+-- runs on both kit profiles (`KA0S_KIT_CLIENT=forever lua tests/run.lua`).
 
 local T = _G.BL_TEST
 local NS = T.NS
@@ -68,18 +69,22 @@ test("test mode: WoW Forever's zones are the classic capitals, none of Retail's"
   for _, z in ipairs(f.zones) do assertTrue(z.name ~= "Valdrakken" and z.name ~= "Dornogal", z.name) end
 end)
 
-test("test mode: every class in each row has a character, shared or the ledger's own", function()
+test("test mode: every class in each row has a library character, shared or from the seeded crowd", function()
+  local Sim = mocks.LibStub("LibKa0s-Sim-1.0")
   for client, row in pairs(LT.TEST_SEEDS_BY_CLIENT) do
+    assertEqual(row.ownChars, nil, client .. ": a hand-kept name list is back (LibKa0s#104)")
     for _, cls in ipairs(row.classes) do
-      local shared
-      for _, s in ipairs(mocks.LibStub("LibKa0s-Sim-1.0").Sample(client)) do
-        if s.classFile == cls then shared = s.fullName end
+      local found
+      for _, s in ipairs(Sim.Sample(client)) do
+        if s.classFile == cls then found = s.fullName end
       end
-      local own = row.ownChars[cls]
-      assertTrue(shared ~= nil or own ~= nil, client .. " " .. cls .. " has no character")
-      if own then
-        assertEqual(own:find(" ", 1, true) ~= nil, client == "forever", client .. " " .. own .. "'s shape")
+      if not found then
+        for _, c in ipairs(Sim.SampleCrowd(client, Sim.CROWD_MAX, LT.TEST_CROWD_SEED)) do
+          if c.classFile == cls then found = c.fullName break end
+        end
       end
+      assertTrue(found ~= nil, client .. " " .. cls .. " has no character")
+      assertEqual(found:find(" ", 1, true) ~= nil, client == "forever", client .. " " .. found .. "'s shape")
     end
   end
 end)
@@ -112,10 +117,10 @@ local function fingerprint(rows)
   return h
 end
 
-test("test mode: Retail's dataset is the pre-port one, row for row", function()
+test("test mode: Retail's dataset is pinned, row for row (the crowd's names since FB2-BL-01)", function()
   local rows = LT:BuildTestData()
   assertEqual(#rows, 271)
-  assertEqual(fingerprint(rows), 707441649)
+  assertEqual(fingerprint(rows), 931075551)
 end, (FOREVER and "Retail-only: pins Retail's pre-port dataset" or nil))
 
 test("test mode: WoW Forever's dataset is deterministic across runs", function()

@@ -147,8 +147,10 @@ rows, states, run controls, scenario picker, click-ahead and placement are the l
 *Ka0s Bank Ledger - Simulation*, each step's label built from the real item (*Deposit 20 × Linen
 Cloth to Warband Bank*, with *(N recorded)* once the engine has recorded rows for it), its tooltip
 (what it moves, a lagged warband half, the client events it fires, and once played what it did and
-how many rows it recorded), the Start and Stop tooltips, and the `confirm` tick. A start opens it
-(from `prepare`, after the ledger window), as does a bare `/bl sim`; `/bl sim panel` toggles it. While
+how many rows it recorded), the Start and Stop tooltips, and the `confirm` tick. Every start opens it,
+by any path (`/bl sim start`, the panel's Start, a Restart, a host's own Start): the library's Start
+shows it once `prepare` has opened the ledger window (LibKa0s v1.113.0, FB2-BL-01). A bare `/bl sim`,
+the Master controls *Sim mode* box and the launcher's *Sim mode* open it too; `/bl sim panel` toggles it. While
 it is shown the Master controls *Sim mode* box reads ticked, and its `OnShow` and `OnHide` repaint an
 open settings page (`NS.SimHost.WatchPanel()`, R7-SIM). It
 **docks** right of the ledger window (8px, top edges aligned), or left when the right has no room, and

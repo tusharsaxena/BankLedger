@@ -280,6 +280,91 @@ test("sim panel: clicking the ready row while it plays pauses and plays one step
   end)
 end)
 
+-- ── every start shows the panel (FB2-BL-01; LibKa0s v1.113.0 Sim minor 5, decision D2) ──────
+--
+-- The owner, 2026-11-24: a sim "whether started from a command like /xx sim start <scenario> or
+-- from just plain /xx sim should always show the sim stepper window". Since LibKa0s v1.113.0 the
+-- library's Start shows the panel on every start, so Bank Ledger's prepare no longer calls
+-- ShowPanel itself. Each case below hides the panel first and starts by one path.
+
+--- Hide the panel, run start(sim) inside the quiet world and answer whether the panel then shows.
+local function shownAfter(start)
+  local shown, active
+  S.withSession(nil, function(sim)
+    sim:HidePanel()
+    assertFalse(sim:IsPanelShown(), "the premise: the panel is hidden")
+    S.chat(function() start(sim) end)
+    shown, active = sim:IsPanelShown(), sim:IsActive()
+  end)
+  return shown, active
+end
+
+test("sim panel: the host's prepare leaves showing the panel to the library's start (FB2-BL-01)", function()
+  -- Dies under: Host.Prepare calling ShowPanel again, a second owner of the rule D2 gives the library.
+  local fh = assert(io.open("modules/Sim.lua", "rb"))
+  local src = fh:read("*a")
+  fh:close()
+  local body = src:match("function Host%.Prepare%(.-\n(.-)\nend")
+  assertTrue(body ~= nil, "no Host.Prepare in modules/Sim.lua")
+  assertTrue(body:find("ShowPanel", 1, true) == nil, "Host.Prepare still shows the panel itself")
+end)
+
+test("sim panel: a host's own Start shows the panel (FB2-BL-01)", function()
+  local shown, active = shownAfter(function(sim) assert(sim:Start{ scenario = "bank" }) end)
+  assertTrue(active, "the member Start did not start a session")
+  assertTrue(shown, "the member Start left the panel hidden")
+end)
+
+test("sim panel: a typed /bl sim start <scenario> shows the panel (FB2-BL-01)", function()
+  for _, scenario in ipairs(Host.SCENARIOS.names) do
+    local shown, active = shownAfter(function(sim)
+      NS.Slash:OnSlash("sim start " .. scenario)
+      sim:Pause()
+    end)
+    assertTrue(active, scenario .. ": the typed start did not start a session")
+    assertTrue(shown, scenario .. ": the typed start left the panel hidden")
+  end
+end)
+
+test("sim panel: a bare /bl sim shows the panel (FB2-BL-01)", function()
+  local shown, active = shownAfter(function() NS.Slash:OnSlash("sim") end)
+  assertFalse(active, "the bare verb started a scenario")
+  assertTrue(shown, "the bare verb left the panel hidden")
+end)
+
+test("sim panel: the Master controls Sim box and the launcher's Sim mode show the panel (FB2-BL-01)", function()
+  local shown = shownAfter(function() NS.Schema:Set("state.sim", true) end)
+  assertTrue(shown, "ticking the Sim box left the panel hidden")
+  shown = shownAfter(function() NS.ToggleSim() end)
+  assertTrue(shown, "the launcher's Sim mode entry left the panel hidden")
+end)
+
+test("sim panel: the panel's own Start row starts a session with the panel up (FB2-BL-01)", function()
+  local shown, active = shownAfter(function(sim)
+    sim:ShowPanel()
+    panelFrame().__rowButtons[1]:__fire("OnClick")
+    if sim:IsActive() then sim:Pause() end
+  end)
+  assertTrue(active, "the Start row did not start a session")
+  assertTrue(shown, "the Start row's session hid the panel")
+end)
+
+test("sim panel: a Restart, member or typed, shows the panel again (FB2-BL-01)", function()
+  local shown, active = shownAfter(function(sim)
+    assert(sim:Start{ scenario = "bank" })
+    sim:HidePanel()
+    sim:Restart()
+  end)
+  assertTrue(active and shown, "the member Restart left the panel hidden")
+  shown, active = shownAfter(function(sim)
+    assert(sim:Start{ scenario = "bank" })
+    sim:HidePanel()
+    NS.Slash:OnSlash("sim restart")
+    sim:Pause()
+  end)
+  assertTrue(active and shown, "the typed /bl sim restart left the panel hidden")
+end)
+
 -- ── the session-only position (C.11, H10) ────────────────────────────────────────────────────
 
 test("sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks", function()

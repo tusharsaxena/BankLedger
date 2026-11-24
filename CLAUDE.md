@@ -46,7 +46,7 @@ auto-stage/commit/push and never bump the version without an explicit instructio
 
 ## Vendored LibKa0s — the provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.110.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.113.0 (MIT).
 LibKa0s icons: chevron-down, chevron-right, chevron-up, clear, close, confirm, copy, export, eye, info, lock, move, reset, search, settings, sort-down, sort-up, unlock, volume-high.
 
 That tag carries test-kit revision 60 (`Kit.VERSION` in `tests/_kit/framework.lua`).

@@ -176,8 +176,20 @@ end
 
 -- The ledger window is the primary window (the launcher's Show window entry opens it), so it also
 -- carries the lock mark as an extra inward of settings (AF-HDR-BL; standalone-windows, *Which marks
--- a window owes*, v2.115.0). The session window and the export modal are secondary: settings · close.
-local ORDER = { ledger = "lock,settings,close", session = "settings,close", export = "settings,close" }
+-- a window owes*, v2.115.0). The session window is secondary: settings · close. The export modal is a
+-- companion of the ledger window (FB-BL-01; standalone-windows, *Settings is on every window but a
+-- companion*, v2.119.0): it opens only from the ledger's Export button, shows only its rows and keeps
+-- no position, so it carries the close alone (WidgetsHeader minor 2, `companion = true`).
+local ORDER = { ledger = "lock,settings,close", session = "settings,close", export = "close" }
+
+--- The windows that carry the settings mark: every one but the companion export modal.
+local function gearWindows(ns)
+  local out = {}
+  for _, w in ipairs(markWindows(ns)) do
+    if w.name ~= "export" then out[#out + 1] = w end
+  end
+  return out
+end
 
 test("title bar: each window's marks are HeaderButtons', settings then close, right-aligned (LibKa0s#86)",
   function()
@@ -188,6 +200,13 @@ test("title bar: each window's marks are HeaderButtons', settings then close, ri
       assertTrue(type(hb) == "table", w.name .. ": the title bar's marks are not HeaderButtons'")
       assertEqual(table.concat(hb.order, ","), ORDER[w.name], w.name .. ": the marks' order, left to right")
       assertTrue(hb.close == w.close, w.name .. ": the strip's close is not the window's close")
+      if w.name == "export" then
+        assertTrue(hb.companion == true, "export: the modal is not recorded as a companion")
+        assertTrue(hb.settings == nil and w.frame.settingsButton == nil, "export: a companion drew the settings mark")
+        assertTrue(hb.optOut == nil, "export: a companion needs no settingsOptOut waiver")
+        assertEqual(hb.offsets.close, -W.HEADER.PAD, "export: the close's inset from the corner")
+        assertEqual(#controlsOn(built, w.bar), 1, "export: the companion's title bar carries its close alone")
+      else
       assertTrue(hb.settings ~= nil and hb.settings.icon ~= nil, w.name .. ": no settings mark drawn from art")
       assertTrue(w.frame.settingsButton == hb.settings, w.name .. ": the settings mark is not recorded")
       assertEqual(hb.close:GetWidth(), 24, w.name .. ": the close is no longer the host's 24 px factory")
@@ -205,6 +224,7 @@ test("title bar: each window's marks are HeaderButtons', settings then close, ri
           "ledger: the lock mark's inset, inward of settings")
       else
         assertTrue(hb.extras.lock == nil, w.name .. ": a secondary window drew a lock mark")
+      end
       end
     end
   end)
@@ -276,10 +296,10 @@ test("title bar: the lock mark repaints when the lock moves by a verb or by the 
   assertEqual(select(3, lockState(ns)), "Unlock the windows")
 end)
 
-test("title bar: each window's settings mark opens this addon's settings; the export modal hides first",
+test("title bar: each window's settings mark opens this addon's settings, and the window stays up",
   function()
     local ns = fresh()
-    local list = markWindows(ns)
+    local list = gearWindows(ns)
     for _, w in ipairs(list) do
       local opened = 0
       local real = ns.Panel.Open
@@ -291,18 +311,14 @@ test("title bar: each window's settings mark opens this addon's settings; the ex
       ns.Panel.Open = real
       if not ok then error(err, 0) end
       assertEqual(opened, 1, w.name .. ": the settings mark did not open the settings panel")
-      if w.name == "export" then
-        assertTrue(not w.frame:IsShown(), "export: the modal stayed over the settings panel")
-      else
-        assertTrue(w.frame:IsShown(), w.name .. ": the window hid itself for settings")
-      end
+      assertTrue(w.frame:IsShown(), w.name .. ": the window hid itself for settings")
     end
   end)
 
 test("title bar: every window's settings mark rests in icon.tint and lights text.link, under Ka0s Default and Obsidian",
   function()
     local ns, m, Skin = fresh()
-    local list = markWindows(ns)
+    local list = gearWindows(ns)
     local painted = {}
     for _, w in ipairs(list) do painted[w.name] = watchArt(w.frame.headerButtons.settings) end
     local ok, err = pcall(function()

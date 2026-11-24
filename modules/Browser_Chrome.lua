@@ -142,7 +142,12 @@ end
 -- icon.tint at rest and text.link under the pointer, "Open settings" above it, and its click opens
 -- this addon's settings through the opener the launcher registered for the folder (Core minor 18's
 -- OpenSettings(addonName), core/LauncherSetup.lua's `openSettings`). `opts.hideOnSettings` hides the
--- window first, for one whose strata would cover the settings panel (the export modal's DIALOG).
+-- window first, for one whose strata would cover the settings panel.
+--
+-- `opts.companion` marks a companion window (FB-BL-01; standalone-windows, *Settings is on every
+-- window but a companion*, v2.119.0; WidgetsHeader minor 2): a dialog that belongs to one other
+-- window and exists only for it, the export modal of the ledger window. It carries the close alone,
+-- no settings mark and no waiver.
 --
 -- `opts.lock` adds the lock mark (B:LockMark below) inward of settings: the ledger window's, the
 -- primary window (standalone-windows, *Which marks a window owes*, v2.115.0, AF-HDR-BL).
@@ -159,6 +164,7 @@ function B:HeaderMarks(frame, bar, onClose, opts)
       owner = addonName, frame = frame, close = onClose,
       makeClose = function(parent, onClick) return B:MakeCloseButton(parent, onClick) end,
       hideOnSettings = opts.hideOnSettings and frame or nil,
+      companion = opts.companion == true or nil,
       extras = opts.lock and { B:LockMark() } or nil,
     })
     frame.settingsButton = hb.settings

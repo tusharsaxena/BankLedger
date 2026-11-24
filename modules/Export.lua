@@ -398,12 +398,13 @@ local function EnsureFrame()
   -- The bar's fill and the title through the skin's TitleBar. The Shell below is called with
   -- `noTopBar` because this bar paints itself (the rollout's D6, Loot History's export modal).
   NS.Skin.TitleBar(tbar, { text = t })
-  -- Settings · close, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
-  -- hideOnSettings: the modal is DIALOG, a strata above the settings panel, so it hides first.
+  -- The close alone, through HeaderButtons (B:HeaderMarks, modules/Browser_Chrome.lua; LibKa0s#86).
+  -- The modal is a companion of the ledger window (FB-BL-01, standard v2.119.0): it opens only from
+  -- the ledger's Export button, shows only its rows and keeps no position, so it has no settings mark.
   local marks
   if NS.Browser and NS.Browser.HeaderMarks then
     local close
-    close, marks = NS.Browser:HeaderMarks(frame, tbar, function() frame:Hide() end, { hideOnSettings = true })
+    close, marks = NS.Browser:HeaderMarks(frame, tbar, function() frame:Hide() end, { companion = true })
     frame.closeBtn = close   -- the suite fires this to prove the close ROUTE, not just Hide()
   end
   -- The header on the modal's band, as the ledger window's (modules/Browser.lua EnsureFrame, R5-WIN).

@@ -149,9 +149,9 @@ Total.
 - test mode: Retail's seed row is the pre-port data, Evoker and the modern capitals included
 - test mode: WoW Forever's seed row has only the classic classes, no Evoker
 - test mode: WoW Forever's zones are the classic capitals, none of Retail's
-- test mode: every class in each row has a character, shared or the ledger's own
+- test mode: every class in each row has a library character, shared or from the seeded crowd
 - test mode: the dataset's classes and zones are this client's own
-- test mode: Retail's dataset is the pre-port one, row for row
+- test mode: Retail's dataset is pinned, row for row (the crowd's names since FB2-BL-01)
 - test mode: WoW Forever's dataset is deterministic across runs
 
 ### test_names_client.lua (9)
@@ -1665,16 +1665,20 @@ Total.
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
 
-### test_sample_characters.lua (8)
+### test_sample_characters.lua (12)
 
 - sample characters: NS.SampleCharacters answers the library's rows for this client
-- sample characters: each library-absent twin matches the library's rows for its client
+- sample characters: the addon keeps no copy of the library's rows (LibKa0s#104)
+- sample characters: a crowd character is the library's seeded crowd row of that class
 - sample characters: the rows are in this client's shape, Name-Realm on Retail, First Surname on Forever
-- sample characters: without the library NS.SampleCharacters answers a copy of the host rows
+- sample characters: without the library there is no sample person to draw
 - sample characters: every test-mode character follows the convention, none on a real realm
 - sample characters: test mode's protagonists are the shared rows, by class
 - sample characters: test mode's guild-bank rows carry the sample guild
-- sample characters: without the library test mode draws the same characters
+- sample characters: without the library test mode keys each row by its class, naming nobody
+- sample characters: test mode's other classes are the library's seeded crowd
+- sample characters: no Sample or Mock name literal lives in the shipped source (LibKa0s#104)
+- sample characters: the literal scan is falsifiable, a planted name is found
 
 ### test_sim_drivers.lua (16)
 
@@ -1746,7 +1750,7 @@ Total.
 - Sim pacing: a step moving a blacklisted item does not stall the run
 - Sim pacing: the flask's late item info under a quality threshold does not stall the run
 
-### test_sim_panel.lua (19)
+### test_sim_panel.lua (26)
 
 - sim panel: the descriptor carries Bank Ledger's presentation fields, and no store
 - sim panel: idle, the rows are Start, one per step and Stop, each beside its typed command
@@ -1763,6 +1767,13 @@ Total.
 - sim: a typed /bl sim start bank plays on its own
 - sim panel: the controls are Pause, Restart and Stop
 - sim panel: clicking the ready row while it plays pauses and plays one step
+- sim panel: the host's prepare leaves showing the panel to the library's start (FB2-BL-01)
+- sim panel: a host's own Start shows the panel (FB2-BL-01)
+- sim panel: a typed /bl sim start <scenario> shows the panel (FB2-BL-01)
+- sim panel: a bare /bl sim shows the panel (FB2-BL-01)
+- sim panel: the Master controls Sim box and the launcher's Sim mode show the panel (FB2-BL-01)
+- sim panel: the panel's own Start row starts a session with the panel up (FB2-BL-01)
+- sim panel: a Restart, member or typed, shows the panel again (FB2-BL-01)
 - sim panel: a drag moves it for the session and writes NOTHING to NS.db; Reset redocks
 - sim panel: no schema row and no default hold its position
 - sim panel: a stand-down stop hides it
@@ -1828,7 +1839,7 @@ Total.
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 - skin windows: a section divider's title stays one size however many times the skin switches
 
-### test_skin_chrome.lua (16)
+### test_skin_chrome.lua (18)
 
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
@@ -1846,6 +1857,8 @@ Total.
 - skin chrome degraded: HudFont writes both shadow arms, so a cleared shadow clears
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
 - skin chrome degraded: no window draws a line under its title band (R4-SEP)
+- skin dropdown: Character: Current paints the selected color, off plain and class rows, on every skin
+- skin dropdown: a selected character row trades its class color for the selected color
 
 ### test_title_bar.lua (9)
 
@@ -1855,7 +1868,7 @@ Total.
 - title bar: the ledger window's lock mark draws lock or unlock and says what a click does
 - title bar: clicking the lock mark toggles settings.locked through Sl:CliLocked and repaints it
 - title bar: the lock mark repaints when the lock moves by a verb or by the Lock frame row
-- title bar: each window's settings mark opens this addon's settings; the export modal hides first
+- title bar: each window's settings mark opens this addon's settings, and the window stays up
 - title bar: every window's settings mark rests in icon.tint and lights text.link, under Ka0s Default and Obsidian
 - title bar degraded: with no HeaderButtons each window keeps its close alone, 6 px in, no settings mark
 
@@ -2192,17 +2205,17 @@ Total.
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
 | test_sim_world.lua | 19 |
-| test_sample_characters.lua | 8 |
+| test_sample_characters.lua | 12 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 9 |
 | test_sim_e2e.lua | 9 |
-| test_sim_panel.lua | 19 |
+| test_sim_panel.lua | 26 |
 | test_sim_checkbox.lua | 10 |
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 15 |
 | test_skin_windows.lua | 12 |
-| test_skin_chrome.lua | 16 |
+| test_skin_chrome.lua | 18 |
 | test_title_bar.lua | 9 |
 | test_tooltip_place.lua | 12 |
 | test_skin_picker.lua | 15 |
@@ -2220,4 +2233,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1856** |
+| **Total** | **1869** |
