@@ -23,12 +23,12 @@ FOREVER-19 are the Retail regression checks for the port's two Retail changes (r
 | STATE-1 – 11 | Enable, stand-down, lock | Disabled means not running, re-enable, Lock frame, General visibility, the ledger window's lock mark, `/bl lock` and `/bl unlock` |
 | COMBAT-1 – 8 | Combat | The panel in combat, test mode and visibility on combat edges, diagnostics in combat |
 | CAPT-1 – 21 | Capture and retention | What becomes a ledger row at each store, gold, guild arming, the uncached refusal, the login backfill, retention, purge, the dispatch-table and idle-seam regressions |
-| LEDG-1 – 70 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog's close alone, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters |
+| LEDG-1 – 71 | History window | Window, filter bar, saved views, row menu, test mode, export and copy window, marks, dropdown menus, the resize grip, search suggestions, per-tab views, the search box's focus line, the test-mode strip, one strip per mode and no badge beside it, which window is on top, the row menu's dismissal, the strip docked under the title bar, the library footer, the settings mark on the ledger window and the export dialog's close alone, where the row, header, filter-bar and strip tooltips open, the sample ledger's sample characters, the Character dropdown's selected color |
 | INS-1 – 20 | Insights | Cards, charts, companions, Top Of The List, the GOLD block, live updates, every tip beside the window |
 | FILT-1 – 15 | Filter lists | Blacklist and whitelist, the add box and its dropdown, the two-column grid |
 | SESS-1 – 18 | Session window | The Current Banking Session window at every store, its resize grip, the simulation strip, raising it over the ledger window, the strip docked under the title bar, its settings mark, where its tooltips open |
 | DIAG-1 – 33 | Debug and diagnostics | The console, its chrome, the addon's dumps, the diagnostics report, resizing the console and its copy windows, debug coverage, the Diagnostics link, diagnostics turning logging on, the library's own lines (slash refusals, Lifecycle edges), the identity header, a report's one chat pointer |
-| SIM-1 – 16 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel |
+| SIM-1 – 17 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel, every start showing the step panel |
 | SKIN-1 – 49 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview, the Minimum quality labels on a skinned page |
 | DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
 | FOREVER-1 – 19 | WoW Forever | The WoW Forever port on the Forever client: the clean install, no Warband Bank in the settings, copy, simulator, test mode or session preview, the character bank, the keyring, no phantom rows while the bank loads, socketed bags ignored, two-word names, the default skin, the Forever Wowhead links, the simulator's bank, the guild bank, the probe verbs, running the rest of the file there; the R8 Retail regression checks: a normal visit, a warband-only banker, a second visit, gold in coins |
@@ -577,12 +577,26 @@ FOREVER-19 are the Retail regression checks for the port's two Retail changes (r
   classes with two or three clear mains; six real bank-city zones; a hot-item head over a long tail in
   Top Items; an evening-leaning hour curve; every store, both directions and qualities 0–5 at least
   once; a date range over 14 days. Result: pass (owner-marked 2026-10-10)
-- **LEDG-70. The sample ledger's people are sample characters (AD-87-BL, LibKa0s#87).** `/bl test`,
-  group by Character → eight characters, each named `Sample…` or `Mock…`: `Mockflame` (mage),
-  `Sampleblade` (paladin), `Samplemender` (priest) and `Mockshield` (warrior), the collection's shared
-  four, plus `Mockshade`, `Samplegrove`, `Mocktotem` and `Samplescale`. Export the sample as CSV →
-  every `char` value ends `-Samplerealm` or `-Mockrealm`, and guild-bank rows carry `Sample Company`. **Fail:** a name like
-  `Mage-Ravencrest`, any real realm, or the guild `Ka0s`. Result:
+- **LEDG-70. The sample ledger's people are the library's sample characters (AD-87-BL, LibKa0s#87;
+  FB2-BL-01, LibKa0s#104).** `/bl test`, group by Character → eight characters, each named `Sample…`
+  or `Mock…`: `Mockflame` (mage), `Sampleblade` (paladin), `Samplemender` (priest) and `Mockshield`
+  (warrior), the collection's shared four, plus four from the library's seeded crowd: `Samplepalm`
+  (rogue), `Sampleflare` (druid), `Samplemarsh` (shaman) and `Samplefox` (evoker). `/reload` and
+  `/bl test` again → the same eight. Export the sample as CSV → every `char` value ends `-Samplerealm`
+  or `-Mockrealm`, and guild-bank rows carry `Sample Company`. **Fail:** a name like `Mage-Ravencrest`,
+  any real realm, the guild `Ka0s`, the retired own names (`Mockshade`, `Samplegrove`, `Mocktotem`,
+  `Samplescale`), or a different eight after the reload. Rewritten 2026-11-24 (FB2-BL-01: the crowd's
+  four replace the ledger's own names). Result:
+- **LEDG-71. The Character dropdown's selection reads apart from every other row (FB2-BL-01, D3;
+  LibKa0s v1.113.0, Dropdown minor 4).** With rows from at least two characters of different classes,
+  `/bl show` and open the Character dropdown → *Character: Current* (selected by default) is gold on Ka0s
+  Default, plainly different from *Character: All* and from every class-colored character row. Switch
+  to Azeroth (`/bl skin`, no reload) and open it again → *Character: Current* is gold, not the parchment
+  color of *Character: All*. Switch to Obsidian → it wears Obsidian's accent, again unlike the plain and
+  the class-colored rows. Untick *Character: Current* and tick one character → that row trades its
+  class color for the same selected color, and *Character: Current* goes plain. Back on Ka0s Default.
+  **Fail:** a selected row in a plain row's color, a selected character row still in its class color,
+  or a Lua error. Added 2026-11-24. Result:
 - **LEDG-23. Sample rows cannot touch real data.** Right-click a sample row → Link to chat available;
   Blacklist item, Whitelist item and Delete grayed out and click-inert. Then both filter lists on
   Filters are unchanged. Result: pass (owner-marked 2026-10-10)
@@ -1252,6 +1266,15 @@ failure.
   is open, ticked with the panel closed and nothing running, a tick that leaves it unticked, an untick
   that leaves the panel open, or a Lua error.
   Result: Passed (owner, 2026-11-04)
+- **SIM-17. Every start shows the step panel (FB2-BL-01, D2; LibKa0s v1.113.0, Sim minor 5).** Out of
+  combat, test mode off, no bank open. With the step panel closed, `/bl sim start bank` → the panel
+  opens docked beside the ledger window and the run plays. Close the panel with its close button while
+  it plays, then `/bl sim restart` → the panel opens again. `/bl sim stop`, close the panel, then
+  `/bl sim start guild` → the panel opens. `/bl sim stop`, close it, `/bl sim` → it opens idle; press
+  its Start → the session starts with the panel still up. Close everything, then tick Master
+  controls' *Sim mode* → the panel opens; and from the minimap button's right-click *Sim mode* the same.
+  **Fail:** any start that leaves the panel closed, a panel that floats while the ledger window is
+  open, or a Lua error. Added 2026-11-24. Result:
 
 ## SKIN
 
@@ -2047,3 +2070,5 @@ is unchanged. No other pass mark came off; the warband checks (CAPT-4, CAPT-5, C
 SESS-5) stay Retail's, as FOREVER-15 lists.
 
 The feedback batch of 2026-11-24 (Ka0sAddonsCommonTasks `docs/2026-11-24-FEEDBACK_BATCH/`, FB-BL-01, LibKa0s v1.112.0, standard v2.119.0) rewrites LEDG-67: the export dialog is a companion of the ledger window, so it carries its close alone, and so does the library's copy window. The ledger and session windows keep their gear. Owed: LEDG-67.
+
+Round 2 of the feedback batch (the same bundle's `R2_SMOKE_FEEDBACK.md`, FB2-BL-01, LibKa0s v1.113.0, standard v2.120.0): new checks SIM-17 (every start shows the step panel, decision D2) and LEDG-71 (the Character dropdown's selected color, D3); LEDG-70, rewritten because test mode's four non-protagonist characters are now the library's seeded crowd (D1, LibKa0s#104), and it carried no pass mark. Owed: SIM-17, LEDG-70, LEDG-71.
