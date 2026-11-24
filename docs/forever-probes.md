@@ -75,7 +75,8 @@ print(i,x.hyperlink,x.stackCount) end end`. **Assumes:** the keyring (-1) is in 
 Forever only (R5, LibKa0s-Compat-1.0's `CONTAINER_PATTERNS_BY_CLIENT`), so a key moved into the bank, if the client allows it,
 records a Character Bank deposit, and a key moved to the bags records nothing. Read whether the
 keyring reads 0 slots right after login (the first snapshot would miss keys). On Retail, read what -1
-answers at a banker: Retail never scans it. Both clients. Result:
+answers at a banker: Retail never scans it. Both clients. Result: WoW Forever: the game lets a key go
+into the bank (owner, 2026-11-24), so the move is the Character Bank deposit the build assumes (FOREVER-6).
 
 **P10. The socketed bank bags (-2).** With a bag socketed into a bank tab, from the probe: a `bank`
 entry's `socketSlots` and `sockets` (`<slot> loc=<ItemLocation read> info=<GetContainerItemInfo read>`).
