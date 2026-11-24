@@ -395,3 +395,97 @@ test("skin chrome degraded: no window draws a line under its title band (R4-SEP)
   assertEqual(headerLines(ns, nil, seen), "", "a window with a line under its title")
   ns.SessionWindow:Hide()
 end)
+
+-- ── the Character dropdown's selected row (FB2-BL-01; LibKa0s v1.113.0 Dropdown minor 4, D3) ──
+--
+-- The owner, 2026-11-24: "make the current selected always be a different color than the other
+-- texts - e.g. gold in ka0s default", naming this dropdown's "Character: Current". Every dropdown in
+-- this addon is the library's W.Dropdown (B:MakeDropdown) on the shared menu, so the rule is the
+-- library's; these cases pin that Bank Ledger's own Character dropdown follows it on every skin.
+
+local CLASS = { MAGE = { r = 0.25, g = 0.78, b = 0.92 }, HUNTER = { r = 0.67, g = 0.83, b = 0.45 } }
+
+--- A fresh addon whose ledger holds one row each of two class-colored characters, the window open.
+local function charDropdown()
+  local ns, m, Skin = fresh()
+  m.RAID_CLASS_COLORS = CLASS
+  m.__cursorX, m.__cursorY = 100, 100
+  for _, row in ipairs({ { "Samplemage-Samplerealm", "MAGE" }, { "Samplehunter-Samplerealm", "HUNTER" } }) do
+    ns.Database:Add({
+      ts = 1770000000, char = row[1], classFile = row[2], kind = "ITEM", direction = "DEPOSIT",
+      store = "BANK", itemID = 2589, itemName = "Linen Cloth", quality = 1, itemType = "Tradegoods",
+      itemSubType = "Cloth", quantity = 10, zone = "Testville", mapID = 2657,
+    })
+  end
+  ns.Browser:Show()
+  ns.Browser:RefreshFilterOptions()
+  return ns, m, Skin, ns.Browser._dd.char
+end
+
+--- Open `dd` and answer its menu's painted label colors by label text (class icon markup stripped).
+--- The shared menu is built once per environment and reused, so it is captured on the first open
+--- (the CreateFrame spy test_browser.lua uses) and kept on the mocks for the later ones.
+local function openColors(m, dd)
+  local saved = m.CreateFrame
+  m.CreateFrame = function(...)
+    local f = saved(...)
+    if not rawget(m, "__blMenu") then rawset(m, "__blMenu", f) end
+    return f
+  end
+  local ok, err = pcall(dd.__fire, dd, "OnClick")
+  m.CreateFrame = saved
+  if not ok then error(err, 0) end
+  local W, menu = m.LibStub("LibKa0s-Widgets-1.0"), rawget(m, "__blMenu")
+  assertTrue(menu ~= nil and menu.buttons ~= nil and menu:IsShown(), "the click did not open the shared menu")
+  local out = {}
+  for _, b in ipairs(menu.buttons) do
+    if b:IsShown() then
+      local text = tostring(b.fs:GetText() or ""):gsub("|T.-|t", ""):gsub("|A.-|a", "")
+      out[text] = rgb(m.__paint(b.fs).textColor)
+    end
+  end
+  W.CloseMenu()
+  return out
+end
+
+local function find(colors, needle)
+  for text, c in pairs(colors) do if text:find(needle, 1, true) then return c end end
+end
+
+test("skin dropdown: Character: Current paints the selected color, off plain and class rows, on every skin", function()
+  -- red under: the library's selected row painting the raw menu.textSel where a skin's accent sits
+  -- near its text (Azeroth), or a class color winning over the selection.
+  local ns, m, Skin, dd = charDropdown()
+  local W = m.LibStub("LibKa0s-Widgets-1.0")
+  assertTrue(type(W.SelectedColor) == "function", "LibKa0s v1.113.0's W.SelectedColor is missing")
+  local mage = rgb({ CLASS.MAGE.r, CLASS.MAGE.g, CLASS.MAGE.b })
+  for _, def in ipairs(Skin:Skins()) do
+    switch(m, Skin, def.key)
+    ns.Browser:ApplyView(nil, nil)   -- the default scope: the Current sentinel
+    local colors = openColors(m, dd)
+    local current, all, mageRow = find(colors, "Character: Current"), find(colors, "Character: All"),
+      find(colors, "Samplemage")
+    assertTrue(current and all and mageRow, def.key .. ": the menu lacks a row")
+    assertEqual(current, rgb({ W.SelectedColor(OWNER) }), def.key .. ": Current is not the selected color")
+    assertEqual(all, tok(ns, "menu.text"), def.key .. ": a plain row is not menu.text")
+    assertTrue(current ~= all, def.key .. ": the selected row reads like a plain one")
+    assertTrue(current ~= mage, def.key .. ": the selected row reads like a class-colored one")
+    assertEqual(mageRow, mage, def.key .. ": an unselected character keeps its class color")
+  end
+  switch(m, Skin, "ka0s")
+end)
+
+test("skin dropdown: a selected character row trades its class color for the selected color", function()
+  local ns, m, Skin, dd = charDropdown()
+  local W = m.LibStub("LibKa0s-Widgets-1.0")
+  for _, key in ipairs({ "ka0s", "azeroth" }) do
+    switch(m, Skin, key)
+    ns.Browser:ApplyView(nil, { ["Samplehunter-Samplerealm"] = true })
+    local colors = openColors(m, dd)
+    local hunter = find(colors, "Samplehunter")
+    assertEqual(hunter, rgb({ W.SelectedColor(OWNER) }), key .. ": the selected hunter row")
+    assertTrue(hunter ~= rgb({ CLASS.HUNTER.r, CLASS.HUNTER.g, CLASS.HUNTER.b }), key .. ": still its class color")
+    assertEqual(find(colors, "Character: Current"), tok(ns, "menu.text"), key .. ": Current is not selected now")
+  end
+  switch(m, Skin, "ka0s")
+end)

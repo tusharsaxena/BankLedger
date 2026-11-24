@@ -1835,7 +1835,7 @@ Total.
 - skin windows: the close control's fallback glyph takes the skin's font, not only a typed face
 - skin windows: a section divider's title stays one size however many times the skin switches
 
-### test_skin_chrome.lua (16)
+### test_skin_chrome.lua (18)
 
 - skin chrome: the ledger tabs are the skin's Tab, with the active one selected
 - skin chrome: selecting a tab moves the skin's selection, and a switch repaints it
@@ -1853,6 +1853,8 @@ Total.
 - skin chrome degraded: HudFont writes both shadow arms, so a cleared shadow clears
 - skin chrome degraded: HudFont with no face anywhere leaves the string alone
 - skin chrome degraded: no window draws a line under its title band (R4-SEP)
+- skin dropdown: Character: Current paints the selected color, off plain and class rows, on every skin
+- skin dropdown: a selected character row trades its class color for the selected color
 
 ### test_title_bar.lua (9)
 
@@ -2209,7 +2211,7 @@ Total.
 | test_layers.lua | 11 |
 | test_skinsetup.lua | 15 |
 | test_skin_windows.lua | 12 |
-| test_skin_chrome.lua | 16 |
+| test_skin_chrome.lua | 18 |
 | test_title_bar.lua | 9 |
 | test_tooltip_place.lua | 12 |
 | test_skin_picker.lua | 15 |
@@ -2227,4 +2229,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1863** |
+| **Total** | **1865** |
