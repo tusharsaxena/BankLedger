@@ -90,7 +90,7 @@ The vendor buy price on a ledger row's item tooltip reads the optional ForeverDB
 ForeverDB is about **12 MB on disk** and is LoadOnDemand. **The load happens on first use**: the
 adapter's first lookup loads it, and this addon's first lookup is the first hover of an item row on
 WoW Forever with *Show vendor buy price* on. Nothing loads it at file load or login (pinned by
-`tests/test_vendor_buy_price.lua`, the fake's load count), and a hover **in combat** before the load
+`tests/test_vendor_buy_price.lua`, the load count of a fake installed before any file loads), and a hover **in combat** before the load
 adds nothing and loads nothing, so the one-time hitch never lands in a fight and the combat sweep
 above gains no row. Once loaded, the memory is ForeverDB's, shared by every addon on the client that
 reads it, and it stays for the session. On Retail, or without ForeverDB, nothing loads. There is no

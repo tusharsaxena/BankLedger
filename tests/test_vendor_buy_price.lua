@@ -12,8 +12,11 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
 local NOW = 1770000000
 
-local function fresh()
+-- `before(m)`, when given, runs on the finished mock before any file loads: a fake installed there
+-- is in place at file load and login, so its counters see anything those do.
+local function fresh(before)
   local m = T.makeMocks()
+  if before then before(m) end
   local ns = {}
   T.Loader.loadAll(T.libka0sFiles, ns, m)
   T.Loader.loadAll(T.Loader.tocFiles("BankLedger.toc"), ns, m)
@@ -102,14 +105,29 @@ local function priceLine(seen)
   return nil
 end
 
--- A fresh load with the fake installed in `preset`, a blade row (the fixture's item every vendor
--- source names) bound to both tables, and the fake's handle.
-local function withFake(preset, over)
-  local ns, m = fresh()
-  local fdb = FDB.install(m, { preset = preset })
+-- A fresh load with the fake installed in `preset` BEFORE the addon's files load (so its load count
+-- covers file load and login), a blade row (the fixture's item every vendor source names) bound to
+-- both tables, and the fake's handle.
+local function bladeRows(ns, over)
   local e = entry(over or { itemID = FDB.IDS.blade, itemName = "Fixture Blade",
     itemLink = "|cff1eff00|Hitem:" .. FDB.IDS.blade .. "::::::::70:::::|h[Fixture Blade]|h|r" })
-  return ns, m, fdb, rows(ns, e)
+  return rows(ns, e)
+end
+
+local function withFake(preset, over)
+  local fdb
+  local ns, m = fresh(function(mock) fdb = FDB.install(mock, { preset = preset }) end)
+  return ns, m, fdb, bladeRows(ns, over)
+end
+
+-- The project constants of `client` on the mock, as the kit's fake writes them for opts.client.
+-- The Loader stamps the kit profile on a mock the first time it builds an environment over it, so
+-- that is forced first; otherwise the profile would overwrite these at file load.
+local function setClient(m, client)
+  T.Loader.makeEnv(m)
+  m.WOW_PROJECT_MAINLINE = 1
+  m.WOW_PROJECT_ID = client == "forever" and 18 or 1
+  m.WOW_PROJECT_CAMELOT = client == "forever" and 18 or nil
 end
 
 test("vendor price: declared WoW Forever's alone, its ForClient answer the running client's", function()
@@ -195,6 +213,29 @@ test("vendor price: in combat the first hover loads nothing; once loaded, combat
   m.InCombatLockdown = function() return true end
   assertEqual(priceLine(hover(m, r.session)), want, "in combat, once loaded")
   assertEqual(fdb.loads, FOREVER and 1 or 0)
+  fdb.restore()
+end)
+
+-- The addon's own gate (clients-§4), not the adapter's: BankLedger loaded as Retail, so
+-- C.FEATURE.vendorBuyPrice is false, then the client turns Forever under it, so the adapter itself
+-- would answer a price. The row must still add nothing and never ask the adapter. Means the same
+-- under both kit profiles.
+test("vendor price: the addon's own Forever gate holds when the adapter would answer", function()
+  local ns, m = fresh(function(mock) setClient(mock, "retail") end)
+  assertEqual(ns.Constants.FEATURE.vendorBuyPrice, false, "loaded as Retail, the feature is on")
+  local fdb = FDB.install(m, { preset = "present", client = "forever" })
+  assertEqual(ns.ForeverDB.VendorPrice(FDB.IDS.blade), 1200,
+    "the adapter does not answer on Forever, so this case would prove nothing")
+  local before = fdb.loads
+  local asked = 0
+  local real = ns.ForeverDB.VendorPrice
+  ns.ForeverDB.VendorPrice = function(...) asked = asked + 1; return real(...) end
+  local r = bladeRows(ns)
+  assertEqual(priceLine(hover(m, r.History)), nil, "the History row showed a price with the feature off")
+  assertEqual(priceLine(hover(m, r.session)), nil, "the session row showed a price with the feature off")
+  assertEqual(asked, 0, "the row asked the adapter with the feature off")
+  assertEqual(fdb.loads, before, "the row loaded ForeverDB with the feature off")
+  ns.ForeverDB.VendorPrice = real
   fdb.restore()
 end)
 
