@@ -1,0 +1,4 @@
+FB2 independent review (workflow wf_0f1c645f-6fa, 2026-11-24): ok
+Fixes: none
+Gate: I re-ran the gate myself at 27a7426. Retail (ka0s-bounded lua tests/run.lua): 1869 passed, 0 failed, 3 skipped, 1872 total, exit 0. Forever (KA0S_KIT_CLIENT=forever; the TOC's Interface line is 120105, 16001): 1848 passed, 0 failed, 24 skipped, 1872 total. ka0s-bounded luacheck .: 0 warnings / 0 errors in 136 files. No run timed out (124) or was killed (137). I regenerated docs/test-cases.md with lua tests/run.lua --list, and it is identical to the committed file apart from CR. Every changed Lua file is well under 1500 lines (the largest is test_skin_chrome.lua at 491). Line endings are kept: the working tree is CRLF and the blobs are normalized by .gitattributes, the same as before the run.
+Open:
