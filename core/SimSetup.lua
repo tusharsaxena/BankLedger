@@ -133,51 +133,46 @@ function NS.ToggleSim()
   if type(s.HidePanel) == "function" then s:HidePanel() end
 end
 
--- ── the sample characters (LibKa0s#87, Sim minor 3) ────────────────────────────────────────────
+-- ── the sample characters (LibKa0s#87, Sim minor 3; LibKa0s#104, Sim minor 5) ────────────────
 --
 -- The made-up people this addon shows: test mode's sample ledger (modules/LedgerTable_TestMode.lua)
--- and the simulator's alt (modules/SimWorld.lua). They are the collection's one set,
--- LibKa0s-Sim-1.0's Sim.SAMPLE, under preview-mode's convention: a name starts Sample or Mock, the
--- realm is Samplerealm or Mockrealm and never a real one, and a name is data, never localized.
+-- and the simulator's alt (modules/SimWorld.lua). Every one is LibKa0s-Sim-1.0's, under
+-- preview-mode's convention: a name starts Sample or Mock, the realm is Samplerealm or Mockrealm and
+-- never a real one, and a name is data, never localized. Since LibKa0s#104 (FB2-BL-01, decision D1)
+-- the addon keeps no list and no copy of its own: the five protagonists are Sim.Sample, and a class
+-- they lack is the library's seeded crowd, Sim.SampleCrowd. tests/test_sample_characters.lua refuses
+-- a Sample or Mock name literal anywhere in the shipped source.
 -- The set is per client (WoW Forever port, BL-02; clients-§5): Retail's rows are "Name-Realm",
 -- WoW Forever's "First Surname" with no realm in the name (forever-quirks-§4). NS.SAMPLE_CLIENT is
 -- the client's key, seeded ONCE at load from NS.Compat.ClientKey() (core/CompatClient.lua, which
 -- loads first), "retail" for a client that is neither. NS.SampleCharacters() answers
--- Sim.Sample(NS.SAMPLE_CLIENT), a fresh copy the caller owns. Without the library it answers a copy
--- of NS.SAMPLE_FALLBACK, that client's twin in NS.SAMPLE_FALLBACKS: the library's rows limited to
--- the four fields this addon reads. tests/test_sample_characters.lua holds both twins to the
--- library's rows field for field, so neither can drift.
-NS.SAMPLE_FALLBACKS = {
-  retail = {
-    { name = "Samplehunter", realm = "Samplerealm", fullName = "Samplehunter-Samplerealm", classFile = "HUNTER" },
-    { name = "Sampleblade",  realm = "Samplerealm", fullName = "Sampleblade-Samplerealm",  classFile = "PALADIN" },
-    { name = "Mockflame",    realm = "Mockrealm",   fullName = "Mockflame-Mockrealm",      classFile = "MAGE" },
-    { name = "Samplemender", realm = "Samplerealm", fullName = "Samplemender-Samplerealm", classFile = "PRIEST" },
-    { name = "Mockshield",   realm = "Mockrealm",   fullName = "Mockshield-Mockrealm",     classFile = "WARRIOR" },
-  },
-  forever = {
-    { name = "Samplehunter", realm = "Samplerealm", fullName = "Samplehunter Mockstride", classFile = "HUNTER" },
-    { name = "Sampleblade",  realm = "Samplerealm", fullName = "Sampleblade Mockvale",    classFile = "PALADIN" },
-    { name = "Mockflame",    realm = "Mockrealm",   fullName = "Mockflame Samplewick",    classFile = "MAGE" },
-    { name = "Samplemender", realm = "Samplerealm", fullName = "Samplemender Mockbrook",  classFile = "PRIEST" },
-    { name = "Mockshield",   realm = "Mockrealm",   fullName = "Mockshield Sampleforge",  classFile = "WARRIOR" },
-  },
-}
+-- Sim.Sample(NS.SAMPLE_CLIENT), a fresh copy the caller owns. Without the library there is no
+-- sample person: it answers an empty list, and the two lookups below answer nil.
 NS.SAMPLE_CLIENT = NS.Compat.ClientKey() == "forever" and "forever" or "retail"
-NS.SAMPLE_FALLBACK = NS.SAMPLE_FALLBACKS[NS.SAMPLE_CLIENT]
 
 function NS.SampleCharacters()
   if Sim and type(Sim.Sample) == "function" then return Sim.Sample(NS.SAMPLE_CLIENT) end
-  local rows = {}
-  for i, row in ipairs(NS.SAMPLE_FALLBACK) do
-    rows[i] = { name = row.name, realm = row.realm, fullName = row.fullName, classFile = row.classFile }
-  end
-  return rows
+  return {}
 end
 
 --- The shared sample character of `classFile`, or nil when the set has none of that class.
 function NS.SampleCharacterOf(classFile)
   for _, row in ipairs(NS.SampleCharacters()) do
+    if row.classFile == classFile then return row end
+  end
+  return nil
+end
+
+--- The library's crowd person of `classFile` for `seed`: the first row of that class in
+--- Sim.SampleCrowd(NS.SAMPLE_CLIENT, Sim.CROWD_MAX, seed), a fresh copy the caller owns. A crowd as
+--- large as the client's class count holds every class, so a class the client has always answers;
+--- nil for one it lacks, and nil without the library. The same seed answers the same person.
+--- @param classFile string
+--- @param seed number|nil
+--- @return table|nil
+function NS.SampleCrowdCharacterOf(classFile, seed)
+  if not (Sim and type(Sim.SampleCrowd) == "function") then return nil end
+  for _, row in ipairs(Sim.SampleCrowd(NS.SAMPLE_CLIENT, Sim.CROWD_MAX, seed)) do
     if row.classFile == classFile then return row end
   end
   return nil

@@ -25,8 +25,8 @@ local C = NS.Constants
 -- it). WoW Forever has the nine classic classes, so its row has no Evoker: a Warlock takes the slot
 -- and the weight, keeping eight characters and the same draw shape. Its zones are the classic
 -- capitals with the uiMapIDs the Forever client answers (1453-1458, SkillMaster's
--- defaults/Trainers_Forever.lua precedent), weighted as Retail's are. `ownChars` is this ledger's
--- own name for each class the shared sample set has none of (see THE SAMPLE CHARACTERS below).
+-- defaults/Trainers_Forever.lua precedent), weighted as Retail's are. A class the five shared
+-- protagonists lack draws its character from the library's seeded crowd (THE SAMPLE CHARACTERS below).
 local TEST_SEEDS_BY_CLIENT = {
   retail = {
     classes = { "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "EVOKER" },
@@ -43,12 +43,6 @@ local TEST_SEEDS_BY_CLIENT = {
       { name = "Silvermoon City",  mapID = 110 },
       { name = "Boralus",          mapID = 1161 },
     },
-    ownChars = {
-      ROGUE  = "Mockshade-Samplerealm",
-      DRUID  = "Samplegrove-Mockrealm",
-      SHAMAN = "Mocktotem-Samplerealm",
-      EVOKER = "Samplescale-Mockrealm",
-    },
   },
   forever = {
     classes = { "MAGE", "PALADIN", "ROGUE", "PRIEST", "DRUID", "WARRIOR", "SHAMAN", "WARLOCK" },
@@ -63,12 +57,6 @@ local TEST_SEEDS_BY_CLIENT = {
       { name = "Stormwind City",   mapID = 1453 },
       { name = "Thunder Bluff",    mapID = 1456 },
       { name = "Darnassus",        mapID = 1457 },
-    },
-    ownChars = {
-      ROGUE   = "Mockshade Samplestep",
-      DRUID   = "Samplegrove Mockbark",
-      SHAMAN  = "Mocktotem Sampletide",
-      WARLOCK = "Samplehex Mockember",
     },
   },
 }
@@ -154,22 +142,28 @@ end
 -- out of did. A helper that draws must therefore stay at its old position in the statement order —
 -- never hoisted above a neighbor that also draws, and never sequenced by argument-evaluation order.
 
--- THE SAMPLE CHARACTERS (LibKa0s#87, preview-mode's sample-character convention). A class's
--- character is the collection's shared one where the set has that class (core/SimSetup.lua's
--- NS.SampleCharacterOf: Mockflame-Mockrealm the mage, Sampleblade-Samplerealm the paladin,
--- Samplemender-Samplerealm the priest, Mockshield-Mockrealm the warrior), and this ledger's own
--- name for the four classes it has none of. Every name starts Sample or Mock, every realm is
--- Samplerealm or Mockrealm, never a real one; names are data and never localized. The own names are
--- per client like the shared set (BL-02; clients-§5), picked once at load by the key core/SimSetup.lua
--- seeded: "Name-Realm" on Retail, "First Surname" on WoW Forever (forever-quirks-§4). They live in
--- the client's seed row above (BL-09), with the class list they name.
-local TEST_OWN_CHARS = TEST_SEEDS.ownChars
+-- THE SAMPLE CHARACTERS (LibKa0s#87, #104; preview-mode's sample-character convention). Every
+-- person is the library's (FB2-BL-01, decision D1): a class's character is the collection's shared
+-- protagonist where the five have that class (core/SimSetup.lua's NS.SampleCharacterOf:
+-- Mockflame-Mockrealm the mage, Sampleblade-Samplerealm the paladin, Samplemender-Samplerealm the
+-- priest, Mockshield-Mockrealm the warrior), and for the four classes they lack, the first person of
+-- that class in the library's crowd seeded with LT.TEST_CROWD_SEED (NS.SampleCrowdCharacterOf), so
+-- the dataset stays the same on every build. Both are per client (BL-02; clients-§5): "Name-Realm"
+-- on Retail, "First Surname" on WoW Forever (forever-quirks-§4). Without the library there is no
+-- sample person, and a row's character is its class token. The names are read once, on first use,
+-- and kept: the client and the seed are fixed for the session.
+LT.TEST_CROWD_SEED = 104
 local TEST_GUILD = "Sample Company"
+local testChars = {}
 
--- "MAGE" -> "Mockflame-Mockrealm". Draws nothing.
+-- "MAGE" -> "Mockflame-Mockrealm". Draws nothing from the dataset's stream.
 local function testCharName(cls)
-  local shared = NS.SampleCharacterOf(cls)
-  return shared and shared.fullName or TEST_OWN_CHARS[cls]
+  local name = testChars[cls]
+  if name then return name end
+  local row = NS.SampleCharacterOf(cls) or NS.SampleCrowdCharacterOf(cls, LT.TEST_CROWD_SEED)
+  name = row and row.fullName or cls
+  testChars[cls] = name
+  return name
 end
 
 -- Only guild-bank rows carry a guild. Draws nothing.

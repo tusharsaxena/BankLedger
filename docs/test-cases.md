@@ -149,9 +149,9 @@ Total.
 - test mode: Retail's seed row is the pre-port data, Evoker and the modern capitals included
 - test mode: WoW Forever's seed row has only the classic classes, no Evoker
 - test mode: WoW Forever's zones are the classic capitals, none of Retail's
-- test mode: every class in each row has a character, shared or the ledger's own
+- test mode: every class in each row has a library character, shared or from the seeded crowd
 - test mode: the dataset's classes and zones are this client's own
-- test mode: Retail's dataset is the pre-port one, row for row
+- test mode: Retail's dataset is pinned, row for row (the crowd's names since FB2-BL-01)
 - test mode: WoW Forever's dataset is deterministic across runs
 
 ### test_names_client.lua (9)
@@ -1665,16 +1665,20 @@ Total.
 - SimWorld: an empty-built world still draws its pool, and no file names NS.db
 - SimWorld: during a session the wrapped Compat answers from the world, not the client
 
-### test_sample_characters.lua (8)
+### test_sample_characters.lua (12)
 
 - sample characters: NS.SampleCharacters answers the library's rows for this client
-- sample characters: each library-absent twin matches the library's rows for its client
+- sample characters: the addon keeps no copy of the library's rows (LibKa0s#104)
+- sample characters: a crowd character is the library's seeded crowd row of that class
 - sample characters: the rows are in this client's shape, Name-Realm on Retail, First Surname on Forever
-- sample characters: without the library NS.SampleCharacters answers a copy of the host rows
+- sample characters: without the library there is no sample person to draw
 - sample characters: every test-mode character follows the convention, none on a real realm
 - sample characters: test mode's protagonists are the shared rows, by class
 - sample characters: test mode's guild-bank rows carry the sample guild
-- sample characters: without the library test mode draws the same characters
+- sample characters: without the library test mode keys each row by its class, naming nobody
+- sample characters: test mode's other classes are the library's seeded crowd
+- sample characters: no Sample or Mock name literal lives in the shipped source (LibKa0s#104)
+- sample characters: the literal scan is falsifiable, a planted name is found
 
 ### test_sim_drivers.lua (16)
 
@@ -2201,7 +2205,7 @@ Total.
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
 | test_sim_world.lua | 19 |
-| test_sample_characters.lua | 8 |
+| test_sample_characters.lua | 12 |
 | test_sim_drivers.lua | 16 |
 | test_sim_session.lua | 24 |
 | test_sim_scenario.lua | 9 |
@@ -2229,4 +2233,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1865** |
+| **Total** | **1869** |
