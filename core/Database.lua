@@ -252,6 +252,28 @@ NS.MIGRATIONS = {
     end
     return n
   end,
+
+  -- v7 -> v8 (IS-BL-01, Ka0sAddonsCommonTasks docs/2026-11-25-ITEM_SEARCH 03_SPEC.md §6): the vendor
+  -- buy price on WoW Forever's row tooltips (SF-BL-01) is gone, and its setting with it. Its default
+  -- was on, so AceDB stored the key only where a player turned it off, and that `false` would sit in
+  -- the file for good, read by nothing. Every STORED profile is walked raw, as v4 does.
+  --
+  -- IDEMPOTENT: a second run finds no key and touches nothing. Counts one row per profile value
+  -- removed.
+  [8] = function(_, db)
+    local sv = db and db.sv
+    local profiles = type(sv) == "table" and sv.profiles
+    if type(profiles) ~= "table" then return 0 end
+    local n = 0
+    for _, p in pairs(profiles) do
+      local s = type(p) == "table" and rawget(p, "settings") or nil
+      if type(s) == "table" and rawget(s, "showVendorBuyPrice") ~= nil then
+        rawset(s, "showVendorBuyPrice", nil)
+        n = n + 1
+      end
+    end
+    return n
+  end,
 }
 
 -- The two tint sliders and the defaults they had before they followed the skin (SD-SK-BL.1).

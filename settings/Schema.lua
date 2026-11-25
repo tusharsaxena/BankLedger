@@ -147,17 +147,6 @@ S.Schema = {
       .. "Row hover opacity yourself.",
     onChange = function() NS.Util.RefreshRowTint() end },
 
-  -- The vendor buy price on a ledger row's item tooltip (SF-BL-01, LibKa0s#105; clients-§11). WoW
-  -- Forever only, so the row is declared for that client alone and is no row on Retail
-  -- (C.FEATURE_CLIENTS.vendorBuyPrice). It reads the optional ForeverDB addon, which the tooltip says
-  -- the feature needs. No onChange: LT.AddVendorBuyPrice reads the value at each hover.
-  { path = "settings.showVendorBuyPrice", default = PD.settings.showVendorBuyPrice, type = "bool",
-    widget = "CheckBox", clients = C.FEATURE_CLIENTS.vendorBuyPrice,
-    group = "Interface", subgroup = "Item tooltips", solo = true, label = "Show vendor buy price",
-    tooltip = "Adds the price a vendor sells the item for under a ledger row's item tooltip, beside "
-      .. "the sell price the game shows. Needs the ForeverDB addon; without it no price is shown. "
-      .. "Nothing is stored." },
-
   -- The simulator's pace (BankLedger#24; the owner's 2026-10-23 ask): the seconds a playing
   -- simulation waits after a step. Its own subgroup, since it is not about a window; the label,
   -- the heading and the tooltip's opening are options-ui-§21's shared family names. No onChange: modules/Sim.lua's Host.StepDelay reads the value at use, so

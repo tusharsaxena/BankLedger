@@ -81,17 +81,12 @@ test("Slash:BuildListLines indents group headers by two and rows by four", funct
   assertTrue(sawRow, "a gold path row at a four-space indent")
 end)
 
-test("Slash:BuildListLines emits one row for every schema row declared for this client", function()
-  -- A row declared for the other client (clients-§4: Forever's vendor buy price on Retail) is no
-  -- row in the listing either.
-  local rows, want = 0, 0
+test("Slash:BuildListLines emits one row for every schema row", function()
+  local rows = 0
   for i, line in ipairs(Sl:BuildListLines()) do
     if i > 1 and line:match("^    ") then rows = rows + 1 end
   end
-  for _, row in ipairs(NS.Schema.Schema) do
-    if NS.Compat.ForClient(row.clients) then want = want + 1 end
-  end
-  assertEqual(rows, want)
+  assertEqual(rows, #NS.Schema.Schema)
 end)
 
 test("Slash:BuildListLines groups the rows under their declared page order", function()
@@ -316,7 +311,7 @@ test("Slash: /bl resetall logs ONE [Set] line counting the rows it CHANGED, and 
   captureChat(function() Sl:CliSet("settings.rowHoverAlpha 0.3") end)
   local lines
   captureChat(function() lines = setLines(function() Sl:OnSlash("resetall") end) end)
-  assertEqual(#NS.Schema.Schema, 29, "the schema still carries twenty-nine rows")
+  assertEqual(#NS.Schema.Schema, 28, "the schema still carries twenty-eight rows")
   assertEqual(#lines, 1, "one line for the one act, got:\n" .. table.concat(lines, "\n"))
   assertTrue(lines[1]:find("[Set] reset profile 'Default' to defaults (2 rows)", 1, true) ~= nil,
     "the line names the act and the rows changed, got: " .. tostring(lines[1]))
@@ -350,7 +345,7 @@ test("Slash: /bl resetall with every row already at its default logs 0 rows, and
 end)
 
 test("Slash: the library's sweep logs ONE [Set] reset all line counting the rows it CHANGED", function()
-  -- The walk visits all twenty-nine rows and two of them move.
+  -- The walk visits all twenty-eight rows and two of them move.
   -- red under: dropping bulkBegin/bulkEnd from the seam (a `[Set] <path> = <value>` line per row),
   -- muting the seam without emitting the summary (none), or logging the library's `count` (17).
   librarySweep()   -- baseline: every row at its default

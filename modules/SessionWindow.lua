@@ -401,7 +401,6 @@ function SW:BuildRow()
     if e.itemLink then
       local tip = NS.Util.TipOwn(self2)
       tip:SetHyperlink(e.itemLink)
-      NS.LedgerTable.AddVendorBuyPrice(e)   -- the History table's line (WoW Forever, ForeverDB)
       tip:Show()
       NS.Util.TipBeside(tip, self2, frame)
     elseif e.kind == C.Kind.MONEY then
