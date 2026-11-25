@@ -1930,25 +1930,25 @@ which addon and skip those steps.
   session window → the same line. Untick *Show vendor buy price* and hover again → no line; tick it
   back. `/bl diagnostics` → the identity section ends with `ForeverDB: present=yes loaded=yes
   version=…` and a build and hash. **Fail:** ForeverDB loaded at login, no line on a vendor-sold
-  item, a line on an item no vendor sells, a line with the box unticked, or a Lua error. Result:
+  item, a line on an item no vendor sells, a line with the box unticked, or a Lua error. Result: PASS (owner, 2026-11-25)
 - **FOREVER-21. Without ForeverDB: inert, and the row says why (SF-BL-01).** Client: WoW Forever.
   Disable ForeverDB in the AddOns list and `/reload`. Settings → Interface → *Show vendor buy price*
   is still there and its tooltip says the feature needs ForeverDB. Hover the vendor-sold item's
   History row and its session row → the game's item tooltip with no `Vendor buy price` line, and no
   Lua error. `/bl diagnostics` → `ForeverDB: present=yes loaded=no`. Re-enable ForeverDB after.
-  **Fail:** a Lua error, a price line, or the row missing. Result:
+  **Fail:** a Lua error, a price line, or the row missing. Result: PASS (owner, 2026-11-25)
 - **FOREVER-22. The first load never happens in combat (SF-BL-01).** Client: WoW Forever. ForeverDB
   enabled, `/reload`. Enter combat (a training dummy) with the ledger window open and hover the
   vendor-sold item's row → no `Vendor buy price` line, and
   `/dump C_AddOns.IsAddOnLoaded("ForeverDB")` after the fight still answers `false`. Out of combat,
   hover it again → the line appears (and the load's short hitch, if any, happens now). Enter combat
   again and hover → the line still shows. **Fail:** ForeverDB loaded by a hover in combat, or no line
-  out of combat. Result:
+  out of combat. Result: PASS (owner, 2026-11-25)
 - **FOREVER-23. Retail has no vendor buy price (SF-BL-01).** Client: Retail. Settings → General →
   Interface → no **Item tooltips** heading and no *Show vendor buy price* row. `/bl list` → no
   `settings.showVendorBuyPrice` line. Hover an item row in History → the item tooltip and the hint,
   no `Vendor buy price` line. `/bl diagnostics` → `ForeverDB: present=no loaded=no`. **Fail:** the
-  row, the line or a Lua error on Retail. Result:
+  row, the line or a Lua error on Retail. Result: PASS (owner, 2026-11-25)
 
 ## Non-English client
 
@@ -2137,3 +2137,7 @@ PANEL-34, SKIN-5 and SKIN-49. The owner's answer to probe P3 (a key can go into 
 Added by the seeds and ForeverDB run (Ka0sAddonsCommonTasks `docs/2026-11-25-SEEDS_AND_FOREVERDB/`, item
 SF-BL-01 on LibKa0s v1.114.0), awaiting the owner: FOREVER-20 to FOREVER-23, the vendor buy price from
 ForeverDB with it, without it, in combat and on Retail.
+
+On 2026-11-25 the owner reported that every check of the seeds and ForeverDB run (Ka0sAddonsCommonTasks
+`docs/2026-11-25-SEEDS_AND_FOREVERDB/`, item SF-BL-01 on LibKa0s v1.114.0) passed. Passed, recorded on
+each `Result:` line as `PASS (owner, 2026-11-25)`: FOREVER-20 to FOREVER-23.
