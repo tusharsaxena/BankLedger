@@ -468,7 +468,7 @@ Total.
 - RunMigrations strips vendorPrice from every stored entry and bumps to v2
 - RunMigrations is idempotent on an already-migrated database
 - RunMigrations treats a database with no schemaVersion key at all as v1
-- RunMigrations announces the v1->v7 pass in one [Migrate] line
+- RunMigrations announces the v1->v8 pass in one [Migrate] line
 - RunMigrations walks a stamp-less EMPTY store to the current version, touching no rows
 - RunMigrations stamps a stamp-less store whose ledger is nil, without raising
 - RunMigrations walks an AceDB-backfilled 0 with vendorPrice rows to v2 and strips them
@@ -1043,7 +1043,7 @@ Total.
 - Slash:BuildListLines opens with the green 'Available settings' header
 - Slash:BuildListLines has no trailing colon on any line
 - Slash:BuildListLines indents group headers by two and rows by four
-- Slash:BuildListLines emits one row for every schema row declared for this client
+- Slash:BuildListLines emits one row for every schema row
 - Slash:BuildListLines groups the rows under their declared page order
 - Slash:CliGet prints the single-line path = value form
 - Slash:CliGet reports an unknown path rather than printing nil
@@ -1540,7 +1540,7 @@ Total.
 - report verbs: /bl debug panel with no settings panel refuses in chat and writes nothing
 - report verbs: without LibKa0s the stub streams /bl debug scan to chat with no pointer
 
-### test_profiles.lua (49)
+### test_profiles.lua (50)
 
 - Profiles: the defaults split — the ledger, its retention window and the minimap table are account-wide, everything else configured is per profile
 - Profiles: a schema write lands in the active profile, never in db.global
@@ -1563,6 +1563,7 @@ Total.
 - Migrate v5: idempotent, and a slot a later build already wrote is never overwritten
 - Migrate v6: a stored Ka0s Friz Quadrata TT moves to Ka0s Ubuntu in every profile, Blizzard's Friz kept
 - Migrate v7: a stored row tint pick keeps its slider, every other profile follows the skin
+- Migrate v8: the retired vendor buy price setting leaves every stored profile
 - Profiles: a switch re-reads every setting from the new profile
 - Profiles: a switch re-caches the capture gate, and leaves the recorded ledger alone
 - Profiles: a switch to a disabled profile stands the addon down, and back stands it up
@@ -1887,22 +1888,6 @@ Total.
 - tooltips: the source guard reads the whole repo, XML includes and Bindings.xml too
 - tooltips: the addon's own code anchors no tooltip at the cursor or a corner, and reads no cursor
 
-### test_vendor_buy_price.lua (13)
-
-- vendor price: a History item row's tooltip is the item link, then the hint line
-- vendor price: a session item row's tooltip is the item link alone
-- vendor price: declared WoW Forever's alone, its ForClient answer the running client's
-- vendor price: the setting is a Forever-only Interface row, on by default
-- vendor price: with ForeverDB, both rows add the lowest vendor price on WoW Forever only
-- vendor price: an item no vendor sells adds no line
-- vendor price: ForeverDB missing leaves both tooltips exactly as they were
-- vendor price: ForeverDB loadfails leaves both tooltips exactly as they were
-- vendor price: ForeverDB reshaped leaves both tooltips exactly as they were
-- vendor price: the setting off adds no line and loads nothing
-- vendor price: in combat the first hover loads nothing; once loaded, combat still shows it
-- vendor price: a gold movement and a row with no item id add no line
-- vendor price degraded: the stand-in carries every member the live ForeverDB major exports
-
 ### test_skin_picker.lua (15)
 
 - Skin picker: pickerSeen defaults to false, a skip-render row on the Skin tab
@@ -2216,7 +2201,7 @@ Total.
 | test_lintconfig.lua | 4 |
 | test_diagnostics.lua | 29 |
 | test_report_verbs.lua | 6 |
-| test_profiles.lua | 49 |
+| test_profiles.lua | 50 |
 | test_debug_coverage.lua | 18 |
 | test_debug_library.lua | 10 |
 | test_sim_seam.lua | 12 |
@@ -2234,7 +2219,6 @@ Total.
 | test_skin_chrome.lua | 18 |
 | test_title_bar.lua | 9 |
 | test_tooltip_place.lua | 12 |
-| test_vendor_buy_price.lua | 13 |
 | test_skin_picker.lua | 15 |
 | test_skin_picker_preview.lua | 17 |
 | test_skin_tools.lua | 10 |
@@ -2250,4 +2234,4 @@ Total.
 | test_skin_switch.lua | 95 |
 | test_client_globals.lua | 3 |
 | Skipped | 3 |
-| **Total** | **1882** |
+| **Total** | **1870** |

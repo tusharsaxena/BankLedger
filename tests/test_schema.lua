@@ -59,8 +59,6 @@ local STORED_SURFACE = {
   -- SD-SK-BL.1 (the owner's R-2 of 2026-11-20): each opacity follows the skin through a companion.
   { "settings.rowStripeAlphaFromSkin", true, "bool" },
   { "settings.rowHoverAlphaFromSkin",  true, "bool" },
-  -- SF-BL-01 (LibKa0s#105): WoW Forever's vendor buy price on a row's item tooltip, from ForeverDB.
-  { "settings.showVendorBuyPrice",    true,     "bool" },
   { "settings.sim.stepDelay",     1,        "number", 0.5, 10,  0.5 },
   { "settings.retentionDays",     30,       "number" },
   -- The skin choice (skinning-§2, the skinning rollout's BL-01): seven new paths under
@@ -316,7 +314,7 @@ local PARTITION = {
     { tab = "Master controls", rows = 9 },
     { tab = "Capture",         rows = 4 },
     { tab = "Filters",         rows = 1 },
-    { tab = "Interface",       rows = 7 },
+    { tab = "Interface",       rows = 6 },
     { tab = "History",         rows = 1 },
     { tab = "Appearance",      rows = 8 },
   },
@@ -362,10 +360,10 @@ test("schema: the live and library-absent row counts, and the composed delta", f
   local DS = Env.loadDegraded().Schema
   local live = { schema = #S.Schema, page = #S:PageRows() }
   local degraded = { schema = #DS.Schema, page = #DS:PageRows() }
-  assertEqual(live.schema, 29, "live #S.Schema")
-  assertEqual(degraded.schema, 20, "library-absent #S.Schema")
-  assertEqual(live.page, 30, "live #S:PageRows()")
-  assertEqual(degraded.page, 21, "library-absent #S:PageRows()")
+  assertEqual(live.schema, 28, "live #S.Schema")
+  assertEqual(degraded.schema, 19, "library-absent #S.Schema")
+  assertEqual(live.page, 29, "live #S:PageRows()")
+  assertEqual(degraded.page, 20, "library-absent #S:PageRows()")
   local why = " — the delta is the Master-controls block S:ComposeMaster gets from "
     .. "O.MasterControls, which composes nothing without the library"
   assertEqual(live.schema - degraded.schema, 9, "S.Schema live minus degraded" .. why)
@@ -557,11 +555,10 @@ end)
 
 test("Schema: the Interface tab heads each KIND of control it mixes", function()
   -- options-ui-§7: a tab mixing kinds must break them up, and those headings are NOT suppressed the
-  -- way the tab's own section heading is. Interface holds three kinds -- how the windows look and
-  -- behave (the session window and the table row tints, one Windows subsection since BAN-L01), what
-  -- a row's item tooltip adds (WoW Forever's vendor buy price, SF-BL-01; a row declared for Forever
-  -- alone, so the panel draws that heading there only) and the pace of a playing simulation -- so
-  -- every row on it carries a `subgroup`, and no subgroup may repeat the tab's own name.
+  -- way the tab's own section heading is. Interface holds two kinds -- how the windows look and
+  -- behave (the session window and the table row tints, one Windows subsection since BAN-L01) and
+  -- the pace of a playing simulation -- so every row on it carries a `subgroup`, and no subgroup may
+  -- repeat the tab's own name.
   --
   -- Dies under: dropping `subgroup` from any Interface row, or naming one "Interface".
   local kinds, order = {}, {}
@@ -571,10 +568,9 @@ test("Schema: the Interface tab heads each KIND of control it mixes", function()
     assertFalse(row.subgroup == row.group, row.path .. "'s subgroup repeats its tab's name")
     if not kinds[row.subgroup] then kinds[row.subgroup] = true; order[#order + 1] = row.subgroup end
   end
-  assertEqual(#order, 3, "Interface should head exactly three kinds of control")
+  assertEqual(#order, 2, "Interface should head exactly two kinds of control")
   assertEqual(order[1], "Windows")
-  assertEqual(order[2], "Item tooltips")
-  assertEqual(order[3], "Simulator")
+  assertEqual(order[2], "Simulator")
 end)
 
 test("Schema: the simulator's step delay is a 0.5-10 s slider on Interface, defaulting to 1 s", function()

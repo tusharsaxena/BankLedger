@@ -185,6 +185,16 @@ old default the addon wrote itself, and it follows the skin through LibKa0s-Skin
 (skinning-§9, *Who moves, and the one step*). A companion already stored is never touched, so a second
 run finds nothing. Counts one row per companion written.
 
+#### Schema v8 — the retired vendor buy price setting leaves the file (IS-BL-01)
+
+`db.global.schemaVersion` is now **8**. The vendor buy price on WoW Forever's row tooltips (SF-BL-01,
+read from the optional ForeverDB) was removed by the Item Search run (Ka0sAddonsCommonTasks
+`docs/2026-11-25-ITEM_SEARCH/`, `03_SPEC.md` §6), and its setting `settings.showVendorBuyPrice` with
+it. Its default was on, so AceDB stored the key only where a player turned it off. The v7 → v8 step,
+`NS.MIGRATIONS[8]`, walks every stored profile raw, as v4 does, and removes the key from each
+profile's `settings`. Nothing else is touched. Counts one row per value removed; idempotent, since a
+second run finds no key.
+
 #### The SavedVariables stamp — declared as 0 (savedvariables-§1, standard v2.65.0)
 
 `defaults/Global.lua` declares `schemaVersion = 0`, and **0 is never a real version**. That is the

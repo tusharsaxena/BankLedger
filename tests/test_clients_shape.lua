@@ -109,7 +109,6 @@ end)
 -- gets its present/absent expectation on each profile.
 local EXPECT = {
   warbandBank = { retail = true, forever = false },
-  vendorBuyPrice = { retail = false, forever = true },
 }
 
 test("clients: every declared feature is present where declared and absent where not", function()

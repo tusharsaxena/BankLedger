@@ -233,7 +233,7 @@ test("Migrate v3: the [Migrate] line counts each value it moved", function()
     lines = withTag(debugLines(function() NS:RunMigrations() end), "[Migrate]")
   end)
   assertEqual(#lines, 1, "one migration line")
-  assertTrue(lines[1]:find("v2 -> v7, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
+  assertTrue(lines[1]:find("v2 -> v8, 7 rows touched", 1, true) ~= nil, tostring(lines[1]))
 end)
 
 -- ── the v4 step: the retention window back to db.global (owner decision D6) ─────────────────────
@@ -457,7 +457,7 @@ test("Migrate v7: a stored row tint pick keeps its slider, every other profile f
   }
   withDb(sv, function(db)
     NS:RunMigrations()
-    assertEqual(db.global.schemaVersion, 7, "stamped v7")
+    assertEqual(db.global.schemaVersion, NS.SCHEMA_VERSION, "stamped current")
     local P = sv.profiles
     assertEqual(P.Default.settings.rowStripeAlphaFromSkin, false, "the Default profile's stripe pick moved")
     assertEqual(P.Default.settings.rowHoverAlphaFromSkin, nil, "an unpicked hover was written")
@@ -468,6 +468,33 @@ test("Migrate v7: a stored row tint pick keeps its slider, every other profile f
     assertEqual(P.Plain.settings.rowStripeAlphaFromSkin, nil, "a profile that set nothing was written")
     assertEqual(rawget(P.Bare, "settings"), nil, "a bare profile gained a settings table")
     assertEqual(NS.MIGRATIONS[7](db.global, db), 0, "the second pass moved something")
+  end)
+end)
+
+-- IS-BL-01 (Ka0sAddonsCommonTasks docs/2026-11-25-ITEM_SEARCH 03_SPEC.md §6): WoW Forever's vendor
+-- buy price is gone, and v8 takes its stored setting out of every profile. Its default was on, so
+-- a stored value is a `false` a player set. red under: no v8 step, one that reaches only the active
+-- profile, one that touches another setting, or one that writes a profile that set nothing.
+test("Migrate v8: the retired vendor buy price setting leaves every stored profile", function()
+  local sv = {
+    global = { schemaVersion = 7 },
+    profiles = {
+      Default = { settings = { showVendorBuyPrice = false, visibility = "always" } },
+      Alt = { settings = { showVendorBuyPrice = false } },
+      Plain = { settings = { visibility = "always" } },
+      Bare = {},
+    },
+  }
+  withDb(sv, function(db)
+    NS:RunMigrations()
+    assertEqual(db.global.schemaVersion, 8, "stamped v8")
+    local P = sv.profiles
+    assertEqual(rawget(P.Default.settings, "showVendorBuyPrice"), nil, "the Default profile kept the key")
+    assertEqual(P.Default.settings.visibility, "always", "another setting was touched")
+    assertEqual(rawget(P.Alt.settings, "showVendorBuyPrice"), nil, "another profile kept the key")
+    assertEqual(P.Plain.settings.visibility, "always", "a profile without the key was touched")
+    assertEqual(rawget(P.Bare, "settings"), nil, "a bare profile gained a settings table")
+    assertEqual(NS.MIGRATIONS[8](db.global, db), 0, "the second pass moved something")
   end)
 end)
 

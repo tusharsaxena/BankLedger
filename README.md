@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1629058)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1882%2F1882_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1870%2F1870_passing-green)
 
 Supports Retail and WoW Forever. Bank Ledger is a passbook for your banks. Put something in or take something out, at your own
 bank, the warband bank (Retail only) or the guild bank, and it writes a line: what moved, which way, how much, and
@@ -135,7 +135,6 @@ and questing, never ends up in the book.
 | Question | Answer |
 | -------- | ------ |
 | Does it work on WoW Forever? | Yes, from the same download. WoW Forever has no warband bank, so there it records your character bank and your guild bank, and gold at the guild bank. Keys count as carried: a key moved from your keyring into the bank is a deposit. Characters are listed by their whole name, first name and surname. |
-| What is the vendor buy price on WoW Forever? | If you have the [ForeverDB](https://github.com/foreverfraddons/forever-db) addon installed, hovering an item in the ledger shows what a vendor sells it for, under the sell price the game already shows. ForeverDB is optional and Bank Ledger works the same without it. It loads the first time you hover an item, never at login and never in combat. Turn the line off with **Show vendor buy price** on Settings > General > Interface. Retail has no such line. |
 | Does it track what's in my bank right now? | No, and that is what a bag addon is for. This one keeps the record of what crossed in and out. |
 | Is my history shared between characters? | Yes. One account-wide ledger, so an alt's deposits and your withdrawals sit in the same list. |
 | Can one character use different settings? | Yes. Settings, the two filter lists and the saved views belong to a profile, and the **Profiles** page lets a character switch to (or create) its own. `/bl profile <name>` switches from chat. The history stays shared whatever profile you are on. |
