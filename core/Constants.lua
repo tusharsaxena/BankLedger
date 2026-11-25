@@ -23,6 +23,8 @@ C.Store = {
 -- is a surface. tests/test_warband_client.lua checks each gate on both kit profiles.
 C.FEATURE_CLIENTS = {
   warbandBank = { "retail" },
+  -- The vendor buy price on a row's item tooltip, read from the optional ForeverDB (clients-§11).
+  vendorBuyPrice = { "forever" },
 }
 C.FEATURE = {}
 for name, clients in pairs(C.FEATURE_CLIENTS) do C.FEATURE[name] = NS.Compat.ForClient(clients) end

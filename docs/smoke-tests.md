@@ -31,7 +31,7 @@ FOREVER-19 are the Retail regression checks for the port's two Retail changes (r
 | SIM-1 – 17 | Simulator | `/bl sim`: the four scenarios, the start refusals, what stops it, the step panel, purge and test mode refused during it, the 12.1.5 warband event check, the step delay, auto-play, no stall on a refused item, the idle panel's real item names, the Master controls Sim mode box, the box following the step panel, every start showing the step panel |
 | SKIN-1 – 49 | Skins | Ka0s Default and what changed on it, the Skin tab, each skin live on every window, the close control, the row bands, game colors, the tool windows, the settings pages, fonts and the font and texture overrides, EllesmereUI on and off, the copy, profiles, combat, tooltips, the first-run skin picker, the Font outline, From skin flags, width parity, characters every face draws, the overrides reset on a skin change, the skin paints the media rows, the sort arrow, a stored pick of the deleted Friz, a picker list closing on a click outside it, Ka0s Default's gold title band, no line under any window's title, the library's HUD icon edge leaving the windows alone, round 5's darker band and the skin list closing on an outside press, each header on its band, the round 6 picker loading, the picker's test-mode preview, the Minimum quality labels on a skinned page |
 | DEGRADED-1 – 17 | Library-absent install | `libs/LibKa0s` renamed aside: fallbacks, refusals, restore, the fallback resize grip, the TEST MODE badge as the only marker, the fallback grip over the rows, today's look without the skin engine, a report streamed to chat |
-| FOREVER-1 – 19 | WoW Forever | The WoW Forever port on the Forever client: the clean install, no Warband Bank in the settings, copy, simulator, test mode or session preview, the character bank, the keyring, no phantom rows while the bank loads, socketed bags ignored, two-word names, the default skin, the Forever Wowhead links, the simulator's bank, the guild bank, the probe verbs, running the rest of the file there; the R8 Retail regression checks: a normal visit, a warband-only banker, a second visit, gold in coins |
+| FOREVER-1 – 23 | WoW Forever | The WoW Forever port on the Forever client: the clean install, no Warband Bank in the settings, copy, simulator, test mode or session preview, the character bank, the keyring, no phantom rows while the bank loads, socketed bags ignored, two-word names, the default skin, the Forever Wowhead links, the simulator's bank, the guild bank, the probe verbs, running the rest of the file there; the R8 Retail regression checks: a normal visit, a warband-only banker, a second visit, gold in coins; the vendor buy price from ForeverDB with it, without it, in combat and on Retail |
 | LOC-1 – 5 | Non-English client | Localized type strings, the CSV contract, sort and search, quality names |
 
 ## Before you start
@@ -1910,6 +1910,46 @@ in the port moves a Retail result.
   naming `FormatMoney` or `GetCoinTextureString`. Result: PASS (owner, 2026-11-24) on WoW Forever
   Result: PASS (owner, 2026-11-24) on Retail
 
+### The vendor buy price from ForeverDB (SF-BL-01)
+
+Ka0sAddonsCommonTasks `docs/2026-11-25-SEEDS_AND_FOREVERDB/`, item SF-BL-01 (LibKa0s#105, LibKa0s
+v1.114.0). On WoW Forever a ledger row's item tooltip adds a *Vendor buy price* line, the lowest
+price a vendor was seen asking, read from the optional ForeverDB addon. ForeverDB is LoadOnDemand and
+about 12 MB; the first hover of an item row is what loads it. Use an item a vendor sells (a drink
+from an innkeeper, a reagent) and one no vendor sells (a cloth or a quest item). If another addon on
+the client loads ForeverDB itself, the "not loaded at login" steps read `true` from the start: note
+which addon and skip those steps.
+
+- **FOREVER-20. With ForeverDB: the price beside the game's sell price (SF-BL-01).** Client: WoW
+  Forever. ForeverDB installed and enabled. Log in → `/dump C_AddOns.IsAddOnLoaded("ForeverDB")`
+  answers `false`. Settings → General → Interface → an **Item tooltips** heading holds *Show vendor
+  buy price*, ticked; hover it → its tooltip says it needs the ForeverDB addon. `/bl show`, hover a
+  History row of the vendor-sold item → under the game's own item tooltip (with its sell price), a
+  `Vendor buy price` line with coins, above the `Shift-click to link` hint; the `/dump` now answers
+  `true`. Hover the item no vendor sells → no such line. At a banker, hover the same item's row in the
+  session window → the same line. Untick *Show vendor buy price* and hover again → no line; tick it
+  back. `/bl diagnostics` → the identity section ends with `ForeverDB: present=yes loaded=yes
+  version=…` and a build and hash. **Fail:** ForeverDB loaded at login, no line on a vendor-sold
+  item, a line on an item no vendor sells, a line with the box unticked, or a Lua error. Result:
+- **FOREVER-21. Without ForeverDB: inert, and the row says why (SF-BL-01).** Client: WoW Forever.
+  Disable ForeverDB in the AddOns list and `/reload`. Settings → Interface → *Show vendor buy price*
+  is still there and its tooltip says the feature needs ForeverDB. Hover the vendor-sold item's
+  History row and its session row → the game's item tooltip with no `Vendor buy price` line, and no
+  Lua error. `/bl diagnostics` → `ForeverDB: present=yes loaded=no`. Re-enable ForeverDB after.
+  **Fail:** a Lua error, a price line, or the row missing. Result:
+- **FOREVER-22. The first load never happens in combat (SF-BL-01).** Client: WoW Forever. ForeverDB
+  enabled, `/reload`. Enter combat (a training dummy) with the ledger window open and hover the
+  vendor-sold item's row → no `Vendor buy price` line, and
+  `/dump C_AddOns.IsAddOnLoaded("ForeverDB")` after the fight still answers `false`. Out of combat,
+  hover it again → the line appears (and the load's short hitch, if any, happens now). Enter combat
+  again and hover → the line still shows. **Fail:** ForeverDB loaded by a hover in combat, or no line
+  out of combat. Result:
+- **FOREVER-23. Retail has no vendor buy price (SF-BL-01).** Client: Retail. Settings → General →
+  Interface → no **Item tooltips** heading and no *Show vendor buy price* row. `/bl list` → no
+  `settings.showVendorBuyPrice` line. Hover an item row in History → the item tooltip and the hint,
+  no `Vendor buy price` line. `/bl diagnostics` → `ForeverDB: present=no loaded=no`. **Fail:** the
+  row, the line or a Lua error on Retail. Result:
+
 ## Non-English client
 
 Run on a client set to **deDE or frFR**, the two the collection's other locale checks use
@@ -2093,3 +2133,7 @@ Passed, recorded on each `Result:` line as `PASS (owner, 2026-11-24)`, one line 
 check runs on both: FOREVER-1 to FOREVER-19, PANEL-7, PANEL-21 to PANEL-23, PANEL-28, PANEL-33,
 PANEL-34, SKIN-5 and SKIN-49. The owner's answer to probe P3 (a key can go into the bank) is on its
 `Result:` line in [`forever-probes.md`](forever-probes.md).
+
+Added by the seeds and ForeverDB run (Ka0sAddonsCommonTasks `docs/2026-11-25-SEEDS_AND_FOREVERDB/`, item
+SF-BL-01 on LibKa0s v1.114.0), awaiting the owner: FOREVER-20 to FOREVER-23, the vendor buy price from
+ForeverDB with it, without it, in combat and on Retail.

@@ -87,6 +87,7 @@ row here and an expectation on each kit profile. The client behaviors behind the
 | The per-container bank readiness guard, `C_Bank.CanViewBank(Character)` and the `BAG_CONTAINER_UPDATE` / `BANK_TABS_CHANGED` cues (ruling R8) | `both` | `modules/Ledger.lua` (`L:CheckReady`, `L:ShapeMemory`, `L:ReadableStores`, the `CAPTURE` list), `core/Compat.lua` (`CanViewCharacterBank` and `UnreadyBankContainers`, routed from `LibKa0s-Compat-1.0`) |
 | Money text through `C_CurrencyInfo.GetCoinTextureString`, then `GetMoneyString`, then text (ruling R8) | `both` | `core/Util.lua` (`FormatMoney`) |
 | The probe verbs `/bl debug probe start\|stop\|status\|clear` (ruling R4) | `both` | `modules/Probe.lua`, `settings/Schema.lua` (the debug verb) |
+| The vendor buy price on a ledger row's item tooltip (`C.FEATURE_CLIENTS.vendorBuyPrice`, SF-BL-01, LibKa0s#105): the lowest price a vendor was seen asking, read through `LibKa0s-ForeverDB-1.0` from the optional ForeverDB addon, beside the client's own sell price; its Interface row *Show vendor buy price* (Item tooltips). Shown at hover, never stored; without ForeverDB the tooltip has no such line. On Retail the row and the line are absent | `forever` | `core/Constants.lua`, `core/ForeverDBSetup.lua`, `modules/LedgerTable.lua` (`LT.AddVendorBuyPrice`, also called by `modules/SessionWindow.lua`), `settings/Schema.lua` (the row's `clients`) |
 
 ## Settings Schema
 

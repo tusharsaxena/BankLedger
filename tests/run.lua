@@ -31,7 +31,7 @@ local SUITES = {
   "test_lintconfig", "test_diagnostics", "test_report_verbs", "test_profiles", "test_debug_coverage", "test_debug_library",
   "test_sim_seam", "test_sim_world", "test_sample_characters", "test_sim_drivers", "test_sim_session", "test_sim_scenario", "test_sim_e2e",
   "test_sim_panel", "test_sim_checkbox", "test_layers", "test_skinsetup", "test_skin_windows", "test_skin_chrome", "test_title_bar",
-  "test_tooltip_place", "test_skin_picker", "test_skin_picker_preview", "test_skin_tools", "test_skin_outline", "test_skin_verb", "test_glyphs",
+  "test_tooltip_place", "test_vendor_buy_price", "test_skin_picker", "test_skin_picker_preview", "test_skin_tools", "test_skin_outline", "test_skin_verb", "test_glyphs",
   -- The kit's own gates. The prose gate is the kit's, not a copy of this repo's: localization-§5
   -- wires one or the other, never both, and the hand-written tests/test_prose.lua was retired when
   -- kit revision 25 began reporting it as shadowing tests/_kit/test_prose.lua.
@@ -95,6 +95,8 @@ Kit.setSurfaceSource{
   -- core/ItemSetup.lua's stub mirrors the Item LIBRARY TABLE (its primitives are lib-level
   -- functions), so the live half is the mock LibStub's answer, as for Bus.
   ["LibKa0s-Item-1.0"]     = mocks.LibStub("LibKa0s-Item-1.0", true),
+  -- core/ForeverDBSetup.lua's stand-in mirrors the ForeverDB LIBRARY TABLE too (lib-level functions).
+  ["LibKa0s-ForeverDB-1.0"] = mocks.LibStub("LibKa0s-ForeverDB-1.0", true),
   -- core/SimSetup.lua's degraded NS.Sim mirrors an INSTANCE of LibKa0s-Sim-1.0, which Sim:New builds
   -- per host, so no manifest lists its members. The live half is a real instance, bound to a
   -- throwaway seam over an empty table: NS.SimSeam is not touched, because one seam binds one

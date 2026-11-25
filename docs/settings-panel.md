@@ -18,7 +18,7 @@ only. The finer tree is everything below it.
 | Master controls | The addon as a whole, and the same first tab in every Ka0s addon: turn Bank Ledger off, choose when its windows are shown at all, scale and fade them, lock them in place, open the debug console, put a sample ledger on screen (**Test mode**, the same switch as `/bl test`), run the simulator (**Sim mode**, the same as `/bl sim`), put the windows back where they started, or return every setting to stock. |
 | Capture | What actually gets recorded: **Record items** beside **Minimum quality** (items only; gold has no quality), **Record gold** under them, and which banks you care about, under the **Banks to record** heading. |
 | Filters | Two lists of items by id, one per sub-tab. Blacklisted items are never recorded; whitelisted items are always recorded, even below your Minimum quality. Add an item by typing its id or its name, or by shift-clicking its link into the box. As you type, a list of matching items drops down under the box — click one (or pick it with Up/Down and Enter) to add it; an item made in several quality ranks shows one row for each rank you carry or your ledger or lists hold, and typing a name several of those ranks share and pressing Enter without picking adds nothing and asks you to pick. If only one rank is known here, Enter adds that rank: the game has no item-name search, so other ranks stay unknown until you carry them. Use the id to add any rank you want. A name works for an item you carry (or carried this session), one on either list, or one your ledger has recorded; for anything else use the id or shift-click a link. Each entry shows an **X** on the left, then the item's icon, name and id — click the X to remove it — and **Clear all…**, below the list, empties it after asking. Both lists only affect what happens from now on — nothing already in your ledger is ever hidden or removed by them. |
-| Interface | What is on screen, under two headings. **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
+| Interface | What is on screen, under two headings (three on WoW Forever). **Windows**: **Show session window** (whether the Current Banking Session window appears at a bank), then how strongly the tables band their rows and highlight the one under your cursor. **Item tooltips** (WoW Forever only): **Show vendor buy price**, the price a vendor sells the item for under a ledger row's item tooltip, from the optional ForeverDB addon. **Simulator**: how long a playing simulation waits between steps (**Simulation step delay (seconds)**, 1 second by default). The minimap button is **not** here — it is a Master controls row (`launcher-§3`). |
 | History | How much is kept — 30 days by default, for every profile at once — with a read-out of how many movements you have recorded and roughly how big the database is, and **Purge history…**, which empties the history after asking first. |
 | Skin | The skin this addon wears: the skin source (Ka0s skins, or EllesmereUI when it can skin the addon), the nine Ka0s skins with their swatches, **Font and texture** (a **Font** and a **Texture** dropdown over the skin's own, the **Reset font** and **Reset texture** buttons, and the **Font outline** dropdown: All text, HUD text only (the default) or Off), the Scope (**Ignore settings panel**, **Ignore fonts**), **Copy to every Ka0s addon…**, and a note that skins change every visual element. Per profile, like every other setting. |
 | Keybindings | The one key binding, **Toggle ledger window** (`options-ui-§20`). |
@@ -393,6 +393,7 @@ composed rows carry their own; the two tint sliders declare `0.01` and the simul
 | `settings.rowHoverAlpha` | number | `0.16` | Interface | Windows | disabled, showing the skin's alpha, while its companion is on |
 | `settings.rowStripeAlphaFromSkin` | bool | `true` | Interface | Windows | *Use the skin's stripe opacity*; pairs with the hover companion on the line under the sliders (SD-SK-BL.1) |
 | `settings.rowHoverAlphaFromSkin` | bool | `true` | Interface | Windows | *Use the skin's hover opacity* |
+| `settings.showVendorBuyPrice` | bool | `true` | Interface | Item tooltips | *Show vendor buy price*; `solo`; `clients = { "forever" }` (`C.FEATURE_CLIENTS.vendorBuyPrice`), so on Retail it is no row on the page or in `/bl list`. Read at each hover by `LT.AddVendorBuyPrice`; needs the optional ForeverDB, and its tooltip says so (SF-BL-01) |
 | `settings.sim.stepDelay` | number | `1` | Interface | Simulator | *Simulation step delay (seconds)*, its tooltip opening "Paces /bl sim: "; alone under its heading; slider 0.5–10 s in 0.5 s steps, with a `validate` (`NS.SimHost.ValidStepDelay`) |
 | `settings.retentionDays` | number | `30` | History | — | **Account-wide**: stored in `db.global.settings`, not the profile (owner decision D6), through the row's own `get`/`set`; the tooltip says so |
 | `settings.appearance.source` | string | `"ka0s"` | Skin (key `Appearance`) | — | `skipRender`: the library's Skin tab draws it. `ka0s` or `eui` (`NS.SKIN_SOURCE_OPTIONS`); `onChange` applies only the source half |
@@ -506,9 +507,9 @@ and the recorded ledger, which is account-wide, is kept. `/bl purge` is the act 
 
 ## The General page's tabs and the Filters tab
 
-The twenty-eight schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
+The twenty-nine schema rows all live on the **General** page, which is **tabbed** (`options-ui-§13`): `group` names a tab,
 the array's declaration order is the tab order, and the strip reads **Master controls** (9) ·
-**Capture** (4) · **Filters** · **Interface** (6) · **History** (1) · **Skin** (8, the Appearance group,
+**Capture** (4) · **Filters** · **Interface** (7, six on Retail) · **History** (1) · **Skin** (8, the Appearance group,
 drawn by the library's entry), then the library's host tab **Keybindings** (`options-ui-§20`, above). Filters carries no settings at
 all — it is the retired **Filters** page's id-lists, drawn from an `afterGroup` hook under one
 renderer-only row (`S.BespokeRows`) that exists to name a tab and nothing else, which is why
@@ -544,7 +545,8 @@ stored paths. Three of its rows are new — `settings.visibility`, `settings.alp
 `settings.locked` — and each is honored in `NS.Util` rather than merely declared. Two other rows are
 chrome literals promoted to settings in the tabbed-panel pass — `settings.rowStripeAlpha` and
 `settings.rowHoverAlpha`, each following the skin's alpha through its companion (SD-SK-BL.1), under
-the Interface tab's **Windows** subsection beside the session window's switch. Its second subsection, **Simulator**,
+the Interface tab's **Windows** subsection beside the session window's switch. Its second subsection, **Item tooltips**,
+is WoW Forever's alone and holds *Show vendor buy price* (`settings.showVendorBuyPrice`). Its last, **Simulator**,
 holds the simulator's step delay (`settings.sim.stepDelay`).
 
 ## Bulk writes and the reset routes

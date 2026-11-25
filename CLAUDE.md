@@ -46,10 +46,10 @@ auto-stage/commit/push and never bump the version without an explicit instructio
 
 ## Vendored LibKa0s — the provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.113.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.114.0 (MIT).
 LibKa0s icons: chevron-down, chevron-right, chevron-up, clear, close, confirm, copy, export, eye, info, lock, move, reset, search, settings, sort-down, sort-up, unlock, volume-high.
 
-That tag carries test-kit revision 60 (`Kit.VERSION` in `tests/_kit/framework.lua`).
+That tag carries test-kit revision 62 (`Kit.VERSION` in `tests/_kit/framework.lua`).
 
 That line is the single answer to "which LibKa0s does this build carry?", and it is machine-read:
 `tests/test_vendor_sync.lua` greps it out of **this file** (kit revision 9 moved it here from
