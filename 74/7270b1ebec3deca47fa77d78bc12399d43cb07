@@ -1,0 +1,5 @@
+Independent review, Ka0sAddonsCommonTasks docs/2026-11-25-SEEDS_AND_FOREVERDB (workflows wf_df07c1ab-8d1, wf_219c4c4a-92a)
+SF-BL-01: 2 findings (minor, minor); fix pass: 747270b SF-BL-01: review fixes (the load-count pin sees file load; the addon's own Forever gate is pinned); fix gate green=True
+  - [minor] tests/test_vendor_buy_price.lua:753 `assertEqual(fdb.loads, 0, "ForeverDB loaded before any hover (at file load or login)")` always passes. withFake() runs fresh() (file load, InitDB, Register, Enable) before FDB.install, so the fake's
+  - [minor] modules/LedgerTable.lua:552 BankLedger's own Forever gate (`if not C.FEATURE.vendorBuyPrice then return false end`) is not pinned by any test. In a scratch copy I deleted that line and ran the Retail profile: every `vendor price
+Lead gate re-run 2026-11-25 at this head: green (see EXECUTION_RECORD.md).
