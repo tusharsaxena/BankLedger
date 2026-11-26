@@ -298,6 +298,14 @@ tests/
   menu_mock.lua            -- a fake of the client's MenuUtil context-menu API, modeled on
                            --   LibKa0s's repo-local tests/mock_menu.lua; installed per case by
                            --   test_launcher.lua and test_disabled.lua. Not a suite
+  ledger_support.lua       -- the ledger suites' shared capture fixture (withContainers), peeled
+                           --   out when test_ledger.lua crossed the 1500-line cap. Not a suite
+  panel_support.lua        -- the panel suites' shared render helpers (renderPage, GENERAL_TABS),
+                           --   shared by test_panel.lua and test_panel_filters.lua. Not a suite
+  sim_support.lua          -- the simulator suites' shared session fixture (withSession), which
+                           --   restores what a sim case touched. Not a suite
+  prose_waivers.lua        -- the kit prose gate's per-file, per-word waivers, each with its
+                           --   reason; read by _kit/test_prose.lua. Not a suite
   test_<module>.lua        -- one suite per module
   test_autocomplete.lua    -- the search box's suggestion list (P9): the B:MakeAutocomplete seam
                            --   (copied opts, nil without the library), the list hung under the
